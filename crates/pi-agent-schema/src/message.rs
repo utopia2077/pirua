@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::fmt;
 
-use pi_ai_core::{CustomRole, JsonObject, JsonValue, Message, StopReason};
+use pi_ai_core::{AssistantMessage, CustomRole, JsonObject, JsonValue, Message, StopReason};
 use serde::de::{self, MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -47,6 +47,47 @@ impl fmt::Display for DurableAgentMessageError {
 }
 
 impl std::error::Error for DurableAgentMessageError {}
+
+/// A settled assistant message accepted at effect-settlement boundaries.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SettledAssistantMessage(AssistantMessage);
+
+impl SettledAssistantMessage {
+    /// Validates and wraps a provider-neutral assistant message.
+    pub fn new(message: AssistantMessage) -> Result<Self, DurableAgentMessageError> {
+        validate_assistant(&message)?;
+        Ok(Self(message))
+    }
+
+    /// Returns the settled assistant message.
+    pub const fn as_message(&self) -> &AssistantMessage {
+        &self.0
+    }
+
+    /// Consumes the wrapper.
+    pub fn into_message(self) -> AssistantMessage {
+        self.0
+    }
+}
+
+impl Serialize for SettledAssistantMessage {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        validate_assistant(&self.0).map_err(serde::ser::Error::custom)?;
+        self.0.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for SettledAssistantMessage {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Self::new(AssistantMessage::deserialize(deserializer)?).map_err(de::Error::custom)
+    }
+}
 
 /// A custom Agent message with an unwrapped open role and detached fields.
 #[derive(Clone, Debug, PartialEq)]
@@ -99,6 +140,16 @@ pub enum AgentMessage {
     BuiltIn(Message),
     /// An application-defined message with a registered open role.
     Custom(CustomAgentMessage),
+}
+
+/// Process-local message lifecycle value that may contain a pending assistant draft.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LiveAgentMessage {
+    /// Partial or settled assistant message.
+    Assistant(Box<AssistantMessage>),
+    /// Settled durable Agent message, including custom roles.
+    Settled(AgentMessage),
 }
 
 impl Serialize for AgentMessage {
@@ -172,6 +223,10 @@ fn validate_builtin(message: &Message) -> Result<(), DurableAgentMessageError> {
     let Message::Assistant(assistant) = message else {
         return Ok(());
     };
+    validate_assistant(assistant)
+}
+
+fn validate_assistant(assistant: &AssistantMessage) -> Result<(), DurableAgentMessageError> {
     if assistant.stop_reason == StopReason::Pending {
         return Err(DurableAgentMessageError::PendingAssistant);
     }

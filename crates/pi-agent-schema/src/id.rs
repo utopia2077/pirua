@@ -170,3 +170,6 @@ open_identity!(TaskId, "An open structural task identity.");
 open_identity!(LaneId, "An open lane name.");
 open_identity!(CustomType, "An open custom-entry type.");
 open_identity!(OperationErrorCode, "An open operation error code.");
+open_identity!(SessionId, "An open repository session identity.");
+open_identity!(HandlerId, "An open stable hook-handler identity.");
+open_identity!(EffectStepId, "An open process-local effect step identity.");
