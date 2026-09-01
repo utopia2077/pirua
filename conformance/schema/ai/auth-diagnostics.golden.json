@@ -1,0 +1,24 @@
+{
+  "credentials": [
+    { "type": "api_key" },
+    { "type": "api_key", "key": "secret-key", "env": { "ACCOUNT": "secret-account" } },
+    { "type": "oauth", "refresh": "secret-refresh", "access": "secret-access", "expires": 9007199254740991, "accountId": "account-1", "nullable": null }
+  ],
+  "credentialInfo": { "providerId": "future-provider", "type": "oauth" },
+  "authResult": { "auth": { "apiKey": "secret", "headers": { "authorization": "secret" }, "baseUrl": "https://example.invalid" }, "env": { "TOKEN": "secret" }, "source": "OAuth" },
+  "authCheck": { "source": "OAuth", "type": "oauth" },
+  "prompts": [
+    { "type": "text", "message": "name", "placeholder": "value" },
+    { "type": "secret", "message": "token" },
+    { "type": "select", "message": "account", "options": [{ "id": "one", "label": "One", "description": "first" }] },
+    { "type": "manual_code", "message": "code" }
+  ],
+  "events": [
+    { "type": "info", "message": "open", "links": [{ "url": "https://example.invalid", "label": "Login" }] },
+    { "type": "auth_url", "url": "https://example.invalid", "instructions": "open" },
+    { "type": "device_code", "userCode": "ABCD", "verificationUri": "https://example.invalid", "intervalSeconds": 5, "expiresInSeconds": 60 },
+    { "type": "progress", "message": "waiting" }
+  ],
+  "diagnostic": { "type": "future_diagnostic", "timestamp": 1, "error": { "name": "ProviderError", "message": "failed", "stack": "redacted", "code": 429 }, "details": { "retry": false } },
+  "modelsErrorCodes": ["model_source", "model_validation", "provider", "stream", "auth", "oauth"]
+}

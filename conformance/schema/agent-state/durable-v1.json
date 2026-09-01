@@ -1,0 +1,114 @@
+{
+  "entries": [
+    {"id":"entry-message","parentId":null,"seq":0,"timestamp":0,"type":"message","message":{"role":"user","content":"","timestamp":0},"terminate":true},
+    {"id":"entry-compaction","parentId":"entry-message","seq":1,"timestamp":0,"type":"compaction","summary":"","retainedTail":[],"tokensBefore":0,"details":null,"fromHook":false},
+    {"id":"entry-branch","parentId":"entry-compaction","seq":2,"timestamp":0,"type":"branch_summary","fromId":"entry-old-leaf","summary":"","details":{"empty":""},"usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0.0,"output":0.0,"cacheRead":0.0,"cacheWrite":0.0,"total":0.0}},"fromHook":true},
+    {"id":"entry-custom-missing","parentId":"entry-branch","seq":3,"timestamp":0,"type":"custom","customType":"future.custom"},
+    {"id":"entry-custom-null","parentId":"entry-custom-missing","seq":4,"timestamp":0,"type":"custom","customType":"future.custom","data":null},
+    {"id":"entry-custom-value","parentId":"entry-custom-null","seq":5,"timestamp":0,"type":"custom","customType":"future.custom","data":{"zero":0,"false":false,"empty":""}}
+  ],
+  "entryBases": [
+    {"id":"entry-message","parentId":null,"seq":0,"timestamp":0,"type":"message"},
+    {"id":"entry-custom-value","parentId":"entry-custom-null","seq":5,"timestamp":0,"type":"custom","customType":"future.custom"}
+  ],
+  "newEntries": [
+    {"id":"new-message","parentId":null,"type":"message","message":{"role":"artifact","payload":{"ok":true}},"terminate":true},
+    {"id":"new-compaction","parentId":"new-message","type":"compaction","summary":"","retainedTail":[],"tokensBefore":0,"details":null,"fromHook":false},
+    {"id":"new-branch","parentId":"new-compaction","type":"branch_summary","fromId":"entry-old-leaf","summary":"","fromHook":true},
+    {"id":"new-custom","parentId":"new-branch","type":"custom","customType":"future.custom","data":null}
+  ],
+  "entryStructures": [
+    {"id":"entry-message","parentId":null,"seq":0,"timestamp":0,"type":"message"},
+    {"id":"entry-custom-value","parentId":"entry-custom-null","seq":5,"timestamp":0,"type":"custom","customType":"future.custom"}
+  ],
+  "usageRows": [
+    {"id":"usage-0","seq":0,"usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"cacheWrite1h":0,"reasoning":0,"totalTokens":0,"cost":{"input":0.0,"output":0.0,"cacheRead":0.0,"cacheWrite":0.0,"total":0.0}},"entryId":"entry-message","adjustment":false,"details":null}
+  ],
+  "newUsageRows": [
+    {"id":"usage-new","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0.0,"output":0.0,"cacheRead":0.0,"cacheWrite":0.0,"total":0.0}},"adjustment":true,"details":{"empty":""}}
+  ],
+  "operations": [
+    {"operationId":"op-run","lane":"main","sourceLeafId":null,"startedAt":0,"intent":{"kind":"run","promptEntryIds":[],"systemPromptOverride":"","resumeData":{}}},
+    {"operationId":"op-compaction","lane":"main","sourceLeafId":"entry-message","startedAt":0,"intent":{"kind":"compaction","customInstructions":""}},
+    {"operationId":"op-nav-root","lane":"main","sourceLeafId":"entry-message","startedAt":0,"intent":{"kind":"navigation","targetId":null,"summarize":false,"label":"","customInstructions":""}},
+    {"operationId":"op-nav-root-summary","lane":"main","sourceLeafId":"entry-message","startedAt":0,"intent":{"kind":"navigation","targetId":null,"summarize":true}},
+    {"operationId":"op-nav-target","lane":"main","sourceLeafId":"entry-message","startedAt":0,"intent":{"kind":"navigation","targetId":"entry-target","summarize":false}},
+    {"operationId":"op-nav-summary","lane":"main","sourceLeafId":"entry-message","startedAt":0,"intent":{"kind":"navigation","targetId":"entry-target","summarize":true,"label":"","customInstructions":""}}
+  ],
+  "lastResults": [
+    {"operationId":"op-run","kind":"run","leafId":"entry-message","finalAssistantEntryId":"entry-message","outcome":"completed","runCompletion":"assistant"},
+    {"operationId":"op-run","kind":"run","leafId":"entry-message","outcome":"completed","runCompletion":"terminated_tools"},
+    {"operationId":"op-run","kind":"run","leafId":null,"finalAssistantEntryId":"entry-message","outcome":"failed","error":{"code":"future_error","message":"","details":null}},
+    {"operationId":"op-run","kind":"run","leafId":null,"outcome":"aborted"},
+    {"operationId":"op-compaction","kind":"compaction","leafId":"entry-compaction","outcome":"completed"},
+    {"operationId":"op-compaction","kind":"compaction","leafId":null,"outcome":"failed","error":{"code":"future_error","message":""}},
+    {"operationId":"op-compaction","kind":"compaction","leafId":"entry-message","outcome":"declined"},
+    {"operationId":"op-compaction","kind":"compaction","leafId":null,"outcome":"aborted"},
+    {"operationId":"op-navigation","kind":"navigation","leafId":"entry-message","outcome":"completed"},
+    {"operationId":"op-navigation","kind":"navigation","leafId":null,"outcome":"failed","error":{"code":"future_error","message":""}},
+    {"operationId":"op-navigation","kind":"navigation","leafId":"entry-target","outcome":"declined"},
+    {"operationId":"op-navigation","kind":"navigation","leafId":null,"outcome":"aborted"}
+  ],
+  "preparations": [
+    {"kind":"compaction","messagesToSummarize":[],"turnPrefixMessages":[],"retainedTail":[],"isSplitTurn":false,"tokensBefore":0,"previousSummary":"","fileOps":{"read":["a"],"written":["b"],"edited":["c"]},"settings":{"enabled":false,"reserveTokens":0,"keepRecentTokens":0}},
+    {"kind":"branch_summary","messages":[],"fileOps":{"read":[],"written":[],"edited":[]},"totalTokens":0}
+  ],
+  "retryPolicies": [
+    {"enabled":false,"maxRetries":0,"baseDelayMs":0}
+  ],
+  "registers": [
+    {"namespace":"lane.leaf","key":"main","value":null,"seq":0},
+    {"namespace":"lane.config","key":"main","value":{"model":{"provider":"azure-openai-responses","modelId":"runtime-resolved"},"thinkingLevel":"off","activeToolNames":[]},"seq":0},
+    {"namespace":"lane.state","key":"main","value":{"currentOperationId":null,"pendingNextRun":[]},"seq":0},
+    {"namespace":"lane.lastResult","key":"main","value":{"operationId":"op-run","kind":"run","leafId":"entry-message","outcome":"completed","runCompletion":"terminated_tools"},"seq":0},
+    {"namespace":"op.meta","key":"op-run","value":{"operationId":"op-run","lane":"main","sourceLeafId":null,"startedAt":0,"intent":{"kind":"run","promptEntryIds":[]}},"seq":0},
+    {"namespace":"op.state","key":"op-compaction","value":{"kind":"compaction","control":{"status":"running"},"structural":{"status":"deciding","taskId":"task-1"}},"seq":0},
+    {"namespace":"op.tool_args","key":"op-run:step-1:0","value":{},"seq":0},
+    {"namespace":"op.preparation","key":"op-compaction:task-1","value":{"kind":"branch_summary","messages":[],"fileOps":{"read":[],"written":[],"edited":[]},"totalTokens":0},"seq":0},
+    {"namespace":"pending.entry","key":"entry-pending","value":{"type":"custom","customType":"future.custom","payload":null},"seq":0},
+    {"namespace":"fact.name","key":"","value":"","seq":0},
+    {"namespace":"fact.label","key":"entry-message","value":"","seq":0},
+    {"namespace":"fact.custom","key":"application.key","value":null,"seq":0}
+  ],
+  "writes": [
+    {"kind":"entry","entry":{"id":"write-entry","parentId":null,"type":"custom","customType":"future.custom","data":null}},
+    {"kind":"usage","row":{"id":"write-usage","usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,"cost":{"input":0.0,"output":0.0,"cacheRead":0.0,"cacheWrite":0.0,"total":0.0}},"adjustment":false}},
+    {"kind":"register","op":"set","namespace":"lane.leaf","key":"main","value":null},
+    {"kind":"register","op":"set","namespace":"lane.config","key":"main","value":{"model":{"provider":"azure-openai-responses","modelId":"runtime-resolved"},"thinkingLevel":"off","activeToolNames":[]}},
+    {"kind":"register","op":"set","namespace":"lane.state","key":"main","value":{"currentOperationId":null,"pendingNextRun":[]}},
+    {"kind":"register","op":"set","namespace":"lane.lastResult","key":"main","value":{"operationId":"op-run","kind":"run","leafId":null,"outcome":"aborted"}},
+    {"kind":"register","op":"set","namespace":"op.meta","key":"op-run","value":{"operationId":"op-run","lane":"main","sourceLeafId":null,"startedAt":0,"intent":{"kind":"run","promptEntryIds":[]}}},
+    {"kind":"register","op":"set","namespace":"op.state","key":"op-compaction","value":{"kind":"compaction","control":{"status":"running"},"structural":{"status":"deciding","taskId":"task-1"}}},
+    {"kind":"register","op":"set","namespace":"op.tool_args","key":"op-run:step-1:0","value":{}},
+    {"kind":"register","op":"set","namespace":"op.preparation","key":"op-compaction:task-1","value":{"kind":"branch_summary","messages":[],"fileOps":{"read":[],"written":[],"edited":[]},"totalTokens":0}},
+    {"kind":"register","op":"set","namespace":"pending.entry","key":"entry-pending","value":{"type":"message","customType":"future.custom","payload":null}},
+    {"kind":"register","op":"set","namespace":"fact.name","key":"","value":""},
+    {"kind":"register","op":"set","namespace":"fact.label","key":"entry-message","value":""},
+    {"kind":"register","op":"set","namespace":"fact.custom","key":"application.key","value":null},
+    {"kind":"register","op":"delete","namespace":"lane.leaf","key":"main"},
+    {"kind":"register","op":"delete","namespace":"lane.config","key":"main"},
+    {"kind":"register","op":"delete","namespace":"lane.state","key":"main"},
+    {"kind":"register","op":"delete","namespace":"lane.lastResult","key":"main"},
+    {"kind":"register","op":"delete","namespace":"op.meta","key":"op-run"},
+    {"kind":"register","op":"delete","namespace":"op.state","key":"op-run"},
+    {"kind":"register","op":"delete","namespace":"op.tool_args","key":"op-run:step-1:0"},
+    {"kind":"register","op":"delete","namespace":"op.preparation","key":"op-run:task-1"},
+    {"kind":"register","op":"delete","namespace":"pending.entry","key":"entry-pending"},
+    {"kind":"register","op":"delete","namespace":"fact.name","key":""},
+    {"kind":"register","op":"delete","namespace":"fact.label","key":"entry-message"},
+    {"kind":"register","op":"delete","namespace":"fact.custom","key":"application.key"}
+  ],
+  "transactions": [
+    {"writes":[]},
+    {"writes":[{"kind":"register","op":"set","namespace":"fact.custom","key":"application.key","value":null},{"kind":"register","op":"delete","namespace":"fact.custom","key":"application.key"}]}
+  ],
+  "commitResults": [
+    {"firstSeq":0,"seqs":[],"timestamp":0},
+    {"firstSeq":0,"seqs":[0,1],"timestamp":0}
+  ],
+  "streamOptions": [
+    {},
+    {"transport":"auto","timeoutMs":0,"maxRetries":0,"maxRetryDelayMs":0,"headers":{},"metadata":{},"cacheRetention":"none","deferred":false},
+    {"deferred":{"window":"1h"}}
+  ]
+}

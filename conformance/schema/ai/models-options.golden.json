@@ -1,0 +1,60 @@
+{
+  "model": {
+    "id": "model-1",
+    "name": "Model One",
+    "api": "openai-completions",
+    "provider": "custom-provider",
+    "baseUrl": "https://example.invalid",
+    "reasoning": true,
+    "thinkingLevelMap": { "off": null, "low": "low" },
+    "input": ["text", "image"],
+    "cost": { "input": 1.0, "output": 2.0, "cacheRead": 0.5, "cacheWrite": 1.5, "tiers": [{ "input": 2.0, "output": 4.0, "cacheRead": 1.0, "cacheWrite": 3.0, "inputTokensAbove": 100000 }] },
+    "contextWindow": 200000,
+    "maxTokens": 32000,
+    "samplingParams": { "top_p": 0.9 },
+    "compat": {
+      "supportsStore": false,
+      "thinkingFormat": "chat-template",
+      "chatTemplateKwargs": { "enabled": { "$var": "thinking.enabled", "omitWhenOff": true }, "empty": null },
+      "openRouterRouting": { "allow_fallbacks": false, "data_collection": "deny", "sort": { "by": "price", "partition": null }, "max_price": { "prompt": "1.2", "completion": 2 } },
+      "supportsOpenAIGrammarTools": true,
+      "sessionAffinityFormat": "openai-nosession"
+    }
+  },
+  "imagesModel": {
+    "id": "image-1",
+    "name": "Image One",
+    "api": "openrouter-images",
+    "provider": "openrouter",
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "input": ["text", "image"],
+    "output": ["image"],
+    "cost": { "input": 0.0, "output": 0.0, "cacheRead": 0.0, "cacheWrite": 0.0 }
+  },
+  "store": { "models": [], "lastModified": 1, "checkedAt": 2, "etag": "\"one\"" },
+  "tools": [
+    { "name": "plain", "description": "plain", "parameters": { "type": "object" }, "constrainedSampling": false },
+    { "name": "strict", "description": "strict", "parameters": {}, "constrainedSampling": { "type": "json_schema", "strict": "require" } },
+    { "name": "grammar", "description": "grammar", "parameters": {}, "constrainedSampling": { "type": "grammar", "variants": { "openai_lark": "start: /x/", "openai_regex": "x+" } } }
+  ],
+  "streamOptions": {
+    "timeoutMs": 1000,
+    "maxRetries": 0,
+    "maxRetryDelayMs": 0,
+    "temperature": 0.0,
+    "samplingParams": { "top_k": 0 },
+    "maxTokens": 1,
+    "transport": "websocket-cached",
+    "cacheRetention": "long",
+    "sessionId": "session-1",
+    "websocketConnectTimeoutMs": 500,
+    "metadata": { "zero": 0, "false": false, "empty": [] },
+    "toolChoice": "none",
+    "reasoning": "xhigh",
+    "deferred": { "window": "24h" },
+    "thinkingBudgets": { "minimal": 0, "low": 1, "medium": 2, "high": 3 }
+  },
+  "retry": { "enabled": false, "maxRetries": 0, "baseDelayMs": 0 },
+  "rawHeaders": { "authorization": "secret", "x-suppress": null },
+  "providerEnv": { "API_KEY": "secret" }
+}

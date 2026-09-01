@@ -1,0 +1,468 @@
+manifest_version = 1
+kind = "provider-inventory"
+source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+content_digest = "sha256:fa3b1d5042115566c9f27069fee9da60c568fd94e53019e0c24f46f58ad7fe2b"
+
+source_path = "packages/ai/src/providers/all.ts"
+
+[[provider]]
+module = "amazon-bedrock"
+factory_symbol = "amazonBedrockProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["amazon-bedrock"]
+api_ids = ["bedrock-converse-stream"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "AMAZON_BEDROCK_MODELS"
+
+[[provider]]
+module = "ant-ling"
+factory_symbol = "antLingProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["ant-ling"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "ANT_LING_MODELS"
+
+[[provider]]
+module = "anthropic"
+factory_symbol = "anthropicProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["anthropic"]
+api_ids = ["anthropic-messages"]
+has_oauth = true
+oauth_flows = ["loadAnthropicOAuth"]
+catalog_symbol = "ANTHROPIC_MODELS"
+
+[[provider]]
+module = "azure-openai-responses"
+factory_symbol = "azureOpenAIResponsesProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["azure-openai-responses"]
+api_ids = ["azure-openai-responses"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "AZURE_OPENAI_RESPONSES_MODELS"
+
+[[provider]]
+module = "baseten"
+factory_symbol = "basetenProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["baseten"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "BASETEN_MODELS"
+
+[[provider]]
+module = "cerebras"
+factory_symbol = "cerebrasProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["cerebras"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "CEREBRAS_MODELS"
+
+[[provider]]
+module = "cloudflare-ai-gateway"
+factory_symbol = "cloudflareAIGatewayProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["cloudflare-ai-gateway"]
+api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "CLOUDFLARE_AI_GATEWAY_MODELS"
+
+[[provider]]
+module = "cloudflare-workers-ai"
+factory_symbol = "cloudflareWorkersAIProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["cloudflare-workers-ai"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "CLOUDFLARE_WORKERS_AI_MODELS"
+
+[[provider]]
+module = "deepseek"
+factory_symbol = "deepseekProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["deepseek"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "DEEPSEEK_MODELS"
+
+[[provider]]
+module = "fireworks"
+factory_symbol = "fireworksProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["fireworks"]
+api_ids = ["anthropic-messages", "openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "FIREWORKS_MODELS"
+
+[[provider]]
+module = "github-copilot"
+factory_symbol = "githubCopilotProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["github-copilot"]
+api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
+has_oauth = true
+oauth_flows = ["loadGitHubCopilotOAuth"]
+catalog_symbol = "GITHUB_COPILOT_MODELS"
+
+[[provider]]
+module = "google"
+factory_symbol = "googleProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["google"]
+api_ids = ["google-generative-ai"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "GOOGLE_MODELS"
+
+[[provider]]
+module = "google-vertex"
+factory_symbol = "googleVertexProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["google-vertex"]
+api_ids = ["google-vertex"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "GOOGLE_VERTEX_MODELS"
+
+[[provider]]
+module = "groq"
+factory_symbol = "groqProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["groq"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "GROQ_MODELS"
+
+[[provider]]
+module = "huggingface"
+factory_symbol = "huggingfaceProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["huggingface"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "HUGGINGFACE_MODELS"
+
+[[provider]]
+module = "kimi-coding"
+factory_symbol = "kimiCodingProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["kimi-coding"]
+api_ids = ["anthropic-messages"]
+has_oauth = true
+oauth_flows = ["loadKimiCodingOAuth"]
+catalog_symbol = "KIMI_CODING_MODELS"
+
+[[provider]]
+module = "minimax"
+factory_symbol = "minimaxProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["minimax"]
+api_ids = ["anthropic-messages"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "MINIMAX_MODELS"
+
+[[provider]]
+module = "minimax-cn"
+factory_symbol = "minimaxCnProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["minimax-cn"]
+api_ids = ["anthropic-messages"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "MINIMAX_CN_MODELS"
+
+[[provider]]
+module = "mistral"
+factory_symbol = "mistralProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["mistral"]
+api_ids = ["mistral-conversations"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "MISTRAL_MODELS"
+
+[[provider]]
+module = "moonshotai"
+factory_symbol = "moonshotaiProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["moonshotai"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "MOONSHOTAI_MODELS"
+
+[[provider]]
+module = "moonshotai-cn"
+factory_symbol = "moonshotaiCnProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["moonshotai-cn"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "MOONSHOTAI_CN_MODELS"
+
+[[provider]]
+module = "nvidia"
+factory_symbol = "nvidiaProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["nvidia"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "NVIDIA_MODELS"
+
+[[provider]]
+module = "openai"
+factory_symbol = "openaiProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["openai"]
+api_ids = ["openai-responses"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "OPENAI_MODELS"
+
+[[provider]]
+module = "openai-codex"
+factory_symbol = "openaiCodexProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["openai-codex"]
+api_ids = ["openai-codex-responses"]
+has_oauth = true
+oauth_flows = ["loadOpenAICodexOAuth"]
+catalog_symbol = "OPENAI_CODEX_MODELS"
+
+[[provider]]
+module = "opencode"
+factory_symbol = "opencodeProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["opencode"]
+api_ids = ["anthropic-messages", "google-generative-ai", "openai-completions", "openai-responses"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "OPENCODE_MODELS"
+
+[[provider]]
+module = "opencode-go"
+factory_symbol = "opencodeGoProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["opencode-go"]
+api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "OPENCODE_GO_MODELS"
+
+[[provider]]
+module = "openrouter"
+factory_symbol = "openrouterProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["openrouter"]
+api_ids = ["openai-completions"]
+has_oauth = true
+oauth_flows = ["loadOpenRouterOAuth"]
+catalog_symbol = "OPENROUTER_MODELS"
+
+[[provider]]
+module = "openrouter-images"
+factory_symbol = "openrouterImagesProvider"
+kind = "image"
+dynamic = false
+provider_ids = ["openrouter"]
+api_ids = []
+has_oauth = true
+oauth_flows = ["loadOpenRouterOAuth"]
+catalog_symbol = "IMAGE_MODELS.openrouter"
+
+[[provider]]
+module = "qwen-token-plan"
+factory_symbol = "qwenTokenPlanProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["qwen-token-plan"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "QWEN_TOKEN_PLAN_MODELS"
+
+[[provider]]
+module = "qwen-token-plan-cn"
+factory_symbol = "qwenTokenPlanCnProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["qwen-token-plan-cn"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "QWEN_TOKEN_PLAN_CN_MODELS"
+
+[[provider]]
+module = "qwen-token-plan-individual"
+factory_symbol = "qwenTokenPlanIndividualProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["qwen-token-plan-individual"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS"
+
+[[provider]]
+module = "radius"
+factory_symbol = "radiusProvider"
+kind = "text"
+dynamic = true
+provider_ids = ["radius"]
+api_ids = ["pi-messages"]
+has_oauth = true
+oauth_flows = ["loadRadiusOAuth"]
+catalog_symbol = ""
+
+[[provider]]
+module = "together"
+factory_symbol = "togetherProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["together"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "TOGETHER_MODELS"
+
+[[provider]]
+module = "vercel-ai-gateway"
+factory_symbol = "vercelAIGatewayProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["vercel-ai-gateway"]
+api_ids = ["anthropic-messages"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "VERCEL_AI_GATEWAY_MODELS"
+
+[[provider]]
+module = "xai"
+factory_symbol = "xaiProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["xai"]
+api_ids = ["openai-responses"]
+has_oauth = true
+oauth_flows = ["loadXaiOAuth"]
+catalog_symbol = "XAI_MODELS"
+
+[[provider]]
+module = "xiaomi"
+factory_symbol = "xiaomiProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["xiaomi"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "XIAOMI_MODELS"
+
+[[provider]]
+module = "xiaomi-token-plan-ams"
+factory_symbol = "xiaomiTokenPlanAmsProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["xiaomi-token-plan-ams"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "XIAOMI_TOKEN_PLAN_AMS_MODELS"
+
+[[provider]]
+module = "xiaomi-token-plan-cn"
+factory_symbol = "xiaomiTokenPlanCnProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["xiaomi-token-plan-cn"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "XIAOMI_TOKEN_PLAN_CN_MODELS"
+
+[[provider]]
+module = "xiaomi-token-plan-sgp"
+factory_symbol = "xiaomiTokenPlanSgpProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["xiaomi-token-plan-sgp"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "XIAOMI_TOKEN_PLAN_SGP_MODELS"
+
+[[provider]]
+module = "zai"
+factory_symbol = "zaiProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["zai"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "ZAI_MODELS"
+
+[[provider]]
+module = "zai-coding-cn"
+factory_symbol = "zaiCodingCnProvider"
+kind = "text"
+dynamic = false
+provider_ids = ["zai-coding-cn"]
+api_ids = ["openai-completions"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = "ZAI_CODING_CN_MODELS"
+
+[[provider]]
+module = "faux"
+factory_symbol = "fauxProvider"
+kind = "faux-testkit"
+dynamic = true
+provider_ids = ["faux"]
+api_ids = ["faux"]
+has_oauth = false
+oauth_flows = []
+catalog_symbol = ""

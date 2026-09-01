@@ -1,0 +1,1 @@
+{ "id": "m", "name": "M", "api": "openai-responses", "provider": "p", "baseUrl": "https://example.invalid", "reasoning": false, "input": ["text"], "cost": { "input": 0.0, "output": 0.0, "cacheRead": 0.0, "cacheWrite": 0.0 }, "contextWindow": 1000, "maxTokens": 100, "compat": { "futureCompatField": true } }

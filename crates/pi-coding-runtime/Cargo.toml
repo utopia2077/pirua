@@ -1,0 +1,28 @@
+[package]
+name = "pi-coding-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+extensions = ["dep:pi-extension-protocol"]
+provider-anthropic = ["dep:pi-ai-providers"]
+remote-catalog = ["dep:pi-ai-transport"]
+sqlite-sessions = ["dep:pi-agent-sqlite"]
+
+[dependencies]
+pi-agent.workspace = true
+pi-agent-session.workspace = true
+pi-agent-sqlite = { workspace = true, optional = true }
+pi-ai.workspace = true
+pi-ai-providers = { workspace = true, optional = true }
+pi-ai-transport = { workspace = true, optional = true }
+pi-extension-protocol = { workspace = true, optional = true }
+pi-harness-runtime.workspace = true
+pi-telemetry.workspace = true

@@ -1,0 +1,5738 @@
+manifest_version = 1
+kind = "ai-public-exports"
+source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+content_digest = "sha256:0e006ccc12888c15e23839b6f069c95a9b13696a15ebb7a193875bde1c9dec75"
+
+package_path = "packages/ai/package.json"
+package_blob_oid = "b6e7336e4dd5119d67b04dd7532715c86f4afb22"
+exports_json = "{\".\":{\"import\":\"./dist/index.js\",\"types\":\"./dist/index.d.ts\"},\"./api/*\":{\"import\":\"./dist/api/*.js\",\"types\":\"./dist/api/*.d.ts\"},\"./bedrock-provider\":{\"import\":\"./dist/bedrock-provider.js\",\"types\":\"./dist/bedrock-provider.d.ts\"},\"./bun-oauth\":{\"import\":\"./dist/bun-oauth.js\",\"types\":\"./dist/bun-oauth.d.ts\"},\"./compat\":{\"import\":\"./dist/compat.js\",\"types\":\"./dist/compat.d.ts\"},\"./oauth\":{\"import\":\"./dist/oauth.js\",\"types\":\"./dist/oauth.d.ts\"},\"./providers/*\":{\"import\":\"./dist/providers/*.js\",\"types\":\"./dist/providers/*.d.ts\"}}"
+barrel_path = "packages/ai/src/index.ts"
+barrel_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+
+[[barrel_export]]
+line = 1
+declaration = "export type { Static, TSchema } from \"typebox\";"
+
+[[barrel_export]]
+line = 2
+declaration = "export { Type } from \"typebox\";"
+
+[[barrel_export]]
+line = 9
+declaration = "export type { AnthropicEffort, AnthropicOptions, AnthropicThinkingDisplay } from \"./api/anthropic-messages.ts\";"
+
+[[barrel_export]]
+line = 10
+declaration = "export type { AzureOpenAIResponsesOptions } from \"./api/azure-openai-responses.ts\";"
+
+[[barrel_export]]
+line = 11
+declaration = "export type { BedrockOptions, BedrockThinkingDisplay } from \"./api/bedrock-converse-stream.ts\";"
+
+[[barrel_export]]
+line = 12
+declaration = "export type { GoogleOptions } from \"./api/google-generative-ai.ts\";"
+
+[[barrel_export]]
+line = 13
+declaration = "export type { GoogleApiThinkingLevel, ResolvedGoogleThinkingLevel } from \"./api/google-shared.ts\";"
+
+[[barrel_export]]
+line = 14
+declaration = "export type { GoogleVertexOptions } from \"./api/google-vertex.ts\";"
+
+[[barrel_export]]
+line = 15
+declaration = "export * from \"./api/lazy.ts\";"
+
+[[barrel_export]]
+line = 16
+declaration = "export type { MistralOptions } from \"./api/mistral-conversations.ts\";"
+
+[[barrel_export]]
+line = 17
+declaration = "export type { OpenAICodexResponsesOptions, OpenAICodexWebSocketDebugStats } from \"./api/openai-codex-responses.ts\";"
+
+[[barrel_export]]
+line = 18
+declaration = "export type { OpenAICompletionsOptions } from \"./api/openai-completions.ts\";"
+
+[[barrel_export]]
+line = 19
+declaration = "export type { OpenAIResponsesOptions } from \"./api/openai-responses.ts\";"
+
+[[barrel_export]]
+line = 20
+declaration = "export type { PiMessagesEvent, PiMessagesOptions, PiMessagesRewriteImpact } from \"./api/pi-messages.ts\";"
+
+[[barrel_export]]
+line = 21
+declaration = "export * from \"./auth/context.ts\";"
+
+[[barrel_export]]
+line = 22
+declaration = "export * from \"./auth/credential-store.ts\";"
+
+[[barrel_export]]
+line = 23
+declaration = "export * from \"./auth/helpers.ts\";"
+
+[[barrel_export]]
+line = 24
+declaration = "export * from \"./auth/types.ts\";"
+
+[[barrel_export]]
+line = 25
+declaration = "export type {"
+
+[[barrel_export]]
+line = 33
+declaration = "export * from \"./images-models.ts\";"
+
+[[barrel_export]]
+line = 34
+declaration = "export * from \"./models.ts\";"
+
+[[barrel_export]]
+line = 35
+declaration = "export * from \"./models-store.ts\";"
+
+[[barrel_export]]
+line = 36
+declaration = "export * from \"./providers/faux.ts\";"
+
+[[barrel_export]]
+line = 37
+declaration = "export * from \"./session-resources.ts\";"
+
+[[barrel_export]]
+line = 38
+declaration = "export * from \"./types.ts\";"
+
+[[barrel_export]]
+line = 39
+declaration = "export * from \"./utils/diagnostics.ts\";"
+
+[[barrel_export]]
+line = 40
+declaration = "export * from \"./utils/event-stream.ts\";"
+
+[[barrel_export]]
+line = 41
+declaration = "export * from \"./utils/json-parse.ts\";"
+
+[[barrel_export]]
+line = 42
+declaration = "export * from \"./utils/overflow.ts\";"
+
+[[barrel_export]]
+line = 43
+declaration = "export * from \"./utils/retry.ts\";"
+
+[[barrel_export]]
+line = 44
+declaration = "export { contentText } from \"./utils/text.ts\";"
+
+[[barrel_export]]
+line = 45
+declaration = "export * from \"./utils/typebox-helpers.ts\";"
+
+[[barrel_export]]
+line = 46
+declaration = "export { uuidv7 } from \"./utils/uuid.ts\";"
+
+[[barrel_export]]
+line = 47
+declaration = "export * from \"./utils/validation.ts\";"
+
+[[symbol]]
+subpath = "."
+name = "AnthropicAllowedFallbackModel"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AnthropicEffort"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "AnthropicMessagesCompat"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AnthropicOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "AnthropicThinkingDisplay"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "Api"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ApiKeyAuth"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ApiKeyCredential"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ApiOptionsMap"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ApiStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AssistantImages"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AssistantMessage"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AssistantMessageDiagnostic"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "."
+name = "AssistantMessageEvent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AssistantMessageEventStream"
+kind = "type-and-value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/event-stream.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthCheck"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthContext"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthEvent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthInfoLink"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthInteraction"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthOperationOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthPrompt"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthResult"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AuthType"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AzureOpenAIResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/azure-openai-responses.ts"
+
+[[symbol]]
+subpath = "."
+name = "BedrockCompat"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BedrockOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "."
+name = "BedrockThinkingDisplay"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "."
+name = "CacheRetention"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ChatTemplateKwargValue"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ConstrainedSamplingConfig"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Context"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CreateImagesProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "."
+name = "CreateModelsOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "CreateProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "Credential"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CredentialInfo"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CredentialStore"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "DeferredCancelOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "DeferredFetchOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "DeferredHandle"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "DiagnosticErrorInfo"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "."
+name = "EventStream"
+kind = "type-and-value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/event-stream.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxContentBlock"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxModelDefinition"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxProviderHandle"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxProviderRegistration"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxProviderState"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxResponseFactory"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FauxResponseStep"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "FetchFunction"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "GoogleApiThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "."
+name = "GoogleOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/google-generative-ai.ts"
+
+[[symbol]]
+subpath = "."
+name = "GoogleVertexOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/google-vertex.ts"
+
+[[symbol]]
+subpath = "."
+name = "GrammarFormat"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "GrammarVariants"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImageContent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesApi"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesContext"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesFunction"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesInputContent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesModel"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesModels"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesOutputContent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesProvider"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesProviderId"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ImagesStopReason"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "InMemoryCredentialStore"
+kind = "type-and-value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/credential-store.ts"
+
+[[symbol]]
+subpath = "."
+name = "InMemoryModelsStore"
+kind = "type-and-value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonValue"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "KnownApi"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "KnownImagesApi"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "KnownImagesProvider"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "KnownProvider"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "LazyApiCapabilities"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "."
+name = "Message"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "MistralOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/mistral-conversations.ts"
+
+[[symbol]]
+subpath = "."
+name = "Model"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelAuth"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelCost"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelCostRates"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelCostTier"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Models"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsApiStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsDeferredCancelOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsDeferredFetchOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsError"
+kind = "type-and-value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/resolve.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsErrorCode"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/resolve.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsPublication"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsRefreshOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsRefreshResult"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsRequestTransforms"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsSimpleStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsStore"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsStoreEntry"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelsStoreOperationOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "."
+name = "MutableImagesModels"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "."
+name = "MutableModels"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthAuth"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthAuthInfo"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthCredential"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthCredentials"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthDeviceCodeInfo"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthLoginCallbacks"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthPrompt"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthSelectOption"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OAuthSelectPrompt"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenAICodexResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenAICodexWebSocketDebugStats"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenAICompletionsCompat"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenAICompletionsOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenAIResponsesCompat"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenAIResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/openai-responses.ts"
+
+[[symbol]]
+subpath = "."
+name = "OpenRouterRouting"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "PiMessagesEvent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "PiMessagesOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "PiMessagesRewriteImpact"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "Provider"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderAuth"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderAuthInteraction"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderEnv"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderHeaders"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderId"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderImages"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderImagesOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderRequestOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderResponse"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProviderStreams"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "RefreshModelsContext"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "RegisterFauxProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "ResolvedGoogleThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "."
+name = "RetryCallbacks"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "."
+name = "RetryPolicy"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionAffinityFormat"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionResourceCleanup"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/session-resources.ts"
+
+[[symbol]]
+subpath = "."
+name = "SimpleStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Static"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "typebox"
+
+[[symbol]]
+subpath = "."
+name = "StopReason"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "StreamFunction"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "StreamOptions"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "StringEnum"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/typebox-helpers.ts"
+
+[[symbol]]
+subpath = "."
+name = "TSchema"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "typebox"
+
+[[symbol]]
+subpath = "."
+name = "TextContent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "TextSignatureV1"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingBudgets"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingContent"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingLevelMap"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingTokenBudgetField"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Tool"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ToolCall"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ToolChoice"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ToolResultMessage"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Transport"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Type"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "typebox"
+
+[[symbol]]
+subpath = "."
+name = "Usage"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "UserMessage"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "VercelGatewayRouting"
+kind = "type"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "appendAssistantMessageDiagnostic"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "."
+name = "calculateCost"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "clampThinkingLevel"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "cleanupSessionResources"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/session-resources.ts"
+
+[[symbol]]
+subpath = "."
+name = "contentText"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/text.ts"
+
+[[symbol]]
+subpath = "."
+name = "createAssistantMessageDiagnostic"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "."
+name = "createAssistantMessageEventStream"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/event-stream.ts"
+
+[[symbol]]
+subpath = "."
+name = "createFauxCore"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "createImagesModels"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "."
+name = "createImagesProvider"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "."
+name = "createModels"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "createProvider"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "defaultProviderAuthContext"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "envApiKeyAuth"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/helpers.ts"
+
+[[symbol]]
+subpath = "."
+name = "extractDiagnosticError"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "."
+name = "fauxAssistantMessage"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "fauxProvider"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "fauxText"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "fauxThinking"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "fauxToolCall"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "."
+name = "formatThrownValue"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "."
+name = "getOverflowPatterns"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/overflow.ts"
+
+[[symbol]]
+subpath = "."
+name = "getSupportedThinkingLevels"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "hasApi"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "isContextOverflow"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/overflow.ts"
+
+[[symbol]]
+subpath = "."
+name = "isRecoverableLength"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/overflow.ts"
+
+[[symbol]]
+subpath = "."
+name = "isRetryableAssistantError"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "."
+name = "lazyApi"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "."
+name = "lazyOAuth"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/auth/helpers.ts"
+
+[[symbol]]
+subpath = "."
+name = "lazyStream"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "."
+name = "modelsAreEqual"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "."
+name = "parseJsonWithRepair"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/json-parse.ts"
+
+[[symbol]]
+subpath = "."
+name = "parseStreamingJson"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/json-parse.ts"
+
+[[symbol]]
+subpath = "."
+name = "registerSessionResourceCleanup"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/session-resources.ts"
+
+[[symbol]]
+subpath = "."
+name = "repairJson"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/json-parse.ts"
+
+[[symbol]]
+subpath = "."
+name = "retryAssistantCall"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "."
+name = "uuidv7"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/uuid.ts"
+
+[[symbol]]
+subpath = "."
+name = "validateToolArguments"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/validation.ts"
+
+[[symbol]]
+subpath = "."
+name = "validateToolCall"
+kind = "value"
+source_path = "packages/ai/src/index.ts"
+source_blob_oid = "82bac9738522dec05039401540d2c69cce1ffb2c"
+origin = "packages/ai/src/utils/validation.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ANTHROPIC_API_KEY_ENV"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/env-api-keys.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ANTHROPIC_AUTH_TOKEN_ENV"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/env-api-keys.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ANTHROPIC_OAUTH_TOKEN_ENV"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/env-api-keys.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AnthropicAllowedFallbackModel"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AnthropicEffort"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AnthropicMessagesCompat"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AnthropicOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AnthropicThinkingDisplay"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Api"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiKeyAuth"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiKeyCredential"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiOptionsMap"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiProvider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiStreamFunction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ApiStreamSimpleFunction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AssistantImages"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AssistantMessage"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AssistantMessageDiagnostic"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AssistantMessageEvent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AssistantMessageEventStream"
+kind = "type-and-value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/event-stream.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthCheck"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthContext"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthEvent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthInfoLink"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthInteraction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthOperationOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthPrompt"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthResult"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AuthType"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "AzureOpenAIResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/azure-openai-responses.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "BedrockCompat"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "BedrockOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "BedrockThinkingDisplay"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "BuiltinProvider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "CacheRetention"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ChatTemplateKwargValue"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ConstrainedSamplingConfig"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Context"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "CreateImagesProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "CreateModelsOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "CreateProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Credential"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "CredentialInfo"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "CredentialStore"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "DeferredCancelOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "DeferredFetchOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "DeferredHandle"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "DiagnosticErrorInfo"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "EventStream"
+kind = "type-and-value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/event-stream.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxContentBlock"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxModelDefinition"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxProviderHandle"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxProviderRegistration"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxProviderState"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxResponseFactory"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FauxResponseStep"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "FetchFunction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "GoogleApiThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "GoogleOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/google-generative-ai.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "GoogleVertexOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/google-vertex.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "GrammarFormat"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "GrammarVariants"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImageContent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesApi"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesApiFunction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-api-registry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesApiProvider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-api-registry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesContext"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesFunction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesInputContent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesModel"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesModels"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesOutputContent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesProvider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesProviderId"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ImagesStopReason"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "InMemoryCredentialStore"
+kind = "type-and-value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/credential-store.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "InMemoryModelsStore"
+kind = "type-and-value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "JsonValue"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "KnownApi"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "KnownImagesApi"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "KnownImagesProvider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "KnownProvider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "LazyApiCapabilities"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Message"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "MistralOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/mistral-conversations.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Model"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelAuth"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelCost"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelCostRates"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelCostTier"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Models"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsApiStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsDeferredCancelOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsDeferredFetchOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsError"
+kind = "type-and-value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/resolve.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsErrorCode"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/resolve.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsPublication"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsRefreshOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsRefreshResult"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsRequestTransforms"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsSimpleStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsStore"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsStoreEntry"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ModelsStoreOperationOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models-store.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "MutableImagesModels"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "MutableModels"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthAuth"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthAuthInfo"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthCredential"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthCredentials"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthDeviceCodeInfo"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthLoginCallbacks"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthPrompt"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthSelectOption"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OAuthSelectPrompt"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenAICodexResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenAICodexWebSocketDebugStats"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenAICompletionsCompat"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenAICompletionsOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenAIResponsesCompat"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenAIResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-responses.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "OpenRouterRouting"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "PiMessagesEvent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "PiMessagesOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "PiMessagesRewriteImpact"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Provider"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderAuth"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderAuthInteraction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderEnv"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderHeaders"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderId"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderImages"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderImagesOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderRequestOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderResponse"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ProviderStreams"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "RefreshModelsContext"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "RegisterFauxProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ResolvedGoogleThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "RetryCallbacks"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "RetryPolicy"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "SessionAffinityFormat"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "SessionResourceCleanup"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/session-resources.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "SimpleStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Static"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "typebox"
+
+[[symbol]]
+subpath = "./compat"
+name = "StopReason"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "StreamFunction"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "StreamOptions"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "StringEnum"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/typebox-helpers.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "TSchema"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "typebox"
+
+[[symbol]]
+subpath = "./compat"
+name = "TextContent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "TextSignatureV1"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ThinkingBudgets"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ThinkingContent"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ThinkingLevelMap"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ThinkingTokenBudgetField"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Tool"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ToolCall"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ToolChoice"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "ToolResultMessage"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Transport"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "Type"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "typebox"
+
+[[symbol]]
+subpath = "./compat"
+name = "Usage"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "UserMessage"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "VercelGatewayRouting"
+kind = "type"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/types.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "anthropicMessagesApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/anthropic-messages.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "appendAssistantMessageDiagnostic"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "azureOpenAIResponsesApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/azure-openai-responses.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "bedrockConverseStreamApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/bedrock-converse-stream.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "calculateCost"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "clampThinkingLevel"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "cleanupSessionResources"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/session-resources.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "complete"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "completeSimple"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "contentText"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/text.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createAssistantMessageDiagnostic"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createAssistantMessageEventStream"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/event-stream.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createFauxCore"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createImagesModels"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createImagesProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createModels"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "createProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "defaultProviderAuthContext"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/context.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "envApiKeyAuth"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/helpers.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "extractDiagnosticError"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "fauxAssistantMessage"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "fauxProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "fauxText"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "fauxThinking"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "fauxToolCall"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "findEnvKeys"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/env-api-keys.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "formatThrownValue"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/diagnostics.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "generateImages"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "generateImagesOpenRouter"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/images/register-builtins.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getApiProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getApiProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getEnvApiKey"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/env-api-keys.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getImageModel"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/image-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getImageModels"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/image-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getImageProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/image-models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getImagesApiProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-api-registry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getModel"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getModels"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getOverflowPatterns"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/overflow.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "getSupportedThinkingLevels"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "googleGenerativeAIApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/google-generative-ai.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "googleVertexApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/google-vertex.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "hasApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "isContextOverflow"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/overflow.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "isRecoverableLength"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/overflow.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "isRetryableAssistantError"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "lazyApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "lazyOAuth"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/auth/helpers.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "lazyStream"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "mistralConversationsApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/mistral-conversations.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "modelsAreEqual"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/models.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "openAICodexResponsesApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-codex-responses.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "openAICompletionsApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-completions.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "openAIResponsesApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/openai-responses.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "parseJsonWithRepair"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/json-parse.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "parseStreamingJson"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/json-parse.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "piMessagesApi"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/pi-messages.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "registerApiProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "registerBuiltInApiProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "registerBuiltInImagesApiProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/providers/images/register-builtins.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "registerFauxProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "registerImagesApiProvider"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/images-api-registry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "registerSessionResourceCleanup"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/session-resources.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "repairJson"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/json-parse.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "resetApiProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "retryAssistantCall"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/retry.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "setBedrockProviderModule"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/api/bedrock-converse-stream.lazy.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamAnthropic"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamAzureOpenAIResponses"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamGoogle"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamGoogleVertex"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamMistral"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamOpenAICodexResponses"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamOpenAICompletions"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamOpenAIResponses"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleAnthropic"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleAzureOpenAIResponses"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleGoogle"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleGoogleVertex"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleMistral"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleOpenAICodexResponses"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleOpenAICompletions"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "streamSimpleOpenAIResponses"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/legacy-api-aliases.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "unregisterApiProviders"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/compat.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "uuidv7"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/uuid.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "validateToolArguments"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/validation.ts"
+
+[[symbol]]
+subpath = "./compat"
+name = "validateToolCall"
+kind = "value"
+source_path = "packages/ai/src/compat.ts"
+source_blob_oid = "963989eeb6effc0b578d25d7ed957793b8a97c4c"
+origin = "packages/ai/src/utils/validation.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "BuiltinProvider"
+kind = "type"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "builtinImagesModels"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "builtinImagesProviders"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "builtinModels"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "builtinProviders"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "getBuiltinModel"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "getBuiltinModelDataGeneratedAt"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "getBuiltinModels"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "getBuiltinProviders"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/all"
+name = "radiusProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/all.ts"
+source_blob_oid = "8785e94aed69942629bd4c4da69b55fa8db053d2"
+origin = "packages/ai/src/providers/all.ts"
+
+[[symbol]]
+subpath = "./providers/amazon-bedrock.models"
+name = "AMAZON_BEDROCK_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/amazon-bedrock.models.ts"
+source_blob_oid = "4c9c99e48836b177ffe9e5bce99588bc7ead1b40"
+origin = "packages/ai/src/providers/amazon-bedrock.models.ts"
+
+[[symbol]]
+subpath = "./providers/amazon-bedrock"
+name = "amazonBedrockProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/amazon-bedrock.ts"
+source_blob_oid = "d629f1e1c3090718c782600e51f1d5228f6c3481"
+origin = "packages/ai/src/providers/amazon-bedrock.ts"
+
+[[symbol]]
+subpath = "./providers/ant-ling.models"
+name = "ANT_LING_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/ant-ling.models.ts"
+source_blob_oid = "ff190daab3aa80ba22a62c3a3a34d9de8bed5935"
+origin = "packages/ai/src/providers/ant-ling.models.ts"
+
+[[symbol]]
+subpath = "./providers/ant-ling"
+name = "antLingProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/ant-ling.ts"
+source_blob_oid = "03bb314d9940f30130c7a99c0e7ad478ebc85452"
+origin = "packages/ai/src/providers/ant-ling.ts"
+
+[[symbol]]
+subpath = "./providers/anthropic.models"
+name = "ANTHROPIC_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/anthropic.models.ts"
+source_blob_oid = "43d5ed70f16e9bf72f57bc07b28a66a23a275d7d"
+origin = "packages/ai/src/providers/anthropic.models.ts"
+
+[[symbol]]
+subpath = "./providers/anthropic"
+name = "anthropicProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/anthropic.ts"
+source_blob_oid = "675735396dacf42d712f776059458b39bec6a3ba"
+origin = "packages/ai/src/providers/anthropic.ts"
+
+[[symbol]]
+subpath = "./providers/azure-openai-responses.models"
+name = "AZURE_OPENAI_RESPONSES_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/azure-openai-responses.models.ts"
+source_blob_oid = "d5f8c48ecdde97934cc9c5d21686d89249d5dab0"
+origin = "packages/ai/src/providers/azure-openai-responses.models.ts"
+
+[[symbol]]
+subpath = "./providers/azure-openai-responses"
+name = "azureOpenAIResponsesProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/azure-openai-responses.ts"
+source_blob_oid = "78351deae417a06d0f05755105aba82fa2e0a76f"
+origin = "packages/ai/src/providers/azure-openai-responses.ts"
+
+[[symbol]]
+subpath = "./providers/baseten.models"
+name = "BASETEN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/baseten.models.ts"
+source_blob_oid = "22a55ac42c5cd5941bbe679fbf8bf62d90b7fe81"
+origin = "packages/ai/src/providers/baseten.models.ts"
+
+[[symbol]]
+subpath = "./providers/baseten"
+name = "basetenProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/baseten.ts"
+source_blob_oid = "79371dac0d4f9e00d21a3593dd6e78c6c201b475"
+origin = "packages/ai/src/providers/baseten.ts"
+
+[[symbol]]
+subpath = "./providers/cerebras.models"
+name = "CEREBRAS_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/cerebras.models.ts"
+source_blob_oid = "0ae1100797e395ffea19a7e53390b700d00b9036"
+origin = "packages/ai/src/providers/cerebras.models.ts"
+
+[[symbol]]
+subpath = "./providers/cerebras"
+name = "cerebrasProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/cerebras.ts"
+source_blob_oid = "9ffc737554bc51ea9a155854bcc9d9014c49046b"
+origin = "packages/ai/src/providers/cerebras.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-ai-gateway.models"
+name = "CLOUDFLARE_AI_GATEWAY_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-ai-gateway.models.ts"
+source_blob_oid = "819bf7fb6219eeb1c18da7e04214da6dc72090bf"
+origin = "packages/ai/src/providers/cloudflare-ai-gateway.models.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-ai-gateway"
+name = "cloudflareAIGatewayProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-ai-gateway.ts"
+source_blob_oid = "7c1cc3b78a15ea8b75b0f6b4b8e88ef26c027e2a"
+origin = "packages/ai/src/providers/cloudflare-ai-gateway.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-auth"
+name = "cloudflareAIGatewayAuth"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-auth.ts"
+source_blob_oid = "72fd23d07df18546c3575f7f4d724def1b74c824"
+origin = "packages/ai/src/providers/cloudflare-auth.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-auth"
+name = "cloudflareWorkersAIAuth"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-auth.ts"
+source_blob_oid = "72fd23d07df18546c3575f7f4d724def1b74c824"
+origin = "packages/ai/src/providers/cloudflare-auth.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-stream"
+name = "cloudflareStreams"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-stream.ts"
+source_blob_oid = "7284f65626aed1305019a13577da485a542b9b50"
+origin = "packages/ai/src/providers/cloudflare-stream.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-stream"
+name = "resolveCloudflareModel"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-stream.ts"
+source_blob_oid = "7284f65626aed1305019a13577da485a542b9b50"
+origin = "packages/ai/src/providers/cloudflare-stream.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-workers-ai.models"
+name = "CLOUDFLARE_WORKERS_AI_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-workers-ai.models.ts"
+source_blob_oid = "35a7578ffc593e5e1e26582352eceda759b2eba6"
+origin = "packages/ai/src/providers/cloudflare-workers-ai.models.ts"
+
+[[symbol]]
+subpath = "./providers/cloudflare-workers-ai"
+name = "cloudflareWorkersAIProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/cloudflare-workers-ai.ts"
+source_blob_oid = "89216b5ef641cbc9e950612c27fbf5cbb8003ea8"
+origin = "packages/ai/src/providers/cloudflare-workers-ai.ts"
+
+[[symbol]]
+subpath = "./providers/data-json.d"
+name = "default"
+kind = "value"
+source_path = "packages/ai/src/providers/data-json.d.ts"
+source_blob_oid = "73212a8f9674a910d626722e94486a9000a48519"
+origin = "packages/ai/src/providers/data-json.d.ts"
+
+[[symbol]]
+subpath = "./providers/deepseek.models"
+name = "DEEPSEEK_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/deepseek.models.ts"
+source_blob_oid = "f99b3a5b301a33dc8a96b132fc2190edde4c8c7e"
+origin = "packages/ai/src/providers/deepseek.models.ts"
+
+[[symbol]]
+subpath = "./providers/deepseek"
+name = "deepseekProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/deepseek.ts"
+source_blob_oid = "580e25c236feb1a283d96bbef538915a142d8416"
+origin = "packages/ai/src/providers/deepseek.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxContentBlock"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxModelDefinition"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxProviderHandle"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxProviderRegistration"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxProviderState"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxResponseFactory"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "FauxResponseStep"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "RegisterFauxProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "createFauxCore"
+kind = "value"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "fauxAssistantMessage"
+kind = "value"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "fauxProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "fauxText"
+kind = "value"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "fauxThinking"
+kind = "value"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/faux"
+name = "fauxToolCall"
+kind = "value"
+source_path = "packages/ai/src/providers/faux.ts"
+source_blob_oid = "284a099b314b3b247826f9622bddf25909b252b5"
+origin = "packages/ai/src/providers/faux.ts"
+
+[[symbol]]
+subpath = "./providers/fireworks.models"
+name = "FIREWORKS_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/fireworks.models.ts"
+source_blob_oid = "ffb0b09c0a58b9e04dedb78946242e38175c94f1"
+origin = "packages/ai/src/providers/fireworks.models.ts"
+
+[[symbol]]
+subpath = "./providers/fireworks"
+name = "fireworksProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/fireworks.ts"
+source_blob_oid = "518fb259d350a5bf5277d3cbe78d33c1558a1e74"
+origin = "packages/ai/src/providers/fireworks.ts"
+
+[[symbol]]
+subpath = "./providers/github-copilot.models"
+name = "GITHUB_COPILOT_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/github-copilot.models.ts"
+source_blob_oid = "dc62bd956e14b4137bbdae69c3342c8a90e6f75e"
+origin = "packages/ai/src/providers/github-copilot.models.ts"
+
+[[symbol]]
+subpath = "./providers/github-copilot"
+name = "githubCopilotProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/github-copilot.ts"
+source_blob_oid = "eab784d88840f4a29829066ee4b402d10d94e754"
+origin = "packages/ai/src/providers/github-copilot.ts"
+
+[[symbol]]
+subpath = "./providers/google-vertex.models"
+name = "GOOGLE_VERTEX_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/google-vertex.models.ts"
+source_blob_oid = "3e8b6b5594650cd2278fb939a5612d33b71dd93a"
+origin = "packages/ai/src/providers/google-vertex.models.ts"
+
+[[symbol]]
+subpath = "./providers/google-vertex"
+name = "googleVertexProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/google-vertex.ts"
+source_blob_oid = "83c7d0fe89cbb7e425a3e79d2bf954e2c2b8324e"
+origin = "packages/ai/src/providers/google-vertex.ts"
+
+[[symbol]]
+subpath = "./providers/google.models"
+name = "GOOGLE_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/google.models.ts"
+source_blob_oid = "4d0989d6a7d73a4b0545dbcdd25dc08cf3d4a627"
+origin = "packages/ai/src/providers/google.models.ts"
+
+[[symbol]]
+subpath = "./providers/google"
+name = "googleProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/google.ts"
+source_blob_oid = "0bd452373227e781b961a3eb37d6a0fc3aead8a6"
+origin = "packages/ai/src/providers/google.ts"
+
+[[symbol]]
+subpath = "./providers/groq.models"
+name = "GROQ_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/groq.models.ts"
+source_blob_oid = "770bf0ca568951ae46a8efce8f682bd422d0f064"
+origin = "packages/ai/src/providers/groq.models.ts"
+
+[[symbol]]
+subpath = "./providers/groq"
+name = "groqProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/groq.ts"
+source_blob_oid = "5892e0488264e2ef53e09ed581179f107e4528db"
+origin = "packages/ai/src/providers/groq.ts"
+
+[[symbol]]
+subpath = "./providers/huggingface.models"
+name = "HUGGINGFACE_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/huggingface.models.ts"
+source_blob_oid = "490d2793a3224c827d22d2b023b0cb04d4365feb"
+origin = "packages/ai/src/providers/huggingface.models.ts"
+
+[[symbol]]
+subpath = "./providers/huggingface"
+name = "huggingfaceProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/huggingface.ts"
+source_blob_oid = "e8fb628e199203fc63423053bb30f79c4375c992"
+origin = "packages/ai/src/providers/huggingface.ts"
+
+[[symbol]]
+subpath = "./providers/kimi-coding.models"
+name = "KIMI_CODING_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/kimi-coding.models.ts"
+source_blob_oid = "4decb71f46bc0cc3bbb22510fbcd4be25b1267e6"
+origin = "packages/ai/src/providers/kimi-coding.models.ts"
+
+[[symbol]]
+subpath = "./providers/kimi-coding"
+name = "kimiCodingProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/kimi-coding.ts"
+source_blob_oid = "81ae4af2e92e08eb31eafab4d760c5692bc2b1c2"
+origin = "packages/ai/src/providers/kimi-coding.ts"
+
+[[symbol]]
+subpath = "./providers/minimax-cn.models"
+name = "MINIMAX_CN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/minimax-cn.models.ts"
+source_blob_oid = "1ee19be2a8c3b347e14cc73191e11fec55919926"
+origin = "packages/ai/src/providers/minimax-cn.models.ts"
+
+[[symbol]]
+subpath = "./providers/minimax-cn"
+name = "minimaxCnProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/minimax-cn.ts"
+source_blob_oid = "5cbe5acc55926d52fac7ffa3008c2c903ed0d86b"
+origin = "packages/ai/src/providers/minimax-cn.ts"
+
+[[symbol]]
+subpath = "./providers/minimax.models"
+name = "MINIMAX_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/minimax.models.ts"
+source_blob_oid = "fa228bdc510e7e5b76d3ff8bba60257af9285dab"
+origin = "packages/ai/src/providers/minimax.models.ts"
+
+[[symbol]]
+subpath = "./providers/minimax"
+name = "minimaxProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/minimax.ts"
+source_blob_oid = "6a956bd6bbdc29084c66ad2100a2ec72485de2f5"
+origin = "packages/ai/src/providers/minimax.ts"
+
+[[symbol]]
+subpath = "./providers/mistral.models"
+name = "MISTRAL_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/mistral.models.ts"
+source_blob_oid = "acb8d385435b21a6196f077cee7a85fa2dd08055"
+origin = "packages/ai/src/providers/mistral.models.ts"
+
+[[symbol]]
+subpath = "./providers/mistral"
+name = "mistralProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/mistral.ts"
+source_blob_oid = "9b84a71fb66f8a2cbfb81728d542281c16014548"
+origin = "packages/ai/src/providers/mistral.ts"
+
+[[symbol]]
+subpath = "./providers/moonshotai-cn.models"
+name = "MOONSHOTAI_CN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/moonshotai-cn.models.ts"
+source_blob_oid = "652dcd640fc570040e3e53cf4c43b2060c0198e1"
+origin = "packages/ai/src/providers/moonshotai-cn.models.ts"
+
+[[symbol]]
+subpath = "./providers/moonshotai-cn"
+name = "moonshotaiCnProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/moonshotai-cn.ts"
+source_blob_oid = "b813734bcfe6761c4ae000bfce9571c02942f7a9"
+origin = "packages/ai/src/providers/moonshotai-cn.ts"
+
+[[symbol]]
+subpath = "./providers/moonshotai.models"
+name = "MOONSHOTAI_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/moonshotai.models.ts"
+source_blob_oid = "a460572d1d70e6d0a95862559ff38bacc9fc3af5"
+origin = "packages/ai/src/providers/moonshotai.models.ts"
+
+[[symbol]]
+subpath = "./providers/moonshotai"
+name = "moonshotaiProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/moonshotai.ts"
+source_blob_oid = "dc15c5706ad333e58d09daec9daf4b3840e778dd"
+origin = "packages/ai/src/providers/moonshotai.ts"
+
+[[symbol]]
+subpath = "./providers/nvidia.models"
+name = "NVIDIA_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/nvidia.models.ts"
+source_blob_oid = "3d31b205d3abed31291c1ecbb19430f8519ef099"
+origin = "packages/ai/src/providers/nvidia.models.ts"
+
+[[symbol]]
+subpath = "./providers/nvidia"
+name = "nvidiaProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/nvidia.ts"
+source_blob_oid = "dc539f60b685c63842b0f68ce93d03cfdd05e7fd"
+origin = "packages/ai/src/providers/nvidia.ts"
+
+[[symbol]]
+subpath = "./providers/openai-codex.models"
+name = "OPENAI_CODEX_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/openai-codex.models.ts"
+source_blob_oid = "43b500f79a2bbc4cf6550e1639f466d8b6d4d7ac"
+origin = "packages/ai/src/providers/openai-codex.models.ts"
+
+[[symbol]]
+subpath = "./providers/openai-codex"
+name = "openaiCodexProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/openai-codex.ts"
+source_blob_oid = "75ec9e6dda568a6c9127f2de15e413013942322f"
+origin = "packages/ai/src/providers/openai-codex.ts"
+
+[[symbol]]
+subpath = "./providers/openai.models"
+name = "OPENAI_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/openai.models.ts"
+source_blob_oid = "a4ba19c9cc3a0f53339bea4c0d0105a1dfc0eff9"
+origin = "packages/ai/src/providers/openai.models.ts"
+
+[[symbol]]
+subpath = "./providers/openai"
+name = "openaiProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/openai.ts"
+source_blob_oid = "43f6671f22a9d6e88bc96556afc4814b32e08032"
+origin = "packages/ai/src/providers/openai.ts"
+
+[[symbol]]
+subpath = "./providers/opencode-go.models"
+name = "OPENCODE_GO_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/opencode-go.models.ts"
+source_blob_oid = "8e6a371709a68e8f23b9f080b36c93ae27a15138"
+origin = "packages/ai/src/providers/opencode-go.models.ts"
+
+[[symbol]]
+subpath = "./providers/opencode-go"
+name = "opencodeGoProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/opencode-go.ts"
+source_blob_oid = "4f5452c164f86a57bbd02346b5ca3fe1b639f08c"
+origin = "packages/ai/src/providers/opencode-go.ts"
+
+[[symbol]]
+subpath = "./providers/opencode.models"
+name = "OPENCODE_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/opencode.models.ts"
+source_blob_oid = "a2d6b396126d64a0e41602a7f2a3eb4c07d007e7"
+origin = "packages/ai/src/providers/opencode.models.ts"
+
+[[symbol]]
+subpath = "./providers/opencode"
+name = "opencodeProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/opencode.ts"
+source_blob_oid = "7d6d2cf7a8b7e38b5ffd636af78cac7190774537"
+origin = "packages/ai/src/providers/opencode.ts"
+
+[[symbol]]
+subpath = "./providers/openrouter-images"
+name = "openrouterImagesProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/openrouter-images.ts"
+source_blob_oid = "bdbc214722af3a6b4408dd632b7f2ca80df54406"
+origin = "packages/ai/src/providers/openrouter-images.ts"
+
+[[symbol]]
+subpath = "./providers/openrouter.models"
+name = "OPENROUTER_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/openrouter.models.ts"
+source_blob_oid = "bc196236f1b56ded6512b645a05a0a9f6a5a388c"
+origin = "packages/ai/src/providers/openrouter.models.ts"
+
+[[symbol]]
+subpath = "./providers/openrouter"
+name = "openrouterProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/openrouter.ts"
+source_blob_oid = "2a6db8d03c899e81a84748cbfc2bde4535f7def7"
+origin = "packages/ai/src/providers/openrouter.ts"
+
+[[symbol]]
+subpath = "./providers/qwen-token-plan-cn.models"
+name = "QWEN_TOKEN_PLAN_CN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/qwen-token-plan-cn.models.ts"
+source_blob_oid = "5fe4244cd9c87277459b9c87167e00c39df8aa55"
+origin = "packages/ai/src/providers/qwen-token-plan-cn.models.ts"
+
+[[symbol]]
+subpath = "./providers/qwen-token-plan-cn"
+name = "qwenTokenPlanCnProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/qwen-token-plan-cn.ts"
+source_blob_oid = "259b5a7f028f302e421f91fec6490d5c2e862632"
+origin = "packages/ai/src/providers/qwen-token-plan-cn.ts"
+
+[[symbol]]
+subpath = "./providers/qwen-token-plan-individual.models"
+name = "QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/qwen-token-plan-individual.models.ts"
+source_blob_oid = "30e111a29434979aad8fcd7c3c2bdb6484196cf2"
+origin = "packages/ai/src/providers/qwen-token-plan-individual.models.ts"
+
+[[symbol]]
+subpath = "./providers/qwen-token-plan-individual"
+name = "qwenTokenPlanIndividualProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/qwen-token-plan-individual.ts"
+source_blob_oid = "a231d1b313d1646c5e9053e09d1b9767c2acb2a2"
+origin = "packages/ai/src/providers/qwen-token-plan-individual.ts"
+
+[[symbol]]
+subpath = "./providers/qwen-token-plan.models"
+name = "QWEN_TOKEN_PLAN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/qwen-token-plan.models.ts"
+source_blob_oid = "8e1e746b38d6cf32a3677ad5ac3aac22f583d4b6"
+origin = "packages/ai/src/providers/qwen-token-plan.models.ts"
+
+[[symbol]]
+subpath = "./providers/qwen-token-plan"
+name = "qwenTokenPlanProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/qwen-token-plan.ts"
+source_blob_oid = "295560ba2afbcc74d2509d4acbb0c89ba6624f81"
+origin = "packages/ai/src/providers/qwen-token-plan.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "DEFAULT_RADIUS_GATEWAY"
+kind = "value"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "RadiusGatewayConfig"
+kind = "type"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "RadiusGatewayModel"
+kind = "type"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "RadiusOAuthCredential"
+kind = "type"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "getRadiusCredentialConfig"
+kind = "value"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "getRadiusModels"
+kind = "value"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "getRadiusModelsFromConfig"
+kind = "value"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "loadRadiusGatewayConfig"
+kind = "value"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius-config"
+name = "normalizeRadiusGatewayUrl"
+kind = "value"
+source_path = "packages/ai/src/providers/radius-config.ts"
+source_blob_oid = "a2715aaec31ec99afe9b302d1d289546319a97f4"
+origin = "packages/ai/src/providers/radius-config.ts"
+
+[[symbol]]
+subpath = "./providers/radius"
+name = "RadiusProviderOptions"
+kind = "type"
+source_path = "packages/ai/src/providers/radius.ts"
+source_blob_oid = "21db7852703bfae259a973788e4dc1bf2c925178"
+origin = "packages/ai/src/providers/radius.ts"
+
+[[symbol]]
+subpath = "./providers/radius"
+name = "radiusProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/radius.ts"
+source_blob_oid = "21db7852703bfae259a973788e4dc1bf2c925178"
+origin = "packages/ai/src/providers/radius.ts"
+
+[[symbol]]
+subpath = "./providers/together.models"
+name = "TOGETHER_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/together.models.ts"
+source_blob_oid = "d5223b9eb0c2f6c956bfd055d944cb699df04cb8"
+origin = "packages/ai/src/providers/together.models.ts"
+
+[[symbol]]
+subpath = "./providers/together"
+name = "togetherProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/together.ts"
+source_blob_oid = "36631d11abea005e40b62e5f2a69ddc5663728ee"
+origin = "packages/ai/src/providers/together.ts"
+
+[[symbol]]
+subpath = "./providers/vercel-ai-gateway.models"
+name = "VERCEL_AI_GATEWAY_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/vercel-ai-gateway.models.ts"
+source_blob_oid = "24cfce859de25839e90e4c53f1f37290e17e690f"
+origin = "packages/ai/src/providers/vercel-ai-gateway.models.ts"
+
+[[symbol]]
+subpath = "./providers/vercel-ai-gateway"
+name = "vercelAIGatewayProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/vercel-ai-gateway.ts"
+source_blob_oid = "3aca03283fc55fb158bfced6eb6c0ae7b66f9d64"
+origin = "packages/ai/src/providers/vercel-ai-gateway.ts"
+
+[[symbol]]
+subpath = "./providers/xai.models"
+name = "XAI_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/xai.models.ts"
+source_blob_oid = "333a41aeba09d68d5475829d63338a50260edce2"
+origin = "packages/ai/src/providers/xai.models.ts"
+
+[[symbol]]
+subpath = "./providers/xai"
+name = "xaiProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/xai.ts"
+source_blob_oid = "8e2b179c28a8a7c930015fe629dba9b898f7a763"
+origin = "packages/ai/src/providers/xai.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi-token-plan-ams.models"
+name = "XIAOMI_TOKEN_PLAN_AMS_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi-token-plan-ams.models.ts"
+source_blob_oid = "fdfddae77eb66b0d331596eb7b0ff9a2321b5754"
+origin = "packages/ai/src/providers/xiaomi-token-plan-ams.models.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi-token-plan-ams"
+name = "xiaomiTokenPlanAmsProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi-token-plan-ams.ts"
+source_blob_oid = "017aa67192c8a1fd4685feb2bf67c08edf0a100c"
+origin = "packages/ai/src/providers/xiaomi-token-plan-ams.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi-token-plan-cn.models"
+name = "XIAOMI_TOKEN_PLAN_CN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi-token-plan-cn.models.ts"
+source_blob_oid = "f085ad606f016edc64e92daeb14f70cf6ad58d31"
+origin = "packages/ai/src/providers/xiaomi-token-plan-cn.models.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi-token-plan-cn"
+name = "xiaomiTokenPlanCnProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi-token-plan-cn.ts"
+source_blob_oid = "f7ab14fa77a62f290350bc70c8d53cdbf13ca4fb"
+origin = "packages/ai/src/providers/xiaomi-token-plan-cn.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi-token-plan-sgp.models"
+name = "XIAOMI_TOKEN_PLAN_SGP_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi-token-plan-sgp.models.ts"
+source_blob_oid = "a8a4e627734437b620e0bd3ccf9e8e86296b3375"
+origin = "packages/ai/src/providers/xiaomi-token-plan-sgp.models.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi-token-plan-sgp"
+name = "xiaomiTokenPlanSgpProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi-token-plan-sgp.ts"
+source_blob_oid = "e3762057f42f415fe45c8d5104cf9f453d985812"
+origin = "packages/ai/src/providers/xiaomi-token-plan-sgp.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi.models"
+name = "XIAOMI_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi.models.ts"
+source_blob_oid = "201b7f907ff87308e78c879629272c7f131609e7"
+origin = "packages/ai/src/providers/xiaomi.models.ts"
+
+[[symbol]]
+subpath = "./providers/xiaomi"
+name = "xiaomiProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/xiaomi.ts"
+source_blob_oid = "5abf51691fe457443bb952abc2dc5b76291577a8"
+origin = "packages/ai/src/providers/xiaomi.ts"
+
+[[symbol]]
+subpath = "./providers/zai-coding-cn.models"
+name = "ZAI_CODING_CN_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/zai-coding-cn.models.ts"
+source_blob_oid = "a91f6edd12ccdb81718c6b7e5afc8eda81b71d09"
+origin = "packages/ai/src/providers/zai-coding-cn.models.ts"
+
+[[symbol]]
+subpath = "./providers/zai-coding-cn"
+name = "zaiCodingCnProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/zai-coding-cn.ts"
+source_blob_oid = "2f15a6ca31c3a4e85a35ed5b87c9d2dd3b552a30"
+origin = "packages/ai/src/providers/zai-coding-cn.ts"
+
+[[symbol]]
+subpath = "./providers/zai.models"
+name = "ZAI_MODELS"
+kind = "value"
+source_path = "packages/ai/src/providers/zai.models.ts"
+source_blob_oid = "6d8a6668a251bb050933fbed5264d30ab6ad0906"
+origin = "packages/ai/src/providers/zai.models.ts"
+
+[[symbol]]
+subpath = "./providers/zai"
+name = "zaiProvider"
+kind = "value"
+source_path = "packages/ai/src/providers/zai.ts"
+source_blob_oid = "854010661655298b2774c99542c7292abf51b4bd"
+origin = "packages/ai/src/providers/zai.ts"
+
+[[symbol]]
+subpath = "./api/anthropic-messages.lazy"
+name = "anthropicMessagesApi"
+kind = "value"
+source_path = "packages/ai/src/api/anthropic-messages.lazy.ts"
+source_blob_oid = "1da2172ec4e26e4531dc69739144bf812fb107dc"
+origin = "packages/ai/src/api/anthropic-messages.lazy.ts"
+
+[[symbol]]
+subpath = "./api/anthropic-messages"
+name = "AnthropicEffort"
+kind = "type"
+source_path = "packages/ai/src/api/anthropic-messages.ts"
+source_blob_oid = "6c4ff62d08c2082e962ef79fdc913e35826fa4df"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./api/anthropic-messages"
+name = "AnthropicOptions"
+kind = "type"
+source_path = "packages/ai/src/api/anthropic-messages.ts"
+source_blob_oid = "6c4ff62d08c2082e962ef79fdc913e35826fa4df"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./api/anthropic-messages"
+name = "AnthropicThinkingDisplay"
+kind = "type"
+source_path = "packages/ai/src/api/anthropic-messages.ts"
+source_blob_oid = "6c4ff62d08c2082e962ef79fdc913e35826fa4df"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./api/anthropic-messages"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/anthropic-messages.ts"
+source_blob_oid = "6c4ff62d08c2082e962ef79fdc913e35826fa4df"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./api/anthropic-messages"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/anthropic-messages.ts"
+source_blob_oid = "6c4ff62d08c2082e962ef79fdc913e35826fa4df"
+origin = "packages/ai/src/api/anthropic-messages.ts"
+
+[[symbol]]
+subpath = "./api/azure-openai-responses.lazy"
+name = "azureOpenAIResponsesApi"
+kind = "value"
+source_path = "packages/ai/src/api/azure-openai-responses.lazy.ts"
+source_blob_oid = "5921e10fab25b74b58aa6959aab601e4f3a5aea6"
+origin = "packages/ai/src/api/azure-openai-responses.lazy.ts"
+
+[[symbol]]
+subpath = "./api/azure-openai-responses"
+name = "AzureOpenAIResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/api/azure-openai-responses.ts"
+source_blob_oid = "56578805d2b1438916e82f9926a90b3fc1c70af7"
+origin = "packages/ai/src/api/azure-openai-responses.ts"
+
+[[symbol]]
+subpath = "./api/azure-openai-responses"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/azure-openai-responses.ts"
+source_blob_oid = "56578805d2b1438916e82f9926a90b3fc1c70af7"
+origin = "packages/ai/src/api/azure-openai-responses.ts"
+
+[[symbol]]
+subpath = "./api/azure-openai-responses"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/azure-openai-responses.ts"
+source_blob_oid = "56578805d2b1438916e82f9926a90b3fc1c70af7"
+origin = "packages/ai/src/api/azure-openai-responses.ts"
+
+[[symbol]]
+subpath = "./api/bedrock-converse-stream.lazy"
+name = "bedrockConverseStreamApi"
+kind = "value"
+source_path = "packages/ai/src/api/bedrock-converse-stream.lazy.ts"
+source_blob_oid = "f9b30b35fde70d1b1a0a3abaaf04d174896c6057"
+origin = "packages/ai/src/api/bedrock-converse-stream.lazy.ts"
+
+[[symbol]]
+subpath = "./api/bedrock-converse-stream.lazy"
+name = "setBedrockProviderModule"
+kind = "value"
+source_path = "packages/ai/src/api/bedrock-converse-stream.lazy.ts"
+source_blob_oid = "f9b30b35fde70d1b1a0a3abaaf04d174896c6057"
+origin = "packages/ai/src/api/bedrock-converse-stream.lazy.ts"
+
+[[symbol]]
+subpath = "./api/bedrock-converse-stream"
+name = "BedrockOptions"
+kind = "type"
+source_path = "packages/ai/src/api/bedrock-converse-stream.ts"
+source_blob_oid = "2e944fcd24613d2a549310508e109fccb510aee6"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "./api/bedrock-converse-stream"
+name = "BedrockThinkingDisplay"
+kind = "type"
+source_path = "packages/ai/src/api/bedrock-converse-stream.ts"
+source_blob_oid = "2e944fcd24613d2a549310508e109fccb510aee6"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "./api/bedrock-converse-stream"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/bedrock-converse-stream.ts"
+source_blob_oid = "2e944fcd24613d2a549310508e109fccb510aee6"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "./api/bedrock-converse-stream"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/bedrock-converse-stream.ts"
+source_blob_oid = "2e944fcd24613d2a549310508e109fccb510aee6"
+origin = "packages/ai/src/api/bedrock-converse-stream.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare-gateway-binding"
+name = "AiGatewayBinding"
+kind = "type"
+source_path = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+source_blob_oid = "c2eaa5d4855608214272dfe7eec7fd4fdce88f5d"
+origin = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare-gateway-binding"
+name = "AiGatewayBindingGateway"
+kind = "type"
+source_path = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+source_blob_oid = "c2eaa5d4855608214272dfe7eec7fd4fdce88f5d"
+origin = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare-gateway-binding"
+name = "AiGatewayUniversalRequestLike"
+kind = "type"
+source_path = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+source_blob_oid = "c2eaa5d4855608214272dfe7eec7fd4fdce88f5d"
+origin = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare-gateway-binding"
+name = "CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL"
+kind = "value"
+source_path = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+source_blob_oid = "c2eaa5d4855608214272dfe7eec7fd4fdce88f5d"
+origin = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare-gateway-binding"
+name = "GatewayBindingFetchOptions"
+kind = "type"
+source_path = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+source_blob_oid = "c2eaa5d4855608214272dfe7eec7fd4fdce88f5d"
+origin = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare-gateway-binding"
+name = "createGatewayBindingFetch"
+kind = "value"
+source_path = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+source_blob_oid = "c2eaa5d4855608214272dfe7eec7fd4fdce88f5d"
+origin = "packages/ai/src/api/cloudflare-gateway-binding.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare"
+name = "CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL"
+kind = "value"
+source_path = "packages/ai/src/api/cloudflare.ts"
+source_blob_oid = "f8b1138ceb34c6a38294a8d366c30c778b764f4a"
+origin = "packages/ai/src/api/cloudflare.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare"
+name = "CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL"
+kind = "value"
+source_path = "packages/ai/src/api/cloudflare.ts"
+source_blob_oid = "f8b1138ceb34c6a38294a8d366c30c778b764f4a"
+origin = "packages/ai/src/api/cloudflare.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare"
+name = "CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL"
+kind = "value"
+source_path = "packages/ai/src/api/cloudflare.ts"
+source_blob_oid = "f8b1138ceb34c6a38294a8d366c30c778b764f4a"
+origin = "packages/ai/src/api/cloudflare.ts"
+
+[[symbol]]
+subpath = "./api/cloudflare"
+name = "CLOUDFLARE_WORKERS_AI_BASE_URL"
+kind = "value"
+source_path = "packages/ai/src/api/cloudflare.ts"
+source_blob_oid = "f8b1138ceb34c6a38294a8d366c30c778b764f4a"
+origin = "packages/ai/src/api/cloudflare.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "GrammarConstrainedSampling"
+kind = "type"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "GrammarToolInputJsonBuffer"
+kind = "type"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "appendGrammarToolInputJsonDelta"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "createGrammarToolInputProperties"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "getGrammarToolInput"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "getJsonSchemaToolParameters"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "makeStrictJsonSchema"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "resolveGrammarConstrainedSampling"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/constrained-sampling"
+name = "resolveJsonSchemaStrictSampling"
+kind = "value"
+source_path = "packages/ai/src/api/constrained-sampling.ts"
+source_blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
+origin = "packages/ai/src/api/constrained-sampling.ts"
+
+[[symbol]]
+subpath = "./api/github-copilot-headers"
+name = "buildCopilotDynamicHeaders"
+kind = "value"
+source_path = "packages/ai/src/api/github-copilot-headers.ts"
+source_blob_oid = "602750c4936e47afc530ae6b53ef23c9d9d8bf60"
+origin = "packages/ai/src/api/github-copilot-headers.ts"
+
+[[symbol]]
+subpath = "./api/github-copilot-headers"
+name = "hasCopilotVisionInput"
+kind = "value"
+source_path = "packages/ai/src/api/github-copilot-headers.ts"
+source_blob_oid = "602750c4936e47afc530ae6b53ef23c9d9d8bf60"
+origin = "packages/ai/src/api/github-copilot-headers.ts"
+
+[[symbol]]
+subpath = "./api/github-copilot-headers"
+name = "inferCopilotInitiator"
+kind = "value"
+source_path = "packages/ai/src/api/github-copilot-headers.ts"
+source_blob_oid = "602750c4936e47afc530ae6b53ef23c9d9d8bf60"
+origin = "packages/ai/src/api/github-copilot-headers.ts"
+
+[[symbol]]
+subpath = "./api/google-generative-ai.lazy"
+name = "googleGenerativeAIApi"
+kind = "value"
+source_path = "packages/ai/src/api/google-generative-ai.lazy.ts"
+source_blob_oid = "136c5043d05d6856b0f9f7bf93501c41e1f29dcb"
+origin = "packages/ai/src/api/google-generative-ai.lazy.ts"
+
+[[symbol]]
+subpath = "./api/google-generative-ai"
+name = "GoogleOptions"
+kind = "type"
+source_path = "packages/ai/src/api/google-generative-ai.ts"
+source_blob_oid = "a0f9f39c978a6efb7546dece108bb3d4b1ffa1a3"
+origin = "packages/ai/src/api/google-generative-ai.ts"
+
+[[symbol]]
+subpath = "./api/google-generative-ai"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/google-generative-ai.ts"
+source_blob_oid = "a0f9f39c978a6efb7546dece108bb3d4b1ffa1a3"
+origin = "packages/ai/src/api/google-generative-ai.ts"
+
+[[symbol]]
+subpath = "./api/google-generative-ai"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/google-generative-ai.ts"
+source_blob_oid = "a0f9f39c978a6efb7546dece108bb3d4b1ffa1a3"
+origin = "packages/ai/src/api/google-generative-ai.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "GoogleApiThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "ResolvedGoogleThinkingLevel"
+kind = "type"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "convertMessages"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "convertTools"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "isThinkingPart"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "mapStopReason"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "mapStopReasonString"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "mapToolChoice"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "requiresToolCallId"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "resolveGoogleFunctionCallingMode"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "resolveGoogleThinkingLevel"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "retainThoughtSignature"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "retryGoogleRequest"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-shared"
+name = "supportsGoogleStrictToolSampling"
+kind = "value"
+source_path = "packages/ai/src/api/google-shared.ts"
+source_blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
+origin = "packages/ai/src/api/google-shared.ts"
+
+[[symbol]]
+subpath = "./api/google-vertex.lazy"
+name = "googleVertexApi"
+kind = "value"
+source_path = "packages/ai/src/api/google-vertex.lazy.ts"
+source_blob_oid = "e79d4d0f7855a348381a52175efcfedce8afd5b5"
+origin = "packages/ai/src/api/google-vertex.lazy.ts"
+
+[[symbol]]
+subpath = "./api/google-vertex"
+name = "GoogleVertexOptions"
+kind = "type"
+source_path = "packages/ai/src/api/google-vertex.ts"
+source_blob_oid = "cf8c13706a02d637cbca17dc4843b04705a09410"
+origin = "packages/ai/src/api/google-vertex.ts"
+
+[[symbol]]
+subpath = "./api/google-vertex"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/google-vertex.ts"
+source_blob_oid = "cf8c13706a02d637cbca17dc4843b04705a09410"
+origin = "packages/ai/src/api/google-vertex.ts"
+
+[[symbol]]
+subpath = "./api/google-vertex"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/google-vertex.ts"
+source_blob_oid = "cf8c13706a02d637cbca17dc4843b04705a09410"
+origin = "packages/ai/src/api/google-vertex.ts"
+
+[[symbol]]
+subpath = "./api/lazy"
+name = "LazyApiCapabilities"
+kind = "type"
+source_path = "packages/ai/src/api/lazy.ts"
+source_blob_oid = "55a564cdbc23c259e737536170fd32fca1da3acd"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "./api/lazy"
+name = "lazyApi"
+kind = "value"
+source_path = "packages/ai/src/api/lazy.ts"
+source_blob_oid = "55a564cdbc23c259e737536170fd32fca1da3acd"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "./api/lazy"
+name = "lazyStream"
+kind = "value"
+source_path = "packages/ai/src/api/lazy.ts"
+source_blob_oid = "55a564cdbc23c259e737536170fd32fca1da3acd"
+origin = "packages/ai/src/api/lazy.ts"
+
+[[symbol]]
+subpath = "./api/mistral-conversations.lazy"
+name = "mistralConversationsApi"
+kind = "value"
+source_path = "packages/ai/src/api/mistral-conversations.lazy.ts"
+source_blob_oid = "84fd03ff9e99dfbee711aa4157dac9138364d88e"
+origin = "packages/ai/src/api/mistral-conversations.lazy.ts"
+
+[[symbol]]
+subpath = "./api/mistral-conversations"
+name = "MistralOptions"
+kind = "type"
+source_path = "packages/ai/src/api/mistral-conversations.ts"
+source_blob_oid = "979b467ed35984224a9e90e0e3c5c5acfd37d0d7"
+origin = "packages/ai/src/api/mistral-conversations.ts"
+
+[[symbol]]
+subpath = "./api/mistral-conversations"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/mistral-conversations.ts"
+source_blob_oid = "979b467ed35984224a9e90e0e3c5c5acfd37d0d7"
+origin = "packages/ai/src/api/mistral-conversations.ts"
+
+[[symbol]]
+subpath = "./api/mistral-conversations"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/mistral-conversations.ts"
+source_blob_oid = "979b467ed35984224a9e90e0e3c5c5acfd37d0d7"
+origin = "packages/ai/src/api/mistral-conversations.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses.lazy"
+name = "openAICodexResponsesApi"
+kind = "value"
+source_path = "packages/ai/src/api/openai-codex-responses.lazy.ts"
+source_blob_oid = "a8d0907d1b81e7f0aeff0a9870d7d3e8cde549e3"
+origin = "packages/ai/src/api/openai-codex-responses.lazy.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "OpenAICodexResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "OpenAICodexWebSocketDebugStats"
+kind = "type"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "closeOpenAICodexWebSocketSessions"
+kind = "value"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "getOpenAICodexWebSocketDebugStats"
+kind = "value"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "resetOpenAICodexWebSocketDebugStats"
+kind = "value"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-codex-responses"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/openai-codex-responses.ts"
+source_blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
+origin = "packages/ai/src/api/openai-codex-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-completions.lazy"
+name = "openAICompletionsApi"
+kind = "value"
+source_path = "packages/ai/src/api/openai-completions.lazy.ts"
+source_blob_oid = "6f6c6f61af3515ff0f6a651a0868b2ac18de7ab1"
+origin = "packages/ai/src/api/openai-completions.lazy.ts"
+
+[[symbol]]
+subpath = "./api/openai-completions"
+name = "ConvertCompletionsMessagesOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-completions.ts"
+source_blob_oid = "017810061caab56fda21c8fecff6629ae364619f"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "./api/openai-completions"
+name = "OpenAICompletionsOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-completions.ts"
+source_blob_oid = "017810061caab56fda21c8fecff6629ae364619f"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "./api/openai-completions"
+name = "convertMessages"
+kind = "value"
+source_path = "packages/ai/src/api/openai-completions.ts"
+source_blob_oid = "017810061caab56fda21c8fecff6629ae364619f"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "./api/openai-completions"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/openai-completions.ts"
+source_blob_oid = "017810061caab56fda21c8fecff6629ae364619f"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "./api/openai-completions"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/openai-completions.ts"
+source_blob_oid = "017810061caab56fda21c8fecff6629ae364619f"
+origin = "packages/ai/src/api/openai-completions.ts"
+
+[[symbol]]
+subpath = "./api/openai-prompt-cache"
+name = "OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH"
+kind = "value"
+source_path = "packages/ai/src/api/openai-prompt-cache.ts"
+source_blob_oid = "1c3355d52eeb79fab3924127559f533a59c1d34d"
+origin = "packages/ai/src/api/openai-prompt-cache.ts"
+
+[[symbol]]
+subpath = "./api/openai-prompt-cache"
+name = "clampOpenAIPromptCacheKey"
+kind = "value"
+source_path = "packages/ai/src/api/openai-prompt-cache.ts"
+source_blob_oid = "1c3355d52eeb79fab3924127559f533a59c1d34d"
+origin = "packages/ai/src/api/openai-prompt-cache.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses-shared"
+name = "ConvertResponsesMessagesOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-responses-shared.ts"
+source_blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
+origin = "packages/ai/src/api/openai-responses-shared.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses-shared"
+name = "ConvertResponsesToolsOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-responses-shared.ts"
+source_blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
+origin = "packages/ai/src/api/openai-responses-shared.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses-shared"
+name = "OpenAIResponsesStreamOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-responses-shared.ts"
+source_blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
+origin = "packages/ai/src/api/openai-responses-shared.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses-shared"
+name = "convertResponsesMessages"
+kind = "value"
+source_path = "packages/ai/src/api/openai-responses-shared.ts"
+source_blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
+origin = "packages/ai/src/api/openai-responses-shared.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses-shared"
+name = "convertResponsesTools"
+kind = "value"
+source_path = "packages/ai/src/api/openai-responses-shared.ts"
+source_blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
+origin = "packages/ai/src/api/openai-responses-shared.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses-shared"
+name = "processResponsesStream"
+kind = "value"
+source_path = "packages/ai/src/api/openai-responses-shared.ts"
+source_blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
+origin = "packages/ai/src/api/openai-responses-shared.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses.lazy"
+name = "openAIResponsesApi"
+kind = "value"
+source_path = "packages/ai/src/api/openai-responses.lazy.ts"
+source_blob_oid = "066ca801dccf235e43d813a2fa033ac8f0afc498"
+origin = "packages/ai/src/api/openai-responses.lazy.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses"
+name = "OpenAIResponsesOptions"
+kind = "type"
+source_path = "packages/ai/src/api/openai-responses.ts"
+source_blob_oid = "6bfb3d65b868a6af938a8f59153b8643efbcb4e6"
+origin = "packages/ai/src/api/openai-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/openai-responses.ts"
+source_blob_oid = "6bfb3d65b868a6af938a8f59153b8643efbcb4e6"
+origin = "packages/ai/src/api/openai-responses.ts"
+
+[[symbol]]
+subpath = "./api/openai-responses"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/openai-responses.ts"
+source_blob_oid = "6bfb3d65b868a6af938a8f59153b8643efbcb4e6"
+origin = "packages/ai/src/api/openai-responses.ts"
+
+[[symbol]]
+subpath = "./api/openrouter-images.lazy"
+name = "openrouterImagesApi"
+kind = "value"
+source_path = "packages/ai/src/api/openrouter-images.lazy.ts"
+source_blob_oid = "362d50a008ea049ad4f16102891f07b43a4ba5d7"
+origin = "packages/ai/src/api/openrouter-images.lazy.ts"
+
+[[symbol]]
+subpath = "./api/openrouter-images"
+name = "generateImages"
+kind = "value"
+source_path = "packages/ai/src/api/openrouter-images.ts"
+source_blob_oid = "6c3ae0f3d1f240067ca3c702e7312879888f0f03"
+origin = "packages/ai/src/api/openrouter-images.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages.lazy"
+name = "piMessagesApi"
+kind = "value"
+source_path = "packages/ai/src/api/pi-messages.lazy.ts"
+source_blob_oid = "41af9ee58926bff19d8fe61778be32d8b18b4817"
+origin = "packages/ai/src/api/pi-messages.lazy.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages"
+name = "PiMessagesEvent"
+kind = "type"
+source_path = "packages/ai/src/api/pi-messages.ts"
+source_blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages"
+name = "PiMessagesOptions"
+kind = "type"
+source_path = "packages/ai/src/api/pi-messages.ts"
+source_blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages"
+name = "PiMessagesResponseError"
+kind = "type-and-value"
+source_path = "packages/ai/src/api/pi-messages.ts"
+source_blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages"
+name = "PiMessagesRewriteImpact"
+kind = "type"
+source_path = "packages/ai/src/api/pi-messages.ts"
+source_blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages"
+name = "stream"
+kind = "value"
+source_path = "packages/ai/src/api/pi-messages.ts"
+source_blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./api/pi-messages"
+name = "streamSimple"
+kind = "value"
+source_path = "packages/ai/src/api/pi-messages.ts"
+source_blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
+origin = "packages/ai/src/api/pi-messages.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "DEFAULT_THINKING_BUDGETS"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "MIN_ANSWER_TOKENS"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "adjustMaxTokensForThinking"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "buildBaseOptions"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "clampMaxTokensToContext"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "clampReasoning"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "clampThinkingBudgetToAnswerRoom"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/simple-options"
+name = "thinkingBudgetForLevel"
+kind = "value"
+source_path = "packages/ai/src/api/simple-options.ts"
+source_blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
+origin = "packages/ai/src/api/simple-options.ts"
+
+[[symbol]]
+subpath = "./api/transform-messages"
+name = "transformMessages"
+kind = "value"
+source_path = "packages/ai/src/api/transform-messages.ts"
+source_blob_oid = "45e90a09340228f66c473ea6717821802eb931ea"
+origin = "packages/ai/src/api/transform-messages.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthAuthInfo"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthCredentials"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthDeviceCodeInfo"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthLoginCallbacks"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthPrompt"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthSelectOption"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./oauth"
+name = "OAuthSelectPrompt"
+kind = "type"
+source_path = "packages/ai/src/oauth.ts"
+source_blob_oid = "039a587fb26c5e5209c7754f9039d0a1ea444c7b"
+origin = "packages/ai/src/compat/extension-oauth-types.ts"
+
+[[symbol]]
+subpath = "./bedrock-provider"
+name = "bedrockProviderModule"
+kind = "value"
+source_path = "packages/ai/src/bedrock-provider.ts"
+source_blob_oid = "10430092fd18d0cf7918e2a5bba1fa0ca82cbaf5"
+origin = "packages/ai/src/bedrock-provider.ts"
+
+[[symbol]]
+subpath = "./bun-oauth"
+name = "registerBunOAuthFlows"
+kind = "value"
+source_path = "packages/ai/src/bun-oauth.ts"
+source_blob_oid = "d1370214df120697d141de57a50c4dbb25db8c3b"
+origin = "packages/ai/src/bun-oauth.ts"

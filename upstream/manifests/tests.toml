@@ -1,0 +1,3245 @@
+manifest_version = 1
+kind = "test-inventory"
+source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+content_digest = "sha256:93e16912755841f6665b8ef56c52619d17ba27b8e25bdcdc6cba9caa7c9bb909"
+
+[[test]]
+path = "packages/agent/test/agent-loop.test.ts"
+blob_oid = "d3255dfd092e8e43c090aa3ab79cae722dbcfb51"
+route_surface = "agent.legacy-loop"
+evidence_surfaces = ["agent.legacy-loop", "agent.package-metadata"]
+role = "source-or-test"
+
+[[test]]
+path = "packages/agent/test/agent.test.ts"
+blob_oid = "672c4a6789c583b4ab5fd82f83bdd0e11ac7bb81"
+route_surface = "agent.legacy-loop"
+evidence_surfaces = ["agent.package-metadata"]
+role = "source-or-test"
+
+[[test]]
+path = "packages/agent/test/e2e.test.ts"
+blob_oid = "6b27c744bdd5919016df681d9fde978b26b76194"
+route_surface = "agent.public-and-tests"
+evidence_surfaces = ["agent.legacy-loop", "agent.package-metadata"]
+role = "test"
+
+[[test]]
+path = "packages/agent/test/harness/agent-harness-scaffold.test.ts"
+blob_oid = "4e26e918362cabf90cb57b80f263ac49e50e395f"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold", "agent.legacy-loop"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/branch-summarization.test.ts"
+blob_oid = "bb4edea50f72b40b4a42a06f73c6f7ef11371fca"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/compaction.test.ts"
+blob_oid = "eca43dfd7af79a203aede6f197b0b8111f860885"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold", "agent.legacy-loop"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/events.test.ts"
+blob_oid = "84cb5e52e6453f9d27f150629dddaf8664c2096f"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/nodejs-env.test.ts"
+blob_oid = "4595ea30f74b622a63f24ede5413665508aca8f2"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/prompt-templates.test.ts"
+blob_oid = "8e118ad490a5639c28f86ddc21e8a7745e6b848b"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/reducer.test.ts"
+blob_oid = "2422cf8ff7433ef8b8e219a4a61e2d9f1550c344"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/resource-formatting.test.ts"
+blob_oid = "45d4553f9df4107f048da0927e193bf5efe00f66"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session-test-utils.ts"
+blob_oid = "5634abb9611ee5e3fc6332e2dd905c5e5e7cbcfe"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session/context.test.ts"
+blob_oid = "f439b29d0ee98a0e373f16822c1269dcc6b79eca"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session/jsonl-codec.test.ts"
+blob_oid = "b817675501751debb26990a5b2417980d000bf87"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session/jsonl-storage.test.ts"
+blob_oid = "6b971dd6e29801d4264b430cca0405b59d3e49c9"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold", "agent.legacy-loop"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session/jsonl.test.ts"
+blob_oid = "6b3a7671a94e2d5f6effa76cf05f237de02aa34b"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session/memory.test.ts"
+blob_oid = "87c13c58bcabca7a4302fd4a3c2ae979f9d003c2"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/session/search.test.ts"
+blob_oid = "883f583964d3bf9630b3600b726882105dbb33a3"
+route_surface = "agent.search.current-api"
+evidence_surfaces = ["agent.harness.scaffold", "agent.legacy-loop", "agent.search.current-api"]
+role = "source-or-test"
+
+[[test]]
+path = "packages/agent/test/harness/skills.test.ts"
+blob_oid = "88c1559480f015c10210a1a30193d6dab043918e"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/system-prompt.test.ts"
+blob_oid = "f20fbd16603b3baccd721d085abfa733f7f8ab7f"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/telemetry.test.ts"
+blob_oid = "cb2b340234dc75816ba71b114ce7ad84ccc037cd"
+route_surface = "agent.telemetry-schema"
+evidence_surfaces = ["agent.telemetry-schema"]
+role = "source-generator-projection-or-test"
+
+[[test]]
+path = "packages/agent/test/harness/tools.test.ts"
+blob_oid = "a926051c708358d28e6a09ff0b34d4f0fe5ee022"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/harness/truncate.test.ts"
+blob_oid = "42da9d1fffebe4d7d89fe8bfaa14c34598c0264a"
+route_surface = "agent.harness.scaffold"
+evidence_surfaces = ["agent.harness.scaffold"]
+role = "disposable-test"
+
+[[test]]
+path = "packages/agent/test/proxy.test.ts"
+blob_oid = "05f59b11f09a8dee6e99ce94cf0a2f215833dc8a"
+route_surface = "agent.legacy-proxy"
+evidence_surfaces = ["agent.legacy-proxy"]
+role = "source-or-test"
+
+[[test]]
+path = "packages/agent/test/utils/calculate.ts"
+blob_oid = "0a4fefc58c3c027f78f9069b7979d853dd45b427"
+route_surface = "agent.public-and-tests"
+evidence_surfaces = ["agent.legacy-loop"]
+role = "test"
+
+[[test]]
+path = "packages/agent/test/utils/get-current-time.ts"
+blob_oid = "a83a82af3183e83df38db0c221b39e7143ef891e"
+route_surface = "agent.public-and-tests"
+evidence_surfaces = ["agent.legacy-loop"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/abort.test.ts"
+blob_oid = "767be7d04d5c32bcb7963b7a783130e664a104bf"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-adaptive-thinking-models.test.ts"
+blob_oid = "01de8688a80b23e969d46a4bb0add36756a15199"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-auth-token.test.ts"
+blob_oid = "2bad50181a4d1d92781406ae32290323c229171f"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain", "ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-cache-write-1h-cost.test.ts"
+blob_oid = "13745e9b9a7029366e589b889058f9083f486ca7"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-eager-tool-input-compat.test.ts"
+blob_oid = "37280cb49e3a671dca2e4cd9821687c59930b2de"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-eager-tool-input-e2e.test.ts"
+blob_oid = "6f6c8bd2fa3f131e6b87ce2b5eaa3bd14ec469a5"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-empty-thinking-signature-compat.test.ts"
+blob_oid = "aba6fa827e990aec728b9518605b28725e85f026"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-force-adaptive-thinking.test.ts"
+blob_oid = "ffaf48dbe22c754e13fddd6945690a383cf370d9"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-long-cache-retention-e2e.test.ts"
+blob_oid = "7855c872df9491ffc60f91ed41bf28015e65d68d"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-oauth.test.ts"
+blob_oid = "9dc227b93904455f1e65dc4e1d4674374eb8cb4e"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-opus-4-8-smoke.test.ts"
+blob_oid = "44fa5aebb2cf133213d8a01f2d0e12bc0bf88b57"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-sse-parsing.test.ts"
+blob_oid = "4f111a61d93ef6af00313237bf18415f382f8c87"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-temperature-compat.test.ts"
+blob_oid = "4b0592377844c5c0a122a702e6704f81306fc98e"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-thinking-disable.test.ts"
+blob_oid = "3f55107c862897f712ac720c479b271690e801c2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/anthropic-tool-name-normalization.test.ts"
+blob_oid = "b8c45049b9bc82ef0252f16a168045f3e344e5eb"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/azure-openai-base-url.test.ts"
+blob_oid = "b317fd79f002319c4cbc5f8b2e23a7ba3e6a26c3"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/azure-openai-responses-reasoning-replay.test.ts"
+blob_oid = "762638a32e12f58af30ccd2eca1860d533e37625"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/azure-openai-tool-choice.test.ts"
+blob_oid = "3ce768e1c63db995752b496ac82585716111bac7"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/azure-utils.ts"
+blob_oid = "d83b198a638bcbdc6bcd0d8de113e5fe98d06696"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/baseten-models.test.ts"
+blob_oid = "3157747fc9629754c7a22f2340c38698ae062a58"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.models-auth", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-convert-messages.test.ts"
+blob_oid = "fbc4330438baad256d47ddf18329a2b408414232"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-credentials.test.ts"
+blob_oid = "bcf7ceef8522e2b145c61e91939d48cb88bdad13"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-custom-headers.test.ts"
+blob_oid = "43ee692cea573e7a493427e2c128d7e4dd10dc53"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-endpoint-resolution.test.ts"
+blob_oid = "62797d15f953b8d4d2ab6e470d6ec299615b7753"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-error-metadata.test.ts"
+blob_oid = "5e241956dc8a581e2e854d6a3a970042cf64ac01"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-models.test.ts"
+blob_oid = "02e8b8f16b4baabc553b91dd8ffe09b61c83bfa2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-raw-stop-reason.test.ts"
+blob_oid = "128db049881d4b42b9349a7cd94ef1e52ed86c3a"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-redacted-reasoning.test.ts"
+blob_oid = "86301e155ae7aff340111f4e9b024db3004ba50f"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-response-headers.test.ts"
+blob_oid = "82d264882f37ea586d776a94e949fe71023b5ead"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-thinking-payload.test.ts"
+blob_oid = "acc370574292cb09b44e82d8217db20cecbdfb68"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/bedrock-utils.ts"
+blob_oid = "11ac93de72fa886fd8dcfd740fc1c4278396c062"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/cache-retention.test.ts"
+blob_oid = "5721dd3797fb611dc58815fab8213667de044bf9"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.catalog.projection", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/cloudflare-gateway-binding.test.ts"
+blob_oid = "d59611a887cb3ef57b873d665fc5af61228eff32"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/cloudflare-stream.test.ts"
+blob_oid = "34469baecc78a924e9e3fb170cd02a2881d7a084"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/cloudflare-utils.ts"
+blob_oid = "40ec74c542fbed67581ae7c634fdffda71beeb53"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/codex-websocket-cached-probe.ts"
+blob_oid = "74f8f57ed7a3a32156d4c1129e14a39938cf6e81"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "coding.models"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/compat-env.test.ts"
+blob_oid = "5992821180a79670fe1995e605624409164c9d27"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/constrained-sampling.test.ts"
+blob_oid = "f24edd1ff3e30af08f20806de9ed9c89430abafd"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/context-estimate.test.ts"
+blob_oid = "85047309e6f5c04e8c71fad6bac04ad1fbdc2594"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/context-overflow.test.ts"
+blob_oid = "e66d219132c87a97507bc611f4c26544e9774250"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/cross-provider-handoff.test.ts"
+blob_oid = "ada2b536f856f521d09ff5ac406f05123ce65657"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/data/red-circle.png"
+blob_oid = "cd23ec6b13a83bae8f4de1515175ba1d51ddb1e9"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/deferred-tools.test.ts"
+blob_oid = "455a14b95d31229d5b70fa1d10834da18c0196bc"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/empty.test.ts"
+blob_oid = "b45ceed68587d9fce5bfdb6d9d280958c787a339"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/env-api-keys.test.ts"
+blob_oid = "76b1f69c93e79668348cadfb93237b23de729942"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/error-body.test.ts"
+blob_oid = "15cf5e11c4990fc962f2506dd784317ee02ebd4a"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.transport-utils"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/faux-provider.test.ts"
+blob_oid = "557885f23ddcd749a7b7fcacd7d3a17a66899c92"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/fetch-option.test.ts"
+blob_oid = "6360739f457166378fe3a5756bcfb8c106bb3f19"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/fireworks-models.test.ts"
+blob_oid = "1a604ba9e0ba48629a385e8fedd9a2f842fcf88c"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/generate-models-strict.test.ts"
+blob_oid = "30d44a4db401a2f9f3340ce1fc82d6e365db034c"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.catalog.runtime"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/github-copilot-anthropic.test.ts"
+blob_oid = "32e2d0af51a976919e07d3474c3a379c26b2b825"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/github-copilot-oauth.test.ts"
+blob_oid = "267216e4f3f3ce78f1da3c63d954094e1981976a"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-raw-stop-reason.test.ts"
+blob_oid = "245c0d7251a19858b7e617eeda7dcfc8985b2e6d"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-shared-convert-tools.test.ts"
+blob_oid = "82876e5fe53a4f33e9eb38743b0a05dd49fe31bd"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-shared-gemini3-unsigned-tool-call.test.ts"
+blob_oid = "3cdcb27e3021d3f9f5c4c5932a0db47429c38259"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-shared-image-tool-result-routing.test.ts"
+blob_oid = "8ba5660cb5f28c652868e7772c79a001524579cf"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-shared-retry.test.ts"
+blob_oid = "77245280e0b3e4ef3947ae4d995bc628dd5f2c4a"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-shared-signed-empty-blocks.test.ts"
+blob_oid = "90f2196f9784a864e741cb00a2042db9885d0d4f"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-thinking-disable.test.ts"
+blob_oid = "3f6e36c7168e21d55f0b6c8ba5e8498d8eb26917"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-thinking-level-map.test.ts"
+blob_oid = "957c9b14b22d09f088d2338527de2c74050bb091"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-thinking-signature.test.ts"
+blob_oid = "853a6a60ccd327378989d3a16e6b8b7c27ebee98"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/google-vertex-api-key-resolution.test.ts"
+blob_oid = "3937b3feb24bfe1fab7841fab4e1493d3ef7554c"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/image-model-data.test.ts"
+blob_oid = "21d4680509e773613a3ee648a75b424cdbebce48"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.catalog.generator"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/image-tool-result.test.ts"
+blob_oid = "a331f2a343f6827cfe407cdfffe4c47efc84abc6"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/images-models.test.ts"
+blob_oid = "a9dd04077fde4da0e0b76e178e06ad3c6e38135b"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/images.test.ts"
+blob_oid = "c45cc215ef4f5802f57542f6c3dc1bf906d33cf3"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/interleaved-thinking.test.ts"
+blob_oid = "b4da128359392e04b1bcf22f1fa194236dbed49b"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/kimi-coding-oauth.test.ts"
+blob_oid = "d64bbf1bba5c3551c2af6171e053c03b039e98ae"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/lax-message-content.test.ts"
+blob_oid = "24a7df3cb3bb461e6bb67b75e52c8274c11718f9"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/lazy-module-load.test.ts"
+blob_oid = "cb0875c9ee73e012206348a9b295b20cfc25a970"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/max-thinking.test.ts"
+blob_oid = "f0623a5cded76818d1a6dbfdd868d4e3ce66a182"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/mistral-http-transport.test.ts"
+blob_oid = "b4282ffe75b9b43e6a3f740d79d40fd879ef6f85"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/mistral-raw-stop-reason.test.ts"
+blob_oid = "512d92c244e58f630bf71a12a8a3d8446d74400a"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/mistral-reasoning-mode.test.ts"
+blob_oid = "bffa292da52cd62d256714e6161528298a2d78f7"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/mistral-tool-schema.test.ts"
+blob_oid = "6f3bac16e7ef2a697ae710b4f83c8ff47bd663e6"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/model-catalog-types.test.ts"
+blob_oid = "0918228fe8c4489263d888f9caa76945d6b6229f"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.catalog.projection"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/model-data-validation.test.ts"
+blob_oid = "f0e1b9fbcfc951e72c3a937080a709b6d64fc351"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.catalog.generator"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/models-runtime.test.ts"
+blob_oid = "ffbcf6af3facd42026cc31ea54bb08976c2173b2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.models-auth"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/node-http-proxy.test.ts"
+blob_oid = "a077a928bbf52ef0b914115d72eb4521fc1fbdec"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.transport-utils"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/oauth-auth.test.ts"
+blob_oid = "ceaac57f971f3c019feeb8ee59020b08396b9818"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/oauth-device-code.test.ts"
+blob_oid = "2bda9f5e60b64525f31f5f87aef72bb2ae300956"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/oauth.ts"
+blob_oid = "81c35d04272967d255bf129d26b57cf89dcef847"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-codex-cache-affinity-e2e.test.ts"
+blob_oid = "19bf857ba6e75c7cd1595253c09dce9ae77a486b"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-codex-oauth.test.ts"
+blob_oid = "f45d4aeea5e804fba2abf926f141c1519d3429d3"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-codex-stream.test.ts"
+blob_oid = "1ef93f3be503ecf7ba4470dc5b982983d81b8576"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-cache-control-format.test.ts"
+blob_oid = "b9f5e69dd7a7cb8971d4a6687c56f14bc1a4fbce"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-empty-tools.test.ts"
+blob_oid = "9fd9fc5f8d91b74190ab16fc06cd3eff8cf2fee9"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-prompt-cache.test.ts"
+blob_oid = "28b255160e3651f08a1df3047af2681c6dff9529"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-raw-stop-reason.test.ts"
+blob_oid = "5a51909f961dcff7e336f3956c1691cb57503a46"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-reasoning-details.test.ts"
+blob_oid = "a76c3b1dd8e2e0560a282f073be0d7a9cffec838"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-response-model.test.ts"
+blob_oid = "5139bd54d2e7d035f315c6de9c90aa987abcd0c2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-retry.test.ts"
+blob_oid = "0c48b5022731e91d8d448f9e947457fee78d83ed"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-thinking-as-text.test.ts"
+blob_oid = "44e14416b31df6f3cd604d117d50467b4f6b3e82"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-thinking-token-budget.test.ts"
+blob_oid = "3f5cfa4ea5dc743f55b76d264c1667768b548352"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-tool-choice.test.ts"
+blob_oid = "c8e03b6dfac7301414592f76b508365e8806bad2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-completions-tool-result-images.test.ts"
+blob_oid = "de692a665189d40ef45aedecdc409ad3cf8173b2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-cache-affinity-e2e.test.ts"
+blob_oid = "a2f1197e0da668b03b5ff218c9bef776379b7b0d"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-compat.test.ts"
+blob_oid = "c98b2ed556288820ef8dc3f99e31ea2f7c3991aa"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-empty-tool-result.test.ts"
+blob_oid = "0db91237746588c1d8302889d5a454b03fdebc5a"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-foreign-toolcall-id.test.ts"
+blob_oid = "b823165823eabc6c9ce628bb3be7954de04b76ec"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-message-id.test.ts"
+blob_oid = "cb2fd0c04aa7bb2d484b2d27671a426dca38c830"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-namespace.test.ts"
+blob_oid = "75fc4eac19df76f019a4d5376f8850aafaef759d"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-partial-json-cleanup.test.ts"
+blob_oid = "d01800c4805e85189cd19363570b90af523092e1"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-reasoning-replay-e2e.test.ts"
+blob_oid = "68b2326c0faa36a4270bbe9cf797a76e68580458"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-terminal-event.test.ts"
+blob_oid = "a6c2fd94c9db311e21108ebc354814891a400eb7"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openai-responses-tool-result-images.test.ts"
+blob_oid = "f881118b63f310ae90afe1900c7770f2d69925fc"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openrouter-cache-control-models.test.ts"
+blob_oid = "2c210444f8b61a1a392e907e36cbeb448acd21f0"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openrouter-cache-write-repro.test.ts"
+blob_oid = "2292ec91ef5f902ce8d8dd0f31c6ec2f7ef61342"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openrouter-images.test.ts"
+blob_oid = "31882bec3c78112708fc9e74c03bd715577960b5"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openrouter-oauth.test.ts"
+blob_oid = "47ff090f030143dbbfddaac0a530341b92301c5f"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/openrouter-reasoning-options.test.ts"
+blob_oid = "20eb8ba7aac394b34b30b37c90bb97266d3c4968"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.catalog.generator", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/overflow.test.ts"
+blob_oid = "9066fcc4940be6944586177854f1ab7d9be53312"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/pi-messages.test.ts"
+blob_oid = "62f7fae434d5ddb67ddc3e24c662b43f35511db1"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/provider-error-body-passthrough.test.ts"
+blob_oid = "6b3c981abcf4eb7c086cdde0733e34f7ce269662"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/provider-error-body-regression.test.ts"
+blob_oid = "d894c3db004a87be6475be95950debd11494683e"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/provider-retry.test.ts"
+blob_oid = "0c5313ec70694dae9965bbf24bfd2ee2e8ba8605"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.transport-utils"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/providers.test.ts"
+blob_oid = "14f0b20a09cf11a8cbf430ff0a276c3a3db0fbaf"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain", "ai.faux", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/qwen-token-plan-models.test.ts"
+blob_oid = "d1dcef09c81ef31b1626e5a510ac4bd2db71f33d"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/radius-oauth.test.ts"
+blob_oid = "ac613520dcd810c88f280b4c1ac3778727de9f62"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/reasoning-options.test.ts"
+blob_oid = "fafa9fa5ed1c1a54060b1d3aa8e3acfd780bd949"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.catalog.generator"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/responseid.test.ts"
+blob_oid = "cd5660575776a8fa59123cd771552a3205c7db17"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/retry.test.ts"
+blob_oid = "0d8875e08c0caebfc16860957f7b238e8e48646e"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.faux", "ai.transport-utils"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/sampling-options.test.ts"
+blob_oid = "8a1b990f5a1d1d0732cc49c7733db12bedec0bc8"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/scratch.ts"
+blob_oid = "fec7b31aab4460f86f30dfe99d0e0fbd0da0447c"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/stream.test.ts"
+blob_oid = "2fe1604ad43564eb2388bb44179f1b09d205689b"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/supports-xhigh.test.ts"
+blob_oid = "e2e428a0a9f59e7f60252b1723cf251b90484fe6"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/telemetry-options.test.ts"
+blob_oid = "fc4926369f709dc8b806b64e6aae6064a7c26dcd"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.domain", "ai.models-auth", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/text.test.ts"
+blob_oid = "43dc21c84636c5362990684c643d48823236595b"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.package-metadata"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/together-models.test.ts"
+blob_oid = "89c85525dd5801418b469d4550df991c06f3987d"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/tokens.test.ts"
+blob_oid = "95a64c3d194c22436c79be1c5df1f7cd3bae83f1"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/tool-call-id-normalization.test.ts"
+blob_oid = "fd59d9e6ff2b3fb8c66d0c3ddf9635ae62f88cca"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/tool-call-without-result.test.ts"
+blob_oid = "57945ccadb9a8993ea1ebe73fbed087dc842999b"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/total-tokens.test.ts"
+blob_oid = "fabff7f69622300b743e953994a62de30cc5ab52"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/transform-messages-copilot-openai-to-anthropic.test.ts"
+blob_oid = "24f218df7580fa25b59c773819c7751f97acf826"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/unicode-surrogate.test.ts"
+blob_oid = "b9113c38182de2b752cc17180d08373ed849ba89"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.compat", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/uuid.test.ts"
+blob_oid = "3e54265028668365b6a96aaa47c1070b768ca5cb"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/validation.test.ts"
+blob_oid = "1a212ac12769a17665badf2241a8284fb92468f4"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/xai-oauth.test.ts"
+blob_oid = "08843f87f4240cb5e61cf3aa046a90b183a272df"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.models-auth", "ai.oauth-images"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/xai-responses.test.ts"
+blob_oid = "601b5359d6d77251b5dabd72b49bd25d041a79f2"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.api-adapters", "ai.catalog.projection", "ai.domain", "ai.models-auth", "ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/xhigh.test.ts"
+blob_oid = "0803c3757afd25025ef97dbb9eac77def7d00094"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/xiaomi-models.test.ts"
+blob_oid = "992a15c4310b04fbe42011fc0b7941ea8978ead1"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/xiaomi-token-plan-ams-anthropic-empty-signature-smoke.test.ts"
+blob_oid = "74d2708983955c6caf65a3186b07fe9b6ca1739f"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/zai-coding-plan-models.test.ts"
+blob_oid = "2d0ef25b3f4109ea9ccce83c8afd378e347af577"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.provider-factories"]
+role = "test"
+
+[[test]]
+path = "packages/ai/test/zen.test.ts"
+blob_oid = "0f731b46928ef75d83a2dfffb13c514d0451cc94"
+route_surface = "ai.tests"
+evidence_surfaces = ["ai.catalog.projection", "ai.compat", "ai.domain"]
+role = "test"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-auto-compaction-queue.test.ts"
+blob_oid = "8c1769dcc697d607a30c8f33b87aa6fe9835a18a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-branching.test.ts"
+blob_oid = "7016ecca98bc84314db101b51ba5ff2d2da9f55a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-compaction.test.ts"
+blob_oid = "6484aea0ad785af7a08306d6dfb529126b8c5dbb"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-concurrent.test.ts"
+blob_oid = "bd825ec7e6dfeb82c510c4f6aafe4aebc20aa324"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-dynamic-provider.test.ts"
+blob_oid = "c806efbc37d78a143334c6bd3c38091ea421a049"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-dynamic-tools.test.ts"
+blob_oid = "5edc1f6c097d7661f9c5f2e33e6d5952cd7ece42"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-retry.test.ts"
+blob_oid = "25a996ca179cc09a80c9893971cdaf5dc91865e3"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-runtime-events.test.ts"
+blob_oid = "32bb828ff54e5e593ea6678951a1ec84da427dbf"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-stats.test.ts"
+blob_oid = "434524d4721fdd098753eddd135deee54daae52e"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/agent-session-tree-navigation.test.ts"
+blob_oid = "5cd204500def7db8b38e7c279ab7c0be1a1ec8b6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/ansi-utils.test.ts"
+blob_oid = "15bb431405990369002b15d118e6623c9d6dc4d2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/args.test.ts"
+blob_oid = "710ed7b09d00428a0a1ca7eaebaf5cfca077b2de"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/assistant-message.test.ts"
+blob_oid = "2ab64c09f8e3ec079f3c980d6f1d0d206a35d3ba"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/auth-check.test.ts"
+blob_oid = "5f1ce6327975dd41a546ed049a2cca38114aeeed"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/auth-storage.test.ts"
+blob_oid = "61cdbefba0fad23d7ee2b71c8e5b49170601f63d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/bash-close-hang-windows.test.ts"
+blob_oid = "a17834e24035e911bb26d646115b2ed2665ac0b9"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/bash-execution-width.test.ts"
+blob_oid = "9cc64e8c18c4cd671587701ee3338f22a553cf08"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/block-images.test.ts"
+blob_oid = "935d854d55f9fca319d93481f1dc0b04d3d5f260"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/branch-summarization.test.ts"
+blob_oid = "7018e969f2c44da0b0eb79a11267530ebaea2d60"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/branch-summary-extensions.test.ts"
+blob_oid = "ecdc01797852d399a1b93b33cbbeb09770c01954"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/cache-stats.test.ts"
+blob_oid = "a7c45e69c3857a3e26ee92b561e5e117f916fbc6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/changelog.test.ts"
+blob_oid = "979e7cdf66f2ce45a9a13b7f90b0709efc7342df"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/client/remote-session-lifecycle.test.ts"
+blob_oid = "721860b7c90bb5cc9d29b574a59654346bf4b417"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/client/remote-session-ownership.test.ts"
+blob_oid = "ff47c85193e25b121c23ab4011bb992e9a52b0a5"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/client/remote-session.test.ts"
+blob_oid = "9e2371f3488067d984bd02e476237bb0065503f1"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/client/support.ts"
+blob_oid = "d51b3cab7df0661ac2b7d2cc5cc216a47bfeb1a9"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/client/transcript.test.ts"
+blob_oid = "fdb2c7edd343bda4d3d8d679fa1b06e449ed1341"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/clipboard-image-bmp-conversion.test.ts"
+blob_oid = "be3a9d953737d2a047ae7c84c97e50a20aabb5d7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/clipboard-image.test.ts"
+blob_oid = "eb2ba613a3e279bfe39164c36fcd5d41f2ccb9fc"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/clipboard-native.test.ts"
+blob_oid = "d3ec209d3efbf9e385a11ee75717ca7286415a59"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/clipboard.test.ts"
+blob_oid = "5713d5aed2ec803f99629518383cef4cb0d21ebc"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/compaction-extensions-example.test.ts"
+blob_oid = "9767e8a5cf5caf70b09a849300e8d87598b93a62"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/compaction-extensions.test.ts"
+blob_oid = "7b8f8e627fb1bf7b0d5045f15f29044e383c66ed"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/compaction-serialization.test.ts"
+blob_oid = "91ca9251aaeaecada7c285bda5201c2ae0b850df"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/compaction-summary-reasoning.test.ts"
+blob_oid = "e57b4ebb97f5b8efa83be69ea5fb9f2254d7f28c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/compaction.test.ts"
+blob_oid = "12c9d0be220319aa5056c470f069a8a3025d39c0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/config-value-migration.test.ts"
+blob_oid = "8bad16cf534ac23fde5cd9b9eea378d3032ed0b7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/config.test.ts"
+blob_oid = "300f9e06ab12d804d0f9ba4c979e17a823a5b8e9"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/credential-print.test.ts"
+blob_oid = "a1ca56d9c7e0d6641fe404fbe652a6ab552bc9de"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/custom-editor-history-keybindings.test.ts"
+blob_oid = "a4de5200dfcdcd87fd54aaece29b4a89906f9b94"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/custom-message.test.ts"
+blob_oid = "cdc598010b02f8d112d198e4bc4e0818a742ea49"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/default-tools-setting.test.ts"
+blob_oid = "5b9331400a05e4ba521cf8ea91252ab14f37375e"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/edit-tool-legacy-input.test.ts"
+blob_oid = "26a550d26af89641b851bfbcf35a3a5c2aac25ba"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/edit-tool-no-full-redraw.test.ts"
+blob_oid = "8e6d66f5603e97078192cc470ba23ad3b4bda79d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/experimental-cli-command.test.ts"
+blob_oid = "70d1b9d92b424b5c43b9daaf8daca531aeae8698"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/experimental-cli-resolution.test.ts"
+blob_oid = "631c1e748f5276c8269fcb8b115737926ec80e93"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/experimental-tool-strict-mode.test.ts"
+blob_oid = "2e8b0334dadd85780e339d25fe65ec775368f853"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/experimental.test.ts"
+blob_oid = "665616e808ff034c6fd8482633002d74eca1c390"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/export-html-skill-block.test.ts"
+blob_oid = "ae89decf5c706d98fb738474219ad543970adb4f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/export-html-whitespace.test.ts"
+blob_oid = "9d2a0e84d944fc756d1a86dc5138172ec31f4d15"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/export-html-xss.test.ts"
+blob_oid = "da3c19f38bf582cce4993f339cd8f0aacfd3cda9"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/export-jsonl-share.test.ts"
+blob_oid = "5e66859314474b8747117a21e5b50bc06a30bef6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/extensions-discovery.test.ts"
+blob_oid = "ebb9b464cd60ecd0684d4454a8143104cf1f8528"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/extensions-input-event.test.ts"
+blob_oid = "b89dc1c78d5e5bd00f0ca6a2752d836c1c573198"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/extensions-runner.test.ts"
+blob_oid = "70f06a3cf64d88e0186bc2afa8a53e936f46a17f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/external-editor.test.ts"
+blob_oid = "5cbbc93b3b7a993ee23a1a4a6fe60cb5d7ea68ba"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/file-mutation-queue.test.ts"
+blob_oid = "8e13a45e62e7d3ffc5251575dc14a10639905d79"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/first-time-setup-fork.test.ts"
+blob_oid = "e9b892071659be45d7e98ef6a5824d567f414660"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/first-time-setup.test.ts"
+blob_oid = "c470e6dccf74077602285dfec74f0efb139176e0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/assistant-message-with-thinking-code.json"
+blob_oid = "1acb123ad55ee325cf13a08094004aaf6147dc3e"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/before-compaction.jsonl"
+blob_oid = "5e744e3d4b69b43789776719dd900af043fd8a8d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/empty-agent/.gitkeep"
+blob_oid = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/empty-cwd/.gitkeep"
+blob_oid = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/fake-external-editor.mjs"
+blob_oid = "043dfcf00013bd367f527590b4b7ba20f2a9e83f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/large-session.jsonl"
+blob_oid = "d95287af7014e12723214daa5cacedb578a1c65b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills-collision/first/calendar/SKILL.md"
+blob_oid = "a2e355fcc0d5d64f1c6719f4f849caf48dc20c56"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills-collision/second/calendar/SKILL.md"
+blob_oid = "d90dd154eef1db01f4d5f910a723a3e164dcc24c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/consecutive-hyphens/SKILL.md"
+blob_oid = "76c5b6ead5458113d01f8be7713646537fe975b0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/disable-model-invocation/SKILL.md"
+blob_oid = "a8ec9d35dc39746e612a14bc6b90205bdbd8a76a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/invalid-name-chars/SKILL.md"
+blob_oid = "fc90d0c93298125f3ab9b3af96a40c888993adbb"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/invalid-yaml/SKILL.md"
+blob_oid = "13be0a2e00ae11076caaadc4f571d942582ca768"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/long-name/SKILL.md"
+blob_oid = "e2563b7bfd3ede552e0de123307e20ca890ced31"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/missing-description/SKILL.md"
+blob_oid = "b6031d48a9b5ea367b7172171c624f55e5624a2f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/multiline-description/SKILL.md"
+blob_oid = "206cf2e51d431c6f605dac3738ef7b18701f3239"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/name-mismatch/SKILL.md"
+blob_oid = "cdc8cefeb6a601a6e397b2d75a01fd3109be9787"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/nested/child-skill/SKILL.md"
+blob_oid = "ae43b964a3fae9e6c267b6babba06b89091edc24"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/no-frontmatter/SKILL.md"
+blob_oid = "e14f6a316ffceb971051c685fcfd06e860599cfd"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/root-skill-preferred/SKILL.md"
+blob_oid = "389389384cdd4ac88be12194e73c6789da018ef7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/root-skill-preferred/nested-child/SKILL.md"
+blob_oid = "817eb8200c7d0aa510873e4d3d398159d8b06fb1"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/unknown-field/SKILL.md"
+blob_oid = "a7f6e4cc0793daf34e2feeb5a74a3ff1d223de6b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/fixtures/skills/valid-skill/SKILL.md"
+blob_oid = "1a76da298f860a949834a53a7b24b6f15bb680c2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/footer-data-provider.test.ts"
+blob_oid = "4ad9a23a15e1f2bf465188559988ef7dfe05f19d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/footer-width.test.ts"
+blob_oid = "03db5b67918b256d70380cd35aedf55e4362e1d3"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/format-resume-command.test.ts"
+blob_oid = "86c4475b5cd078f66116a9bf98c930ef3ef17221"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/frontmatter.test.ts"
+blob_oid = "43a92985ee397435f99909b4ca44dac03dd60169"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/git-merge-and-resolve-extension.test.ts"
+blob_oid = "7c8741c7ec086b119e9d4f1f767127715513bc43"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/git-ssh-url.test.ts"
+blob_oid = "87b8b9400fa8c5ff763d55d8f30aef37359c5c86"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/git-update.test.ts"
+blob_oid = "80308277cb39502db8c4483cca5b9067eb0cfe53"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/http-dispatcher.test.ts"
+blob_oid = "bcd4b876f1dd683bc8d8f440413f3aeadef4a2a7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/image-process.test.ts"
+blob_oid = "e65ebfb73661ba44329128855028bf8ed52cd1b4"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/image-processing.test.ts"
+blob_oid = "13d39dc6b717ef739e3f14af3e96138b6c0b8ae4"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/image-resize-callers.test.ts"
+blob_oid = "2337ae8ca568f6a8ecd9c979a5f0e257f2ff1198"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/initial-message.test.ts"
+blob_oid = "fae479f781310a9c00e1fa36c50cbcf13e34737a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/input-transform-streaming-example.test.ts"
+blob_oid = "faf95b6ba4703d84ead2a6b779ac8a6bb19146c6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-anthropic-warning.test.ts"
+blob_oid = "bcda13aeb4a7cf4009106368e6186900de651ef2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-clone-command.test.ts"
+blob_oid = "69864146aae28d665e70c4193b7b6a0847336c61"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-compaction.test.ts"
+blob_oid = "378be930378ea3598a3af1496735f91e1292aba1"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-import-command.test.ts"
+blob_oid = "cec7a5defe36a5ac987beefa26fef06b1f37418e"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-startup-input.test.ts"
+blob_oid = "28a0f48b80c0c29f3fd67bfd66abebe5d4249a58"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-status.test.ts"
+blob_oid = "a4aaa48c02a0510f52b88a95d2a1bd9e02d81169"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-mode-suspend.test.ts"
+blob_oid = "996d2f1abf7929f270d2fa95500204bcfaa36d2c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/interactive-tui.test.ts"
+blob_oid = "cd94dfb61fc178ea7d86e2bae6ef89a7d1966921"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/keybindings-migration.test.ts"
+blob_oid = "f393687c44e4ccb3559e859ac23a2d85412f35da"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/keybindings.test.ts"
+blob_oid = "cb505eede7e71a2a1023beb8b772a5b0e104f639"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/llama-extension.test.ts"
+blob_oid = "7c506aafc911aaf5103e7b99b86fcdb18d79c0a6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/management-http.test.ts"
+blob_oid = "cb0809cd4a07e8569f3970b14730def9ef4b901d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/max-thinking.test.ts"
+blob_oid = "a0fdf9e6d4f7b69bafefd77cc22c940211a41f51"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/mermaid.test.ts"
+blob_oid = "13fa524ac8b315825e063c12eae25f48b69ac3ba"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-catalog-refresh.test.ts"
+blob_oid = "0250026f934b468a10c25fc52ae1009942a5c023"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-registry.test.ts"
+blob_oid = "18bf921b337accfc032b03628e0a4c441d53128d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-resolver.test.ts"
+blob_oid = "8f37b7054edcb835b22ff06207d5a586c102b440"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-runtime-auth-options.test.ts"
+blob_oid = "e633747d325de62795d49fdd0637c32cd746021d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-runtime-cloudflare-compat.test.ts"
+blob_oid = "6e9c45185113e858ecb34fede181d98d4af84dea"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-runtime-credential-sync.test.ts"
+blob_oid = "8f38a9c18bb0913166a6d1cadb5ccb78a7451615"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-runtime-modify-models-compat.test.ts"
+blob_oid = "f3000513184a5565cc52f945b1c070cff4472426"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-runtime-test-utils.ts"
+blob_oid = "715f185ed7328ab3f90a93e9c94027d7f7c648e8"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/model-selector.test.ts"
+blob_oid = "fd5550ac17bf3ab5563744ca21424f2ba67b1e58"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/models-store.test.ts"
+blob_oid = "bf645042c8ef19c622a345cefd6f49e9495f9ae0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/oauth-selector.test.ts"
+blob_oid = "71cfb2f530919ebd895012baf5ef8feaf19549f3"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/package-command-paths.test.ts"
+blob_oid = "1d534349298c6467f50d7127dd23a5d8a2d92a6c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/package-distribution.test.ts"
+blob_oid = "2fe5380ec8ff3a79c5566168e4f654572e21995f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/package-manager-ssh.test.ts"
+blob_oid = "1fa9b9173f97f7630e4f8b5f639166de2443993a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/package-manager.test.ts"
+blob_oid = "6f4f6b4fab3eb2ba6fa312890d3aa391ef15e186"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/path-utils.test.ts"
+blob_oid = "77a8345fbb7a72ff989a66aaf699a211f74e5248"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/paths.test.ts"
+blob_oid = "fbdb4f56f8899238cc99b4a5057c41778b14066d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/pi-user-agent.test.ts"
+blob_oid = "1c49ca29db465e0c9119eab44f1a6149a47d1355"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/plan-mode-extension.test.ts"
+blob_oid = "419a707e97dea861dbc10a55f1472e611147c5df"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/plan-mode-utils.test.ts"
+blob_oid = "db4b31ec154d18a0d32d683ff4e3c615ee79ba2a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/powershell-tool.test.ts"
+blob_oid = "22bc193c895435ec44ce674ee12aee90f92db9c6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/print-mode.test.ts"
+blob_oid = "32cec8e872601c85a9c4c3e90cfd2c7489a799b1"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/prompt-templates.test.ts"
+blob_oid = "97bfe985cbf3a6428c8791116f978808067d49f0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/radius.test.ts"
+blob_oid = "cec1a15e88f94002da94690d08fde346112b5610"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/remote-catalog-provider.test.ts"
+blob_oid = "12044c0f9a54a2507de3e8ff0f40a383cb7955b7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/resolve-config-value.test.ts"
+blob_oid = "b202f1c89cfa93afe68c3a19df7ca6206b05d4b6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/resource-loader.test.ts"
+blob_oid = "145eca3b2510dd24d49cb85134ed0cee37fb0999"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/restore-sandbox-env.test.ts"
+blob_oid = "2fb2767f6eff5a6f6ac18973296fed06245d5020"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc-client-clear-queue.test.ts"
+blob_oid = "c81e3cc0860421806fb19110b60fe63b10fcdb49"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc-client-clone.test.ts"
+blob_oid = "083f20c99501cd2341591222bef2f9209b42ed93"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc-client-process-exit.test.ts"
+blob_oid = "f023849e331fd9362340f2e4b2914eeca9c237be"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc-example.ts"
+blob_oid = "aaa24fb1fa95aacdda94b517b0afe2267d52c3bd"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc-jsonl.test.ts"
+blob_oid = "c8fc89e13e878877e5b82984e192abdc40b98f0f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc-prompt-response-semantics.test.ts"
+blob_oid = "bdc47b4a5cd0a6da50dc65338ced19d455f43ce4"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/rpc.test.ts"
+blob_oid = "315fd27a4c9f47e25c7af384c9c079c706e1a7f6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/runtime-credentials.test.ts"
+blob_oid = "fe50503cbfa72c4114f2a749086b7ed1a2e17c35"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/scrollbar-theme.test.ts"
+blob_oid = "f07bb9c8ae5dfeb39a274f4403a4dafa05dd8373"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/sdk-codex-cache-probe-tool-loop.ts"
+blob_oid = "8a6ca1b415bb7c5c448401db650fde4dfccb8fe0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["ai.api-adapters", "coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/sdk-openrouter-attribution.test.ts"
+blob_oid = "8958cdde9783d70d5a1e5e700082b9394ef10d81"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/sdk-session-manager.test.ts"
+blob_oid = "8ab4c431dfe36320a055d1b7c7796da1b5342518"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/sdk-skills.test.ts"
+blob_oid = "007a514049dbf4a0bd6d63f92e3c97e745ec5891"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/sdk-stream-options.test.ts"
+blob_oid = "c01df5f20a8e071e5edf1d1d2fc7f3c76c938bc4"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/server/create-harness.test.ts"
+blob_oid = "c16f2d37cb33d2d80db117c884fef3c64ec2db65"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-cwd.test.ts"
+blob_oid = "8a7d23fca40c6e32330fffa873460fcd24a545cc"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-file-invalid.test.ts"
+blob_oid = "c69ef43a11a753eec3bb2ba00d44f306a3e1ecb0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-id-readonly.test.ts"
+blob_oid = "5527193ec2e1c9861dee574a86be36b0fa97d1fe"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-info-modified-timestamp.test.ts"
+blob_oid = "a4322e460139c356dd5810a2d578db2a84018361"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/build-context.test.ts"
+blob_oid = "e81eb5dc12b02f289f84c239ccfa323b1b844c76"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/custom-session-id.test.ts"
+blob_oid = "476f6d469f5592b38ece0eb765f0d2235d87603d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/file-operations.test.ts"
+blob_oid = "40f88131b56fe810dd317a2f15cac0f8f44f25ca"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/labels.test.ts"
+blob_oid = "353454c79b29c878bc49af5496128da971b61284"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/migration.test.ts"
+blob_oid = "0577423100657111e8b11b9cb230b02d517a3cda"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/save-entry.test.ts"
+blob_oid = "91019b93d143f9e12e90be58244df0477870df09"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-manager/tree-traversal.test.ts"
+blob_oid = "123dc65cd6e1deadf35d1b84cd549c7f31bdcc68"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-selector-path-delete.test.ts"
+blob_oid = "cb702d5e2e9bdf5d67027848866c1a90ccc9bab2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-selector-rename.test.ts"
+blob_oid = "d535496c83a6360bc58377ec66a61b4a2612dd63"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/session-selector-search.test.ts"
+blob_oid = "c1aed71377a66111e6f481dc40ac2e27a47eb0fe"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/settings-diagnostics.test.ts"
+blob_oid = "9bda0fd6a4cb4508d9be2cbcd944bde803f97d78"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/settings-manager-bug.test.ts"
+blob_oid = "92cc3a821aa7fa144e346aa0e79d73abe8a4e647"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/settings-manager.test.ts"
+blob_oid = "6852432548384daab0a2d91cc40c44d9b854728f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/settings-selector.test.ts"
+blob_oid = "c931789363fbb996fd51adc07df6c50f1ec66b56"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/skills.test.ts"
+blob_oid = "039801994d83197034be1743d43d79b82771209e"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/startup-session-name.test.ts"
+blob_oid = "3571ce66618639cd898e9a16c5cf2c8991f9654b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/status-indicator.test.ts"
+blob_oid = "72267fb3fbcbbf11fbdf7bd288992daaa4677bdd"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/stdout-cleanliness.test.ts"
+blob_oid = "a5ffa5e68ef532f2654aea501c986512ea0a9aaa"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/streaming-render-debug.ts"
+blob_oid = "934782380bba869795c00dadf1b6b3ccd9edb5d4"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/README.md"
+blob_oid = "b6f758dc1bf078ef009562d1de6c329a62c2acdd"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-bash-persistence.test.ts"
+blob_oid = "0e9db222edd58bdf7dfedcf395a315cc4193f4ef"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-compaction.test.ts"
+blob_oid = "64da8b4ab72d3d6a0bea2f4a08def8b83dcec0e1"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-model-extension.test.ts"
+blob_oid = "f024a67d15150283131bd33d53dcc2f6d39e58c4"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-prompt.test.ts"
+blob_oid = "1fa23fbe29c3ee9d41dc53f01c93910e994772be"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-queue.test.ts"
+blob_oid = "a1c3fd8a10a716a5c6b765724a75b982eb541e53"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-retry-events.test.ts"
+blob_oid = "0e07f82f46b74ea8bb1cb3fa14994d47ad8130e7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-runtime.test.ts"
+blob_oid = "1a2a9cf672223b9563566d73eb2a1220caf08107"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/agent-session-tool-result-images.test.ts"
+blob_oid = "884ef2f264b7b332d38287d14988694a7d00ce3d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/harness.ts"
+blob_oid = "a1dd2ce26604399636f680c71d1fa82d4339ff89"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/lax-message-content.test.ts"
+blob_oid = "4bfeaf83878d5eab41a685b7c2d2ab4fad8d502b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/1717-2113-agent-session-event-settlement.test.ts"
+blob_oid = "e8658b1b1c0a3c3143e2eb3741188842b0c8b7ab"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/2023-queued-slash-command-followup.test.ts"
+blob_oid = "cf3f075221435d39f8fcff8e241b9dc495ff1ccc"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/2753-reload-stale-resource-settings.test.ts"
+blob_oid = "e3ad2c9d1a5e2c7038d91e8174900d8a1647b8ad"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/2781-skill-collision-precedence.test.ts"
+blob_oid = "cf36e77102d1199bd0b025c28da1fc8c751ff06d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/2791-fswatch-error-crash.test.ts"
+blob_oid = "ed450c5a91e5cb617aa81ca7ada5d80c1141aeab"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/2835-tools-allowlist-filters-extension-tools.test.ts"
+blob_oid = "198b45a8318b36c8c6238d89d724205f1e1846d0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/2860-replaced-session-context.test.ts"
+blob_oid = "9923cf68ce8f03397c797c12b91fde72f4fdbdda"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3217-scoped-model-order.test.ts"
+blob_oid = "e9f33f90ccb45ffb6acd6dbbc93cf76a3539acef"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3302-find-path-glob.test.ts"
+blob_oid = "825b4a05ccab6af70a8a5113539d18473bda41a2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3303-find-nested-gitignore.test.ts"
+blob_oid = "bd986cc93625303dd92314229f47bd7eddc0c4bd"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3317-network-connection-lost-retry.test.ts"
+blob_oid = "1be6154e4f9a3ee0c015e1454a1309ddc5a6f571"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3592-no-builtin-tools-keeps-extension-tools.test.ts"
+blob_oid = "86ad26a08c91d403c1ccee1973ad17fc02be6ebf"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3616-settings-inmemory-reload.test.ts"
+blob_oid = "5f92baeb173137e3edb4832b0eeeaad401ade69b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3686-session-name-event.test.ts"
+blob_oid = "721c29dfebc898148b1793ac8512b58e8ac2015b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3688-tree-cancel-compacting.test.ts"
+blob_oid = "7d0f172ea18d0cab6d4a873569b101591d9534b1"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/3982-message-end-cost-override.test.ts"
+blob_oid = "757a08ede2a039283f42a9fe8829d5562060f3f7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/4167-thinking-toggle-pending-tool-render.test.ts"
+blob_oid = "42e5546b4075946de86b9fe6dfc2fe955102e748"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5080-signal-shutdown-extension-cleanup.test.ts"
+blob_oid = "9ccf77cdd61173169483a6160563ca74b9575bd0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5109-exclude-tools.test.ts"
+blob_oid = "0e7454162a7c58e81b6af74c9baa4c9f06f4cacb"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5208-late-bash-output.test.ts"
+blob_oid = "cb78a7f6f8eff0d3749c7e1be449dda3a8a848de"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5217-compaction-reason.test.ts"
+blob_oid = "9af206fe31b6d6d6cfc7a5fc8e2c64886fa3fa4b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5303-bash-output-truncation.test.ts"
+blob_oid = "888ac833c23097f0012794cae06bb708e7b334d3"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5433-extension-oauth-prompt-input.test.ts"
+blob_oid = "482f0440d66f5f5e66c5025645f2df83fa88266c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5596-missing-theme-export.test.ts"
+blob_oid = "3e78c0342c8f195751dd32d3dddb926a99f2bbf3"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5661-uppercase-header-values.test.ts"
+blob_oid = "40671d9699fa15fb024ddfb7842634951f71dc20"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5724-sigterm-signal-exit.test.ts"
+blob_oid = "75e82fb721d349254604173860aad436242fcb5b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5868-rpc-unknown-command-id.test.ts"
+blob_oid = "7ee70261964c31b35e4773d146cb4f036ea80bac"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5943-session-start-notify.test.ts"
+blob_oid = "6e9c8ecf408b92d10e9404508ec16cd590298522"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5996-session-name-newlines.test.ts"
+blob_oid = "c33f77603699ff81651459c5534b26f2e2a14ef8"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/5998-blocked-tool-terminate.test.ts"
+blob_oid = "93413be83da68a99792cc1b16c0e0cb259123da2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6019-explicit-provider-retry-message.test.ts"
+blob_oid = "aa4889c3e80003ad6083ffff6fec40835fa6c273"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6104-find-root-relativization.test.ts"
+blob_oid = "38f5f46a938a6b8cf03d8f63987ab09fd4d17359"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6162-extension-active-tools-next-turn.test.ts"
+blob_oid = "cbe86a3928c7b7fbd5b6efbe56502327e21658c0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6260-inline-extension-naming.test.ts"
+blob_oid = "186d422eebbe0bd78a96deb1c623669dde6b2536"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6324-branch-summary-ambient-auth.test.ts"
+blob_oid = "d116325d6b812b39d50b4a6262cfc5db6a072fe2"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6363-agent-settled-event.test.ts"
+blob_oid = "d31010478cbb5bdd468f05ffc83176ed3fcd43df"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6596-taskkill-enoent.test.ts"
+blob_oid = "c5e47f98e7b927c95756533ef7c5f61c1b9cb52f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6647-compaction-retries-transient-stream-drop.test.ts"
+blob_oid = "d11216cb9c1bf7341497e548f2f274034758a892"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6768-copilot-compaction-base-url.test.ts"
+blob_oid = "3bc0421b56ca24569c24067526c4323a40cd9247"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6904-dns-transport-retry.test.ts"
+blob_oid = "9f25cacbb3f5ef243d2bfdc4d0c3f1c73e1f3630"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6949-unavailable-scoped-model.test.ts"
+blob_oid = "a2630b300a0b3bd935e3d3167d5f78a0ce749c98"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/6999-models-json-hot-reload.test.ts"
+blob_oid = "2f64c52a7c2d1490f1d49d225915998933c32159"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.models", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7027-credential-refresh-hang.test.ts"
+blob_oid = "d1e7f84045d92430ac2b565e3fde73ca2715c759"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7048-compaction-truncated-summary.test.ts"
+blob_oid = "7935951ddbb1dca4575c0d24d1483b36717e1b63"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7150-rpc-prompt-during-compaction.test.ts"
+blob_oid = "e1588d1ce88d22c19c68ca38c0a3bcde7e457040"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7153-scoped-models-refresh.test.ts"
+blob_oid = "dccdc9d86b5d2dd32a113dbb8cfbd60a8c00ad88"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7187-malformed-package-manifest.test.ts"
+blob_oid = "f103265db7d8102b7130619193b11d2c0f380306"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7193-event-bus-lifecycle.test.ts"
+blob_oid = "a1cf741b3d50e912dc86d5e6e37e45999c5579eb"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7209-model-selector-filter-resets-selection.test.ts"
+blob_oid = "e853ac35a0249189d4e0e38b960ec9d7fd0026ff"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7253-manual-compact-during-response.test.ts"
+blob_oid = "937179bf1274db3420fc591b9ce13757c5627c89"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7269-cli-end-of-options.test.ts"
+blob_oid = "cd012c280566849aaade6ddd975e21dc3b0293fe"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7290-json-stream-linear.test.ts"
+blob_oid = "cea3b08a3f7c1959771041458e39a095d32af8f6"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7301-stalled-availability-refresh.test.ts"
+blob_oid = "fc424d9ff427c2cca9ec4bdc787dba3767b7cc74"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7443-model-command-cached-match.test.ts"
+blob_oid = "288bb82647945213c2f480cab42b01d7b0a90c47"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7497-session-discovery-symlink.test.ts"
+blob_oid = "f8a8a026cdbb81b4c947a4d78fd27b577e9331c7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7572-provider-retry-settings-merge.test.ts"
+blob_oid = "de6cd686a9be5936416ce2791bd713818bb4ed0f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7731-tui-method-wrapping.test.ts"
+blob_oid = "ae91246ab504c66320c1bb455bbd249e90e3fc2a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7829-invalid-settings-warning.test.ts"
+blob_oid = "cb73e36026464cc2e78cefe11ab45672f0e2e799"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7911-json-stream-usage.test.ts"
+blob_oid = "b014a91a4fcfdf2455e64e4ba0bc2f4a75d92d6e"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/7925-toolcall-start-metadata.test.ts"
+blob_oid = "e58de9e97569db15500dd169d3ad7f79c5ef77a5"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8237-node-sea-extension-loading.test.ts"
+blob_oid = "160bf7dc3d51201af0787acec0d653479ec1e5d3"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8261-subagent-project-trust.test.ts"
+blob_oid = "211e1bfa51e7f6b06687b068ec3d7f492f11923b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8328-zero-usage-auto-compaction.test.ts"
+blob_oid = "910690bee28f1e7db7e9b8426990d9270198f7b9"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8337-utf8-bom-parsing.test.ts"
+blob_oid = "eef0d710e39a531fe79a1a181396d7266961e0ff"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8423-extension-factory-failure.test.ts"
+blob_oid = "e6511cbb69ee0ee331555eb6ac9acd7ab8e8acfa"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8537-custom-message-tool-result-ordering.test.ts"
+blob_oid = "161f10da655ce43828f64f5ffb3207dd21500966"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/8611-thinking-toggle-pending-bash-output.test.ts"
+blob_oid = "4c0d3931341464bc199df2f83299d00f1c5095ee"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/extension-factory-cache.test.ts"
+blob_oid = "ced012244de151e2e4f83dfe1c9475aec911ec0d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/pre-prompt-compaction-no-continue.test.ts"
+blob_oid = "3f53aba016db55494bcf91eb2529b6fd0201a55b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/startup-session-rebind-duplicate-subscription.test.ts"
+blob_oid = "7b641d7f89a37558e62b460debfc8b84b4a3a1ce"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/suite/regressions/tree-during-streaming.test.ts"
+blob_oid = "e38fa1344d4c108abb68726916f20968ada4916b"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/syntax-highlight.test.ts"
+blob_oid = "62fe5f025fb57bae09bc57122273fe9aadf37f13"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/system-prompt.test.ts"
+blob_oid = "41d83207bd01ed9f7ad418d10b2a12cc91019bc0"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/test-harness.test.ts"
+blob_oid = "5f1ad41df640d20c70bb3398e556fd6994832053"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/test-harness.ts"
+blob_oid = "c4f06ee8e820982e9538e3ec9dc129909d54fc18"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/test-network-env.ts"
+blob_oid = "35515f34521bfb4b8429b385f778c3e99e904d75"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/test-theme-colors.ts"
+blob_oid = "4e7181f3558ceae9fc807d40b9f3a602f75da3d7"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/theme-controller.test.ts"
+blob_oid = "a20009d579ff266899f9b3dc12bc78ad964853f5"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/theme-detection.test.ts"
+blob_oid = "c323ec6f858ad84167ee96f83be2e0325b87a611"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/theme-export.test.ts"
+blob_oid = "155a07a48fd43d73e5c41741c54e29e33ac0cd99"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/theme-picker.test.ts"
+blob_oid = "7b31854e0df7375398ceac619377538e57f1cb49"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/tool-execution-component.test.ts"
+blob_oid = "14d3b3f04e19575a80e3ab749d8052679a42e578"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/tool-result-images.test.ts"
+blob_oid = "ae05285206d2cda12b7c1eca663fea7eec353d92"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/tool-system-prompt-contributions.test.ts"
+blob_oid = "ed39fa508b80da49ece3eba87682b86f76c5ec7c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/tools-manager.test.ts"
+blob_oid = "fb53baad4fdd4463d65868ae5ad8b5a1c22cc61c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/tools.test.ts"
+blob_oid = "e9c395aa6440b58e3b4d385821c7416360bbe1cb"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/tree-selector.test.ts"
+blob_oid = "9dc750d5de8eb4414db52d1293c01e09cba1445f"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.legacy-import", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/trigger-compact-extension.test.ts"
+blob_oid = "930769f378e26f1b458ea36ccddbcc685c60f811"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.extensions", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/truncate-to-width.test.ts"
+blob_oid = "7be05e0b1b4549df218d691b75b0be0c33d01e3d"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/trust-manager.test.ts"
+blob_oid = "01500bac209ca049ea545576b88f8248eea94ded"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/trust-selector.test.ts"
+blob_oid = "33be9a972dc9e52000c3513d4686156813b9001c"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/user-message.test.ts"
+blob_oid = "e1f6ad23c2bd4ac643bdc09927ff216243226b6a"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/utilities.ts"
+blob_oid = "41641db7c0120115d8f72bdcf0bae116dde85cfe"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.extensions", "coding.legacy-import", "coding.models", "coding.package-host", "coding.tools"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/coding-agent/test/version-check.test.ts"
+blob_oid = "ffe21508c3602b94cf177613f6cf264d0e14cc53"
+route_surface = "coding.test-evidence"
+evidence_surfaces = ["coding.composition", "coding.package-host"]
+role = "test-or-fixture"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/adapter.test.ts"
+blob_oid = "b94e309a9b28aae96e8371cd8074ce83e9de0620"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/branch-cache.test.ts"
+blob_oid = "7b21941e127271047fc54ba7262a8f9411f96e0c"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/branch-query.test.ts"
+blob_oid = "54f017b68a453f7c63773817352c9efa2689b617"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/conformance.test.ts"
+blob_oid = "ac5a20c27ea76cceae3c44bd0491609d955f18d3"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/facts-query.test.ts"
+blob_oid = "84cc4987ba35711176859644b5a471b45bea0f47"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/log-query.test.ts"
+blob_oid = "385c05d9c0f449501090b4fb45ba4d964cc1f6ed"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/migrations.test.ts"
+blob_oid = "fb16311009f3ed1fb7e9b6188504eaeda14e9e00"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/repository.test.ts"
+blob_oid = "151c0a42a8cb27c8f267bfd4e16fbf2f5d677f69"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/search.test.ts"
+blob_oid = "bebffd6afbe2597ac95b6d2072c63367b3823e54"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/sql.test.ts"
+blob_oid = "020d1c46340d52cdc9bc1a4f07be2a15681ba71a"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/test-utils.ts"
+blob_oid = "ef181df9bdf55b0148f94c14baf39352be38cea3"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/session-backends/sqlite-node/test/writer-leases.test.ts"
+blob_oid = "26463c7e151a75a363f0b3aa2f745d286f84090c"
+route_surface = "agent.sqlite-node.pre-v3"
+evidence_surfaces = ["agent.sqlite-node.pre-v3"]
+role = "disposable-evidence"
+
+[[test]]
+path = "packages/telemetry/test/conformance.test.ts"
+blob_oid = "ba98cdec5cdcfad277dfba51f750733ee228b970"
+route_surface = "telemetry.package"
+evidence_surfaces = ["telemetry.package"]
+role = "source-or-evidence"
+
+[[test]]
+path = "packages/telemetry/test/telemetry.test.ts"
+blob_oid = "fbbbb10400e06b9ebdad27a7445966e8b4762bb9"
+route_surface = "telemetry.package"
+evidence_surfaces = ["telemetry.package"]
+role = "source-or-evidence"

@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+"""Causal regression tests for the Cargo workspace policy checker."""
+
+from __future__ import annotations
+
+import copy
+import sys
+import unittest
+from pathlib import Path
+from typing import Any
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+import check_workspace as checker  # noqa: E402
+
+
+class WorkspaceCheckerTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.topology = checker.load_toml(ROOT / "workspace-topology.toml")
+        cls.default_metadata = checker.cargo_metadata()
+        cls.all_feature_metadata = checker.cargo_metadata("--all-features")
+
+    def validate_metadata(
+        self,
+        default_metadata: dict[str, Any],
+        all_feature_metadata: dict[str, Any] | None = None,
+    ) -> list[str]:
+        return checker.validate_workspace(
+            ROOT,
+            self.topology,
+            default_metadata,
+            self.all_feature_metadata if all_feature_metadata is None else all_feature_metadata,
+        )
+
+    @staticmethod
+    def dependency(
+        metadata: dict[str, Any], consumer: str, dependency: str
+    ) -> dict[str, Any]:
+        package = next(package for package in metadata["packages"] if package["name"] == consumer)
+        return next(
+            record for record in package["dependencies"] if record["name"] == dependency
+        )
+
+    def test_required_edges_reject_noncanonical_declaration_forms(self) -> None:
+        counterexamples = {
+            "dev": ("kind", "dev", "kind must be normal"),
+            "build": ("kind", "build", "kind must be normal"),
+            "target": ("target", "cfg(unix)", "must be untargeted"),
+            "rename": ("rename", "telemetry-alias", "must be unrenamed"),
+        }
+        for label, (field, value, expected) in counterexamples.items():
+            with self.subTest(label=label):
+                metadata = copy.deepcopy(self.default_metadata)
+                self.dependency(metadata, "pi-ai-core", "pi-telemetry")[field] = value
+                errors = self.validate_metadata(metadata)
+                self.assertTrue(any(expected in error for error in errors), errors)
+
+    def test_reachable_local_path_package_outside_workspace_is_rejected(self) -> None:
+        for profile in ("default", "all-feature"):
+            with self.subTest(profile=profile):
+                default_metadata = copy.deepcopy(self.default_metadata)
+                all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
+                metadata = (
+                    default_metadata if profile == "default" else all_feature_metadata
+                )
+                rogue_id = "path+file:///tmp/pi-hidden#0.0.0"
+                metadata["packages"].append(
+                    {
+                        "name": "pi-hidden",
+                        "id": rogue_id,
+                        "source": None,
+                        "manifest_path": "/tmp/pi-hidden/Cargo.toml",
+                        "dependencies": [],
+                        "features": {},
+                    }
+                )
+                metadata["resolve"]["nodes"].append(
+                    {"id": rogue_id, "dependencies": [], "deps": [], "features": []}
+                )
+                consumer_id = next(
+                    package["id"]
+                    for package in metadata["packages"]
+                    if package["name"] == "pi-ai-core"
+                )
+                consumer_node = next(
+                    node for node in metadata["resolve"]["nodes"] if node["id"] == consumer_id
+                )
+                consumer_node["deps"].append(
+                    {
+                        "name": "pi_hidden",
+                        "pkg": rogue_id,
+                        "dep_kinds": [{"kind": None, "target": None}],
+                    }
+                )
+                errors = self.validate_metadata(default_metadata, all_feature_metadata)
+                expected = f"{profile} metadata has reachable local path package outside workspace"
+                self.assertTrue(any(expected in error for error in errors), errors)
+
+    def test_unauthorized_feature_cannot_indirectly_activate_optional_edge(self) -> None:
+        default_metadata = copy.deepcopy(self.default_metadata)
+        all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
+        for metadata in (default_metadata, all_feature_metadata):
+            package = next(
+                package for package in metadata["packages"] if package["name"] == "pi-agent-loop"
+            )
+            package["features"]["proxy-alias"] = ["proxy-inner"]
+            package["features"]["proxy-inner"] = ["proxy"]
+        errors = self.validate_metadata(default_metadata, all_feature_metadata)
+        self.assertTrue(
+            any(
+                "unauthorized feature pi-agent-loop/proxy-alias activates optional edge "
+                "pi-agent-loop -> pi-ai-transport" in error
+                for error in errors
+            ),
+            errors,
+        )
+
+    def test_verify_runs_default_and_all_feature_profiles(self) -> None:
+        script = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
+        expected_commands = [
+            "cargo check --workspace --all-targets --locked --offline",
+            "cargo check --workspace --all-targets --all-features --locked --offline",
+            "cargo clippy --workspace --all-targets --locked --offline -- -D warnings",
+            "cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+            "cargo test --workspace --all-targets --locked --offline",
+            "cargo test --workspace --all-targets --all-features --locked --offline",
+            "cargo doc --workspace --no-deps --document-private-items --locked --offline",
+            "cargo doc --workspace --all-features --no-deps --document-private-items --locked --offline",
+        ]
+        for command in expected_commands:
+            with self.subTest(command=command):
+                self.assertIn(command, script)
+
+
+if __name__ == "__main__":
+    unittest.main()

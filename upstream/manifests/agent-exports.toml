@@ -1,0 +1,5506 @@
+manifest_version = 1
+kind = "agent-public-exports"
+source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+content_digest = "sha256:8afdb799607177d6c6861a726f9dc91d73fa6b974176e3bdd3e9b6c48c6104e5"
+
+package_path = "packages/agent/package.json"
+package_blob_oid = "04158fd1840aa135ec7aa1404e6fd8b93483a2d6"
+exports_json = "{\".\":{\"import\":\"./dist/index.js\",\"types\":\"./dist/index.d.ts\"},\"./node\":{\"import\":\"./dist/node.js\",\"types\":\"./dist/node.d.ts\"},\"./package.json\":\"./package.json\",\"./session/testing\":{\"import\":\"./dist/harness/session/testing/index.js\",\"types\":\"./dist/harness/session/testing/index.d.ts\"}}"
+barrel_path = "packages/agent/src/index.ts"
+barrel_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+
+[[barrel_export]]
+line = 3
+declaration = "export { uuidv7 } from \"@earendil-works/pi-ai\";"
+
+[[barrel_export]]
+line = 4
+declaration = "export type {"
+
+[[barrel_export]]
+line = 37
+declaration = "export {"
+
+[[barrel_export]]
+line = 43
+declaration = "export * from \"./agent.ts\";"
+
+[[barrel_export]]
+line = 45
+declaration = "export * from \"./agent-loop.ts\";"
+
+[[barrel_export]]
+line = 46
+declaration = "export * from \"./harness/agent-harness.ts\";"
+
+[[barrel_export]]
+line = 47
+declaration = "export {"
+
+[[barrel_export]]
+line = 58
+declaration = "export {"
+
+[[barrel_export]]
+line = 76
+declaration = "export * from \"./harness/messages.ts\";"
+
+[[barrel_export]]
+line = 77
+declaration = "export * from \"./harness/prompt-templates.ts\";"
+
+[[barrel_export]]
+line = 79
+declaration = "export * from \"./harness/result.ts\";"
+
+[[barrel_export]]
+line = 80
+declaration = "export * from \"./harness/session/index.ts\";"
+
+[[barrel_export]]
+line = 81
+declaration = "export * from \"./harness/skills.ts\";"
+
+[[barrel_export]]
+line = 82
+declaration = "export * from \"./harness/system-prompt.ts\";"
+
+[[barrel_export]]
+line = 83
+declaration = "export type {"
+
+[[barrel_export]]
+line = 101
+declaration = "export {"
+
+[[barrel_export]]
+line = 108
+declaration = "export * from \"./harness/tools/index.ts\";"
+
+[[barrel_export]]
+line = 109
+declaration = "export {"
+
+[[barrel_export]]
+line = 137
+declaration = "export * from \"./harness/utils/shell-output.ts\";"
+
+[[barrel_export]]
+line = 138
+declaration = "export * from \"./harness/utils/truncate.ts\";"
+
+[[barrel_export]]
+line = 140
+declaration = "export * from \"./proxy.ts\";"
+
+[[barrel_export]]
+line = 141
+declaration = "export * from \"./search/index.ts\";"
+
+[[barrel_export]]
+line = 143
+declaration = "export { setDefaultStreamFn } from \"./stream-fn.ts\";"
+
+[[barrel_export]]
+line = 145
+declaration = "export * from \"./types.ts\";"
+
+[[symbol]]
+subpath = "."
+name = "AGENT_TELEMETRY_SCHEMAS"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AI_TELEMETRY_SCHEMA"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AbortRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "AbortRequestedRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AbortResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ActionInfo"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ActiveToolsEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AfterToolCallContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AfterToolCallResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Agent"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentEvent"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentEventSink"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarness"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarnessOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarnessResources"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarnessStreamOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarnessStreamOptionsPatch"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarnessTool"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentHarnessToolContextSource"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentLane"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentLoopConfig"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentLoopTurnUpdate"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentMessage"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentState"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentTool"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentToolCall"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentToolResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AgentToolUpdateCallback"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpanEndAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpanEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpanEventName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpanName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiSpanStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AiTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "AttributeValue"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "BRANCH_SUMMARY_PREFIX"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "BRANCH_SUMMARY_SUFFIX"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "BashExecution"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "."
+name = "BashExecutionMessage"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "BashPrepare"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "."
+name = "BashToolDetails"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "."
+name = "BashToolInput"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "."
+name = "BashToolOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "."
+name = "BeforeToolCallContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BeforeToolCallResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchBounds"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchPreparation"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchSummaryDetails"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchSummaryEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchSummaryError"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchSummaryErrorCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchSummaryMessage"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "BranchSummaryResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "COMPACTION_SUMMARY_PREFIX"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "COMPACTION_SUMMARY_SUFFIX"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "CancelQueuedRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "CancelQueuedResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "Closed"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "CollectEntriesResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionError"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionErrorCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionOutcome"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionPreparation"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionReason"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionSettings"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "CompactionSummaryMessage"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "ContextEntryTransform"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "CreateLaneResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "CustomAgentMessages"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CustomEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "CustomEntryContextMessageProjector"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "CustomMessage"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "DEFAULT_COMPACTION_SETTINGS"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "DEFAULT_MAX_BYTES"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "DEFAULT_MAX_LINES"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "EditToolDetails"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/edit.ts"
+
+[[symbol]]
+subpath = "."
+name = "EditToolInput"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/edit.ts"
+
+[[symbol]]
+subpath = "."
+name = "Entry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "EntryBase"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "EntryCursor"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "EntryOrder"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "EntryProjector"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "EntryQuery"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ErrorMatchers"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "."
+name = "Events"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ExactTelemetryAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "ExecutionEnv"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ExecutionError"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ExecutionErrorCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ExecutionToolContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/tool-context.ts"
+
+[[symbol]]
+subpath = "."
+name = "FileError"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "FileErrorCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "FileInfo"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "FileKind"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "FileOperations"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/utils.ts"
+
+[[symbol]]
+subpath = "."
+name = "FileSystem"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ForkOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "GREP_MAX_LINE_LENGTH"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "GenerateBranchSummaryOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "HARNESS_TELEMETRY_SCHEMA"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessClosed"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessFault"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessNotImplemented"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpanEndAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpanEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpanEventName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpanName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessSpanStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "HarnessTool"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "HookName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "Hooks"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "IdGenerator"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "InMemorySessionRepo"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/memory.ts"
+
+[[symbol]]
+subpath = "."
+name = "InMemorySessionStorage"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/memory.ts"
+
+[[symbol]]
+subpath = "."
+name = "InMemoryTelemetryContext"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "InferEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "InferOptionalAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "InferRequiredAndOptionalAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "InferStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "InvalidLane"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "InvalidMessage"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonValue"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlSessionCreateOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlSessionListOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlSessionMetadata"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlSessionRepo"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/repo.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlSessionRepoFileSystem"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlSessionRepoOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "JsonlV4Header"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "LaneBusy"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "LaneExists"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "LaneInfo"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "LanePointer"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "LaneRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "LaneSnapshot"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "LogItem"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "LogOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "MessageEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "MissingIdentities"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ModelChangeEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "NOOP_TELEMETRY_CONTEXT"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "NavigateOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NavigationOutcome"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NavigationRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NavigationResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NewRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "NoActiveOperation"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NoActiveRun"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NothingToCompact"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "NothingToResume"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "OperationError"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "OperationFinishedRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "OperationStartedRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "PrepareNextTurnContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "PromptTemplate"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "PromptTemplateDiagnostic"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "PromptTemplateDiagnosticCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProvisionedEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProxyAssistantMessageEvent"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/proxy.ts"
+
+[[symbol]]
+subpath = "."
+name = "ProxyStreamOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/proxy.ts"
+
+[[symbol]]
+subpath = "."
+name = "QueueCancelledRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "QueueEnqueuedRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "QueueMode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "QueueRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "QueueResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "QueuedItem"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ReadImageProcessor"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "."
+name = "ReadImageProcessorResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "."
+name = "ReadToolDetails"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "."
+name = "ReadToolInput"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "."
+name = "ReadToolOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "."
+name = "RecordBase"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "RecordQuery"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "RecordUsageResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "RecordedTelemetryEvent"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "RecordedTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "Resources"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "Result"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "."
+name = "ResumeOutcome"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ResumeRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ResumeResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "RunOutcome"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "RunRejected"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "RunResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "ScanningReadable"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "ScanningReadableOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "ScanningReadableSource"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "ScanningSearchTextProjector"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "ScanningSessionSearchHit"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "ScanningSessionSearchOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "SchemaTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "Session"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/session.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionContextBuildOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionCreateOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionError"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionErrorCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionMetadata"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionRepo"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionSearch"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/index.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionSearchCandidate"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionSearchHit"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/index.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionSearchOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/index.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionSnapshot"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionStats"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionStopReason"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionStorage"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SessionTree"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Shell"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ShellCaptureOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "."
+name = "ShellCaptureProgress"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "."
+name = "ShellCaptureResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "."
+name = "ShellExecOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ShouldStopAfterTurnContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "Skill"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "SkillDiagnostic"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "."
+name = "SkillDiagnosticCode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "."
+name = "SpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "SpanOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "SpanStatus"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "StepAttemptRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "StreamFn"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "StreamOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "StreamOptionsPatch"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "SuspendedOperation"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "TaggedError"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "."
+name = "TaggedErrorFactory"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "."
+name = "TaggedErrorValue"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryAttributeDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryAttributeMetadata"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryAttributeType"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryContext"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryEventAttributeDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryEventDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryParentDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaSpanEndAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaSpanEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaSpanEventName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaSpanName"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaSpanStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySchemaSpanUnion"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetrySpanDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "TelemetryStartAttributeDefinition"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingLevel"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ThinkingLevelEntry"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ToolExecutionMode"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "ToolStartedRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "TruncationOptions"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "TruncationResult"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "TypedSpanStarter"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "UnknownQueueItem"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "UnknownSkill"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "UnknownTarget"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "UnknownTemplate"
+kind = "type-and-value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "UsageRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "WatchHandle"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "."
+name = "WriteDeferredRecord"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "WriteToolInput"
+kind = "type"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/write.ts"
+
+[[symbol]]
+subpath = "."
+name = "agentLoop"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "."
+name = "agentLoopContinue"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "."
+name = "assertJsonSerializable"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/session.ts"
+
+[[symbol]]
+subpath = "."
+name = "bashExecutionToText"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "buildContextEntries"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "buildSessionContext"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "calculateContextTokens"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "collectEntriesForBranchSummary"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "compact"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "convertToLlm"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "createBashTool"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "."
+name = "createBranchSummaryMessage"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "createCompactionSummaryMessage"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "createCustomMessage"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "."
+name = "createEditTool"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/edit.ts"
+
+[[symbol]]
+subpath = "."
+name = "createReadTool"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "."
+name = "createScanningSessionSearch"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "createTypedSpanStarter"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "createWriteTool"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/tools/write.ts"
+
+[[symbol]]
+subpath = "."
+name = "defaultContextEntryTransform"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "defineTelemetrySchema"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "."
+name = "err"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "estimateContextTokens"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "estimateTokens"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "executeShellWithCapture"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "."
+name = "findCutPoint"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "findTurnStartIndex"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "formatPromptTemplateInvocation"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "formatSize"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "formatSkillInvocation"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "."
+name = "formatSkillsForSystemPrompt"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/system-prompt.ts"
+
+[[symbol]]
+subpath = "."
+name = "generateBranchSummary"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "generateSummary"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "generateSummaryWithUsage"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "getLastAssistantUsage"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "getOrThrow"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "getOrUndefined"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "loadPromptTemplates"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "loadSkills"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "."
+name = "loadSourcedPromptTemplates"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "loadSourcedSkills"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "."
+name = "matchError"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "."
+name = "ok"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "parseCommandArgs"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "prepareBranchEntries"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "."
+name = "prepareCompaction"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "runAgentLoop"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "."
+name = "runAgentLoopContinue"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "."
+name = "sanitizeBinaryOutput"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "."
+name = "scanningEntries"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "."
+name = "serializeConversation"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/utils.ts"
+
+[[symbol]]
+subpath = "."
+name = "sessionEntryToContextMessages"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "."
+name = "setDefaultStreamFn"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/stream-fn.ts"
+
+[[symbol]]
+subpath = "."
+name = "shouldCompact"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "."
+name = "startAiSpan"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "startHarnessSpan"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "."
+name = "streamProxy"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/proxy.ts"
+
+[[symbol]]
+subpath = "."
+name = "substituteArgs"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "."
+name = "toError"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "."
+name = "truncateHead"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "truncateLine"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "truncateTail"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "."
+name = "uuidv7"
+kind = "value"
+source_path = "packages/agent/src/index.ts"
+source_blob_oid = "109cb05008db6687341cd2c0f6aafa591332016c"
+origin = "@earendil-works/pi-ai"
+
+[[symbol]]
+subpath = "./node"
+name = "AGENT_TELEMETRY_SCHEMAS"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AI_TELEMETRY_SCHEMA"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AbortRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AbortRequestedRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AbortResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ActionInfo"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ActiveToolsEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AfterToolCallContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AfterToolCallResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Agent"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentEvent"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentEventSink"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarness"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarnessOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarnessResources"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarnessStreamOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarnessStreamOptionsPatch"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarnessTool"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentHarnessToolContextSource"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentLane"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentLoopConfig"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentLoopTurnUpdate"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentMessage"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentState"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentTool"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentToolCall"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentToolResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AgentToolUpdateCallback"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpanEndAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpanEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpanEventName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpanName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiSpanStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AiTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "AttributeValue"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "BRANCH_SUMMARY_PREFIX"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BRANCH_SUMMARY_SUFFIX"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BashExecution"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BashExecutionMessage"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BashPrepare"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BashToolDetails"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BashToolInput"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BashToolOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BeforeToolCallContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BeforeToolCallResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchBounds"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchPreparation"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchSummaryDetails"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchSummaryEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchSummaryError"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchSummaryErrorCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchSummaryMessage"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "BranchSummaryResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "COMPACTION_SUMMARY_PREFIX"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "COMPACTION_SUMMARY_SUFFIX"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CancelQueuedRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CancelQueuedResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Closed"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CollectEntriesResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionError"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionErrorCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionOutcome"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionPreparation"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionReason"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionSettings"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CompactionSummaryMessage"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ContextEntryTransform"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CreateLaneResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CustomAgentMessages"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CustomEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CustomEntryContextMessageProjector"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "CustomMessage"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "DEFAULT_COMPACTION_SETTINGS"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "DEFAULT_MAX_BYTES"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "DEFAULT_MAX_LINES"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EditToolDetails"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/edit.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EditToolInput"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/edit.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Entry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EntryBase"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EntryCursor"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EntryOrder"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EntryProjector"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "EntryQuery"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ErrorMatchers"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Events"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ExactTelemetryAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "ExecutionEnv"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ExecutionError"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ExecutionErrorCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ExecutionToolContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/tool-context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "FileError"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "FileErrorCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "FileInfo"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "FileKind"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "FileOperations"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/utils.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "FileSystem"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ForkOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "GREP_MAX_LINE_LENGTH"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "GenerateBranchSummaryOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HARNESS_TELEMETRY_SCHEMA"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessClosed"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessFault"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessNotImplemented"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpanEndAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpanEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpanEventName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpanName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessSpanStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HarnessTool"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "HookName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Hooks"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "IdGenerator"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "InMemorySessionRepo"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/memory.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "InMemorySessionStorage"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/memory.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "InMemoryTelemetryContext"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "InferEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "InferOptionalAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "InferRequiredAndOptionalAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "InferStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "InvalidLane"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "InvalidMessage"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonValue"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlSessionCreateOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlSessionListOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlSessionMetadata"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlSessionRepo"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/repo.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlSessionRepoFileSystem"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlSessionRepoOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "JsonlV4Header"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/jsonl/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LaneBusy"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LaneExists"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LaneInfo"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LanePointer"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LaneRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LaneSnapshot"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LogItem"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "LogOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "MessageEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "MissingIdentities"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ModelChangeEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NOOP_TELEMETRY_CONTEXT"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "NavigateOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NavigationOutcome"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NavigationRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NavigationResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NewRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NoActiveOperation"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NoActiveRun"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NodeExecutionEnv"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/env/nodejs.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NothingToCompact"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "NothingToResume"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "OperationError"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "OperationFinishedRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "OperationStartedRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "PrepareNextTurnContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "PromptTemplate"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "PromptTemplateDiagnostic"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "PromptTemplateDiagnosticCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ProvisionedEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ProxyAssistantMessageEvent"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/proxy.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ProxyStreamOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/proxy.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "QueueCancelledRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "QueueEnqueuedRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "QueueMode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "QueueRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "QueueResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "QueuedItem"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ReadImageProcessor"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ReadImageProcessorResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ReadToolDetails"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ReadToolInput"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ReadToolOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RecordBase"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RecordQuery"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RecordUsageResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RecordedTelemetryEvent"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "RecordedTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "Resources"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Result"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ResumeOutcome"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ResumeRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ResumeResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RunOutcome"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RunRejected"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "RunResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ScanningReadable"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ScanningReadableOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ScanningReadableSource"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ScanningSearchTextProjector"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ScanningSessionSearchHit"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ScanningSessionSearchOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SchemaTelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "Session"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/session.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionContextBuildOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionCreateOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionError"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionErrorCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionMetadata"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionRepo"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionSearch"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/index.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionSearchCandidate"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionSearchHit"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/index.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionSearchOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/index.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionSnapshot"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionStats"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionStopReason"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionStorage"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SessionTree"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Shell"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ShellCaptureOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ShellCaptureProgress"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ShellCaptureResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ShellExecOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ShouldStopAfterTurnContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "Skill"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SkillDiagnostic"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SkillDiagnosticCode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "SpanOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "SpanStatus"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "StepAttemptRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "StreamFn"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "StreamOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "StreamOptionsPatch"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "SuspendedOperation"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TaggedError"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TaggedErrorFactory"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TaggedErrorValue"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryAttributeDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryAttributeMetadata"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryAttributeType"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryContext"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryEventAttributeDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryEventDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryParentDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaSpanEndAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaSpanEventAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaSpanEventName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaSpanName"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaSpanStartAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySchemaSpanUnion"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySpan"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySpanAttributes"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetrySpanDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "TelemetryStartAttributeDefinition"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "ThinkingLevel"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ThinkingLevelEntry"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ToolExecutionMode"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ToolStartedRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TruncationOptions"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TruncationResult"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "TypedSpanStarter"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "UnknownQueueItem"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "UnknownSkill"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "UnknownTarget"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "UnknownTemplate"
+kind = "type-and-value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "UsageRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "WatchHandle"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/agent-harness.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "WriteDeferredRecord"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "WriteToolInput"
+kind = "type"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/write.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "agentLoop"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "agentLoopContinue"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "assertJsonSerializable"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/session.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "bashExecutionToText"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "buildContextEntries"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "buildSessionContext"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "calculateContextTokens"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "collectEntriesForBranchSummary"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "compact"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "convertToLlm"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createBashTool"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/bash.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createBranchSummaryMessage"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createCompactionSummaryMessage"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createCustomMessage"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/messages.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createEditTool"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/edit.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createReadTool"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/read.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createScanningSessionSearch"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "createTypedSpanStarter"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "createWriteTool"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/tools/write.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "defaultContextEntryTransform"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "defineTelemetrySchema"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-telemetry"
+
+[[symbol]]
+subpath = "./node"
+name = "err"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "estimateContextTokens"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "estimateTokens"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "executeShellWithCapture"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "findCutPoint"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "findTurnStartIndex"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "formatPromptTemplateInvocation"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "formatSize"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "formatSkillInvocation"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "formatSkillsForSystemPrompt"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/system-prompt.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "generateBranchSummary"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "generateSummary"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "generateSummaryWithUsage"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "getLastAssistantUsage"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "getOrThrow"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "getOrUndefined"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "loadPromptTemplates"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "loadSkills"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "loadSourcedPromptTemplates"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "loadSourcedSkills"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/skills.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "matchError"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/result.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "ok"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "parseCommandArgs"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "prepareBranchEntries"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/branch-summarization.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "prepareCompaction"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "runAgentLoop"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "runAgentLoopContinue"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/agent-loop.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "sanitizeBinaryOutput"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/shell-output.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "scanningEntries"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/search/scanning.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "serializeConversation"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/utils.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "sessionEntryToContextMessages"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/session/context.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "setDefaultStreamFn"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/stream-fn.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "shouldCompact"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/compaction/compaction.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "startAiSpan"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "startHarnessSpan"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/telemetry.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "streamProxy"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/proxy.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "substituteArgs"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/prompt-templates.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "toError"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/types.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "truncateHead"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "truncateLine"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "truncateTail"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "packages/agent/src/harness/utils/truncate.ts"
+
+[[symbol]]
+subpath = "./node"
+name = "uuidv7"
+kind = "value"
+source_path = "packages/agent/src/node.ts"
+source_blob_oid = "b6f53a5e0b303daed6b2ad3197b9caa0edef43cd"
+origin = "@earendil-works/pi-ai"
+
+[[symbol]]
+subpath = "./session/testing"
+name = "SessionBackendConformanceCase"
+kind = "type"
+source_path = "packages/agent/src/harness/session/testing/index.ts"
+source_blob_oid = "8812edc63a4f71ba382f59839e360664660ed5ec"
+origin = "packages/agent/src/harness/session/testing/types.ts"
+
+[[symbol]]
+subpath = "./session/testing"
+name = "SessionBackendFixture"
+kind = "type"
+source_path = "packages/agent/src/harness/session/testing/index.ts"
+source_blob_oid = "8812edc63a4f71ba382f59839e360664660ed5ec"
+origin = "packages/agent/src/harness/session/testing/types.ts"
+
+[[symbol]]
+subpath = "./session/testing"
+name = "SessionBackendFixtureFactory"
+kind = "type"
+source_path = "packages/agent/src/harness/session/testing/index.ts"
+source_blob_oid = "8812edc63a4f71ba382f59839e360664660ed5ec"
+origin = "packages/agent/src/harness/session/testing/types.ts"
+
+[[symbol]]
+subpath = "./session/testing"
+name = "createSessionBackendConformance"
+kind = "value"
+source_path = "packages/agent/src/harness/session/testing/index.ts"
+source_blob_oid = "8812edc63a4f71ba382f59839e360664660ed5ec"
+origin = "packages/agent/src/harness/session/testing/conformance.ts"

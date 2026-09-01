@@ -1,0 +1,240 @@
+schema_version = 1
+production_crates = [
+  "pi-telemetry",
+  "pi-extension-protocol",
+  "pi-ai-core",
+  "pi-ai-transport",
+  "pi-ai-providers",
+  "pi-ai",
+  "pi-agent-schema",
+  "pi-agent-loop",
+  "pi-agent-session",
+  "pi-agent-sqlite",
+  "pi-harness-core",
+  "pi-harness-runtime",
+  "pi-agent-search",
+  "pi-agent",
+  "pi-coding-runtime",
+]
+
+[[feature_group]]
+id = "provider-selection"
+members = ["provider-*", "oauth-*", "images-*", "catalog-gen"]
+
+[[edge]]
+consumer = "pi-ai-core"
+dependency = "pi-telemetry"
+kind = "required"
+
+[[edge]]
+consumer = "pi-ai-transport"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-ai-providers"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-ai-providers"
+dependency = "pi-ai-transport"
+kind = "required"
+
+[[edge]]
+consumer = "pi-ai"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-ai"
+dependency = "pi-ai-providers"
+kind = "optional"
+feature_group = "provider-selection"
+
+[[edge]]
+consumer = "pi-agent-schema"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-loop"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-loop"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-loop"
+dependency = "pi-telemetry"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-loop"
+dependency = "pi-ai-transport"
+kind = "optional"
+feature = "proxy"
+
+[[edge]]
+consumer = "pi-agent-session"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-session"
+dependency = "pi-telemetry"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-sqlite"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-sqlite"
+dependency = "pi-agent-session"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-core"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-agent-session"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-harness-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-telemetry"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-extension-protocol"
+kind = "optional"
+feature = "extensions"
+
+[[edge]]
+consumer = "pi-agent-search"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent-search"
+dependency = "pi-agent-session"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-ai-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-telemetry"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-agent-schema"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-agent-loop"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-agent-session"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-harness-core"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-harness-runtime"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-agent-search"
+kind = "required"
+
+[[edge]]
+consumer = "pi-agent"
+dependency = "pi-agent-sqlite"
+kind = "optional"
+feature = "sqlite"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-ai"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-agent"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-agent-session"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-harness-runtime"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-telemetry"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-ai-transport"
+kind = "optional"
+feature = "remote-catalog"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-ai-providers"
+kind = "optional"
+feature_group = "provider-selection"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-agent-sqlite"
+kind = "optional"
+feature = "sqlite-sessions"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-extension-protocol"
+kind = "optional"
+feature = "extensions"

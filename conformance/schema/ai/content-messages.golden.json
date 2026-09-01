@@ -1,0 +1,54 @@
+{
+  "textSignature": { "v": 1, "id": "sig-1", "phase": "final_answer" },
+  "commentarySignature": { "v": 1, "id": "sig-2", "phase": "commentary" },
+  "content": [
+    { "type": "text", "text": "hello", "textSignature": "sig" },
+    { "type": "thinking", "thinking": "reason", "thinkingSignature": "opaque", "redacted": false },
+    { "type": "image", "data": "aGVsbG8=", "mimeType": "image/png" },
+    { "type": "toolCall", "id": "call-1", "name": "read", "arguments": { "path": "a.txt" }, "thoughtSignature": "thought", "namespace": "files" }
+  ],
+  "messages": [
+    { "role": "user", "content": "hello", "timestamp": 1 },
+    { "role": "user", "content": [{ "type": "image", "data": "aA==", "mimeType": "image/png" }], "timestamp": 2 },
+    {
+      "role": "assistant",
+      "content": [
+        { "type": "text", "text": "answer" },
+        { "type": "thinking", "thinking": "" },
+        { "type": "toolCall", "id": "call-1", "name": "read", "arguments": {} }
+      ],
+      "api": "future-api",
+      "provider": "future-provider",
+      "model": "future-model",
+      "responseModel": "actual-model",
+      "responseId": "response-1",
+      "diagnostics": [{ "type": "provider_failure", "timestamp": 3, "details": { "attempt": 1 } }],
+      "usage": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 3,
+        "cacheWrite": 4,
+        "cacheWrite1h": 1,
+        "reasoning": 1,
+        "totalTokens": 10,
+        "cost": { "input": 0.1, "output": 0.2, "cacheRead": 0.3, "cacheWrite": 0.4, "total": 1.0 }
+      },
+      "stopReason": "deferred",
+      "deferred": { "provider": "future-provider", "modelId": "future-model", "api": "future-api", "id": "deferred-1", "expiresAt": 100, "pollAfterMs": 5, "data": null },
+      "errorMessage": "pending elsewhere",
+      "rawStopReason": "provider_deferred",
+      "endTurn": false,
+      "timestamp": 4
+    },
+    { "role": "toolResult", "toolCallId": "call-1", "toolName": "read", "content": [{ "type": "text", "text": "ok" }], "isError": false, "timestamp": 5 },
+    { "role": "toolResult", "toolCallId": "call-2", "toolName": "write", "content": [], "details": null, "addedToolNames": [], "isError": true, "timestamp": 6 },
+    { "role": "toolResult", "toolCallId": "call-3", "toolName": "search", "content": [], "details": { "hits": 0 }, "isError": false, "timestamp": 7 }
+  ],
+  "custom": { "role": "artifact", "value": { "id": "a-1" } },
+  "context": { "systemPrompt": "system", "messages": [], "tools": [] },
+  "images": [
+    { "api": "openrouter-images", "provider": "openrouter", "model": "image-1", "output": [{ "type": "image", "data": "aA==", "mimeType": "image/png" }], "responseId": "image-response", "stopReason": "stop", "timestamp": 8 },
+    { "api": "future-images", "provider": "future-images-provider", "model": "image-2", "output": [], "stopReason": "error", "errorMessage": "failed", "timestamp": 9 },
+    { "api": "future-images", "provider": "future-images-provider", "model": "image-3", "output": [], "stopReason": "aborted", "timestamp": 10 }
+  ]
+}

@@ -1,0 +1,1631 @@
+schema_version = 2
+
+[upstream]
+repo = "earendil-works/pi-mono"
+checkout = "upstream/pi-mono"
+commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+
+[policy]
+authority_classes = [
+  "target-spec",
+  "source-and-tests",
+  "generator",
+  "generated-projection",
+  "compatibility",
+  "host-only",
+  "disposable-scaffold",
+]
+dispositions = ["included", "outside-scope", "disposable"]
+statuses = ["source-landed", "spec-only", "redesign", "excluded", "disposable"]
+
+[[owner]]
+id = "pi-telemetry::runtime"
+kind = "rust"
+crate = "pi-telemetry"
+
+[[owner]]
+id = "pi-extension-protocol::wire"
+kind = "rust"
+crate = "pi-extension-protocol"
+
+[[owner]]
+id = "pi-ai-core::domain"
+kind = "rust"
+crate = "pi-ai-core"
+
+[[owner]]
+id = "pi-ai-core::models-auth"
+kind = "rust"
+crate = "pi-ai-core"
+
+[[owner]]
+id = "pi-ai-transport::utils"
+kind = "rust"
+crate = "pi-ai-transport"
+
+[[owner]]
+id = "pi-ai-providers::adapters"
+kind = "rust"
+crate = "pi-ai-providers"
+
+[[owner]]
+id = "pi-ai-providers::registry"
+kind = "rust"
+crate = "pi-ai-providers"
+
+[[owner]]
+id = "pi-ai-providers::oauth-images"
+kind = "rust"
+crate = "pi-ai-providers"
+
+[[owner]]
+id = "pi-ai::facade"
+kind = "rust"
+crate = "pi-ai"
+
+[[owner]]
+id = "pi-ai::catalog-gen"
+kind = "rust"
+crate = "pi-ai"
+
+[[owner]]
+id = "pi-ai::catalog"
+kind = "rust"
+crate = "pi-ai"
+
+[[owner]]
+id = "pi-ai::testkit"
+kind = "rust"
+crate = "pi-ai"
+
+[[owner]]
+id = "pi-agent-schema::types"
+kind = "rust"
+crate = "pi-agent-schema"
+
+[[owner]]
+id = "pi-agent-loop::runtime"
+kind = "rust"
+crate = "pi-agent-loop"
+
+[[owner]]
+id = "pi-agent-loop::proxy"
+kind = "rust"
+crate = "pi-agent-loop"
+
+[[owner]]
+id = "pi-agent-session::runtime"
+kind = "rust"
+crate = "pi-agent-session"
+
+[[owner]]
+id = "pi-agent-sqlite::upstream-intake"
+kind = "rust"
+crate = "pi-agent-sqlite"
+
+[[owner]]
+id = "pi-harness-core::planner"
+kind = "rust"
+crate = "pi-harness-core"
+
+[[owner]]
+id = "pi-harness-runtime::runtime"
+kind = "rust"
+crate = "pi-harness-runtime"
+
+[[owner]]
+id = "pi-agent-search::runtime"
+kind = "rust"
+crate = "pi-agent-search"
+
+[[owner]]
+id = "pi-agent-search::compat"
+kind = "rust"
+crate = "pi-agent-search"
+
+[[owner]]
+id = "pi-agent::facade"
+kind = "rust"
+crate = "pi-agent"
+
+[[owner]]
+id = "pi-agent::testkit"
+kind = "rust"
+crate = "pi-agent"
+
+[[owner]]
+id = "pi-coding-runtime::models"
+kind = "rust"
+crate = "pi-coding-runtime"
+
+[[owner]]
+id = "pi-coding-runtime::tools"
+kind = "rust"
+crate = "pi-coding-runtime"
+
+[[owner]]
+id = "pi-coding-runtime::composition"
+kind = "rust"
+crate = "pi-coding-runtime"
+
+[[owner]]
+id = "pi-coding-runtime::extensions"
+kind = "rust"
+crate = "pi-coding-runtime"
+
+[[owner]]
+id = "pi-coding-runtime::upstream-intake"
+kind = "rust"
+crate = "pi-coding-runtime"
+
+[[owner]]
+id = "outside-scope.coding-host"
+kind = "outside-scope"
+decision_ref = "docs/scope.md#scope"
+
+[[watch]]
+id = "ai"
+root = "packages/ai"
+coverage = "complete"
+baseline_path_count = 335
+route_digest = "sha256:9c3dacec8bc54fa2648f163d46a8bf5053393b3d9fbd11d7d5121de88ca130cc"
+unmatched = "error"
+
+[[watch]]
+id = "agent"
+root = "packages/agent"
+coverage = "complete"
+baseline_path_count = 86
+route_digest = "sha256:b4d6b699b87bea54045c8ec3475eb071a3d2c854faf1dcdf9c0355564ef701b2"
+unmatched = "error"
+
+[[watch]]
+id = "coding-agent"
+root = "packages/coding-agent"
+coverage = "complete"
+baseline_path_count = 674
+route_digest = "sha256:923d558cd2233feded7260d832114db3515d2c40b0f491cba719f8613d216d6d"
+unmatched = "error"
+
+[[watch]]
+id = "sqlite-node"
+root = "packages/session-backends/sqlite-node"
+coverage = "complete"
+baseline_path_count = 37
+route_digest = "sha256:c0f9f0e5c50bb79dc97f352434c1c5eb49b50a583d8138e73a6a9c999dfbb38f"
+unmatched = "error"
+
+[[watch]]
+id = "telemetry"
+root = "packages/telemetry"
+coverage = "complete"
+baseline_path_count = 12
+route_digest = "sha256:6f8661bd2de2a0f699766ab1057b35ce100508c61297306695acf7c0f0f435c2"
+unmatched = "error"
+
+[[surface]]
+id = "telemetry.package"
+authority = "source-and-tests"
+primary_owner = "pi-telemetry::runtime"
+collaborators = ["pi-harness-runtime::runtime", "pi-coding-runtime::composition"]
+disposition = "included"
+status = "source-landed"
+sync = ["interface", "conformance", "redaction", "failure-isolation"]
+conformance = ["conformance/telemetry"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted upstream removal", reclassification_condition = "telemetry contract moves" }
+
+[[surface]]
+id = "agent.telemetry-schema"
+authority = "source-and-tests"
+primary_owner = "pi-telemetry::runtime"
+collaborators = ["pi-harness-runtime::runtime", "pi-agent::facade"]
+disposition = "included"
+status = "source-landed"
+sync = ["span-schema", "redaction", "generation", "conformance"]
+conformance = ["conformance/telemetry/agent-schema"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted telemetry schema removal", reclassification_condition = "agent-owned telemetry schema moves" }
+
+[[surface]]
+id = "ai.package-metadata"
+authority = "source-and-tests"
+primary_owner = "pi-ai::facade"
+collaborators = []
+disposition = "included"
+status = "source-landed"
+sync = ["exports", "features", "developer-targets"]
+conformance = ["conformance/manifests/ai-exports"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "package removed", reclassification_condition = "export layout changes" }
+
+[[surface]]
+id = "ai.domain"
+authority = "source-and-tests"
+primary_owner = "pi-ai-core::domain"
+collaborators = ["pi-agent-schema::types"]
+disposition = "included"
+status = "source-landed"
+sync = ["schema", "stream", "transform", "validation", "utility"]
+conformance = ["conformance/ai-domain"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "provider-neutral contract moves" }
+
+[[surface]]
+id = "ai.models-auth"
+authority = "source-and-tests"
+primary_owner = "pi-ai-core::models-auth"
+collaborators = ["pi-ai-providers::oauth-images"]
+disposition = "included"
+status = "source-landed"
+sync = ["interface", "concurrency", "auth", "failure", "store"]
+conformance = ["conformance/ai-models"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "auth ownership changes" }
+
+[[surface]]
+id = "ai.transport-utils"
+authority = "source-and-tests"
+primary_owner = "pi-ai-transport::utils"
+collaborators = ["pi-ai-core::domain", "pi-ai-providers::adapters"]
+disposition = "included"
+status = "source-landed"
+sync = ["abort", "headers", "proxy", "retry", "error", "unicode"]
+conformance = ["conformance/ai-transport"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "transport responsibility moves" }
+
+[[surface]]
+id = "ai.api-adapters"
+authority = "source-and-tests"
+primary_owner = "pi-ai-providers::adapters"
+collaborators = ["pi-ai-transport::utils", "pi-ai::catalog-gen"]
+disposition = "included"
+status = "source-landed"
+sync = ["wire", "stream", "retry", "error", "payload"]
+conformance = ["conformance/provider-traces"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "wire family removed", reclassification_condition = "new wire family or shared adapter" }
+
+[[surface]]
+id = "ai.provider-factories"
+authority = "source-and-tests"
+primary_owner = "pi-ai-providers::registry"
+collaborators = ["pi-ai::catalog"]
+disposition = "included"
+status = "source-landed"
+sync = ["provider-id", "factory", "api-map", "catalog", "options"]
+conformance = ["conformance/providers", "conformance/manifests/providers"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "provider removed", reclassification_condition = "provider or API mapping changes" }
+
+[[surface]]
+id = "ai.oauth-images"
+authority = "source-and-tests"
+primary_owner = "pi-ai-providers::oauth-images"
+collaborators = ["pi-ai-core::models-auth"]
+disposition = "included"
+status = "source-landed"
+sync = ["oauth", "credential-resolution", "images", "platform-service"]
+conformance = ["conformance/oauth", "conformance/images"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "capability removed", reclassification_condition = "platform boundary changes" }
+
+[[surface]]
+id = "ai.compat"
+authority = "compatibility"
+primary_owner = "pi-ai::facade"
+collaborators = ["pi-ai-core::models-auth"]
+disposition = "included"
+status = "source-landed"
+sync = ["aliases", "legacy-registry", "extension-oauth-types"]
+conformance = ["conformance/ai-compat"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted compatibility removal", reclassification_condition = "upstream compat entrypoint changes" }
+
+[[surface]]
+id = "ai.catalog.generator"
+authority = "generator"
+primary_owner = "pi-ai::catalog-gen"
+collaborators = ["pi-ai-providers::registry"]
+disposition = "included"
+status = "source-landed"
+sync = ["normalization", "external-input", "generator", "hash"]
+conformance = ["conformance/catalog/generator"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "generator replaced", reclassification_condition = "input/provenance changes" }
+
+[[surface]]
+id = "ai.catalog.projection"
+authority = "generated-projection"
+primary_owner = "pi-ai::catalog"
+collaborators = ["pi-ai-providers::registry"]
+disposition = "included"
+status = "source-landed"
+sync = ["generated-data", "output-hash", "provenance"]
+conformance = ["conformance/catalog/projection"]
+divergences = []
+generated_by = "ai.catalog.generator"
+provenance_status = "missing-intake-snapshot"
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "projection removed", reclassification_condition = "generator/output layout changes" }
+
+[[surface]]
+id = "ai.catalog.runtime"
+authority = "source-and-tests"
+primary_owner = "pi-ai::catalog"
+collaborators = ["pi-ai-providers::registry", "pi-ai::catalog-gen"]
+disposition = "included"
+status = "source-landed"
+sync = ["catalog-query", "normalization", "public-types"]
+conformance = ["conformance/catalog/runtime"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "catalog runtime removed", reclassification_condition = "catalog runtime contract changes" }
+
+[[surface]]
+id = "ai.faux"
+authority = "source-and-tests"
+primary_owner = "pi-ai::testkit"
+collaborators = ["pi-ai-core::models-auth"]
+disposition = "included"
+status = "source-landed"
+sync = ["provider-factory", "stream-script", "deferred", "abort", "usage"]
+conformance = ["conformance/ai-faux"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "faux facility removed", reclassification_condition = "faux contract changes" }
+
+[[surface]]
+id = "ai.image-test-tooling"
+authority = "source-and-tests"
+primary_owner = "pi-ai::testkit"
+collaborators = ["pi-ai-providers::oauth-images"]
+disposition = "included"
+status = "source-landed"
+sync = ["test-fixture-generation", "image"]
+conformance = ["conformance/images/fixtures"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "test image tooling removed", reclassification_condition = "image fixture generation moves" }
+
+[[surface]]
+id = "ai.tests"
+authority = "source-and-tests"
+primary_owner = "pi-ai::testkit"
+collaborators = ["pi-ai-core::domain", "pi-ai-core::models-auth", "pi-ai-transport::utils", "pi-ai-providers::adapters", "pi-ai-providers::registry"]
+disposition = "included"
+status = "source-landed"
+sync = ["test-evidence", "regression-classification"]
+conformance = ["conformance/manifests/ai-tests"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "test removed with reviewed reason", reclassification_condition = "test responsibility becomes clear" }
+
+[[surface]]
+id = "agent.package-metadata"
+authority = "source-and-tests"
+primary_owner = "pi-agent::facade"
+collaborators = []
+disposition = "included"
+status = "source-landed"
+sync = ["exports", "features", "node-surface"]
+conformance = ["conformance/manifests/agent-exports"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "package removed", reclassification_condition = "export layout changes" }
+
+[[surface]]
+id = "agent.harness.document"
+authority = "target-spec"
+primary_owner = "pi-agent-schema::types"
+collaborators = ["pi-agent-session::runtime", "pi-agent-sqlite::upstream-intake", "pi-agent-search::runtime", "pi-harness-core::planner", "pi-harness-runtime::runtime", "pi-agent::facade"]
+disposition = "included"
+status = "spec-only"
+sync = ["selector-partition", "schema", "semantics", "build-order"]
+conformance = ["conformance/harness"]
+divergences = [
+  "extension.remote-event-gap",
+  "extension.sanitized-after-response",
+  "extension.typed-provider-payload-only",
+  "extension.auth-none-provider-v1",
+]
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted replacement specification", reclassification_condition = "Harness v3 source slice lands" }
+
+[[surface]]
+id = "agent.harness.storage-session"
+authority = "target-spec"
+primary_owner = "pi-agent-session::runtime"
+collaborators = ["pi-agent-schema::types", "pi-agent-sqlite::upstream-intake"]
+disposition = "included"
+status = "spec-only"
+sync = ["storage", "session", "tree", "legacy-import"]
+conformance = ["conformance/session"]
+divergences = ["agent.store-generation-metadata-repair"]
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted spec removal", reclassification_condition = "Types/Session/S1 source lands" }
+
+[[surface]]
+id = "agent.search.target"
+authority = "target-spec"
+primary_owner = "pi-agent-search::runtime"
+collaborators = ["pi-agent-session::runtime", "pi-agent-schema::types"]
+disposition = "included"
+status = "spec-only"
+sync = ["schema", "query", "ordering", "projection"]
+conformance = ["conformance/search"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted S3 removal", reclassification_condition = "Harness v3 S3 source/tests land" }
+
+[[surface]]
+id = "agent.sqlite.target"
+authority = "target-spec"
+primary_owner = "pi-agent-sqlite::upstream-intake"
+collaborators = ["pi-agent-session::runtime", "pi-agent-schema::types"]
+disposition = "included"
+status = "spec-only"
+sync = ["schema", "transaction", "lease", "fork", "repair"]
+conformance = ["conformance/session/sqlite"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted S2 removal", reclassification_condition = "Harness v3 S2 source/tests land" }
+
+[[surface]]
+id = "agent.harness.schema"
+authority = "target-spec"
+primary_owner = "pi-agent-schema::types"
+collaborators = ["pi-harness-core::planner", "pi-agent-session::runtime"]
+disposition = "included"
+status = "spec-only"
+sync = ["serialized-types", "discriminants", "serde", "versioned-shapes"]
+conformance = ["conformance/harness/schema"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted schema replacement", reclassification_condition = "Types source lands" }
+
+[[surface]]
+id = "agent.harness.state"
+authority = "target-spec"
+primary_owner = "pi-harness-core::planner"
+collaborators = ["pi-agent-schema::types", "pi-agent-loop::runtime", "pi-agent-session::runtime", "pi-harness-runtime::runtime", "pi-ai-core::models-auth"]
+disposition = "included"
+status = "spec-only"
+sync = ["operation-state", "transition", "settlement", "invariants"]
+conformance = ["conformance/harness/core"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted state-machine replacement", reclassification_condition = "runtime source lands" }
+
+[[surface]]
+id = "agent.harness.runtime"
+authority = "target-spec"
+primary_owner = "pi-harness-runtime::runtime"
+collaborators = ["pi-harness-core::planner", "pi-ai-core::models-auth"]
+disposition = "included"
+status = "spec-only"
+sync = ["effects", "recovery", "abort", "close", "events", "hooks"]
+conformance = ["conformance/harness/runtime"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted runtime replacement", reclassification_condition = "R1-R10 source lands" }
+
+[[surface]]
+id = "agent.harness.public"
+authority = "target-spec"
+primary_owner = "pi-agent::facade"
+collaborators = ["pi-harness-runtime::runtime", "pi-agent-schema::types", "pi-telemetry::runtime"]
+disposition = "included"
+status = "spec-only"
+sync = ["lane", "harness", "tree", "watch", "events", "hooks", "telemetry"]
+conformance = ["conformance/harness/public"]
+divergences = [
+  "extension.remote-event-gap",
+  "extension.sanitized-after-response",
+  "harness.public-headers-require-classification",
+]
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted public-surface replacement", reclassification_condition = "R12 source lands" }
+
+[[surface]]
+id = "agent.harness.migrations"
+authority = "target-spec"
+primary_owner = "pi-agent-session::runtime"
+collaborators = ["pi-harness-core::planner", "pi-agent-schema::types"]
+disposition = "included"
+status = "spec-only"
+sync = ["storage-version", "state-mapping", "migrate-on-open"]
+conformance = ["conformance/harness/migrations"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted migration replacement", reclassification_condition = "R11 source lands" }
+
+[[surface]]
+id = "agent.harness.host"
+authority = "host-only"
+primary_owner = "outside-scope.coding-host"
+collaborators = ["pi-agent::facade"]
+disposition = "outside-scope"
+status = "excluded"
+sync = ["client-boundary", "future-retention", "dev-tui"]
+conformance = []
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "host design adopted", reclassification_condition = "headless contract moves into Harness" }
+
+[[surface]]
+id = "agent.harness.scaffold"
+authority = "disposable-scaffold"
+primary_owner = "pi-harness-runtime::runtime"
+collaborators = ["pi-agent-session::runtime"]
+disposition = "disposable"
+status = "disposable"
+sync = ["landing-detection"]
+conformance = []
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "Harness Types slice deletes scaffold", reclassification_condition = "specific v3 source slice lands" }
+
+[[surface]]
+id = "agent.legacy-loop"
+authority = "compatibility"
+primary_owner = "pi-agent-loop::runtime"
+collaborators = ["pi-agent-schema::types"]
+disposition = "included"
+status = "source-landed"
+sync = ["interface", "behavior", "event-order", "cancellation", "tool-phase"]
+conformance = ["conformance/agent-loop"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "project owner removes compatibility", reclassification_condition = "upstream loop contract changes" }
+
+[[surface]]
+id = "agent.legacy-proxy"
+authority = "compatibility"
+primary_owner = "pi-agent-loop::proxy"
+collaborators = ["pi-ai-transport::utils"]
+disposition = "included"
+status = "source-landed"
+sync = ["sse", "events", "options", "errors"]
+conformance = ["conformance/agent-proxy"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "project owner removes compatibility", reclassification_condition = "proxy contract changes" }
+
+[[surface]]
+id = "agent.search.current-api"
+authority = "source-and-tests"
+primary_owner = "pi-agent-search::compat"
+collaborators = ["pi-agent-session::runtime"]
+disposition = "included"
+status = "source-landed"
+sync = ["interface", "scope", "scan", "ordering"]
+conformance = ["conformance/search/current"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "S3 supersedes current API", reclassification_condition = "S3 source lands" }
+
+[[surface]]
+id = "agent.public-and-tests"
+authority = "source-and-tests"
+primary_owner = "pi-agent::testkit"
+collaborators = ["pi-agent::facade", "pi-agent-loop::runtime"]
+disposition = "included"
+status = "source-landed"
+sync = ["exports", "test-evidence", "regression-classification"]
+conformance = ["conformance/manifests/agent-tests"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "evidence removed with review", reclassification_condition = "test responsibility changes" }
+
+[[surface]]
+id = "agent.sqlite-node.pre-v3"
+authority = "disposable-scaffold"
+primary_owner = "pi-agent-sqlite::upstream-intake"
+collaborators = ["pi-agent-session::runtime"]
+disposition = "disposable"
+status = "disposable"
+sync = ["transaction-evidence", "lease-evidence", "landing-detection"]
+conformance = []
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "Harness v3 S2 lands", reclassification_condition = "S2 source/conformance lands" }
+
+[[surface]]
+id = "coding.package-host"
+authority = "host-only"
+primary_owner = "outside-scope.coding-host"
+collaborators = ["pi-coding-runtime::upstream-intake"]
+disposition = "outside-scope"
+status = "excluded"
+sync = ["boundary-review"]
+conformance = []
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "separate Rust host design", reclassification_condition = "headless responsibility moves" }
+
+[[surface]]
+id = "coding.models"
+authority = "source-and-tests"
+primary_owner = "pi-coding-runtime::models"
+collaborators = ["pi-ai::facade", "pi-ai-core::models-auth"]
+disposition = "included"
+status = "source-landed"
+sync = ["models", "credentials", "provider-composition", "catalog"]
+conformance = ["conformance/coding-runtime/models"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "product model policy removed", reclassification_condition = "model composition changes" }
+
+[[surface]]
+id = "coding.tools"
+authority = "source-and-tests"
+primary_owner = "pi-coding-runtime::tools"
+collaborators = ["pi-harness-runtime::runtime"]
+disposition = "included"
+status = "source-landed"
+sync = ["tool", "filesystem", "process", "progress", "truncation"]
+conformance = ["conformance/coding-runtime/tools"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "coding tool removed", reclassification_condition = "tool contract changes" }
+
+[[surface]]
+id = "coding.composition"
+authority = "source-and-tests"
+primary_owner = "pi-coding-runtime::composition"
+collaborators = ["pi-agent::facade", "pi-harness-runtime::runtime"]
+disposition = "included"
+status = "source-landed"
+sync = ["messages", "system-prompt", "settings-snapshot", "lifecycle", "builder"]
+conformance = ["conformance/coding-runtime"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "headless product policy removed", reclassification_condition = "composition boundary changes" }
+
+[[surface]]
+id = "coding.extensions"
+authority = "compatibility"
+primary_owner = "pi-coding-runtime::extensions"
+collaborators = ["pi-extension-protocol::wire", "pi-harness-runtime::runtime"]
+disposition = "included"
+status = "redesign"
+sync = ["capability", "hook", "tool", "provider", "failure", "compatibility"]
+conformance = ["conformance/extension-protocol"]
+divergences = [
+  "extension.remote-event-gap",
+  "extension.sanitized-after-response",
+  "extension.typed-provider-payload-only",
+  "extension.auth-none-provider-v1",
+]
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "legacy JS compatibility removed", reclassification_condition = "upstream extension protocol changes" }
+
+[[surface]]
+id = "coding.agent-session-layout"
+authority = "disposable-scaffold"
+primary_owner = "pi-coding-runtime::upstream-intake"
+collaborators = ["pi-harness-core::planner", "pi-agent-session::runtime"]
+disposition = "disposable"
+status = "disposable"
+sync = ["behavior-triage", "responsibility-migration"]
+conformance = ["conformance/coding-runtime/session-behavior"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "Harness v3 composition replaces layout", reclassification_condition = "observable behavior changes" }
+
+[[surface]]
+id = "coding.legacy-import"
+authority = "compatibility"
+primary_owner = "pi-agent-session::runtime"
+collaborators = ["pi-coding-runtime::composition", "pi-harness-core::planner"]
+disposition = "included"
+status = "source-landed"
+sync = ["legacy-format", "open", "fork", "migration", "id-remap", "lifecycle"]
+conformance = ["conformance/session/legacy-v3", "conformance/coding-runtime/session-lifecycle"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "legacy format support is explicitly removed", reclassification_condition = "legacy session behavior moves" }
+
+[[surface]]
+id = "coding.test-evidence"
+authority = "compatibility"
+primary_owner = "pi-coding-runtime::upstream-intake"
+collaborators = ["outside-scope.coding-host", "pi-coding-runtime::composition"]
+disposition = "included"
+status = "source-landed"
+sync = ["test-inventory", "behavior-triage"]
+conformance = ["conformance/manifests/coding-tests"]
+divergences = []
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "test removed with review", reclassification_condition = "test gets a more specific owner" }
+
+[[divergence]]
+id = "extension.remote-event-gap"
+upstream_behavior = "Trusted AgentLane.watch provides atomic snapshot-plus-buffer and ordered delivery."
+rust_behavior = "Trusted Rust watch preserves that contract; remote event-sink.v1 is bounded and uses Gap plus authorized snapshot resynchronization."
+owner = "pi-extension-protocol::wire"
+rationale = "A slow or disconnected foreign peer cannot be allowed to block operation settlement or consume unbounded memory."
+compatibility_consequence = "Remote passive subscribers must handle Gap/Resync and do not receive a durable sequence across reconnects."
+replacement_fixture = "conformance/extension-protocol/event-gap-resync"
+revisit_trigger = "A durable remote subscription profile is separately designed."
+
+[[divergence]]
+id = "extension.sanitized-after-response"
+upstream_behavior = "In-process after_response may observe response headers supplied by the provider adapter."
+rust_behavior = "Remote hook peers receive only an allowlisted sanitized header projection."
+owner = "pi-extension-protocol::wire"
+rationale = "Authorization, cookie, and credential-bearing headers cannot cross an untrusted protocol boundary."
+compatibility_consequence = "A JavaScript hook depending on a removed header requires an explicit trusted host adapter or cannot be projected."
+replacement_fixture = "conformance/extension-protocol/after-response-redaction"
+revisit_trigger = "A security owner approves a scoped header capability."
+
+[[divergence]]
+id = "extension.typed-provider-payload-only"
+upstream_behavior = "An in-process before_payload callback can receive an arbitrary provider-specific payload object."
+rust_behavior = "A remote before_payload hook activates only for an exact negotiated provider payload profile and schema digest."
+owner = "pi-extension-protocol::wire"
+rationale = "Arbitrary unversioned language objects cannot be safely or compatibly projected across processes."
+compatibility_consequence = "Extensions for providers without a published payload schema cannot register this remote hook."
+replacement_fixture = "conformance/extension-protocol/payload-schema-gate"
+revisit_trigger = "A provider publishes a stable payload profile or the hook is removed upstream."
+
+[[divergence]]
+id = "extension.auth-none-provider-v1"
+upstream_behavior = "An in-process JavaScript provider can close over credentials or use host credential callbacks."
+rust_behavior = "Protocol provider v1 accepts only auth_mode=none and exposes no core-managed secret lookup."
+owner = "pi-extension-protocol::wire"
+rationale = "Credential custody, refresh, revocation, and sandboxing require a separately approved security boundary."
+compatibility_consequence = "A credentialed provider must remain built-in Rust or be configured entirely by an out-of-scope privileged host."
+replacement_fixture = "conformance/extension-protocol/provider-secret-gate"
+revisit_trigger = "A security owner accepts a versioned signing or credential-broker ADR."
+
+[[divergence]]
+id = "agent.store-generation-metadata-repair"
+upstream_behavior = "Harness search and precise-rewrite prose require a metadata generation counter, but the SessionMetadata interface omits the field."
+rust_behavior = "SessionMetadata has required storeGeneration; new/imported sessions start at zero and precise rewrite increments it atomically."
+owner = "pi-agent-session::runtime"
+rationale = "Search cursors cannot distinguish a seq-renumbering store replacement without the counter required by the same target specification."
+compatibility_consequence = "Rust metadata JSON contains one additional required field; legacy decode supplies zero during normalization."
+replacement_fixture = "conformance/session/store-generation-rewrite"
+revisit_trigger = "Upstream adds an equivalent field or replaces the cursor-generation mechanism."
+
+[[divergence]]
+id = "harness.public-headers-require-classification"
+upstream_behavior = "AgentHarnessStreamOptions accepts an arbitrary headers map that the operation captures durably."
+rust_behavior = "The JSON map shape is preserved, but only headers explicitly classified public by host policy may enter durable state; default policy allows none."
+owner = "pi-agent-schema::types"
+rationale = "Arbitrary headers can contain credentials, contradicting the accepted invariant that credentials never enter operation state."
+compatibility_consequence = "Callers using durable custom headers must register a public-header policy; secret headers remain transient auth/middleware input."
+replacement_fixture = "conformance/harness/public-header-policy"
+revisit_trigger = "Upstream separates durable public headers from transient credential headers."
+
+[[route]]
+id = "telemetry.all"
+watch = "telemetry"
+surface = "telemetry.package"
+role = "source-or-evidence"
+include = ["packages/telemetry/**"]
+exclude = []
+
+[[route]]
+id = "ai.metadata"
+watch = "ai"
+surface = "ai.package-metadata"
+role = "metadata"
+include = ["packages/ai/*"]
+exclude = []
+
+[[route]]
+id = "ai.scripts"
+watch = "ai"
+surface = "ai.catalog.generator"
+role = "generator"
+include = ["packages/ai/scripts/**"]
+exclude = ["packages/ai/scripts/generate-test-image.ts"]
+
+[[route]]
+id = "ai.image-test-tooling"
+watch = "ai"
+surface = "ai.image-test-tooling"
+role = "test-generator"
+include = ["packages/ai/scripts/generate-test-image.ts"]
+exclude = []
+
+[[route]]
+id = "ai.tests"
+watch = "ai"
+surface = "ai.tests"
+role = "test"
+include = ["packages/ai/test/**"]
+exclude = []
+
+[[route]]
+id = "ai.api"
+watch = "ai"
+surface = "ai.api-adapters"
+role = "source"
+include = ["packages/ai/src/api/**"]
+exclude = ["packages/ai/src/api/transform-messages.ts"]
+
+[[route]]
+id = "ai.transform-messages"
+watch = "ai"
+surface = "ai.domain"
+role = "source"
+include = ["packages/ai/src/api/transform-messages.ts"]
+exclude = []
+
+[[route]]
+id = "ai.provider-generated"
+watch = "ai"
+surface = "ai.catalog.projection"
+role = "generated"
+include = ["packages/ai/src/providers/*.models.ts"]
+exclude = []
+
+[[route]]
+id = "ai.providers"
+watch = "ai"
+surface = "ai.provider-factories"
+role = "source"
+include = ["packages/ai/src/providers/**"]
+exclude = [
+  "packages/ai/src/providers/*.models.ts",
+  "packages/ai/src/providers/faux.ts",
+]
+
+[[route]]
+id = "ai.faux"
+watch = "ai"
+surface = "ai.faux"
+role = "source"
+include = ["packages/ai/src/providers/faux.ts"]
+exclude = []
+
+[[route]]
+id = "ai.oauth"
+watch = "ai"
+surface = "ai.oauth-images"
+role = "source"
+include = [
+  "packages/ai/src/auth/oauth/**",
+  "packages/ai/src/bun-oauth.ts",
+  "packages/ai/src/env-api-keys.ts",
+  "packages/ai/src/oauth.ts",
+]
+exclude = []
+
+[[route]]
+id = "ai.auth"
+watch = "ai"
+surface = "ai.models-auth"
+role = "source"
+include = ["packages/ai/src/auth/**"]
+exclude = ["packages/ai/src/auth/oauth/**"]
+
+[[route]]
+id = "ai.transport"
+watch = "ai"
+surface = "ai.transport-utils"
+role = "source"
+include = [
+  "packages/ai/src/utils/abort-signals.ts",
+  "packages/ai/src/utils/abort.ts",
+  "packages/ai/src/utils/error-body.ts",
+  "packages/ai/src/utils/headers.ts",
+  "packages/ai/src/utils/node-http-proxy.ts",
+  "packages/ai/src/utils/provider-retry.ts",
+  "packages/ai/src/utils/retry.ts",
+  "packages/ai/src/utils/sanitize-unicode.ts",
+  "packages/ai/src/utils/sleep.ts",
+]
+exclude = []
+
+[[route]]
+id = "ai.core-utils"
+watch = "ai"
+surface = "ai.domain"
+role = "source"
+include = ["packages/ai/src/utils/**"]
+exclude = [
+  "packages/ai/src/utils/abort-signals.ts",
+  "packages/ai/src/utils/abort.ts",
+  "packages/ai/src/utils/error-body.ts",
+  "packages/ai/src/utils/headers.ts",
+  "packages/ai/src/utils/node-http-proxy.ts",
+  "packages/ai/src/utils/provider-retry.ts",
+  "packages/ai/src/utils/retry.ts",
+  "packages/ai/src/utils/sanitize-unicode.ts",
+  "packages/ai/src/utils/sleep.ts",
+]
+
+[[route]]
+id = "ai.compat-dir"
+watch = "ai"
+surface = "ai.compat"
+role = "source"
+include = [
+  "packages/ai/src/compat/**",
+  "packages/ai/src/compat.ts",
+  "packages/ai/src/legacy-api-aliases.ts",
+]
+exclude = []
+
+[[route]]
+id = "ai.generated-root"
+watch = "ai"
+surface = "ai.catalog.projection"
+role = "generated"
+include = ["packages/ai/src/*.generated.ts"]
+exclude = []
+
+[[route]]
+id = "ai.core-root"
+watch = "ai"
+surface = "ai.domain"
+role = "source"
+include = [
+  "packages/ai/src/session-resources.ts",
+  "packages/ai/src/types.ts",
+]
+exclude = []
+
+[[route]]
+id = "ai.models-root"
+watch = "ai"
+surface = "ai.models-auth"
+role = "source"
+include = [
+  "packages/ai/src/models-store.ts",
+  "packages/ai/src/models.ts",
+]
+exclude = []
+
+[[route]]
+id = "ai.images-root"
+watch = "ai"
+surface = "ai.oauth-images"
+role = "source"
+include = [
+  "packages/ai/src/image-models.ts",
+  "packages/ai/src/images-api-registry.ts",
+  "packages/ai/src/images-models.ts",
+  "packages/ai/src/images.ts",
+]
+exclude = []
+
+[[route]]
+id = "ai.provider-root"
+watch = "ai"
+surface = "ai.provider-factories"
+role = "source"
+include = [
+  "packages/ai/src/bedrock-provider.ts",
+  "packages/ai/src/images-api-registry.ts",
+]
+exclude = ["packages/ai/src/images-api-registry.ts"]
+
+[[route]]
+id = "ai.catalog-runtime"
+watch = "ai"
+surface = "ai.catalog.runtime"
+role = "source"
+include = ["packages/ai/src/model-catalog.ts"]
+exclude = []
+
+[[route]]
+id = "ai.facade-root"
+watch = "ai"
+surface = "ai.package-metadata"
+role = "source"
+include = ["packages/ai/src/*.ts"]
+exclude = [
+  "packages/ai/src/*.generated.ts",
+  "packages/ai/src/bedrock-provider.ts",
+  "packages/ai/src/bun-oauth.ts",
+  "packages/ai/src/compat.ts",
+  "packages/ai/src/env-api-keys.ts",
+  "packages/ai/src/image-models.ts",
+  "packages/ai/src/images-api-registry.ts",
+  "packages/ai/src/images-models.ts",
+  "packages/ai/src/images.ts",
+  "packages/ai/src/legacy-api-aliases.ts",
+  "packages/ai/src/model-catalog.ts",
+  "packages/ai/src/models-store.ts",
+  "packages/ai/src/models.ts",
+  "packages/ai/src/oauth.ts",
+  "packages/ai/src/session-resources.ts",
+  "packages/ai/src/types.ts",
+]
+
+[[route]]
+id = "agent.metadata"
+watch = "agent"
+surface = "agent.package-metadata"
+role = "metadata"
+include = ["packages/agent/*"]
+exclude = []
+
+[[route]]
+id = "agent.harness-doc"
+watch = "agent"
+surface = "agent.harness.document"
+role = "target-spec"
+include = ["packages/agent/docs/harness.md"]
+exclude = []
+selector_partition = "harness-v3"
+
+[[route]]
+id = "agent.search"
+watch = "agent"
+surface = "agent.search.current-api"
+role = "source-or-test"
+include = [
+  "packages/agent/docs/search.md",
+  "packages/agent/src/search/**",
+  "packages/agent/test/harness/session/search.test.ts",
+]
+exclude = []
+
+[[route]]
+id = "agent.scaffold-source"
+watch = "agent"
+surface = "agent.harness.scaffold"
+role = "disposable"
+include = ["packages/agent/src/harness/**"]
+exclude = ["packages/agent/src/harness/telemetry.ts"]
+
+[[route]]
+id = "agent.scaffold-tests"
+watch = "agent"
+surface = "agent.harness.scaffold"
+role = "disposable-test"
+include = ["packages/agent/test/harness/**"]
+exclude = [
+  "packages/agent/test/harness/session/search.test.ts",
+  "packages/agent/test/harness/telemetry.test.ts",
+]
+
+[[route]]
+id = "agent.legacy-loop"
+watch = "agent"
+surface = "agent.legacy-loop"
+role = "source-or-test"
+include = [
+  "packages/agent/src/agent-loop.ts",
+  "packages/agent/src/agent.ts",
+  "packages/agent/src/types.ts",
+  "packages/agent/test/agent-loop.test.ts",
+  "packages/agent/test/agent.test.ts",
+]
+exclude = []
+
+[[route]]
+id = "agent.proxy"
+watch = "agent"
+surface = "agent.legacy-proxy"
+role = "source-or-test"
+include = [
+  "packages/agent/src/proxy.ts",
+  "packages/agent/test/proxy.test.ts",
+]
+exclude = []
+
+[[route]]
+id = "agent.public-source"
+watch = "agent"
+surface = "agent.package-metadata"
+role = "source"
+include = [
+  "packages/agent/src/index.ts",
+  "packages/agent/src/node.ts",
+  "packages/agent/src/stream-fn.ts",
+]
+exclude = []
+
+[[route]]
+id = "agent.tests"
+watch = "agent"
+surface = "agent.public-and-tests"
+role = "test"
+include = ["packages/agent/test/**"]
+exclude = [
+  "packages/agent/test/agent-loop.test.ts",
+  "packages/agent/test/agent.test.ts",
+  "packages/agent/test/harness/**",
+  "packages/agent/test/proxy.test.ts",
+]
+
+[[route]]
+id = "agent.telemetry"
+watch = "agent"
+surface = "agent.telemetry-schema"
+role = "source-generator-projection-or-test"
+include = [
+  "packages/agent/docs/telemetry-schema.md",
+  "packages/agent/scripts/generate-telemetry-docs.ts",
+  "packages/agent/src/harness/telemetry.ts",
+  "packages/agent/test/harness/telemetry.test.ts",
+]
+exclude = []
+
+[[route]]
+id = "sqlite.pre-v3"
+watch = "sqlite-node"
+surface = "agent.sqlite-node.pre-v3"
+role = "disposable-evidence"
+include = ["packages/session-backends/sqlite-node/**"]
+exclude = []
+
+[[route]]
+id = "coding.package-host"
+watch = "coding-agent"
+surface = "coding.package-host"
+role = "host"
+include = [
+  "packages/coding-agent/*",
+  "packages/coding-agent/bun/**",
+  "packages/coding-agent/docs/**",
+  "packages/coding-agent/examples/**",
+  "packages/coding-agent/install-lock/**",
+  "packages/coding-agent/scripts/**",
+  "packages/coding-agent/src/*",
+  "packages/coding-agent/src/bun/**",
+  "packages/coding-agent/src/cli/**",
+  "packages/coding-agent/src/client/**",
+  "packages/coding-agent/src/extensions/**",
+  "packages/coding-agent/src/modes/**",
+  "packages/coding-agent/src/utils/**",
+]
+exclude = []
+
+[[route]]
+id = "coding.core-host"
+watch = "coding-agent"
+surface = "coding.package-host"
+role = "host"
+include = [
+  "packages/coding-agent/src/core/export-html/**",
+  "packages/coding-agent/src/core/extensions/loader.ts",
+  "packages/coding-agent/src/core/extensions/wrapper.ts",
+  "packages/coding-agent/src/core/footer-data-provider.ts",
+  "packages/coding-agent/src/core/keybindings.ts",
+  "packages/coding-agent/src/core/package-manager.ts",
+  "packages/coding-agent/src/core/pi-manifest.ts",
+  "packages/coding-agent/src/core/project-trust.ts",
+  "packages/coding-agent/src/core/resource-loader.ts",
+  "packages/coding-agent/src/core/session-export.ts",
+  "packages/coding-agent/src/core/settings-diagnostics.ts",
+  "packages/coding-agent/src/core/settings-manager.ts",
+  "packages/coding-agent/src/core/skills.ts",
+  "packages/coding-agent/src/core/slash-commands.ts",
+  "packages/coding-agent/src/core/source-info.ts",
+  "packages/coding-agent/src/core/trust-manager.ts",
+]
+exclude = []
+
+[[route]]
+id = "coding.models"
+watch = "coding-agent"
+surface = "coding.models"
+role = "source"
+include = [
+  "packages/coding-agent/src/core/auth-storage.ts",
+  "packages/coding-agent/src/core/model-config.ts",
+  "packages/coding-agent/src/core/model-registry.ts",
+  "packages/coding-agent/src/core/model-resolver.ts",
+  "packages/coding-agent/src/core/model-runtime.ts",
+  "packages/coding-agent/src/core/models-store.ts",
+  "packages/coding-agent/src/core/provider-composer.ts",
+  "packages/coding-agent/src/core/remote-catalog-provider.ts",
+  "packages/coding-agent/src/core/runtime-credentials.ts",
+]
+exclude = []
+
+[[route]]
+id = "coding.tools"
+watch = "coding-agent"
+surface = "coding.tools"
+role = "source"
+include = [
+  "packages/coding-agent/src/core/bash-executor.ts",
+  "packages/coding-agent/src/core/exec.ts",
+  "packages/coding-agent/src/core/tools/**",
+]
+exclude = []
+
+[[route]]
+id = "coding.extensions"
+watch = "coding-agent"
+surface = "coding.extensions"
+role = "source"
+include = [
+  "packages/coding-agent/src/core/extensions/index.ts",
+  "packages/coding-agent/src/core/extensions/runner.ts",
+  "packages/coding-agent/src/core/extensions/types.ts",
+]
+exclude = []
+
+[[route]]
+id = "coding.session-layout"
+watch = "coding-agent"
+surface = "coding.agent-session-layout"
+role = "compatibility-source"
+include = [
+  "packages/coding-agent/src/core/agent-session*.ts",
+  "packages/coding-agent/src/core/compaction/**",
+]
+exclude = []
+
+[[route]]
+id = "coding.legacy-import"
+watch = "coding-agent"
+surface = "coding.legacy-import"
+role = "compatibility-source"
+include = ["packages/coding-agent/src/core/session-manager.ts"]
+exclude = []
+
+[[route]]
+id = "coding.composition"
+watch = "coding-agent"
+surface = "coding.composition"
+role = "source"
+include = ["packages/coding-agent/src/core/**", "packages/coding-agent/src/server/create-harness.ts"]
+exclude = [
+  "packages/coding-agent/src/core/agent-session*.ts",
+  "packages/coding-agent/src/core/auth-storage.ts",
+  "packages/coding-agent/src/core/bash-executor.ts",
+  "packages/coding-agent/src/core/compaction/**",
+  "packages/coding-agent/src/core/export-html/**",
+  "packages/coding-agent/src/core/extensions/**",
+  "packages/coding-agent/src/core/exec.ts",
+  "packages/coding-agent/src/core/footer-data-provider.ts",
+  "packages/coding-agent/src/core/keybindings.ts",
+  "packages/coding-agent/src/core/model-config.ts",
+  "packages/coding-agent/src/core/model-registry.ts",
+  "packages/coding-agent/src/core/model-resolver.ts",
+  "packages/coding-agent/src/core/model-runtime.ts",
+  "packages/coding-agent/src/core/models-store.ts",
+  "packages/coding-agent/src/core/package-manager.ts",
+  "packages/coding-agent/src/core/pi-manifest.ts",
+  "packages/coding-agent/src/core/project-trust.ts",
+  "packages/coding-agent/src/core/provider-composer.ts",
+  "packages/coding-agent/src/core/remote-catalog-provider.ts",
+  "packages/coding-agent/src/core/resource-loader.ts",
+  "packages/coding-agent/src/core/runtime-credentials.ts",
+  "packages/coding-agent/src/core/session-export.ts",
+  "packages/coding-agent/src/core/session-manager.ts",
+  "packages/coding-agent/src/core/settings-diagnostics.ts",
+  "packages/coding-agent/src/core/settings-manager.ts",
+  "packages/coding-agent/src/core/skills.ts",
+  "packages/coding-agent/src/core/slash-commands.ts",
+  "packages/coding-agent/src/core/source-info.ts",
+  "packages/coding-agent/src/core/tools/**",
+  "packages/coding-agent/src/core/trust-manager.ts",
+]
+
+[[route]]
+id = "coding.tests"
+watch = "coding-agent"
+surface = "coding.test-evidence"
+role = "test-or-fixture"
+include = ["packages/coding-agent/test/**"]
+exclude = []
+
+[[selector]]
+id = "harness.orientation"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "AgentHarness — implementation specification"
+surface = "agent.harness.document"
+
+[[selector]]
+id = "harness.part-0"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 0 — Orientation"
+surface = "agent.harness.document"
+
+[[selector]]
+id = "harness.part-1"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 1 — Storage"
+surface = "agent.harness.storage-session"
+
+[[selector]]
+id = "harness.part-2"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 2 — The conversation tree"
+surface = "agent.harness.storage-session"
+exclude_headings = ["Search"]
+
+[[selector]]
+id = "harness.search"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Search"
+surface = "agent.search.target"
+
+[[selector]]
+id = "harness.part-3-schema"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "# Part 3 — The operation state machine"
+end = "## 3.3 Lane state and current-state validity"
+surface = "agent.harness.schema"
+
+[[selector]]
+id = "harness.part-3-behavior"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "## 3.3 Lane state and current-state validity"
+end = "# Part 4 — Execution, recovery, abort, close"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.part-4"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 4 — Execution, recovery, abort, close"
+surface = "agent.harness.runtime"
+
+[[selector]]
+id = "harness.part-5"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 5 — Public surface"
+surface = "agent.harness.public"
+
+[[selector]]
+id = "harness.part-6"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 6 — Future: partitioned retention (Postgres)"
+surface = "agent.harness.host"
+
+[[selector]]
+id = "harness.part-7-registry"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "# Part 7 — Schema evolution"
+end = "## 7.4 Migrations are total"
+surface = "agent.harness.migrations"
+
+[[selector]]
+id = "harness.part-7-state-mapping"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "## 7.4 Migrations are total"
+end = "## 7.5 The three strata, restated as policy"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.part-7-policy"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "## 7.5 The three strata, restated as policy"
+end = "# Part 8 — Build order"
+surface = "agent.harness.migrations"
+
+[[selector]]
+id = "harness.part-8-intro"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "# Part 8 — Build order"
+end = "| 1 | **Types** |"
+surface = "agent.harness.document"
+
+[[selector]]
+id = "harness.slice-types"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| 1 | **Types** |"
+surface = "agent.harness.schema"
+
+[[selector]]
+id = "harness.slice-session-memory"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| 2 | **Session layer, Memory, conformance** |"
+surface = "agent.harness.storage-session"
+
+[[selector]]
+id = "harness.slice-s1"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| S1 | **JSONL** |"
+surface = "agent.harness.storage-session"
+
+[[selector]]
+id = "harness.slice-s2"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| S2 | **SQLite** |"
+surface = "agent.sqlite.target"
+
+[[selector]]
+id = "harness.slice-s3"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| S3 | **Search** |"
+surface = "agent.search.target"
+
+[[selector]]
+id = "harness.slice-s4"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| S4 | **Dev TUI and Client** |"
+surface = "agent.harness.host"
+
+[[selector]]
+id = "harness.slice-r1"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R1 | **Runtime shell** |"
+surface = "agent.harness.runtime"
+
+[[selector]]
+id = "harness.slice-r2"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R2 | **Minimal no-tool run** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r3"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R3 | **Generation recovery and retry** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r4"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R4 | **Tools** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r5"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R5 | **Inbox, configuration, and writes** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r6"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R6 | **Abort, close, and failure drain** |"
+surface = "agent.harness.runtime"
+
+[[selector]]
+id = "harness.slice-r7"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R7 | **Deferred provider redemption** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r8"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R8 | **Manual compaction** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r9"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R9 | **Threshold and overflow compaction** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r10"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R10 | **Navigation** |"
+surface = "agent.harness.state"
+
+[[selector]]
+id = "harness.slice-r11"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R11 | **Schema version and migrations** |"
+surface = "agent.harness.migrations"
+
+[[selector]]
+id = "harness.slice-r12"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-line"
+needle = "| R12 | **Surface completion** |"
+surface = "agent.harness.public"
+
+[[selector]]
+id = "harness.part-8-guidance"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "text-span"
+start = "Existing source guidance:"
+end = "# Part 9 — Invariants and tests"
+surface = "agent.harness.document"
+
+[[selector]]
+id = "harness.part-9"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Part 9 — Invariants and tests"
+surface = "agent.harness.document"
+
+[[selector]]
+id = "harness.appendix-b"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Appendix B — Coding-agent v3-format compatibility"
+surface = "agent.harness.storage-session"
+
+[[selector]]
+id = "harness.appendix-a"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Appendix A — Glossary"
+surface = "agent.harness.document"
+
+[[selector]]
+id = "harness.appendix-c"
+partition = "harness-v3"
+path = "packages/agent/docs/harness.md"
+kind = "markdown-section"
+heading = "Appendix C — Open questions"
+surface = "agent.harness.document"
+
+[[manifest]]
+id = "route-inventory"
+path = "upstream/manifests/routes.toml"
+kind = "route-inventory"
+source = "pinned-git-tree"
+
+[[manifest]]
+id = "ai-exports"
+path = "upstream/manifests/ai-exports.toml"
+kind = "public-exports"
+source = "packages/ai/package.json+src/index.ts"
+
+[[manifest]]
+id = "agent-exports"
+path = "upstream/manifests/agent-exports.toml"
+kind = "public-exports"
+source = "packages/agent/package.json+src/index.ts"
+
+[[manifest]]
+id = "providers"
+path = "upstream/manifests/providers.toml"
+kind = "provider-inventory"
+source = "packages/ai/src/providers/all.ts"
+
+[[manifest]]
+id = "catalog-inputs"
+path = "upstream/manifests/catalog-inputs.toml"
+kind = "catalog-inputs"
+source = "pinned generator roots and recursive relative imports"
+
+[[manifest]]
+id = "tests"
+path = "upstream/manifests/tests.toml"
+kind = "test-inventory"
+source = "pinned-git-tree"
+
+[[manifest]]
+id = "harness-headings"
+path = "upstream/manifests/harness-headings.toml"
+kind = "markdown-headings"
+source = "packages/agent/docs/harness.md"
