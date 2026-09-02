@@ -315,7 +315,11 @@ disposition = "included"
 status = "source-landed"
 sync = ["wire", "stream", "retry", "error", "payload"]
 conformance = ["conformance/provider-traces"]
-divergences = []
+divergences = [
+  "ai.resolved-endpoint-custody",
+  "ai.request-callbacks-construction-time",
+  "ai.models-error-detail-redaction",
+]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "wire family removed", reclassification_condition = "new wire family or shared adapter" }
 
 [[surface]]
@@ -339,7 +343,10 @@ disposition = "included"
 status = "source-landed"
 sync = ["oauth", "credential-resolution", "images", "platform-service"]
 conformance = ["conformance/oauth", "conformance/images"]
-divergences = []
+divergences = [
+  "ai.resolved-endpoint-custody",
+  "ai.request-callbacks-construction-time",
+]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "capability removed", reclassification_condition = "platform boundary changes" }
 
 [[surface]]
@@ -895,27 +902,27 @@ revisit_trigger = "Upstream defines a durable ambiguous-outcome recovery protoco
 [[divergence]]
 id = "ai.cache-before-credential-read"
 upstream_behavior = "Models.refresh awaits the credential-store read before invoking the provider's cache-only restore phase."
-rust_behavior = "ModelsRegistry restores and policy-validates cached models before beginning credential-store or auth work."
+rust_behavior = "ModelsRegistry restores and acknowledges a credential-free cache phase before credential-store or auth work; offline refresh stops there, while the later network phase rereads the model store."
 owner = "pi-ai-core::models-auth"
 rationale = "A slow, failed, or quarantined credential backend must not prevent publication of already cached public catalog data."
-compatibility_consequence = "Provider/store call order differs and a cached snapshot may become visible before a later credential-read error is reported."
+compatibility_consequence = "Provider/store call order differs, offline cache restore performs no credential read, and a cached snapshot may become visible before a later credential-read error is reported."
 replacement_fixture = "conformance/ai-models/cache-before-credential-read"
 revisit_trigger = "Upstream restores cache before credential access or cache visibility is redesigned."
 
 [[divergence]]
 id = "ai.models-error-detail-redaction"
-upstream_behavior = "ModelsError appends formatted thrown cause detail to its public message, and tests require the combined text."
-rust_behavior = "ModelsError Display and Debug expose only a fixed category while retaining the backend error through Error::source."
+upstream_behavior = "ModelsError appends formatted thrown cause detail to its public message, and lazy stream setup copies an arbitrary Error.message into the terminal."
+rust_behavior = "ModelsError Display and Debug expose only a fixed category while retaining the backend error through Error::source; lazy setup emits only fixed sanitized terminal text."
 owner = "pi-ai-core::models-auth"
 rationale = "Provider, credential, endpoint, and transport causes may contain secrets and are unsafe as default user-visible diagnostics."
-compatibility_consequence = "Ordinary Rust error text is generic; trusted diagnostics must deliberately traverse the redacted source boundary."
+compatibility_consequence = "Ordinary Rust error text and setup terminals are generic; trusted diagnostics must deliberately traverse the redacted source boundary."
 replacement_fixture = "conformance/ai-models/models-error-detail-redaction"
 revisit_trigger = "Upstream adopts structured secret-classified causes or the Rust diagnostics policy changes."
 
 [[divergence]]
 id = "ai.models-publication-value-capability"
 upstream_behavior = "A provider publication may carry an update JavaScript callback that mutates provider-private model state after persistence."
-rust_behavior = "A borrow-scoped ModelsPublisher accepts independent persistence and memory value intents and never stores an update callback."
+rust_behavior = "A borrow-scoped ModelsPublisher accepts independent persistence and registry-owned dynamic-memory value intents and never stores an update callback; provider snapshots remain baseline-only."
 owner = "pi-ai-core::models-auth"
 rationale = "Publication order and state authority must be inspectable values rather than executable callback identity."
 compatibility_consequence = "Provider ports compute replacement snapshots and submit them as values; closure-based publication requires adaptation."
@@ -924,11 +931,11 @@ revisit_trigger = "Upstream replaces update callbacks with ordered value publica
 
 [[divergence]]
 id = "ai.registry-async-mutation-fence"
-upstream_behavior = "Provider set, delete, and clear mutate the registry synchronously while older refresh work is cancelled separately."
-rust_behavior = "Provider mutation methods are async and return only after the per-provider sequencer has fenced older publication and persistence work."
+upstream_behavior = "Provider set, delete, and clear mutate synchronously while older refresh work is cancelled separately; a successor refresh may read cache before an older admitted store effect settles."
+rust_behavior = "Provider mutations return only after older effects drain; a Closing provider epoch cannot allocate refresh authority, and a successor generation waits the prior admitted tail before its first cache read."
 owner = "pi-ai-core::models-auth"
 rationale = "A completed replacement must prove that a stale blocked store write cannot later overwrite the new generation."
-compatibility_consequence = "Callers await set/delete/clear and cannot assume mutation completion at synchronous return."
+compatibility_consequence = "Callers await set/delete/clear; a displaced still-visible provider cannot refresh, and successor cache restore observes the definitive preceding store state."
 replacement_fixture = "conformance/ai-models/registry-async-mutation-fence"
 revisit_trigger = "Upstream provider mutation exposes an equivalent completion fence."
 
