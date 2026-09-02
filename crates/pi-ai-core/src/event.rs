@@ -58,6 +58,7 @@ impl ErrorReason {
 
 /// Error returned when a terminal event contradicts its nested assistant message.
 #[derive(Clone, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum AssistantMessageEventError {
     /// A terminal nested message still had the `pending` stop reason.
     PendingTerminal,
@@ -65,6 +66,8 @@ pub enum AssistantMessageEventError {
     ReasonMismatch,
     /// An error or aborted terminal omitted `errorMessage`.
     MissingErrorMessage,
+    /// An error or aborted terminal carried an empty `errorMessage`.
+    EmptyErrorMessage,
 }
 
 impl fmt::Display for AssistantMessageEventError {
@@ -78,6 +81,9 @@ impl fmt::Display for AssistantMessageEventError {
             }
             Self::MissingErrorMessage => {
                 formatter.write_str("error or aborted terminal requires errorMessage")
+            }
+            Self::EmptyErrorMessage => {
+                formatter.write_str("error or aborted terminal requires nonempty errorMessage")
             }
         }
     }
@@ -198,8 +204,12 @@ impl AssistantMessageEvent {
         if message.stop_reason != expected {
             return Err(AssistantMessageEventError::ReasonMismatch);
         }
-        if requires_error && message.error_message.is_none() {
-            return Err(AssistantMessageEventError::MissingErrorMessage);
+        if requires_error {
+            match message.error_message.as_deref() {
+                None => return Err(AssistantMessageEventError::MissingErrorMessage),
+                Some("") => return Err(AssistantMessageEventError::EmptyErrorMessage),
+                Some(_) => {}
+            }
         }
         Ok(())
     }

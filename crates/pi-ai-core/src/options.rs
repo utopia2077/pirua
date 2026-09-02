@@ -276,6 +276,18 @@ pub struct StreamOptionsWire {
         skip_serializing_if = "Option::is_none"
     )]
     pub metadata: Option<JsonObject>,
+}
+
+/// Serializable provider-neutral simple-stream options.
+///
+/// The common raw-stream fields serialize at the same object level as the four
+/// fields that exist only on simple requests.
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimpleStreamOptionsWire {
+    /// Common raw-stream options.
+    #[serde(flatten)]
+    pub stream: StreamOptionsWire,
     /// Provider-neutral tool selection.
     #[serde(
         default,
@@ -306,10 +318,200 @@ pub struct StreamOptionsWire {
     pub thinking_budgets: Option<ThinkingBudgets>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct SimpleStreamOptionsWireDef {
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    timeout_ms: Option<SafeUnsigned>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    max_retries: Option<SafeUnsigned>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    max_retry_delay_ms: Option<SafeUnsigned>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    temperature: Option<FiniteF64>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    sampling_params: Option<JsonObject>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    max_tokens: Option<SafeUnsigned>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    transport: Option<Transport>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    cache_retention: Option<CacheRetention>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    session_id: Option<String>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    websocket_connect_timeout_ms: Option<SafeUnsigned>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    metadata: Option<JsonObject>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    tool_choice: Option<ToolChoice>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    reasoning: Option<ThinkingLevel>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    deferred: Option<DeferredRequest>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
+    thinking_budgets: Option<ThinkingBudgets>,
+}
+
+impl<'de> Deserialize<'de> for SimpleStreamOptionsWire {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = SimpleStreamOptionsWireDef::deserialize(deserializer)?;
+        Ok(Self {
+            stream: StreamOptionsWire {
+                timeout_ms: value.timeout_ms,
+                max_retries: value.max_retries,
+                max_retry_delay_ms: value.max_retry_delay_ms,
+                temperature: value.temperature,
+                sampling_params: value.sampling_params,
+                max_tokens: value.max_tokens,
+                transport: value.transport,
+                cache_retention: value.cache_retention,
+                session_id: value.session_id,
+                websocket_connect_timeout_ms: value.websocket_connect_timeout_ms,
+                metadata: value.metadata,
+            },
+            tool_choice: value.tool_choice,
+            reasoning: value.reasoning,
+            deferred: value.deferred,
+            thinking_budgets: value.thinking_budgets,
+        })
+    }
+}
+
+/// Serializable deferred-response fetch options.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeferredFetchOptionsWire {
+    /// Provider request timeout in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timeout_ms: Option<SafeUnsigned>,
+    /// Maximum provider-client retry attempts.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_retries: Option<SafeUnsigned>,
+    /// Maximum provider-requested retry delay in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_retry_delay_ms: Option<SafeUnsigned>,
+    /// Maximum provider long-poll duration in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub wait: Option<SafeUnsigned>,
+}
+
+/// Serializable best-effort deferred-response cancellation options.
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeferredCancelOptionsWire {
+    /// Provider request timeout in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timeout_ms: Option<SafeUnsigned>,
+    /// Maximum provider-client retry attempts.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_retries: Option<SafeUnsigned>,
+    /// Maximum provider-requested retry delay in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_retry_delay_ms: Option<SafeUnsigned>,
+}
+
 /// Serializable image-generation options.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ImagesOptionsWire {
+    /// Provider request timeout in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub timeout_ms: Option<SafeUnsigned>,
+    /// Maximum provider-client retry attempts.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_retries: Option<SafeUnsigned>,
+    /// Maximum provider-requested retry delay in milliseconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_retry_delay_ms: Option<SafeUnsigned>,
     /// Provider-readable detached metadata.
     #[serde(
         default,

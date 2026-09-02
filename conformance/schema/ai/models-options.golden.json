@@ -48,12 +48,28 @@
     "cacheRetention": "long",
     "sessionId": "session-1",
     "websocketConnectTimeoutMs": 500,
+    "metadata": { "zero": 0, "false": false, "empty": [] }
+  },
+  "simpleStreamOptions": {
+    "timeoutMs": 1000,
+    "maxRetries": 0,
+    "maxRetryDelayMs": 0,
+    "temperature": 0.0,
+    "samplingParams": { "top_k": 0 },
+    "maxTokens": 1,
+    "transport": "websocket-cached",
+    "cacheRetention": "long",
+    "sessionId": "session-1",
+    "websocketConnectTimeoutMs": 500,
     "metadata": { "zero": 0, "false": false, "empty": [] },
     "toolChoice": "none",
     "reasoning": "xhigh",
     "deferred": { "window": "24h" },
     "thinkingBudgets": { "minimal": 0, "low": 1, "medium": 2, "high": 3 }
   },
+  "deferredFetchOptions": { "timeoutMs": 1000, "maxRetries": 1, "maxRetryDelayMs": 2000, "wait": 3000 },
+  "deferredCancelOptions": { "timeoutMs": 1000, "maxRetries": 1, "maxRetryDelayMs": 2000 },
+  "imagesOptions": { "timeoutMs": 1000, "maxRetries": 1, "maxRetryDelayMs": 2000, "metadata": { "request": "image" } },
   "retry": { "enabled": false, "maxRetries": 0, "baseDelayMs": 0 },
   "rawHeaders": { "authorization": "secret", "x-suppress": null },
   "providerEnv": { "API_KEY": "secret" }

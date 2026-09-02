@@ -51,3 +51,27 @@ pub struct Usage {
     /// Monetary cost fields.
     pub cost: UsageCost,
 }
+
+impl Usage {
+    /// Returns a complete zero-valued usage record for runtime-generated results.
+    pub fn zero() -> Self {
+        let zero = SafeUnsigned::new(0).expect("zero is JavaScript-safe");
+        let zero_cost = FiniteF64::new(0.0).expect("zero is finite");
+        Self {
+            input: zero,
+            output: zero,
+            cache_read: zero,
+            cache_write: zero,
+            cache_write_1h: None,
+            reasoning: None,
+            total_tokens: zero,
+            cost: UsageCost {
+                input: zero_cost,
+                output: zero_cost,
+                cache_read: zero_cost,
+                cache_write: zero_cost,
+                total: zero_cost,
+            },
+        }
+    }
+}

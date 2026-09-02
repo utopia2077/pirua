@@ -3,12 +3,13 @@ use std::collections::BTreeMap;
 use pi_ai_core::{
     AnthropicMessagesCompat, ApiId, AssistantContent, AssistantImages, AssistantMessageDiagnostic,
     AssistantMessageEvent, AuthCheck, AuthEvent, AuthPrompt, AuthResult, BedrockCompat, Context,
-    Credential, CredentialInfo, CustomMessage, ImageContent, ImagesModel, JS_SAFE_INTEGER_MAX,
-    JsonObject, JsonValue, LiteralFalse, LiteralTrue, MaxRetries, Message, Model, ModelAuth,
-    ModelBaseUrl, ModelCompat, ModelHeaderClassificationError, ModelHeaderPolicy, ModelsErrorCode,
-    ModelsStoreEntry, OAuthExtraFields, OpenAiCompletionsCompat, OpenAiResponsesCompat, Presence,
-    ProviderEnv, ProviderHeaders, ProviderId, PublicModelBaseUrl, RawImagesModel, RawModel,
-    RawModelHeaders, RawModelsStoreEntry, RetryPolicy, SafeUnsigned, StreamOptionsWire,
+    Credential, CredentialInfo, CustomMessage, DeferredCancelOptionsWire, DeferredFetchOptionsWire,
+    ImageContent, ImagesModel, ImagesOptionsWire, JS_SAFE_INTEGER_MAX, JsonObject, JsonValue,
+    LiteralFalse, LiteralTrue, MaxRetries, Message, Model, ModelAuth, ModelBaseUrl, ModelCompat,
+    ModelHeaderClassificationError, ModelHeaderPolicy, ModelsErrorCode, ModelsStoreEntry,
+    OAuthExtraFields, OpenAiCompletionsCompat, OpenAiResponsesCompat, Presence, ProviderEnv,
+    ProviderHeaders, ProviderId, PublicModelBaseUrl, RawImagesModel, RawModel, RawModelHeaders,
+    RawModelsStoreEntry, RetryPolicy, SafeUnsigned, SimpleStreamOptionsWire, StreamOptionsWire,
     TextContent, TextSignatureV1, ThinkingContent, Tool, ToolCall, TypedModelCompat,
 };
 use serde::{Deserialize, Serialize};
@@ -175,6 +176,18 @@ fn terminal_event_invariants_reject_causal_contradictions_both_directions() {
     };
     error.error_message = None;
     assert!(serde_json::to_value(missing_error).is_err());
+
+    let mut empty_error = events[14].clone();
+    let AssistantMessageEvent::Error { error, .. } = &mut empty_error else {
+        panic!("fixture index 14 must be an error event");
+    };
+    error.error_message = Some(String::new());
+    assert!(empty_error.validate().is_err());
+    assert!(serde_json::to_value(empty_error).is_err());
+
+    let mut empty_value: Value = serde_json::from_str(EVENTS).expect("valid event fixture");
+    empty_value[15]["error"]["errorMessage"] = Value::String(String::new());
+    assert!(serde_json::from_value::<Vec<AssistantMessageEvent>>(empty_value).is_err());
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -185,6 +198,10 @@ struct ModelsOptionsFixture {
     store: ModelsStoreEntry,
     tools: Vec<Tool>,
     stream_options: StreamOptionsWire,
+    simple_stream_options: SimpleStreamOptionsWire,
+    deferred_fetch_options: DeferredFetchOptionsWire,
+    deferred_cancel_options: DeferredCancelOptionsWire,
+    images_options: ImagesOptionsWire,
     retry: RetryPolicy,
     raw_headers: ProviderHeaders,
     provider_env: ProviderEnv,
@@ -541,7 +558,7 @@ fn optional_non_null_fields_reject_null_but_preserve_omission_and_values() {
     assert!(serde_json::from_str::<TextContent>(explicit_null).is_err());
     assert!(serde_json::from_str::<TextContent>(r#"{"type":"text","text":"complete"}"#).is_ok());
 
-    let preserved: StreamOptionsWire = serde_json::from_str(
+    let preserved: SimpleStreamOptionsWire = serde_json::from_str(
         r#"{"timeoutMs":0,"metadata":{},"deferred":false,"thinkingBudgets":{"minimal":0}}"#,
     )
     .expect("zero, false, and empty object remain valid");
@@ -549,6 +566,16 @@ fn optional_non_null_fields_reject_null_but_preserve_omission_and_values() {
         serde_json::to_value(preserved).expect("options serialize"),
         serde_json::json!({"timeoutMs":0,"metadata":{},"deferred":false,"thinkingBudgets":{"minimal":0}})
     );
+
+    for simple_only in [
+        r#"{"toolChoice":"none"}"#,
+        r#"{"reasoning":"high"}"#,
+        r#"{"deferred":false}"#,
+        r#"{"thinkingBudgets":{"low":1}}"#,
+    ] {
+        assert!(serde_json::from_str::<StreamOptionsWire>(simple_only).is_err());
+        assert!(serde_json::from_str::<SimpleStreamOptionsWire>(simple_only).is_ok());
+    }
 }
 
 #[test]
