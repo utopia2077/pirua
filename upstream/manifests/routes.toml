@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "route-inventory"
 source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:659fb6a3fb9c0402042e812f5fde208b6736b99c8086af3dbea49decfdd23cc9"
+content_digest = "sha256:20b4eb0b052a38963508748914efad3a19c29a375027a72a20d74ba124b72770"
 
 [[entry]]
 watch = "agent"
@@ -2420,8 +2420,8 @@ watch = "ai"
 path = "packages/ai/src/utils/retry.ts"
 blob_oid = "b17bf0914732fe05854f042f85f5419f20f9ac12"
 mode = "100644"
-route = "ai.transport"
-surface = "ai.transport-utils"
+route = "ai.retry-source"
+surface = "ai.retry-compat"
 role = "source"
 
 [[entry]]

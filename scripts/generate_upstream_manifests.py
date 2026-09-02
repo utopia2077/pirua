@@ -57,6 +57,7 @@ def test_manifest(
     commit: str,
     checkout: Path,
     entries: list[validator.RoutedEntry],
+    selector_surfaces: dict[str, set[str]],
 ) -> str:
     tests = [
         entry
@@ -73,6 +74,7 @@ def test_manifest(
             commit,
             entry.path,
             entries_by_path,
+            selector_surfaces,
         )
         chunks.extend(
             [
@@ -109,6 +111,7 @@ def infer_test_surfaces(
     commit: str,
     path: str,
     entries_by_path: dict[str, validator.RoutedEntry],
+    selector_surfaces: dict[str, set[str]],
     active: set[str] | None = None,
 ) -> set[str]:
     active = set() if active is None else set(active)
@@ -143,11 +146,12 @@ def infer_test_surfaces(
                     commit,
                     target,
                     entries_by_path,
+                    selector_surfaces,
                     active,
                 )
             )
         else:
-            surfaces.add(target_entry.surface)
+            surfaces.update(selector_surfaces.get(target, {target_entry.surface}))
     if surfaces:
         return surfaces
 
@@ -210,7 +214,17 @@ def infer_test_surfaces(
         ):
             return {"ai.api-adapters"}
         return {"ai.domain"}
-    return {entry.surface}
+    return selector_surfaces.get(path, {entry.surface})
+
+
+def selector_surfaces_by_path(map_data: dict[str, object]) -> dict[str, set[str]]:
+    surfaces: dict[str, set[str]] = {}
+    for selector in map_data.get("selector", []):
+        path = selector.get("path")
+        surface = selector.get("surface")
+        if isinstance(path, str) and isinstance(surface, str):
+            surfaces.setdefault(path, set()).add(surface)
+    return surfaces
 
 
 def merge_export_symbol(
@@ -595,7 +609,12 @@ def expected_outputs() -> dict[Path, str]:
     commit = upstream["commit"]
     return {
         ROOT / "upstream/manifests/routes.toml": route_manifest(commit, entries),
-        ROOT / "upstream/manifests/tests.toml": test_manifest(commit, checkout, entries),
+        ROOT / "upstream/manifests/tests.toml": test_manifest(
+            commit,
+            checkout,
+            entries,
+            selector_surfaces_by_path(map_data),
+        ),
         ROOT / "upstream/manifests/ai-exports.toml": exports_manifest(
             commit, checkout, "packages/ai", "ai"
         ),

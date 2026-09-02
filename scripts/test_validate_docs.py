@@ -108,6 +108,18 @@ class ValidatorCausalTests(unittest.TestCase):
             result = run_validator("--map", str(probe), "--skip-manifests")
             self.assert_rejected(result, "overlapping nonblank lines")
 
+    def test_text_span_can_select_through_eof(self) -> None:
+        lines = ["prefix", "owned", "tail"]
+        selected = validator_module.selector_line_set(
+            {
+                "kind": "text-span",
+                "start": "owned",
+                "end": "$EOF",
+            },
+            lines,
+        )
+        self.assertEqual(selected, {1, 2})
+
     def test_missing_catalog_provenance_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory(prefix="rust-harness-provenance-") as directory:
             probe = Path(directory) / "upstream-map.toml"

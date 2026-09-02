@@ -163,7 +163,11 @@ def selector_line_set(
         start = selector.get("start", "")
         end = selector.get("end", "")
         starts = [index for index, line in enumerate(lines) if line.startswith(start)]
-        ends = [index for index, line in enumerate(lines) if line.startswith(end)]
+        ends = (
+            [len(lines)]
+            if end == "$EOF"
+            else [index for index, line in enumerate(lines) if line.startswith(end)]
+        )
         if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
             return set()
         return set(range(starts[0], ends[0]))
@@ -828,13 +832,17 @@ def validate_manifests(map_data: dict[str, object], errors: list[str]) -> None:
     if any(not test.get("evidence_surfaces") for test in tests):
         errors.append("every test manifest entry must name at least one evidence surface")
     expected_test_routing = {
-        "packages/ai/test/provider-retry.test.ts": "ai.transport-utils",
-        "packages/coding-agent/test/model-registry.test.ts": "coding.models",
-        "packages/coding-agent/test/interactive-tui.test.ts": "coding.package-host",
+        "packages/ai/test/provider-retry.test.ts": {"ai.transport-utils"},
+        "packages/ai/test/retry.test.ts": {"ai.domain", "ai.retry-compat"},
+        "packages/coding-agent/test/model-registry.test.ts": {"coding.models"},
+        "packages/coding-agent/test/interactive-tui.test.ts": {"coding.package-host"},
     }
-    for path, surface in expected_test_routing.items():
-        if surface not in tests_by_path.get(path, {}).get("evidence_surfaces", []):
-            errors.append(f"test manifest misroutes representative test: {path} -> {surface}")
+    for path, surfaces in expected_test_routing.items():
+        actual = set(tests_by_path.get(path, {}).get("evidence_surfaces", []))
+        if not surfaces.issubset(actual):
+            errors.append(
+                f"test manifest misroutes representative test: {path} -> {sorted(surfaces)}"
+            )
 
     catalog_inputs = load_toml(ROOT / "upstream/manifests/catalog-inputs.toml")
     validate_catalog_provenance(map_data, catalog_inputs, errors)

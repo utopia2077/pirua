@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "test-inventory"
 source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:93e16912755841f6665b8ef56c52619d17ba27b8e25bdcdc6cba9caa7c9bb909"
+content_digest = "sha256:6674df7d494df27d8ef55d24fa34ff9977517204bc67126e563a3d9684ce83ff"
 
 [[test]]
 path = "packages/agent/test/agent-loop.test.ts"
@@ -1036,7 +1036,7 @@ role = "test"
 path = "packages/ai/test/retry.test.ts"
 blob_oid = "0d8875e08c0caebfc16860957f7b238e8e48646e"
 route_surface = "ai.tests"
-evidence_surfaces = ["ai.faux", "ai.transport-utils"]
+evidence_surfaces = ["ai.domain", "ai.faux", "ai.retry-compat"]
 role = "test"
 
 [[test]]

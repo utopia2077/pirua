@@ -168,7 +168,7 @@ id = "ai"
 root = "packages/ai"
 coverage = "complete"
 baseline_path_count = 335
-route_digest = "sha256:9c3dacec8bc54fa2648f163d46a8bf5053393b3d9fbd11d7d5121de88ca130cc"
+route_digest = "sha256:b4bec9475482ce82564cbe854f28cb7c7a2c209a099575d2940da1e92e6fd289"
 unmatched = "error"
 
 [[watch]]
@@ -248,7 +248,11 @@ disposition = "included"
 status = "source-landed"
 sync = ["schema", "stream", "transform", "validation", "utility"]
 conformance = ["conformance/ai-domain"]
-divergences = []
+divergences = [
+  "ai.stream-post-terminal-rejection",
+  "ai.session-resource-token-registry",
+  "ai.request-callbacks-construction-time",
+]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "provider-neutral contract moves" }
 
 [[surface]]
@@ -260,7 +264,10 @@ disposition = "included"
 status = "source-landed"
 sync = ["interface", "concurrency", "auth", "failure", "store"]
 conformance = ["conformance/ai-models"]
-divergences = []
+divergences = [
+  "ai.resolved-endpoint-custody",
+  "ai.request-callbacks-construction-time",
+]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "auth ownership changes" }
 
 [[surface]]
@@ -272,8 +279,22 @@ disposition = "included"
 status = "source-landed"
 sync = ["abort", "headers", "proxy", "retry", "error", "unicode"]
 conformance = ["conformance/ai-transport"]
-divergences = []
+divergences = [
+  "ai.request-callbacks-construction-time",
+]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "transport responsibility moves" }
+
+[[surface]]
+id = "ai.retry-compat"
+authority = "compatibility"
+primary_owner = "pi-ai::facade"
+collaborators = ["pi-ai-core::domain"]
+disposition = "included"
+status = "redesign"
+sync = ["producer", "observer", "sleep", "cancellation", "compatibility"]
+conformance = ["conformance/ai-compat/retry"]
+divergences = ["ai.retry-abort-message-required"]
+lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "retry helper removed from the public AI surface", reclassification_condition = "upstream separates classifier and orchestration modules" }
 
 [[surface]]
 id = "ai.api-adapters"
@@ -771,6 +792,56 @@ compatibility_consequence = "Callers using durable custom headers must register 
 replacement_fixture = "conformance/harness/public-header-policy"
 revisit_trigger = "Upstream separates durable public headers from transient credential headers."
 
+[[divergence]]
+id = "ai.stream-post-terminal-rejection"
+upstream_behavior = "EventStream silently ignores events pushed after its terminal flag is set."
+rust_behavior = "AssistantStream returns AlreadySettled for a duplicate terminal or progress after settlement while preserving the first terminal and result."
+owner = "pi-ai-core::domain"
+rationale = "A typed rejection makes provider misuse causally testable without changing the already authoritative terminal trace."
+compatibility_consequence = "A trusted Rust producer that emits after settlement observes an error instead of a silent no-op; consumers observe the same first terminal."
+replacement_fixture = "conformance/ai-domain/stream-post-terminal"
+revisit_trigger = "Upstream adopts explicit post-terminal rejection or the Rust producer API is replaced."
+
+[[divergence]]
+id = "ai.retry-abort-message-required"
+upstream_behavior = "retryAssistantCall clears errorMessage when cancellation wins during backoff."
+rust_behavior = "The stateless Rust compatibility helper returns an aborted assistant message with a fixed nonempty sanitized error message."
+owner = "pi-ai::facade"
+rationale = "All settled aborted assistant messages must satisfy the shared terminal invariant and remain distinguishable from malformed state."
+compatibility_consequence = "Callers see a constant errorMessage on backoff cancellation where JavaScript returns undefined."
+replacement_fixture = "conformance/ai-compat/retry-backoff-abort"
+revisit_trigger = "Upstream requires a nonempty aborted-message error or the terminal invariant changes."
+
+[[divergence]]
+id = "ai.session-resource-token-registry"
+upstream_behavior = "Session resources live in a process-global Set keyed by callback identity and cleanup iterates the live Set."
+rust_behavior = "Each runtime owns a token-keyed registry; cleanup invokes an insertion-ordered snapshot, rejects nesting, aggregates redacted failures, and lets explicit removal win."
+owner = "pi-ai-core::domain"
+rationale = "Callback identity and live-Set reentrancy are not language-neutral and make cleanup ordering and mutation behavior nondeterministic."
+compatibility_consequence = "Duplicate registration gets distinct tokens; registration/removal during cleanup affects the next pass; foreign peers use lifecycle messages."
+replacement_fixture = "conformance/ai-domain/session-resource-registry"
+revisit_trigger = "Upstream defines a language-neutral lifecycle protocol with deterministic reentrancy semantics."
+
+[[divergence]]
+id = "ai.resolved-endpoint-custody"
+upstream_behavior = "Models applies a credential-selected base URL by mutating a per-request clone of the model before provider dispatch."
+rust_behavior = "A non-Serde ResolvedRequest carries a fully redacted RequestEndpoint and leaves model/store DTOs byte-equivalent."
+owner = "pi-ai-core::models-auth"
+rationale = "Credential endpoints must not become serializable model metadata or leak through ordinary model Debug output."
+compatibility_consequence = "Rust adapters consume expose_for_transport on the resolved endpoint instead of reading an overwritten model.baseUrl."
+replacement_fixture = "conformance/ai-models/resolved-endpoint-custody"
+revisit_trigger = "Upstream separates request endpoints from storable model metadata with equivalent custody."
+
+[[divergence]]
+id = "ai.request-callbacks-construction-time"
+upstream_behavior = "Provider request options may carry per-request fetch and transformHeaders JavaScript callbacks."
+rust_behavior = "Portable core carries no transport or middleware callback; S04 adapters capture trusted transport and middleware capabilities at construction."
+owner = "pi-ai-transport::utils"
+rationale = "A callback-bearing request object cannot cross the language-neutral extension boundary and would invert the core-to-transport dependency."
+compatibility_consequence = "Callers needing a custom transport or header transform construct an adapter/runtime profile instead of attaching a function to one request."
+replacement_fixture = "conformance/ai-transport/construction-time-services"
+revisit_trigger = "A versioned language-neutral per-request transport/middleware capability is approved."
+
 [[route]]
 id = "telemetry.all"
 watch = "telemetry"
@@ -887,11 +958,19 @@ include = [
   "packages/ai/src/utils/headers.ts",
   "packages/ai/src/utils/node-http-proxy.ts",
   "packages/ai/src/utils/provider-retry.ts",
-  "packages/ai/src/utils/retry.ts",
   "packages/ai/src/utils/sanitize-unicode.ts",
   "packages/ai/src/utils/sleep.ts",
 ]
 exclude = []
+
+[[route]]
+id = "ai.retry-source"
+watch = "ai"
+surface = "ai.retry-compat"
+role = "source"
+include = ["packages/ai/src/utils/retry.ts"]
+exclude = []
+selector_partition = "ai-retry"
 
 [[route]]
 id = "ai.core-utils"
@@ -1283,6 +1362,33 @@ surface = "coding.test-evidence"
 role = "test-or-fixture"
 include = ["packages/coding-agent/test/**"]
 exclude = []
+
+[[selector]]
+id = "ai.retry-core-prefix"
+partition = "ai-retry"
+path = "packages/ai/src/utils/retry.ts"
+kind = "text-span"
+start = "import type { AssistantMessage }"
+end = "/** Optional callbacks emitted"
+surface = "ai.domain"
+
+[[selector]]
+id = "ai.retry-compat-helper"
+partition = "ai-retry"
+path = "packages/ai/src/utils/retry.ts"
+kind = "text-span"
+start = "/** Optional callbacks emitted"
+end = "export function isRetryableAssistantError"
+surface = "ai.retry-compat"
+
+[[selector]]
+id = "ai.retry-core-classifier"
+partition = "ai-retry"
+path = "packages/ai/src/utils/retry.ts"
+kind = "text-span"
+start = "export function isRetryableAssistantError"
+end = "$EOF"
+surface = "ai.domain"
 
 [[selector]]
 id = "harness.orientation"
