@@ -250,6 +250,7 @@ sync = ["schema", "stream", "transform", "validation", "utility"]
 conformance = ["conformance/ai-domain"]
 divergences = [
   "ai.stream-post-terminal-rejection",
+  "ai.event-stream-producer-capability",
   "ai.session-resource-token-registry",
   "ai.request-callbacks-construction-time",
 ]
@@ -801,6 +802,16 @@ rationale = "A typed rejection makes provider misuse causally testable without c
 compatibility_consequence = "A trusted Rust producer that emits after settlement observes an error instead of a silent no-op; consumers observe the same first terminal."
 replacement_fixture = "conformance/ai-domain/stream-post-terminal"
 revisit_trigger = "Upstream adopts explicit post-terminal rejection or the Rust producer API is replaced."
+
+[[divergence]]
+id = "ai.event-stream-producer-capability"
+upstream_behavior = "The public generic EventStream constructor exposes push and end, using caller callbacks to decide terminal events and extract results."
+rust_behavior = "Rust exposes generic EventStream only as a non-clone consumer; create_assistant_message_event_stream returns the sole public producer, which validates assistant terminal events and has no generic end."
+owner = "pi-ai-core::domain"
+rationale = "An unrestricted generic producer could close without a result or bypass the assistant terminal invariant; callback identity is not part of the language-neutral core."
+compatibility_consequence = "Direct SDK callers may consume the generic stream but use the validated assistant factory for production; arbitrary event channels use their own application abstraction."
+replacement_fixture = "conformance/ai-domain/event-stream-capability"
+revisit_trigger = "Upstream replaces callback-selected terminal semantics with a typed producer capability or Rust adopts another validated generic protocol."
 
 [[divergence]]
 id = "ai.retry-abort-message-required"
