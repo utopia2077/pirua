@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "catalog-inputs"
 source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:c58bb9d2327fc8d0a7588a8c96b1c2920b5af2a2dd249555704ad5991696071f"
+content_digest = "sha256:a317595fc9af5562a5840e2ad2b4d4d85c32a3f2dfeaf7a049d81db1f07ed843"
 
 provenance_status = "missing-intake-snapshot"
 
@@ -158,7 +158,7 @@ role = "imported-semantic-input"
 [[input]]
 path = "packages/ai/src/auth/context.ts"
 blob_oid = "30e088bfac82a5aca05a8a6a564c2ae26ab3358f"
-surface = "ai.models-auth"
+surface = "ai.provider-factories"
 role = "imported-semantic-input"
 
 [[input]]

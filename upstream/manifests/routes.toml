@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "route-inventory"
 source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:20b4eb0b052a38963508748914efad3a19c29a375027a72a20d74ba124b72770"
+content_digest = "sha256:a6a2a6618520020d264f160d719207551519fda2cf7b9d42a16d24eaac4570fe"
 
 [[entry]]
 watch = "agent"
@@ -1178,8 +1178,8 @@ watch = "ai"
 path = "packages/ai/src/auth/context.ts"
 blob_oid = "30e088bfac82a5aca05a8a6a564c2ae26ab3358f"
 mode = "100644"
-route = "ai.auth"
-surface = "ai.models-auth"
+route = "ai.auth-provider-helpers"
+surface = "ai.provider-factories"
 role = "source"
 
 [[entry]]
@@ -1196,8 +1196,8 @@ watch = "ai"
 path = "packages/ai/src/auth/helpers.ts"
 blob_oid = "7265cc59ef54a36d27edf489f12c98234d6be313"
 mode = "100644"
-route = "ai.auth"
-surface = "ai.models-auth"
+route = "ai.auth-provider-helpers"
+surface = "ai.provider-factories"
 role = "source"
 
 [[entry]]

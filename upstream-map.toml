@@ -168,7 +168,7 @@ id = "ai"
 root = "packages/ai"
 coverage = "complete"
 baseline_path_count = 335
-route_digest = "sha256:b4bec9475482ce82564cbe854f28cb7c7a2c209a099575d2940da1e92e6fd289"
+route_digest = "sha256:a07feec6485ed1566a81745b7c2af09b8d5b2c0c1a11af26089b9fc52ff3f7a4"
 unmatched = "error"
 
 [[watch]]
@@ -253,6 +253,7 @@ divergences = [
   "ai.event-stream-producer-capability",
   "ai.session-resource-token-registry",
   "ai.request-callbacks-construction-time",
+  "ai.model-header-public-classification",
 ]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "provider-neutral contract moves" }
 
@@ -268,6 +269,14 @@ conformance = ["conformance/ai-models"]
 divergences = [
   "ai.resolved-endpoint-custody",
   "ai.request-callbacks-construction-time",
+  "ai.model-header-public-classification",
+  "ai.credential-mutation-value-lease",
+  "ai.credential-outcome-unknown-quarantine",
+  "ai.cache-before-credential-read",
+  "ai.models-error-detail-redaction",
+  "ai.models-publication-value-capability",
+  "ai.registry-async-mutation-fence",
+  "ai.models-store-exclusive-owner",
 ]
 lifecycle = { introduced_at = "853a80d26c90a14c1886f0ebb8ffaae133ca2185", removal_condition = "accepted contract removal", reclassification_condition = "auth ownership changes" }
 
@@ -853,6 +862,86 @@ compatibility_consequence = "Callers needing a custom transport or header transf
 replacement_fixture = "conformance/ai-transport/construction-time-services"
 revisit_trigger = "A versioned language-neutral per-request transport/middleware capability is approved."
 
+[[divergence]]
+id = "ai.model-header-public-classification"
+upstream_behavior = "Model and model-store DTOs accept arbitrary provider headers, including credential-bearing names, and later merge them into request auth."
+rust_behavior = "Raw model headers require a host public-header allowlist, seven credential names are always denied case-insensitively, and restored entries are reclassified under current policy."
+owner = "pi-ai-core::domain"
+rationale = "Credential-capable headers cannot enter serializable model metadata or durable cache state by default."
+compatibility_consequence = "Header-bearing custom or cached models require explicit public classification; denied names fail validation instead of reaching dispatch."
+replacement_fixture = "conformance/ai-models/model-header-public-classification"
+revisit_trigger = "Upstream separates public model metadata from transient credential headers with an equivalent deny policy."
+
+[[divergence]]
+id = "ai.credential-mutation-value-lease"
+upstream_behavior = "CredentialStore.modify receives and executes an asynchronous JavaScript read-modify-write callback under provider serialization."
+rust_behavior = "CredentialStore grants a revisioned exclusive mutation lease with detached current state and a value-only commit capability."
+owner = "pi-ai-core::models-auth"
+rationale = "Callback identity and executable closures are not language-neutral transaction authority, while rotating OAuth tokens still require exclusive recheck."
+compatibility_consequence = "Custom stores implement begin_mutation/current/commit semantics or use an adapter; callers cannot send executable mutation callbacks."
+replacement_fixture = "conformance/ai-models/credential-mutation-value-lease"
+revisit_trigger = "Upstream publishes a value-based transaction or lease protocol with equivalent refresh serialization."
+
+[[divergence]]
+id = "ai.credential-outcome-unknown-quarantine"
+upstream_behavior = "Best-effort credential stores may continue serving an in-memory view while recording persistence errors internally."
+rust_behavior = "An admitted mutation whose post-state cannot be proved creates durable provider quarantine until explicit replace/delete reconciliation."
+owner = "pi-ai-core::models-auth"
+rationale = "Authentication must not use, refresh, or overwrite a credential whose durable state is causally unknown."
+compatibility_consequence = "Stored and ambient auth plus credential listing fail with OutcomeUnknown after ambiguous persistence instead of serving a best-effort value."
+replacement_fixture = "conformance/ai-models/credential-outcome-unknown-quarantine"
+revisit_trigger = "Upstream defines a durable ambiguous-outcome recovery protocol with equivalent safety."
+
+[[divergence]]
+id = "ai.cache-before-credential-read"
+upstream_behavior = "Models.refresh awaits the credential-store read before invoking the provider's cache-only restore phase."
+rust_behavior = "ModelsRegistry restores and policy-validates cached models before beginning credential-store or auth work."
+owner = "pi-ai-core::models-auth"
+rationale = "A slow, failed, or quarantined credential backend must not prevent publication of already cached public catalog data."
+compatibility_consequence = "Provider/store call order differs and a cached snapshot may become visible before a later credential-read error is reported."
+replacement_fixture = "conformance/ai-models/cache-before-credential-read"
+revisit_trigger = "Upstream restores cache before credential access or cache visibility is redesigned."
+
+[[divergence]]
+id = "ai.models-error-detail-redaction"
+upstream_behavior = "ModelsError appends formatted thrown cause detail to its public message, and tests require the combined text."
+rust_behavior = "ModelsError Display and Debug expose only a fixed category while retaining the backend error through Error::source."
+owner = "pi-ai-core::models-auth"
+rationale = "Provider, credential, endpoint, and transport causes may contain secrets and are unsafe as default user-visible diagnostics."
+compatibility_consequence = "Ordinary Rust error text is generic; trusted diagnostics must deliberately traverse the redacted source boundary."
+replacement_fixture = "conformance/ai-models/models-error-detail-redaction"
+revisit_trigger = "Upstream adopts structured secret-classified causes or the Rust diagnostics policy changes."
+
+[[divergence]]
+id = "ai.models-publication-value-capability"
+upstream_behavior = "A provider publication may carry an update JavaScript callback that mutates provider-private model state after persistence."
+rust_behavior = "A borrow-scoped ModelsPublisher accepts independent persistence and memory value intents and never stores an update callback."
+owner = "pi-ai-core::models-auth"
+rationale = "Publication order and state authority must be inspectable values rather than executable callback identity."
+compatibility_consequence = "Provider ports compute replacement snapshots and submit them as values; closure-based publication requires adaptation."
+replacement_fixture = "conformance/ai-models/models-publication-value-capability"
+revisit_trigger = "Upstream replaces update callbacks with ordered value publications."
+
+[[divergence]]
+id = "ai.registry-async-mutation-fence"
+upstream_behavior = "Provider set, delete, and clear mutate the registry synchronously while older refresh work is cancelled separately."
+rust_behavior = "Provider mutation methods are async and return only after the per-provider sequencer has fenced older publication and persistence work."
+owner = "pi-ai-core::models-auth"
+rationale = "A completed replacement must prove that a stale blocked store write cannot later overwrite the new generation."
+compatibility_consequence = "Callers await set/delete/clear and cannot assume mutation completion at synchronous return."
+replacement_fixture = "conformance/ai-models/registry-async-mutation-fence"
+revisit_trigger = "Upstream provider mutation exposes an equivalent completion fence."
+
+[[divergence]]
+id = "ai.models-store-exclusive-owner"
+upstream_behavior = "A ModelsStore is injected by reference and the public contract does not forbid sharing it among live Models collections."
+rust_behavior = "One live ModelsRegistry exclusively consumes one model-store capability; cross-registry fencing is not claimed."
+owner = "pi-ai-core::models-auth"
+rationale = "The registry-owned publication sequencer can guarantee last-writer order only when it is the store's sole live authority."
+compatibility_consequence = "Applications needing multiple registries provide separate stores or a future store-level fencing implementation."
+replacement_fixture = "conformance/ai-models/models-store-exclusive-owner"
+revisit_trigger = "A cross-registry/cross-process model-store fencing-token contract is approved."
+
 [[route]]
 id = "telemetry.all"
 watch = "telemetry"
@@ -955,7 +1044,22 @@ watch = "ai"
 surface = "ai.models-auth"
 role = "source"
 include = ["packages/ai/src/auth/**"]
-exclude = ["packages/ai/src/auth/oauth/**"]
+exclude = [
+  "packages/ai/src/auth/context.ts",
+  "packages/ai/src/auth/helpers.ts",
+  "packages/ai/src/auth/oauth/**",
+]
+
+[[route]]
+id = "ai.auth-provider-helpers"
+watch = "ai"
+surface = "ai.provider-factories"
+role = "source"
+include = [
+  "packages/ai/src/auth/context.ts",
+  "packages/ai/src/auth/helpers.ts",
+]
+exclude = []
 
 [[route]]
 id = "ai.transport"
