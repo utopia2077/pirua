@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "catalog-inputs"
 source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:a317595fc9af5562a5840e2ad2b4d4d85c32a3f2dfeaf7a049d81db1f07ed843"
+content_digest = "sha256:0ac3b9d8d336504b343214b0d8c573417b88efa95da9bcc33c4a57330666b12e"
 
 provenance_status = "missing-intake-snapshot"
 
@@ -272,13 +272,13 @@ role = "imported-semantic-input"
 [[input]]
 path = "packages/ai/src/utils/pi-user-agent.ts"
 blob_oid = "93b23dd35114eb3c47bf86fdcd94ed0500090158"
-surface = "ai.domain"
+surface = "ai.transport-utils"
 role = "imported-semantic-input"
 
 [[input]]
 path = "packages/ai/src/utils/provider-env.ts"
 blob_oid = "db49606722192f60ba8809333221696da8861632"
-surface = "ai.domain"
+surface = "ai.provider-factories"
 role = "imported-semantic-input"
 
 [[input]]

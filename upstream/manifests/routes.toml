@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "route-inventory"
 source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:a6a2a6618520020d264f160d719207551519fda2cf7b9d42a16d24eaac4570fe"
+content_digest = "sha256:7f9640e2893ce0689bf0bdbe4d4d66265e0d68daba47dc5c9958654d76243732"
 
 [[entry]]
 watch = "agent"
@@ -2393,8 +2393,8 @@ watch = "ai"
 path = "packages/ai/src/utils/pi-user-agent.ts"
 blob_oid = "93b23dd35114eb3c47bf86fdcd94ed0500090158"
 mode = "100644"
-route = "ai.core-utils"
-surface = "ai.domain"
+route = "ai.transport"
+surface = "ai.transport-utils"
 role = "source"
 
 [[entry]]
@@ -2402,8 +2402,8 @@ watch = "ai"
 path = "packages/ai/src/utils/provider-env.ts"
 blob_oid = "db49606722192f60ba8809333221696da8861632"
 mode = "100644"
-route = "ai.core-utils"
-surface = "ai.domain"
+route = "ai.auth-provider-helpers"
+surface = "ai.provider-factories"
 role = "source"
 
 [[entry]]

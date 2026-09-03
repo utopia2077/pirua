@@ -168,7 +168,7 @@ id = "ai"
 root = "packages/ai"
 coverage = "complete"
 baseline_path_count = 335
-route_digest = "sha256:a07feec6485ed1566a81745b7c2af09b8d5b2c0c1a11af26089b9fc52ff3f7a4"
+route_digest = "sha256:865a709330f7f9f8783e7e2c7628dd52055b9e860e4958030d6ff4eac47cf7e1"
 unmatched = "error"
 
 [[watch]]
@@ -252,6 +252,11 @@ divergences = [
   "ai.stream-post-terminal-rejection",
   "ai.event-stream-producer-capability",
   "ai.session-resource-token-registry",
+  "ai.message-transform-capability-boundary",
+  "ai.tool-validation-value-schema",
+  "ai.uuid-instance-authority",
+  "ai.json-safe-streaming-parser",
+  "ai.diagnostic-source-redaction",
   "ai.request-callbacks-construction-time",
   "ai.model-header-public-classification",
 ]
@@ -275,6 +280,7 @@ divergences = [
   "ai.cache-before-credential-read",
   "ai.models-error-detail-redaction",
   "ai.models-publication-value-capability",
+  "ai.provider-composition-adapter-identity",
   "ai.registry-async-mutation-fence",
   "ai.models-store-exclusive-owner",
 ]
@@ -841,21 +847,71 @@ revisit_trigger = "Upstream requires a nonempty aborted-message error or the ter
 
 [[divergence]]
 id = "ai.session-resource-token-registry"
-upstream_behavior = "Session resources live in a process-global Set keyed by callback identity and cleanup iterates the live Set."
-rust_behavior = "Each runtime owns a token-keyed registry; cleanup invokes an insertion-ordered snapshot, rejects nesting, aggregates redacted failures, and lets explicit removal win."
+upstream_behavior = "Session resources live in a process-global Set keyed by callback identity; cleanup iterates the live Set and leaves successful callbacks registered."
+rust_behavior = "Each runtime owns a token-keyed registry; cleanup invokes an insertion-ordered snapshot, rejects nesting, runs all callbacks before detached guarded disposal, removes successes, retains still-active failures, sanitizes callback/destructor panic, and lets explicit removal win."
 owner = "pi-ai-core::domain"
 rationale = "Callback identity and live-Set reentrancy are not language-neutral and make cleanup ordering and mutation behavior nondeterministic."
-compatibility_consequence = "Duplicate registration gets distinct tokens; registration/removal during cleanup affects the next pass; foreign peers use lifecycle messages."
+compatibility_consequence = "Duplicate registration gets distinct tokens; registration/removal during cleanup affects the next pass; successful cleanup is one-shot; foreign peers use lifecycle messages."
 replacement_fixture = "conformance/ai-domain/session-resource-registry"
 revisit_trigger = "Upstream defines a language-neutral lifecycle protocol with deterministic reentrancy semantics."
 
 [[divergence]]
+id = "ai.message-transform-capability-boundary"
+upstream_behavior = "transformMessages accepts ill-typed missing/null content, an arbitrary JavaScript id callback, permits normalized-id collisions, and calls Date.now for synthetic results."
+rust_behavior = "A pi-ai facade repairs lax raw values before strict core transformation; one borrowed synchronous trusted-Rust normalizer is never stored; distinct source-id collisions fail atomically; synthetic time is injected."
+owner = "pi-ai-core::domain"
+rationale = "Strict durable DTOs, deterministic replay, and collision-free tool settlement cannot depend on foreign callback identity or ambient wall clock."
+compatibility_consequence = "Untyped callers use the facade decoder; trusted Rust adapters pass a request-local policy; ambiguous normalized histories fail instead of silently aliasing calls."
+replacement_fixture = "conformance/ai-domain/message-transform"
+revisit_trigger = "Upstream exposes strict input, collision handling, and a language-neutral deterministic normalization capability."
+
+[[divergence]]
+id = "ai.tool-validation-value-schema"
+upstream_behavior = "Validation distinguishes TypeBox objects by hidden symbol identity, caches by object address, may resolve references through enabled features, and appends complete received arguments to errors."
+rust_behavior = "Serialized JSON Schema is authoritative; an iterative pre-clone depth/size/reference/pattern preflight and explicit regex limits feed a 16-entry collision-safe cache that builds every validator offline; sorted bounded issues never retain or format arguments."
+owner = "pi-ai-core::domain"
+rationale = "Object identity and generated code are not language-neutral, external retrieval is unsafe in core, and tool arguments may contain secrets."
+compatibility_consequence = "Schemas must survive serialization and resource limits; invalid schema and invalid arguments are distinct typed errors; raw argument values and randomized validator order are absent from default diagnostics."
+replacement_fixture = "conformance/ai-domain/tool-validation"
+revisit_trigger = "Upstream adopts a bounded offline value-schema validator with structured redacted errors."
+
+[[divergence]]
+id = "ai.uuid-instance-authority"
+upstream_behavior = "uuidv7 uses process-global timestamp/sequence state plus ambient Date.now and crypto-or-Math.random entropy."
+rust_behavior = "Each explicit generator owns injected clock and entropy capabilities plus mutex-protected monotonic state; 48-bit exhaustion is typed and nonmutating."
+owner = "pi-ai-core::domain"
+rationale = "Core must not hide wall-clock, randomness, or cross-instance ordering authority, and deterministic conformance needs injectable inputs."
+compatibility_consequence = "Callers retain a generator per identity domain and handle entropy/timestamp failure instead of calling a zero-argument global function."
+replacement_fixture = "conformance/ai-domain/uuid-v7-instance"
+revisit_trigger = "Upstream exposes explicit clock, entropy, state scope, and failure semantics."
+
+[[divergence]]
+id = "ai.json-safe-streaming-parser"
+upstream_behavior = "parseStreamingJson delegates to partial-json with permissive partial NaN/infinity, ordinary JavaScript object duplicate semantics, and no explicit input/depth bound."
+rust_behavior = "The entry bounds input before any complete/partial attempt, then preserves complete/raw-partial/repaired-partial fallback with a depth bound while rejecting duplicate, nonfinite, or JavaScript-unsafe values."
+owner = "pi-ai-core::domain"
+rationale = "S02 JSON values forbid nonfinite/unsafe numbers and duplicate keys; unbounded recursive partial input is not an acceptable core boundary."
+compatibility_consequence = "Partial nonfinite, duplicate-key, over-limit, or over-depth input falls back to an empty object rather than yielding an unsafe value."
+replacement_fixture = "conformance/ai-domain/json-streaming-safe"
+revisit_trigger = "Upstream partial parsing adopts the same safe JSON invariant and explicit resource bounds."
+
+[[divergence]]
+id = "ai.diagnostic-source-redaction"
+upstream_behavior = "General diagnostic helpers stringify arbitrary thrown values, copy Error message/name/stack/code, read ambient time, and append the result to assistant messages."
+rust_behavior = "There is no general thrown-value converter; typed errors retain redacted Error sources and trusted code constructs explicitly sanitized diagnostic DTOs with injected time."
+owner = "pi-ai-core::domain"
+rationale = "Arbitrary source text and stacks can contain credentials, endpoints, headers, provider payloads, or private user content."
+compatibility_consequence = "The four JavaScript convenience helpers are Rust-nonapplicable; callers must classify and sanitize fields before constructing or appending a diagnostic."
+replacement_fixture = "conformance/ai-domain/diagnostic-source-redaction"
+revisit_trigger = "Upstream adopts structured secret-classified diagnostic inputs with explicit clock custody."
+
+[[divergence]]
 id = "ai.resolved-endpoint-custody"
-upstream_behavior = "Models applies a credential-selected base URL by mutating a per-request clone of the model before provider dispatch."
-rust_behavior = "A non-Serde ResolvedRequest carries a fully redacted RequestEndpoint and leaves model/store DTOs byte-equivalent."
+upstream_behavior = "Models applies a credential-selected base URL by mutating a per-request model clone, while createProvider also copies an inert provider-level baseUrl metadata field."
+rust_behavior = "A non-Serde ResolvedRequest carries a fully redacted RequestEndpoint and leaves model/store DTOs byte-equivalent; create_provider omits inert provider URL metadata."
 owner = "pi-ai-core::models-auth"
 rationale = "Credential endpoints must not become serializable model metadata or leak through ordinary model Debug output."
-compatibility_consequence = "Rust adapters consume expose_for_transport on the resolved endpoint instead of reading an overwritten model.baseUrl."
+compatibility_consequence = "Rust adapters consume expose_for_transport on the resolved endpoint instead of reading an overwritten model.baseUrl; provider composition routes endpoint values to model/auth/adapter owners."
 replacement_fixture = "conformance/ai-models/resolved-endpoint-custody"
 revisit_trigger = "Upstream separates request endpoints from storable model metadata with equivalent custody."
 
@@ -871,11 +927,11 @@ revisit_trigger = "A versioned language-neutral per-request transport/middleware
 
 [[divergence]]
 id = "ai.model-header-public-classification"
-upstream_behavior = "Model and model-store DTOs accept arbitrary provider headers, including credential-bearing names, and later merge them into request auth."
-rust_behavior = "Raw model headers require a host public-header allowlist, seven credential names are always denied case-insensitively, and restored entries are reclassified under current policy."
+upstream_behavior = "Model/model-store DTOs accept arbitrary provider headers and createProvider copies inert provider-level headers, including credential-bearing names."
+rust_behavior = "Raw model headers require a host public-header allowlist, seven credential names are always denied case-insensitively, restored entries are reclassified, and create_provider omits raw provider header metadata."
 owner = "pi-ai-core::domain"
 rationale = "Credential-capable headers cannot enter serializable model metadata or durable cache state by default."
-compatibility_consequence = "Header-bearing custom or cached models require explicit public classification; denied names fail validation instead of reaching dispatch."
+compatibility_consequence = "Header-bearing custom or cached models require explicit public classification; denied names fail validation; provider-wide transient values belong to auth or constructed adapters."
 replacement_fixture = "conformance/ai-models/model-header-public-classification"
 revisit_trigger = "Upstream separates public model metadata from transient credential headers with an equivalent deny policy."
 
@@ -928,6 +984,16 @@ rationale = "Publication order and state authority must be inspectable values ra
 compatibility_consequence = "Provider ports compute replacement snapshots and submit them as values; closure-based publication requires adaptation."
 replacement_fixture = "conformance/ai-models/models-publication-value-capability"
 revisit_trigger = "Upstream replaces update callbacks with ordered value publications."
+
+[[divergence]]
+id = "ai.provider-composition-adapter-identity"
+upstream_behavior = "createProvider accepts one untyped ProviderStreams object as a fallback for every model API, or an exact string-keyed map."
+rust_behavior = "create_provider indexes object-safe ApiAdapter values by each adapter's declared ApiId and rejects duplicate identities; one adapter never serves a mismatched API implicitly."
+owner = "pi-ai-core::models-auth"
+rationale = "The accepted ApiAdapter contract owns one protocol identity, and silent cross-protocol fallback would invalidate dispatch and wire-type reasoning."
+compatibility_consequence = "Mixed-API providers supply one adapter per declared API; a missing API reaches the existing fixed in-band setup error."
+replacement_fixture = "conformance/ai-domain/provider-adapter-identity"
+revisit_trigger = "The Rust adapter contract gains a reviewed multi-API identity capability or upstream removes single-object fallback."
 
 [[divergence]]
 id = "ai.registry-async-mutation-fence"
@@ -1065,6 +1131,7 @@ role = "source"
 include = [
   "packages/ai/src/auth/context.ts",
   "packages/ai/src/auth/helpers.ts",
+  "packages/ai/src/utils/provider-env.ts",
 ]
 exclude = []
 
@@ -1079,6 +1146,7 @@ include = [
   "packages/ai/src/utils/error-body.ts",
   "packages/ai/src/utils/headers.ts",
   "packages/ai/src/utils/node-http-proxy.ts",
+  "packages/ai/src/utils/pi-user-agent.ts",
   "packages/ai/src/utils/provider-retry.ts",
   "packages/ai/src/utils/sanitize-unicode.ts",
   "packages/ai/src/utils/sleep.ts",
@@ -1106,6 +1174,8 @@ exclude = [
   "packages/ai/src/utils/error-body.ts",
   "packages/ai/src/utils/headers.ts",
   "packages/ai/src/utils/node-http-proxy.ts",
+  "packages/ai/src/utils/pi-user-agent.ts",
+  "packages/ai/src/utils/provider-env.ts",
   "packages/ai/src/utils/provider-retry.ts",
   "packages/ai/src/utils/retry.ts",
   "packages/ai/src/utils/sanitize-unicode.ts",
