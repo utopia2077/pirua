@@ -27,6 +27,7 @@ pub mod runtime;
 pub mod stream;
 pub mod tool;
 pub mod usage;
+pub mod validation;
 
 pub use adapter::*;
 pub use auth::*;
@@ -50,3 +51,4 @@ pub use runtime::*;
 pub use stream::*;
 pub use tool::*;
 pub use usage::*;
+pub use validation::*;

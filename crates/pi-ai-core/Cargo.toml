@@ -10,6 +10,9 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+jsonschema.workspace = true
 pi-telemetry.workspace = true
+regex.workspace = true
+ryu-js.workspace = true
 serde.workspace = true
 serde_json.workspace = true
