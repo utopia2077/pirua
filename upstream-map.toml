@@ -848,12 +848,12 @@ revisit_trigger = "Upstream requires a nonempty aborted-message error or the ter
 [[divergence]]
 id = "ai.session-resource-token-registry"
 upstream_behavior = "Session resources live in a process-global Set keyed by callback identity; cleanup iterates the live Set and leaves successful callbacks registered."
-rust_behavior = "Each runtime owns a token-keyed registry; cleanup invokes an insertion-ordered snapshot, rejects nesting, runs all callbacks before detached guarded disposal, removes successes, retains still-active failures, sanitizes callback/destructor panic, and lets explicit removal win."
+rust_behavior = "Each runtime owns a trusted in-process token-keyed registry; cleanup invokes an insertion-ordered snapshot, rejects nesting, runs all callbacks before detached guarded disposal, removes successes, retains still-active failures, sanitizes callback/destructor panic, and lets explicit removal win. Foreign peers cannot enter this registry."
 owner = "pi-ai-core::domain"
 rationale = "Callback identity and live-Set reentrancy are not language-neutral and make cleanup ordering and mutation behavior nondeterministic."
-compatibility_consequence = "Duplicate registration gets distinct tokens; registration/removal during cleanup affects the next pass; successful cleanup is one-shot; foreign peers use lifecycle messages."
+compatibility_consequence = "Duplicate registration gets distinct tokens; registration/removal during cleanup affects the next pass; successful cleanup is one-shot. S12 resource.v1 only lists and reads resource values and has no session-cleanup lifecycle, so a foreign cleanup callback has no v1 projection."
 replacement_fixture = "conformance/ai-domain/session-resource-registry"
-revisit_trigger = "Upstream defines a language-neutral lifecycle protocol with deterministic reentrancy semantics."
+revisit_trigger = "A later extension profile defines a reviewed session-cleanup lifecycle with deterministic reentrancy and ownership semantics."
 
 [[divergence]]
 id = "ai.message-transform-capability-boundary"
@@ -868,10 +868,10 @@ revisit_trigger = "Upstream exposes strict input, collision handling, and a lang
 [[divergence]]
 id = "ai.tool-validation-value-schema"
 upstream_behavior = "Validation distinguishes TypeBox objects by hidden symbol identity, caches by object address, may resolve references through enabled features, and appends complete received arguments to errors."
-rust_behavior = "Serialized JSON Schema is authoritative; an iterative pre-clone depth/size/reference/pattern preflight and explicit regex limits feed a 16-entry collision-safe cache that builds every validator offline; sorted bounded issues never retain or format arguments."
+rust_behavior = "Serialized JSON Schema is authoritative. One borrowed meaning-free pass bounds complete physical depth/size before owned conversion. On each cache miss, a pinned fail-only registry computes a bounded schema graph through applicators and reference kinds recognized by the selected draft plus their transitive targets, carrying draft, embedded-resource base, and dynamic scope. Pinned lookup-returned scope is authoritative: recognized-path targets are not re-entered through a relative id, while targets promoted from data-valued paths retain the returned containing base and do not retroactively apply their own id. Effective URIs and whole scopes are interned to fixed-size context ids under a one-MiB distinct-URI-text bound. Active referenced targets become schemas even from data-valued locations, while later-draft keywords, unreferenced data, and map names remain data. Each physical pattern occurrence counts once across repeated refs. Because jsonschema 0.52.1 swallows patternProperties engine errors, a deliberately branch-insensitive fail-closed guard probes every closed-graph patternProperties regex against every bounded argument object key. A 16-entry collision-safe cache builds validators offline, and sorted bounded issues never retain or format arguments."
 owner = "pi-ai-core::domain"
 rationale = "Object identity and generated code are not language-neutral, external retrieval is unsafe in core, and tool arguments may contain secrets."
-compatibility_consequence = "Schemas must survive serialization and resource limits; invalid schema and invalid arguments are distinct typed errors; raw argument values and randomized validator order are absent from default diagnostics."
+compatibility_consequence = "Schemas must survive serialization, local-reference closure, and resource limits; invalid schema and invalid arguments are distinct typed errors; raw argument values and randomized validator order are absent from default diagnostics. An argument key that exhausts a patternProperties regex in an otherwise unreachable recognized or reference-promoted schema branch is conservatively rejected. A target promoted from a data-valued path uses jsonschema 0.52.1's returned containing-resource scope, so its own nested id does not retroactively rebase inner fragment refs. Pinned Draft 4 registry preparation may reject an external ref under a later-draft location even though its compiler leaves patterns there inactive."
 replacement_fixture = "conformance/ai-domain/tool-validation"
 revisit_trigger = "Upstream adopts a bounded offline value-schema validator with structured redacted errors."
 
@@ -888,7 +888,7 @@ revisit_trigger = "Upstream exposes explicit clock, entropy, state scope, and fa
 [[divergence]]
 id = "ai.json-safe-streaming-parser"
 upstream_behavior = "parseStreamingJson delegates to partial-json with permissive partial NaN/infinity, ordinary JavaScript object duplicate semantics, and no explicit input/depth bound."
-rust_behavior = "The entry bounds input before any complete/partial attempt, then preserves complete/raw-partial/repaired-partial fallback with a depth bound while rejecting duplicate, nonfinite, or JavaScript-unsafe values."
+rust_behavior = "The entry bounds input before any complete/partial attempt, then preserves complete/raw-partial/repaired-partial fallback and pinned completed-prefix/missing-comma recovery with a depth bound while rejecting duplicate, nonfinite, or JavaScript-unsafe values."
 owner = "pi-ai-core::domain"
 rationale = "S02 JSON values forbid nonfinite/unsafe numbers and duplicate keys; unbounded recursive partial input is not an acceptable core boundary."
 compatibility_consequence = "Partial nonfinite, duplicate-key, over-limit, or over-depth input falls back to an empty object rather than yielding an unsafe value."
