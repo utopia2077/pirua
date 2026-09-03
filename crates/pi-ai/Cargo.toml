@@ -16,3 +16,4 @@ provider-anthropic = ["dep:pi-ai-providers"]
 [dependencies]
 pi-ai-core.workspace = true
 pi-ai-providers = { workspace = true, optional = true }
+serde_json.workspace = true
