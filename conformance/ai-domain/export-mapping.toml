@@ -1,0 +1,450 @@
+schema_version = 1
+source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+expected_occurrences = 699
+
+[expected_dispositions]
+s02-dto = 146
+implemented = 123
+rust-nonapplicable = 22
+mapped-s04 = 163
+mapped-s05 = 239
+external-schema-projection = 6
+
+[expected_surfaces]
+"ai.domain" = 195
+"ai.models-auth" = 96
+"ai.api-adapters" = 163
+"ai.retry-compat" = 4
+"ai.catalog.projection" = 39
+"ai.compat" = 52
+"ai.faux" = 42
+"ai.oauth-images" = 26
+"ai.provider-factories" = 76
+external = 6
+
+[[rule]]
+id = "external-typebox"
+priority = 1
+subpaths = [".", "./compat"]
+names = ["Static", "TSchema", "Type"]
+origins = ["typebox"]
+surfaces = ["external"]
+disposition = "external-schema-projection"
+owner = "S02-external-schema"
+rust_target = "pi_ai::JsonSchema"
+evidence = "rust-test:crates/pi-ai-core/tests/schema.rs#models_options_tools_and_routing_match_golden_shape"
+expected_occurrences = 6
+
+[[rule]]
+id = "s04-api-adapters"
+priority = 2
+surfaces = ["ai.api-adapters"]
+disposition = "mapped-s04"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::adapters"
+evidence = "future:conformance/provider-traces"
+expected_occurrences = 163
+
+[[rule]]
+id = "s05-catalog-projection"
+priority = 3
+surfaces = ["ai.catalog.projection"]
+disposition = "mapped-s05"
+owner = "S05-catalog"
+rust_target = "pi_ai::catalog"
+evidence = "future:conformance/catalog/projection"
+expected_occurrences = 39
+
+[[rule]]
+id = "s05-compat"
+priority = 3
+surfaces = ["ai.compat"]
+disposition = "mapped-s05"
+owner = "S05-facade"
+rust_target = "pi_ai::compat"
+evidence = "future:conformance/ai-compat"
+expected_occurrences = 52
+
+[[rule]]
+id = "s05-faux"
+priority = 3
+surfaces = ["ai.faux"]
+disposition = "mapped-s05"
+owner = "S05-testkit"
+rust_target = "pi_ai::faux"
+evidence = "future:conformance/ai-faux"
+expected_occurrences = 42
+
+[[rule]]
+id = "s05-oauth-images"
+priority = 3
+surfaces = ["ai.oauth-images"]
+disposition = "mapped-s05"
+owner = "S05-oauth-images"
+rust_target = "pi_ai_providers::oauth_images"
+evidence = "future:conformance/oauth-images"
+expected_occurrences = 26
+
+[[rule]]
+id = "s05-provider-factories"
+priority = 3
+surfaces = ["ai.provider-factories"]
+disposition = "mapped-s05"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::registry"
+evidence = "future:conformance/providers"
+expected_occurrences = 76
+
+[[rule]]
+id = "s05-retry-compat"
+priority = 3
+surfaces = ["ai.retry-compat"]
+disposition = "mapped-s05"
+owner = "S05-retry-compat"
+rust_target = "pi_ai::retry_compat"
+evidence = "future:conformance/ai-compat/retry"
+expected_occurrences = 4
+
+[[rule]]
+id = "s02-dto"
+priority = 4
+subpaths = [".", "./compat"]
+names = [
+  "AnthropicAllowedFallbackModel", "AnthropicMessagesCompat", "Api", "ApiKeyCredential",
+  "AssistantImages", "AssistantMessage", "AssistantMessageDiagnostic", "AssistantMessageEvent",
+  "AuthCheck", "AuthEvent", "AuthInfoLink", "AuthPrompt", "AuthResult", "AuthType", "BedrockCompat",
+  "CacheRetention", "ChatTemplateKwargValue", "ConstrainedSamplingConfig", "Context", "Credential",
+  "CredentialInfo", "DeferredHandle", "DiagnosticErrorInfo", "GrammarFormat", "GrammarVariants",
+  "ImageContent", "ImagesApi", "ImagesContext", "ImagesInputContent", "ImagesModel",
+  "ImagesOutputContent", "ImagesProviderId", "ImagesStopReason", "JsonValue", "KnownApi",
+  "KnownImagesApi", "KnownImagesProvider", "KnownProvider", "Message", "Model", "ModelAuth",
+  "ModelCost", "ModelCostRates", "ModelCostTier", "ModelThinkingLevel", "ModelsErrorCode",
+  "ModelsStoreEntry", "OAuthCredential", "OAuthCredentials", "OpenAICompletionsCompat",
+  "OpenAIResponsesCompat", "OpenRouterRouting", "ProviderEnv", "ProviderHeaders", "ProviderId",
+  "SessionAffinityFormat", "StopReason", "TextContent", "TextSignatureV1",
+  "ThinkingBudgets", "ThinkingContent", "ThinkingLevel", "ThinkingLevelMap",
+  "ThinkingTokenBudgetField", "Tool", "ToolCall", "ToolChoice", "ToolResultMessage", "Transport",
+  "Usage", "UserMessage", "VercelGatewayRouting",
+]
+disposition = "s02-dto"
+owner = "S02-ai-schema"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { Api = "pi_ai::ApiId", GrammarFormat = "pi_ai::GrammarVariants", ImagesApi = "pi_ai::ImagesApiId", ImagesInputContent = "pi_ai::InputContent", ImagesOutputContent = "pi_ai::InputContent", KnownApi = "pi_ai::ApiId", KnownImagesApi = "pi_ai::ImagesApiId", KnownImagesProvider = "pi_ai::ImagesProviderId", KnownProvider = "pi_ai::ProviderId", OpenAICompletionsCompat = "pi_ai::OpenAiCompletionsCompat", OpenAIResponsesCompat = "pi_ai::OpenAiResponsesCompat" }
+evidence = "rust-test:crates/pi-ai-core/tests/schema.rs#models_options_tools_and_routing_match_golden_shape"
+expected_occurrences = 144
+compile_probe = true
+
+[[rule]]
+id = "s02-retry-policy"
+priority = 4
+subpaths = [".", "./compat"]
+names = ["RetryPolicy"]
+origins = ["packages/ai/src/utils/retry.ts"]
+surfaces = ["ai.domain"]
+disposition = "s02-dto"
+owner = "S02-ai-schema"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+evidence = "rust-test:crates/pi-ai-core/tests/schema.rs#retry_policy_keeps_normalized_attempt_count_javascript_safe"
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "rust-nonapplicable-option-types"
+priority = 5
+subpaths = [".", "./compat"]
+names = ["ApiOptionsMap", "ApiStreamOptions", "ProviderStreamOptions"]
+disposition = "rust-nonapplicable"
+owner = "S03-boundary-decision"
+rust_target = "static Rust request option types"
+evidence = "decision:docs/contracts/ai-domain/export-inventory.md"
+reason = "TypeScript conditional and intersection typing has no runtime contract."
+replacement = "Typed Rust request option structs and traits."
+decision_reference = "export-inventory.md#rust-nonapplicable-projections-22"
+revisit_trigger = "A runtime-observable option-map contract appears upstream."
+expected_occurrences = 6
+
+[[rule]]
+id = "rust-nonapplicable-request-callbacks"
+priority = 5
+subpaths = [".", "./compat"]
+names = ["FetchFunction", "ModelsRequestTransforms", "ProviderResponse"]
+disposition = "rust-nonapplicable"
+owner = "S03-boundary-decision"
+rust_target = "pi_ai_transport construction-time capabilities"
+evidence = "decision:upstream-map.toml#ai.request-callbacks-construction-time"
+reason = "Per-request JavaScript callback and response identities are not language-neutral."
+replacement = "S04 construction-time transport and middleware capabilities."
+decision_reference = "upstream-map.toml#ai.request-callbacks-construction-time"
+revisit_trigger = "Upstream defines a serializable transport capability protocol."
+expected_occurrences = 6
+
+[[rule]]
+id = "rust-nonapplicable-string-enum"
+priority = 5
+subpaths = [".", "./compat"]
+names = ["StringEnum"]
+disposition = "rust-nonapplicable"
+owner = "S03-boundary-decision"
+rust_target = "static Rust enums and pi_ai::JsonSchema"
+evidence = "decision:docs/contracts/ai-domain/export-inventory.md"
+reason = "TypeBox runtime schema construction is external to the Rust type system."
+replacement = "Static Rust types plus serialized JSON Schema."
+decision_reference = "export-inventory.md#rust-nonapplicable-projections-22"
+revisit_trigger = "The extension protocol requires dynamic enum-schema construction."
+expected_occurrences = 2
+
+[[rule]]
+id = "rust-nonapplicable-diagnostics"
+priority = 5
+subpaths = [".", "./compat"]
+names = [
+  "appendAssistantMessageDiagnostic", "createAssistantMessageDiagnostic",
+  "extractDiagnosticError", "formatThrownValue",
+]
+disposition = "rust-nonapplicable"
+owner = "S03-boundary-decision"
+rust_target = "pi_ai::AssistantMessageDiagnostic"
+evidence = "decision:upstream-map.toml#ai.diagnostic-source-redaction"
+reason = "Arbitrary thrown-value stringification would violate the redacted diagnostic boundary."
+replacement = "Trusted callers sanitize causes, inject time, and construct the existing DTO."
+decision_reference = "upstream-map.toml#ai.diagnostic-source-redaction"
+revisit_trigger = "A typed upstream diagnostic intake replaces arbitrary thrown values."
+expected_occurrences = 8
+
+[[rule]]
+id = "s03-stream"
+priority = 6
+subpaths = [".", "./compat"]
+names = ["AssistantMessageEventStream", "EventStream", "createAssistantMessageEventStream"]
+disposition = "implemented"
+owner = "S03-stream-request"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { createAssistantMessageEventStream = "pi_ai::create_assistant_message_event_stream" }
+evidence = "behavior:stream.terminal.stop"
+evidence_binding = "stream_terminal_rows"
+evidence_overrides = { EventStream = "behavior:stream.queued-fifo" }
+evidence_bindings = { EventStream = "queued_and_waiting_events_are_fifo" }
+expected_occurrences = 6
+compile_probe = true
+
+[[rule]]
+id = "s03-auth"
+priority = 6
+subpaths = [".", "./compat"]
+names = [
+  "ApiKeyAuth", "AuthContext", "AuthInteraction", "AuthOperationOptions", "CredentialStore",
+  "InMemoryCredentialStore", "OAuthAuth", "ProviderAuth", "ProviderAuthInteraction",
+]
+disposition = "implemented"
+owner = "S03-auth-store"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { AuthOperationOptions = "pi_ai::CancellationToken", ProviderAuthInteraction = "pi_ai::AuthInteraction" }
+evidence = "behavior:auth.port-object-safety-redaction"
+evidence_binding = "dynamic_ports_are_object_safe_and_store_implementations_are_send_sync"
+evidence_overrides = { ApiKeyAuth = "behavior:auth.api-key-none", AuthOperationOptions = "behavior:auth.api-key-cancel-noncooperative", CredentialStore = "behavior:credential.read-missing", InMemoryCredentialStore = "behavior:credential.detached-values", OAuthAuth = "behavior:auth.valid-oauth-no-mutation", ProviderAuth = "behavior:auth.provider-capability-validation" }
+evidence_bindings = { ApiKeyAuth = "explicit_none_short_circuits_and_missing_capability_reads_storage", AuthOperationOptions = "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures", CredentialStore = "credential_revision_tombstone_order_and_detachment", InMemoryCredentialStore = "credential_revision_tombstone_order_and_detachment", OAuthAuth = "valid_oauth_does_not_mutate_and_refresh_failure_preserves_old_value", ProviderAuth = "provider_auth_and_resolution_debug_expose_only_safe_categories" }
+expected_occurrences = 18
+compile_probe = true
+
+[[rule]]
+id = "s03-runtime-ports"
+priority = 6
+subpaths = [".", "./compat"]
+names = [
+  "DeferredCancelOptions", "DeferredFetchOptions", "ImagesFunction", "ImagesOptions", "ProviderImages",
+  "ProviderImagesOptions", "ProviderRequestOptions", "ProviderStreams", "SimpleStreamOptions",
+  "StreamFunction", "StreamOptions",
+]
+disposition = "implemented"
+owner = "S03-stream-request"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { ImagesFunction = "pi_ai::ImagesApiAdapter", ProviderImages = "pi_ai::ImagesApiAdapter", ProviderImagesOptions = "pi_ai::ImagesOptions", ProviderRequestOptions = "pi_ai::RequestRuntime", ProviderStreams = "pi_ai::ApiAdapter", StreamFunction = "pi_ai::ApiAdapter" }
+evidence = "rust-test:crates/pi-ai-core/tests/request_runtime.rs#all_five_nominal_roots_carry_their_exact_runtime_wrapper"
+evidence_overrides = { ImagesFunction = "rust-test:crates/pi-ai-core/tests/request_runtime.rs#adapter_ports_are_object_safe_and_factory_signature_is_exact", ProviderImages = "rust-test:crates/pi-ai-core/tests/request_runtime.rs#adapter_ports_are_object_safe_and_factory_signature_is_exact", ProviderStreams = "rust-test:crates/pi-ai-core/tests/request_runtime.rs#adapter_ports_are_object_safe_and_factory_signature_is_exact", StreamFunction = "rust-test:crates/pi-ai-core/tests/request_runtime.rs#adapter_ports_are_object_safe_and_factory_signature_is_exact" }
+expected_occurrences = 22
+compile_probe = true
+
+[[rule]]
+id = "s03-model-store"
+priority = 6
+subpaths = [".", "./compat"]
+names = ["InMemoryModelsStore", "ModelsStore", "ModelsStoreOperationOptions"]
+disposition = "implemented"
+owner = "S03-auth-store"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { ModelsStoreOperationOptions = "pi_ai::CancellationToken" }
+evidence = "behavior:models-store.write-read-detached"
+evidence_binding = "models_store_is_detached_overwritable_deletable_and_cancel_admitted"
+evidence_overrides = { ModelsStoreOperationOptions = "behavior:models-store.admission-cancel" }
+evidence_bindings = { ModelsStoreOperationOptions = "models_store_is_detached_overwritable_deletable_and_cancel_admitted" }
+expected_occurrences = 6
+compile_probe = true
+
+[[rule]]
+id = "s03-models-registry"
+priority = 6
+subpaths = [".", "./compat"]
+names = [
+  "CreateModelsOptions", "Models", "ModelsApiStreamOptions", "ModelsDeferredCancelOptions",
+  "ModelsDeferredFetchOptions", "ModelsError", "ModelsPublication", "ModelsRefreshOptions",
+  "ModelsRefreshResult", "ModelsSimpleStreamOptions", "MutableModels", "Provider",
+  "RefreshModelsContext", "createModels",
+]
+disposition = "implemented"
+owner = "S03-models-registry"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { CreateModelsOptions = "pi_ai::ModelsRegistryOptions", Models = "pi_ai::ModelsRegistry", ModelsApiStreamOptions = "pi_ai::ModelsRequestOverrides", ModelsDeferredCancelOptions = "pi_ai::ModelsRequestOverrides", ModelsDeferredFetchOptions = "pi_ai::ModelsRequestOverrides", ModelsSimpleStreamOptions = "pi_ai::ModelsRequestOverrides", MutableModels = "pi_ai::ModelsRegistry", createModels = "pi_ai::ModelsRegistry::new" }
+evidence = "behavior:registry.constructor.exclusive-model-store"
+evidence_binding = "registry_ports_are_object_safe_and_model_store_is_exclusive"
+evidence_overrides = { Models = "behavior:registry.providers.order-replace-delete-clear", ModelsApiStreamOptions = "behavior:registry.dispatch.resolved-text-deferred-roots", ModelsDeferredCancelOptions = "behavior:registry.dispatch.resolved-text-deferred-roots", ModelsDeferredFetchOptions = "behavior:registry.dispatch.resolved-text-deferred-roots", ModelsError = "behavior:registry.dispatch.setup-error-redaction", ModelsPublication = "behavior:registry.publication.intent-matrix", ModelsRefreshOptions = "behavior:registry.refresh.selection-error-cancel-matrix", ModelsRefreshResult = "behavior:registry.refresh.selection-error-cancel-matrix", ModelsSimpleStreamOptions = "behavior:registry.dispatch.resolved-text-deferred-roots", MutableModels = "behavior:registry.providers.order-replace-delete-clear", RefreshModelsContext = "behavior:registry.refresh.configured-network-phase" }
+evidence_bindings = { Models = "provider_mutations_preserve_order_and_slots", ModelsApiStreamOptions = "resolver_builds_four_text_deferred_nominal_request_roots", ModelsDeferredCancelOptions = "resolver_builds_four_text_deferred_nominal_request_roots", ModelsDeferredFetchOptions = "resolver_builds_four_text_deferred_nominal_request_roots", ModelsError = "dispatch_setup_failures_are_in_band_cancel_distinct_and_redacted", ModelsPublication = "memory_and_persistence_intents_are_independent_values", ModelsRefreshOptions = "refresh_selection_error_and_cancellation_matrix", ModelsRefreshResult = "refresh_selection_error_and_cancellation_matrix", ModelsSimpleStreamOptions = "resolver_builds_four_text_deferred_nominal_request_roots", MutableModels = "provider_mutations_preserve_order_and_slots", RefreshModelsContext = "configured_refresh_runs_cache_then_network_with_effective_credential" }
+expected_occurrences = 28
+compile_probe = true
+
+[[rule]]
+id = "s03-model-helpers"
+priority = 7
+subpaths = [".", "./compat"]
+names = [
+  "CreateProviderOptions", "createProvider", "calculateCost", "clampThinkingLevel",
+  "getSupportedThinkingLevels", "hasApi", "modelsAreEqual",
+]
+disposition = "implemented"
+owner = "S03-models-helpers"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { createProvider = "pi_ai::create_provider", calculateCost = "pi_ai::calculate_cost", clampThinkingLevel = "pi_ai::clamp_thinking_level", getSupportedThinkingLevels = "pi_ai::get_supported_thinking_levels", hasApi = "pi_ai::has_api", modelsAreEqual = "pi_ai::models_are_equal" }
+evidence = "behavior:helper.provider-builder.identity-baseline"
+evidence_binding = "provider_builder_preserves_identity_defaults_and_baseline_values"
+evidence_overrides = { calculateCost = "behavior:helper.cost.threshold-exclusive", clampThinkingLevel = "behavior:helper.thinking.clamp-search", getSupportedThinkingLevels = "behavior:helper.thinking.mapping", hasApi = "behavior:helper.has-api.exact", modelsAreEqual = "behavior:helper.model-equality" }
+evidence_bindings = { calculateCost = "calculate_cost_uses_exclusive_request_wide_threshold", clampThinkingLevel = "clamp_thinking_level_searches_up_then_down", getSupportedThinkingLevels = "supported_thinking_levels_apply_null_defaults_and_extended_opt_in", hasApi = "has_api_is_exact_and_case_sensitive", modelsAreEqual = "models_are_equal_compares_only_present_provider_and_id" }
+expected_occurrences = 14
+compile_probe = true
+
+[[rule]]
+id = "s03-message-transform"
+priority = 8
+origins = ["packages/ai/src/api/transform-messages.ts"]
+names = ["transformMessages"]
+disposition = "implemented"
+owner = "S03-message-transform"
+rust_target = "pi_ai::transform_messages"
+evidence = "behavior:transform.images.capable-pass-through"
+evidence_binding = "image_capable_model_preserves_input_blocks"
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s03-session-resources"
+priority = 8
+origins = ["packages/ai/src/session-resources.ts"]
+names = ["SessionResourceCleanup", "registerSessionResourceCleanup", "cleanupSessionResources"]
+disposition = "implemented"
+owner = "S03-session-resources"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { SessionResourceCleanup = "pi_ai::SessionResource", registerSessionResourceCleanup = "pi_ai::SessionResourceRegistry::register", cleanupSessionResources = "pi_ai::SessionResourceRegistry::cleanup" }
+evidence = "behavior:session-resource.registration.duplicate-object"
+evidence_binding = "duplicate_object_registrations_receive_independent_tokens"
+evidence_overrides = { cleanupSessionResources = "behavior:session-resource.cleanup.insertion-order" }
+evidence_bindings = { cleanupSessionResources = "cleanup_uses_insertion_ordered_snapshot" }
+expected_occurrences = 6
+compile_probe = true
+
+[[rule]]
+id = "s03-json-helpers"
+priority = 8
+origins = ["packages/ai/src/utils/json-parse.ts"]
+names = ["repairJson", "parseJsonWithRepair", "parseStreamingJson"]
+disposition = "implemented"
+owner = "S03-portable-helpers"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { repairJson = "pi_ai::repair_json", parseJsonWithRepair = "pi_ai::parse_json_with_repair", parseStreamingJson = "pi_ai::parse_streaming_json" }
+evidence = "behavior:helper.json.repair-valid"
+evidence_binding = "repair_json_preserves_valid_json_and_escape_sequences"
+evidence_overrides = { parseJsonWithRepair = "behavior:helper.json.parse-repair-order", parseStreamingJson = "behavior:helper.json.streaming-partial" }
+evidence_bindings = { parseJsonWithRepair = "parse_json_uses_original_then_repaired_input_without_mutation", parseStreamingJson = "streaming_json_recovers_partial_collections_atoms_and_invalid_escapes" }
+expected_occurrences = 6
+compile_probe = true
+
+[[rule]]
+id = "s03-overflow-helpers"
+priority = 8
+origins = ["packages/ai/src/utils/overflow.ts"]
+names = ["getOverflowPatterns", "isContextOverflow", "isRecoverableLength"]
+disposition = "implemented"
+owner = "S03-failure-classifiers"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { getOverflowPatterns = "pi_ai::get_overflow_patterns", isContextOverflow = "pi_ai::is_context_overflow", isRecoverableLength = "pi_ai::is_recoverable_length" }
+evidence = "behavior:overflow.error.anthropic-prompt-too-long"
+evidence_binding = "overflow_error_pattern_rows"
+evidence_overrides = { isRecoverableLength = "behavior:overflow.recoverable.boundary-matrix" }
+evidence_bindings = { isRecoverableLength = "recoverable_length_rows" }
+expected_occurrences = 6
+compile_probe = true
+
+[[rule]]
+id = "s03-text-helper"
+priority = 8
+origins = ["packages/ai/src/utils/text.ts"]
+names = ["contentText"]
+disposition = "implemented"
+owner = "S03-portable-helpers"
+rust_target = "pi_ai::content_text"
+evidence = "behavior:helper.text.string-separator"
+evidence_binding = "content_text_preserves_strings_and_supports_default_and_custom_separators"
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s03-uuid-helper"
+priority = 8
+origins = ["packages/ai/src/utils/uuid.ts"]
+names = ["uuidv7"]
+disposition = "implemented"
+owner = "S03-portable-helpers"
+rust_target = "pi_ai::UuidV7Generator::generate"
+evidence = "behavior:helper.uuid.rfc-layout"
+evidence_binding = "uuid_v7_matches_rfc_layout_version_variant_and_lowercase_vector"
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s03-validation-helpers"
+priority = 8
+origins = ["packages/ai/src/utils/validation.ts"]
+names = ["validateToolArguments", "validateToolCall"]
+disposition = "implemented"
+owner = "S03-tool-validation"
+target_mode = "same-name"
+target_prefix = "pi_ai::"
+target_overrides = { validateToolArguments = "pi_ai::validate_tool_arguments", validateToolCall = "pi_ai::validate_tool_call" }
+evidence = "behavior:validation.arguments.nonmutation"
+evidence_binding = "validation_never_mutates_arguments_or_schema"
+evidence_overrides = { validateToolCall = "behavior:validation.tool.known" }
+evidence_bindings = { validateToolCall = "validate_tool_call_selects_known_exact_name" }
+expected_occurrences = 4
+compile_probe = true
+
+[[rule]]
+id = "s03-retry-classifier"
+priority = 8
+origins = ["packages/ai/src/utils/retry.ts"]
+surfaces = ["ai.domain"]
+names = ["isRetryableAssistantError"]
+disposition = "implemented"
+owner = "S03-failure-classifiers"
+rust_target = "pi_ai::is_retryable_assistant_error"
+evidence = "behavior:retry.transient.rate-limit"
+evidence_binding = "retryable_marker_rows"
+expected_occurrences = 2
+compile_probe = true

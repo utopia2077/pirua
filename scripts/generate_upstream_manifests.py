@@ -228,24 +228,76 @@ def selector_surfaces_by_path(map_data: dict[str, object]) -> dict[str, set[str]
 
 
 def merge_export_symbol(
-    symbols: dict[str, tuple[str, str]],
+    symbols: dict[str, tuple[str, str, int, str]],
     name: str,
     kind: str,
     origin: str,
+    origin_line: int,
+    origin_declaration: str,
 ) -> None:
     existing = symbols.get(name)
     if existing is None:
-        symbols[name] = (kind, origin)
+        symbols[name] = (kind, origin, origin_line, origin_declaration)
         return
-    existing_kind, existing_origin = existing
+    existing_kind, existing_origin, existing_line, existing_declaration = existing
     if existing_kind == kind:
         merged_kind = kind
     elif "type-and-value" in {existing_kind, kind} or {existing_kind, kind} == {"type", "value"}:
         merged_kind = "type-and-value"
     else:
         merged_kind = kind
-    origins = sorted(set(existing_origin.split("|") + origin.split("|")))
-    symbols[name] = (merged_kind, "|".join(origins))
+    if existing_origin != origin:
+        raise RuntimeError(
+            f"ambiguous export origin for {name}: {existing_origin}, {origin}"
+        )
+    locations = sorted(
+        {
+            (line, declaration)
+            for line, declaration in (
+                (existing_line, existing_declaration),
+                (origin_line, origin_declaration),
+            )
+            if line > 0 and declaration
+        }
+    )
+    if locations:
+        merged_line, merged_declaration = locations[0]
+    else:
+        merged_line, merged_declaration = 0, ""
+    symbols[name] = (
+        merged_kind,
+        origin,
+        merged_line,
+        merged_declaration,
+    )
+
+
+def declaration_location(text: str, offset: int) -> tuple[int, str]:
+    line = text.count("\n", 0, offset) + 1
+    declaration = text.splitlines()[line - 1].strip()
+    return line, declaration
+
+
+def local_declaration(
+    text: str,
+    name: str,
+) -> tuple[str, int, str] | None:
+    pattern = re.compile(
+        r"(?:export\s+)?(?:declare\s+)?(?:async\s+)?"
+        r"(interface|type|class|function|const|let|var)\s*\*?\s+"
+        + re.escape(name)
+        + r"\b"
+    )
+    match = pattern.search(text)
+    if match is None:
+        return None
+    kind = {
+        "interface": "type",
+        "type": "type",
+        "class": "type-and-value",
+    }.get(match.group(1), "value")
+    line, declaration = declaration_location(text, match.start())
+    return kind, line, declaration
 
 
 def exported_symbols(
@@ -253,9 +305,9 @@ def exported_symbols(
     commit: str,
     path: str,
     paths: set[str],
-    cache: dict[str, dict[str, tuple[str, str]]],
+    cache: dict[str, dict[str, tuple[str, str, int, str]]],
     active: set[str] | None = None,
-) -> dict[str, tuple[str, str]]:
+) -> dict[str, tuple[str, str, int, str]]:
     if path in cache:
         return cache[path]
     active = set() if active is None else set(active)
@@ -263,17 +315,24 @@ def exported_symbols(
         return {}
     active.add(path)
     text = validator.git_blob(checkout, commit, path).decode()
-    symbols: dict[str, tuple[str, str]] = {}
+    symbols: dict[str, tuple[str, str, int, str]] = {}
 
     for match in re.finditer(r'export\s+\*\s+from\s+["\']([^"\']+)["\']\s*;', text):
         target = resolve_source_path(path, match.group(1), paths)
         if target is None:
             continue
-        for name, (kind, origin) in exported_symbols(
+        for name, (kind, origin, origin_line, origin_declaration) in exported_symbols(
             checkout, commit, target, paths, cache, active
         ).items():
             if name != "default":
-                merge_export_symbol(symbols, name, kind, origin)
+                merge_export_symbol(
+                    symbols,
+                    name,
+                    kind,
+                    origin,
+                    origin_line,
+                    origin_declaration,
+                )
 
     named_pattern = re.compile(
         r'export\s+(type\s+)?\{(.*?)\}\s*(?:from\s+["\']([^"\']+)["\'])?\s*;',
@@ -298,33 +357,79 @@ def exported_symbols(
             source_name = parts[0].strip()
             export_name = parts[-1].strip()
             source_specifier = match.group(3)
-            target_kind, origin = target_symbols.get(
-                source_name,
-                (
+            target_symbol = target_symbols.get(source_name)
+            if target_symbol is not None:
+                target_kind, origin, origin_line, origin_declaration = target_symbol
+            elif target is not None:
+                target_text = validator.git_blob(checkout, commit, target).decode()
+                location = local_declaration(target_text, source_name)
+                if location is None:
+                    target_kind, origin_line, origin_declaration = (
+                        "type" if item_is_type else "value",
+                        0,
+                        "",
+                    )
+                else:
+                    target_kind, origin_line, origin_declaration = location
+                origin = target
+            elif source_specifier is None:
+                location = local_declaration(text, source_name)
+                if location is None:
+                    target_kind = "type" if item_is_type else "value"
+                    origin_line, origin_declaration = declaration_location(
+                        text,
+                        match.start(),
+                    )
+                else:
+                    target_kind, origin_line, origin_declaration = location
+                origin = path
+            else:
+                target_kind, origin, origin_line, origin_declaration = (
                     "type" if item_is_type else "value",
-                    target or source_specifier or path,
-                ),
-            )
+                    source_specifier,
+                    0,
+                    "",
+                )
             merge_export_symbol(
                 symbols,
                 export_name,
                 "type" if item_is_type else target_kind,
                 origin,
+                origin_line,
+                origin_declaration,
             )
 
     declaration_pattern = re.compile(
         r"export\s+(?:declare\s+)?(?:async\s+)?"
-        r"(interface|type|class|function|const|let|var)\s+([A-Za-z_$][\w$]*)"
+        r"(interface|type|class|function|const|let|var)\s*\*?\s+([A-Za-z_$][\w$]*)"
     )
-    for kind, name in declaration_pattern.findall(text):
+    for match in declaration_pattern.finditer(text):
+        kind, name = match.groups()
         symbol_kind = {
             "interface": "type",
             "type": "type",
             "class": "type-and-value",
         }.get(kind, "value")
-        merge_export_symbol(symbols, name, symbol_kind, path)
-    if re.search(r"\bexport\s+default\b", text):
-        merge_export_symbol(symbols, "default", "value", path)
+        line, declaration = declaration_location(text, match.start())
+        merge_export_symbol(
+            symbols,
+            name,
+            symbol_kind,
+            path,
+            line,
+            declaration,
+        )
+    default_match = re.search(r"\bexport\s+default\b", text)
+    if default_match is not None:
+        line, declaration = declaration_location(text, default_match.start())
+        merge_export_symbol(
+            symbols,
+            "default",
+            "value",
+            path,
+            line,
+            declaration,
+        )
     cache[path] = symbols
     return symbols
 
@@ -401,7 +506,7 @@ def exports_manifest(
                 "",
             ]
         )
-    symbol_cache: dict[str, dict[str, tuple[str, str]]] = {}
+    symbol_cache: dict[str, dict[str, tuple[str, str, int, str]]] = {}
     for subpath, source_path in package_export_sources(
         package_data.get("exports", {}), package_root, tree_paths
     ):
@@ -416,7 +521,7 @@ def exports_manifest(
             tree_paths,
             symbol_cache,
         )
-        for name, (kind, origin) in sorted(symbols.items()):
+        for name, (kind, origin, origin_line, origin_declaration) in sorted(symbols.items()):
             chunks.extend(
                 [
                     "[[symbol]]",
@@ -426,6 +531,8 @@ def exports_manifest(
                     f"source_path = {quoted(source_path)}",
                     f"source_blob_oid = {quoted(source_oid.strip())}",
                     f"origin = {quoted(origin)}",
+                    f"origin_line = {origin_line}",
+                    f"origin_declaration = {quoted(origin_declaration)}",
                     "",
                 ]
             )

@@ -1,28 +1,2646 @@
 {
-  "suite": "assistant-stream",
-  "expectedRows": 22,
+  "suite": "s03-ai-domain",
+  "expectedRows": 327,
+  "fragments": [
+    "conformance/ai-domain/stream-inventory.json",
+    "conformance/ai-models/auth-store-inventory.json",
+    "conformance/ai-models/registry-inventory.json",
+    "conformance/ai-domain/tool-validation-inventory.json",
+    "conformance/ai-domain/message-transform-inventory.json",
+    "conformance/ai-domain/overflow-inventory.json",
+    "conformance/ai-domain/retry-inventory.json",
+    "conformance/ai-domain/models-helpers-inventory.json",
+    "conformance/ai-domain/portable-helpers-inventory.json",
+    "conformance/ai-domain/session-resources-inventory.json"
+  ],
+  "fragmentDigests": {
+    "conformance/ai-domain/stream-inventory.json": "8706960d4effb2c965140a2d594b284409ac83f9eee2ec5dc197d6ffe217e847",
+    "conformance/ai-models/auth-store-inventory.json": "84d9668cc341a418ee2aa881394909ec0a18f92fc4c9ea3a9f239461bb213c37",
+    "conformance/ai-models/registry-inventory.json": "3425d14ba300fa1f2d565709b3ae8c5c1b7de554e4e98b672d6c29e4a053bcbb",
+    "conformance/ai-domain/tool-validation-inventory.json": "3cfbccec91cb156c4f88b9071bec1cb483d399b5b8961c5621cc9a4ecac916e0",
+    "conformance/ai-domain/message-transform-inventory.json": "6ea66ad888628f3e2908a7f05958aab4bb860904765c5c27b176bba2d118e33a",
+    "conformance/ai-domain/overflow-inventory.json": "18aeab2844e0229cad6fb89f78dea5384156a32dc9496661d7e038cd3da145c9",
+    "conformance/ai-domain/retry-inventory.json": "a190d00c154d2ab272498d2e6ba7bcad265bf0cd4d56cc286b3cd4af82a9b24a",
+    "conformance/ai-domain/models-helpers-inventory.json": "15cc02f90b0b17681dea7e65655c774b94a37213f91e3c20dadc0c2f3a26071f",
+    "conformance/ai-domain/portable-helpers-inventory.json": "8aea0cbef184e4cea14d7f71bf33e9f77a5959e3a8c365c5b81158cde46b8736",
+    "conformance/ai-domain/session-resources-inventory.json": "8cb1c74d1b99af601327e2c1fe94ef05a6c94cb0311c1a8036755713f70b7ee1"
+  },
   "rows": [
-    { "id": "stream.terminal.stop", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "stream_terminal_rows", "polarity": "positive", "owner": "S03-stream-request", "expected": "stop terminal atomically queues and resolves its matching message" },
-    { "id": "stream.terminal.length", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "stream_terminal_rows", "polarity": "positive", "owner": "S03-stream-request", "expected": "length terminal atomically queues and resolves its matching message" },
-    { "id": "stream.terminal.tool-use", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "stream_terminal_rows", "polarity": "positive", "owner": "S03-stream-request", "expected": "toolUse terminal atomically queues and resolves its matching message" },
-    { "id": "stream.terminal.deferred", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "stream_terminal_rows", "polarity": "positive", "owner": "S03-stream-request", "expected": "deferred terminal atomically queues and resolves its matching message" },
-    { "id": "stream.terminal.error", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "stream_terminal_rows", "polarity": "positive", "owner": "S03-stream-request", "expected": "error terminal requires a nonempty message and resolves it" },
-    { "id": "stream.terminal.aborted", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "stream_terminal_rows", "polarity": "positive", "owner": "S03-stream-request", "expected": "aborted terminal requires a nonempty message and resolves it" },
-    { "id": "stream.result-without-events", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "result_is_independent_owned_and_multi_waiter", "polarity": "positive", "owner": "S03-stream-request", "expected": "result resolves without draining the queued terminal and clones for every waiter" },
-    { "id": "stream.queued-fifo", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "queued_and_waiting_events_are_fifo", "polarity": "positive", "owner": "S03-stream-request", "expected": "events pushed before waits drain in insertion order" },
-    { "id": "stream.waiting-fifo", "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "queued_and_waiting_events_are_fifo", "polarity": "positive", "owner": "S03-stream-request", "expected": "events pushed after a waiter wakes remain in insertion order" },
-    { "id": "stream.setup.unknown-provider", "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:1138", "test": "setup_failures_are_in_band_and_sanitized", "polarity": "negative", "owner": "S03-stream-request", "expected": "unknown provider becomes a fixed zero-usage error terminal" },
-    { "id": "stream.setup.auth", "source": "packages/ai/src/api/lazy.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "setup_failures_are_in_band_and_sanitized", "polarity": "negative", "owner": "S03-stream-request", "expected": "authentication setup failure becomes a fixed zero-usage error terminal" },
-    { "id": "stream.setup.adapter", "source": "packages/ai/src/api/lazy.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "setup_failures_are_in_band_and_sanitized", "polarity": "negative", "owner": "S03-stream-request", "expected": "adapter setup failure becomes a fixed zero-usage error terminal" },
-    { "id": "stream.setup.spawn", "source": "docs/contracts/ai-domain/stream-request.md", "test": "setup_failures_are_in_band_and_sanitized", "polarity": "negative", "owner": "S03-stream-request", "expected": "spawn rejection becomes a fixed zero-usage error terminal" },
-    { "id": "stream.cancel.pre-cancelled", "source": "packages/ai/test/abort.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "cancellation_precedence_rows", "polarity": "race", "owner": "S03-stream-request", "expected": "pre-cancelled initialization immediately settles aborted" },
-    { "id": "stream.cancel-wins", "source": "packages/ai/src/utils/abort.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "cancellation_precedence_rows", "polarity": "race", "owner": "S03-stream-request", "expected": "cancellation settlement rejects a later provider terminal" },
-    { "id": "stream.provider-wins", "source": "packages/ai/src/utils/abort.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185", "test": "cancellation_precedence_rows", "polarity": "race", "owner": "S03-stream-request", "expected": "provider settlement remains authoritative after later cancellation" },
-    { "id": "stream.cancel-provider-barrier-race", "source": "docs/contracts/ai-domain/stream-request.md", "test": "cancellation_and_provider_barrier_have_one_winner", "polarity": "race", "owner": "S03-stream-request", "expected": "barrier-started contenders produce exactly one terminal result" },
-    { "id": "stream.post-terminal-matrix", "source": "docs/contracts/ai-domain/stream-request.md#state-owner", "test": "all_96_legal_post_terminal_pushes_are_rejected", "polarity": "negative", "owner": "S03-stream-request", "expected": "all 96 legal terminal/progress followups return AlreadySettled without mutation" },
-    { "id": "stream.last-producer-drop", "source": "docs/contracts/ai-domain/stream-request.md", "test": "last_of_32_producer_clones_settles_once", "polarity": "race", "owner": "S03-stream-request", "expected": "only the last producer drop creates one sanitized setup terminal" },
-    { "id": "stream.cancel-live-noncooperative-producer", "source": "docs/contracts/ai-domain/stream-request.md", "test": "cancellation_settles_with_live_noncooperative_producer", "polarity": "race", "owner": "S03-stream-request", "expected": "cancellation settles while producer clones remain alive" },
-    { "id": "stream.reentrant-waker-matrix", "source": "docs/contracts/ai-domain/stream-request.md", "test": "reentrant_wakers_run_after_unlock", "polarity": "race", "owner": "S03-stream-request", "expected": "next, result, cancellation, and sleep wakers may safely re-enter their owners" },
-    { "id": "stream.dropped-waiter-matrix", "source": "docs/contracts/ai-domain/stream-request.md", "test": "dropped_waiters_release_registered_wakers", "polarity": "negative", "owner": "S03-stream-request", "expected": "dropped next, result, cancellation, and sleep futures unregister wakers" }
+    {
+      "id": "stream.terminal.stop",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "stream_terminal_rows",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "stop terminal atomically queues and resolves its matching message"
+    },
+    {
+      "id": "stream.terminal.length",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "stream_terminal_rows",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "length terminal atomically queues and resolves its matching message"
+    },
+    {
+      "id": "stream.terminal.tool-use",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "stream_terminal_rows",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "toolUse terminal atomically queues and resolves its matching message"
+    },
+    {
+      "id": "stream.terminal.deferred",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "stream_terminal_rows",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "deferred terminal atomically queues and resolves its matching message"
+    },
+    {
+      "id": "stream.terminal.error",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "stream_terminal_rows",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "error terminal requires a nonempty message and resolves it"
+    },
+    {
+      "id": "stream.terminal.aborted",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "stream_terminal_rows",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "aborted terminal requires a nonempty message and resolves it"
+    },
+    {
+      "id": "stream.result-without-events",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "result_is_independent_owned_and_multi_waiter",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "result resolves without draining the queued terminal and clones for every waiter"
+    },
+    {
+      "id": "stream.queued-fifo",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "queued_and_waiting_events_are_fifo",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "events pushed before waits drain in insertion order"
+    },
+    {
+      "id": "stream.waiting-fifo",
+      "source": "packages/ai/src/utils/event-stream.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "queued_and_waiting_events_are_fifo",
+      "polarity": "positive",
+      "owner": "S03-stream-request",
+      "expected": "events pushed after a waiter wakes remain in insertion order"
+    },
+    {
+      "id": "stream.setup.unknown-provider",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:1138",
+      "test": "setup_failures_are_in_band_and_sanitized",
+      "polarity": "negative",
+      "owner": "S03-stream-request",
+      "expected": "unknown provider becomes a fixed zero-usage error terminal"
+    },
+    {
+      "id": "stream.setup.auth",
+      "source": "packages/ai/src/api/lazy.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "setup_failures_are_in_band_and_sanitized",
+      "polarity": "negative",
+      "owner": "S03-stream-request",
+      "expected": "authentication setup failure becomes a fixed zero-usage error terminal"
+    },
+    {
+      "id": "stream.setup.adapter",
+      "source": "packages/ai/src/api/lazy.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "setup_failures_are_in_band_and_sanitized",
+      "polarity": "negative",
+      "owner": "S03-stream-request",
+      "expected": "adapter setup failure becomes a fixed zero-usage error terminal"
+    },
+    {
+      "id": "stream.setup.spawn",
+      "source": "docs/contracts/ai-domain/stream-request.md",
+      "test": "setup_failures_are_in_band_and_sanitized",
+      "polarity": "negative",
+      "owner": "S03-stream-request",
+      "expected": "spawn rejection becomes a fixed zero-usage error terminal"
+    },
+    {
+      "id": "stream.cancel.pre-cancelled",
+      "source": "packages/ai/test/abort.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "cancellation_precedence_rows",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "pre-cancelled initialization immediately settles aborted"
+    },
+    {
+      "id": "stream.cancel-wins",
+      "source": "packages/ai/src/utils/abort.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "cancellation_precedence_rows",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "cancellation settlement rejects a later provider terminal"
+    },
+    {
+      "id": "stream.provider-wins",
+      "source": "packages/ai/src/utils/abort.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "test": "cancellation_precedence_rows",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "provider settlement remains authoritative after later cancellation"
+    },
+    {
+      "id": "stream.cancel-provider-barrier-race",
+      "source": "docs/contracts/ai-domain/stream-request.md",
+      "test": "cancellation_and_provider_barrier_have_one_winner",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "barrier-started contenders produce exactly one terminal result"
+    },
+    {
+      "id": "stream.post-terminal-matrix",
+      "source": "docs/contracts/ai-domain/stream-request.md#state-owner",
+      "test": "all_96_legal_post_terminal_pushes_are_rejected",
+      "polarity": "negative",
+      "owner": "S03-stream-request",
+      "expected": "all 96 legal terminal/progress followups return AlreadySettled without mutation"
+    },
+    {
+      "id": "stream.last-producer-drop",
+      "source": "docs/contracts/ai-domain/stream-request.md",
+      "test": "last_of_32_producer_clones_settles_once",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "only the last producer drop creates one sanitized setup terminal"
+    },
+    {
+      "id": "stream.cancel-live-noncooperative-producer",
+      "source": "docs/contracts/ai-domain/stream-request.md",
+      "test": "cancellation_settles_with_live_noncooperative_producer",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "cancellation settles while producer clones remain alive"
+    },
+    {
+      "id": "stream.reentrant-waker-matrix",
+      "source": "docs/contracts/ai-domain/stream-request.md",
+      "test": "reentrant_wakers_run_after_unlock",
+      "polarity": "race",
+      "owner": "S03-stream-request",
+      "expected": "next, result, cancellation, and sleep wakers may safely re-enter their owners"
+    },
+    {
+      "id": "stream.dropped-waiter-matrix",
+      "source": "docs/contracts/ai-domain/stream-request.md",
+      "test": "dropped_waiters_release_registered_wakers",
+      "polarity": "negative",
+      "owner": "S03-stream-request",
+      "expected": "dropped next, result, cancellation, and sleep futures unregister wakers"
+    },
+    {
+      "id": "credential.read-missing",
+      "source": "packages/ai/src/auth/credential-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:30",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a known missing provider reads as no credential"
+    },
+    {
+      "id": "credential.set-first-revision",
+      "source": "docs/contracts/ai-domain/auth-store.md:79",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "the first stored credential receives revision one"
+    },
+    {
+      "id": "credential.set-equal-increments",
+      "source": "docs/contracts/ai-domain/auth-store.md:81",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "setting an equal credential still allocates a successor revision"
+    },
+    {
+      "id": "credential.unchanged-preserves",
+      "source": "packages/ai/src/auth/types.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:79",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "unchanged preserves both value and revision"
+    },
+    {
+      "id": "credential.delete-existing-tombstone",
+      "source": "docs/contracts/ai-domain/auth-store.md:83",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "deleting a live credential advances a retained tombstone revision"
+    },
+    {
+      "id": "credential.delete-missing-unchanged",
+      "source": "packages/ai/src/auth/credential-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:58",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "deleting an already missing credential allocates no revision"
+    },
+    {
+      "id": "credential.reinsert-revision-order",
+      "source": "docs/contracts/ai-domain/auth-store.md:92",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "reinsertion continues the tombstone revision and appends a new live slot"
+    },
+    {
+      "id": "credential.revision-exhausted",
+      "source": "docs/contracts/ai-domain/auth-store.md:85",
+      "test": "private_quarantine_reuses_reserved_max_revision_and_then_exhausts",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "a mutation after revision u64::MAX fails without changing state"
+    },
+    {
+      "id": "credential.list-metadata-order",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:109",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "listing preserves live insertion order and exposes only type metadata"
+    },
+    {
+      "id": "credential.detached-values",
+      "source": "docs/contracts/ai-domain/auth-store.md:174",
+      "test": "credential_revision_tombstone_order_and_detachment",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "read and lease snapshots cannot mutate stored credential values"
+    },
+    {
+      "id": "credential.gate-fifo",
+      "source": "packages/ai/src/auth/credential-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:13",
+      "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "same-provider mutation leases are granted in queue order"
+    },
+    {
+      "id": "credential.gate-cross-provider",
+      "source": "docs/contracts/ai-domain/auth-store.md:173",
+      "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "a held provider lease does not block another provider"
+    },
+    {
+      "id": "credential.gate-waiter-cancel",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:704",
+      "test": "queued_and_granted_cancellation_handoff_without_cancelled_waiter_repoll",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "queued and granted cancellation directly remove attribution and hand off without repoll"
+    },
+    {
+      "id": "credential.gate-waiter-drop",
+      "source": "docs/contracts/ai-domain/auth-store.md:180",
+      "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "dropping a queued waiter removes it permanently"
+    },
+    {
+      "id": "credential.gate-granted-drop-handoff",
+      "source": "docs/contracts/ai-domain/auth-store.md:179",
+      "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "dropping a granted but unreturned waiter hands ownership onward"
+    },
+    {
+      "id": "credential.gate-reentrant-waker",
+      "source": "docs/contracts/ai-domain/auth-store.md:182",
+      "test": "grant_wake_callback_can_cancel_reenter_and_repoll_without_stranding_gate",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "grant wake and displaced-waker destruction may re-enter because callbacks run after unlock"
+    },
+    {
+      "id": "credential.lease-drop-no-write",
+      "source": "docs/contracts/ai-domain/auth-store.md:175",
+      "test": "credential_lease_drop_and_commit_cancellation_write_nothing",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "dropping a returned lease performs no write"
+    },
+    {
+      "id": "credential.commit-cancel-admission",
+      "source": "docs/contracts/ai-domain/auth-store.md:187",
+      "test": "credential_lease_drop_and_commit_cancellation_write_nothing",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "cancellation observed on the commit first poll preserves prior state"
+    },
+    {
+      "id": "credential.quarantine-sticky-reopen",
+      "source": "docs/contracts/ai-domain/auth-store.md:203",
+      "test": "private_quarantine_is_sticky_across_reopen_and_delete_clears_it",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "separate runtime handles over reopened durable state block read, list, and mutation until reconciliation"
+    },
+    {
+      "id": "credential.reconcile-reserved-revision",
+      "source": "docs/contracts/ai-domain/auth-store.md:223",
+      "test": "stable_order_ticket_survives_unrelated_delete_before_reconcile",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "reconciliation publishes at the reserved revision and restores stable pre-quarantine order after unrelated deletion"
+    },
+    {
+      "id": "models-store.read-missing",
+      "source": "packages/ai/src/models-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:30",
+      "test": "models_store_is_detached_overwritable_deletable_and_cancel_admitted",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a known missing provider reads as no catalog"
+    },
+    {
+      "id": "models-store.write-read-detached",
+      "source": "packages/ai/src/models-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:33",
+      "test": "models_store_is_detached_overwritable_deletable_and_cancel_admitted",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "writes and reads detach the complete catalog value"
+    },
+    {
+      "id": "models-store.overwrite",
+      "source": "packages/ai/src/models-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:36",
+      "test": "models_store_is_detached_overwritable_deletable_and_cancel_admitted",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a later admitted write atomically replaces the old catalog"
+    },
+    {
+      "id": "models-store.delete",
+      "source": "packages/ai/src/models-store.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:41",
+      "test": "models_store_is_detached_overwritable_deletable_and_cancel_admitted",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "an admitted delete establishes known missing state"
+    },
+    {
+      "id": "models-store.admission-cancel",
+      "source": "docs/contracts/ai-domain/auth-store.md:526",
+      "test": "models_store_is_detached_overwritable_deletable_and_cancel_admitted",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "pre-admission cancellation preserves the old complete value"
+    },
+    {
+      "id": "models-store.post-admission-cancel",
+      "source": "docs/contracts/ai-domain/auth-store.md:528",
+      "test": "dropped_admitted_model_write_finishes_to_one_complete_state",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "repoll after cancellation remains pending, and dropped admitted work completes definitively success or Failed"
+    },
+    {
+      "id": "models-store.failure-preserves-old",
+      "source": "docs/contracts/ai-domain/auth-store.md:529",
+      "test": "normal_model_store_failure_proves_old_complete_value",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "normal failure proves the complete old catalog remains authoritative"
+    },
+    {
+      "id": "models-store.atomic-read-write-delete",
+      "source": "docs/contracts/ai-domain/auth-store.md:530",
+      "test": "in_memory_model_store_reads_only_atomic_old_new_or_deleted_multifield_snapshots",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "barrier-started readers observe only complete old, new, or deleted multi-field snapshots"
+    },
+    {
+      "id": "auth.provider-capability-validation",
+      "source": "packages/ai/src/auth/types.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:232",
+      "test": "provider_auth_and_resolution_debug_expose_only_safe_categories",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "provider auth rejects two absent capabilities"
+    },
+    {
+      "id": "auth.port-object-safety-redaction",
+      "source": "docs/contracts/ai-domain/auth-store.md:250",
+      "test": "dynamic_ports_are_object_safe_and_store_implementations_are_send_sync",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "all dynamic ports are object-safe and runtime diagnostics redact sources"
+    },
+    {
+      "id": "auth.explicit-api-key-short-circuit",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:73",
+      "test": "auth_explicit_stored_ambient_and_mismatch_precedence",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "an explicit API key resolves without reading storage"
+    },
+    {
+      "id": "auth.explicit-api-key-none-short-circuit",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:73",
+      "test": "explicit_none_short_circuits_and_missing_capability_reads_storage",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "an explicit API-key resolution returning none does not fall through"
+    },
+    {
+      "id": "auth.explicit-api-key-without-capability",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:87",
+      "test": "explicit_none_short_circuits_and_missing_capability_reads_storage",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "an explicit key without an API-key capability proceeds to stored auth"
+    },
+    {
+      "id": "auth.stored-api-key-precedence",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:778",
+      "test": "auth_explicit_stored_ambient_and_mismatch_precedence",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a stored API-key credential beats ambient auth"
+    },
+    {
+      "id": "auth.stored-oauth-precedence",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:778",
+      "test": "explicit_none_short_circuits_and_missing_capability_reads_storage",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a stored OAuth credential resolves through OAuth"
+    },
+    {
+      "id": "auth.ambient-empty-store",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:106",
+      "test": "auth_explicit_stored_ambient_and_mismatch_precedence",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "ambient API-key auth runs only when storage is known empty"
+    },
+    {
+      "id": "auth.stored-mismatch-blocks-ambient",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:859",
+      "test": "auth_explicit_stored_ambient_and_mismatch_precedence",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "a stored credential without a matching capability blocks ambient fallback"
+    },
+    {
+      "id": "auth.store-read-failed",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:990",
+      "test": "credential_store_error_channels_remain_distinct_and_explicit_key_bypasses_store",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "credential backend failure maps to fixed auth-category diagnostics"
+    },
+    {
+      "id": "auth.store-read-cancelled",
+      "source": "docs/contracts/ai-domain/auth-store.md:427",
+      "test": "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "caller cancellation drops a permanently pending credential read future"
+    },
+    {
+      "id": "auth.store-outcome-unknown",
+      "source": "docs/contracts/ai-domain/auth-store.md:217",
+      "test": "credential_store_error_channels_remain_distinct_and_explicit_key_bypasses_store",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "OutcomeUnknown remains distinct from Models(Auth), while explicit API-key resolution bypasses without clearing it"
+    },
+    {
+      "id": "auth.env-overlay-nonempty",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:112",
+      "test": "auth_environment_overlay_preserves_empty_fallback_and_stored_empty_values",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a nonempty request environment value overrides the base context"
+    },
+    {
+      "id": "auth.env-overlay-empty-fallback",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:114",
+      "test": "auth_environment_overlay_preserves_empty_fallback_and_stored_empty_values",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "an empty request environment value falls back to the base context"
+    },
+    {
+      "id": "auth.stored-env-request-overlay",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:99",
+      "test": "auth_environment_overlay_preserves_empty_fallback_and_stored_empty_values",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "request environment overlays stored fields while retaining explicit empty values"
+    },
+    {
+      "id": "auth.api-key-none",
+      "source": "packages/ai/src/auth/types.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:188",
+      "test": "explicit_none_short_circuits_and_missing_capability_reads_storage",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "API-key resolution may report unconfigured without error"
+    },
+    {
+      "id": "auth.api-key-failed",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:1040",
+      "test": "auth_provider_failure_maps_to_fixed_models_error",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "API-key provider failure maps to Models auth while retaining a redacted source"
+    },
+    {
+      "id": "auth.valid-oauth-no-mutation",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:965",
+      "test": "valid_oauth_does_not_mutate_and_refresh_failure_preserves_old_value",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "a token outside the refresh window does not acquire a mutation lease"
+    },
+    {
+      "id": "auth.oauth-default-validity-boundaries",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:135",
+      "test": "oauth_validity_boundaries_refresh_and_commit_before_explicit_validation",
+      "polarity": "boundary",
+      "owner": "S03-auth-store",
+      "expected": "now plus five minutes equal to expiry triggers refresh"
+    },
+    {
+      "id": "auth.oauth-explicit-validity",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:907",
+      "test": "oauth_validity_boundaries_refresh_and_commit_before_explicit_validation",
+      "polarity": "boundary",
+      "owner": "S03-auth-store",
+      "expected": "an explicit minimum is enforced after the rotated credential is committed"
+    },
+    {
+      "id": "auth.oauth-lease-recheck",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:145",
+      "test": "thirty_two_oauth_callers_refresh_exactly_once",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "OAuth validity is rechecked under the exclusive lease"
+    },
+    {
+      "id": "auth.oauth-32-callers-one-refresh",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:943",
+      "test": "thirty_two_oauth_callers_refresh_exactly_once",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "32 optimistic callers refresh once, store revision two, and leave no acquisition claim"
+    },
+    {
+      "id": "auth.oauth-refresh-failed-preserves",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:927",
+      "test": "valid_oauth_does_not_mutate_and_refresh_failure_preserves_old_value",
+      "polarity": "negative",
+      "owner": "S03-auth-store",
+      "expected": "refresh failure leaves the previous credential authoritative"
+    },
+    {
+      "id": "auth.oauth-timeout-boundaries",
+      "source": "packages/ai/src/auth/resolve.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:149",
+      "test": "oauth_deadline_wins_at_15000_and_drops_noncooperative_refresh",
+      "polarity": "boundary",
+      "owner": "S03-auth-store",
+      "expected": "refresh remains live at 14999 ms and the 15000 ms deadline drops it before gate release"
+    },
+    {
+      "id": "auth.api-key-cancel-noncooperative",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:649",
+      "test": "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "explicit, stored, and ambient API-key futures plus nested AuthContext waits are dropped on cancellation"
+    },
+    {
+      "id": "auth.oauth-cancel-noncooperative",
+      "source": "packages/ai/test/models-runtime.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:735",
+      "test": "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "caller cancellation drops pending mutation acquisition or refresh before releasing the lease"
+    },
+    {
+      "id": "auth.oauth-cancel-before-commit",
+      "source": "docs/contracts/ai-domain/auth-store.md:463",
+      "test": "cancellation_after_refresh_before_commit_preserves_old_credential",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "provider success is observed before cancellation wins the final pre-commit gap"
+    },
+    {
+      "id": "auth.oauth-commit-shielded",
+      "source": "docs/contracts/ai-domain/auth-store.md:464",
+      "test": "admitted_commit_is_shielded_but_post_commit_derivation_observes_cancellation",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "an admitted commit reaches a definitive rotated state despite later cancellation"
+    },
+    {
+      "id": "auth.oauth-to-auth-cancel-noncooperative",
+      "source": "docs/contracts/ai-domain/auth-store.md:470",
+      "test": "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures",
+      "polarity": "race",
+      "owner": "S03-auth-store",
+      "expected": "caller cancellation drops a permanently pending OAuth derivation future"
+    },
+    {
+      "id": "auth.oauth-to-auth-source-redaction",
+      "source": "packages/ai/test/oauth-auth.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:143",
+      "test": "oauth_validity_boundaries_refresh_and_commit_before_explicit_validation",
+      "polarity": "positive",
+      "owner": "S03-auth-store",
+      "expected": "successful OAuth derivation reports exact source OAuth without leaking tokens"
+    },
+    {
+      "id": "registry.providers.order-replace-delete-clear",
+      "source": "docs/contracts/ai-domain/models-registry.md:274",
+      "test": "provider_mutations_preserve_order_and_slots",
+      "polarity": "positive",
+      "owner": "S03-models-registry",
+      "expected": "insertion and replacement slots follow successful post-spawn admission order with closed-gate reentry"
+    },
+    {
+      "id": "registry.models.list-find-failure-isolation",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:294",
+      "test": "listing_lookup_and_provider_failure_isolation",
+      "polarity": "negative",
+      "owner": "S03-models-registry",
+      "expected": "all and selected listing plus lookup omit only a failing provider"
+    },
+    {
+      "id": "registry.constructor.exclusive-model-store",
+      "source": "upstream-map.toml:943",
+      "test": "registry_ports_are_object_safe_and_model_store_is_exclusive",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "construction consumes one non-clone model-store capability"
+    },
+    {
+      "id": "registry.auth.check-available-filter",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:538",
+      "test": "check_auth_and_available_filter_without_oauth_refresh",
+      "polarity": "positive",
+      "owner": "S03-models-registry",
+      "expected": "status is side-effect-free and filtering receives the detached stored credential"
+    },
+    {
+      "id": "registry.refresh.selection-error-cancel-matrix",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:386",
+      "test": "refresh_selection_error_and_cancellation_matrix",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "only selected dynamic providers run and only caller cancellation sets aborted"
+    },
+    {
+      "id": "registry.refresh.cache-before-credential-read",
+      "source": "upstream-map.toml:903",
+      "test": "cache_publication_precedes_any_credential_read",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "cache publication acknowledgement precedes the first credential read"
+    },
+    {
+      "id": "registry.refresh.offline-cache-only",
+      "source": "docs/contracts/ai-domain/models-registry.md:422",
+      "test": "offline_refresh_stops_after_cache_without_auth_or_network",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "offline refresh performs one cache phase and no credential or network work"
+    },
+    {
+      "id": "registry.refresh.unconfigured-cache-only",
+      "source": "docs/contracts/ai-domain/models-registry.md:424",
+      "test": "unconfigured_refresh_restores_cache_then_skips_network",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "unconfigured online refresh restores cache then skips its second store read and network phase"
+    },
+    {
+      "id": "registry.refresh.configured-network-phase",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:410",
+      "test": "configured_refresh_runs_cache_then_network_with_effective_credential",
+      "polarity": "positive",
+      "owner": "S03-models-registry",
+      "expected": "configured online refresh runs cache then fresh-store network phase with effective credential and force"
+    },
+    {
+      "id": "registry.supersede.new-refresh",
+      "source": "upstream-map.toml:933",
+      "test": "new_refresh_fences_old_generation",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "a successor waits the older admitted write before its first cache read and generation supersession is not caller abortion"
+    },
+    {
+      "id": "registry.supersede.replace-provider",
+      "source": "docs/contracts/ai-domain/models-registry.md:389",
+      "test": "provider_replacement_fences_old_generation",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "replacement closes the visible predecessor epoch before its public swap"
+    },
+    {
+      "id": "registry.supersede.delete-provider",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:274",
+      "test": "provider_deletion_fences_old_generation",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "delete fences the old owner and reinsert appends a distinct incarnation"
+    },
+    {
+      "id": "registry.supersede.clear-providers",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:279",
+      "test": "provider_clear_fences_every_old_generation",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "clear fences all earlier owners while later admitted sets survive"
+    },
+    {
+      "id": "registry.publication.same-provider-serial",
+      "source": "docs/contracts/ai-domain/models-registry.md:479",
+      "test": "same_provider_publications_follow_ticket_order",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "ticket, store, memory, and acknowledgement order are identical"
+    },
+    {
+      "id": "registry.publication.cross-provider-concurrent",
+      "source": "docs/contracts/ai-domain/models-registry.md:480",
+      "test": "cross_provider_publications_can_overlap",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "blocked provider A does not globally serialize provider B"
+    },
+    {
+      "id": "registry.publication.two-three-superseded-sequence",
+      "source": "docs/contracts/ai-domain/models-registry.md:467",
+      "test": "repeated_publication_two_three_and_superseded_stop_trace",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "two publications acknowledge Published and a three-attempt path stops at Superseded"
+    },
+    {
+      "id": "registry.publication.drop-prepoll-ticket",
+      "source": "docs/contracts/ai-domain/models-registry.md:458",
+      "test": "dropping_unpolled_publication_cancels_only_its_ticket",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "an unpolled publication has zero effects and cannot strand its successor"
+    },
+    {
+      "id": "registry.publication.drop-admitted-future",
+      "source": "docs/contracts/ai-domain/models-registry.md:471",
+      "test": "dropping_admitted_publication_finishes_before_next_ticket",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "a dropped admitted waiter does not cancel its command or queue position"
+    },
+    {
+      "id": "registry.publication.intent-matrix",
+      "source": "docs/contracts/ai-domain/models-registry.md:78",
+      "test": "memory_and_persistence_intents_are_independent_values",
+      "polarity": "positive",
+      "owner": "S03-models-registry",
+      "expected": "all independent memory and persistence intent combinations apply persistence first"
+    },
+    {
+      "id": "registry.publication.persistence-fence-matrix",
+      "source": "docs/contracts/ai-domain/models-registry.md:474",
+      "test": "persistence_fence_before_during_after_admission_matrix",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "supersession before during and after persistence has exact durable and memory effects"
+    },
+    {
+      "id": "registry.restore.policy-reclassification",
+      "source": "upstream-map.toml:873",
+      "test": "restore_reclassifies_raw_headers_under_current_policy",
+      "polarity": "negative",
+      "owner": "S03-models-registry",
+      "expected": "current policy rejects cached headers before provider or credential access"
+    },
+    {
+      "id": "registry.login.method-error-matrix",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:565",
+      "test": "login_api_key_oauth_unknown_and_unsupported_matrix",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "login preserves API key OAuth unknown unsupported and provider failure categories"
+    },
+    {
+      "id": "registry.login.cancellation-admission",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:574",
+      "test": "login_cancellation_before_queue_and_after_commit_admission",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "pre-admission cancellation writes nothing while admitted persistence is definitive"
+    },
+    {
+      "id": "registry.login.quarantine-replace",
+      "source": "docs/contracts/ai-domain/models-registry.md:504",
+      "test": "explicit_login_reconciles_quarantine_at_reserved_revision",
+      "polarity": "negative",
+      "owner": "S03-models-registry",
+      "expected": "explicit login reconciles replacement at the reserved quarantine revision"
+    },
+    {
+      "id": "registry.logout.refresh-and-quarantine-delete",
+      "source": "docs/contracts/ai-domain/models-registry.md:512",
+      "test": "logout_refresh_race_and_quarantine_delete_matrix",
+      "polarity": "race",
+      "owner": "S03-models-registry",
+      "expected": "known and quarantined delete orderings cannot resurrect credentials"
+    },
+    {
+      "id": "registry.endpoint.precedence-custody",
+      "source": "upstream-map.toml:853",
+      "test": "endpoint_override_public_runtime_missing_and_custody_matrix",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "credential public runtime and missing sentinel endpoint precedence preserves input custody"
+    },
+    {
+      "id": "registry.headers.precedence-case-null",
+      "source": "docs/contracts/ai-domain/models-registry.md:530",
+      "test": "resolved_model_explicit_header_merge_case_and_null_matrix",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "auth model and explicit headers replace case-insensitively and explicit null suppresses"
+    },
+    {
+      "id": "registry.dispatch.resolved-text-deferred-roots",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:667",
+      "test": "resolver_builds_four_text_deferred_nominal_request_roots",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "all four nominal roots preserve resolved model auth endpoint options and runtime identity"
+    },
+    {
+      "id": "registry.dispatch.adapter-capability-matrix",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:762",
+      "test": "dispatch_selects_adapter_and_optional_deferred_capabilities",
+      "polarity": "boundary",
+      "owner": "S03-models-registry",
+      "expected": "dispatch selects by API and preserves distinct deferred capabilities"
+    },
+    {
+      "id": "registry.dispatch.setup-error-redaction",
+      "source": "upstream-map.toml:913",
+      "test": "dispatch_setup_failures_are_in_band_cancel_distinct_and_redacted",
+      "polarity": "negative",
+      "owner": "S03-models-registry",
+      "expected": "setup failures are sanitized in-band and caller cancellation remains distinct"
+    },
+    {
+      "id": "validation.runtime.offline-no-code-generation",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:37",
+      "test": "offline_validator_requires_no_code_generation_and_bounds_cache",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "no eval or network; local references work, external and invalid schemas differ, and the cache remains bounded"
+    },
+    {
+      "id": "validation.coerce.number-string",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:70",
+      "test": "plain_number_coerces_finite_numeric_string",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "a finite numeric string becomes a number"
+    },
+    {
+      "id": "validation.coerce.number-true",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:71",
+      "test": "plain_number_coerces_true_to_one",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "true becomes numeric one"
+    },
+    {
+      "id": "validation.coerce.number-null",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:72",
+      "test": "plain_number_coerces_null_to_zero",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "required null becomes numeric zero"
+    },
+    {
+      "id": "validation.coerce.integer-string",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:73",
+      "test": "plain_integer_coerces_integral_string",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "an integral numeric string becomes an integer"
+    },
+    {
+      "id": "validation.coerce.boolean-string-true",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:74",
+      "test": "plain_boolean_coerces_true_string",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "the exact true string becomes true"
+    },
+    {
+      "id": "validation.coerce.boolean-string-false",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:75",
+      "test": "plain_boolean_coerces_false_string",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "the exact false string becomes false"
+    },
+    {
+      "id": "validation.coerce.boolean-one",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:76",
+      "test": "plain_boolean_coerces_one",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "numeric one becomes true"
+    },
+    {
+      "id": "validation.coerce.boolean-zero",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:77",
+      "test": "plain_boolean_coerces_zero",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "numeric zero becomes false"
+    },
+    {
+      "id": "validation.coerce.string-null",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:78",
+      "test": "plain_string_coerces_null_to_empty",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "required null becomes an empty string"
+    },
+    {
+      "id": "validation.coerce.string-primitive",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:79",
+      "test": "plain_string_coerces_boolean",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "boolean and numeric primitives use ECMAScript string formatting"
+    },
+    {
+      "id": "validation.coerce.null-empty-string",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:80",
+      "test": "plain_null_coerces_empty_string",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "an empty string becomes null"
+    },
+    {
+      "id": "validation.coerce.null-zero",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:81",
+      "test": "plain_null_coerces_zero",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "numeric zero becomes null"
+    },
+    {
+      "id": "validation.coerce.null-false",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:82",
+      "test": "plain_null_coerces_false",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "false becomes null"
+    },
+    {
+      "id": "validation.type-union.preserve-matching",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:83",
+      "test": "type_union_preserves_existing_matching_arm",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "a matching string arm prevents numeric coercion"
+    },
+    {
+      "id": "validation.type-union.coerce-later-arm",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:88",
+      "test": "type_union_tries_later_coercible_arm",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "a later numeric arm accepts after boolean coercion fails"
+    },
+    {
+      "id": "validation.optional-null.object-recursion",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:101",
+      "test": "optional_null_normalization_recurses",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "optional nonnullable nulls disappear recursively"
+    },
+    {
+      "id": "validation.optional-null.local-ref-nullable",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:126",
+      "test": "local_nullable_reference_preserves_optional_null",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "a local nullable reference preserves optional null"
+    },
+    {
+      "id": "validation.union.anyof-preserve-null",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:146",
+      "test": "any_of_preserves_existing_null_arm",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "a matching null anyOf arm remains null"
+    },
+    {
+      "id": "validation.union.oneof-preserve-null",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:164",
+      "test": "one_of_preserves_existing_null_arm",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "a matching null oneOf arm remains null"
+    },
+    {
+      "id": "validation.union.anyof-coerce-number",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:173",
+      "test": "any_of_coerces_to_first_valid_arm",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "the first successful coerced anyOf arm wins"
+    },
+    {
+      "id": "validation.type-union.nullable-array",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:182",
+      "test": "nullable_array_type_preserves_null",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "an array and null type union preserves null"
+    },
+    {
+      "id": "validation.reject.boolean-string-one",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:199",
+      "test": "boolean_rejects_numeric_one_string",
+      "polarity": "negative",
+      "owner": "S03-tool-validation",
+      "expected": "the string one does not become boolean"
+    },
+    {
+      "id": "validation.reject.boolean-string-zero",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:200",
+      "test": "boolean_rejects_numeric_zero_string",
+      "polarity": "negative",
+      "owner": "S03-tool-validation",
+      "expected": "the string zero does not become boolean"
+    },
+    {
+      "id": "validation.reject.null-string",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:201",
+      "test": "null_rejects_null_string",
+      "polarity": "negative",
+      "owner": "S03-tool-validation",
+      "expected": "the null string does not become null"
+    },
+    {
+      "id": "validation.reject.fractional-integer",
+      "source": "packages/ai/test/validation.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:202",
+      "test": "integer_rejects_fractional_string",
+      "polarity": "negative",
+      "owner": "S03-tool-validation",
+      "expected": "a fractional numeric string does not become an integer"
+    },
+    {
+      "id": "validation.tool.known",
+      "source": "packages/ai/src/utils/validation.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:302",
+      "test": "validate_tool_call_selects_known_exact_name",
+      "polarity": "positive",
+      "owner": "S03-tool-validation",
+      "expected": "the first exact tool returns independently owned validated arguments"
+    },
+    {
+      "id": "validation.tool.unknown",
+      "source": "packages/ai/src/utils/validation.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:303",
+      "test": "validate_tool_call_rejects_unknown_name",
+      "polarity": "negative",
+      "owner": "S03-tool-validation",
+      "expected": "an unknown tool returns fixed ToolNotFound"
+    },
+    {
+      "id": "validation.issue.nested-required-path",
+      "source": "packages/ai/src/utils/validation.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:282",
+      "test": "nested_required_issue_has_bounded_dotted_path",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "a required issue names its bounded nested dotted path"
+    },
+    {
+      "id": "validation.arguments.nonmutation",
+      "source": "packages/ai/src/utils/validation.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:318",
+      "test": "validation_never_mutates_arguments_or_schema",
+      "polarity": "boundary",
+      "owner": "S03-tool-validation",
+      "expected": "success and every failure leave arguments and schema unchanged"
+    },
+    {
+      "id": "transform.lax.null-missing-content",
+      "source": "packages/ai/test/lax-message-content.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:31",
+      "test": "lax_decoder_repairs_null_and_missing_content_without_mutation",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "user assistant and tool-result missing or null content repair before strict decoding without input mutation"
+    },
+    {
+      "id": "transform.images.capable-pass-through",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:35",
+      "test": "image_capable_model_preserves_input_blocks",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "an image-capable target preserves user and tool-result image blocks"
+    },
+    {
+      "id": "transform.images.user-placeholder",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:41",
+      "test": "text_only_model_uses_user_image_placeholder",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "a text-only target replaces user images with the exact user placeholder"
+    },
+    {
+      "id": "transform.images.tool-placeholder",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:48",
+      "test": "text_only_model_uses_tool_image_placeholder",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "a text-only target replaces tool-result images with the distinct exact tool placeholder"
+    },
+    {
+      "id": "transform.images.adjacent-collapse",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:15",
+      "test": "adjacent_unsupported_images_collapse_to_one_placeholder",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "consecutive unsupported source images emit one placeholder"
+    },
+    {
+      "id": "transform.images.existing-placeholder-collapse",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:29",
+      "test": "existing_placeholder_before_image_suppresses_duplicate",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "a preceding exact placeholder suppresses insertion while a same-text block following an image remains"
+    },
+    {
+      "id": "transform.thinking.same-redacted-preserved",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:101",
+      "test": "same_model_preserves_redacted_thinking",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "same-model redacted thinking remains byte-for-byte replayable"
+    },
+    {
+      "id": "transform.thinking.foreign-redacted-dropped",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:101",
+      "test": "foreign_model_drops_redacted_thinking",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "foreign redacted thinking is removed"
+    },
+    {
+      "id": "transform.thinking.same-signed-empty-preserved",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:107",
+      "test": "same_model_preserves_signed_empty_thinking",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "same-model empty or blank thinking with a nonempty signature remains"
+    },
+    {
+      "id": "transform.thinking.unsigned-empty-dropped",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:110",
+      "test": "unsigned_empty_thinking_is_dropped",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "empty or blank unsigned thinking is removed"
+    },
+    {
+      "id": "transform.thinking.same-nonempty-preserved",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:112",
+      "test": "same_model_preserves_nonempty_thinking",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "same-model nonempty thinking and metadata remain"
+    },
+    {
+      "id": "transform.thinking.foreign-nonempty-to-text",
+      "source": "packages/ai/test/transform-messages-copilot-openai-to-anthropic.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:50",
+      "test": "foreign_nonempty_thinking_becomes_unsigned_text",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "foreign nonempty thinking becomes plain unsigned text"
+    },
+    {
+      "id": "transform.text.same-signature-preserved",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:119",
+      "test": "same_model_preserves_text_signature",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "same-model text signatures remain"
+    },
+    {
+      "id": "transform.text.foreign-signature-removed",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:119",
+      "test": "foreign_model_removes_text_signature",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "foreign text retains its text and loses its signature"
+    },
+    {
+      "id": "transform.tool.same-thought-signature-preserved",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:127",
+      "test": "same_model_preserves_tool_thought_signature",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "same-model tool calls preserve thought signatures"
+    },
+    {
+      "id": "transform.tool.foreign-thought-signature-removed",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:131",
+      "test": "foreign_model_removes_only_tool_thought_signature",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "foreign calls lose only a nonempty thought signature before id normalization while an empty signature follows JavaScript falsy preservation"
+    },
+    {
+      "id": "transform.tool-id.same-model-bypass",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:95",
+      "test": "same_model_bypasses_tool_call_id_normalizer",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "an exact provider API and model match invokes no normalizer"
+    },
+    {
+      "id": "transform.tool-id.foreign-normalized",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:136",
+      "test": "foreign_tool_calls_receive_target_and_source_normalization",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "foreign tool calls normalize in content order with the complete source assistant and target model"
+    },
+    {
+      "id": "transform.tool-id.following-result-remapped",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:83",
+      "test": "following_tool_results_use_normalized_ids",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "a later matching tool result uses the changed target id"
+    },
+    {
+      "id": "transform.tool-id.preceding-result-unchanged",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:83",
+      "test": "tool_results_preceding_their_calls_remain_unchanged",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "a tool result preceding its call is never retroactively rewritten"
+    },
+    {
+      "id": "transform.tool-id.collision-rejected",
+      "source": "upstream-map.toml:861",
+      "test": "normalization_collision_is_rejected_without_partial_output",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "distinct source owners of one final id fail atomically with bounded redacted diagnostics while repeated identical sources remain legal"
+    },
+    {
+      "id": "transform.assistant.error-dropped",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:189",
+      "test": "errored_assistant_turn_is_dropped",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "an error assistant is removed after its first-pass id mapping remains available to later results"
+    },
+    {
+      "id": "transform.assistant.aborted-dropped",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:189",
+      "test": "aborted_assistant_turn_is_dropped",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "an aborted assistant is removed without disturbing surrounding messages"
+    },
+    {
+      "id": "transform.orphan.assistant-boundary",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:185",
+      "test": "assistant_boundary_repairs_previous_orphans",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "an assistant boundary flushes missing results from the preceding assistant before itself"
+    },
+    {
+      "id": "transform.orphan.user-boundary",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:210",
+      "test": "user_boundary_repairs_previous_orphans",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "a user boundary flushes missing results before the user message"
+    },
+    {
+      "id": "transform.orphan.end-boundary",
+      "source": "packages/ai/test/transform-messages-copilot-openai-to-anthropic.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:136",
+      "test": "end_boundary_repairs_trailing_orphans",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "transcript end flushes trailing missing results"
+    },
+    {
+      "id": "transform.orphan.partial-result-source-order",
+      "source": "packages/ai/test/transform-messages-copilot-openai-to-anthropic.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:162",
+      "test": "partial_results_synthesize_only_missing_calls_in_source_order",
+      "polarity": "positive",
+      "owner": "S03-message-transform",
+      "expected": "only missing results synthesize and those synthetic results preserve source call order"
+    },
+    {
+      "id": "transform.orphan.complete-results-no-synthesis",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:163",
+      "test": "complete_tool_results_do_not_synthesize_failures",
+      "polarity": "negative",
+      "owner": "S03-message-transform",
+      "expected": "a complete result set adds no synthetic failures"
+    },
+    {
+      "id": "transform.orphan.unrelated-result-preserved",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:207",
+      "test": "unrelated_tool_result_is_preserved_and_does_not_settle_pending_call",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "an unrelated result remains and does not settle the pending source call"
+    },
+    {
+      "id": "transform.orphan.failed-assistant-boundary",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:185",
+      "test": "failed_assistant_boundary_repairs_previous_but_not_failed_calls",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "a failed assistant flushes prior pending calls but contributes no new pending calls"
+    },
+    {
+      "id": "transform.orphan.injected-timestamp",
+      "source": "packages/ai/src/api/transform-messages.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:163",
+      "test": "synthetic_results_use_injected_timestamp_and_exact_shape",
+      "polarity": "boundary",
+      "owner": "S03-message-transform",
+      "expected": "every synthetic result has the exact fixed shape and caller-injected timestamp"
+    },
+    {
+      "id": "overflow.error.anthropic-prompt-too-long",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:38",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "case-insensitive prompt is too long matches"
+    },
+    {
+      "id": "overflow.error.anthropic-request-too-large",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:39",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "case-insensitive request_too_large matches"
+    },
+    {
+      "id": "overflow.error.bedrock-input-too-long",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:40",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "case-insensitive input is too long for requested model matches"
+    },
+    {
+      "id": "overflow.error.openai-context-window",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:41",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "case-insensitive exceeds the context window matches"
+    },
+    {
+      "id": "overflow.error.openai-maximum-context-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:42",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "optional the  and models /model's  prefixes plus comma-digit token and parenthesized maximum forms match"
+    },
+    {
+      "id": "overflow.error.google-token-count",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:43",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "input token count followed on one line by exceeds the maximum matches"
+    },
+    {
+      "id": "overflow.error.xai-prompt-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:44",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "maximum prompt length is plus ASCII digits matches"
+    },
+    {
+      "id": "overflow.error.groq-reduce-messages",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:45",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "reduce the length of the messages matches"
+    },
+    {
+      "id": "overflow.error.openrouter-context-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:46",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "maximum context length is plus ASCII digits and tokens matches"
+    },
+    {
+      "id": "overflow.error.poolside-input-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:47",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "optional the , comma digits, and token with optional s match"
+    },
+    {
+      "id": "overflow.error.together-context-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:48",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "both parenthesized ASCII token counts and models/model's forms match"
+    },
+    {
+      "id": "overflow.error.copilot-token-limit",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:49",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "exceeds the limit of plus ASCII digits matches"
+    },
+    {
+      "id": "overflow.error.llama-context-size",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:50",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "exceeds the available context size matches"
+    },
+    {
+      "id": "overflow.error.lm-studio-context-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:51",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "greater than the context length matches"
+    },
+    {
+      "id": "overflow.error.minimax-context-window",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:52",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "context window exceeds limit matches"
+    },
+    {
+      "id": "overflow.error.kimi-model-token-limit",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:53",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "exceeded model token limit matches"
+    },
+    {
+      "id": "overflow.error.mistral-maximum-context",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:54",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "too large for model with plus ASCII digits and maximum context length matches"
+    },
+    {
+      "id": "overflow.error.ds4-configured-context",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:55",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "both counts accept ASCII comma digits and token with optional s"
+    },
+    {
+      "id": "overflow.error.zai-context-window",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:56",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "model_context_window_exceeded matches"
+    },
+    {
+      "id": "overflow.error.ollama-prompt-too-long",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:57",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "prompt too long; exceeded context length accepts optional max"
+    },
+    {
+      "id": "overflow.error.dashscope-input-range",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:58",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "range of input length should be matches"
+    },
+    {
+      "id": "overflow.error.generic-context-length",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:59",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "each separator in context length exceeded independently accepts space or underscore"
+    },
+    {
+      "id": "overflow.error.generic-too-many-tokens",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:60",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "too many tokens matches"
+    },
+    {
+      "id": "overflow.error.generic-token-limit",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:61",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "token limit exceeded matches"
+    },
+    {
+      "id": "overflow.error.cerebras-no-body",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:62",
+      "test": "overflow_error_pattern_rows",
+      "polarity": "boundary",
+      "owner": "S03-overflow",
+      "expected": "anchored 400 and 413 with optional status code/whitespace before (no body) are true; the same 429 form is overflow false and retry true"
+    },
+    {
+      "id": "overflow.exclusion.bedrock-throttling-service",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:75",
+      "test": "overflow_exclusion_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "both line-start service prefixes beat an overlapping token marker"
+    },
+    {
+      "id": "overflow.exclusion.rate-limit",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:76",
+      "test": "overflow_exclusion_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "rate limit beats an overlapping overflow marker"
+    },
+    {
+      "id": "overflow.exclusion.too-many-requests",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:77",
+      "test": "overflow_exclusion_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "too-many-requests beats an overlapping token marker"
+    },
+    {
+      "id": "overflow.structure.stop-reason",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:134",
+      "test": "overflow_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "every non-error reason with a marker is false absent a usage signal"
+    },
+    {
+      "id": "overflow.structure.message-absent",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:136",
+      "test": "overflow_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "Error without message is false"
+    },
+    {
+      "id": "overflow.structure.message-empty",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:136",
+      "test": "overflow_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "Error with empty message is false"
+    },
+    {
+      "id": "overflow.structure.unmatched-message",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:139",
+      "test": "overflow_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "unknown nonempty error is false"
+    },
+    {
+      "id": "overflow.silent.input-over",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:147",
+      "test": "silent_overflow_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "Stop input strictly over context is true"
+    },
+    {
+      "id": "overflow.silent.cache-read-contributes",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:146",
+      "test": "silent_overflow_rows",
+      "polarity": "boundary",
+      "owner": "S03-overflow",
+      "expected": "only input and cache-read contribute"
+    },
+    {
+      "id": "overflow.silent.strict-threshold",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:147",
+      "test": "silent_overflow_rows",
+      "polarity": "boundary",
+      "owner": "S03-overflow",
+      "expected": "equal and below are false"
+    },
+    {
+      "id": "overflow.silent.context-and-reason-gate",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:145",
+      "test": "silent_overflow_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "absent/zero context and non-Stop reasons do not enter the branch"
+    },
+    {
+      "id": "overflow.length.above-99-percent",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:157",
+      "test": "length_overflow_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "zero-output Length above 99 percent is true"
+    },
+    {
+      "id": "overflow.length.exact-99-percent",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:157",
+      "test": "length_overflow_rows",
+      "polarity": "positive",
+      "owner": "S03-overflow",
+      "expected": "exact 99 percent is true"
+    },
+    {
+      "id": "overflow.length.below-99-percent",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:157",
+      "test": "length_overflow_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "below 99 percent is false"
+    },
+    {
+      "id": "overflow.length.nonzero-output",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:155",
+      "test": "length_overflow_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "nonzero output is false"
+    },
+    {
+      "id": "overflow.length.context-and-reason-gate",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:155",
+      "test": "length_overflow_rows",
+      "polarity": "negative",
+      "owner": "S03-overflow",
+      "expected": "absent/zero context and non-Length reasons do not enter the branch"
+    },
+    {
+      "id": "overflow.recoverable.boundary-matrix",
+      "source": "packages/ai/src/utils/overflow.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:172",
+      "test": "recoverable_length_rows",
+      "polarity": "boundary",
+      "owner": "S03-overflow",
+      "expected": "below desired output is true; equal/above/zero desired and non-Length are false"
+    },
+    {
+      "id": "overflow.precedence.retry-overlap",
+      "source": "docs/contracts/ai-domain/final-domain-runtime.md#failure-classifiers",
+      "test": "overflow_retry_precedence_row",
+      "polarity": "boundary",
+      "owner": "S03-overflow",
+      "expected": "both pure classifiers return true; caller precedence is not claimed by this S03 row"
+    },
+    {
+      "id": "retry.transient.overloaded",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:28",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "Error plus nonempty case-insensitive overloaded is true"
+    },
+    {
+      "id": "retry.transient.rate-limit",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:29",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "rate plus zero or one BMP non-line-terminator (one legacy UTF-16 code unit) plus limit is true"
+    },
+    {
+      "id": "retry.transient.too-many-requests",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:30",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "too many requests is true"
+    },
+    {
+      "id": "retry.transient.http-429",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:31",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "marker 429 is true, including the Cerebras no-body negative-overflow witness"
+    },
+    {
+      "id": "retry.transient.http-500",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:32",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "marker 500 is true"
+    },
+    {
+      "id": "retry.transient.http-502",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:33",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "marker 502 is true"
+    },
+    {
+      "id": "retry.transient.http-503",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:34",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "marker 503 is true"
+    },
+    {
+      "id": "retry.transient.http-504",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:35",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "marker 504 is true"
+    },
+    {
+      "id": "retry.transient.http-524",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:36",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "marker 524 is true"
+    },
+    {
+      "id": "retry.transient.service-unavailable",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:37",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in service unavailable accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.server-error",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:38",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in server error accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.internal-error",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:39",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in internal error accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.provider-returned-error",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:43",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "both gaps in provider returned error accept zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.request-buffer-limit",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:44",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "exact request-buffer exhaustion wording is true"
+    },
+    {
+      "id": "retry.transient.network-error",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:49",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in network error accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.connection-error",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:50",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in connection error accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.connection-refused",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:51",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in connection refused accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.connection-lost",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:52",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in connection lost accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.other-side-closed",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:53",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "other side closed is true"
+    },
+    {
+      "id": "retry.transient.fetch-failed",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:54",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "fetch failed is true"
+    },
+    {
+      "id": "retry.transient.dns-getaddrinfo",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:55",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "getaddrinfo is true"
+    },
+    {
+      "id": "retry.transient.dns-enotfound",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:56",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "ENOTFOUND is true case-insensitively"
+    },
+    {
+      "id": "retry.transient.dns-eai-again",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:57",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "EAI_AGAIN is true case-insensitively"
+    },
+    {
+      "id": "retry.transient.upstream-connect",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:58",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in upstream connect accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.reset-before-headers",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:59",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "reset before headers is true"
+    },
+    {
+      "id": "retry.transient.socket-hang-up",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:60",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "socket hang up is true"
+    },
+    {
+      "id": "retry.transient.socket-connection-closed",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:61",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "socket connection was closed is true"
+    },
+    {
+      "id": "retry.transient.timed-out",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:62",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "both time out and timed out are true"
+    },
+    {
+      "id": "retry.transient.timeout",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "timeout is true"
+    },
+    {
+      "id": "retry.transient.terminated",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:64",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "terminated is true"
+    },
+    {
+      "id": "retry.transient.websocket-closed",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:67",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in websocket closed accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.websocket-error",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:68",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "the gap in websocket error accepts zero or one BMP non-line-terminator UTF-16 code unit"
+    },
+    {
+      "id": "retry.transient.ended-without",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:73",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "ended without is true"
+    },
+    {
+      "id": "retry.transient.anthropic-message-stop",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:74",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "stream ended before message_stop is true"
+    },
+    {
+      "id": "retry.transient.responses-terminal-event",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:75",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "stream ended before a terminal response event is true"
+    },
+    {
+      "id": "retry.transient.http2-no-response",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:76",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "http2 request did not get a response is true"
+    },
+    {
+      "id": "retry.transient.retry-delay",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:80",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "retry delay is true"
+    },
+    {
+      "id": "retry.transient.guidance-you-can-retry",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:84",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "you can retry your request is true"
+    },
+    {
+      "id": "retry.transient.guidance-try-again",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:85",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "try your request again is true"
+    },
+    {
+      "id": "retry.transient.guidance-please-retry",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:86",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "please retry your request is true"
+    },
+    {
+      "id": "retry.transient.grpc-resource-exhausted",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:89",
+      "test": "retryable_marker_rows",
+      "polarity": "positive",
+      "owner": "S03-retry",
+      "expected": "ResourceExhausted is true case-insensitively"
+    },
+    {
+      "id": "retry.nonretryable.opencode-go-limit",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:10",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "GoUsageLimitError plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.opencode-free-limit",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:11",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "FreeUsageLimitError plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.monthly-usage-limit",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:15",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "Monthly usage limit reached plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.available-balance",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:16",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "available balance plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.insufficient-quota",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:20",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "insufficient_quota plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.out-of-budget",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:21",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "out of budget plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.quota-exceeded",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:22",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "quota exceeded plus a transient marker remains false"
+    },
+    {
+      "id": "retry.nonretryable.billing",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:23",
+      "test": "non_retryable_precedence_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "billing plus a transient marker remains false"
+    },
+    {
+      "id": "retry.structure.non-error-reasons",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:224",
+      "test": "retry_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "all six non-error reasons remain false"
+    },
+    {
+      "id": "retry.structure.message-absent",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:224",
+      "test": "retry_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "Error without a message is false"
+    },
+    {
+      "id": "retry.structure.message-empty",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:224",
+      "test": "retry_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "Error with an empty message is false"
+    },
+    {
+      "id": "retry.structure.unmatched-message",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:227",
+      "test": "retry_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "unknown nonempty message is false"
+    },
+    {
+      "id": "retry.structure.whitespace-message",
+      "source": "packages/ai/src/utils/retry.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:227",
+      "test": "retry_structural_negative_rows",
+      "polarity": "negative",
+      "owner": "S03-retry",
+      "expected": "whitespace is nonempty but unmatched and false"
+    },
+    {
+      "id": "helper.provider-builder.identity-baseline",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:763",
+      "test": "provider_builder_preserves_identity_defaults_and_baseline_values",
+      "polarity": "positive",
+      "owner": "S03-models-helpers",
+      "expected": "name defaults and baseline/auth stay detached and unnormalized"
+    },
+    {
+      "id": "helper.provider-builder.overlay-by-id",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:769",
+      "test": "provider_builder_overlay_replaces_first_id_and_appends",
+      "polarity": "positive",
+      "owner": "S03-models-helpers",
+      "expected": "registry-owned overlay replaces first id or appends with stable order"
+    },
+    {
+      "id": "helper.provider-builder.static-capability",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:801",
+      "test": "provider_builder_fetcher_controls_refresher_presence",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "only dynamic options expose a refresher"
+    },
+    {
+      "id": "helper.provider-builder.cache-restore",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:805",
+      "test": "provider_builder_restores_only_owned_cached_models",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "present cache filters provider; empty clears; absent keeps"
+    },
+    {
+      "id": "helper.provider-builder.restore-superseded",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:808",
+      "test": "provider_builder_stops_when_restore_is_superseded",
+      "polarity": "race",
+      "owner": "S03-models-helpers",
+      "expected": "superseded restore prevents fetch and final publish"
+    },
+    {
+      "id": "helper.provider-builder.network-publication",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:820",
+      "test": "provider_builder_fetches_and_publishes_dynamic_catalog",
+      "polarity": "positive",
+      "owner": "S03-models-helpers",
+      "expected": "full context and deterministic checked-at publish; an over-SafeUnsigned clock returns ModelSource before submitting either final intent"
+    },
+    {
+      "id": "helper.provider-builder.network-stop-matrix",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:817",
+      "test": "provider_builder_network_stop_matrix",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "offline, cancellation, fetch, clock overflow, and publish outcomes differ exactly"
+    },
+    {
+      "id": "helper.provider-builder.adapter-selection",
+      "source": "upstream-map.toml:991",
+      "test": "provider_builder_selects_declared_api_adapters",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "adapters self-index by declared ApiId, a duplicate fails construction, and a missing id returns None"
+    },
+    {
+      "id": "helper.provider-builder.filter-forwarding",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:828",
+      "test": "provider_builder_forwards_filter_without_mutating_inputs",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "detached models and exact optional credential reach filter"
+    },
+    {
+      "id": "helper.has-api.exact",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:875",
+      "test": "has_api_is_exact_and_case_sensitive",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "exact open API equality only"
+    },
+    {
+      "id": "helper.cost.threshold-exclusive",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:883",
+      "test": "calculate_cost_uses_exclusive_request_wide_threshold",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "threshold itself stays base; one above tiers whole request"
+    },
+    {
+      "id": "helper.cost.highest-tier",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:884",
+      "test": "calculate_cost_selects_highest_matching_tier",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "unsorted highest threshold and first duplicate win"
+    },
+    {
+      "id": "helper.cost.cache-write-split",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:890",
+      "test": "calculate_cost_prices_short_and_one_hour_cache_writes",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "exact short/long formula including excess long write"
+    },
+    {
+      "id": "helper.cost.mutation",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:892",
+      "test": "calculate_cost_overwrites_only_usage_cost",
+      "polarity": "positive",
+      "owner": "S03-models-helpers",
+      "expected": "cost replaced; token fields unchanged"
+    },
+    {
+      "id": "helper.cost.finite-atomic",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:896",
+      "test": "calculate_cost_rejects_nonfinite_results_atomically",
+      "polarity": "negative",
+      "owner": "S03-models-helpers",
+      "expected": "overflow errors leave old cost unchanged"
+    },
+    {
+      "id": "helper.thinking.nonreasoning",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:903",
+      "test": "supported_thinking_levels_for_nonreasoning_are_off_only",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "map is ignored and only Off returns"
+    },
+    {
+      "id": "helper.thinking.mapping",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:906",
+      "test": "supported_thinking_levels_apply_null_defaults_and_extended_opt_in",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "null/default/extended rules and fixed order"
+    },
+    {
+      "id": "helper.thinking.clamp-pass",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:917",
+      "test": "clamp_thinking_level_preserves_supported_requests",
+      "polarity": "positive",
+      "owner": "S03-models-helpers",
+      "expected": "every supported request passes through"
+    },
+    {
+      "id": "helper.thinking.clamp-search",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:923",
+      "test": "clamp_thinking_level_searches_up_then_down",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "upward winner, downward fallback, Max hole, empty Off"
+    },
+    {
+      "id": "helper.model-equality",
+      "source": "packages/ai/src/models.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:942",
+      "test": "models_are_equal_compares_only_present_provider_and_id",
+      "polarity": "boundary",
+      "owner": "S03-models-helpers",
+      "expected": "absence and provider/id matrix, all other fields ignored"
+    },
+    {
+      "id": "helper.context.usage-total-fallback",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:17",
+      "test": "context_usage_prefers_nonzero_total_and_falls_back_to_components",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "nonzero total wins; zero sums four components"
+    },
+    {
+      "id": "helper.context.utf16-text-image",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:29",
+      "test": "text_and_image_estimates_use_utf16_units_and_fixed_image_cost",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "UTF-16 ceil-by-four and 4,800 image units"
+    },
+    {
+      "id": "helper.context.message-roles",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:45",
+      "test": "message_estimates_cover_each_role_and_assistant_block",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "exact user/tool/assistant block accounting"
+    },
+    {
+      "id": "helper.context.no-checkpoint-prefix",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:134-135",
+      "test": "context_without_checkpoint_adds_system_tools_and_all_messages",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "all messages, system, and tools count"
+    },
+    {
+      "id": "helper.context.checkpoint-trailing",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:89",
+      "test": "context_checkpoint_reuses_usage_and_estimates_only_trailing_content",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "usage plus trailing estimate"
+    },
+    {
+      "id": "helper.context.invalid-checkpoint-matrix",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63",
+      "test": "stale_failed_aborted_and_zero_usage_are_not_checkpoints",
+      "polarity": "negative",
+      "owner": "S03-portable-helpers",
+      "expected": "all invalid checkpoint dimensions are excluded"
+    },
+    {
+      "id": "helper.context.newer-checkpoint",
+      "source": "packages/ai/test/context-estimate.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63",
+      "test": "newer_assistant_usage_restores_checkpoint",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "later valid response restores checkpoint"
+    },
+    {
+      "id": "helper.context.added-tools-after-checkpoint",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:119",
+      "test": "post_checkpoint_markers_add_only_named_available_tool_definitions",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "only named later available tools count"
+    },
+    {
+      "id": "helper.json.repair-valid",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:32",
+      "test": "repair_json_preserves_valid_json_and_escape_sequences",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "valid JSON remains byte-equal"
+    },
+    {
+      "id": "helper.json.repair-controls",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:79",
+      "test": "repair_json_escapes_only_raw_string_control_characters",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "controls inside strings repair; outside remain"
+    },
+    {
+      "id": "helper.json.repair-invalid-escapes",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:53",
+      "test": "repair_json_doubles_invalid_and_trailing_backslashes",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "invalid/incomplete/trailing escapes repair"
+    },
+    {
+      "id": "helper.json.parse-repair-order",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:85",
+      "test": "parse_json_uses_original_then_repaired_input_without_mutation",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "original precedes repaired parse"
+    },
+    {
+      "id": "helper.json.parse-error-redaction",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:88",
+      "test": "invalid_json_returns_typed_bounded_error_without_input",
+      "polarity": "negative",
+      "owner": "S03-portable-helpers",
+      "expected": "error has no input sentinel"
+    },
+    {
+      "id": "helper.json.streaming-fallback",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:104",
+      "test": "streaming_json_empty_null_and_malformed_fallback_matrix",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "empty/malformed become object; complete null remains null"
+    },
+    {
+      "id": "helper.json.streaming-partial",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:112",
+      "test": "streaming_json_recovers_partial_collections_atoms_and_invalid_escapes",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "bounded raw/repaired order with pinned completed-prefix recovery"
+    },
+    {
+      "id": "helper.text.string-separator",
+      "source": "packages/ai/src/utils/text.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:6",
+      "test": "content_text_preserves_strings_and_supports_default_and_custom_separators",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "string pass-through and newline/custom join"
+    },
+    {
+      "id": "helper.text.block-filtering",
+      "source": "packages/ai/src/utils/text.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:8",
+      "test": "content_text_selects_only_text_blocks_from_input_and_assistant_content",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "non-text blocks are ignored"
+    },
+    {
+      "id": "helper.hash.wrapping-base36",
+      "source": "packages/ai/src/utils/hash.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:2",
+      "test": "short_hash_matches_ascii_wrapping_and_base36_vectors",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "exact wrapping/base36 vectors"
+    },
+    {
+      "id": "helper.hash.utf16",
+      "source": "packages/ai/src/utils/hash.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:5",
+      "test": "short_hash_hashes_utf16_code_units_for_non_bmp_text",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "non-BMP input hashes surrogate units"
+    },
+    {
+      "id": "helper.uuid.rfc-layout",
+      "source": "packages/ai/test/uuid.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:16",
+      "test": "uuid_v7_matches_rfc_layout_version_variant_and_lowercase_vector",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "exact layout/version/variant/vector"
+    },
+    {
+      "id": "helper.uuid.sequence-rollover",
+      "source": "packages/ai/src/utils/uuid.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:25",
+      "test": "same_millisecond_sequence_rollover_advances_synthetic_timestamp",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "sequence wrap advances time"
+    },
+    {
+      "id": "helper.uuid.clock-rollback",
+      "source": "packages/ai/src/utils/uuid.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:23",
+      "test": "clock_rollback_preserves_lexicographic_monotonicity",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "rollback increments sequence"
+    },
+    {
+      "id": "helper.uuid.instance-concurrency-error",
+      "source": "docs/contracts/ai-domain/domain.md#uuidv7",
+      "test": "instances_are_explicit_and_concurrent_generation_is_unique_and_bounded",
+      "polarity": "race",
+      "owner": "S03-portable-helpers",
+      "expected": "object safety, concurrency, entropy and clock errors"
+    },
+    {
+      "id": "helper.deferred-tools.disabled-dedup-order",
+      "source": "packages/ai/src/utils/deferred-tools.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:13",
+      "test": "disabled_split_deduplicates_last_value_in_first_source_slot",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "disabled still deduplicates with first slot/last value"
+    },
+    {
+      "id": "helper.deferred-tools.marker-use-order",
+      "source": "packages/ai/src/utils/deferred-tools.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:17",
+      "test": "markers_defer_only_tools_not_used_before_their_load_point",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "prior use prevents deferral; unknown marker ignored"
+    },
+    {
+      "id": "helper.deferred-tools.normalization-collision",
+      "source": "packages/ai/src/utils/deferred-tools.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:14",
+      "test": "normalizer_applies_consistently_and_collisions_keep_first_slot_last_value",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "all names normalize; collision order is stable"
+    },
+    {
+      "id": "helper.deferred-tools.empty-unknown-nonmutation",
+      "source": "docs/contracts/ai-domain/domain.md#deferred-tools",
+      "test": "split_empty_unknown_and_nonmutation_matrix",
+      "polarity": "negative",
+      "owner": "S03-portable-helpers",
+      "expected": "empty/unknown cases and source immutability"
+    },
+    {
+      "id": "session-resource.registration.duplicate-object",
+      "source": "upstream-map.toml:849",
+      "test": "duplicate_object_registrations_receive_independent_tokens",
+      "polarity": "boundary",
+      "owner": "S03-session-resources",
+      "expected": "same Arc receives two independent tokens"
+    },
+    {
+      "id": "session-resource.cleanup.insertion-order",
+      "source": "upstream-map.toml:849",
+      "test": "cleanup_uses_insertion_ordered_snapshot",
+      "polarity": "positive",
+      "owner": "S03-session-resources",
+      "expected": "exact snapshot order and successful removal"
+    },
+    {
+      "id": "session-resource.cleanup.session-id-none",
+      "source": "packages/ai/src/session-resources.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:1",
+      "test": "cleanup_forwards_absent_session_id",
+      "polarity": "boundary",
+      "owner": "S03-session-resources",
+      "expected": "callback observes None"
+    },
+    {
+      "id": "session-resource.cleanup.session-id-exact",
+      "source": "packages/ai/src/session-resources.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:16",
+      "test": "cleanup_forwards_exact_session_id",
+      "polarity": "positive",
+      "owner": "S03-session-resources",
+      "expected": "session id bytes remain exact"
+    },
+    {
+      "id": "session-resource.handle.explicit-removal",
+      "source": "docs/contracts/ai-domain/final-domain-runtime.md#session-resources",
+      "test": "explicit_removal_is_idempotent",
+      "polarity": "boundary",
+      "owner": "S03-session-resources",
+      "expected": "first removal wins; second is false"
+    },
+    {
+      "id": "session-resource.handle.drop",
+      "source": "docs/contracts/ai-domain/domain.md#session-resources",
+      "test": "dropping_unique_handle_unregisters_exactly_one_token",
+      "polarity": "boundary",
+      "owner": "S03-session-resources",
+      "expected": "drop removes only its token"
+    },
+    {
+      "id": "session-resource.cleanup.registration-next-pass",
+      "source": "docs/contracts/ai-domain/domain.md#session-resources",
+      "test": "registration_during_cleanup_waits_for_next_pass",
+      "polarity": "boundary",
+      "owner": "S03-session-resources",
+      "expected": "new token is absent from current snapshot"
+    },
+    {
+      "id": "session-resource.cleanup.removal-next-pass",
+      "source": "docs/contracts/ai-domain/domain.md#session-resources",
+      "test": "removal_during_cleanup_keeps_current_snapshot_but_skips_next_pass",
+      "polarity": "boundary",
+      "owner": "S03-session-resources",
+      "expected": "removed member runs current snapshot only"
+    },
+    {
+      "id": "session-resource.cleanup.reentrancy",
+      "source": "docs/contracts/ai-domain/final-domain-runtime.md#session-resources",
+      "test": "nested_and_concurrent_cleanup_return_cleanup_in_progress",
+      "polarity": "race",
+      "owner": "S03-session-resources",
+      "expected": "deterministic rejection and outer continuation"
+    },
+    {
+      "id": "session-resource.cleanup.failure-continuation",
+      "source": "docs/contracts/ai-domain/final-domain-runtime.md#session-resources",
+      "test": "cleanup_continues_after_error_and_panic",
+      "polarity": "negative",
+      "owner": "S03-session-resources",
+      "expected": "later resources run after Err/panic and failures follow the fixed callback/disposal order"
+    },
+    {
+      "id": "session-resource.cleanup.ordered-aggregate",
+      "source": "upstream-map.toml:849",
+      "test": "cleanup_aggregates_failures_in_order_and_retries_active_failures",
+      "polarity": "negative",
+      "owner": "S03-session-resources",
+      "expected": "ordered redacted aggregate and retained active failures only"
+    },
+    {
+      "id": "session-resource.cleanup.removal-wins",
+      "source": "docs/contracts/ai-domain/domain.md#session-resources",
+      "test": "removal_during_failing_callback_wins_without_reinsertion",
+      "polarity": "race",
+      "owner": "S03-session-resources",
+      "expected": "failure reports but removed token stays absent"
+    }
   ]
 }

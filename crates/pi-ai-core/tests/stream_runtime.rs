@@ -15,7 +15,7 @@ use pi_ai_core::{
     ToolName, Usage, create_assistant_message_event_stream,
 };
 
-const INVENTORY: &str = include_str!("../../../conformance/ai-domain/behavior-inventory.json");
+const INVENTORY: &str = include_str!("../../../conformance/ai-domain/stream-inventory.json");
 
 struct CountingWake {
     wakes: AtomicUsize,
