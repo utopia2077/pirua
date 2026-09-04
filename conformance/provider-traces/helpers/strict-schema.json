@@ -1,0 +1,48 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "evidenceClass": "source-confirmed",
+  "source": "packages/ai/src/api/constrained-sampling.ts:45-134",
+  "normalization": "Existing core JsonObject uses canonical map order; required uses JS array-index order then canonical non-index order. Original TypeScript insertion order is not recovered.",
+  "cases": [
+    {
+      "id": "strict.optional-nested-nullable",
+      "schema": {"type":"object","properties":{"path":{"type":"string"},"offset":{"type":"number"},"metadata":{"type":"object","properties":{"enabled":{"type":"boolean"}}},"nullable":{"anyOf":[{"type":"string"},{"type":"null"}]}},"required":["path","metadata"]},
+      "expected": {"type":"object","properties":{"path":{"type":"string"},"offset":{"anyOf":[{"type":"number"},{"type":"null"}]},"metadata":{"type":"object","properties":{"enabled":{"anyOf":[{"type":"boolean"},{"type":"null"}]}},"required":["enabled"],"additionalProperties":false},"nullable":{"anyOf":[{"type":"string"},{"type":"null"}]}},"required":["metadata","nullable","offset","path"],"additionalProperties":false}
+    },
+    {
+      "id": "strict.absent-properties-stays-absent",
+      "schema": {"type":"object"},
+      "expected": {"type":"object","required":[],"additionalProperties":false}
+    },
+    {
+      "id": "strict.empty-properties-stays-present",
+      "schema": {"type":"object","properties":{},"required":[]},
+      "expected": {"type":"object","properties":{},"required":[],"additionalProperties":false}
+    },
+    {
+      "id": "strict.array-items",
+      "schema": {"type":"object","properties":{"rows":{"type":"array","items":{"type":"object","properties":{"key":{"type":"string"}},"required":["key"]}}},"required":["rows"]},
+      "expected": {"type":"object","properties":{"rows":{"type":"array","items":{"type":"object","properties":{"key":{"type":"string"}},"required":["key"],"additionalProperties":false}}},"required":["rows"],"additionalProperties":false}
+    },
+    {
+      "id": "strict.nullability-witnesses",
+      "schema": {"type":"object","properties":{"a":{"type":["string","null"]},"b":{"const":null},"c":{"enum":["a",null]},"d":{"anyOf":[{"anyOf":[{"type":"null"},{"type":"string"}]}]},"e":{"type":"null"}}},
+      "expected": {"type":"object","properties":{"a":{"type":["string","null"]},"b":{"const":null},"c":{"enum":["a",null]},"d":{"anyOf":[{"anyOf":[{"type":"null"},{"type":"string"}]}]},"e":{"type":"null"}},"required":["a","b","c","d","e"],"additionalProperties":false}
+    },
+    {
+      "id": "strict.keyword-names-under-data-are-inert",
+      "schema": {"type":"object","properties":{"allOf":{"type":"string","default":{"$ref":"synthetic","allOf":true}},"$ref":{"type":"string","enum":[{"oneOf":true}]},"items":{"type":"string","examples":[{"contains":true}]}},"required":["allOf","$ref","items"],"default":{"type":"object","properties":{"if":{"$ref":"inert"}}},"custom":{"not":true}},
+      "expected": {"type":"object","properties":{"allOf":{"type":"string","default":{"$ref":"synthetic","allOf":true}},"$ref":{"type":"string","enum":[{"oneOf":true}]},"items":{"type":"string","examples":[{"contains":true}]}},"required":["$ref","allOf","items"],"default":{"type":"object","properties":{"if":{"$ref":"inert"}}},"custom":{"not":true},"additionalProperties":false}
+    },
+    {
+      "id": "strict.js-index-order-before-canonical-text",
+      "schema": {"type":"object","properties":{"10":{"type":"string"},"2":{"type":"string"},"0":{"type":"string"},"01":{"type":"string"},"4294967295":{"type":"string"},"4294967294":{"type":"string"},"a":{"type":"string"},"z":{"type":"string"}},"required":["10","2","0","01","4294967295","4294967294","a","z"]},
+      "expected": {"type":"object","properties":{"10":{"type":"string"},"2":{"type":"string"},"0":{"type":"string"},"01":{"type":"string"},"4294967295":{"type":"string"},"4294967294":{"type":"string"},"a":{"type":"string"},"z":{"type":"string"}},"required":["0","2","10","4294967294","01","4294967295","a","z"],"additionalProperties":false}
+    },
+    {
+      "id": "strict.duplicate-required-and-nonobject-type-array",
+      "schema": {"type":"object","properties":{"a":{"type":["object","null"]}},"required":["a","a"]},
+      "expected": {"type":"object","properties":{"a":{"type":["object","null"]}},"required":["a"],"additionalProperties":false}
+    }
+  ]
+}

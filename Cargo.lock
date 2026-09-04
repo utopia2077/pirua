@@ -471,6 +471,8 @@ version = "0.0.0"
 dependencies = [
  "pi-ai-core",
  "pi-ai-transport",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

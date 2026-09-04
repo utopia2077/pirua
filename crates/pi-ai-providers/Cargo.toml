@@ -12,3 +12,5 @@ workspace = true
 [dependencies]
 pi-ai-core.workspace = true
 pi-ai-transport.workspace = true
+serde.workspace = true
+serde_json.workspace = true
