@@ -26,6 +26,8 @@ license = "MIT"
 publish = false
 
 [workspace.dependencies]
+httpdate = "=1.0.3"
+url = "=2.5.8"
 jsonschema = { version = "=0.52.1", default-features = false }
 pi-agent = { path = "crates/pi-agent" }
 pi-agent-loop = { path = "crates/pi-agent-loop" }

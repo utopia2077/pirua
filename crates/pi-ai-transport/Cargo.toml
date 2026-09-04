@@ -11,3 +11,5 @@ workspace = true
 
 [dependencies]
 pi-ai-core.workspace = true
+httpdate.workspace = true
+url.workspace = true
