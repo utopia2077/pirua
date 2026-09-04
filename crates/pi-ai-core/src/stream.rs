@@ -43,6 +43,7 @@ struct StreamState<E, R> {
     next_waiter: Option<RegisteredWaker>,
     result_waiters: BTreeMap<u64, Waker>,
     cancellation_link: Option<CancellationLink>,
+    cancellation_snapshot: Option<(E, R)>,
 }
 
 struct StreamShared<E, R> {
@@ -59,6 +60,7 @@ impl<E, R> StreamShared<E, R> {
                 next_waiter: None,
                 result_waiters: BTreeMap::new(),
                 cancellation_link: None,
+                cancellation_snapshot: None,
             }),
         }
     }
@@ -344,13 +346,23 @@ impl AssistantFallback {
 
 impl StreamShared<AssistantMessageEvent, AssistantMessage> {
     fn push(&self, event: AssistantMessageEvent) -> Result<(), StreamProtocolError> {
+        self.push_event(event, false)
+    }
+
+    fn push_event(
+        &self,
+        mut event: AssistantMessageEvent,
+        use_cancellation_snapshot: bool,
+    ) -> Result<(), StreamProtocolError> {
         event.validate()?;
-        let result = match &event {
+        let mut result = match &event {
             AssistantMessageEvent::Done { message, .. } => Some(message.as_ref().clone()),
             AssistantMessageEvent::Error { error, .. } => Some(error.as_ref().clone()),
             _ => None,
         };
 
+        let mut displaced_candidate = None;
+        let mut discarded_snapshot = None;
         let (next_waker, result_waiters, cancellation_link) = {
             let mut state = self
                 .state
@@ -359,6 +371,14 @@ impl StreamShared<AssistantMessageEvent, AssistantMessage> {
             if matches!(state.settlement, Settlement::Settled(_)) {
                 return Err(StreamProtocolError::AlreadySettled);
             }
+            if use_cancellation_snapshot
+                && let Some((snapshot_event, snapshot_result)) = state.cancellation_snapshot.take()
+            {
+                displaced_candidate = Some((
+                    std::mem::replace(&mut event, snapshot_event),
+                    result.replace(snapshot_result),
+                ));
+            }
             state.events.push_back(event);
             let next_waker = state.next_waiter.take().map(|waiter| waiter.waker);
             match result {
@@ -366,12 +386,15 @@ impl StreamShared<AssistantMessageEvent, AssistantMessage> {
                     state.settlement = Settlement::Settled(result);
                     let result_waiters = std::mem::take(&mut state.result_waiters);
                     let cancellation_link = state.cancellation_link.take();
+                    discarded_snapshot = state.cancellation_snapshot.take();
                     (next_waker, result_waiters, cancellation_link)
                 }
                 None => (next_waker, BTreeMap::new(), None),
             }
         };
 
+        drop(displaced_candidate);
+        drop(discarded_snapshot);
         drop(cancellation_link);
         if let Some(waker) = next_waker {
             waker.wake();
@@ -391,9 +414,10 @@ struct AssistantCancellation {
 impl CancellationTarget for AssistantCancellation {
     fn cancel(&self) {
         if let Some(shared) = self.shared.upgrade() {
-            let _ = shared.push(
+            let _ = shared.push_event(
                 self.fallback
                     .event(ErrorReason::Aborted, REQUEST_CANCELLED_MESSAGE),
+                true,
             );
         }
     }
@@ -420,10 +444,91 @@ pub struct AssistantStreamProducer {
     group: Arc<ProducerGroup>,
 }
 
+/// Rejected publication of an owned assistant cancellation snapshot.
+///
+/// Errors contain neither the rejected message nor its identity values.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
+pub enum CancellationSnapshotError {
+    /// Cancellation or another terminal already settled the stream.
+    AlreadySettled,
+    /// Snapshot API or provider differs from the factory identity.
+    IdentityMismatch,
+}
+
+impl fmt::Display for CancellationSnapshotError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::AlreadySettled => "assistant stream is already settled",
+            Self::IdentityMismatch => "cancellation snapshot identity differs from stream identity",
+        })
+    }
+}
+
+impl std::error::Error for CancellationSnapshotError {}
+
 impl AssistantStreamProducer {
     /// Pushes one validated progress or terminal event.
     pub fn push(&self, event: AssistantMessageEvent) -> Result<(), StreamProtocolError> {
         self.group.shared.push(event)
+    }
+
+    /// Publishes the owned partial message to retain if caller cancellation wins.
+    ///
+    /// This opt-in operation emits no event and does not settle the stream. Publish
+    /// after every relevant provider update, including usage-only updates. Before
+    /// the first publication cancellation retains the factory's empty fallback;
+    /// producer-drop and setup failures always retain their existing behavior.
+    /// Concurrent publications are ordered by the same mutex as final settlement.
+    /// Once settled, even an identity-mismatched publication is rejected as
+    /// [`CancellationSnapshotError::AlreadySettled`].
+    ///
+    /// API and provider must match the factory. The snapshot's model may differ:
+    /// Anthropic fallback responses replace the model during streaming. The input
+    /// may carry any provisional stop reason. Cancellation replaces it with
+    /// `aborted`, uses the fixed safe cancellation error text, and removes any
+    /// deferred handle.
+    /// All other fields, including timestamp, signatures, observed raw stop reason,
+    /// end-turn flag and diagnostics, are retained. Adapters must supply already
+    /// sanitized diagnostics; this operation does not inspect message text for
+    /// secrets. The concrete owned DTO cannot retain callbacks or parser buffers.
+    ///
+    /// ```compile_fail
+    /// # let producer: pi_ai_core::AssistantStreamProducer = todo!();
+    /// producer.publish_cancellation_snapshot(|| -> pi_ai_core::AssistantMessage { todo!() });
+    /// ```
+    pub fn publish_cancellation_snapshot(
+        &self,
+        mut snapshot: AssistantMessage,
+    ) -> Result<(), CancellationSnapshotError> {
+        let identity_matches = snapshot.api == self.group.fallback.api
+            && snapshot.provider == self.group.fallback.provider;
+        // Prepare both owned terminal projections before locking. No clock,
+        // callback, conversion, or user-defined clone runs under the stream lock.
+        snapshot.stop_reason = StopReason::Aborted;
+        snapshot.error_message = Some(REQUEST_CANCELLED_MESSAGE.to_owned());
+        snapshot.deferred = None;
+        let event = AssistantMessageEvent::Error {
+            reason: ErrorReason::Aborted,
+            error: Box::new(snapshot.clone()),
+        };
+        let displaced = {
+            let mut state = self
+                .group
+                .shared
+                .state
+                .lock()
+                .unwrap_or_else(|poison| poison.into_inner());
+            if matches!(state.settlement, Settlement::Settled(_)) {
+                return Err(CancellationSnapshotError::AlreadySettled);
+            }
+            if !identity_matches {
+                return Err(CancellationSnapshotError::IdentityMismatch);
+            }
+            state.cancellation_snapshot.replace((event, snapshot))
+        };
+        drop(displaced);
+        Ok(())
     }
 
     /// Converts a setup failure category into a fixed, sanitized terminal event.
