@@ -1,0 +1,18 @@
+{
+  "suite": "session-resources",
+  "expectedRows": 12,
+  "rows": [
+    {"id": "session-resource.registration.duplicate-object", "source": "upstream-map.toml:849", "test": "duplicate_object_registrations_receive_independent_tokens", "polarity": "boundary", "owner": "S03-session-resources", "expected": "same Arc receives two independent tokens"},
+    {"id": "session-resource.cleanup.insertion-order", "source": "upstream-map.toml:849", "test": "cleanup_uses_insertion_ordered_snapshot", "polarity": "positive", "owner": "S03-session-resources", "expected": "exact snapshot order and successful removal"},
+    {"id": "session-resource.cleanup.session-id-none", "source": "packages/ai/src/session-resources.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:1", "test": "cleanup_forwards_absent_session_id", "polarity": "boundary", "owner": "S03-session-resources", "expected": "callback observes None"},
+    {"id": "session-resource.cleanup.session-id-exact", "source": "packages/ai/src/session-resources.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:16", "test": "cleanup_forwards_exact_session_id", "polarity": "positive", "owner": "S03-session-resources", "expected": "session id bytes remain exact"},
+    {"id": "session-resource.handle.explicit-removal", "source": "docs/contracts/ai-domain/final-domain-runtime.md#session-resources", "test": "explicit_removal_is_idempotent", "polarity": "boundary", "owner": "S03-session-resources", "expected": "first removal wins; second is false"},
+    {"id": "session-resource.handle.drop", "source": "docs/contracts/ai-domain/domain.md#session-resources", "test": "dropping_unique_handle_unregisters_exactly_one_token", "polarity": "boundary", "owner": "S03-session-resources", "expected": "drop removes only its token"},
+    {"id": "session-resource.cleanup.registration-next-pass", "source": "docs/contracts/ai-domain/domain.md#session-resources", "test": "registration_during_cleanup_waits_for_next_pass", "polarity": "boundary", "owner": "S03-session-resources", "expected": "new token is absent from current snapshot"},
+    {"id": "session-resource.cleanup.removal-next-pass", "source": "docs/contracts/ai-domain/domain.md#session-resources", "test": "removal_during_cleanup_keeps_current_snapshot_but_skips_next_pass", "polarity": "boundary", "owner": "S03-session-resources", "expected": "removed member runs current snapshot only"},
+    {"id": "session-resource.cleanup.reentrancy", "source": "docs/contracts/ai-domain/final-domain-runtime.md#session-resources", "test": "nested_and_concurrent_cleanup_return_cleanup_in_progress", "polarity": "race", "owner": "S03-session-resources", "expected": "deterministic rejection and outer continuation"},
+    {"id": "session-resource.cleanup.failure-continuation", "source": "docs/contracts/ai-domain/final-domain-runtime.md#session-resources", "test": "cleanup_continues_after_error_and_panic", "polarity": "negative", "owner": "S03-session-resources", "expected": "later resources run after Err/panic and failures follow the fixed callback/disposal order"},
+    {"id": "session-resource.cleanup.ordered-aggregate", "source": "upstream-map.toml:849", "test": "cleanup_aggregates_failures_in_order_and_retries_active_failures", "polarity": "negative", "owner": "S03-session-resources", "expected": "ordered redacted aggregate and retained active failures only"},
+    {"id": "session-resource.cleanup.removal-wins", "source": "docs/contracts/ai-domain/domain.md#session-resources", "test": "removal_during_failing_callback_wins_without_reinsertion", "polarity": "race", "owner": "S03-session-resources", "expected": "failure reports but removed token stays absent"}
+  ]
+}
