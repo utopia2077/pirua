@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex, Weak};
 use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
-use pi_telemetry::TelemetryContext;
+use pi_telemetry::{NOOP_TELEMETRY_CONTEXT, TelemetryContext};
 
 use crate::error::{Cancelled, SpawnError};
 use crate::json::{JS_SAFE_INTEGER_MAX, SafeUnsigned};
@@ -364,6 +364,25 @@ pub struct RequestRuntime {
     pub clock: Arc<dyn Clock>,
     /// Injected task spawner.
     pub spawner: Arc<dyn TaskSpawner>,
+}
+
+impl RequestRuntime {
+    /// Creates a request runtime with telemetry recording disabled.
+    ///
+    /// This constructor preserves the supplied cancellation, clock and spawner
+    /// without invoking them. Callers need no direct telemetry dependency.
+    pub fn with_noop_telemetry(
+        cancellation: CancellationToken,
+        clock: Arc<dyn Clock>,
+        spawner: Arc<dyn TaskSpawner>,
+    ) -> Self {
+        Self {
+            cancellation,
+            telemetry: Arc::new(NOOP_TELEMETRY_CONTEXT),
+            clock,
+            spawner,
+        }
+    }
 }
 
 impl fmt::Debug for RequestRuntime {
