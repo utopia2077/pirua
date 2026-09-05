@@ -160,6 +160,7 @@ fn response(
     (
         HttpResponse {
             status,
+            status_text: String::new(),
             headers: h,
             body: Box::new(Body {
                 closed: closed.clone(),

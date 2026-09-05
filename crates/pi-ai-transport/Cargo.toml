@@ -15,7 +15,10 @@ httpdate.workspace = true
 url.workspace = true
 base64 = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true }
+hyper = { workspace = true, optional = true }
+hyper-util = { workspace = true, optional = true }
+http-body-util = { workspace = true, optional = true }
+rustls-platform-verifier = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tokio-rustls = { workspace = true, optional = true }
 tokio-tungstenite = { workspace = true, optional = true }
@@ -23,8 +26,9 @@ webpki-roots = { workspace = true, optional = true }
 
 [features]
 default = []
-native = ["dep:base64", "dep:futures-util", "dep:reqwest", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots"]
+native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots"]
 
 [dev-dependencies]
 rcgen.workspace = true
 log.workspace = true
+h2.workspace = true

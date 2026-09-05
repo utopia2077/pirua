@@ -14,7 +14,7 @@ Each pending I/O task is owned by an abort-on-drop guard. Body/socket resources
 are moved into the pending task and dropped when abandoned. No detached retry,
 session cache, middleware registration or global cleanup is installed.
 
-HTTP returns status, repeated raw headers and an incremental body. Opaque response
+HTTP returns status, transient `status_text`, repeated raw headers and an incremental body. Opaque response
 header octets are projected one-to-one to Unicode U+0000–U+00FF, not silently
 discarded by UTF-8 validation. Outgoing HTTP/WS header values use the inverse
 checked projection: `é` sends `e9`, and a scalar above U+00FF fails with redacted
@@ -23,18 +23,16 @@ Fetch whitespace trimming is outside this raw port. Error bodies remain availabl
 bounded classification. Native errors expose only typed categories; backend error
 messages, URLs, proxy credentials and raw payloads are not formatted by this crate.
 
-Reqwest retries, redirects, ambient proxy resolution and idle connection pooling
-are disabled explicitly. No implicit total/read/connect timeout is installed.
-Reqwest 0.13.4 additionally defaults TCP keepalive idle/interval to 15 seconds,
-probe count to three, and TCP_USER_TIMEOUT to 30 seconds on Linux/Android/Fuchsia
-(`src/async_impl/client.rs:303-307`). These are socket liveness policies, not
-response/read deadlines: TCP_USER_TIMEOUT concerns unacknowledged transmitted
-bytes (`:1783`). The backend now explicitly sets keepalive/interval/retries to
-None on every platform and TCP_USER_TIMEOUT to None on its supported platforms,
-leaving operating-system TCP liveness/retransmission defaults authoritative.
-This is source-confirmed configuration scope, not a measured packet-drop timeout
-experiment. The direct Tokio WS connector installs no such override. Other
-timeout profiles and unrelated socket settings are unchanged.
+The private HTTP implementation uses one Hyper client connection over explicitly
+opened Tokio/Rustls I/O, with no automatic retry, redirect, ambient proxy lookup,
+or idle connection pool. Each response body owns the connection-driver task;
+body/caller cancellation, completion and drop release it. No implicit total/read/
+connect timeout is installed. Direct TCP creation installs TCP_NODELAY but no
+keepalive or TCP_USER_TIMEOUT override, leaving OS liveness/retransmission defaults
+authoritative. The prior Reqwest implementation explicitly suppressed its
+15-second keepalive/three-probe/30-second user-timeout defaults; that dependency
+is now retired from transport. This is socket configuration scope, not a measured
+packet-drop timeout experiment. The direct Tokio WS connector is unchanged.
 A Linux `strace -f -e trace=setsockopt` run of the real HTTP/SSE loopback test
 observed only TCP_NODELAY on the client connection, with no SO_KEEPALIVE,
 TCP_KEEPIDLE/TCP_KEEPINTVL/TCP_KEEPCNT or TCP_USER_TIMEOUT setting. The separate
@@ -68,7 +66,6 @@ signatures checked against the downloaded source for those exact versions:
 
 | Dependency | Version | Purpose |
 | --- | --- | --- |
-| reqwest | 0.13.4 | HTTP client, streaming response chunk, explicit proxy |
 | Tokio | 1.53.1 | Explicit runtime handle, TCP, timer/task cancellation |
 | tokio-tungstenite | 0.30.0 | WebSocket handshake and bounded frames |
 | tokio-rustls | 0.26.5 | TLS on proxy and origin streams |
@@ -77,11 +74,16 @@ signatures checked against the downloaded source for those exact versions:
 | base64 | 0.23.1 | CONNECT Basic authentication encoding; SIMD-unsafe feature off |
 | rcgen (test only) | 0.14.10 | Ephemeral test certificates; no live/private host keys |
 | log (test only) | 0.4.34 | Synthetic privileged-host logging/filtering witness |
+| hyper | 1.11.1 | Single-connection HTTP/1 and HTTP/2 client drivers |
+| hyper-util | 0.1.20 | Tokio I/O/runtime bridge for Hyper |
+| http-body-util | 0.1.5 | Full request bytes and incremental body frames |
+| rustls-platform-verifier | 0.7.0 | Default HTTP platform certificate verification |
+| h2 (test only) | 0.4.19 | Real HTTP/2 ALPN loopback metadata witness |
 
-Reqwest source `src/async_impl/client.rs:1399-1407` documents default NACK retries;
-`src/retry.rs:84-90` supplies `retry::never()`, which the implementation selects.
-`client.rs:1430-1434` disables system proxies, and `:1438-1469` documents absent
-default timeouts. tokio-tungstenite `src/tls.rs:189-238` verifies that
+Hyper's connection API exposes exactly one caller-issued send per raw request;
+the adapter owns the connection driver and never retries that send. The same
+stream is used for raw HTTP/1 head observation before parsing. No second request
+or parser-cache modification is involved. tokio-tungstenite `src/tls.rs:189-238` verifies that
 `client_async_tls_with_config` accepts the supplied stream and explicit Rustls
 connector, enabling TLS over a previously established proxy tunnel.
 
@@ -96,7 +98,7 @@ Native dependencies are default-off and do not add any internal workspace edge.
 headers, generated ephemeral test certificates and an explicitly created runtime.
 It polls consumer futures outside Tokio to establish the executor boundary.
 
-The 19 integration tests cover incremental HTTP/SSE and EOF release, absolute-form HTTP proxy
+The 26 integration tests cover incremental HTTP/SSE and EOF release, absolute-form HTTP proxy
 requests/authentication, suppressed redirects and retries, an actual 429-to-200
 policy retry, cancellation of a stalled body, bidirectional WS frames/close,
 HTTP CONNECT proxy frames/authentication, WS idle and handshake timeouts, incoming
@@ -107,6 +109,17 @@ rejection, peer-Close replies, Latin1 request bytes and pre-connect rejection
 above U+00FF. A native unit test separately stalls the Close-reply writer and
 proves cancellation and deadline terminate that flush phase and release I/O.
 Protocol constraints follow [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5).
+Two additional metadata witnesses distinguish canonical/custom/empty/unknown-status
+HTTP/1 phrases and an empty HTTP/2 phrase after real TLS ALPN negotiation.
+Correction witnesses preserve high-byte/valid-UTF8/BOM phrases, split writes and
+informational heads, enforce exact cumulative head budgets excluding body data,
+recover HTTP status bytes through nested HTTPS proxy TLS, and release a partial-
+head read on cancellation. A separate minimal raw-head probe demonstrates the
+original bytes before the downstream parser discards the non-ASCII phrase.
+Leading LF/CRLF prefixes, repeated prefixes and prefixes after informational
+responses are checked on real sockets at exact and insufficient budgets. Two
+observer unit tests exercise every two-chunk split and bytewise input for LF and
+CRLF status/header endings with cumulative prefix/informational/final accounting.
 The opaque-header regression first failed because the field was dropped and
 passed after byte-preserving projection. The untrusted-certificate, overlimit,
 cancelled-body and pending-handshake witnesses are causal failure cases, not
@@ -116,6 +129,46 @@ Default test execution uses no public network endpoints, real provider tokens or
 mutable host credentials. Dependency hydration is an explicit online setup step;
 the canonical verification gate remains offline.
 
+## Response status text custody
+
+`HttpResponse.status_text: String` is transient and redacted along with the rest
+of the response wire data in Debug. It is needed for adapter error formatting
+before overflow/retry classification. A universal phrase synthesized from status
+would change these observations, and an always-empty phrase would lose HTTP/1
+metadata. It never enters diagnostics automatically.
+
+Hyper's ReasonPhrase extension is insufficient: httparse 1.10.1
+`src/lib.rs:839-858` replaces the complete parsed reason with an empty string
+after any byte >=0x80. Hyper `src/proto/h1/role.rs:1057-1064,1159-1163` stores
+that already-lossy value. The corrected driver observes plaintext HTTP/1 response
+head bytes before forwarding them unchanged to Hyper, including after origin TLS
+inside a proxy tunnel. It skips informational heads and records the final phrase
+without synthesis or normalization. HTTP/2 returns empty status_text.
+
+Observation accepts at most 64 KiB cumulatively across informational and final
+HTTP/1 heads by default; `with_response_head_limit(bytes)` configures the bound.
+The exact limit is accepted and one-byte overflow fails with LimitExceeded.
+Body bytes are not counted or retained by the observer. Hyper still validates
+the complete protocol; the observer does not replace or weaken its parser.
+The observer has explicit AwaitingStatus, Headers and Complete phases. Before a
+status line it skips only the empty LF/CRLF lines accepted by httparse 1.10.1
+`skip_empty_lines` (`src/lib.rs:558-578,662`), while counting every skipped byte.
+An empty line terminates Headers only after a status line has been observed.
+Informational completion returns to AwaitingStatus without resetting the budget.
+No phrase is published and body exclusion cannot begin while still awaiting the
+actual final status/header sequence.
+
+The stable String field is a lossless byte string: each original octet maps to
+U+0000..U+00FF. For example e9 ff becomes `éÿ`, while UTF-8 c3 a9 becomes `Ã©`.
+The declared Fetch adapter boundary recovers those bytes and performs source-
+appropriate UTF-8 replacement/BOM handling before statusText formatting. The
+local Node oracle returns `Rate limited ��` for invalid e9 ff; neither the raw
+port nor the Fetch adapter may replace the entire phrase with empty text.
+
+All new direct declarations pin versions already locked. Reqwest and transitives
+made unreachable by retiring it are removed from Cargo.lock; retained package
+versions/checksums and internal workspace edges remain unchanged.
+
 ## Dependency logging custody
 
 Controller clarification: owned public Debug/errors/diagnostics/telemetry are
@@ -123,7 +176,7 @@ redacted. An embedding host enabling dependency wire tracing has selected
 privileged raw-wire instrumentation, equivalent in custody to explicit wire
 accessors. It is not sanitized telemetry. This crate installs no global logger,
 subscriber, process-wide suppression or logging configuration. Request header
-values are marked sensitive in both Reqwest and Tungstenite HTTP HeaderValue
+values are marked sensitive in both Hyper and Tungstenite HTTP HeaderValue
 objects. This protects ordinary header Debug and compatible compression paths;
 it cannot redact serialized handshake bytes that a dependency explicitly traces.
 
@@ -144,7 +197,7 @@ zero-leakage proof under arbitrary features/loggers) are:
 | `tungstenite::handshake::client` / TRACE | 0.30.0 `src/handshake/client.rs:197` | Serialized upgrade request, including wire header bytes |
 | `tungstenite::protocol` / TRACE, DEBUG | 0.30.0 `src/protocol/mod.rs:475,719,768` | Message/frame payload and close reason |
 | `tokio_tungstenite` / DEBUG | 0.30.0 `src/lib.rs:371,406` | Native send/close error display |
-| `reqwest::connect` / DEBUG, TRACE | 0.13.4 `src/connect.rs:784,929,1996,2019` | Proxy/target metadata; verbose read/write bytes (verbose mode remains off) |
+| `reqwest::connect` / DEBUG, TRACE (retired backend) | 0.13.4 `src/connect.rs:784,929,1996,2019` | Historical audit: proxy/target metadata and verbose bytes; retained in conservative host filter |
 | `hyper::proto::h1::io` / DEBUG, TRACE | 1.11.1 `src/proto/h1/io.rs:199,210,245` | Header count and read/buffer metadata in inspected sites |
 | `h2::codec::framed_write`, `h2::codec::framed_read` / DEBUG | 0.4.19 `src/codec/framed_write.rs:229`, `framed_read.rs:418` | Frame Debug records |
 | `rustls::client::hs` / TRACE, DEBUG | 0.23.43 `src/client/hs.rs:481,682,1142` | Handshake structures and server identity (when logging feature is active) |

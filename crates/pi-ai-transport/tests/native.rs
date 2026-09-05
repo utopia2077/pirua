@@ -818,3 +818,302 @@ fn headers_above_latin1_are_rejected_before_connect() {
     assert!(listener.accept().is_err());
     assert!(!format!("{error:?} {error}").contains('Ā'));
 }
+
+#[test]
+fn http1_status_text_preserves_canonical_custom_empty_and_unknown_phrases() {
+    for (version, status, phrase) in [
+        ("HTTP/1.1", 429, "Too Many Requests"),
+        ("HTTP/1.1", 429, ""),
+        ("HTTP/1.1", 429, "Custom throttle"),
+        ("HTTP/1.0", 200, "STATUS_TEXT_SYNTHETIC_SECRET"),
+        ("HTTP/1.1", 599, "Unknown custom"),
+        ("HTTP/1.1", 599, ""),
+    ] {
+        let (listener, address) = listener();
+        let server = thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            read_head(&mut stream);
+            let mut body = [0; 5];
+            stream.read_exact(&mut body).unwrap();
+            stream.write_all(format!("{version} {status} {phrase}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes()).unwrap();
+        });
+        let native = engine();
+        let runtime = runtime(&native);
+        let client = NativeHttpClient::new(native.handle().clone());
+        let request = http_request(&address);
+        let response = outside_tokio(client.send(&request, &runtime)).unwrap();
+        assert_eq!(response.status, status);
+        assert_eq!(response.status_text, phrase);
+        assert!(!format!("{response:?}").contains("STATUS_TEXT_SYNTHETIC_SECRET"));
+        drop(response);
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn http2_status_text_is_empty_after_real_alpn_negotiation() {
+    let native = engine();
+    let (cert, server_tls, _) = tls_material();
+    let mut server_tls = (*server_tls).clone();
+    server_tls.alpn_protocols = vec![b"h2".to_vec()];
+    let listener = native
+        .block_on(tokio::net::TcpListener::bind("127.0.0.1:0"))
+        .unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = native.spawn(async move {
+        tokio::time::timeout(Duration::from_secs(5), async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let stream = tokio_rustls::TlsAcceptor::from(Arc::new(server_tls))
+                .accept(stream)
+                .await
+                .unwrap();
+            assert_eq!(stream.get_ref().1.alpn_protocol(), Some(b"h2".as_slice()));
+            let mut connection = h2::server::handshake(stream).await.unwrap();
+            let (request, mut respond) = connection.accept().await.unwrap().unwrap();
+            assert_eq!(request.version(), tungstenite::http::Version::HTTP_2);
+            drop(request);
+            respond
+                .send_response(
+                    tungstenite::http::Response::builder()
+                        .status(429)
+                        .body(())
+                        .unwrap(),
+                    true,
+                )
+                .unwrap();
+            // Drive the queued response until the client releases its connection.
+            assert!(
+                connection
+                    .accept()
+                    .await
+                    .is_none_or(|result| result.is_err()),
+                "unexpected second request"
+            );
+        })
+        .await
+        .unwrap();
+    });
+    let runtime = runtime(&native);
+    let client =
+        NativeHttpClient::with_root_certificates(native.handle().clone(), &[cert]).unwrap();
+    let mut request = http_request(&address.to_string());
+    request.endpoint =
+        RequestEndpoint::new_resolved(format!("https://{address}/messages")).unwrap();
+    request.body.clear();
+    let response = outside_tokio(client.send(&request, &runtime)).unwrap();
+    assert_eq!(response.status, 429);
+    assert_eq!(response.status_text, "");
+    drop(response);
+    native.block_on(server).unwrap();
+}
+
+#[test]
+fn http1_status_text_recovers_raw_high_bytes_utf8_and_informational_heads() {
+    for phrase in [
+        b"Rate limited \xe9\xff".as_slice(),
+        b"Rate limited \xc3\xa9",
+        b"\xef\xbb\xbfRate limited",
+    ] {
+        for informational in [false, true] {
+            let (listener, address) = listener();
+            let wire_phrase = phrase.to_vec();
+            let server = thread::spawn(move || {
+                let (mut socket, _) = listener.accept().unwrap();
+                read_head(&mut socket);
+                let mut body = [0; 5];
+                socket.read_exact(&mut body).unwrap();
+                let mut bytes = Vec::new();
+                if informational {
+                    bytes.extend_from_slice(
+                        b"HTTP/1.1 103 Early Hints\r\nLink: </synthetic>\r\n\r\n",
+                    );
+                }
+                bytes.extend_from_slice(b"HTTP/1.1 429 ");
+                bytes.extend_from_slice(&wire_phrase);
+                bytes.extend_from_slice(b"\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
+                for byte in bytes {
+                    socket.write_all(&[byte]).unwrap();
+                }
+            });
+            let native = engine();
+            let runtime = runtime(&native);
+            let client = NativeHttpClient::new(native.handle().clone());
+            let request = http_request(&address);
+            let mut response = outside_tokio(client.send(&request, &runtime)).unwrap();
+            assert_eq!(response.status, 429);
+            assert_eq!(
+                response.status_text,
+                phrase.iter().copied().map(char::from).collect::<String>()
+            );
+            assert_eq!(
+                outside_tokio(read_body_limited(response.body.as_mut(), &runtime, 10)).unwrap(),
+                b"ok"
+            );
+            server.join().unwrap();
+        }
+    }
+}
+
+#[test]
+fn raw_response_head_budget_is_exact_and_does_not_count_body() {
+    let head = b"HTTP/1.1 200 Bounded\r\nContent-Length: 2048\r\nConnection: close\r\n\r\n";
+    for exact in [false, true] {
+        let (listener, address) = listener();
+        let server = thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            read_head(&mut socket);
+            let mut request_body = [0; 5];
+            socket.read_exact(&mut request_body).unwrap();
+            let mut response = head.to_vec();
+            response.extend_from_slice(&vec![b'x'; 2048]);
+            socket.write_all(&response).unwrap();
+        });
+        let native = engine();
+        let runtime = runtime(&native);
+        let client = NativeHttpClient::new(native.handle().clone())
+            .with_response_head_limit(head.len() - usize::from(!exact));
+        let request = http_request(&address);
+        let result = outside_tokio(client.send(&request, &runtime));
+        if exact {
+            let mut response = result.unwrap();
+            assert_eq!(response.status_text, "Bounded");
+            assert_eq!(
+                outside_tokio(read_body_limited(response.body.as_mut(), &runtime, 2048)).unwrap(),
+                vec![b'x'; 2048]
+            );
+        } else {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                TransportErrorKind::LimitExceeded
+            );
+        }
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn http_status_observation_survives_https_connect_proxy_and_both_tls_layers() {
+    let (cert, server_tls, _) = tls_material();
+    let (listener, address) = listener();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        let mut proxy = rustls::StreamOwned::new(
+            rustls::ServerConnection::new(server_tls.clone()).unwrap(),
+            stream,
+        );
+        let head = generic_head(&mut proxy).unwrap();
+        assert!(head.starts_with("CONNECT origin.invalid:443 HTTP/1.1"));
+        assert!(head.contains("Proxy-Authorization: Basic "));
+        proxy
+            .write_all(b"HTTP/1.1 200 Connection established\r\n\r\n")
+            .unwrap();
+        proxy.flush().unwrap();
+        let mut origin =
+            rustls::StreamOwned::new(rustls::ServerConnection::new(server_tls).unwrap(), proxy);
+        let head = generic_head(&mut origin).unwrap();
+        assert!(head.starts_with("POST /messages HTTP/1.1"));
+        assert!(!head.to_ascii_lowercase().contains("proxy-authorization"));
+        let mut body = [0; 5];
+        origin.read_exact(&mut body).unwrap();
+        origin.write_all(b"HTTP/1.1 429 Rate limited \xe9\xff\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok").unwrap();
+        origin.flush().unwrap();
+    });
+    let native = engine();
+    let runtime = runtime(&native);
+    let client =
+        NativeHttpClient::with_root_certificates(native.handle().clone(), &[cert]).unwrap();
+    let mut request = http_request("origin.invalid");
+    request.endpoint = RequestEndpoint::new_resolved("https://origin.invalid/messages").unwrap();
+    request.proxy =
+        Some(ProxyUrl::parse(&format!("https://synthetic:password@{address}")).unwrap());
+    let mut response = outside_tokio(client.send(&request, &runtime)).unwrap();
+    assert_eq!(response.status_text, "Rate limited éÿ");
+    assert_eq!(
+        outside_tokio(read_body_limited(response.body.as_mut(), &runtime, 10)).unwrap(),
+        b"ok"
+    );
+    server.join().unwrap();
+}
+
+#[test]
+fn cancellation_releases_socket_during_partial_raw_head_observation() {
+    let (listener, address) = listener();
+    let (tx, rx) = mpsc::channel();
+    let server = thread::spawn(move || {
+        let (mut socket, _) = listener.accept().unwrap();
+        read_head(&mut socket);
+        let mut body = [0; 5];
+        socket.read_exact(&mut body).unwrap();
+        socket.write_all(b"HTTP/1.1 429 Rate limited ").unwrap();
+        tx.send(()).unwrap();
+        let mut byte = [0];
+        assert_eq!(socket.read(&mut byte).unwrap_or(0), 0);
+    });
+    let native = engine();
+    let runtime = runtime(&native);
+    let token = runtime.cancellation.clone();
+    let canceller = thread::spawn(move || {
+        rx.recv_timeout(Duration::from_secs(3)).unwrap();
+        token.cancel();
+    });
+    let client = NativeHttpClient::new(native.handle().clone());
+    let request = http_request(&address);
+    let error = outside_tokio(client.send(&request, &runtime)).unwrap_err();
+    assert_eq!(error.kind(), TransportErrorKind::Cancelled);
+    server.join().unwrap();
+    canceller.join().unwrap();
+}
+
+#[test]
+fn leading_empty_lines_preserve_status_and_cannot_bypass_head_budget() {
+    for prefix in [b"\r\n".as_slice(), b"\n", b"\r\n\n\r\n"] {
+        for informational in [false, true] {
+            let mut head = prefix.to_vec();
+            if informational {
+                head.extend_from_slice(b"HTTP/1.1 103 Early\r\n\r\n");
+                head.extend_from_slice(prefix);
+            }
+            head.extend_from_slice(
+                b"HTTP/1.1 200 Custom\r\nContent-Length: 2\r\nConnection: close\r\n\r\n",
+            );
+            for limit in [2, head.len() - 1, head.len()] {
+                let (listener, address) = listener();
+                let server_head = head.clone();
+                let server = thread::spawn(move || {
+                    let (mut socket, _) = listener.accept().unwrap();
+                    read_head(&mut socket);
+                    let mut body = [0; 5];
+                    socket.read_exact(&mut body).unwrap();
+                    let mut bytes = server_head;
+                    bytes.extend_from_slice(b"ok");
+                    socket.write_all(&bytes).unwrap();
+                });
+                let native = engine();
+                let runtime = runtime(&native);
+                let client =
+                    NativeHttpClient::new(native.handle().clone()).with_response_head_limit(limit);
+                let request = http_request(&address);
+                let result = outside_tokio(client.send(&request, &runtime));
+                if limit == head.len() {
+                    let mut response = result.unwrap();
+                    assert_eq!(response.status, 200);
+                    assert_eq!(response.status_text, "Custom");
+                    assert_eq!(
+                        outside_tokio(read_body_limited(response.body.as_mut(), &runtime, 2))
+                            .unwrap(),
+                        b"ok"
+                    );
+                } else {
+                    assert_eq!(
+                        result.unwrap_err().kind(),
+                        TransportErrorKind::LimitExceeded
+                    );
+                }
+                server.join().unwrap();
+            }
+        }
+    }
+}

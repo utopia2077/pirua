@@ -122,6 +122,11 @@ impl fmt::Debug for HttpRequest {
 /// Response acquisition does not consume or replay the body.
 pub struct HttpResponse {
     pub status: u16,
+    /// Lossless HTTP/1 reason byte string: every octet maps to U+0000..U+00FF.
+    /// Empty/custom values are retained; HTTP/2 is empty. Fetch adapters must
+    /// decode the recovered octets as UTF-8 with replacement at their boundary.
+    /// Never include this untrusted field in diagnostics.
+    pub status_text: String,
     pub headers: HttpHeaders,
     pub body: Box<dyn ResponseBody>,
 }

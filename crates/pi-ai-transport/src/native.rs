@@ -1,9 +1,8 @@
 //! Optional Tokio/Rustls implementation. Work is driven on the explicitly
 //! supplied Tokio handle, even when the consumer future is polled elsewhere.
 use crate::{
-    HttpHeaders, HttpRequest, HttpResponse, RawHttpClient, ResponseBody, RetryJitter,
-    TransportError, TransportErrorKind, WebSocketConnection, WebSocketConnector, WebSocketFrame,
-    WebSocketRequest,
+    RetryJitter, TransportError, TransportErrorKind, WebSocketConnection, WebSocketConnector,
+    WebSocketFrame, WebSocketRequest,
 };
 use base64::{Engine, engine::general_purpose::STANDARD};
 use futures_util::{SinkExt, StreamExt};
@@ -101,124 +100,9 @@ impl RetryJitter for NativeRetryJitter {
     }
 }
 
-#[derive(Clone)]
-pub struct NativeHttpClient {
-    handle: Handle,
-    roots: Option<Vec<reqwest::Certificate>>,
-}
-impl NativeHttpClient {
-    pub fn new(handle: Handle) -> Self {
-        Self {
-            handle,
-            roots: None,
-        }
-    }
-    /// Explicit host trust store for private PKI. Certificate and hostname
-    /// verification remain enabled; the provided roots replace system roots.
-    pub fn with_root_certificates(
-        handle: Handle,
-        certificates: &[Vec<u8>],
-    ) -> Result<Self, TransportError> {
-        let roots = certificates
-            .iter()
-            .map(|der| reqwest::Certificate::from_der(der).map_err(http_error))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self {
-            handle,
-            roots: Some(roots),
-        })
-    }
-}
-impl RawHttpClient for NativeHttpClient {
-    fn send<'a>(
-        &'a self,
-        request: &'a HttpRequest,
-        runtime: &'a RequestRuntime,
-    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
-        Box::pin(async move {
-            let url = request.endpoint.expose_for_transport().to_owned();
-            let method = request.method.clone();
-            let headers = request.headers.clone();
-            let body = request.body.clone();
-            let proxy = request.proxy.clone();
-            let handle = self.handle.clone();
-            let roots = self.roots.clone();
-            crate::policy::cancel_wait(
-                Box::pin(on_runtime(&self.handle, async move {
-                    // Reqwest's default NACK retry policy must not multiply attempts.
-                    // Explicit proxy selection prevents hidden ambient environment use.
-                    let mut builder = reqwest::Client::builder()
-                        .retry(reqwest::retry::never())
-                        .redirect(reqwest::redirect::Policy::none())
-                        .no_proxy()
-                        .pool_max_idle_per_host(0)
-                        .tcp_keepalive(None::<Duration>)
-                        .tcp_keepalive_interval(None::<Duration>)
-                        .tcp_keepalive_retries(None::<u32>);
-                    // These are socket liveness overrides, not request/read
-                    // deadlines. Leave them to the OS instead of inheriting
-                    // Reqwest's 15s keepalive and 30s user-timeout defaults.
-                    #[cfg(any(target_os = "android", target_os = "fuchsia", target_os = "linux"))]
-                    {
-                        builder = builder.tcp_user_timeout(None::<Duration>);
-                    }
-                    if let Some(roots) = roots {
-                        builder = builder.tls_certs_only(roots);
-                    }
-                    if let Some(proxy) = proxy {
-                        builder = builder.proxy(
-                            reqwest::Proxy::all(proxy.expose_for_transport()).map_err(|_| {
-                                TransportError::new(TransportErrorKind::InvalidProxy)
-                            })?,
-                        );
-                    }
-                    let client = builder.build().map_err(http_error)?;
-                    let method = reqwest::Method::from_bytes(method.as_bytes())
-                        .map_err(|_| TransportError::new(TransportErrorKind::InvalidRequest))?;
-                    let mut req = client.request(method, url);
-                    for (key, value) in headers.iter_for_wire() {
-                        let mut value =
-                            reqwest::header::HeaderValue::from_bytes(&latin1_header_bytes(value)?)
-                                .map_err(|_| {
-                                    TransportError::new(TransportErrorKind::InvalidRequest)
-                                })?;
-                        value.set_sensitive(true);
-                        req = req.header(key, value);
-                    }
-                    let response = req.body(body).send().await.map_err(http_error)?;
-                    let status = response.status().as_u16();
-                    let mut headers = HttpHeaders::new();
-                    for (name, value) in response.headers() {
-                        // HTTP field values are byte strings. UTF-8 validation
-                        // would silently drop legal opaque response values.
-                        let value: String =
-                            value.as_bytes().iter().copied().map(char::from).collect();
-                        headers.append(name.as_str(), value)?;
-                    }
-                    Ok(HttpResponse {
-                        status,
-                        headers,
-                        body: Box::new(NativeBody {
-                            handle,
-                            response: Some(response),
-                        }),
-                    })
-                })),
-                &runtime.cancellation,
-            )
-            .await
-        })
-    }
-}
-fn http_error(error: reqwest::Error) -> TransportError {
-    TransportError::new(if error.is_timeout() {
-        TransportErrorKind::Timeout
-    } else if error.is_builder() {
-        TransportErrorKind::InvalidRequest
-    } else {
-        TransportErrorKind::Connection
-    })
-}
+#[path = "native_http.rs"]
+mod native_http;
+pub use native_http::NativeHttpClient;
 
 fn latin1_header_bytes(value: &str) -> Result<Vec<u8>, TransportError> {
     value
@@ -228,38 +112,6 @@ fn latin1_header_bytes(value: &str) -> Result<Vec<u8>, TransportError> {
                 .map_err(|_| TransportError::new(TransportErrorKind::InvalidRequest))
         })
         .collect()
-}
-struct NativeBody {
-    handle: Handle,
-    response: Option<reqwest::Response>,
-}
-impl ResponseBody for NativeBody {
-    fn next<'a>(
-        &'a mut self,
-        runtime: &'a RequestRuntime,
-    ) -> BoxFuture<'a, Result<Option<Vec<u8>>, TransportError>> {
-        Box::pin(async move {
-            let Some(mut response) = self.response.take() else {
-                return Ok(None);
-            };
-            let result = crate::policy::cancel_wait(
-                Box::pin(on_runtime(&self.handle, async move {
-                    let chunk = response.chunk().await.map_err(http_error)?;
-                    Ok((response, chunk.map(|b| b.to_vec())))
-                })),
-                &runtime.cancellation,
-            )
-            .await;
-            let (response, chunk) = result?;
-            if chunk.is_some() {
-                self.response = Some(response);
-            }
-            Ok(chunk)
-        })
-    }
-    fn close(&mut self) {
-        self.response = None;
-    }
 }
 
 trait SocketIo: AsyncRead + AsyncWrite + Send + Unpin {}
