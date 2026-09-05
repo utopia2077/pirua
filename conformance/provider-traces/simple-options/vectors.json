@@ -1,0 +1,18 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sourcePath": "packages/ai/src/api/simple-options.ts",
+  "sourceSha256": "3a9ab7fa885d3a9c73a1aee8c8bf8bd7d205740edef0f0a5219714fd16e38e57",
+  "evidenceClass": "executed-pinned-functions",
+  "cases": [
+    {"base":null,"ceiling":1000,"level":"high","expected":{"maxTokens":1000,"thinkingBudget":0}},
+    {"base":0,"ceiling":20000,"level":"high","expected":{"maxTokens":16384,"thinkingBudget":15360}},
+    {"base":1,"ceiling":20000,"level":"high","expected":{"maxTokens":16385,"thinkingBudget":16384}},
+    {"base":5000,"ceiling":20000,"level":"high","expected":{"maxTokens":20000,"thinkingBudget":16384}},
+    {"base":9007199254740991,"ceiling":9007199254740991,"level":"max","custom":{"high":9007199254740991},"expected":{"maxTokens":9007199254740991,"thinkingBudget":9007199254739967}},
+    {"base":null,"ceiling":0,"level":"minimal","expected":{"maxTokens":0,"thinkingBudget":0}},
+    {"base":null,"ceiling":1024,"level":"low","expected":{"maxTokens":1024,"thinkingBudget":0}},
+    {"base":null,"ceiling":1025,"level":"medium","expected":{"maxTokens":1025,"thinkingBudget":1}},
+    {"base":null,"ceiling":8193,"level":"medium","expected":{"maxTokens":8193,"thinkingBudget":8192}},
+    {"base":0,"ceiling":100,"level":"max","custom":{"high":0},"expected":{"maxTokens":0,"thinkingBudget":0}}
+  ]
+}

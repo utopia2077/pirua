@@ -4,4 +4,5 @@ pub mod constrained_sampling;
 pub mod github_copilot_headers;
 pub mod openai_prompt_cache;
 pub mod openai_responses_shared;
+pub mod simple_options;
 pub mod wire_json;
