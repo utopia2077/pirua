@@ -1,0 +1,12 @@
+{
+  "sourceCommit":"853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sourcePath":"packages/ai/src/api/openai-responses-shared.ts",
+  "evidenceClass":"executed-js-stringify",
+  "scope":"Native JSON.stringify(JSON.parse(raw)) used by pinned opaque signatures; no undefined, BigInt, nonfinite or lone-surrogate cases",
+  "cases":[
+    {"id":"numeric-order-and-spelling","raw":"{\"10\":1.0,\"2\":1e20,\"z\":-0.0}","expected":"{\"2\":100000000000000000000,\"10\":1,\"z\":0}"},
+    {"id":"index-boundaries-and-nesting","raw":"{\"4294967295\":\"max\",\"01\":\"leading\",\"4294967294\":\"index-max\",\"-0\":\"minus\",\"0\":\"zero\",\"a\":{\"10\":1,\"2\":2,\"b\":3,\"1\":4},\"1e0\":\"exponent\"}","expected":"{\"0\":\"zero\",\"4294967294\":\"index-max\",\"4294967295\":\"max\",\"01\":\"leading\",\"-0\":\"minus\",\"a\":{\"1\":4,\"2\":2,\"10\":1,\"b\":3},\"1e0\":\"exponent\"}"},
+    {"id":"all-number-storage-variants","raw":"[-0.0,1.0,1e20,1e21,1e-6,1e-7,9007199254740993,18446744073709551615,-9223372036854775808,5e-324,1.7976931348623157e308]","expected":"[0,1,100000000000000000000,1e+21,0.000001,1e-7,9007199254740992,18446744073709552000,-9223372036854776000,5e-324,1.7976931348623157e+308]"},
+    {"id":"string-escapes-and-unicode","raw":"{\"quoted\\\"key\":\"\\u0000\\b\\f\\n\\r\\t\\\\\\/\\u2028\\u2029\\ud83d\\ude00\",\"x\":\"\\u0061\"}","expected":"{\"quoted\\\"key\":\"\\u0000\\b\\f\\n\\r\\t\\\\/  😀\",\"x\":\"a\"}"}
+  ]
+}

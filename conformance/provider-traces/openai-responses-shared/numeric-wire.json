@@ -1,0 +1,23 @@
+{
+  "sourceCommit":"853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sourcePath":"packages/ai/src/api/openai-responses-shared.ts",
+  "sourceSha256":"e86649ae0ccc20478df9919dc57e7bb3d8f2fc02e343cc1f87db16d8ca1ca2bb",
+  "evidenceClass":"executed-pinned-processor-numeric-oracle",
+  "scope":"Exact processor/stop mapper/text signature; calculateCost stubbed and costs excluded; raw numeric spelling retained in inputs",
+  "cases":[
+    {
+      "id":"integral-decimal-slot",
+      "raw":"[{\"type\":\"response.output_item.added\",\"output_index\":1.0,\"item\":{\"type\":\"message\",\"id\":\"m\"}},{\"type\":\"response.output_text.delta\",\"output_index\":1e0,\"delta\":\"text\"},{\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"type\":\"message\",\"id\":\"m\",\"content\":[{\"type\":\"output_text\",\"text\":\"text\"}]}},{\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}]",
+      "expectedContent":[{"type":"text","text":"text","textSignature":"{\"v\":1,\"id\":\"m\"}"}],
+      "expectedUsage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0},
+      "expectedStop":"stop"
+    },
+    {
+      "id":"integral-exponent-usage",
+      "raw":"[{\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"usage\":{\"input_tokens\":1e2,\"output_tokens\":3.0,\"total_tokens\":1.03e2,\"input_tokens_details\":{\"cached_tokens\":2.0,\"cache_write_tokens\":-0.0}}}}]",
+      "expectedContent":[],
+      "expectedUsage":{"input":98,"output":3,"cacheRead":2,"cacheWrite":0,"reasoning":0,"totalTokens":103},
+      "expectedStop":"stop"
+    }
+  ]
+}

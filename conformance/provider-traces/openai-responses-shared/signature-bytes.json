@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sourcePath": "packages/ai/src/api/openai-responses-shared.ts",
+  "sourceSha256": "e86649ae0ccc20478df9919dc57e7bb3d8f2fc02e343cc1f87db16d8ca1ca2bb",
+  "evidenceClass": "executed-pinned-processor-signature-oracle",
+  "scope": "Exact extracted encodeTextSignatureV1/processResponsesStream/mapStopReason; calculateCost stubbed because only signatures are observed",
+  "wireEvents": "[{\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"type\":\"reasoning\",\"id\":\"rs\",\"summary\":[]}},{\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"type\":\"reasoning\",\"id\":\"rs\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"reason\"}],\"status\":\"completed\"}},{\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"phase\":\"final_answer\",\"id\":\"msg\",\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"answer\"}]}},{\"type\":\"response.completed\",\"response\":{\"status\":\"completed\",\"output\":[{\"type\":\"reasoning\",\"id\":\"rs\",\"encrypted_content\":\"opaque\"}]}}]",
+  "thinkingEnd": "{\"type\":\"reasoning\",\"id\":\"rs\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"reason\"}],\"status\":\"completed\"}",
+  "textEnd": "{\"v\":1,\"id\":\"msg\",\"phase\":\"final_answer\"}",
+  "finalThinking": "{\"type\":\"reasoning\",\"id\":\"rs\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"reason\"}],\"status\":\"completed\",\"encrypted_content\":\"opaque\"}"
+}
