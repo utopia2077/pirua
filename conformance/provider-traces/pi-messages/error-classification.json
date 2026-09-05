@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sources": ["packages/ai/src/api/pi-messages.ts:106-151", "packages/ai/src/utils/overflow.ts", "packages/ai/src/utils/retry.ts"],
+  "evidenceClass": "source-derived-format/executed-pinned-classifiers",
+  "verification": "Offline Node execution of exact pinned overflow.ts and retry.ts matched all 14 expected pairs; source formatter and Response.text BOM semantics applied before classification.",
+  "format": "status + space + actual statusText + colon-space + (string error.message or decoded body) + optional parenthesized string error.code",
+  "cases": [
+    {"status":429,"statusText":"Too Many Requests","body":"{\"error\":{\"message\":\"prompt is too long\"}}","overflow":false,"retryable":true},
+    {"status":429,"statusText":"","body":"{\"error\":{\"message\":\"prompt is too long\"}}","overflow":true,"retryable":true},
+    {"status":413,"statusText":"Custom rate limit","body":"{\"error\":{\"message\":\"prompt is too long\"}}","overflow":false,"retryable":true},
+    {"status":400,"statusText":"prompt is too long","body":"{}","overflow":true,"retryable":false},
+    {"status":400,"statusText":"server error","body":"opaque","overflow":false,"retryable":true},
+    {"status":500,"statusText":"","body":"{\"error\":{\"message\":\"billing unavailable\"}}","overflow":false,"retryable":false},
+    {"status":503,"statusText":"Service Unavailable","body":"{\"error\":{\"message\":\"prompt is too long\",\"details\":\"billing secret\"}}","overflow":true,"retryable":true},
+    {"status":503,"statusText":"Service Unavailable","body":"{\"error\":{\"message\":\"prompt is too long\",\"code\":\"insufficient_quota\"}}","overflow":true,"retryable":false},
+    {"status":400,"statusText":"Bad Request","body":"{\"error\":{\"message\":\"prompt is too long\",\"code\":\"rate limit\"}}","overflow":false,"retryable":true},
+    {"status":400,"statusText":"Bad Request","body":"{\"error\":{\"message\":\"unknown\",\"code\":\"request_too_large\"}}","overflow":true,"retryable":false},
+    {"status":400,"statusText":"Bad Request","body":"{\"error\":{\"message\":\"\",\"details\":\"prompt is too long server error\"}}","overflow":false,"retryable":false},
+    {"status":400,"statusText":"Bad Request","body":"\"prompt is too long\"","overflow":true,"retryable":false},
+    {"status":503,"statusText":"Service Unavailable","body":"\uFEFF{\"error\":{\"message\":\"server error\",\"details\":\"billing secret\"}}","overflow":false,"retryable":true},
+    {"status":400,"statusText":"billing","body":"{\"error\":{\"message\":\"prompt is too long server error\"}}","overflow":true,"retryable":false}
+  ]
+}

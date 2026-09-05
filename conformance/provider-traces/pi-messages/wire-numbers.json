@@ -1,0 +1,236 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "evidenceClass": "executed-exact-pinned-converter-and-js-number-domain",
+  "oracle": "v26.8.1",
+  "sources": [
+    "packages/ai/src/api/pi-messages.ts:154-257",
+    "packages/ai/src/utils/diagnostics.ts"
+  ],
+  "note": "Exact extracted converter preserves these JSON.parse Numbers, including out-of-domain values. unsignedSafe/signedSafe record the accepted Rust target admission rule via Number.isSafeInteger, not an upstream validation claim. Negative zero serializes as zero.",
+  "cases": [
+    {
+      "raw": "0",
+      "numberText": "0",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "0.0",
+      "numberText": "0",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "0e0",
+      "numberText": "0",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-0",
+      "numberText": "0",
+      "negativeZero": true,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-0.0",
+      "numberText": "0",
+      "negativeZero": true,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-0e3",
+      "numberText": "0",
+      "negativeZero": true,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "1.0",
+      "numberText": "1",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "1e1",
+      "numberText": "10",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "10e-1",
+      "numberText": "1",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "1e-400",
+      "numberText": "0",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "9007199254740991",
+      "numberText": "9007199254740991",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "9007199254740991.0",
+      "numberText": "9007199254740991",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "9.007199254740991e15",
+      "numberText": "9007199254740991",
+      "negativeZero": false,
+      "unsignedSafe": true,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-1",
+      "numberText": "-1",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-1.0",
+      "numberText": "-1",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-2e0",
+      "numberText": "-2",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-9007199254740991",
+      "numberText": "-9007199254740991",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-9007199254740991.0",
+      "numberText": "-9007199254740991",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-9.007199254740991e15",
+      "numberText": "-9007199254740991",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": true,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "0.5",
+      "numberText": "0.5",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-0.5",
+      "numberText": "-0.5",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "1e-1",
+      "numberText": "0.1",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "9007199254740992",
+      "numberText": "9007199254740992",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "9007199254740992.0",
+      "numberText": "9007199254740992",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "9.007199254740992e15",
+      "numberText": "9007199254740992",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-9007199254740992",
+      "numberText": "-9007199254740992",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "1e309",
+      "numberText": "Infinity",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    },
+    {
+      "raw": "-1e309",
+      "numberText": "-Infinity",
+      "negativeZero": false,
+      "unsignedSafe": false,
+      "signedSafe": false,
+      "converterPreservesNumber": true
+    }
+  ]
+}

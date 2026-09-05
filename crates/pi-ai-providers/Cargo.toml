@@ -9,9 +9,18 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = []
+wire-pi-messages = ["dep:url"]
+native = ["pi-ai-transport/native"]
+
 [dependencies]
 pi-ai-core.workspace = true
 pi-ai-transport.workspace = true
 ryu-js.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
+url = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio.workspace = true
