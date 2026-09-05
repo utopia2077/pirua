@@ -1159,6 +1159,7 @@ dependencies = [
  "pi-ai-core",
  "rcgen",
  "rustls-platform-verifier",
+ "serde_json",
  "tokio",
  "tokio-rustls",
  "tokio-tungstenite",

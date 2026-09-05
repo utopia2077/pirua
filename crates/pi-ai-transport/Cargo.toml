@@ -29,6 +29,7 @@ default = []
 native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots"]
 
 [dev-dependencies]
+serde_json.workspace = true
 rcgen.workspace = true
 log.workspace = true
 h2.workspace = true
