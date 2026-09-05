@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-type Timer = BoxFuture<'static, Result<(), pi_ai_core::Cancelled>>;
+pub(crate) type Timer = BoxFuture<'static, Result<(), pi_ai_core::Cancelled>>;
 
 #[cfg(feature = "native")]
 pub(crate) async fn wait_with_timeout<T>(
@@ -29,7 +29,7 @@ pub(crate) async fn cancel_wait<T>(
     timed_wait(operation, cancellation, &mut None).await
 }
 
-async fn timed_wait<T>(
+pub(crate) async fn timed_wait<T>(
     mut operation: BoxFuture<'_, Result<T, TransportError>>,
     cancellation: &CancellationToken,
     timer: &mut Option<Timer>,
@@ -107,6 +107,7 @@ pub struct HttpTransport {
     client: Arc<dyn RawHttpClient>,
     jitter: Arc<dyn RetryJitter>,
     date_parser: Arc<dyn RetryDateParser>,
+    fetch_redirects: crate::FetchRedirectMode,
 }
 impl HttpTransport {
     pub fn new(client: Arc<dyn RawHttpClient>, jitter: Arc<dyn RetryJitter>) -> Self {
@@ -114,10 +115,16 @@ impl HttpTransport {
             client,
             jitter,
             date_parser: Arc::new(HttpRetryDateParser),
+            fetch_redirects: crate::FetchRedirectMode::Follow,
         }
     }
     pub fn with_date_parser(mut self, parser: Arc<dyn RetryDateParser>) -> Self {
         self.date_parser = parser;
+        self
+    }
+    /// Trusted binding transports may opt out of network Fetch redirects.
+    pub fn with_fetch_redirects(mut self, mode: crate::FetchRedirectMode) -> Self {
+        self.fetch_redirects = mode;
         self
     }
     pub fn send<'a>(
@@ -127,6 +134,28 @@ impl HttpTransport {
         retry: RetryProfile,
         timeout: TimeoutProfile,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send_inner(request, runtime, retry, timeout, None)
+    }
+    /// Fetch composition for replayable byte requests, not arbitrary RequestInit.
+    /// Empty bytes mean absent body for GET/HEAD. A chain shares one attempt
+    /// deadline; retry restarts the original request. Body errors never retry.
+    pub fn send_fetch<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+        retry: RetryProfile,
+        timeout: TimeoutProfile,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send_inner(request, runtime, retry, timeout, Some(self.fetch_redirects))
+    }
+    fn send_inner<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+        retry: RetryProfile,
+        timeout: TimeoutProfile,
+        fetch: Option<crate::FetchRedirectMode>,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
         Box::pin(async move {
             let (max_retries, cap) = match retry {
                 RetryProfile::None => (0, None),
@@ -135,7 +164,7 @@ impl HttpTransport {
                     max_retry_delay_ms,
                 } => (max_retries, max_retry_delay_ms),
             };
-            if max_retries > 9_007_199_254_740_990 {
+            if max_retries > 9_007_199_254_740_991 {
                 return Err(TransportError::new(TransportErrorKind::InvalidRequest));
             }
             let mut attempt = 0;
@@ -150,12 +179,23 @@ impl HttpTransport {
                     TimeoutProfile::HeadersAndIdle { headers, .. } => Some(headers),
                 };
                 let mut deadline = duration.map(|d| timer(runtime.clock.clone(), d));
-                let result = timed_wait(
-                    self.client.send(request, runtime),
-                    &runtime.cancellation,
-                    &mut deadline,
-                )
-                .await;
+                let result = if let Some(mode) = fetch {
+                    crate::fetch::attempt(
+                        self.client.as_ref(),
+                        request,
+                        runtime,
+                        &mut deadline,
+                        mode,
+                    )
+                    .await
+                } else {
+                    timed_wait(
+                        self.client.send(request, runtime),
+                        &runtime.cancellation,
+                        &mut deadline,
+                    )
+                    .await
+                };
                 let retry_headers = match &result {
                     Ok(response)
                         if !(200..300).contains(&response.status)
@@ -221,12 +261,14 @@ impl HttpTransport {
         now: u64,
     ) -> Result<Duration, TransportError> {
         let delay = headers
-            .get_for_wire("retry-after-ms")
+            .get_for_fetch("retry-after-ms")
+            .as_deref()
             .filter(|s| !s.is_empty())
             .and_then(parse_float_prefix)
             .or_else(|| {
                 headers
-                    .get_for_wire("retry-after")
+                    .get_for_fetch("retry-after")
+                    .as_deref()
                     .filter(|s| !s.is_empty())
                     .map(|s| {
                         parse_float_prefix(s)
@@ -265,7 +307,7 @@ impl HttpTransport {
 }
 
 fn shared_retryable(status: Option<u16>, headers: &HttpHeaders) -> bool {
-    match headers.get_for_wire("x-should-retry") {
+    match headers.get_for_fetch("x-should-retry").as_deref() {
         Some("true") => true,
         Some("false") => false,
         _ => status.is_none_or(|status| matches!(status, 408 | 409 | 429) || status >= 500),

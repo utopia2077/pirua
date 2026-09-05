@@ -1,0 +1,3436 @@
+{
+  "provenance": {
+    "node": "26.8.1",
+    "bundledUndici": "8.10.0",
+    "installedUndici": "8.9.0",
+    "pi": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+    "bundledSourceSha256": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d",
+    "installedFetchSha256": "55373246471efb77ed557472f3ddfe7262f6862816e629740233288822cfb1cd",
+    "installedUtilSha256": "fdba60923ecf0b9eaf3202f2087c872bc141550b625adf2a26258ceae1bab42f"
+  },
+  "policy": {
+    "maxSafeInitialSuccess": "success",
+    "duplicate-400": {
+      "combined": "true, true",
+      "calls": 1
+    },
+    "duplicate-503": {
+      "combined": "false, false",
+      "calls": 2
+    }
+  },
+  "runtimes": {
+    "node-global": {
+      "sdkInitialFailures": [
+        {"family":"openai","label":"bad-port","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"openai","label":"credentials","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"openai","label":"malformed","calls":0,"dispatches":0,"result":"TypeError"},
+        {"family":"anthropic","label":"bad-port","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"anthropic","label":"credentials","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"anthropic","label":"malformed","calls":0,"dispatches":0,"result":"TypeError"}
+      ],
+      "headerGet": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "x-should-retry": "true, true"
+      },
+      "responseHeaderGet": {
+        "CoOkIe": "a=1; b=2",
+        "SET-cookie": "a=1, b=2"
+      },
+      "methods": {
+        "post": "POST",
+        "pOsT": "POST",
+        "patch": "patch",
+        "pAtCh": "pAtCh",
+        "query": "QUERY",
+        "qUeRy": "QUERY",
+        "TRACE": "rejected",
+        "CONNECT": "rejected",
+        "TRACK": "rejected",
+        "BAD METHOD": "rejected",
+        "": "rejected"
+      },
+      "validation": {
+        "credentials": "rejected",
+        "get-body": "rejected",
+        "empty-get-body": "rejected"
+      },
+      "cases": [
+        {
+          "name": "301-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "301-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "301-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "302-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "302-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "302-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "303-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "303-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "303-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "307-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "307-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "307-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "308-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "308-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "308-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "twenty-hops",
+          "status": 200,
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/3",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/4",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/5",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/6",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/7",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/8",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/9",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/10",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/11",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/12",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/13",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/14",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/15",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/16",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/17",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/18",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/19",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/20",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "twenty-one-hops",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/3",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/4",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/5",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/6",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/7",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/8",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/9",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/10",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/11",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/12",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/13",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/14",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/15",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/16",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/17",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/18",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/19",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/20",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "cross-origin",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "B",
+              "path": "/final",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "relative",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final?q=2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "query-fragment",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/start?new=2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "location-latin1",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/caf%EF%BF%BD",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "location-utf8",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/caf%C3%A9",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "duplicate-location",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/one,%20/two",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "missing-location",
+          "status": 302,
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "empty-location",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 21
+            }
+          ]
+        },
+        {
+          "name": "fragment-location",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 21
+            }
+          ]
+        },
+        {
+          "name": "same-credentials",
+          "status": "error",
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "unsupported-scheme",
+          "status": "error",
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "bad-location",
+          "status": "error",
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "cycle",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 21
+            }
+          ]
+        }
+      ]
+    },
+    "npm-undici": {
+      "sdkInitialFailures": [
+        {"family":"openai","label":"bad-port","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"openai","label":"credentials","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"openai","label":"malformed","calls":0,"dispatches":0,"result":"TypeError"},
+        {"family":"anthropic","label":"bad-port","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"anthropic","label":"credentials","calls":2,"dispatches":0,"result":"APIConnectionError"},
+        {"family":"anthropic","label":"malformed","calls":0,"dispatches":0,"result":"TypeError"}
+      ],
+      "headerGet": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "x-should-retry": "true, true"
+      },
+      "responseHeaderGet": {
+        "CoOkIe": "a=1; b=2",
+        "SET-cookie": "a=1, b=2"
+      },
+      "methods": {
+        "post": "POST",
+        "pOsT": "POST",
+        "patch": "patch",
+        "pAtCh": "pAtCh",
+        "query": "QUERY",
+        "qUeRy": "QUERY",
+        "TRACE": "rejected",
+        "CONNECT": "rejected",
+        "TRACK": "rejected",
+        "BAD METHOD": "rejected",
+        "": "rejected"
+      },
+      "validation": {
+        "credentials": "rejected",
+        "get-body": "rejected",
+        "empty-get-body": "rejected"
+      },
+      "cases": [
+        {
+          "name": "301-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "301-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "301-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "302-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "302-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "302-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "303-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "303-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "303-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "307-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "307-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "307-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "308-POST",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "308-PUT",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "PUT",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "308-HEAD",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final",
+              "method": "HEAD",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "twenty-hops",
+          "status": 200,
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/3",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/4",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/5",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/6",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/7",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/8",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/9",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/10",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/11",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/12",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/13",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/14",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/15",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/16",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/17",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/18",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/19",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/20",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "twenty-one-hops",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/3",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/4",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/5",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/6",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/7",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/8",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/9",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/10",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/11",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/12",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/13",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/14",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/15",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/16",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/17",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/18",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/19",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/chain/20",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "cross-origin",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "B",
+              "path": "/final",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "relative",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/final?q=2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "query-fragment",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/start?new=2",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "location-latin1",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/caf%EF%BF%BD",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "location-utf8",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/caf%C3%A9",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "duplicate-location",
+          "status": 200,
+          "requests": 2,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            },
+            {
+              "target": "A",
+              "path": "/one,%20/two",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "missing-location",
+          "status": 302,
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "empty-location",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 21
+            }
+          ]
+        },
+        {
+          "name": "fragment-location",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 21
+            }
+          ]
+        },
+        {
+          "name": "same-credentials",
+          "status": "error",
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "unsupported-scheme",
+          "status": "error",
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "bad-location",
+          "status": "error",
+          "requests": 1,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "GET",
+              "body": "",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key"
+              ],
+              "repeats": 1
+            }
+          ]
+        },
+        {
+          "name": "cycle",
+          "status": "error",
+          "requests": 21,
+          "trace": [
+            {
+              "target": "A",
+              "path": "/start?old=1",
+              "method": "POST",
+              "body": "payload",
+              "hostOverride": false,
+              "headers": [
+                "authorization",
+                "proxy-authorization",
+                "cookie",
+                "host",
+                "x-api-key",
+                "content-encoding",
+                "content-language",
+                "content-location",
+                "content-type",
+                "content-length"
+              ],
+              "repeats": 21
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

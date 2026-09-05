@@ -1,6 +1,7 @@
 //! Explicit request policy and incremental network ports.
 //! All raw wire values are transient, non-Serde and redacted in Debug.
 
+mod fetch;
 mod http;
 #[cfg(feature = "native")]
 mod native;
@@ -10,6 +11,7 @@ mod retry_date;
 mod sse;
 mod websocket;
 
+pub use fetch::FetchRedirectMode;
 pub use http::*;
 #[cfg(feature = "native")]
 pub use native::*;

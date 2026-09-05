@@ -94,6 +94,24 @@ impl HttpHeaders {
             .find(|(key, _)| key.eq_ignore_ascii_case(name))
             .map(|(_, value)| value.as_str())
     }
+    /// Fetch Headers.get projection. Raw repeated fields remain untouched.
+    /// Cookie joins with semicolons; all other fields (including Set-Cookie)
+    /// join with commas. Only HTTP edge whitespace is normalized.
+    pub fn get_for_fetch(&self, name: &str) -> Option<String> {
+        let values: Vec<_> = self
+            .0
+            .iter()
+            .filter(|(key, _)| key.eq_ignore_ascii_case(name))
+            .map(|(_, value)| value.trim_matches([' ', '\t']))
+            .collect();
+        (!values.is_empty()).then(|| {
+            values.join(if name.eq_ignore_ascii_case("cookie") {
+                "; "
+            } else {
+                ", "
+            })
+        })
+    }
     pub fn iter_for_wire(&self) -> impl Iterator<Item = (&str, &str)> {
         self.0.iter().map(|(k, v)| (k.as_str(), v.as_str()))
     }
