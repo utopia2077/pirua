@@ -2,15 +2,21 @@
 //! All raw wire values are transient, non-Serde and redacted in Debug.
 
 mod http;
+#[cfg(feature = "native")]
+mod native;
 mod policy;
 mod proxy;
 mod retry_date;
 mod sse;
+mod websocket;
 
 pub use http::*;
+#[cfg(feature = "native")]
+pub use native::*;
 pub use policy::*;
 pub use proxy::*;
 pub use sse::*;
+pub use websocket::*;
 
 // ECMAScript WhiteSpace plus LineTerminator, not Rust's Unicode White_Space.
 fn is_ecma_whitespace(c: char) -> bool {

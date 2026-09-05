@@ -13,3 +13,18 @@ workspace = true
 pi-ai-core.workspace = true
 httpdate.workspace = true
 url.workspace = true
+base64 = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+tokio-tungstenite = { workspace = true, optional = true }
+webpki-roots = { workspace = true, optional = true }
+
+[features]
+default = []
+native = ["dep:base64", "dep:futures-util", "dep:reqwest", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots"]
+
+[dev-dependencies]
+rcgen.workspace = true
+log.workspace = true

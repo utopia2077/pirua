@@ -26,6 +26,15 @@ license = "MIT"
 publish = false
 
 [workspace.dependencies]
+base64 = { version = "=0.23.1", default-features = false, features = ["std"] }
+futures-util = { version = "=0.3.34", default-features = false, features = ["std", "sink"] }
+reqwest = { version = "=0.13.4", default-features = false, features = ["rustls", "http2"] }
+rcgen = { version = "=0.14.10", default-features = false, features = ["aws_lc_rs"] }
+log = { version = "=0.4.34", default-features = false, features = ["std"] }
+tokio = { version = "=1.53.1", default-features = false, features = ["rt-multi-thread", "net", "io-util", "sync", "time"] }
+tokio-rustls = { version = "=0.26.5", default-features = false, features = ["aws_lc_rs", "tls12"] }
+tokio-tungstenite = { version = "=0.30.0", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+webpki-roots = "=1.0.9"
 httpdate = "=1.0.3"
 url = "=2.5.8"
 jsonschema = { version = "=0.52.1", default-features = false }

@@ -12,6 +12,16 @@ use std::{
 
 type Timer = BoxFuture<'static, Result<(), pi_ai_core::Cancelled>>;
 
+#[cfg(feature = "native")]
+pub(crate) async fn wait_with_timeout<T>(
+    operation: BoxFuture<'_, Result<T, TransportError>>,
+    runtime: &RequestRuntime,
+    timeout: Option<Duration>,
+) -> Result<T, TransportError> {
+    let mut deadline = timeout.map(|duration| timer(runtime.clock.clone(), duration));
+    timed_wait(operation, &runtime.cancellation, &mut deadline).await
+}
+
 pub(crate) async fn cancel_wait<T>(
     operation: BoxFuture<'_, Result<T, TransportError>>,
     cancellation: &CancellationToken,
