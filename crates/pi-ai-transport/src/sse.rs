@@ -35,6 +35,16 @@ impl Default for SseLimits {
 pub struct SseFrame {
     pub event: Option<String>,
     pub data: String,
+    raw_lines: Option<Vec<String>>,
+}
+impl SseFrame {
+    /// Bounded transient source lines for trusted provider error classification.
+    /// Anthropic supplies every decoded nonempty line, including comments and
+    /// ignored/repeated fields; line delimiters are excluded. Other profiles
+    /// return None. This raw context must not enter public errors or telemetry.
+    pub fn raw_lines_for_adapter(&self) -> Option<&[String]> {
+        self.raw_lines.as_deref()
+    }
 }
 impl fmt::Debug for SseFrame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -60,10 +70,11 @@ struct AnthropicState {
     /// Incomplete UTF-8 prefix at the front of raw buffer, outside chunks.
     pending: usize,
     line: String,
-    event: Option<String>,
-    data: Vec<String>,
+    /// Keep each decoded line once; derive event/data only when emitting.
+    raw_lines: Vec<String>,
+    has_event: bool,
+    has_data: bool,
     frame_bytes: usize,
-    lines: usize,
 }
 impl AnthropicState {
     fn charge(&self, extra_chunk: bool) -> Option<usize> {
@@ -72,7 +83,9 @@ impl AnthropicState {
             .checked_add(usize::from(extra_chunk))?
             .checked_mul(size_of::<usize>())?
             .checked_add(self.line.len())?
-            .checked_add(usize::from(!self.line.is_empty() && self.lines != 0))?
+            .checked_add(usize::from(
+                !self.line.is_empty() && !self.raw_lines.is_empty(),
+            ))?
             .checked_add(self.frame_bytes)
     }
 }
@@ -229,7 +242,7 @@ impl SseDecoder {
 
     fn flush_anthropic(&mut self) -> Result<Option<SseFrame>, TransportError> {
         let state = &mut self.anthropic;
-        if state.event.as_deref().is_none_or(str::is_empty) && state.data.is_empty() {
+        if !state.has_event && !state.has_data {
             // Pinned flushSseEvent leaves its raw lines pending in this case.
             return Ok(None);
         }
@@ -238,10 +251,34 @@ impl SseDecoder {
         }
         self.emitted += 1;
         state.frame_bytes = 0;
-        state.lines = 0;
+        state.has_event = false;
+        state.has_data = false;
+        let raw_lines = std::mem::take(&mut state.raw_lines);
+        let mut event = None;
+        let mut data = String::new();
+        let mut first_data = true;
+        for line in &raw_lines {
+            if line.starts_with(':') {
+                continue;
+            }
+            let (field, value) = line.split_once(':').unwrap_or((line, ""));
+            let value = value.strip_prefix(' ').unwrap_or(value);
+            match field {
+                "event" => event = Some(value.to_owned()),
+                "data" => {
+                    if !first_data {
+                        data.push('\n');
+                    }
+                    first_data = false;
+                    data.push_str(value);
+                }
+                _ => {}
+            }
+        }
         Ok(Some(SseFrame {
-            event: state.event.take(),
-            data: std::mem::take(&mut state.data).join("\n"),
+            event,
+            data,
+            raw_lines: Some(raw_lines),
         }))
     }
     fn line_anthropic(&mut self) -> Result<Option<SseFrame>, TransportError> {
@@ -251,17 +288,17 @@ impl SseDecoder {
             return self.flush_anthropic();
         }
         // The prospective complete line was bounded before decoding/allocation.
-        state.frame_bytes += line.len() + usize::from(state.lines != 0);
-        state.lines += 1;
+        state.frame_bytes += line.len() + usize::from(!state.raw_lines.is_empty());
         if !line.starts_with(':') {
             let (field, value) = line.split_once(':').unwrap_or((&line, ""));
             let value = value.strip_prefix(' ').unwrap_or(value);
             match field {
-                "event" => state.event = Some(value.to_owned()),
-                "data" => state.data.push(value.to_owned()),
+                "event" => state.has_event = !value.is_empty(),
+                "data" => state.has_data = true,
                 _ => {}
             }
         }
+        state.raw_lines.push(line);
         Ok(None)
     }
     fn next_anthropic(&mut self) -> Result<Option<SseFrame>, TransportError> {
@@ -331,7 +368,9 @@ impl SseDecoder {
             let frame_len = state
                 .frame_bytes
                 .checked_add(line_len)
-                .and_then(|n| n.checked_add(usize::from(line_len != 0 && state.lines != 0)))
+                .and_then(|n| {
+                    n.checked_add(usize::from(line_len != 0 && !state.raw_lines.is_empty()))
+                })
                 .ok_or_else(limit)?;
             if frame_len > self.limits.max_frame_bytes {
                 return Err(limit());
@@ -457,6 +496,7 @@ impl SseDecoder {
                     return Ok(Some(SseFrame {
                         event: state.event.take(),
                         data: std::mem::take(&mut state.data).join("\n"),
+                        raw_lines: None,
                     }));
                 }
                 state.frame_bytes = frame_bytes;
@@ -601,7 +641,11 @@ fn frame(bytes: &[u8], profile: SseProfile) -> Option<SseFrame> {
     {
         None
     } else {
-        Some(SseFrame { event, data })
+        Some(SseFrame {
+            event,
+            data,
+            raw_lines: None,
+        })
     }
 }
 
@@ -614,10 +658,10 @@ mod resource_tests {
         assert!(d.anthropic.chunks.is_empty());
         assert_eq!(d.anthropic.pending, 0);
         assert!(d.anthropic.line.is_empty());
-        assert!(d.anthropic.event.is_none());
-        assert!(d.anthropic.data.is_empty());
+        assert!(d.anthropic.raw_lines.is_empty());
+        assert!(!d.anthropic.has_event);
+        assert!(!d.anthropic.has_data);
         assert_eq!(d.anthropic.frame_bytes, 0);
-        assert_eq!(d.anthropic.lines, 0);
     }
     #[test]
     fn anthropic_bounds_cleanup_and_empty_chunk_metadata() {
@@ -634,8 +678,9 @@ mod resource_tests {
         assert!(d.anthropic.chunks.is_empty());
         d.push(b"event: synthetic\rdata: marker\r").unwrap();
         assert!(d.next_frame().unwrap().is_none());
-        assert_eq!(d.anthropic.event.as_deref(), Some("synthetic"));
-        assert_eq!(d.anthropic.data, ["marker"]);
+        assert!(d.anthropic.has_event);
+        assert!(d.anthropic.has_data);
+        assert_eq!(d.anthropic.raw_lines, ["event: synthetic", "data: marker"]);
         assert_eq!(
             d.push(&[b'x'; 128]).unwrap_err().kind(),
             TransportErrorKind::LimitExceeded
@@ -690,6 +735,37 @@ mod resource_tests {
         assert_eq!(decoder.openai.frame_bytes, 0);
         assert_eq!(decoder.openai.lines, 0);
         assert!(!decoder.openai.flushed);
+    }
+    #[test]
+    fn anthropic_raw_context_releases_on_eof_frame_and_feed_failure() {
+        let mut decoder = SseDecoder::new(SseProfile::Anthropic, SseLimits::default());
+        decoder.push(b": private-marker\n\nignored: tail").unwrap();
+        assert!(decoder.next_frame().unwrap().is_none());
+        assert!(!decoder.anthropic.raw_lines.is_empty());
+        decoder.end_input();
+        assert!(decoder.next_frame().unwrap().is_none());
+        assert!(decoder.anthropic.raw_lines.is_empty());
+        assert!(decoder.anthropic.line.is_empty());
+        assert!(decoder.anthropic.chunks.is_empty());
+        assert_eq!(decoder.anthropic.charge(false), Some(0));
+        for limits in [
+            SseLimits {
+                max_frame_bytes: 15,
+                ..SseLimits::default()
+            },
+            SseLimits {
+                max_frames_per_feed: 0,
+                ..SseLimits::default()
+            },
+        ] {
+            let mut decoder = SseDecoder::new(SseProfile::Anthropic, limits);
+            decoder.push(b": hidden\n\ndata: x\n\n").unwrap();
+            assert_eq!(
+                decoder.next_frame().unwrap_err().kind(),
+                TransportErrorKind::LimitExceeded
+            );
+            assert_anthropic_cleared(&decoder);
+        }
     }
     #[test]
     fn openai_intake_failure_clears_all_owned_state() {

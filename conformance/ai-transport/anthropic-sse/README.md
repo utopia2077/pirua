@@ -50,8 +50,13 @@ ignored; unknown event with non-JSON data is ignored; an unterminated named type
 event is yielded at EOF. No SSE-name-to-missing-JSON-type fallback exists in this
 caller. These are source consumer evidence, not transport JSON interpretation.
 Provider reducers still own validation, errors and terminal selection. The
-transport's unchanged frame ABI projects only event/data, not the source raw-line
-diagnostic array; arbitrary source error bodies remain outside safe rendering.
+transport frame retains event/data plus bounded transient raw-line context through
+`SseFrame::raw_lines_for_adapter(&self) -> Option<&[String]>`. Anthropic returns
+Some exact nonempty decoded source lines; other profiles return None. The carrier
+is private, non-Serde and non-Display; existing frame Debug remains fully redacted.
+Raw lines may affect the provider's own malformed-JSON error classification, so
+the trusted adapter must classify source-equivalent text before discarding them.
+Transport never classifies, and raw context never belongs in public diagnostics.
 
 ## Resources and demand
 
@@ -73,6 +78,31 @@ trailing frame is inspected, provided the independent intake budget admits the
 raw chunk. Frame/feed/intake/growth failure resets raw, decoded, field, UTF-8 and
 chunk-marker ownership and closes the decoder. These are logical payload/marker
 charges, not allocator-capacity or secure-zeroization guarantees.
+
+Pending Anthropic state retains each decoded raw line once, with only two booleans
+tracking flush eligibility. Event/data fields are derived at emission, not stored
+as duplicate queued text. Normalized pending frame bytes retain precisely the old
+charge, including comments and ignored/repeated fields across empty flushes. The
+returned frame owns its bounded raw context alongside derived event/data; consumer
+retention after emission is outside the decoder's queued-byte budget. No allocator
+capacity, temporary-copy or global caller-retention bound is claimed.
+
+The additive raw-context oracle executes the pinned private parser unchanged and
+captures all three source fields. Its nine inputs cover 1,940 read/EOF stages,
+including comments, ignored/colonless/repeated fields, empty-event overwrites,
+empty-flush carry, CR read boundaries, BOM, UTF-8 replacement and truncated EOF.
+The unchanged 2,308 event/data stages and 903 OpenAI SDK stages still apply.
+
+```sh
+env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/ai-transport/anthropic-sse/raw-context-oracle.mjs --check
+```
+
+Raw-context tests also verify profile isolation, redacted Debug, clone ownership
+beyond decoder failure/drop, exact carried-comment intake/frame thresholds and
+complete raw-state cleanup at EOF, frame/feed failures and the old intake/growth
+failures. Private assertions follow the changed state representation without
+weakening a threshold. No external SseFrame literal existed in the searched
+workspace crates/conformance tree before this additive private field.
 
 New tests cover exact queue/frame/feed and decoded-growth boundaries, empty push
 metadata, postfailure cleanup, queued CR boundaries and terminal-tail ownership.
