@@ -1,0 +1,212 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "source": "packages/ai/src/api/mistral-conversations.ts:533-612",
+  "evidenceClass": "executed-pinned-functions",
+  "cases": [
+    {
+      "id": "negative-cache",
+      "usage": {
+        "prompt_tokens": 10,
+        "num_cached_tokens": -2
+      },
+      "expected": {
+        "input": 10,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 10,
+        "cost": {
+          "input": 0.000009999999999999999,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.000009999999999999999
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "huge-cache-clamps",
+      "usage": {
+        "prompt_tokens": 10,
+        "num_cached_tokens": 100000000000000000000
+      },
+      "expected": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 10,
+        "cacheWrite": 0,
+        "totalTokens": 10,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0.0000010000000000000002,
+          "cacheWrite": 0,
+          "total": 0.0000010000000000000002
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "fraction-clamps-to-zero",
+      "usage": {
+        "prompt_tokens": 0,
+        "num_cached_tokens": 0.5
+      },
+      "expected": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "fraction-final-outside-core",
+      "usage": {
+        "prompt_tokens": 10,
+        "num_cached_tokens": 0.5
+      },
+      "expected": {
+        "input": 9.5,
+        "output": 0,
+        "cacheRead": 0.5,
+        "cacheWrite": 0,
+        "totalTokens": 10,
+        "cost": {
+          "input": 0.000009499999999999999,
+          "output": 0,
+          "cacheRead": 5.0000000000000004e-8,
+          "cacheWrite": 0,
+          "total": 0.000009549999999999998
+        }
+      },
+      "coreAdmitted": false
+    },
+    {
+      "id": "false-precedes-number",
+      "usage": {
+        "prompt_tokens": 10,
+        "promptTokensDetails": {
+          "cachedTokens": false
+        },
+        "num_cached_tokens": 7
+      },
+      "expected": {
+        "input": 10,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 10,
+        "cost": {
+          "input": 0.000009999999999999999,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.000009999999999999999
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "string-precedes-number",
+      "usage": {
+        "prompt_tokens": 10,
+        "promptTokensDetails": {
+          "cachedTokens": "3"
+        },
+        "num_cached_tokens": 7
+      },
+      "expected": {
+        "input": 10,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 10,
+        "cost": {
+          "input": 0.000009999999999999999,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.000009999999999999999
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "null-uses-later",
+      "usage": {
+        "prompt_tokens": 10,
+        "promptTokensDetails": {
+          "cachedTokens": null
+        },
+        "num_cached_tokens": 7
+      },
+      "expected": {
+        "input": 3,
+        "output": 0,
+        "cacheRead": 7,
+        "cacheWrite": 0,
+        "totalTokens": 10,
+        "cost": {
+          "input": 0.000003,
+          "output": 0,
+          "cacheRead": 7.000000000000001e-7,
+          "cacheWrite": 0,
+          "total": 0.0000037
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "missing-all",
+      "usage": {},
+      "expected": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "coreAdmitted": true
+    },
+    {
+      "id": "null-fallbacks",
+      "usage": {
+        "prompt_tokens": null,
+        "completion_tokens": null,
+        "total_tokens": null
+      },
+      "expected": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "coreAdmitted": true
+    }
+  ]
+}

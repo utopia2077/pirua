@@ -1,0 +1,635 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "source": "packages/ai/src/api/mistral-conversations.ts:558-735",
+  "evidenceClass": "executed-pinned-functions",
+  "normalization": [
+    "timestamp=7",
+    "omit partialArgs scratch only",
+    "UA=pi-ai-rust; no OS discovery"
+  ],
+  "node": "v26.8.1",
+  "model": {
+    "id": "mistral-large-latest",
+    "name": "Mistral Large",
+    "api": "mistral-conversations",
+    "provider": "mistral",
+    "baseUrl": "https://api.mistral.ai",
+    "reasoning": true,
+    "input": [
+      "text",
+      "image"
+    ],
+    "cost": {
+      "input": 1,
+      "output": 2,
+      "cacheRead": 0.1,
+      "cacheWrite": 0.2
+    },
+    "contextWindow": 128000,
+    "maxTokens": 16384
+  },
+  "chunks": [
+    {
+      "id": "response-1",
+      "choices": [
+        {
+          "finish_reason": null,
+          "delta": {
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": [
+                  {
+                    "text": "reason"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "ignored-later",
+      "choices": [
+        {
+          "delta": {
+            "content": [
+              {
+                "type": "text",
+                "text": "answer"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "choices": [
+        {
+          "delta": {
+            "tool_calls": [
+              {
+                "id": "abc123456",
+                "index": 0,
+                "function": {
+                  "name": "lookup",
+                  "arguments": "{\"query\":"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "choices": [
+        {
+          "finish_reason": "tool_calls",
+          "delta": {
+            "tool_calls": [
+              {
+                "index": 0,
+                "function": {
+                  "name": "",
+                  "arguments": "\"pi\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 10,
+        "completion_tokens": 4,
+        "total_tokens": 14,
+        "prompt_tokens_details": {
+          "cached_tokens": 3
+        }
+      }
+    }
+  ],
+  "events": [
+    {
+      "type": "start",
+      "partial": {
+        "role": "assistant",
+        "content": [],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7
+      }
+    },
+    {
+      "type": "thinking_start",
+      "contentIndex": 0,
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": ""
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "thinking_delta",
+      "contentIndex": 0,
+      "delta": "reason",
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "thinking_end",
+      "contentIndex": 0,
+      "content": "reason",
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "text_start",
+      "contentIndex": 1,
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": ""
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "text_delta",
+      "contentIndex": 1,
+      "delta": "answer",
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "text_end",
+      "contentIndex": 1,
+      "content": "answer",
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "toolcall_start",
+      "contentIndex": 2,
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          },
+          {
+            "type": "toolCall",
+            "id": "abc123456",
+            "name": "lookup",
+            "arguments": {}
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "toolcall_delta",
+      "contentIndex": 2,
+      "delta": "{\"query\":",
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          },
+          {
+            "type": "toolCall",
+            "id": "abc123456",
+            "name": "lookup",
+            "arguments": {}
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "pending",
+        "timestamp": 7,
+        "responseId": "response-1"
+      }
+    },
+    {
+      "type": "toolcall_delta",
+      "contentIndex": 2,
+      "delta": "\"pi\"}",
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          },
+          {
+            "type": "toolCall",
+            "id": "abc123456",
+            "name": "lookup",
+            "arguments": {
+              "query": "pi"
+            }
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 7,
+          "output": 4,
+          "cacheRead": 3,
+          "cacheWrite": 0,
+          "totalTokens": 14,
+          "cost": {
+            "input": 0.000007,
+            "output": 0.000008,
+            "cacheRead": 3.0000000000000004e-7,
+            "cacheWrite": 0,
+            "total": 0.0000153
+          }
+        },
+        "stopReason": "toolUse",
+        "timestamp": 7,
+        "responseId": "response-1",
+        "rawStopReason": "tool_calls"
+      }
+    },
+    {
+      "type": "toolcall_end",
+      "contentIndex": 2,
+      "toolCall": {
+        "type": "toolCall",
+        "id": "abc123456",
+        "name": "lookup",
+        "arguments": {
+          "query": "pi"
+        }
+      },
+      "partial": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          },
+          {
+            "type": "toolCall",
+            "id": "abc123456",
+            "name": "lookup",
+            "arguments": {
+              "query": "pi"
+            }
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 7,
+          "output": 4,
+          "cacheRead": 3,
+          "cacheWrite": 0,
+          "totalTokens": 14,
+          "cost": {
+            "input": 0.000007,
+            "output": 0.000008,
+            "cacheRead": 3.0000000000000004e-7,
+            "cacheWrite": 0,
+            "total": 0.0000153
+          }
+        },
+        "stopReason": "toolUse",
+        "timestamp": 7,
+        "responseId": "response-1",
+        "rawStopReason": "tool_calls"
+      }
+    },
+    {
+      "type": "done",
+      "reason": "toolUse",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "reason"
+          },
+          {
+            "type": "text",
+            "text": "answer"
+          },
+          {
+            "type": "toolCall",
+            "id": "abc123456",
+            "name": "lookup",
+            "arguments": {
+              "query": "pi"
+            }
+          }
+        ],
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "model": "mistral-large-latest",
+        "usage": {
+          "input": 7,
+          "output": 4,
+          "cacheRead": 3,
+          "cacheWrite": 0,
+          "totalTokens": 14,
+          "cost": {
+            "input": 0.000007,
+            "output": 0.000008,
+            "cacheRead": 3.0000000000000004e-7,
+            "cacheWrite": 0,
+            "total": 0.0000153
+          }
+        },
+        "stopReason": "toolUse",
+        "timestamp": 7,
+        "responseId": "response-1",
+        "rawStopReason": "tool_calls"
+      }
+    }
+  ],
+  "timeouts": [
+    {
+      "value": 0,
+      "accepted": true,
+      "initiallyAborted": false
+    },
+    {
+      "value": 1,
+      "accepted": true,
+      "initiallyAborted": false
+    },
+    {
+      "value": 0.5,
+      "accepted": false,
+      "code": "ERR_OUT_OF_RANGE"
+    },
+    {
+      "value": -1,
+      "accepted": false,
+      "code": "ERR_OUT_OF_RANGE"
+    },
+    {
+      "value": 2147483647,
+      "accepted": true,
+      "initiallyAborted": false
+    },
+    {
+      "value": 2147483648,
+      "accepted": true,
+      "initiallyAborted": false
+    },
+    {
+      "value": 4294967295,
+      "accepted": true,
+      "initiallyAborted": false
+    },
+    {
+      "value": 4294967296,
+      "accepted": false,
+      "code": "ERR_OUT_OF_RANGE"
+    },
+    {
+      "value": 9007199254740991,
+      "accepted": false,
+      "code": "ERR_OUT_OF_RANGE"
+    }
+  ]
+}

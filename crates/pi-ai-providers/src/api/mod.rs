@@ -10,3 +10,6 @@ pub mod wire_json;
 
 #[cfg(feature = "wire-pi-messages")]
 pub mod pi_messages;
+
+#[cfg(feature = "wire-mistral-conversations")]
+pub mod mistral_conversations;

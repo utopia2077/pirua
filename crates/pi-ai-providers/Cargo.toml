@@ -12,6 +12,7 @@ workspace = true
 [features]
 default = []
 wire-pi-messages = ["dep:url"]
+wire-mistral-conversations = ["dep:url"]
 native = ["pi-ai-transport/native"]
 
 [dependencies]
