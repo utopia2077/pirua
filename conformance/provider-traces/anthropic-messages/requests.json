@@ -1,0 +1,3400 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sdk": "@anthropic-ai/sdk@0.91.1",
+  "evidenceClass": "executed-pinned-adapter-and-installed-sdk",
+  "warnings": [
+    "Using Claude with claude-opus-4-6 and 'thinking.type=enabled' is deprecated. Use 'thinking.type=adaptive' instead which results in better model performance in our testing: https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking",
+    "Using Claude with claude-opus-4-6 and 'thinking.type=enabled' is deprecated. Use 'thinking.type=adaptive' instead which results in better model performance in our testing: https://platform.claude.com/docs/en/build-with-claude/adaptive-thinking"
+  ],
+  "cases": [
+    {
+      "id": "default",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "no-cache",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "cacheRetention": "none"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello"
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System"
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Hello"
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System"
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "scoped-long-cache",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "env": {
+          "PI_CACHE_RETENTION": "long"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral",
+                    "ttl": "1h"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral",
+                "ttl": "1h"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "unsupported-long-cache",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "supportsLongCacheRetention": false
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "cacheRetention": "long"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "affinity",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "sendSessionAffinityHeaders": true
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "sessionId": "session"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-session-affinity": "session",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "affinity-disabled",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "sendSessionAffinityHeaders": true
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "sessionId": "session",
+        "cacheRetention": "none"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello"
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System"
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": "Hello"
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System"
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "legacy-budget-zero",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "thinkingEnabled": true,
+        "thinkingBudgetTokens": 0,
+        "temperature": 0
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "thinking": {
+            "type": "enabled",
+            "budget_tokens": 1024,
+            "display": "summarized"
+          }
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "legacy-budget-display",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "thinkingEnabled": true,
+        "thinkingBudgetTokens": 2345,
+        "thinkingDisplay": "omitted",
+        "effort": "max"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 2345,
+          "display": "omitted"
+        }
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "thinking": {
+            "type": "enabled",
+            "budget_tokens": 2345,
+            "display": "omitted"
+          }
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "adaptive-effort",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "forceAdaptiveThinking": true
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "thinkingEnabled": true,
+        "effort": "xhigh",
+        "thinkingDisplay": "omitted"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "omitted"
+        },
+        "output_config": {
+          "effort": "xhigh"
+        }
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "thinking": {
+            "type": "adaptive",
+            "display": "omitted"
+          },
+          "output_config": {
+            "effort": "xhigh"
+          }
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "thinking-disabled",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "thinkingEnabled": false,
+        "temperature": 0
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "temperature": 0,
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "temperature": 0,
+          "thinking": {
+            "type": "disabled"
+          }
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "disabled-unsupported",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "thinkingLevelMap": {
+          "off": null
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "thinkingEnabled": false
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "temperature-unsupported",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "supportsTemperature": false
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "temperature": 0
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "sampling-ignored",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "samplingParams": {
+          "top_p": 0.7,
+          "max_tokens": 1
+        },
+        "metadata": {
+          "user_id": "u",
+          "other": "ignore"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "metadata": {
+          "user_id": "u"
+        }
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "metadata": {
+            "user_id": "u"
+          }
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "oauth",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "sk-ant-oat-fixture"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          },
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "Read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "authorization": "Bearer sk-ant-oat-fixture",
+          "content-type": "application/json",
+          "user-agent": "claude-cli/2.1.75",
+          "x-app": "cli",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            },
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "Read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "oauth-case-override",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "sk-ant-oat-fixture",
+        "headers": {
+          "User-Agent": "capitalized-override"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          },
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "Read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "authorization": "Bearer sk-ant-oat-fixture",
+          "content-type": "application/json",
+          "user-agent": "claude-cli/2.1.75",
+          "x-app": "cli",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            },
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "Read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "oauth-lowercase-override",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "sk-ant-oat-fixture",
+        "headers": {
+          "user-agent": "explicit-lowercase"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          },
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "Read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "authorization": "Bearer sk-ant-oat-fixture",
+          "content-type": "application/json",
+          "user-agent": "explicit-lowercase",
+          "x-app": "cli",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            },
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "Read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "header-owned",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "headers": {
+          "Authorization": "Bearer header-fixture"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "authorization": "Bearer header-fixture",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "cf-header-placeholder",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "headers": {
+          "cf-aig-authorization": "Bearer fixture",
+          "x-api-key": null
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "cf-aig-authorization": "Bearer fixture",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "cf-without-placeholder",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "headers": {
+          "cf-aig-authorization": "Bearer fixture"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "copilot",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "github-copilot",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "forceAdaptiveThinking": true
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "image",
+                "mimeType": "image/png",
+                "data": "eA=="
+              }
+            ],
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "eA=="
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "authorization": "Bearer fixture-key",
+          "content-type": "application/json",
+          "copilot-vision-request": "true",
+          "openai-intent": "conversation-edits",
+          "user-agent": "pi-ai-rust",
+          "x-initiator": "user",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "image",
+                  "source": {
+                    "type": "base64",
+                    "media_type": "image/png",
+                    "data": "eA=="
+                  },
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "legacy-tool-beta",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "supportsEagerToolInputStreaming": false
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "fine-grained-tool-streaming-2025-05-14,interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "read",
+              "description": "Read",
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "tool-cache-unsupported",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000,
+        "compat": {
+          "supportsCacheControlOnTools": false
+        }
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "header-null-and-body-override",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key",
+        "headers": {
+          "anthropic-beta": null,
+          "content-type": null,
+          "x-custom": " \tvalue\r\n"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-custom": "value",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "url-query-append",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base?x=a+b&x=last&2=numeric#fragment",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base?2=numeric&x=last#fragment/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "named-tool-choice-oauth",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "sk-ant-oat-fixture",
+        "toolChoice": {
+          "type": "tool",
+          "name": "read"
+        }
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          },
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "Read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "read"
+        }
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "authorization": "Bearer sk-ant-oat-fixture",
+          "content-type": "application/json",
+          "user-agent": "claude-cli/2.1.75",
+          "x-app": "cli",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "You are Claude Code, Anthropic's official CLI for Claude.",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            },
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "Read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tool_choice": {
+            "type": "tool",
+            "name": "read"
+          }
+        }
+      },
+      "sourceStop": "error"
+    },
+    {
+      "id": "grammar-keeps-json-schema",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Claude",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://gateway.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 32000
+      },
+      "context": {
+        "systemPrompt": "System",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Hello",
+            "timestamp": 7
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "title": "Not in legacy"
+            },
+            "constrainedSampling": {
+              "type": "grammar",
+              "variants": {
+                "openai_regex": ".*"
+              }
+            }
+          }
+        ]
+      },
+      "options": {
+        "apiKey": "fixture-key"
+      },
+      "logical": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Hello",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 32000,
+        "stream": true,
+        "system": [
+          {
+            "type": "text",
+            "text": "System",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "read",
+            "description": "Read",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      },
+      "request": {
+        "url": "https://gateway.invalid/base/v1/messages",
+        "headers": {
+          "accept": "application/json",
+          "anthropic-beta": "interleaved-thinking-2025-05-14",
+          "anthropic-dangerous-direct-browser-access": "true",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-api-key": "fixture-key",
+          "x-stainless-retry-count": "0",
+          "x-stainless-timeout": "600"
+        },
+        "body": {
+          "model": "claude-opus-4-6",
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello",
+                  "cache_control": {
+                    "type": "ephemeral"
+                  }
+                }
+              ]
+            }
+          ],
+          "max_tokens": 32000,
+          "stream": true,
+          "system": [
+            {
+              "type": "text",
+              "text": "System",
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ],
+          "tools": [
+            {
+              "name": "read",
+              "description": "Read",
+              "eager_input_streaming": true,
+              "input_schema": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path"
+                ]
+              },
+              "cache_control": {
+                "type": "ephemeral"
+              }
+            }
+          ]
+        }
+      },
+      "sourceStop": "error"
+    }
+  ]
+}

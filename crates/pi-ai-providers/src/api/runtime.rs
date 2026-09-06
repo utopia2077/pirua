@@ -7,16 +7,28 @@
 
 use std::collections::BTreeSet;
 use std::fmt;
-#[cfg(any(feature = "wire-pi-messages", feature = "wire-mistral-conversations"))]
+#[cfg(any(
+    feature = "wire-pi-messages",
+    feature = "wire-mistral-conversations",
+    feature = "wire-anthropic-messages"
+))]
 use std::future::{Future, poll_fn};
 use std::sync::Arc;
-#[cfg(any(feature = "wire-pi-messages", feature = "wire-mistral-conversations"))]
+#[cfg(any(
+    feature = "wire-pi-messages",
+    feature = "wire-mistral-conversations",
+    feature = "wire-anthropic-messages"
+))]
 use std::task::Poll;
 
 use pi_ai_core::{BoxFuture, JsonValue, ModelsError, ProviderEnv, TextStreamRequest};
 use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, TransportErrorKind};
 
-#[cfg(any(feature = "wire-pi-messages", feature = "wire-mistral-conversations"))]
+#[cfg(any(
+    feature = "wire-pi-messages",
+    feature = "wire-mistral-conversations",
+    feature = "wire-anthropic-messages"
+))]
 use pi_ai_core::{CancellationToken, Cancelled};
 
 /// Optional mutation and replacement of one provider's logical request payload.
@@ -115,7 +127,11 @@ impl fmt::Debug for AdapterServices {
 }
 
 /// Drops a non-cooperative operation when the original caller cancels.
-#[cfg(any(feature = "wire-pi-messages", feature = "wire-mistral-conversations"))]
+#[cfg(any(
+    feature = "wire-pi-messages",
+    feature = "wire-mistral-conversations",
+    feature = "wire-anthropic-messages"
+))]
 pub(crate) async fn cancellable<T>(
     mut operation: BoxFuture<'_, T>,
     cancellation: &CancellationToken,

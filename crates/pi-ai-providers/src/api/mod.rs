@@ -14,3 +14,6 @@ pub mod pi_messages;
 
 #[cfg(feature = "wire-mistral-conversations")]
 pub mod mistral_conversations;
+
+#[cfg(feature = "wire-anthropic-messages")]
+pub mod anthropic_messages;

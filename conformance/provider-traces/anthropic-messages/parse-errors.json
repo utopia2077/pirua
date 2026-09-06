@@ -1,0 +1,498 @@
+{
+  "commit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sdk": "@anthropic-ai/sdk@0.91.1",
+  "node": "v26.8.1",
+  "evidenceClass": "executed-pinned-full-adapter-parse-error-context",
+  "cases": [
+    {
+      "id": "billing-ignored",
+      "chunks": [
+        "event: message_delta\nignored: billing\ndata: invalid server error\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid server error\" is not valid JSON; data=invalid server error; raw=event: message_delta\\nignored: billing\\ndata: invalid server error",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "overflow-ignored",
+      "chunks": [
+        "event: message_delta\nignored: prompt is too long\ndata: invalid\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: message_delta\\nignored: prompt is too long\\ndata: invalid",
+      "stop": "error",
+      "retryable": false,
+      "overflow": true,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "both-raw",
+      "chunks": [
+        "event: message_delta\nignored: prompt is too long\n: server error\ndata: invalid\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: message_delta\\nignored: prompt is too long\\n: server error\\ndata: invalid",
+      "stop": "error",
+      "retryable": true,
+      "overflow": true,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "empty-flush-carry",
+      "chunks": [
+        ": billing\n\nevent: message_delta\ndata: invalid server error\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid server error\" is not valid JSON; data=invalid server error; raw=: billing\\nevent: message_delta\\ndata: invalid server error",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "null-overflow",
+      "chunks": [
+        "event: message_delta\n: prompt is too long\ndata: null\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: TypeError: Cannot read properties of null (reading 'type'); data=null; raw=event: message_delta\\n: prompt is too long\\ndata: null",
+      "stop": "error",
+      "retryable": false,
+      "overflow": true,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "null-control",
+      "chunks": [
+        "event: message_delta\ndata: null\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: TypeError: Cannot read properties of null (reading 'type'); data=null; raw=event: message_delta\\ndata: null",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "repaired-control",
+      "chunks": [
+        "event: message_delta\n: billing prompt is too long\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"noise\":\"a\\q\"}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      ],
+      "sourceMessage": null,
+      "stop": "stop",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "done"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "ignored-event-control",
+      "chunks": [
+        "event: proxy.stats\n: prompt is too long\ndata: invalid server error\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      ],
+      "sourceMessage": null,
+      "stop": "stop",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "done"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "named-error-control",
+      "chunks": [
+        "event: error\n: billing\ndata: server error\n\n"
+      ],
+      "sourceMessage": "server error",
+      "stop": "error",
+      "retryable": true,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "repeated-event-raw",
+      "chunks": [
+        "event: server error\nevent: message_delta\ndata: invalid\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: server error\\nevent: message_delta\\ndata: invalid",
+      "stop": "error",
+      "retryable": true,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "repeated-data-veto",
+      "chunks": [
+        "event: message_delta\ndata: billing\ndata: invalid server error\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'b', \"billing\nin\"... is not valid JSON; data=billing\ninvalid server error; raw=event: message_delta\\ndata: billing\\ndata: invalid server error",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "partial-usage-overflow",
+      "chunks": [
+        "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_fixture\",\"model\":\"claude-fable-5\",\"usage\":{\"input_tokens\":12,\"output_tokens\":1,\"cache_read_input_tokens\":2,\"cache_creation_input_tokens\":6,\"cache_creation\":{\"ephemeral_1h_input_tokens\":4}}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"Hello\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\" world☃\"}}\n\n",
+        "event: message_delta\n: prompt is too long\ndata: invalid\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: message_delta\\n: prompt is too long\\ndata: invalid",
+      "stop": "error",
+      "retryable": false,
+      "overflow": true,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "text_start",
+        "text_delta",
+        "error"
+      ],
+      "model": "claude-fable-5",
+      "responseId": "msg_fixture",
+      "usage": {
+        "input": 12,
+        "output": 1,
+        "cacheRead": 2,
+        "cacheWrite": 6,
+        "totalTokens": 21,
+        "cost": {
+          "input": 0.00012000000000000002,
+          "output": 0.00002,
+          "cacheRead": 0.000002,
+          "cacheWrite": 0.000084,
+          "total": 0.00022600000000000002
+        },
+        "cacheWrite1h": 4
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Hello world☃"
+        }
+      ]
+    },
+    {
+      "id": "eof-overflow",
+      "chunks": [
+        "event: message_delta\n: prompt is too long\ndata: invalid"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: message_delta\\n: prompt is too long\\ndata: invalid",
+      "stop": "error",
+      "retryable": false,
+      "overflow": true,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "cr-read-boundary",
+      "chunks": [
+        "event: message_delta\r",
+        "\n: prompt is too long\r\ndata: invalid\r\n\r\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected end of JSON input; data=; raw=event: message_delta",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    },
+    {
+      "id": "unknown-does-not-carry",
+      "chunks": [
+        "event: proxy.stats\n: billing\ndata: ignored\n\nevent: message_delta\ndata: invalid server error\n\n"
+      ],
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid server error\" is not valid JSON; data=invalid server error; raw=event: message_delta\\ndata: invalid server error",
+      "stop": "error",
+      "retryable": true,
+      "overflow": false,
+      "calls": 1,
+      "eventTypes": [
+        "start",
+        "error"
+      ],
+      "model": "claude-opus-4-6",
+      "responseId": null,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "content": []
+    }
+  ]
+}

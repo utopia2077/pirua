@@ -1,0 +1,131 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "v26.8.1",
+  "evidenceClass": "executed-pinned-helper-and-native-Headers",
+  "raw": [
+    [
+      "X-Repeat",
+      " first "
+    ],
+    [
+      "x-repeat",
+      "\tsecond\t"
+    ],
+    [
+      "Cookie",
+      "a=1"
+    ],
+    [
+      "cookie",
+      "b=2"
+    ],
+    [
+      "Set-Cookie",
+      "a=1; Expires=Wed, 09 Jun 2027 10:18:14 GMT"
+    ],
+    [
+      "set-cookie",
+      " b=2 "
+    ],
+    [
+      "10",
+      "ten"
+    ],
+    [
+      "2",
+      "two"
+    ],
+    [
+      "__proto__",
+      "ignored-string"
+    ],
+    [
+      "constructor",
+      "literal-string"
+    ],
+    [
+      "X-Empty",
+      ""
+    ],
+    [
+      "X-Latin1",
+      " é "
+    ]
+  ],
+  "fetchEntries": [
+    [
+      "10",
+      "ten"
+    ],
+    [
+      "2",
+      "two"
+    ],
+    [
+      "__proto__",
+      "ignored-string"
+    ],
+    [
+      "constructor",
+      "literal-string"
+    ],
+    [
+      "cookie",
+      "a=1; b=2"
+    ],
+    [
+      "set-cookie",
+      "a=1; Expires=Wed, 09 Jun 2027 10:18:14 GMT"
+    ],
+    [
+      "set-cookie",
+      "b=2"
+    ],
+    [
+      "x-empty",
+      ""
+    ],
+    [
+      "x-latin1",
+      "é"
+    ],
+    [
+      "x-repeat",
+      "first, second"
+    ]
+  ],
+  "ownRecordEntries": [
+    [
+      "2",
+      "two"
+    ],
+    [
+      "10",
+      "ten"
+    ],
+    [
+      "constructor",
+      "literal-string"
+    ],
+    [
+      "cookie",
+      "a=1; b=2"
+    ],
+    [
+      "set-cookie",
+      "b=2"
+    ],
+    [
+      "x-empty",
+      ""
+    ],
+    [
+      "x-latin1",
+      "é"
+    ],
+    [
+      "x-repeat",
+      "first, second"
+    ]
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "commit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "cases": [
+    {
+      "id": "retry-control",
+      "raw": "event: message_delta\ndata: invalid server error\n\n",
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid server error\" is not valid JSON; data=invalid server error; raw=event: message_delta\\ndata: invalid server error",
+      "stop": "error",
+      "retryable": true,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "id": "billing-comment",
+      "raw": "event: message_delta\n: billing\ndata: invalid server error\n\n",
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid server error\" is not valid JSON; data=invalid server error; raw=event: message_delta\\n: billing\\ndata: invalid server error",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "id": "overflow-comment",
+      "raw": "event: message_delta\n: prompt is too long\ndata: invalid\n\n",
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: message_delta\\n: prompt is too long\\ndata: invalid",
+      "stop": "error",
+      "retryable": false,
+      "overflow": true,
+      "calls": 1
+    },
+    {
+      "id": "overflow-control",
+      "raw": "event: message_delta\ndata: invalid\n\n",
+      "sourceMessage": "Could not parse Anthropic SSE event message_delta: Unexpected token 'i', \"invalid\" is not valid JSON; data=invalid; raw=event: message_delta\\ndata: invalid",
+      "stop": "error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1
+    }
+  ],
+  "cap": [
+    {
+      "status": 403,
+      "body": "{\"message\":\"billing server error\"}",
+      "capped": false,
+      "sourceMessage": "403 billing server error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "status": 403,
+      "body": "{\"message\":\"billing server error\"}",
+      "capped": true,
+      "sourceMessage": "Server requested 2s retry delay (max: 1s). 403 billing server error",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "status": 400,
+      "body": "",
+      "capped": false,
+      "sourceMessage": "400 status code (no body)",
+      "retryable": false,
+      "overflow": true,
+      "calls": 1
+    },
+    {
+      "status": 400,
+      "body": "",
+      "capped": true,
+      "sourceMessage": "Server requested 2s retry delay (max: 1s). 400 status code (no body)",
+      "retryable": true,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "status": 403,
+      "body": "{\"error\":{\"type\":\"insufficient_quota\"}}",
+      "capped": false,
+      "sourceMessage": "403 {\"error\":{\"type\":\"insufficient_quota\"}}",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "status": 403,
+      "body": "{\"error\":{\"type\":\"insufficient_quota\"}}",
+      "capped": true,
+      "sourceMessage": "Server requested 2s retry delay (max: 1s). 403 {\"error\":{\"type\":\"insufficient_quota\"}}",
+      "retryable": false,
+      "overflow": false,
+      "calls": 1
+    },
+    {
+      "status": 503,
+      "body": "{\"message\":\"Throttling error: prompt is too long\"}",
+      "capped": false,
+      "sourceMessage": "503 Throttling error: prompt is too long",
+      "retryable": true,
+      "overflow": true,
+      "calls": 1
+    },
+    {
+      "status": 503,
+      "body": "{\"message\":\"Throttling error: prompt is too long\"}",
+      "capped": true,
+      "sourceMessage": "Server requested 2s retry delay (max: 1s). 503 Throttling error: prompt is too long",
+      "retryable": true,
+      "overflow": true,
+      "calls": 1
+    }
+  ]
+}

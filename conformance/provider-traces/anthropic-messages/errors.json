@@ -1,0 +1,160 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sdk": "@anthropic-ai/sdk@0.91.1",
+  "evidenceClass": "executed-installed-sdk-and-pinned-classifiers",
+  "cases": [
+    {
+      "status": 429,
+      "body": "{\"error\":{\"message\":\"billing exhausted\"}}",
+      "sdkMessage": "429 {\"error\":{\"message\":\"billing exhausted\"}}",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": false
+    },
+    {
+      "status": 503,
+      "body": "{\"error\":{\"message\":\"quota exceeded\"}}",
+      "sdkMessage": "503 {\"error\":{\"message\":\"quota exceeded\"}}",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": false
+    },
+    {
+      "status": 503,
+      "body": "{\"error\":{\"message\":\"server error\"}}",
+      "sdkMessage": "503 {\"error\":{\"message\":\"server error\"}}",
+      "overflow": false,
+      "retryable": true,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 429,
+      "body": "{\"error\":{\"message\":\"rate limit\"}}",
+      "sdkMessage": "429 {\"error\":{\"message\":\"rate limit\"}}",
+      "overflow": false,
+      "retryable": true,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 400,
+      "body": "{\"error\":{\"message\":\"prompt is too long\"}}",
+      "sdkMessage": "400 {\"error\":{\"message\":\"prompt is too long\"}}",
+      "overflow": true,
+      "retryable": false,
+      "capOverflow": true,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "ordinary failure",
+      "sdkMessage": "403 ordinary failure",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "{\"message\":\"visible outer message\",\"error\":{\"message\":\"billing hidden\"}}",
+      "sdkMessage": "403 visible outer message",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "{\"message\":0,\"error\":{\"message\":\"server error\"}}",
+      "sdkMessage": "403 {\"message\":0,\"error\":{\"message\":\"server error\"}}",
+      "overflow": false,
+      "retryable": true,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "false",
+      "sdkMessage": "403 false",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "null",
+      "sdkMessage": "403 null",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "0",
+      "sdkMessage": "403 0",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "\"text\"",
+      "sdkMessage": "403 \"text\"",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 403,
+      "body": "",
+      "sdkMessage": "403 status code (no body)",
+      "overflow": false,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 503,
+      "body": "{\"message\":\"billing prompt is too long\"}",
+      "sdkMessage": "503 billing prompt is too long",
+      "overflow": true,
+      "retryable": false,
+      "capOverflow": true,
+      "capRetryable": false
+    },
+    {
+      "status": 413,
+      "body": "﻿{\"error\":{\"type\":\"request_too_large\"}}",
+      "sdkMessage": "413 {\"error\":{\"type\":\"request_too_large\"}}",
+      "overflow": true,
+      "retryable": false,
+      "capOverflow": true,
+      "capRetryable": true
+    },
+    {
+      "status": 400,
+      "body": "",
+      "sdkMessage": "400 status code (no body)",
+      "overflow": true,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    },
+    {
+      "status": 413,
+      "body": "",
+      "sdkMessage": "413 status code (no body)",
+      "overflow": true,
+      "retryable": false,
+      "capOverflow": false,
+      "capRetryable": true
+    }
+  ]
+}
