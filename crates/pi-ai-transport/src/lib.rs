@@ -6,6 +6,7 @@ mod http;
 #[cfg(feature = "native")]
 mod native;
 mod policy;
+mod provider_retry;
 mod proxy;
 mod retry_date;
 mod sse;
@@ -16,6 +17,7 @@ pub use http::*;
 #[cfg(feature = "native")]
 pub use native::*;
 pub use policy::*;
+pub use provider_retry::*;
 pub use proxy::*;
 pub use sse::*;
 pub use websocket::*;

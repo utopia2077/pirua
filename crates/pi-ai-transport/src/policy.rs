@@ -253,7 +253,7 @@ impl HttpTransport {
             }
         })
     }
-    fn retry_delay(
+    pub(crate) fn retry_delay(
         &self,
         headers: &HttpHeaders,
         attempt: u64,
@@ -306,7 +306,7 @@ impl HttpTransport {
     }
 }
 
-fn shared_retryable(status: Option<u16>, headers: &HttpHeaders) -> bool {
+pub(crate) fn shared_retryable(status: Option<u16>, headers: &HttpHeaders) -> bool {
     match headers.get_for_fetch("x-should-retry").as_deref() {
         Some("true") => true,
         Some("false") => false,

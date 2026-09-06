@@ -1,0 +1,337 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sourceSha256": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
+  "evidenceClass": "executed-pinned-retry-and-installed-sdk",
+  "sdkVersion": "6.40.0",
+  "jitter": 0.4,
+  "now": 0,
+  "cases": [
+    {
+      "id": "status-missing",
+      "status": null,
+      "headers": [],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "status-200",
+      "status": 200,
+      "headers": [],
+      "retryable": false
+    },
+    {
+      "id": "status-400",
+      "status": 400,
+      "headers": [],
+      "retryable": false
+    },
+    {
+      "id": "status-401",
+      "status": 401,
+      "headers": [],
+      "retryable": false
+    },
+    {
+      "id": "status-403",
+      "status": 403,
+      "headers": [],
+      "retryable": false
+    },
+    {
+      "id": "status-408",
+      "status": 408,
+      "headers": [],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "status-409",
+      "status": 409,
+      "headers": [],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "status-429",
+      "status": 429,
+      "headers": [],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "status-500",
+      "status": 500,
+      "headers": [],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "status-599",
+      "status": 599,
+      "headers": [],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "forced",
+      "status": 403,
+      "headers": [
+        [
+          "x-should-retry",
+          "true"
+        ]
+      ],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "forced-edge-whitespace",
+      "status": 403,
+      "headers": [
+        [
+          "x-should-retry",
+          "\ttrue "
+        ]
+      ],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "disabled",
+      "status": 500,
+      "headers": [
+        [
+          "x-should-retry",
+          "false"
+        ]
+      ],
+      "retryable": false
+    },
+    {
+      "id": "duplicate-forced",
+      "status": 403,
+      "headers": [
+        [
+          "x-should-retry",
+          "true"
+        ],
+        [
+          "X-Should-Retry",
+          "true"
+        ]
+      ],
+      "retryable": false
+    },
+    {
+      "id": "duplicate-disabled",
+      "status": 500,
+      "headers": [
+        [
+          "x-should-retry",
+          "false"
+        ],
+        [
+          "X-Should-Retry",
+          "false"
+        ]
+      ],
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "server-ms",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after-ms",
+          "2.5ms"
+        ]
+      ],
+      "retryable": true,
+      "delay": 2.5
+    },
+    {
+      "id": "duplicate-server",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after-ms",
+          "2"
+        ],
+        [
+          "retry-after-ms",
+          "3"
+        ]
+      ],
+      "retryable": true,
+      "delay": 2
+    },
+    {
+      "id": "server-seconds",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after",
+          "1.25"
+        ]
+      ],
+      "retryable": true,
+      "delay": 1250
+    },
+    {
+      "id": "server-date",
+      "status": 503,
+      "headers": [
+        [
+          "retry-after",
+          "Thu, 01 Jan 1970 00:00:02 GMT"
+        ]
+      ],
+      "retryable": true,
+      "delay": 2000
+    },
+    {
+      "id": "server-iso-date",
+      "status": 503,
+      "headers": [
+        [
+          "retry-after",
+          "Thu Jan 01 1970 00:00:02 GMT+0000 (Coordinated Universal Time)"
+        ]
+      ],
+      "retryable": true,
+      "delay": 2000
+    },
+    {
+      "id": "cap",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after-ms",
+          "2"
+        ]
+      ],
+      "cap": 1,
+      "retryable": true,
+      "policyMessage": "Server requested 1s retry delay (max: 1s). context length exceeded"
+    },
+    {
+      "id": "cap-inclusive",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after-ms",
+          "2"
+        ]
+      ],
+      "cap": 2,
+      "retryable": true,
+      "delay": 2
+    },
+    {
+      "id": "cap-disabled",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after-ms",
+          "60001"
+        ]
+      ],
+      "cap": 0,
+      "retryable": true,
+      "delay": 60001
+    },
+    {
+      "id": "default-cap",
+      "status": 429,
+      "headers": [
+        [
+          "retry-after-ms",
+          "60001"
+        ]
+      ],
+      "retryable": true,
+      "policyMessage": "Server requested 61s retry delay (max: 60s). context length exceeded"
+    },
+    {
+      "id": "backoff-0",
+      "status": 500,
+      "headers": [],
+      "index": 0,
+      "retryable": true,
+      "delay": 450
+    },
+    {
+      "id": "backoff-1",
+      "status": 500,
+      "headers": [],
+      "index": 1,
+      "retryable": true,
+      "delay": 900
+    },
+    {
+      "id": "backoff-2",
+      "status": 500,
+      "headers": [],
+      "index": 2,
+      "retryable": true,
+      "delay": 1800
+    },
+    {
+      "id": "backoff-3",
+      "status": 500,
+      "headers": [],
+      "index": 3,
+      "retryable": true,
+      "delay": 3600
+    },
+    {
+      "id": "backoff-4",
+      "status": 500,
+      "headers": [],
+      "index": 4,
+      "retryable": true,
+      "delay": 7200
+    },
+    {
+      "id": "backoff-5",
+      "status": 500,
+      "headers": [],
+      "index": 5,
+      "retryable": true,
+      "delay": 7200
+    },
+    {
+      "id": "backoff-60",
+      "status": 500,
+      "headers": [],
+      "index": 60,
+      "retryable": true,
+      "delay": 7200
+    }
+  ],
+  "attemptStage": {
+    "attemptsBeforeErrorBody": 1,
+    "attemptsAfterErrorBody": 2
+  },
+  "capStage": {
+    "attempts": 1,
+    "message": "Server requested 1s retry delay (max: 1s). 429 context length exceeded",
+    "retryable": true,
+    "contextOverflow": true
+  },
+  "maxBudgetCases": [
+    {
+      "maxRetries": 9007199254740991,
+      "failures": 0,
+      "calls": 1,
+      "result": 17
+    },
+    {
+      "maxRetries": 9007199254740991,
+      "failures": 1,
+      "calls": 2,
+      "result": 17
+    }
+  ]
+}
