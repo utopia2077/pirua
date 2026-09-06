@@ -1,0 +1,85 @@
+# Pinned Anthropic private SSE framing
+
+`SseProfile::Anthropic` follows pi-mono
+`853a80d26c90a14c1886f0ebb8ffaae133ca2185`, not the imported Anthropic SDK
+iterator. `packages/ai/src/api/anthropic-messages.ts:575-583` calls
+`.asResponse()`; `:589` consumes `iterateAnthropicEvents`, whose `:471` calls
+the private `iterateSseMessages`. Parser authority is `:313-458`, consumer
+filtering/JSON handling `:460-499`. The complete pinned
+`packages/ai/test/anthropic-sse-parsing.test.ts` was inspected, including raw fake
+client responses, unterminated event construction and unknown trailing events.
+
+Source blob: `6c4ff62d08c2082e962ef79fdc913e35826fa4df`.
+Source SHA256: `c63b3cbe8afe2504bb5f60f2e7f7b8f773de68486a03cc0cc266c3c76f73f7f6`.
+The supplied initial oracle is retained byte-for-byte as `initial-oracle.mjs`,
+SHA256 `a26218a2e9fb47b383b1aebfcca24ce41508c5c425f89829c866071bb09df37f`.
+
+## Executed evidence
+
+Run from the workspace, without ambient credentials or SDK installation:
+
+```sh
+env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/ai-transport/anthropic-sse/initial-oracle.mjs
+env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/ai-transport/anthropic-sse/oracle.mjs --check
+```
+
+The retained expected `frames.json` is generated exclusively by executing the
+pinned private functions loaded from Git objects in a Node VM. Node version and
+source digest are checked. It covers seventeen inputs, 577 two-chunk splits and
+bytewise feeds: 2,308 per-read/EOF stages. Controlled reader acknowledgement, not
+sleep or guessed microtasks, determines each stage. No network is invoked.
+The original oracle and the Rust pre-fix regression demonstrate the same causal
+counterexample: a complete CRLF frame emits one named JSON frame, whereas a
+read ending after `event: message_stop\r` followed by LF emits a named empty-data
+frame and an unnamed JSON frame. Bytewise input preserves that source quirk.
+
+Streaming TextDecoder retains incomplete UTF-8 between reads, replaces malformed
+sequences, flushes incomplete input at EOF and removes a BOM only once. A leading
+empty line also consumes the stream's initial
+BOM position, so a later BOM is retained. CR is an
+immediate line ending; only a LF already in the same read is paired with it.
+Multiline values join with LF; exactly one leading space after colon is removed;
+colonless data, event-only frames, unknown names and literal DONE are retained.
+Blank lines with neither nonempty event nor any data do not reset source raw-line
+state. EOF decodes the final unterminated line and flushes a pending event.
+
+Four consumer observations execute the pinned `iterateAnthropicEvents` and pinned
+`utils/json-parse.ts` repair code too: named `message_stop` with `{}` yields `{}`
+without inventing a JSON type; unnamed JSON containing `type: message_stop` is
+ignored; unknown event with non-JSON data is ignored; an unterminated named typed
+event is yielded at EOF. No SSE-name-to-missing-JSON-type fallback exists in this
+caller. These are source consumer evidence, not transport JSON interpretation.
+Provider reducers still own validation, errors and terminal selection. The
+transport's unchanged frame ABI projects only event/data, not the source raw-line
+diagnostic array; arbitrary source error bodies remain outside safe rendering.
+
+## Resources and demand
+
+The private chunk-length queue preserves push boundaries even if callers enqueue
+multiple chunks before asking for frames. Parity is for the same supplied read
+sequence; different native HTTP runtimes need not partition identical wire bytes
+into identical body chunks. Callers must not silently coalesce/split reads when
+claiming this source's stage-sensitive behavior. Each nonempty live marker charges
+`size_of::<usize>()` against `max_buffer_bytes`; empty pushes add no marker.
+The continuous queue charge includes raw bytes, decoded pending line, incomplete
+UTF-8 suffix (still raw), normalized pending frame and markers. Checked arithmetic
+rejects overflowing/exceeded budgets, including empty intake. Pending normalized
+frame charge includes field lines and separating LF, excluding line terminators
+and the initial BOM; it preserves raw-line accumulation across empty flushes.
+
+Exact UTF-8 replacement length is checked before allocating decoded text. Parsing
+stops at the next requested frame: a terminal can be observed before an oversized
+trailing frame is inspected, provided the independent intake budget admits the
+raw chunk. Frame/feed/intake/growth failure resets raw, decoded, field, UTF-8 and
+chunk-marker ownership and closes the decoder. These are logical payload/marker
+charges, not allocator-capacity or secure-zeroization guarantees.
+
+New tests cover exact queue/frame/feed and decoded-growth boundaries, empty push
+metadata, postfailure cleanup, queued CR boundaries and terminal-tail ownership.
+The old portable assertions did not require changes. OpenAI's 903 retained SDK
+stages and all other profile tests remain unchanged and passing. This corrects
+the existing Anthropic profile; no new public variant, provider-local parser,
+dependency, or port is added.
+
+Focused checks: `cargo test -p pi-ai-transport --lib --test anthropic_sse --test
+openai_sse --test portable --locked --offline`. Full acceptance: `./scripts/verify.sh`.
