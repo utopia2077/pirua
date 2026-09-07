@@ -15,6 +15,7 @@ wire-pi-messages = ["dep:url"]
 wire-mistral-conversations = ["dep:url"]
 wire-anthropic-messages = ["dep:url"]
 wire-openai-responses = ["dep:url"]
+wire-openai-completions = ["dep:url"]
 native = ["pi-ai-transport/native"]
 
 [dependencies]

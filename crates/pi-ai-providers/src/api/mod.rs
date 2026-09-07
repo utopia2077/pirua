@@ -12,6 +12,9 @@ pub mod wire_json;
 #[cfg(feature = "wire-openai-responses")]
 pub mod openai_responses;
 
+#[cfg(feature = "wire-openai-completions")]
+pub mod openai_completions;
+
 #[cfg(feature = "wire-pi-messages")]
 pub mod pi_messages;
 

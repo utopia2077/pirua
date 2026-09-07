@@ -1,0 +1,2348 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sdk": "6.40.0",
+  "observations": [
+    {
+      "id": "unresolved-cancel",
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {
+        "maxRetries": 2
+      },
+      "chunks": [
+        {
+          "id": "first-id",
+          "choices": [
+            {
+              "delta": {
+                "content": "prefix"
+              }
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "tool_calls": [
+                  {
+                    "index": 0,
+                    "function": {
+                      "name": "read",
+                      "arguments": "{}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "model": "late-reported",
+          "choices": [],
+          "usage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 7,
+            "cached_tokens": 11
+          }
+        }
+      ],
+      "sse": "data: {\"id\":\"first-id\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"read\",\"arguments\":\"{}\"}}]}}]}\n\ndata: {\"model\":\"late-reported\",\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":7,\"cached_tokens\":11}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "prefix"
+          },
+          {
+            "type": "toolCall",
+            "id": "",
+            "name": "read",
+            "arguments": {}
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 89,
+          "output": 7,
+          "cacheRead": 11,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 107,
+          "cost": {
+            "input": 0.000089,
+            "output": 0.000014,
+            "cacheRead": 0.000033,
+            "cacheWrite": 0,
+            "total": 0.000136
+          }
+        },
+        "stopReason": "aborted",
+        "timestamp": 7,
+        "responseId": "first-id",
+        "responseModel": "late-reported",
+        "errorMessage": "aborted"
+      }
+    },
+    {
+      "id": "resolved-cancel",
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {
+        "maxRetries": 2
+      },
+      "chunks": [
+        {
+          "id": "first-id",
+          "choices": [
+            {
+              "delta": {
+                "content": "prefix"
+              }
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "tool_calls": [
+                  {
+                    "index": 0,
+                    "id": "call-id",
+                    "function": {
+                      "name": "read",
+                      "arguments": "{}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "model": "late-reported",
+          "choices": [],
+          "usage": {
+            "prompt_tokens": 100,
+            "completion_tokens": 7,
+            "cached_tokens": 11
+          }
+        }
+      ],
+      "sse": "data: {\"id\":\"first-id\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-id\",\"function\":{\"name\":\"read\",\"arguments\":\"{}\"}}]}}]}\n\ndata: {\"model\":\"late-reported\",\"choices\":[],\"usage\":{\"prompt_tokens\":100,\"completion_tokens\":7,\"cached_tokens\":11}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "prefix"
+          },
+          {
+            "type": "toolCall",
+            "id": "call-id",
+            "name": "read",
+            "arguments": {}
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 89,
+          "output": 7,
+          "cacheRead": 11,
+          "cacheWrite": 0,
+          "reasoning": 0,
+          "totalTokens": 107,
+          "cost": {
+            "input": 0.000089,
+            "output": 0.000014,
+            "cacheRead": 0.000033,
+            "cacheWrite": 0,
+            "total": 0.000136
+          }
+        },
+        "stopReason": "aborted",
+        "timestamp": 7,
+        "responseId": "first-id",
+        "responseModel": "late-reported",
+        "errorMessage": "aborted"
+      }
+    },
+    {
+      "id": "unresolved-cancel-metadata",
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {
+        "maxRetries": 2
+      },
+      "chunks": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "prefix"
+              }
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "tool_calls": [
+                  {
+                    "index": 0,
+                    "function": {
+                      "name": "read",
+                      "arguments": "{}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "late-id",
+          "model": "late-reported"
+        }
+      ],
+      "sse": "data: {\"choices\":[{\"delta\":{\"content\":\"prefix\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"read\",\"arguments\":\"{}\"}}]}}]}\n\ndata: {\"id\":\"late-id\",\"model\":\"late-reported\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "prefix"
+          },
+          {
+            "type": "toolCall",
+            "id": "",
+            "name": "read",
+            "arguments": {}
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "aborted",
+        "timestamp": 7,
+        "responseId": "late-id",
+        "responseModel": "late-reported",
+        "errorMessage": "aborted"
+      }
+    },
+    {
+      "id": "resolved-cancel-metadata",
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {
+        "maxRetries": 2
+      },
+      "chunks": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "prefix"
+              }
+            }
+          ]
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "tool_calls": [
+                  {
+                    "index": 0,
+                    "id": "call-id",
+                    "function": {
+                      "name": "read",
+                      "arguments": "{}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "late-id",
+          "model": "late-reported"
+        }
+      ],
+      "sse": "data: {\"choices\":[{\"delta\":{\"content\":\"prefix\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call-id\",\"function\":{\"name\":\"read\",\"arguments\":\"{}\"}}]}}]}\n\ndata: {\"id\":\"late-id\",\"model\":\"late-reported\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "prefix"
+          },
+          {
+            "type": "toolCall",
+            "id": "call-id",
+            "name": "read",
+            "arguments": {}
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "aborted",
+        "timestamp": 7,
+        "responseId": "late-id",
+        "responseModel": "late-reported",
+        "errorMessage": "aborted"
+      }
+    },
+    {
+      "id": "zero-length-nonstream",
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {
+        "maxRetries": 2
+      },
+      "replacement": {
+        "stream": false
+      },
+      "contentType": "application/json",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 0,
+      "events": [
+        "start",
+        "error"
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Cannot read properties of undefined (reading 'Symbol(Symbol.asyncIterator)')"
+      }
+    },
+    {
+      "id": "endpoint-kimi-replay",
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096,
+        "compat": {
+          "deferredToolsMode": "kimi",
+          "requiresAssistantAfterToolResult": true
+        }
+      },
+      "context": {
+        "systemPrompt": "system",
+        "tools": [
+          {
+            "name": "load",
+            "description": "load",
+            "parameters": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          {
+            "name": "late",
+            "description": "late",
+            "parameters": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "messages": [
+          {
+            "role": "assistant",
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "reason",
+                "thinkingSignature": "reasoning_content"
+              },
+              {
+                "type": "toolCall",
+                "id": "call|item/part",
+                "name": "load",
+                "arguments": {}
+              }
+            ],
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "toolUse",
+            "timestamp": 7
+          },
+          {
+            "role": "toolResult",
+            "toolCallId": "call|item/part",
+            "toolName": "load",
+            "content": [
+              {
+                "type": "image",
+                "mimeType": "image/png",
+                "data": "AA=="
+              }
+            ],
+            "addedToolNames": [
+              "late"
+            ],
+            "isError": false,
+            "timestamp": 7
+          },
+          {
+            "role": "user",
+            "content": "next",
+            "timestamp": 7
+          }
+        ]
+      },
+      "endpoint": "https://api.deepseek.com/v1",
+      "options": {},
+      "sse": "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\n",
+      "requests": [
+        {
+          "url": "https://api.deepseek.com/v1/chat/completions",
+          "body": {
+            "model": "review-model",
+            "messages": [
+              {
+                "role": "system",
+                "content": "system"
+              },
+              {
+                "role": "assistant",
+                "content": "",
+                "reasoning_content": "reason",
+                "tool_calls": [
+                  {
+                    "id": "call|item/part",
+                    "type": "function",
+                    "function": {
+                      "name": "load",
+                      "arguments": "{}"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "tool",
+                "content": "(see attached image)",
+                "tool_call_id": "call|item/part"
+              },
+              {
+                "role": "assistant",
+                "content": "I have processed the tool results."
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "Attached image(s) from tool result:"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,AA=="
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "system",
+                "tools": [
+                  {
+                    "type": "function",
+                    "function": {
+                      "name": "late",
+                      "description": "late",
+                      "parameters": {
+                        "type": "object",
+                        "properties": {}
+                      },
+                      "strict": false
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "next"
+              }
+            ],
+            "stream": true,
+            "stream_options": {
+              "include_usage": true
+            },
+            "tools": [
+              {
+                "type": "function",
+                "function": {
+                  "name": "load",
+                  "description": "load",
+                  "parameters": {
+                    "type": "object",
+                    "properties": {}
+                  },
+                  "strict": false
+                }
+              }
+            ],
+            "thinking": {
+              "type": "disabled"
+            }
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "ok"
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "stop"
+      }
+    },
+    {
+      "id": "json-zero-skip",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/json"
+        ],
+        [
+          "content-length",
+          "0"
+        ]
+      ],
+      "block": true,
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "Cannot read properties of undefined (reading 'Symbol(Symbol.asyncIterator)')"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Cannot read properties of undefined (reading 'Symbol(Symbol.asyncIterator)')"
+      }
+    },
+    {
+      "id": "json-zero-spaces",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/problem+json ; charset=utf-8"
+        ],
+        [
+          "content-length",
+          " 0 "
+        ]
+      ],
+      "block": true,
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "Cannot read properties of undefined (reading 'Symbol(Symbol.asyncIterator)')"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Cannot read properties of undefined (reading 'Symbol(Symbol.asyncIterator)')"
+      }
+    },
+    {
+      "id": "json-double-zero-read",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/json"
+        ],
+        [
+          "content-length",
+          "00"
+        ]
+      ],
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 2,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "ok"
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "stop"
+      }
+    },
+    {
+      "id": "json-joined-zero-read",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/json"
+        ],
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "content-length",
+          "0"
+        ]
+      ],
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 2,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "ok"
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "stop"
+      }
+    },
+    {
+      "id": "json-missing-length-read",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/json"
+        ]
+      ],
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 2,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "ok"
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "stop"
+      }
+    },
+    {
+      "id": "text-zero-read",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "text/plain"
+        ],
+        [
+          "content-length",
+          "0"
+        ]
+      ],
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 2,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "Stream ended without finish_reason"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Stream ended without finish_reason"
+      }
+    },
+    {
+      "id": "nel-media-remains-text",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/problem+json"
+        ],
+        [
+          "content-length",
+          "0"
+        ]
+      ],
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 2,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "Stream ended without finish_reason"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Stream ended without finish_reason"
+      }
+    },
+    {
+      "id": "status204-skip",
+      "status": 204,
+      "headers": [
+        [
+          "content-type",
+          "application/json"
+        ]
+      ],
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": false
+      },
+      "body": "[{\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}]",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "Cannot read properties of null (reading 'Symbol(Symbol.asyncIterator)')"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Cannot read properties of null (reading 'Symbol(Symbol.asyncIterator)')"
+      }
+    },
+    {
+      "id": "streaming-zero-read",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "application/json"
+        ],
+        [
+          "content-length",
+          "0"
+        ]
+      ],
+      "streaming": true,
+      "model": {
+        "id": "review-model",
+        "name": "Review",
+        "api": "openai-completions",
+        "provider": "custom",
+        "baseUrl": "https://example.invalid/v1",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 10000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "replacement": {
+        "stream": true
+      },
+      "body": "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "reads": 2,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "ok",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ok"
+              }
+            ],
+            "api": "openai-completions",
+            "provider": "custom",
+            "model": "review-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "stop"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "ok"
+          }
+        ],
+        "api": "openai-completions",
+        "provider": "custom",
+        "model": "review-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "stop"
+      }
+    }
+  ]
+}
