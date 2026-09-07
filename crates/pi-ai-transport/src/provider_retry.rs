@@ -221,5 +221,8 @@ fn retry_headers(raw: Option<&HttpHeaders>) -> Result<HttpHeaders, TransportErro
             }
         }
     }
-    Ok(result)
+    // These values were already observed through Fetch. Preserve them when
+    // the shared policy reads again; constructing a fresh view would re-trim.
+    let fields = result.clone();
+    result.with_fetch_response_fields(fields)
 }

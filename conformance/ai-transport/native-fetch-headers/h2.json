@@ -1,0 +1,117 @@
+{
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "alpn": [
+    "h2",
+    "h2",
+    "h2",
+    "h2",
+    "h2"
+  ],
+  "fields": [
+    {
+      "x-test": [
+        "a",
+        "b"
+      ],
+      "cookie": [
+        "a=1",
+        "b=2"
+      ],
+      "set-cookie": [
+        "a=1",
+        "b=2"
+      ]
+    },
+    {
+      "x-test": [
+        " a ",
+        " b "
+      ],
+      "cookie": [
+        " a ",
+        " b "
+      ],
+      "set-cookie": [
+        " a ",
+        " b "
+      ]
+    },
+    {
+      "x-test": "éÿ"
+    },
+    {
+      "x-test": "\ta",
+      "cookie": "a\t",
+      "set-cookie": "\tb\t",
+      "x-valid": "kept"
+    },
+    {
+      "x-test": " valid "
+    }
+  ],
+  "rows": [
+    {
+      "accepted": true,
+      "status": 200,
+      "statusText": "",
+      "entries": [
+        [
+          "cookie",
+          "a=1; b=2"
+        ],
+        [
+          "set-cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "x-test",
+          "a, b"
+        ]
+      ]
+    },
+    {
+      "accepted": true,
+      "status": 200,
+      "statusText": "",
+      "entries": []
+    },
+    {
+      "accepted": true,
+      "status": 200,
+      "statusText": "",
+      "entries": [
+        [
+          "x-test",
+          "éÿ"
+        ]
+      ]
+    },
+    {
+      "accepted": true,
+      "status": 200,
+      "statusText": "",
+      "entries": [
+        [
+          "x-valid",
+          "kept"
+        ]
+      ]
+    },
+    {
+      "accepted": true,
+      "status": 200,
+      "statusText": "",
+      "entries": [
+        [
+          "x-test",
+          " valid "
+        ]
+      ]
+    }
+  ]
+}

@@ -202,6 +202,10 @@ impl NativeHttpClient {
                     };
                     *wire.uri_mut() = uri.parse().map_err(|_| invalid())?;
                     let capture = Arc::new(Mutex::new(HeadCapture::new(head_limit)));
+                    capture
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .capture_fields = fetch;
                     let (response, driver) = if h2 {
                         let (mut sender, connection) = hyper::client::conn::http2::handshake(
                             TokioExecutor::new(),
@@ -267,6 +271,18 @@ impl NativeHttpClient {
                     };
                     let mut headers = HttpHeaders::new();
                     for (name, value) in response.headers() {
+                        if fetch
+                            && h2
+                            && [value.as_bytes().first(), value.as_bytes().last()]
+                                .into_iter()
+                                .flatten()
+                                .any(|byte| matches!(byte, b' ' | b'\t'))
+                        {
+                            // Node's H2 receiver omits these invalid edge-OWS
+                            // fields. Raw send remains Hyper's unfiltered view;
+                            // no Unicode whitespace or general sanitizer applies.
+                            continue;
+                        }
                         headers.append(
                             name.as_str(),
                             value
@@ -276,6 +292,33 @@ impl NativeHttpClient {
                                 .map(char::from)
                                 .collect::<String>(),
                         )?;
+                    }
+                    if fetch {
+                        let fields = if h2 {
+                            // HTTP/2 has no textual OWS parser. Keep admitted
+                            // field octets exactly as returned by the H2 stack.
+                            headers.clone()
+                        } else {
+                            let fields = {
+                                let mut captured =
+                                    capture.lock().unwrap_or_else(|p| p.into_inner());
+                                if captured.invalid_fields {
+                                    return Err(connection_error());
+                                }
+                                std::mem::take(&mut captured.fields)
+                            };
+                            let mut projected = HttpHeaders::new();
+                            for (name, value) in fields {
+                                projected
+                                    .append(
+                                        String::from_utf8(name).map_err(|_| connection_error())?,
+                                        value.into_iter().map(char::from).collect::<String>(),
+                                    )
+                                    .map_err(|_| connection_error())?;
+                            }
+                            projected
+                        };
+                        headers = headers.with_fetch_response_fields(fields)?;
                     }
                     Ok(HttpResponse {
                         status,
@@ -395,6 +438,12 @@ struct HeadCapture {
     limit: usize,
     phrase: Option<Vec<u8>>,
     exceeded: bool,
+    // Only native Fetch uses the extra view. Field octets are a subset of the
+    // cumulatively charged head bytes. Vec metadata and Latin-1 String expansion
+    // are O(limit), not an assertion that physical storage equals the byte cap.
+    capture_fields: bool,
+    fields: Vec<(Vec<u8>, Vec<u8>)>,
+    invalid_fields: bool,
 }
 impl HeadCapture {
     fn new(limit: usize) -> Self {
@@ -406,6 +455,9 @@ impl HeadCapture {
             limit,
             phrase: None,
             exceeded: false,
+            capture_fields: false,
+            fields: Vec::new(),
+            invalid_fields: false,
         }
     }
     fn observe(&mut self, bytes: &[u8]) -> io::Result<()> {
@@ -427,6 +479,14 @@ impl HeadCapture {
                 continue;
             }
             let line = &self.line[..self.line.len() - 1];
+            if self.capture_fields
+                && !line.ends_with(b"\r")
+                && !(matches!(self.phase, HeadPhase::AwaitingStatus) && line.is_empty())
+            {
+                // Actual Node Fetch rejects LF status/header terminators but
+                // accepts empty LF prefixes. Raw sends retain Hyper behavior.
+                self.invalid_fields = true;
+            }
             let line = line.strip_suffix(b"\r").unwrap_or(line);
             match self.phase {
                 HeadPhase::AwaitingStatus if line.is_empty() => {
@@ -453,10 +513,38 @@ impl HeadCapture {
                 HeadPhase::Headers { informational } if line.is_empty() => {
                     if informational {
                         self.pending_phrase.clear();
+                        self.fields.clear();
                         self.phase = HeadPhase::AwaitingStatus;
                     } else {
                         self.phrase = Some(std::mem::take(&mut self.pending_phrase));
                         self.phase = HeadPhase::Complete;
+                    }
+                }
+                HeadPhase::Headers {
+                    informational: false,
+                } if self.capture_fields => {
+                    if let Some(colon) = line.iter().position(|byte| *byte == b':') {
+                        let name = &line[..colon];
+                        // Keep Hyper as primary validation authority; do not
+                        // invent obs-fold reconstruction or invalid-name repair.
+                        if name.is_empty()
+                            || !name.iter().all(|c| {
+                                c.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(c)
+                            })
+                        {
+                            self.invalid_fields = true;
+                        }
+                        // HTTP field OWS is SP/HTAB, not general ASCII whitespace.
+                        let value = &line[colon + 1..];
+                        let leading = value
+                            .iter()
+                            .take_while(|c| matches!(c, b' ' | b'\t'))
+                            .count();
+                        let value = &value[leading..];
+                        self.fields
+                            .push((name.to_ascii_lowercase(), value.to_vec()));
+                    } else {
+                        self.invalid_fields = true;
                     }
                 }
                 HeadPhase::Headers { .. } | HeadPhase::Complete => {}
@@ -555,6 +643,35 @@ impl ResponseBody for NativeBody {
 #[cfg(test)]
 mod head_tests {
     use super::{HeadCapture, HeadPhase};
+
+    #[test]
+    fn fetch_fields_survive_all_splits_with_one_cumulative_budget() {
+        let head = b"\nHTTP/1.1 103 Early\r\nX-Discard: no\r\n\r\nHTTP/1.1 200 Fine\r\nX-Value:  a \t\r\nx-value:\tb\r\nSet-Cookie: c \r\n\r\n";
+        for split in 0..=head.len() {
+            let mut capture = HeadCapture::new(head.len());
+            capture.capture_fields = true;
+            capture.observe(&head[..split]).unwrap();
+            capture.observe(&head[split..]).unwrap();
+            capture.observe(b"body ignored").unwrap();
+            assert!(!capture.invalid_fields);
+            assert_eq!(capture.total, head.len());
+            assert_eq!(
+                capture.fields,
+                vec![
+                    (b"x-value".to_vec(), b"a \t".to_vec()),
+                    (b"x-value".to_vec(), b"b".to_vec()),
+                    (b"set-cookie".to_vec(), b"c ".to_vec())
+                ]
+            );
+            let held: usize = capture.fields.iter().map(|(k, v)| k.len() + v.len()).sum();
+            assert!(held + capture.line.len() <= capture.total);
+            let mut short = HeadCapture::new(head.len() - 1);
+            short.capture_fields = true;
+            assert!(short.observe(head).is_err());
+            assert!(short.exceeded);
+            assert!(short.phrase.is_none());
+        }
+    }
 
     #[test]
     fn prefixes_status_and_headers_are_distinct_states() {

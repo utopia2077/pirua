@@ -45,3 +45,38 @@ fn empty_head_has_no_invented_entries_and_debug_redacts_values() {
     let head = AdapterResponseHead::from_http(200, &raw).unwrap();
     assert!(!format!("{head:?}").contains("private-value"));
 }
+
+#[test]
+fn observed_network_fields_keep_trailing_whitespace_and_last_cookie() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../conformance/ai-transport/native-fetch-headers/headers.json"
+    ))
+    .unwrap();
+    for row in fixture["rows"].as_array().unwrap() {
+        let mut raw = HttpHeaders::new();
+        let mut semantic = HttpHeaders::new();
+        for name in ["x-test", "cookie", "set-cookie"] {
+            for value in row["values"].as_array().unwrap() {
+                let value = value.as_str().unwrap();
+                raw.append(name, value.trim_matches([' ', '\t'])).unwrap();
+                semantic
+                    .append(name, value.trim_start_matches([' ', '\t']))
+                    .unwrap();
+            }
+        }
+        let raw = raw.with_fetch_response_fields(semantic).unwrap();
+        let before = raw.clone();
+        let head = AdapterResponseHead::from_http(200, &raw).unwrap();
+        assert_eq!(raw, before);
+        assert_eq!(
+            serde_json::json!(head.headers.iter_for_wire().collect::<Vec<_>>()),
+            row["network"]["own"]
+        );
+        for pair in row["network"]["own"].as_array().unwrap() {
+            assert_eq!(
+                serde_json::json!(head.headers.get_for_fetch(pair[0].as_str().unwrap())),
+                pair[1]
+            );
+        }
+    }
+}

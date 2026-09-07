@@ -1,0 +1,39 @@
+{
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "sourceHash": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
+  "cases": [
+    {
+      "network": false,
+      "status": 500,
+      "value": "false ",
+      "header": "false",
+      "calls": 1,
+      "success": false
+    },
+    {
+      "network": false,
+      "status": 400,
+      "value": "true ",
+      "header": "true",
+      "calls": 2,
+      "success": true
+    },
+    {
+      "network": true,
+      "status": 500,
+      "value": "false ",
+      "header": "false ",
+      "calls": 2,
+      "success": true
+    },
+    {
+      "network": true,
+      "status": 400,
+      "value": "true ",
+      "header": "true ",
+      "calls": 1,
+      "success": false
+    }
+  ]
+}

@@ -63,7 +63,7 @@ impl AdapterResponseHead {
     /// this projection does not emulate or expose JavaScript prototype values.
     pub fn from_http(status: u16, raw: &HttpHeaders) -> Result<Self, TransportError> {
         let names: BTreeSet<String> = raw
-            .iter_for_wire()
+            .iter_for_fetch()
             .map(|(name, _)| name.to_ascii_lowercase())
             .filter(|name| name != "__proto__")
             .collect();
@@ -77,16 +77,20 @@ impl AdapterResponseHead {
         let mut headers = HttpHeaders::new();
         for name in names {
             let value = if name == "set-cookie" {
-                raw.iter_for_wire()
+                raw.iter_for_fetch()
                     .filter(|(key, _)| key.eq_ignore_ascii_case(&name))
                     .last()
-                    .map(|(_, value)| value.trim_matches([' ', '\t']).to_owned())
+                    .map(|(_, value)| value.to_owned())
             } else {
                 raw.get_for_fetch(&name)
             }
             .ok_or_else(|| TransportError::new(TransportErrorKind::Protocol))?;
             headers.append(name, value)?;
         }
+        // This is an already projected record, not a new Headers construction.
+        // Keep the same admitted values through both explicit accessors.
+        let fields = headers.clone();
+        let headers = headers.with_fetch_response_fields(fields)?;
         Ok(Self { status, headers })
     }
 }

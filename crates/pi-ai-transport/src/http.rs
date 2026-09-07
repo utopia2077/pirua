@@ -50,7 +50,10 @@ impl Error for TransportError {}
 /// Ordered transient headers, retaining repeated response fields. Values are
 /// exposed only by explicit wire methods. Request overrides use `set`/`remove`.
 #[derive(Clone, Default, Eq, PartialEq)]
-pub struct HttpHeaders(Vec<(String, String)>);
+pub struct HttpHeaders {
+    wire: Vec<(String, String)>,
+    fetch: Option<Vec<(String, String)>>,
+}
 impl HttpHeaders {
     pub fn new() -> Self {
         Self::default()
@@ -70,7 +73,11 @@ impl HttpHeaders {
         {
             return Err(TransportError::new(TransportErrorKind::InvalidRequest));
         }
-        self.0.push((name.to_ascii_lowercase(), value));
+        let name = name.to_ascii_lowercase();
+        if let Some(fetch) = &mut self.fetch {
+            fetch.push((name.clone(), value.trim_matches([' ', '\t']).to_owned()));
+        }
+        self.wire.push((name, value));
         Ok(())
     }
     pub fn set(
@@ -80,29 +87,35 @@ impl HttpHeaders {
     ) -> Result<(), TransportError> {
         let mut checked = Self::new();
         checked.append(name, value)?;
-        let (name, value) = checked.0.remove(0);
+        let (name, value) = checked.wire.remove(0);
         self.remove(&name);
-        self.0.push((name, value));
+        if let Some(fetch) = &mut self.fetch {
+            fetch.push((name.clone(), value.trim_matches([' ', '\t']).to_owned()));
+        }
+        self.wire.push((name, value));
         Ok(())
     }
     pub fn remove(&mut self, name: &str) {
-        self.0.retain(|(key, _)| !key.eq_ignore_ascii_case(name));
+        self.wire.retain(|(key, _)| !key.eq_ignore_ascii_case(name));
+        if let Some(fetch) = &mut self.fetch {
+            fetch.retain(|(key, _)| !key.eq_ignore_ascii_case(name));
+        }
     }
     pub fn get_for_wire(&self, name: &str) -> Option<&str> {
-        self.0
+        self.wire
             .iter()
             .find(|(key, _)| key.eq_ignore_ascii_case(name))
             .map(|(_, value)| value.as_str())
     }
     /// Fetch Headers.get projection. Raw repeated fields remain untouched.
     /// Cookie joins with semicolons; all other fields (including Set-Cookie)
-    /// join with commas. Only HTTP edge whitespace is normalized.
+    /// join with commas. Constructed values normalize HTTP edge whitespace;
+    /// explicitly supplied response-field values are already admitted and unchanged.
     pub fn get_for_fetch(&self, name: &str) -> Option<String> {
         let values: Vec<_> = self
-            .0
-            .iter()
+            .iter_for_fetch()
             .filter(|(key, _)| key.eq_ignore_ascii_case(name))
-            .map(|(_, value)| value.trim_matches([' ', '\t']))
+            .map(|(_, value)| value)
             .collect();
         (!values.is_empty()).then(|| {
             values.join(if name.eq_ignore_ascii_case("cookie") {
@@ -113,7 +126,49 @@ impl HttpHeaders {
         })
     }
     pub fn iter_for_wire(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.0.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+        self.wire.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+    }
+    /// Attach actual admitted Fetch response field data without replacing the
+    /// raw repeated fields. Names and per-name cardinality must agree; field
+    /// order may differ because a native raw HeaderMap groups duplicate names.
+    /// This is explicit header data, never an origin/mode flag. Values must be
+    /// Latin-1 byte strings. The supplied view's raw fields are consumed verbatim.
+    pub fn with_fetch_response_fields(mut self, fields: Self) -> Result<Self, TransportError> {
+        fn counts(fields: &[(String, String)]) -> std::collections::BTreeMap<&str, usize> {
+            let mut counts = std::collections::BTreeMap::new();
+            for (name, _) in fields {
+                *counts.entry(name.as_str()).or_default() += 1;
+            }
+            counts
+        }
+        if counts(&self.wire) != counts(&fields.wire)
+            || fields
+                .wire
+                .iter()
+                .any(|(_, value)| value.chars().any(|c| u32::from(c) > 255))
+        {
+            return Err(TransportError::new(TransportErrorKind::Protocol));
+        }
+        self.fetch = Some(fields.wire);
+        Ok(self)
+    }
+    /// Ordered repeated semantic fields. Existing constructors retain their
+    /// constructed-value normalization; observed fields never get re-trimmed.
+    pub fn iter_for_fetch(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.fetch
+            .as_ref()
+            .unwrap_or(&self.wire)
+            .iter()
+            .map(|(name, value)| {
+                (
+                    name.as_str(),
+                    if self.fetch.is_some() {
+                        value.as_str()
+                    } else {
+                        value.trim_matches([' ', '\t'])
+                    },
+                )
+            })
     }
 }
 impl fmt::Debug for HttpHeaders {

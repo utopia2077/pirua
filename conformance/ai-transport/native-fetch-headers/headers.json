@@ -1,0 +1,823 @@
+{
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "hash": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d",
+  "rows": [
+    {
+      "values": [
+        " a "
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            "a "
+          ],
+          [
+            "cookie",
+            "a "
+          ],
+          [
+            "set-cookie",
+            "a "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a "
+          ],
+          [
+            "set-cookie",
+            "a "
+          ],
+          [
+            "x-test",
+            "a "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a "
+          ],
+          [
+            "set-cookie",
+            "a "
+          ],
+          [
+            "x-test",
+            "a "
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            "a"
+          ],
+          [
+            "cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "x-test",
+            "a"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "x-test",
+            "a"
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        " a ",
+        " b "
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            "a , b "
+          ],
+          [
+            "cookie",
+            "a ; b "
+          ],
+          [
+            "set-cookie",
+            "a , b "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a ; b "
+          ],
+          [
+            "set-cookie",
+            "a "
+          ],
+          [
+            "set-cookie",
+            "b "
+          ],
+          [
+            "x-test",
+            "a , b "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a ; b "
+          ],
+          [
+            "set-cookie",
+            "b "
+          ],
+          [
+            "x-test",
+            "a , b "
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            "a, b"
+          ],
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a, b"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        "a\t",
+        "\tb"
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            "a\t, b"
+          ],
+          [
+            "cookie",
+            "a\t; b"
+          ],
+          [
+            "set-cookie",
+            "a\t, b"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a\t; b"
+          ],
+          [
+            "set-cookie",
+            "a\t"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a\t, b"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a\t; b"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a\t, b"
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            "a, b"
+          ],
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a, b"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        "",
+        " b "
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            ", b "
+          ],
+          [
+            "cookie",
+            "; b "
+          ],
+          [
+            "set-cookie",
+            ", b "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "; b "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "set-cookie",
+            "b "
+          ],
+          [
+            "x-test",
+            ", b "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "; b "
+          ],
+          [
+            "set-cookie",
+            "b "
+          ],
+          [
+            "x-test",
+            ", b "
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            ", b"
+          ],
+          [
+            "cookie",
+            "; b"
+          ],
+          [
+            "set-cookie",
+            ", b"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "; b"
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            ", b"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "; b"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            ", b"
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        " a ",
+        ""
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            "a , "
+          ],
+          [
+            "cookie",
+            "a ; "
+          ],
+          [
+            "set-cookie",
+            "a , "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a ; "
+          ],
+          [
+            "set-cookie",
+            "a "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            "a , "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a ; "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            "a , "
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            "a, "
+          ],
+          [
+            "cookie",
+            "a; "
+          ],
+          [
+            "set-cookie",
+            "a, "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a; "
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            "a, "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a; "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            "a, "
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        "a",
+        "b"
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            "a, b"
+          ],
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a, b"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            "a, b"
+          ],
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a, b"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a; b"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "x-test",
+            "a, b"
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        "  ",
+        "\t"
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            ", "
+          ],
+          [
+            "cookie",
+            "; "
+          ],
+          [
+            "set-cookie",
+            ", "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "; "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            ", "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "; "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            ", "
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            ", "
+          ],
+          [
+            "cookie",
+            "; "
+          ],
+          [
+            "set-cookie",
+            ", "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "; "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            ", "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "; "
+          ],
+          [
+            "set-cookie",
+            ""
+          ],
+          [
+            "x-test",
+            ", "
+          ]
+        ]
+      }
+    },
+    {
+      "values": [
+        "a  ",
+        " b\t",
+        "c "
+      ],
+      "network": {
+        "get": [
+          [
+            "x-test",
+            "a  , b\t, c "
+          ],
+          [
+            "cookie",
+            "a  ; b\t; c "
+          ],
+          [
+            "set-cookie",
+            "a  , b\t, c "
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a  ; b\t; c "
+          ],
+          [
+            "set-cookie",
+            "a  "
+          ],
+          [
+            "set-cookie",
+            "b\t"
+          ],
+          [
+            "set-cookie",
+            "c "
+          ],
+          [
+            "x-test",
+            "a  , b\t, c "
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a  ; b\t; c "
+          ],
+          [
+            "set-cookie",
+            "c "
+          ],
+          [
+            "x-test",
+            "a  , b\t, c "
+          ]
+        ]
+      },
+      "preconstructed": {
+        "get": [
+          [
+            "x-test",
+            "a, b, c"
+          ],
+          [
+            "cookie",
+            "a; b; c"
+          ],
+          [
+            "set-cookie",
+            "a, b, c"
+          ]
+        ],
+        "entries": [
+          [
+            "cookie",
+            "a; b; c"
+          ],
+          [
+            "set-cookie",
+            "a"
+          ],
+          [
+            "set-cookie",
+            "b"
+          ],
+          [
+            "set-cookie",
+            "c"
+          ],
+          [
+            "x-test",
+            "a, b, c"
+          ]
+        ],
+        "own": [
+          [
+            "cookie",
+            "a; b; c"
+          ],
+          [
+            "set-cookie",
+            "c"
+          ],
+          [
+            "x-test",
+            "a, b, c"
+          ]
+        ]
+      }
+    }
+  ]
+}

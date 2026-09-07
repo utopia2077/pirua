@@ -1,0 +1,117 @@
+{
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "cases": [
+    {
+      "id": "crlf",
+      "head": "485454502f312e3120323030204f4b0d0a582d546573743a206120090d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": true,
+      "entries": [
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-test",
+          "a \t"
+        ]
+      ]
+    },
+    {
+      "id": "lf",
+      "head": "485454502f312e3120323030204f4b0a582d546573743a206120090a436f6e74656e742d4c656e6774683a20300a0a",
+      "accepted": false,
+      "error": "TypeError"
+    },
+    {
+      "id": "obs-fold-space",
+      "head": "485454502f312e3120323030204f4b0d0a582d546573743a2061200d0a206220090d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": false,
+      "error": "TypeError"
+    },
+    {
+      "id": "obs-fold-tab",
+      "head": "485454502f312e3120323030204f4b0d0a582d546573743a20610d0a09620d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": false,
+      "error": "TypeError"
+    },
+    {
+      "id": "space-before-colon",
+      "head": "485454502f312e3120323030204f4b0d0a582d54657374203a20610d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": false,
+      "error": "TypeError"
+    },
+    {
+      "id": "prefix-empty",
+      "head": "0d0a485454502f312e3120323030204f4b0d0a582d546573743a20610d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": true,
+      "entries": [
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-test",
+          "a"
+        ]
+      ]
+    },
+    {
+      "id": "prefix-lf",
+      "head": "0a485454502f312e3120323030204f4b0d0a582d546573743a20610d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": true,
+      "entries": [
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-test",
+          "a"
+        ]
+      ]
+    },
+    {
+      "id": "status-lf",
+      "head": "485454502f312e3120323030204f4b0a582d546573743a20610d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": false,
+      "error": "TypeError"
+    },
+    {
+      "id": "final-lf",
+      "head": "485454502f312e3120323030204f4b0d0a582d546573743a20610d0a436f6e74656e742d4c656e6774683a20300d0a0a",
+      "accepted": false,
+      "error": "TypeError"
+    },
+    {
+      "id": "informational",
+      "head": "485454502f312e3120313033204561726c790d0a582d546573743a2069676e6f7265640d0a0d0a485454502f312e3120323030204f4b0d0a582d546573743a2061200d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": true,
+      "entries": [
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-test",
+          "a "
+        ]
+      ]
+    },
+    {
+      "id": "latin1",
+      "head": "485454502f312e3120323030204f4b0d0a582d546573743a20e9ff200d0a436f6e74656e742d4c656e6774683a20300d0a0d0a",
+      "accepted": true,
+      "entries": [
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-test",
+          "éÿ "
+        ]
+      ]
+    }
+  ]
+}
