@@ -26,3 +26,8 @@ pub mod mistral_conversations;
 
 #[cfg(feature = "wire-anthropic-messages")]
 pub mod anthropic_messages;
+
+#[cfg(feature = "wire-google-genai")]
+pub mod google_genai;
+#[cfg(feature = "wire-google-genai")]
+mod google_sdk;
