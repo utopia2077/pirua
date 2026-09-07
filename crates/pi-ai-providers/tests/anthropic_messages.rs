@@ -188,10 +188,11 @@ fn setup(status: u16, chunks: Vec<Vec<u8>>, block: bool) -> Setup {
         )])),
         observed: observed.clone(),
     });
-    let api = AnthropicMessagesApi::new(AdapterServices::new(Arc::new(HttpTransport::new(
-        client.clone(),
-        Arc::new(Jitter),
-    ))));
+    // The source oracle observes custom-fetch arguments and returns a constructed Response.
+    let api = AnthropicMessagesApi::new(AdapterServices::new(Arc::new(
+        HttpTransport::new(client.clone(), Arc::new(Jitter))
+            .with_fetch_response_source(FetchResponseSource::Preconstructed),
+    )));
     let f = fixture();
     let request = TextStreamRequest {
         resolved: ResolvedRequest {

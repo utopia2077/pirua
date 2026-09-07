@@ -108,6 +108,8 @@ pub struct HttpTransport {
     jitter: Arc<dyn RetryJitter>,
     date_parser: Arc<dyn RetryDateParser>,
     fetch_redirects: crate::FetchRedirectMode,
+    fetch_response_source: crate::FetchResponseSource,
+    fetch_content_limits: crate::FetchContentLimits,
 }
 impl HttpTransport {
     pub fn new(client: Arc<dyn RawHttpClient>, jitter: Arc<dyn RetryJitter>) -> Self {
@@ -116,6 +118,8 @@ impl HttpTransport {
             jitter,
             date_parser: Arc::new(HttpRetryDateParser),
             fetch_redirects: crate::FetchRedirectMode::Follow,
+            fetch_response_source: crate::FetchResponseSource::RawNetwork,
+            fetch_content_limits: crate::FetchContentLimits::default(),
         }
     }
     pub fn with_date_parser(mut self, parser: Arc<dyn RetryDateParser>) -> Self {
@@ -125,6 +129,17 @@ impl HttpTransport {
     /// Trusted binding transports may opt out of network Fetch redirects.
     pub fn with_fetch_redirects(mut self, mode: crate::FetchRedirectMode) -> Self {
         self.fetch_redirects = mode;
+        self
+    }
+    /// Selects raw network exchanges or already semantic trusted responses.
+    /// Independent of redirect policy; no native fallback is introduced.
+    pub fn with_fetch_response_source(mut self, source: crate::FetchResponseSource) -> Self {
+        self.fetch_response_source = source;
+        self
+    }
+    /// Logical per-buffer and per-codec bounds, not cumulative traffic limits.
+    pub fn with_fetch_content_limits(mut self, limits: crate::FetchContentLimits) -> Self {
+        self.fetch_content_limits = limits;
         self
     }
     pub fn send<'a>(
@@ -186,6 +201,8 @@ impl HttpTransport {
                         runtime,
                         &mut deadline,
                         mode,
+                        self.fetch_response_source,
+                        self.fetch_content_limits,
                     )
                     .await
                 } else {

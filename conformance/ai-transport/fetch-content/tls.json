@@ -1,0 +1,19 @@
+{
+  "authority": {
+    "node": "v26.8.1",
+    "undici": "8.10.0",
+    "sha256": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d"
+  },
+  "headers": {
+    "host": "<loopback>",
+    "connection": "keep-alive",
+    "accept": "*/*",
+    "accept-language": "*",
+    "sec-fetch-mode": "cors",
+    "user-agent": "node",
+    "accept-encoding": "br, gzip, deflate, zstd"
+  },
+  "encoded": "1f8b08000000000000032baecc2bc9482dc94c56284b2dca4ccb4c4d5108f1090600e22b40f516000000",
+  "status": 200,
+  "decoded": "73796e74686574696320766572696669656420544c53"
+}

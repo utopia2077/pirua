@@ -193,7 +193,11 @@ fn setup_with_status_text(
             }),
         })),
     });
-    let services = AdapterServices::new(Arc::new(HttpTransport::new(client, Arc::new(NoJitter))));
+    // The source fixture captures custom-fetch arguments and returns a constructed Response.
+    let services = AdapterServices::new(Arc::new(
+        HttpTransport::new(client, Arc::new(NoJitter))
+            .with_fetch_response_source(pi_ai_transport::FetchResponseSource::Preconstructed),
+    ));
     let spawner = Arc::new(Spawner::default());
     let f = fixture();
     let request = TextStreamRequest {

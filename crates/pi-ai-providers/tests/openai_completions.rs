@@ -1462,7 +1462,11 @@ fn setup(
         block_payload: false,
         block_response: false,
     });
-    let mut services = AdapterServices::new(Arc::new(HttpTransport::new(client, Arc::new(Jitter))));
+    // Match the oracle's SDK custom-fetch seam, before network defaults/decoding.
+    let mut services = AdapterServices::new(Arc::new(
+        HttpTransport::new(client, Arc::new(Jitter))
+            .with_fetch_response_source(pi_ai_transport::FetchResponseSource::Preconstructed),
+    ));
     services.payload = Some(middleware.clone());
     services.response = Some(middleware);
     let spawner = Arc::new(Spawner::default());

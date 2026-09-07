@@ -1,0 +1,3183 @@
+{
+  "authority": {
+    "node": "v26.8.1",
+    "undici": "8.10.0",
+    "undiciHash": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d",
+    "zlibHash": "db9aad39b945f269c8ef4af586b7b9a07e792bdff9abecf36178c81090233c50",
+    "chunkSize": 16384
+  },
+  "evidence": "Actual Node Gunzip native-write callback boundaries plus real Fetch HTTP confirmation; runs encode every delivered byte, not chunk identity.",
+  "cases": [
+    {
+      "id": "valid-0",
+      "size": 0,
+      "kind": "valid",
+      "feeds": [
+        "1f8b080000000000000303000000000000000000"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": null
+        }
+      ],
+      "runs": [],
+      "error": null
+    },
+    {
+      "id": "truncated-0",
+      "size": 0,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003030000000000"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": null
+        }
+      ],
+      "runs": [],
+      "error": null
+    },
+    {
+      "id": "tail-0",
+      "size": 0,
+      "kind": "tail",
+      "feeds": [
+        "1f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-0",
+      "size": 0,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b080000000000000303000000000000000000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": null
+        },
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-0",
+      "size": 0,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b08000000000000030300",
+        "000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": null
+        },
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-0",
+      "size": 0,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003030000000000000000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-0",
+      "size": 0,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003030000000000000000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-0",
+      "size": 0,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b080000000000000303000000000000000000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 66,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 66,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-1",
+      "size": 1,
+      "kind": "valid",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d301000000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 1
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-1",
+      "size": 1,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d3"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 1
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-1",
+      "size": 1,
+      "kind": "tail",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d30100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-1",
+      "size": 1,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d301000000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 1
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-1",
+      "size": 1,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003730400",
+        "8b9ed9d30100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 1
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-1",
+      "size": 1,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d3010000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-1",
+      "size": 1,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d3010000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-1",
+      "size": 1,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b08000000000000037304008b9ed9d301000000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 1
+            },
+            {
+              "byte": 66,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 1
+        },
+        {
+          "byte": 66,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-16383",
+      "size": 16383,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014cff3f0000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16383
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-16383",
+      "size": 16383,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014c"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16383
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-16383",
+      "size": 16383,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014cff3f000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-16383",
+      "size": 16383,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014cff3f0000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16383
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-16383",
+      "size": 16383,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006703",
+        "2d52014cff3f000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16383
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-16383",
+      "size": 16383,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014cff3f00001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            },
+            {
+              "byte": 66,
+              "count": 1
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16383
+        },
+        {
+          "byte": 66,
+          "count": 1
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-16383",
+      "size": 16383,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014cff3f00001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-16383",
+      "size": 16383,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000067032d52014cff3f0000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16383
+            },
+            {
+              "byte": 66,
+              "count": 16385
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16383
+        },
+        {
+          "byte": 66,
+          "count": 16385
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-16384",
+      "size": 16384,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a9600400000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-16384",
+      "size": 16384,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a96"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-16384",
+      "size": 16384,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a960040000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-16384",
+      "size": 16384,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a9600400000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-16384",
+      "size": 16384,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03",
+        "acc34a960040000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-16384",
+      "size": 16384,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a96004000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-16384",
+      "size": 16384,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a96004000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-16384",
+      "size": 16384,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000006f03acc34a9600400000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            },
+            {
+              "byte": 66,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        },
+        {
+          "byte": 66,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-16385",
+      "size": 16385,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c01400000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16385
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-16385",
+      "size": 16385,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16385
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-16385",
+      "size": 16385,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c0140000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-16385",
+      "size": 16385,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c01400000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16385
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-16385",
+      "size": 16385,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e40010000000000000000000000000000007703",
+        "8b3b2f0c0140000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16385
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-16385",
+      "size": 16385,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c014000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-16385",
+      "size": 16385,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c014000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-16385",
+      "size": 16385,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000077038b3b2f0c01400000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16385
+            },
+            {
+              "byte": 66,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16385
+        },
+        {
+          "byte": 66,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-32767",
+      "size": 32767,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1ff7f0000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32767
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-32767",
+      "size": 32767,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32767
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-32767",
+      "size": 32767,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1ff7f000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-32767",
+      "size": 32767,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1ff7f0000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-32767",
+      "size": 32767,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01",
+        "fc62fee1ff7f000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-32767",
+      "size": 32767,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1ff7f00001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            },
+            {
+              "byte": 66,
+              "count": 1
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32767
+        },
+        {
+          "byte": 66,
+          "count": 1
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-32767",
+      "size": 32767,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1ff7f00001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-32767",
+      "size": 32767,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94b1de45501000000000000000000000000000000000000000000000000000000000000c0bd01fc62fee1ff7f0000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32767
+            },
+            {
+              "byte": 66,
+              "count": 16385
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32767
+        },
+        {
+          "byte": 66,
+          "count": 16385
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-32768",
+      "size": 32768,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede336700800000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-32768",
+      "size": 32768,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede3367"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-32768",
+      "size": 32768,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede33670080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-32768",
+      "size": 32768,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede336700800000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-32768",
+      "size": 32768,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018",
+        "dede33670080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-32768",
+      "size": 32768,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede3367008000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-32768",
+      "size": 32768,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede3367008000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-32768",
+      "size": 32768,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000018dede336700800000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            },
+            {
+              "byte": 66,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        },
+        {
+          "byte": 66,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-32769",
+      "size": 32769,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b201800000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32769
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-32769",
+      "size": 32769,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b2"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32769
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-32769",
+      "size": 32769,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b20180000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-32769",
+      "size": 32769,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b201800000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32769
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-32769",
+      "size": 32769,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000068",
+        "8652d5b20180000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32769
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-32769",
+      "size": 32769,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b2018000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-32769",
+      "size": 32769,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b2018000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-32769",
+      "size": 32769,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a00000000000000000000000000000000000000000000000000000000000000688652d5b201800000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32769
+            },
+            {
+              "byte": 66,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32769
+        },
+        {
+          "byte": 66,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-49151",
+      "size": 49151,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21feffbf0000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49151
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-49151",
+      "size": 49151,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21fe"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49151
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-49151",
+      "size": 49151,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21feffbf000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-49151",
+      "size": 49151,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21feffbf0000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49151
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-49151",
+      "size": 49151,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00",
+        "745a21feffbf000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49151
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-49151",
+      "size": 49151,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21feffbf00001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            },
+            {
+              "byte": 66,
+              "count": 1
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49151
+        },
+        {
+          "byte": 66,
+          "count": 1
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-49151",
+      "size": 49151,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21feffbf00001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-49151",
+      "size": 49151,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0dd00745a21feffbf0000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49151
+            },
+            {
+              "byte": 66,
+              "count": 16385
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49151
+        },
+        {
+          "byte": 66,
+          "count": 16385
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-49152",
+      "size": 49152,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f8400c00000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-49152",
+      "size": 49152,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f84"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-49152",
+      "size": 49152,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f8400c0000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-49152",
+      "size": 49152,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f8400c00000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-49152",
+      "size": 49152,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00",
+        "f40a4f8400c0000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-49152",
+      "size": 49152,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f8400c000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-49152",
+      "size": 49152,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f8400c000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 32768
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-49152",
+      "size": 49152,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca183e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0df00f40a4f8400c00000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            },
+            {
+              "byte": 66,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        },
+        {
+          "byte": 66,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-49153",
+      "size": 49153,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d6901c00000"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49153
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-49153",
+      "size": 49153,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d69"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49153
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-49153",
+      "size": 49153,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d6901c0000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-49153",
+      "size": 49153,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d6901c00000",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49153
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-49153",
+      "size": 49153,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c08101",
+        "84e78d6901c0000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49153
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-49153",
+      "size": 49153,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d6901c000001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-49153",
+      "size": 49153,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d6901c000001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-49153",
+      "size": 49153,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc13101000000c2a06ceb5fca1a1e400100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0810184e78d6901c00000",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49153
+            },
+            {
+              "byte": 66,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49153
+        },
+        {
+          "byte": 66,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-65536",
+      "size": 65536,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba000000100"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-65536",
+      "size": 65536,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba0"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-65536",
+      "size": 65536,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba00000010067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-65536",
+      "size": 65536,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba000000100",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-65536",
+      "size": 65536,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a",
+        "80069ba00000010067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-65536",
+      "size": 65536,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba0000001001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-65536",
+      "size": 65536,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba0000001001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 49152
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-65536",
+      "size": 65536,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc181000000008020b6fda516a90a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006a80069ba000000100",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            },
+            {
+              "byte": 66,
+              "count": 16384
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        },
+        {
+          "byte": 66,
+          "count": 16384
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "valid-65537",
+      "size": 65537,
+      "kind": "valid",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e01000100"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65537
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "truncated-65537",
+      "size": 65537,
+      "kind": "truncated",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": null
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65537
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "tail-65537",
+      "size": 65537,
+      "kind": "tail",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e0100010067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "member-split-65537",
+      "size": 65537,
+      "kind": "member-split",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e01000100",
+        "67617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65537
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "trailer-split-65537",
+      "size": 65537,
+      "kind": "trailer-split",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00d",
+        "ad86c13e0100010067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65537
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "two-members-65537",
+      "size": 65537,
+      "kind": "two-members",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e010001001f8b08000000000000037372420300b7ba760e1100000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "empty-member-65537",
+      "size": 65537,
+      "kind": "empty-member",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e010001001f8b08000000000000030300000000000000000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65536
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    },
+    {
+      "id": "offset-member-tail-65537",
+      "size": 65537,
+      "kind": "offset-member-tail",
+      "feeds": [
+        "1f8b0800000000000003edc18100000000c320b6f94bfd2055010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00dad86c13e01000100",
+        "1f8b0800000000000003edc181000000008020b7fda116a90a00000000000000000000000000000000000000000000000000000000000000185ab2d0430080000067617262616765"
+      ],
+      "steps": [
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            }
+          ],
+          "error": null
+        },
+        {
+          "runs": [
+            {
+              "byte": 65,
+              "count": 65537
+            },
+            {
+              "byte": 66,
+              "count": 32767
+            }
+          ],
+          "error": "Z_DATA_ERROR"
+        }
+      ],
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65537
+        },
+        {
+          "byte": 66,
+          "count": 32767
+        }
+      ],
+      "error": "Z_DATA_ERROR"
+    }
+  ],
+  "network": [
+    {
+      "id": "tail-0",
+      "runs": [],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-1",
+      "runs": [],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-16383",
+      "runs": [],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-16384",
+      "runs": [],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-16385",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-32767",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-32768",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 16384
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-32769",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-49151",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-49152",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 32768
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-49153",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-65536",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 49152
+        }
+      ],
+      "error": "TypeError"
+    },
+    {
+      "id": "tail-65537",
+      "runs": [
+        {
+          "byte": 65,
+          "count": 65536
+        }
+      ],
+      "error": "TypeError"
+    }
+  ]
+}

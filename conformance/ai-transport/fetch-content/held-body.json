@@ -1,0 +1,65 @@
+{
+  "authority": {
+    "node": "v26.8.1",
+    "undici": "8.10.0",
+    "sha256": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d"
+  },
+  "cases": [
+    {
+      "coding": "gzip",
+      "tail": false,
+      "stage": "AbortError",
+      "size": 4,
+      "encoded": "1f8b08000000000000032b492d2e01000c7e7fd804000000"
+    },
+    {
+      "coding": "gzip",
+      "tail": true,
+      "stage": "TypeError",
+      "size": 0,
+      "encoded": "1f8b08000000000000032b492d2e01000c7e7fd80400000067617262616765"
+    },
+    {
+      "coding": "deflate",
+      "tail": false,
+      "stage": "AbortError",
+      "size": 4,
+      "encoded": "789c2b492d2e0100045d01c1"
+    },
+    {
+      "coding": "deflate",
+      "tail": true,
+      "stage": "done",
+      "size": 4,
+      "encoded": "789c2b492d2e0100045d01c167617262616765"
+    },
+    {
+      "coding": "br",
+      "tail": false,
+      "stage": "AbortError",
+      "size": 4,
+      "encoded": "8b01807465737403"
+    },
+    {
+      "coding": "br",
+      "tail": true,
+      "stage": "done",
+      "size": 4,
+      "encoded": "8b0180746573740367617262616765"
+    },
+    {
+      "coding": "zstd",
+      "tail": false,
+      "stage": "AbortError",
+      "size": 4,
+      "encoded": "28b52ffd200421000074657374"
+    },
+    {
+      "coding": "zstd",
+      "tail": true,
+      "stage": "done",
+      "size": 4,
+      "encoded": "28b52ffd20042100007465737467617262616765"
+    }
+  ]
+}

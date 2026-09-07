@@ -10,6 +10,9 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+brotli-decompressor.workspace = true
+flate2.workspace = true
+zstd-safe.workspace = true
 pi-ai-core.workspace = true
 httpdate.workspace = true
 url.workspace = true

@@ -465,7 +465,27 @@ fn canonical_request_validation_and_headers_projection() {
         let seen = s.captured.lock().unwrap();
         assert_eq!(seen[0].method, expected);
         assert_eq!(seen[0].headers.get_for_wire("cookie"), Some("a=1; b=2"));
-        assert_eq!(seen[0].headers.iter_for_wire().count(), 3);
+        // Expand the former supplied-only count to every Fetch network field.
+        // The Node loopback oracle separately retains protocol-owned Host/Connection.
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/ai-transport/fetch-content/header-projection.json"
+        ))
+        .unwrap();
+        let case = fixture["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|c| c["method"] == method)
+            .unwrap();
+        assert_eq!(
+            serde_json::json!(
+                seen[0]
+                    .headers
+                    .iter_for_wire()
+                    .collect::<std::collections::BTreeMap<_, _>>()
+            ),
+            case["fetchHeaders"]
+        );
     }
     for method in ["", "BAD METHOD", "trAce", "CONNECT", "TRACK", "GET", "HEAD"] {
         let (t, s) = transport(vec![]);

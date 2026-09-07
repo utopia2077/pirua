@@ -1,9 +1,10 @@
 //! Node Fetch's replayable byte-request redirect subset. URL, header and body
 //! values stay transient. This does not implement browser CORS, streaming uploads,
-//! cache, decompression, or response text decoding.
+//! cache or response text decoding. Content codings are a separate bounded layer.
 use crate::policy::{Timer, timed_wait};
 use crate::{
-    HttpHeaders, HttpRequest, HttpResponse, RawHttpClient, TransportError, TransportErrorKind,
+    FetchContentLimits, FetchResponseSource, HttpHeaders, HttpRequest, HttpResponse, RawHttpClient,
+    TransportError, TransportErrorKind,
 };
 use pi_ai_core::{RequestEndpoint, RequestRuntime};
 use url::Url;
@@ -47,7 +48,10 @@ fn check_url(url: &Url) -> Result<(), TransportError> {
     Ok(())
 }
 
-fn prepare(original: &HttpRequest) -> Result<(HttpRequest, Url), TransportError> {
+fn prepare(
+    original: &HttpRequest,
+    source: FetchResponseSource,
+) -> Result<(HttpRequest, Url), TransportError> {
     let url = Url::parse(original.endpoint.expose_for_transport()).map_err(|_| invalid())?;
     check_url(&url)?;
     let mut method = original.method.clone();
@@ -87,7 +91,9 @@ fn prepare(original: &HttpRequest) -> Result<(HttpRequest, Url), TransportError>
         }
     }
     // httpNetworkOrCacheFetch deletes a caller Host before every network send.
-    headers.remove("host");
+    if source == FetchResponseSource::RawNetwork {
+        headers.remove("host");
+    }
     Ok((
         HttpRequest {
             endpoint: RequestEndpoint::new_resolved(url.as_str()).map_err(|_| invalid())?,
@@ -106,16 +112,49 @@ pub(crate) async fn attempt(
     runtime: &RequestRuntime,
     deadline: &mut Option<Timer>,
     mode: FetchRedirectMode,
+    source: FetchResponseSource,
+    limits: FetchContentLimits,
 ) -> Result<HttpResponse, TransportError> {
-    let (mut request, mut current) = prepare(original)?;
+    let (mut request, mut current) = prepare(original, source)?;
     let mut redirects = 0;
     loop {
+        // Defaults are rebuilt per hop from the logical request. Redirects must
+        // not accumulate Range's identity token or the previous scheme's coding list.
+        let mut network_request;
+        let dispatched = if source == FetchResponseSource::RawNetwork {
+            network_request = HttpRequest {
+                endpoint: RequestEndpoint::new_resolved(request.endpoint.expose_for_transport())
+                    .map_err(|_| invalid())?,
+                method: request.method.clone(),
+                headers: request.headers.clone(),
+                body: request.body.clone(),
+                proxy: request.proxy.clone(),
+            };
+            crate::fetch_content::request_defaults(&mut network_request, &current)?;
+            &network_request
+        } else {
+            &request
+        };
         let mut response = timed_wait(
-            client.send(&request, runtime),
+            if source == crate::FetchResponseSource::RawNetwork {
+                client.send_fetch_hop(dispatched, runtime)
+            } else {
+                client.send(dispatched, runtime)
+            },
             &runtime.cancellation,
             deadline,
         )
         .await?;
+        if source == FetchResponseSource::RawNetwork {
+            let will_follow = mode == FetchRedirectMode::Follow
+                && matches!(response.status, 301 | 302 | 303 | 307 | 308)
+                && response
+                    .headers
+                    .get_for_fetch("location")
+                    .is_some_and(|v| !v.is_empty());
+            response =
+                crate::fetch_content::response(response, &request.method, will_follow, limits)?;
+        }
         if mode == FetchRedirectMode::Manual
             || !matches!(response.status, 301 | 302 | 303 | 307 | 308)
         {

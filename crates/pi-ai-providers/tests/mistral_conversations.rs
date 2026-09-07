@@ -152,10 +152,11 @@ fn setup(status: u16, chunks: Vec<Vec<u8>>, block: bool) -> Setup {
         })),
         observed: observed.clone(),
     });
-    let api = MistralApi::new(AdapterServices::new(Arc::new(HttpTransport::new(
-        client,
-        Arc::new(NoJitter),
-    ))));
+    // The source fixture captures SDK custom-fetch arguments, not native defaults.
+    let api = MistralApi::new(AdapterServices::new(Arc::new(
+        HttpTransport::new(client, Arc::new(NoJitter))
+            .with_fetch_response_source(FetchResponseSource::Preconstructed),
+    )));
     let request = TextStreamRequest {
         resolved: ResolvedRequest {
             model: serde_json::from_value(fixture()["model"].clone()).unwrap(),

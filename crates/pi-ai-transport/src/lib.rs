@@ -2,6 +2,7 @@
 //! All raw wire values are transient, non-Serde and redacted in Debug.
 
 mod fetch;
+mod fetch_content;
 mod http;
 #[cfg(feature = "native")]
 mod native;
@@ -13,6 +14,7 @@ mod sse;
 mod websocket;
 
 pub use fetch::FetchRedirectMode;
+pub use fetch_content::{FetchContentLimits, FetchResponseSource};
 pub use http::*;
 #[cfg(feature = "native")]
 pub use native::*;

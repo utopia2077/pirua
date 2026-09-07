@@ -80,6 +80,23 @@ impl RawHttpClient for NativeHttpClient {
         request: &'a HttpRequest,
         runtime: &'a RequestRuntime,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send_inner(request, runtime, false)
+    }
+    fn send_fetch_hop<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send_inner(request, runtime, true)
+    }
+}
+impl NativeHttpClient {
+    fn send_inner<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+        fetch: bool,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
         Box::pin(async move {
             let endpoint = request.endpoint.expose_for_transport().to_owned();
             let method = request.method.clone();
@@ -203,6 +220,19 @@ impl RawHttpClient for NativeHttpClient {
                             driver,
                         )
                     } else {
+                        // Undici writeH1 uses close for HEAD, keep-alive for
+                        // ordinary finite Fetch hops. Never add HTTP/1-only
+                        // headers to negotiated HTTP/2 or ordinary raw sends.
+                        if fetch && !wire.headers().contains_key("connection") {
+                            wire.headers_mut().insert(
+                                "connection",
+                                HeaderValue::from_static(if method == "HEAD" {
+                                    "close"
+                                } else {
+                                    "keep-alive"
+                                }),
+                            );
+                        }
                         let io = ObserveHead {
                             inner: stream,
                             capture: capture.clone(),

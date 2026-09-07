@@ -175,6 +175,16 @@ pub trait RawHttpClient: Send + Sync {
         request: &'a HttpRequest,
         runtime: &'a RequestRuntime,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>>;
+    /// One raw-network Fetch hop. Implementations may add protocol-dependent
+    /// network defaults after negotiation. No redirects or retries are allowed.
+    /// Existing injected clients keep exactly their original send behavior.
+    fn send_fetch_hop<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send(request, runtime)
+    }
 }
 
 /// Bounded collection for adapter-owned error parsing; never formats raw bytes.

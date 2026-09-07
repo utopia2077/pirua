@@ -85,8 +85,11 @@ make a failure a nonretryable configuration error.
 Malformed/forbidden redirect targets and hop exhaustion are Fetch network errors
 eligible for a selected shared retry. Errors expose only reviewed kind, no raw URL,
 headers or body. The module does not claim arbitrary RequestInit, streaming upload,
-browser CORS/cache/referrer/cookie-jar, default header synthesis, decompression or
-response-text decoding fidelity. Those remain distinct adapter/backend duties.
+browser CORS/cache/referrer/cookie-jar or response-text decoding fidelity.
+Network default headers and bounded incremental decompression are now composed
+by the separate [Fetch content unit](fetch-content/README.md). Raw send stays raw;
+trusted constructed responses explicitly select Preconstructed, independently of
+Manual redirect policy. Native protocol defaults use the one-hop Fetch hook.
 
 ## Rust checks
 

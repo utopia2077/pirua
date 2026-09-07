@@ -1,0 +1,198 @@
+{
+  "authority": {
+    "node": "v26.8.1",
+    "undici": "8.10.0",
+    "sha256": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d"
+  },
+  "observation": "Supplied-only header projection expanded to actual network Fetch defaults; Host/Connection remain protocol-owned and are also retained separately.",
+  "cases": [
+    {
+      "method": "post",
+      "normalized": "POST",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "keep-alive",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "0"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "0"
+      }
+    },
+    {
+      "method": "pOsT",
+      "normalized": "POST",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "keep-alive",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "0"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "0"
+      }
+    },
+    {
+      "method": "query",
+      "normalized": "QUERY",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "keep-alive",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "0"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "0"
+      }
+    },
+    {
+      "method": "patch",
+      "normalized": "patch",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "keep-alive",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      }
+    },
+    {
+      "method": "pAtCh",
+      "normalized": "pAtCh",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "keep-alive",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      }
+    },
+    {
+      "method": "GET",
+      "normalized": "GET",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "keep-alive",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      }
+    },
+    {
+      "method": "head",
+      "normalized": "HEAD",
+      "physical": {
+        "host": "<loopback>",
+        "connection": "close",
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "fetchHeaders": {
+        "cookie": "a=1; b=2",
+        "location": "/one, /two",
+        "set-cookie": "a=1, b=2",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      }
+    }
+  ]
+}
