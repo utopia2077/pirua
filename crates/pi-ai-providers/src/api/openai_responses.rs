@@ -34,6 +34,7 @@ use super::openai_responses_shared::{
     ResponsesServiceTier, ResponsesServiceTierPolicy, ResponsesServiceTierPricing,
     convert_responses_messages, convert_responses_tools, process_responses_stream,
 };
+use super::openai_sdk_strings;
 use super::runtime::{AdapterResponseHead, AdapterServices, cancellable};
 use super::simple_options::build_base_options;
 use super::wire_json::stringify_wire_json;
@@ -507,21 +508,15 @@ fn headers(
             ("OPENAI_ORG_ID", "openai-organization"),
             ("OPENAI_PROJECT_ID", "openai-project"),
         ] {
-            if let Some(value) = services.env.as_map().get(env) {
+            if let Some(value) = openai_sdk_strings::read_env(&services.env, env) {
                 set_header(&mut headers, header, value)?;
             }
         }
         set_header(&mut headers, "authorization", &format!("Bearer {key}"))?;
     }
-    if let Some(custom) = services.env.as_map().get("OPENAI_CUSTOM_HEADERS") {
-        for line in custom.split('\n') {
-            if let Some((key, value)) = line.split_once(':') {
-                set_header(
-                    &mut headers,
-                    key.trim_matches(ecma_whitespace),
-                    value.trim_matches(ecma_whitespace),
-                )?;
-            }
+    if let Some(custom) = openai_sdk_strings::read_env(&services.env, "OPENAI_CUSTOM_HEADERS") {
+        for (key, value) in openai_sdk_strings::custom_headers(custom) {
+            set_header(&mut headers, key, value)?;
         }
     }
     // Pi's user agent overrides SDK/env defaults; its identity is normalized.
@@ -691,7 +686,7 @@ async fn sdk_decode_response(
         .headers
         .get_for_fetch("content-type")
         .unwrap_or_default();
-    let media = content_type.split(';').next().unwrap_or_default().trim();
+    let media = openai_sdk_strings::trim(content_type.split(';').next().unwrap_or_default());
     let json = media.contains("application/json") || media.ends_with("+json");
     // defaultParseResponse returns null/undefined here without reading the body.
     if response.status == 204
@@ -853,12 +848,7 @@ async fn run(
     .map_err(|_| Failure::Setup("grammar"))?;
     // With OPENAI_CUSTOM_HEADERS, SDK construction eagerly merges/validates
     // client defaults. Auth and organization/project headers are added later.
-    if services
-        .env
-        .as_map()
-        .get("OPENAI_CUSTOM_HEADERS")
-        .is_some_and(|value| !value.is_empty())
-    {
+    if openai_sdk_strings::read_env(&services.env, "OPENAI_CUSTOM_HEADERS").is_some() {
         headers(request, services, None, cache, false)?;
     }
     let mut payload = payload(request, options, cache, &grammar)?;

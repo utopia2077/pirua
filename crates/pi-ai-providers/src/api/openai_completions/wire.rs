@@ -5,6 +5,7 @@ use super::{
 use crate::api::{
     constrained_sampling::create_grammar_tool_input_properties,
     github_copilot_headers::{build_copilot_dynamic_headers, has_copilot_vision_input},
+    openai_sdk_strings,
     runtime::{AdapterResponseHead, AdapterServices, cancellable},
     simple_options::build_base_options,
     wire_json::stringify_wire_json,
@@ -226,44 +227,42 @@ fn set(headers: &mut HttpHeaders, key: &str, value: &str) -> Result<(), Failure>
 fn headers(
     request: &TextStreamRequest,
     services: &AdapterServices,
-    key: &str,
+    key: Option<&str>,
     cache: CacheRetention,
     compat: &ResolvedCompletionsCompat,
     has_body: bool,
 ) -> Result<HttpHeaders, Failure> {
     let mut h = HttpHeaders::new();
-    for (k, v) in [
-        ("accept", "application/json"),
-        ("user-agent", "pi-ai-rust"),
-        ("x-stainless-retry-count", "0"),
-    ] {
-        set(&mut h, k, v)?;
-    }
-    if let Some(ms) = request.options.wire.timeout_ms.filter(|v| v.get() != 0) {
-        set(
-            &mut h,
-            "x-stainless-timeout",
-            &(ms.get() / 1000).to_string(),
-        )?;
-    }
-    for (env, k) in [
-        ("OPENAI_ORG_ID", "openai-organization"),
-        ("OPENAI_PROJECT_ID", "openai-project"),
-    ] {
-        if let Some(v) = services.env.as_map().get(env) {
+    // SDK construction validates defaultHeaders only. Auth/org/project and
+    // encoder headers belong to the later request build, after onPayload.
+    if let Some(key) = key {
+        for (k, v) in [
+            ("accept", "application/json"),
+            ("user-agent", "pi-ai-rust"),
+            ("x-stainless-retry-count", "0"),
+        ] {
             set(&mut h, k, v)?;
         }
-    }
-    set(&mut h, "authorization", &format!("Bearer {key}"))?;
-    if let Some(custom) = services.env.as_map().get("OPENAI_CUSTOM_HEADERS") {
-        for line in custom.split('\n') {
-            if let Some((k, v)) = line.split_once(':') {
-                set(
-                    &mut h,
-                    k.trim_matches(whitespace),
-                    v.trim_matches(whitespace),
-                )?;
+        if let Some(ms) = request.options.wire.timeout_ms.filter(|v| v.get() != 0) {
+            set(
+                &mut h,
+                "x-stainless-timeout",
+                &(ms.get() / 1000).to_string(),
+            )?;
+        }
+        for (env, k) in [
+            ("OPENAI_ORG_ID", "openai-organization"),
+            ("OPENAI_PROJECT_ID", "openai-project"),
+        ] {
+            if let Some(v) = openai_sdk_strings::read_env(&services.env, env) {
+                set(&mut h, k, v)?;
             }
+        }
+        set(&mut h, "authorization", &format!("Bearer {key}"))?;
+    }
+    if let Some(custom) = openai_sdk_strings::read_env(&services.env, "OPENAI_CUSTOM_HEADERS") {
+        for (k, v) in openai_sdk_strings::custom_headers(custom) {
+            set(&mut h, k, v)?;
         }
     }
     set(&mut h, "user-agent", "pi-ai-rust")?;
@@ -302,7 +301,11 @@ fn headers(
     for (k, v) in request.auth.headers.iter_for_dispatch() {
         match v {
             Some(v) => set(&mut h, k, v)?,
-            None => h.remove(k),
+            None => {
+                let mut checked = HttpHeaders::new();
+                checked.set(k, "")?;
+                h.remove(k);
+            }
         }
     }
     if has_body {
@@ -456,6 +459,9 @@ async fn run(
     .map_err(|_| Failure::plain("grammar"))?;
     let cache = retention(request, services);
     let runtime = &request.options.runtime;
+    if openai_sdk_strings::read_env(&services.env, "OPENAI_CUSTOM_HEADERS").is_some() {
+        headers(request, services, None, cache, &compat, false)?;
+    }
     let value = payload::build(request, options, &compat, cache, &grammar)?;
     let mut payload = serde_json::from_value(value).map_err(|_| Failure::plain("payload"))?;
     if let Some(middleware) = &services.payload
@@ -478,7 +484,7 @@ async fn run(
     let http = HttpRequest {
         endpoint: endpoint(request.resolved.endpoint.expose_for_transport())?,
         method: "POST".to_owned(),
-        headers: headers(request, services, key, cache, &compat, has_body)?,
+        headers: headers(request, services, Some(key), cache, &compat, has_body)?,
         body: if has_body {
             stringify_wire_json(&value)
                 .map_err(|_| Failure::plain("payload_limit"))?

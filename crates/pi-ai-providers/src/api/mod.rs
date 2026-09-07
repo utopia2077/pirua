@@ -9,6 +9,9 @@ pub mod runtime;
 pub mod simple_options;
 pub mod wire_json;
 
+#[cfg(any(feature = "wire-openai-responses", feature = "wire-openai-completions"))]
+mod openai_sdk_strings;
+
 #[cfg(feature = "wire-openai-responses")]
 pub mod openai_responses;
 
