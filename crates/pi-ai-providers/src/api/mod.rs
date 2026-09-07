@@ -9,6 +9,9 @@ pub mod runtime;
 pub mod simple_options;
 pub mod wire_json;
 
+#[cfg(feature = "wire-openai-responses")]
+pub mod openai_responses;
+
 #[cfg(feature = "wire-pi-messages")]
 pub mod pi_messages;
 

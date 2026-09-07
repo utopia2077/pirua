@@ -1,0 +1,1784 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sdkVersion": "6.40.0",
+  "evidenceClass": "executed-pinned-wrapper-and-installed-sdk",
+  "model": {
+    "id": "gpt-5.5",
+    "name": "Decode witness",
+    "api": "openai-responses",
+    "provider": "openai",
+    "baseUrl": "https://example.invalid/v1",
+    "reasoning": true,
+    "input": [
+      "text"
+    ],
+    "cost": {
+      "input": 1,
+      "output": 2,
+      "cacheRead": 3,
+      "cacheWrite": 4
+    },
+    "contextWindow": 10000,
+    "maxTokens": 1000
+  },
+  "context": {
+    "messages": []
+  },
+  "sourceHashes": {
+    "models.ts": "b53c99c5fa787af57790fa1d971987faab7e7b917ab5cb985374db407a4d88dd",
+    "utils/hash.ts": "2cdfce4af41810d1a92c7f0a55c78637a3173041038aafd85b378be345761ed8",
+    "utils/json-parse.ts": "828440b19a64773f696ced9461166913ddaddd8479697fbde32d3f298872b153",
+    "utils/sanitize-unicode.ts": "f8ef2c957f9f13a77df45ebf344f1b852dfe8f2e3d164d815127ea7290c12e22",
+    "api/constrained-sampling.ts": "1b869f139e5cd1f09b4ebecb8f7ce9ea44b63e75dc6d6158ac8f5d00f2eaddbb",
+    "api/transform-messages.ts": "cf309c00b943bc0a90ccaabb185730a3f27a3c92de6696ada3155b0185904161",
+    "utils/deferred-tools.ts": "cab1dbf6c0b40a64e2db3079dd3efa23786ad4cdae64abdedc04b1088a301d65",
+    "utils/estimate.ts": "8334f683185cc11d7e867f30963dfc4b9d89c3db79e852364e89a24cb89b316a",
+    "api/simple-options.ts": "3a9ab7fa885d3a9c73a1aee8c8bf8bd7d205740edef0f0a5219714fd16e38e57",
+    "api/github-copilot-headers.ts": "32d154965223d746140957ca6754f69955f1c631ed5e8445dcf2be11bb4b5180",
+    "api/openai-prompt-cache.ts": "78727b9b42d5c5cdc47d17f44d532cdf951cbee3b158cacfb3e640d8f792e8a4",
+    "utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "utils/error-body.ts": "7170181ae6926709fe4ab7ac6b5b51c46ffe906868a7aac3c7627cb28ad77c09",
+    "utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "utils/provider-retry.ts": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
+    "utils/overflow.ts": "ed4c74d82619562b2a760ef7953cfd39f6f88e0980d42e27945f8aa81a57a61d",
+    "utils/retry.ts": "69219cbbb0fb9bc83a5dd044e4130dee68c0fb9089c52a814719e72fb243175c",
+    "api/openai-responses-shared.ts": "e86649ae0ccc20478df9919dc57e7bb3d8f2fc02e343cc1f87db16d8ca1ca2bb",
+    "api/openai-responses.ts": "4f0aab4f132165862f222d3bb0f96828781089ddc52cffe53d9fe31073f59c49"
+  },
+  "cases": [
+    {
+      "id": "root-null",
+      "body": "null",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in null"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "root-false",
+      "body": "false",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in false"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "root-number",
+      "body": "2",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 2"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "root-string",
+      "body": "\"plain\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in plain"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "plain-object",
+      "body": "{}",
+      "decoded": {
+        "ok": true,
+        "data": {},
+        "ownOutputText": false,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "other-object",
+      "body": "{\"object\":\"other\",\"output\":null}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "other",
+          "output": null
+        },
+        "ownOutputText": false,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-missing",
+      "body": "{\"object\":\"response\"}",
+      "decoded": {
+        "ok": false,
+        "message": "rsp.output is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-0",
+      "body": "{\"object\":\"response\",\"output\":null}",
+      "decoded": {
+        "ok": false,
+        "message": "rsp.output is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-1",
+      "body": "{\"object\":\"response\",\"output\":false}",
+      "decoded": {
+        "ok": false,
+        "message": "rsp.output is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-2",
+      "body": "{\"object\":\"response\",\"output\":3}",
+      "decoded": {
+        "ok": false,
+        "message": "rsp.output is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-3",
+      "body": "{\"object\":\"response\",\"output\":{}}",
+      "decoded": {
+        "ok": false,
+        "message": "rsp.output is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-4",
+      "body": "{\"object\":\"response\",\"output\":[]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-5",
+      "body": "{\"object\":\"response\",\"output\":\"\"}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": "",
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-6",
+      "body": "{\"object\":\"response\",\"output\":\"abc\"}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": "abc",
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-7",
+      "body": "{\"object\":\"response\",\"output\":[null]}",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot read properties of null (reading 'type')"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "output-8",
+      "body": "{\"object\":\"response\",\"output\":[false,2,\"x\",{}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            false,
+            2,
+            "x",
+            {}
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-missing",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\"}]}",
+      "decoded": {
+        "ok": false,
+        "message": "output.content is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-0",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":null}]}",
+      "decoded": {
+        "ok": false,
+        "message": "output.content is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-1",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":false}]}",
+      "decoded": {
+        "ok": false,
+        "message": "output.content is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-2",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":2}]}",
+      "decoded": {
+        "ok": false,
+        "message": "output.content is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-3",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":{}}]}",
+      "decoded": {
+        "ok": false,
+        "message": "output.content is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-4",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": []
+            }
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-5",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":\"\"}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": ""
+            }
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-6",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":\"abc\"}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": "abc"
+            }
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-7",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[null]}]}",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot read properties of null (reading 'type')"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "content-8",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[false,2,\"x\",{}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                false,
+                2,
+                "x",
+                {}
+              ]
+            }
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-missing",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\"}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text"
+                }
+              ]
+            }
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-0",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":null}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": null
+                }
+              ]
+            }
+          ],
+          "output_text": ""
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-1",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":false}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": false
+                }
+              ]
+            }
+          ],
+          "output_text": "false"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-2",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":2}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": 2
+                }
+              ]
+            }
+          ],
+          "output_text": "2"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-3",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":{}}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": {}
+                }
+              ]
+            }
+          ],
+          "output_text": "[object Object]"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-4",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":[\"x\",null,[2,{},true]]}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": [
+                    "x",
+                    null,
+                    [
+                      2,
+                      {},
+                      true
+                    ]
+                  ]
+                }
+              ]
+            }
+          ],
+          "output_text": "x,,2,[object Object],true"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-5",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":{\"toString\":null}}]}]}",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot convert object to primitive value"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-6",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":{\"toString\":\"not callable\"}}]}]}",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot convert object to primitive value"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "text-7",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":{\"valueOf\":null}}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": {
+                    "valueOf": null
+                  }
+                }
+              ]
+            }
+          ],
+          "output_text": "[object Object]"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "overwrite-output-text",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"new\"}]}],\"output_text\":\"old\"}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "new"
+                }
+              ]
+            }
+          ],
+          "output_text": "new"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "own-request-id",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":\"new\"}]}],\"_request_id\":{\"toString\":null}}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": "new"
+                }
+              ]
+            }
+          ],
+          "output_text": "new"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": true,
+          "enumerable": false,
+          "configurable": true
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "own-proto",
+      "body": "{\"__proto__\":{\"object\":\"response\"},\"output\":null}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "__proto__": {
+            "object": "response"
+          },
+          "output": null
+        },
+        "ownOutputText": false,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "own-proto-text",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":[{\"type\":\"output_text\",\"text\":{\"__proto__\":{\"toString\":null}}}]}]}",
+      "decoded": {
+        "ok": true,
+        "data": {
+          "object": "response",
+          "output": [
+            {
+              "type": "message",
+              "content": [
+                {
+                  "type": "output_text",
+                  "text": {
+                    "__proto__": {
+                      "toString": null
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "output_text": "[object Object]"
+        },
+        "ownOutputText": true,
+        "requestIdDescriptor": {
+          "value": "synthetic-id",
+          "writable": false,
+          "enumerable": false,
+          "configurable": false
+        }
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "array-terminal",
+      "body": "[{\"type\":\"response.completed\",\"response\":{\"status\":\"completed\"}}]",
+      "decoded": {
+        "ok": true,
+        "data": [
+          {
+            "type": "response.completed",
+            "response": {
+              "status": "completed"
+            }
+          }
+        ],
+        "ownOutputText": false
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "done"
+      ],
+      "stopReason": "stop",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "array-null",
+      "body": "[null]",
+      "decoded": {
+        "ok": true,
+        "data": [
+          null
+        ],
+        "ownOutputText": false
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "array-empty",
+      "body": "[]",
+      "decoded": {
+        "ok": true,
+        "data": [],
+        "ownOutputText": false
+      },
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "calls": 1,
+      "events": [
+        "start",
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-json-0",
+      "body": "500",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 500"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-0",
+      "body": "500",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 500"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-1",
+      "body": "2",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 2"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-1",
+      "body": "2",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 2"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-2",
+      "body": "\"prompt is too long\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in prompt is too long"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": true
+    },
+    {
+      "id": "operand-text-2",
+      "body": "prompt is too long",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in prompt is too long"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": true,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-3",
+      "body": "\"plain\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in plain"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-3",
+      "body": "plain",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in plain"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-4",
+      "body": "\"500 billing\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 500 billing"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-4",
+      "body": "500 billing",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 500 billing"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-5",
+      "body": "\"503 quota exceeded\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 503 quota exceeded"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-5",
+      "body": "503 quota exceeded",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 503 quota exceeded"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-6",
+      "body": "\"400 status code (no body)\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 400 status code (no body)"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-6",
+      "body": "400 status code (no body)",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 400 status code (no body)"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-7",
+      "body": "\"413 status code (no body)\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 413 status code (no body)"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-7",
+      "body": "413 status code (no body)",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in 413 status code (no body)"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-8",
+      "body": "\"Throttling error: prompt is too long\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in Throttling error: prompt is too long"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": true
+    },
+    {
+      "id": "operand-text-8",
+      "body": "Throttling error: prompt is too long",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in Throttling error: prompt is too long"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": true,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-9",
+      "body": "\"Service unavailable: prompt is too long\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in Service unavailable: prompt is too long"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": true
+    },
+    {
+      "id": "operand-text-9",
+      "body": "Service unavailable: prompt is too long",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in Service unavailable: prompt is too long"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": true,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-10",
+      "body": "\"prompt is too long rate limit\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in prompt is too long rate limit"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-10",
+      "body": "prompt is too long rate limit",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in prompt is too long rate limit"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": true,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-json-11",
+      "body": "\"server error out of budget\"",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in server error out of budget"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-text-11",
+      "body": "server error out of budget",
+      "decoded": {
+        "ok": false,
+        "message": "Cannot use 'in' operator to search for 'object' in server error out of budget"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false,
+      "contentType": "text/plain"
+    },
+    {
+      "id": "operand-object-control",
+      "body": "{\"object\":\"response\",\"output\":null,\"marker\":\"500 prompt is too long\"}",
+      "decoded": {
+        "ok": false,
+        "message": "rsp.output is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    },
+    {
+      "id": "operand-nested-control",
+      "body": "{\"object\":\"response\",\"output\":[{\"type\":\"message\",\"content\":null}],\"marker\":\"500 billing\"}",
+      "decoded": {
+        "ok": false,
+        "message": "output.content is not iterable"
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "calls": 1,
+      "events": [
+        "error"
+      ],
+      "stopReason": "error",
+      "retryable": false,
+      "contextOverflow": false
+    }
+  ]
+}
