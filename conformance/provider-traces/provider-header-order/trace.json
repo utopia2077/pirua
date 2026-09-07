@@ -1,0 +1,2758 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "v26.8.1",
+  "sdk": {
+    "openai": "6.40.0",
+    "anthropic": "0.91.1"
+  },
+  "hashes": {
+    "utils/hash.ts": "2cdfce4af41810d1a92c7f0a55c78637a3173041038aafd85b378be345761ed8",
+    "utils/json-parse.ts": "828440b19a64773f696ced9461166913ddaddd8479697fbde32d3f298872b153",
+    "utils/sanitize-unicode.ts": "f8ef2c957f9f13a77df45ebf344f1b852dfe8f2e3d164d815127ea7290c12e22",
+    "utils/event-stream.ts": "55ddd6e6e4299f377fc3f8876ea9d8073f0051d569f1629f8817ec78e28d64e6",
+    "utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "utils/provider-retry.ts": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
+    "utils/diagnostics.ts": "d22b4f96a00f032220ff0cc27458c7a525dcec948bdbd2bbb67b4d7598cb395d",
+    "utils/deferred-tools.ts": "cab1dbf6c0b40a64e2db3079dd3efa23786ad4cdae64abdedc04b1088a301d65",
+    "utils/estimate.ts": "8334f683185cc11d7e867f30963dfc4b9d89c3db79e852364e89a24cb89b316a",
+    "api/constrained-sampling.ts": "1b869f139e5cd1f09b4ebecb8f7ce9ea44b63e75dc6d6158ac8f5d00f2eaddbb",
+    "api/github-copilot-headers.ts": "32d154965223d746140957ca6754f69955f1c631ed5e8445dcf2be11bb4b5180",
+    "api/transform-messages.ts": "cf309c00b943bc0a90ccaabb185730a3f27a3c92de6696ada3155b0185904161",
+    "api/simple-options.ts": "3a9ab7fa885d3a9c73a1aee8c8bf8bd7d205740edef0f0a5219714fd16e38e57",
+    "api/openai-prompt-cache.ts": "78727b9b42d5c5cdc47d17f44d532cdf951cbee3b158cacfb3e640d8f792e8a4",
+    "utils/error-body.ts": "7170181ae6926709fe4ab7ac6b5b51c46ffe906868a7aac3c7627cb28ad77c09",
+    "api/openai-responses-shared.ts": "e86649ae0ccc20478df9919dc57e7bb3d8f2fc02e343cc1f87db16d8ca1ca2bb",
+    "models.ts": "b53c99c5fa787af57790fa1d971987faab7e7b917ab5cb985374db407a4d88dd",
+    "api/pi-messages.ts": "c8170741db3747d47d0ed46c509d5ae40cb339047bba8b357d208ac8d1b364e6",
+    "api/mistral-conversations.ts": "042e8886f68da48b4218726bcbc20ff440510b23dbdbffe5ea9c7fb8a876b762",
+    "api/anthropic-messages.ts": "c63b3cbe8afe2504bb5f60f2e7f7b8f773de68486a03cc0cc266c3c76f73f7f6",
+    "api/openai-responses.ts": "4f0aab4f132165862f222d3bb0f96828781089ddc52cffe53d9fe31073f59c49",
+    "api/openai-completions.ts": "4cd70d6199e4ca365b98dc0e9c93673ff64b7a8d62d8070f3e51a96103b01a0f"
+  },
+  "cases": [
+    {
+      "family": "pi-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower, upper, caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower, caps, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper, lower, caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper, caps, lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "caps, lower, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "caps, upper, lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper, lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper, lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper, lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "ownEntries": [
+        [
+          "Accept",
+          null
+        ],
+        [
+          "accept",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "observed": {
+        "accept": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"accept\":\"lower\",\"Accept\":null}",
+      "ownEntries": [
+        [
+          "accept",
+          "lower"
+        ],
+        [
+          "Accept",
+          null
+        ]
+      ],
+      "serialized": "{\"accept\":\"lower\",\"Accept\":null}",
+      "observed": {
+        "accept": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "ownEntries": [
+        [
+          "accept",
+          null
+        ],
+        [
+          "Accept",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"Accept\":\"upper\",\"accept\":null}",
+      "ownEntries": [
+        [
+          "Accept",
+          "upper"
+        ],
+        [
+          "accept",
+          null
+        ]
+      ],
+      "serialized": "{\"Accept\":\"upper\",\"accept\":null}",
+      "observed": {
+        "accept": "text/event-stream, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "raw": "{\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\",\"0\":\"zero\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\",\"4294967294\":\"index\"}",
+      "ownEntries": [
+        [
+          "0",
+          "zero"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "01",
+          "one"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "4294967295",
+          "not-index"
+        ]
+      ],
+      "serialized": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"01\":\"one\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\"}",
+      "observed": {
+        "0": "zero",
+        "2": "two",
+        "10": "ten",
+        "4294967294": "index",
+        "01": "one",
+        "4294967295": "not-index",
+        "accept": "text/event-stream",
+        "x-order": "lower, upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "text/event-stream"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "text/event-stream"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "observed": {
+        "accept": "text/event-stream"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "text/event-stream",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "ownEntries": [
+        [
+          "Accept",
+          null
+        ],
+        [
+          "accept",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "observed": {
+        "accept": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"accept\":\"lower\",\"Accept\":null}",
+      "ownEntries": [
+        [
+          "accept",
+          "lower"
+        ],
+        [
+          "Accept",
+          null
+        ]
+      ],
+      "serialized": "{\"accept\":\"lower\",\"Accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "ownEntries": [
+        [
+          "accept",
+          null
+        ],
+        [
+          "Accept",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "observed": {
+        "accept": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"Accept\":\"upper\",\"accept\":null}",
+      "ownEntries": [
+        [
+          "Accept",
+          "upper"
+        ],
+        [
+          "accept",
+          null
+        ]
+      ],
+      "serialized": "{\"Accept\":\"upper\",\"accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "raw": "{\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\",\"0\":\"zero\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\",\"4294967294\":\"index\"}",
+      "ownEntries": [
+        [
+          "0",
+          "zero"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "01",
+          "one"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "4294967295",
+          "not-index"
+        ]
+      ],
+      "serialized": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"01\":\"one\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\"}",
+      "observed": {
+        "0": "zero",
+        "2": "two",
+        "10": "ten",
+        "4294967294": "index",
+        "01": "one",
+        "4294967295": "not-index",
+        "accept": "text/event-stream",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "ownEntries": [
+        [
+          "Accept",
+          null
+        ],
+        [
+          "accept",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"accept\":\"lower\",\"Accept\":null}",
+      "ownEntries": [
+        [
+          "accept",
+          "lower"
+        ],
+        [
+          "Accept",
+          null
+        ]
+      ],
+      "serialized": "{\"accept\":\"lower\",\"Accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "ownEntries": [
+        [
+          "accept",
+          null
+        ],
+        [
+          "Accept",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "observed": {
+        "accept": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"Accept\":\"upper\",\"accept\":null}",
+      "ownEntries": [
+        [
+          "Accept",
+          "upper"
+        ],
+        [
+          "accept",
+          null
+        ]
+      ],
+      "serialized": "{\"Accept\":\"upper\",\"accept\":null}",
+      "observed": {
+        "accept": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "anthropic-messages",
+      "raw": "{\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\",\"0\":\"zero\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\",\"4294967294\":\"index\"}",
+      "ownEntries": [
+        [
+          "0",
+          "zero"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "01",
+          "one"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "4294967295",
+          "not-index"
+        ]
+      ],
+      "serialized": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"01\":\"one\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\"}",
+      "observed": {
+        "0": "zero",
+        "2": "two",
+        "10": "ten",
+        "4294967294": "index",
+        "01": "one",
+        "4294967295": "not-index",
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "ownEntries": [
+        [
+          "Accept",
+          null
+        ],
+        [
+          "accept",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "observed": {
+        "accept": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"accept\":\"lower\",\"Accept\":null}",
+      "ownEntries": [
+        [
+          "accept",
+          "lower"
+        ],
+        [
+          "Accept",
+          null
+        ]
+      ],
+      "serialized": "{\"accept\":\"lower\",\"Accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "ownEntries": [
+        [
+          "accept",
+          null
+        ],
+        [
+          "Accept",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "observed": {
+        "accept": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"Accept\":\"upper\",\"accept\":null}",
+      "ownEntries": [
+        [
+          "Accept",
+          "upper"
+        ],
+        [
+          "accept",
+          null
+        ]
+      ],
+      "serialized": "{\"Accept\":\"upper\",\"accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-responses",
+      "raw": "{\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\",\"0\":\"zero\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\",\"4294967294\":\"index\"}",
+      "ownEntries": [
+        [
+          "0",
+          "zero"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "01",
+          "one"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "4294967295",
+          "not-index"
+        ]
+      ],
+      "serialized": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"01\":\"one\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\"}",
+      "observed": {
+        "0": "zero",
+        "2": "two",
+        "10": "ten",
+        "4294967294": "index",
+        "01": "one",
+        "4294967295": "not-index",
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":\"caps\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":\"caps\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "caps"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":\"caps\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          "caps"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":\"caps\",\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-ORDER\":null,\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-ORDER",
+          null
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"x-order\":\"lower\",\"X-ORDER\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":\"upper\",\"X-ORDER\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"x-order\":\"lower\",\"X-Order\":\"upper\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-ORDER",
+          null
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-ORDER\":null,\"X-Order\":\"upper\",\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "ownEntries": [
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          null
+        ]
+      ],
+      "serialized": "{\"x-order\":\"lower\",\"X-Order\":null}",
+      "observed": {
+        "accept": "application/json"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "ownEntries": [
+        [
+          "X-Order",
+          null
+        ],
+        [
+          "x-order",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"X-Order\":null,\"x-order\":\"lower\"}",
+      "observed": {
+        "accept": "application/json",
+        "x-order": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "ownEntries": [
+        [
+          "Accept",
+          null
+        ],
+        [
+          "accept",
+          "lower"
+        ]
+      ],
+      "serialized": "{\"Accept\":null,\"accept\":\"lower\"}",
+      "observed": {
+        "accept": "lower"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"accept\":\"lower\",\"Accept\":null}",
+      "ownEntries": [
+        [
+          "accept",
+          "lower"
+        ],
+        [
+          "Accept",
+          null
+        ]
+      ],
+      "serialized": "{\"accept\":\"lower\",\"Accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "ownEntries": [
+        [
+          "accept",
+          null
+        ],
+        [
+          "Accept",
+          "upper"
+        ]
+      ],
+      "serialized": "{\"accept\":null,\"Accept\":\"upper\"}",
+      "observed": {
+        "accept": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"Accept\":\"upper\",\"accept\":null}",
+      "ownEntries": [
+        [
+          "Accept",
+          "upper"
+        ],
+        [
+          "accept",
+          null
+        ]
+      ],
+      "serialized": "{\"Accept\":\"upper\",\"accept\":null}",
+      "observed": {},
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    },
+    {
+      "family": "openai-completions",
+      "raw": "{\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\",\"0\":\"zero\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\",\"4294967294\":\"index\"}",
+      "ownEntries": [
+        [
+          "0",
+          "zero"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "01",
+          "one"
+        ],
+        [
+          "x-order",
+          "lower"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "4294967295",
+          "not-index"
+        ]
+      ],
+      "serialized": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"01\":\"one\",\"x-order\":\"lower\",\"X-Order\":\"upper\",\"4294967295\":\"not-index\"}",
+      "observed": {
+        "0": "zero",
+        "2": "two",
+        "10": "ten",
+        "4294967294": "index",
+        "01": "one",
+        "4294967295": "not-index",
+        "accept": "application/json",
+        "x-order": "upper"
+      },
+      "calls": 1,
+      "order": [
+        "payload",
+        "send"
+      ]
+    }
+  ],
+  "merges": [
+    {
+      "base": "{\"Z\":\"base\",\"x-order\":\"old\",\"X-Order\":\"other\"}",
+      "later": "{\"x-order\":\"lower\",\"X-Order\":\"upper\",\"A\":\"late\"}",
+      "entries": [
+        [
+          "Z",
+          "base"
+        ],
+        [
+          "X-Order",
+          "upper"
+        ],
+        [
+          "A",
+          "late"
+        ]
+      ],
+      "serialized": "{\"Z\":\"base\",\"X-Order\":\"upper\",\"A\":\"late\"}"
+    },
+    {
+      "base": "{\"Z\":\"base\",\"x-order\":\"old\"}",
+      "later": "{\"X-Order\":\"upper\",\"x-order\":null}",
+      "entries": [
+        [
+          "Z",
+          "base"
+        ],
+        [
+          "x-order",
+          null
+        ]
+      ],
+      "serialized": "{\"Z\":\"base\",\"x-order\":null}"
+    },
+    {
+      "base": "{\"10\":\"ten\",\"2\":\"two\",\"x-order\":\"old\",\"Keep\":null}",
+      "later": "{\"X-Order\":\"new\",\"0\":\"zero\"}",
+      "entries": [
+        [
+          "0",
+          "zero"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "Keep",
+          null
+        ],
+        [
+          "X-Order",
+          "new"
+        ]
+      ],
+      "serialized": "{\"0\":\"zero\",\"2\":\"two\",\"10\":\"ten\",\"Keep\":null,\"X-Order\":\"new\"}"
+    }
+  ]
+}

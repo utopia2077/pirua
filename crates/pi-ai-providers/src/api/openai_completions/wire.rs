@@ -299,7 +299,7 @@ fn headers(
             set(&mut h, "x-session-affinity", session)?;
         }
     }
-    for (k, v) in request.auth.headers.as_map() {
+    for (k, v) in request.auth.headers.iter_for_dispatch() {
         match v {
             Some(v) => set(&mut h, k, v)?,
             None => h.remove(k),

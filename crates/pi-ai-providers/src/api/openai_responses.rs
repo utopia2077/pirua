@@ -575,7 +575,7 @@ fn headers(
             set_header(&mut headers, "x-client-request-id", session)?;
         }
     }
-    for (name, value) in request.auth.headers.as_map() {
+    for (name, value) in request.auth.headers.iter_for_dispatch() {
         match value {
             Some(value) => set_header(&mut headers, name, value)?,
             None => {

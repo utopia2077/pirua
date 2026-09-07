@@ -788,7 +788,7 @@ async fn run(
         ("content-type".to_owned(), "application/json".to_owned()),
     ];
     // Source filters null before merging: null does not suppress a default.
-    for (name, value) in request.auth.headers.as_map() {
+    for (name, value) in request.auth.headers.iter_for_dispatch() {
         if let Some(value) = value {
             if let Some((_, old)) = raw_headers.iter_mut().find(|(key, _)| key == name) {
                 *old = value.clone();

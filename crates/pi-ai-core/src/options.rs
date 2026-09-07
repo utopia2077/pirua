@@ -129,28 +129,105 @@ pub struct ThinkingBudgets {
 /// so it must never enter durable Harness state. Durable public headers require
 /// a separate host-policy-classified wrapper whose default policy denies every
 /// header.
-#[derive(Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct ProviderHeaders(
-    #[serde(deserialize_with = "crate::json::deserialize_btree_map_reject_duplicates")]
-    BTreeMap<String, Option<String>>,
-);
+#[derive(Clone, Default, Eq, PartialEq)]
+pub struct ProviderHeaders {
+    values: BTreeMap<String, Option<String>>,
+    order: Vec<String>,
+}
 
 impl ProviderHeaders {
-    /// Creates a raw transient header map.
+    /// Creates a raw transient header map from its existing deterministic order.
+    /// A BTreeMap cannot recover insertion history that was already discarded.
     pub fn new(headers: BTreeMap<String, Option<String>>) -> Self {
-        Self(headers)
+        let mut result = Self {
+            order: headers.keys().cloned().collect(),
+            values: headers,
+        };
+        result.sort_numeric_keys();
+        result
     }
 
-    /// Returns the raw headers for transient dispatch.
+    /// Returns exact-key lookup data. Header-sensitive dispatch uses the ordered
+    /// projection instead of this map's lexical iteration order.
     pub const fn as_map(&self) -> &BTreeMap<String, Option<String>> {
-        &self.0
+        &self.values
+    }
+
+    /// Borrows exact header names and nullable values in JavaScript own-key
+    /// order: array-index keys first, then other keys in insertion order.
+    pub fn iter_for_dispatch(&self) -> impl Iterator<Item = (&String, &Option<String>)> {
+        self.order.iter().map(|name| {
+            (
+                name,
+                self.values
+                    .get(name)
+                    .expect("private order index names existing keys"),
+            )
+        })
+    }
+
+    fn sort_numeric_keys(&mut self) {
+        self.order.sort_by_key(|name| {
+            name.parse::<u32>()
+                .ok()
+                .filter(|index| *index != u32::MAX && index.to_string() == *name)
+                .map_or((1, 0), |index| (0, index))
+        });
+    }
+
+    // Registry composition owns these entries. Exact replacement keeps its
+    // first own-key slot; raw object decoding below separately rejects duplicates.
+    pub(crate) fn from_ordered_entries(entries: Vec<(String, Option<String>)>) -> Self {
+        let mut result = Self::default();
+        for (name, value) in entries {
+            if !result.values.contains_key(&name) {
+                result.order.push(name.clone());
+            }
+            result.values.insert(name, value);
+        }
+        result.sort_numeric_keys();
+        result
+    }
+}
+
+impl Serialize for ProviderHeaders {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(self.values.len()))?;
+        for (name, value) in self.iter_for_dispatch() {
+            map.serialize_entry(name, value)?;
+        }
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ProviderHeaders {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct HeaderVisitor;
+        impl<'de> de::Visitor<'de> for HeaderVisitor {
+            type Value = ProviderHeaders;
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a map without duplicate keys")
+            }
+            fn visit_map<A: de::MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
+                let mut result = ProviderHeaders::default();
+                while let Some((name, value)) = map.next_entry::<String, Option<String>>()? {
+                    if result.values.insert(name.clone(), value).is_some() {
+                        return Err(de::Error::custom("duplicate map key"));
+                    }
+                    result.order.push(name);
+                }
+                result.sort_numeric_keys();
+                Ok(result)
+            }
+        }
+        deserializer.deserialize_map(HeaderVisitor)
     }
 }
 
 impl fmt::Debug for ProviderHeaders {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let keys: Vec<&str> = self.0.keys().map(String::as_str).collect();
+        let keys: Vec<&str> = self.values.keys().map(String::as_str).collect();
         formatter
             .debug_struct("ProviderHeaders")
             .field("keys", &keys)

@@ -1699,13 +1699,47 @@ async fn persist_logout(
 }
 
 fn merge_headers(base: ProviderHeaders, later: ProviderHeaders) -> ProviderHeaders {
-    let mut merged = base.as_map().clone();
-    for (name, value) in later.as_map() {
+    let mut merged: Vec<_> = base
+        .iter_for_dispatch()
+        .map(|(name, value)| (name.clone(), value.clone()))
+        .collect();
+    for (name, value) in later.iter_for_dispatch() {
         let normalized = name.to_ascii_lowercase();
-        merged.retain(|existing, _| existing.to_ascii_lowercase() != normalized);
-        merged.insert(name.clone(), value.clone());
+        merged.retain(|(existing, _)| existing.to_ascii_lowercase() != normalized);
+        merged.push((name.clone(), value.clone()));
     }
-    ProviderHeaders::new(merged)
+    ProviderHeaders::from_ordered_entries(merged)
+}
+
+#[cfg(test)]
+mod ordered_header_tests {
+    use super::*;
+
+    #[test]
+    fn registry_merge_matches_pinned_order_spelling_and_null_projection() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/provider-traces/provider-header-order/trace.json"
+        ))
+        .unwrap();
+        for case in fixture["merges"].as_array().unwrap() {
+            let base = serde_json::from_str(case["base"].as_str().unwrap()).unwrap();
+            let later = serde_json::from_str(case["later"].as_str().unwrap()).unwrap();
+            let result = merge_headers(base, later);
+            let expected: Vec<(String, Option<String>)> =
+                serde_json::from_value(case["entries"].clone()).unwrap();
+            assert_eq!(
+                result
+                    .iter_for_dispatch()
+                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .collect::<Vec<_>>(),
+                expected
+            );
+            assert_eq!(
+                serde_json::to_string(&result).unwrap(),
+                case["serialized"].as_str().unwrap()
+            );
+        }
+    }
 }
 
 struct AssembledRequest {

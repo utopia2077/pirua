@@ -247,7 +247,7 @@ impl MistralApi {
         // Registry/auth resolution may already include classified model headers.
         // Direct resolved calls still receive the model defaults above; final
         // request values, including explicit null, always win below.
-        for (name, value) in request.auth.headers.as_map() {
+        for (name, value) in request.auth.headers.iter_for_dispatch() {
             match value {
                 Some(value) => set_header(&mut headers, name, value)?,
                 None => {

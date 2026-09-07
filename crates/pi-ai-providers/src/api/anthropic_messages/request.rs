@@ -151,7 +151,7 @@ pub(super) fn build(
             assign(&mut defaults, &name, Some(value));
         }
     }
-    for (name, value) in request.auth.headers.as_map() {
+    for (name, value) in request.auth.headers.iter_for_dispatch() {
         assign(&mut defaults, name, value.clone());
     }
     let mut headers = HttpHeaders::new();
