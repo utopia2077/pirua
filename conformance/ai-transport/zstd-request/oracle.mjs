@@ -1,0 +1,22 @@
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {stripTypeScriptTypes} from 'node:module';
+import {deepStrictEqual, strictEqual} from 'node:assert';
+import vm from 'node:vm';
+import zlib from 'node:zlib';
+
+const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const source=execFileSync('git',['show',pin+':packages/ai/src/api/openai-codex-responses.ts'],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const level=source.match(/const REQUEST_COMPRESSION_ZSTD_LEVEL = (\d+);/)[0];
+const helper=source.slice(source.indexOf('function loadNodeZlib('),source.indexOf('// ============================================================================\n// Main Stream Function'));
+const compress=vm.runInNewContext(stripTypeScriptTypes(level+'\n'+helper)+'\ncompressRequestBodyZstd',{process,Uint8Array});
+const sha=s=>createHash('sha256').update(s).digest('hex');
+const authority={pin,node:process.version,zstd:process.versions.zstd,helperHash:sha(helper),builtinHash:sha(process.binding('natives').zlib),level:3};
+strictEqual(authority.node,'v26.8.1');strictEqual(authority.zstd,'1.5.7');strictEqual(authority.builtinHash,'db9aad39b945f269c8ef4af586b7b9a07e792bdff9abecf36178c81090233c50');
+const specs=[{id:'empty',text:''},{id:'object',text:'{}'},{id:'unicode',text:'{"text":"你好 🦫 é","n":1e-7}'},...([1,255,256,16383,16384,16385,131071,131072,262145].map(length=>({id:'repeat-'+length,text:'abcde0123456789',length})))];
+let seed=7;let noise='';for(let i=0;i<8192;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;noise+=String.fromCharCode(32+seed%95);}specs.push({id:'noise',text:noise});
+specs.push({id:'records',count:2000});
+const cases=specs.map(spec=>{const text=spec.count?Array.from({length:spec.count},(_,i)=>JSON.stringify({id:i,text:'the repeated long prefix item '+i%17,group:i%13})+'\n').join(''):spec.length?spec.text.repeat(Math.ceil(spec.length/spec.text.length)).slice(0,spec.length):spec.text;const bytes=Buffer.from(text);const encoded=Buffer.from(compress(text));deepStrictEqual(zlib.zstdDecompressSync(encoded),bytes);deepStrictEqual(encoded,zlib.zstdCompressSync(text,{params:{[zlib.constants.ZSTD_c_compressionLevel]:3}}));return {...spec,inputBytes:bytes.length,inputHash:sha(bytes),encoded:encoded.toString('hex')};});
+const result={authority,cases};
+if(process.argv.includes('--check'))deepStrictEqual(result,JSON.parse(readFileSync(new URL('./trace.json',import.meta.url),'utf8')));else console.log(JSON.stringify(result,null,2));
