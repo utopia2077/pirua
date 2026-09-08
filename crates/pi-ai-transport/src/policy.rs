@@ -112,6 +112,32 @@ pub struct HttpTransport {
     fetch_content_limits: crate::FetchContentLimits,
 }
 impl HttpTransport {
+    /// No retry, redirect, Fetch decoding/defaults or acquisition timer.
+    pub fn send_smithy<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+        profile: &'a crate::SmithyRequestProfile,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        Box::pin(async move {
+            if runtime.cancellation.is_cancelled() {
+                return Err(TransportError::new(TransportErrorKind::Cancelled));
+            }
+            let mut response = cancel_wait(
+                self.client.send_smithy(request, runtime, profile),
+                &runtime.cancellation,
+            )
+            .await?;
+            response.body = Box::new(PolicyBody {
+                inner: response.body,
+                deadline: None,
+                idle: None,
+                closed: false,
+                runtime: runtime.clone(),
+            });
+            Ok(response)
+        })
+    }
     pub fn new(client: Arc<dyn RawHttpClient>, jitter: Arc<dyn RetryJitter>) -> Self {
         Self {
             client,

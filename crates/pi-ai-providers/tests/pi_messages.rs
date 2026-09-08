@@ -988,9 +988,7 @@ impl ResponseMiddleware for Hooks {
             self.observed.order.lock().unwrap().push("response");
             assert!(!request.options.runtime.cancellation.is_cancelled());
             assert_eq!(
-                response
-                    .headers
-                    .get_for_wire("x-pi-gateway-upstream-provider"),
+                response.headers.get_str("x-pi-gateway-upstream-provider"),
                 Some("anthropic")
             );
             if self.block_response {

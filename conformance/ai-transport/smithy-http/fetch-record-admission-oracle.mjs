@@ -1,0 +1,14 @@
+import {execFileSync} from 'node:child_process';
+import {stripTypeScriptTypes} from 'node:module';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+assert.equal(process.versions.node,'26.8.1');
+const source=execFileSync('git',['-C','upstream/pi-mono','show','853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/ai/src/utils/headers.ts'],{encoding:'utf8'});
+const {headersToRecord}=await import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(source)).toString('base64'));
+const large=new Headers({'x-large':'a'.repeat(1048576)});
+assert.equal(headersToRecord(large)['x-large'].length,1048576);
+const many=new Headers();for(let i=0;i<8193;i++)many.append('x-'+i,'a');
+assert.equal(Object.keys(headersToRecord(many)).length,8193);
+const output={largeValueBytes:1048576,entryCount:8193};
+if(process.argv.includes('--check')) assert.deepEqual(output,JSON.parse(readFileSync(new URL('./fetch-record-admission.json',import.meta.url),'utf8')));
+else process.stdout.write(JSON.stringify(output)+'\n');

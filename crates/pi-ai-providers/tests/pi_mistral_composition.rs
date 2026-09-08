@@ -107,7 +107,7 @@ impl ResponseMiddleware for Hook {
                 "callback precedes body polling"
             );
             self.observed.order.lock().unwrap().push("response");
-            self.observed.heads.lock().unwrap().push(json!({"status":head.status,"entries":head.headers.iter_for_wire().collect::<Vec<_>>()}));
+            self.observed.heads.lock().unwrap().push(json!({"status":head.status,"entries":head.headers.iter().map(|(key,value)|(key,value.as_str().expect("Fetch string record"))).collect::<Vec<_>>()}));
             if self.mode == "hook-cancel" {
                 request.options.runtime.cancellation.cancel();
                 return pending().await;

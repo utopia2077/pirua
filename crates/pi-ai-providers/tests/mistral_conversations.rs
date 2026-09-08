@@ -325,7 +325,7 @@ impl ResponseMiddleware for Hooks {
     ) -> BoxFuture<'a, Result<(), ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("response");
-            assert_eq!(h.headers.get_for_wire("x-request-id"), Some("request-1"));
+            assert_eq!(h.headers.get_str("x-request-id"), Some("request-1"));
             if self.block_response {
                 return pending().await;
             }

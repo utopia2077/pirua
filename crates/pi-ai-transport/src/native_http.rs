@@ -35,6 +35,8 @@ use tokio_rustls::{
     },
 };
 use url::Url;
+#[path = "native_smithy.rs"]
+mod smithy;
 
 #[derive(Clone)]
 pub struct NativeHttpClient {
@@ -75,19 +77,27 @@ impl NativeHttpClient {
     }
 }
 impl RawHttpClient for NativeHttpClient {
+    fn send_smithy<'a>(
+        &'a self,
+        request: &'a HttpRequest,
+        runtime: &'a RequestRuntime,
+        profile: &'a crate::SmithyRequestProfile,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send_inner(request, runtime, false, Some(profile.clone()))
+    }
     fn send<'a>(
         &'a self,
         request: &'a HttpRequest,
         runtime: &'a RequestRuntime,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
-        self.send_inner(request, runtime, false)
+        self.send_inner(request, runtime, false, None)
     }
     fn send_fetch_hop<'a>(
         &'a self,
         request: &'a HttpRequest,
         runtime: &'a RequestRuntime,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
-        self.send_inner(request, runtime, true)
+        self.send_inner(request, runtime, true, None)
     }
 }
 impl NativeHttpClient {
@@ -96,241 +106,294 @@ impl NativeHttpClient {
         request: &'a HttpRequest,
         runtime: &'a RequestRuntime,
         fetch: bool,
+        smithy_profile: Option<crate::SmithyRequestProfile>,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
         Box::pin(async move {
             let endpoint = request.endpoint.expose_for_transport().to_owned();
             let method = request.method.clone();
             let headers = request.headers.clone();
             let body = request.body.clone();
+            let smithy_body = smithy_profile.as_ref().map(|_| body.clone());
             let proxy = request.proxy.clone();
             let roots = self.roots.clone();
             let handle = self.handle.clone();
             let head_limit = self.head_limit;
+            let smithy_runtime = runtime.clone();
             crate::policy::cancel_wait(
-                Box::pin(on_runtime(&self.handle, async move {
-                    let mut url = Url::parse(&endpoint).map_err(|_| invalid())?;
-                    if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
-                        return Err(invalid());
+                Box::pin(async move {
+                    if let Some(profile) = &smithy_profile {
+                        smithy::validate(&headers, profile)?;
                     }
-                    let origin_auth = basic_auth(&url)?;
-                    url.set_username("").map_err(|_| invalid())?;
-                    url.set_password(None).map_err(|_| invalid())?;
-                    url.set_fragment(None);
-                    let host = url.host_str().ok_or_else(invalid)?.to_owned();
-                    let port = url.port_or_known_default().ok_or_else(invalid)?;
-                    let mut wire = Request::builder()
-                        .method(
-                            hyper::Method::from_bytes(method.as_bytes()).map_err(|_| invalid())?,
-                        )
-                        .body(Full::new(Bytes::from(body)))
-                        .map_err(|_| invalid())?;
-                    for (name, value) in headers.iter_for_wire() {
-                        let mut value = HeaderValue::from_bytes(&latin1_header_bytes(value)?)
-                            .map_err(|_| invalid())?;
-                        value.set_sensitive(true);
-                        wire.headers_mut().append(
-                            hyper::header::HeaderName::from_bytes(name.as_bytes())
-                                .map_err(|_| invalid())?,
-                            value,
-                        );
-                    }
-                    if !wire.headers().contains_key(HOST) {
-                        wire.headers_mut().insert(
-                            HOST,
-                            HeaderValue::from_str(&match url.port() {
-                                Some(port) => format!("{host}:{port}"),
-                                None => host.clone(),
-                            })
-                            .map_err(|_| invalid())?,
-                        );
-                    }
-                    if !wire.headers().contains_key("accept") {
-                        wire.headers_mut()
-                            .insert("accept", HeaderValue::from_static("*/*"));
-                    }
-                    if let Some(auth) = origin_auth
-                        && !wire.headers().contains_key(AUTHORIZATION)
-                    {
-                        wire.headers_mut().insert(AUTHORIZATION, auth);
-                    }
-                    let mut absolute = false;
-                    let mut stream: Box<dyn SocketIo> = if let Some(proxy) = proxy {
-                        let proxy =
-                            Url::parse(proxy.expose_for_transport()).map_err(|_| invalid())?;
-                        let proxy_host = proxy.host_str().ok_or_else(invalid)?;
-                        let proxy_port = proxy.port_or_known_default().ok_or_else(invalid)?;
-                        let tcp = TcpStream::connect((unbracket(proxy_host), proxy_port))
-                            .await
-                            .map_err(io_error)?;
-                        tcp.set_nodelay(true).map_err(io_error)?;
-                        let mut stream: Box<dyn SocketIo> = Box::new(tcp);
-                        if proxy.scheme() == "https" {
-                            stream = tls(stream, proxy_host, &roots, false).await?.0;
+                    let admission = smithy_profile
+                        .as_ref()
+                        .map(|profile| smithy::AdmissionClock::new(profile, &smithy_runtime));
+                    let body_gate = admission.as_ref().map(smithy::AdmissionClock::gate);
+                    let operation = Box::pin(on_runtime(&self.handle, async move {
+                        let mut url = Url::parse(&endpoint).map_err(|_| invalid())?;
+                        if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+                            return Err(invalid());
                         }
-                        let auth = basic_auth(&proxy)?;
-                        if url.scheme() == "https" {
-                            tunnel(&mut stream, &format!("{host}:{port}"), auth.as_ref()).await?;
-                        } else {
-                            absolute = true;
-                            if let Some(auth) = auth {
-                                wire.headers_mut().insert(PROXY_AUTHORIZATION, auth);
+                        let origin_auth = basic_auth(&url)?;
+                        url.set_username("").map_err(|_| invalid())?;
+                        url.set_password(None).map_err(|_| invalid())?;
+                        url.set_fragment(None);
+                        let host = url.host_str().ok_or_else(invalid)?.to_owned();
+                        let port = url.port_or_known_default().ok_or_else(invalid)?;
+                        let mut wire = Request::builder()
+                            .method(
+                                hyper::Method::from_bytes(method.as_bytes())
+                                    .map_err(|_| invalid())?,
+                            )
+                            .body(Full::new(Bytes::from(body)))
+                            .map_err(|_| invalid())?;
+                        for (name, value) in headers.iter_for_wire() {
+                            let mut value = HeaderValue::from_bytes(&latin1_header_bytes(value)?)
+                                .map_err(|_| invalid())?;
+                            value.set_sensitive(true);
+                            let name = hyper::header::HeaderName::from_bytes(name.as_bytes())
+                                .map_err(|_| invalid())?;
+                            if matches!(
+                                smithy_profile,
+                                Some(crate::SmithyRequestProfile::Http1 { .. })
+                            ) {
+                                wire.headers_mut().insert(name, value);
+                            } else {
+                                wire.headers_mut().append(name, value);
                             }
                         }
-                        stream
-                    } else {
-                        let tcp = TcpStream::connect((unbracket(&host), port))
-                            .await
-                            .map_err(io_error)?;
-                        tcp.set_nodelay(true).map_err(io_error)?;
-                        Box::new(tcp)
-                    };
-                    let mut h2 = false;
-                    if url.scheme() == "https" {
-                        let secured = tls(stream, &host, &roots, true).await?;
-                        stream = secured.0;
-                        h2 = secured.1;
-                    }
-                    let uri = if absolute || h2 {
-                        url.as_str().to_owned()
-                    } else {
-                        let mut path = url.path().to_owned();
-                        if let Some(query) = url.query() {
-                            path.push('?');
-                            path.push_str(query);
-                        }
-                        path
-                    };
-                    *wire.uri_mut() = uri.parse().map_err(|_| invalid())?;
-                    let capture = Arc::new(Mutex::new(HeadCapture::new(head_limit)));
-                    capture
-                        .lock()
-                        .unwrap_or_else(|p| p.into_inner())
-                        .capture_fields = fetch;
-                    let (response, driver) = if h2 {
-                        let (mut sender, connection) = hyper::client::conn::http2::handshake(
-                            TokioExecutor::new(),
-                            TokioIo::new(stream),
-                        )
-                        .await
-                        .map_err(|_| connection_error())?;
-                        let driver = AbortTask(handle.spawn(async move {
-                            let _ = connection.await;
-                        }));
-                        (
-                            sender
-                                .send_request(wire)
-                                .await
-                                .map_err(|_| connection_error())?,
-                            driver,
-                        )
-                    } else {
-                        // Undici writeH1 uses close for HEAD, keep-alive for
-                        // ordinary finite Fetch hops. Never add HTTP/1-only
-                        // headers to negotiated HTTP/2 or ordinary raw sends.
-                        if fetch && !wire.headers().contains_key("connection") {
+                        if !matches!(
+                            smithy_profile,
+                            Some(crate::SmithyRequestProfile::Http2 { .. })
+                        ) && !wire.headers().contains_key(HOST)
+                        {
                             wire.headers_mut().insert(
-                                "connection",
-                                HeaderValue::from_static(if method == "HEAD" {
-                                    "close"
-                                } else {
-                                    "keep-alive"
-                                }),
+                                HOST,
+                                HeaderValue::from_str(&match url.port() {
+                                    Some(port) => format!("{host}:{port}"),
+                                    None => host.clone(),
+                                })
+                                .map_err(|_| invalid())?,
                             );
                         }
-                        let io = ObserveHead {
-                            inner: stream,
-                            capture: capture.clone(),
-                        };
-                        let (mut sender, connection) =
-                            hyper::client::conn::http1::handshake(TokioIo::new(io))
+                        if smithy_profile.is_none() && !wire.headers().contains_key("accept") {
+                            wire.headers_mut()
+                                .insert("accept", HeaderValue::from_static("*/*"));
+                        }
+                        if let Some(auth) = origin_auth
+                            && !wire.headers().contains_key(AUTHORIZATION)
+                        {
+                            wire.headers_mut().insert(AUTHORIZATION, auth);
+                        }
+                        let mut absolute = false;
+                        let mut stream: Box<dyn SocketIo> = if let Some(proxy) = proxy {
+                            let proxy =
+                                Url::parse(proxy.expose_for_transport()).map_err(|_| invalid())?;
+                            let proxy_host = proxy.host_str().ok_or_else(invalid)?;
+                            let proxy_port = proxy.port_or_known_default().ok_or_else(invalid)?;
+                            let tcp = TcpStream::connect((unbracket(proxy_host), proxy_port))
                                 .await
-                                .map_err(|_| connection_error())?;
-                        let driver = AbortTask(handle.spawn(async move {
-                            let _ = connection.await;
-                        }));
-                        let response = sender.send_request(wire).await.map_err(|_| {
-                            if capture.lock().unwrap_or_else(|p| p.into_inner()).exceeded {
-                                TransportError::new(TransportErrorKind::LimitExceeded)
-                            } else {
-                                connection_error()
+                                .map_err(io_error)?;
+                            tcp.set_nodelay(true).map_err(io_error)?;
+                            let mut stream: Box<dyn SocketIo> = Box::new(tcp);
+                            if proxy.scheme() == "https" {
+                                stream = tls(stream, proxy_host, &roots, false).await?.0;
                             }
-                        })?;
-                        (response, driver)
-                    };
-                    let status = response.status().as_u16();
-                    let status_text = if h2 {
-                        String::new()
-                    } else {
-                        let bytes = capture
+                            let auth = basic_auth(&proxy)?;
+                            if url.scheme() == "https" {
+                                tunnel(&mut stream, &format!("{host}:{port}"), auth.as_ref())
+                                    .await?;
+                            } else {
+                                absolute = true;
+                                if let Some(auth) = auth {
+                                    wire.headers_mut().insert(PROXY_AUTHORIZATION, auth);
+                                }
+                            }
+                            stream
+                        } else {
+                            let tcp = TcpStream::connect((unbracket(&host), port))
+                                .await
+                                .map_err(io_error)?;
+                            tcp.set_nodelay(true).map_err(io_error)?;
+                            Box::new(tcp)
+                        };
+                        let mut h2 = matches!(
+                            smithy_profile,
+                            Some(crate::SmithyRequestProfile::Http2 { .. })
+                        );
+                        if url.scheme() == "https" {
+                            let version = match smithy_profile {
+                                Some(crate::SmithyRequestProfile::Http1 { .. }) => {
+                                    TlsVersion::Http1
+                                }
+                                Some(crate::SmithyRequestProfile::Http2 { .. }) => {
+                                    TlsVersion::Http2
+                                }
+                                None => TlsVersion::Negotiated,
+                            };
+                            let secured = tls_version(stream, &host, &roots, version).await?;
+                            stream = secured.0;
+                            h2 = secured.1;
+                        }
+                        let uri = if absolute || h2 {
+                            url.as_str().to_owned()
+                        } else {
+                            let mut path = url.path().to_owned();
+                            if let Some(query) = url.query() {
+                                path.push('?');
+                                path.push_str(query);
+                            }
+                            path
+                        };
+                        *wire.uri_mut() = uri.parse().map_err(|_| invalid())?;
+                        if let Some(profile) = smithy_profile {
+                            return smithy::send(
+                                stream,
+                                wire.map(|_| ()),
+                                smithy_body.unwrap_or_default(),
+                                profile,
+                                handle,
+                                head_limit,
+                                body_gate.expect("Smithy profile owns admission state"),
+                            )
+                            .await;
+                        }
+                        let capture = Arc::new(Mutex::new(HeadCapture::new(head_limit)));
+                        capture
                             .lock()
                             .unwrap_or_else(|p| p.into_inner())
-                            .phrase
-                            .take()
-                            .ok_or_else(|| TransportError::new(TransportErrorKind::Protocol))?;
-                        bytes.into_iter().map(char::from).collect()
-                    };
-                    let mut headers = HttpHeaders::new();
-                    for (name, value) in response.headers() {
-                        if fetch
-                            && h2
-                            && [value.as_bytes().first(), value.as_bytes().last()]
-                                .into_iter()
-                                .flatten()
-                                .any(|byte| matches!(byte, b' ' | b'\t'))
-                        {
-                            // Node's H2 receiver omits these invalid edge-OWS
-                            // fields. Raw send remains Hyper's unfiltered view;
-                            // no Unicode whitespace or general sanitizer applies.
-                            continue;
-                        }
-                        headers.append(
-                            name.as_str(),
-                            value
-                                .as_bytes()
-                                .iter()
-                                .copied()
-                                .map(char::from)
-                                .collect::<String>(),
-                        )?;
-                    }
-                    if fetch {
-                        let fields = if h2 {
-                            // HTTP/2 has no textual OWS parser. Keep admitted
-                            // field octets exactly as returned by the H2 stack.
-                            headers.clone()
+                            .capture_fields = fetch;
+                        let (response, driver) = if h2 {
+                            let (mut sender, connection) = hyper::client::conn::http2::handshake(
+                                TokioExecutor::new(),
+                                TokioIo::new(stream),
+                            )
+                            .await
+                            .map_err(|_| connection_error())?;
+                            let driver = AbortTask(handle.spawn(async move {
+                                let _ = connection.await;
+                            }));
+                            (
+                                sender
+                                    .send_request(wire)
+                                    .await
+                                    .map_err(|_| connection_error())?,
+                                driver,
+                            )
                         } else {
-                            let fields = {
-                                let mut captured =
-                                    capture.lock().unwrap_or_else(|p| p.into_inner());
-                                if captured.invalid_fields {
-                                    return Err(connection_error());
-                                }
-                                std::mem::take(&mut captured.fields)
-                            };
-                            let mut projected = HttpHeaders::new();
-                            for (name, value) in fields {
-                                projected
-                                    .append(
-                                        String::from_utf8(name).map_err(|_| connection_error())?,
-                                        value.into_iter().map(char::from).collect::<String>(),
-                                    )
-                                    .map_err(|_| connection_error())?;
+                            // Undici writeH1 uses close for HEAD, keep-alive for
+                            // ordinary finite Fetch hops. Never add HTTP/1-only
+                            // headers to negotiated HTTP/2 or ordinary raw sends.
+                            if fetch && !wire.headers().contains_key("connection") {
+                                wire.headers_mut().insert(
+                                    "connection",
+                                    HeaderValue::from_static(if method == "HEAD" {
+                                        "close"
+                                    } else {
+                                        "keep-alive"
+                                    }),
+                                );
                             }
-                            projected
+                            let io = ObserveHead {
+                                inner: stream,
+                                capture: capture.clone(),
+                            };
+                            let (mut sender, connection) =
+                                hyper::client::conn::http1::handshake(TokioIo::new(io))
+                                    .await
+                                    .map_err(|_| connection_error())?;
+                            let driver = AbortTask(handle.spawn(async move {
+                                let _ = connection.await;
+                            }));
+                            let response = sender.send_request(wire).await.map_err(|_| {
+                                if capture.lock().unwrap_or_else(|p| p.into_inner()).exceeded {
+                                    TransportError::new(TransportErrorKind::LimitExceeded)
+                                } else {
+                                    connection_error()
+                                }
+                            })?;
+                            (response, driver)
                         };
-                        headers = headers.with_fetch_response_fields(fields)?;
+                        let status = response.status().as_u16();
+                        let status_text = if h2 {
+                            String::new()
+                        } else {
+                            let bytes = capture
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .phrase
+                                .take()
+                                .ok_or_else(|| TransportError::new(TransportErrorKind::Protocol))?;
+                            bytes.into_iter().map(char::from).collect()
+                        };
+                        let mut headers = HttpHeaders::new();
+                        for (name, value) in response.headers() {
+                            if fetch
+                                && h2
+                                && [value.as_bytes().first(), value.as_bytes().last()]
+                                    .into_iter()
+                                    .flatten()
+                                    .any(|byte| matches!(byte, b' ' | b'\t'))
+                            {
+                                // Node's H2 receiver omits these invalid edge-OWS
+                                // fields. Raw send remains Hyper's unfiltered view;
+                                // no Unicode whitespace or general sanitizer applies.
+                                continue;
+                            }
+                            headers.append(
+                                name.as_str(),
+                                value
+                                    .as_bytes()
+                                    .iter()
+                                    .copied()
+                                    .map(char::from)
+                                    .collect::<String>(),
+                            )?;
+                        }
+                        if fetch {
+                            let fields = if h2 {
+                                // HTTP/2 has no textual OWS parser. Keep admitted
+                                // field octets exactly as returned by the H2 stack.
+                                headers.clone()
+                            } else {
+                                let fields = {
+                                    let mut captured =
+                                        capture.lock().unwrap_or_else(|p| p.into_inner());
+                                    if captured.invalid_fields {
+                                        return Err(connection_error());
+                                    }
+                                    std::mem::take(&mut captured.fields)
+                                };
+                                let mut projected = HttpHeaders::new();
+                                for (name, value) in fields {
+                                    projected
+                                        .append(
+                                            String::from_utf8(name)
+                                                .map_err(|_| connection_error())?,
+                                            value.into_iter().map(char::from).collect::<String>(),
+                                        )
+                                        .map_err(|_| connection_error())?;
+                                }
+                                projected
+                            };
+                            headers = headers.with_fetch_response_fields(fields)?;
+                        }
+                        Ok(HttpResponse {
+                            status,
+                            status_text,
+                            headers,
+                            body: Box::new(NativeBody {
+                                handle,
+                                body: Some(response.into_body()),
+                                driver: Some(driver),
+                            }),
+                        })
+                    }));
+                    if let Some(admission) = admission {
+                        admission.run(operation).await
+                    } else {
+                        operation.await
                     }
-                    Ok(HttpResponse {
-                        status,
-                        status_text,
-                        headers,
-                        body: Box::new(NativeBody {
-                            handle,
-                            body: Some(response.into_body()),
-                            driver: Some(driver),
-                        }),
-                    })
-                })),
+                }),
                 &runtime.cancellation,
             )
             .await
@@ -363,6 +426,29 @@ async fn tls(
     roots: &Option<Vec<Vec<u8>>>,
     offer_h2: bool,
 ) -> Result<(Box<dyn SocketIo>, bool), TransportError> {
+    tls_version(
+        stream,
+        host,
+        roots,
+        if offer_h2 {
+            TlsVersion::Negotiated
+        } else {
+            TlsVersion::Http1
+        },
+    )
+    .await
+}
+enum TlsVersion {
+    Http1,
+    Http2,
+    Negotiated,
+}
+async fn tls_version(
+    stream: Box<dyn SocketIo>,
+    host: &str,
+    roots: &Option<Vec<Vec<u8>>>,
+    version: TlsVersion,
+) -> Result<(Box<dyn SocketIo>, bool), TransportError> {
     let builder = rustls::ClientConfig::builder_with_provider(Arc::new(
         rustls::crypto::aws_lc_rs::default_provider(),
     ))
@@ -382,10 +468,10 @@ async fn tls(
             .map_err(|_| connection_error())?
             .with_no_client_auth()
     };
-    config.alpn_protocols = if offer_h2 {
-        vec![b"h2".to_vec(), b"http/1.1".to_vec()]
-    } else {
-        vec![b"http/1.1".to_vec()]
+    config.alpn_protocols = match version {
+        TlsVersion::Negotiated => vec![b"h2".to_vec(), b"http/1.1".to_vec()],
+        TlsVersion::Http1 => vec![b"http/1.1".to_vec()],
+        TlsVersion::Http2 => vec![b"h2".to_vec()],
     };
     let name = ServerName::try_from(unbracket(host).to_owned()).map_err(|_| invalid())?;
     let stream = TlsConnector::from(Arc::new(config))
@@ -393,6 +479,9 @@ async fn tls(
         .await
         .map_err(io_error)?;
     let h2 = stream.get_ref().1.alpn_protocol() == Some(b"h2");
+    if matches!(version, TlsVersion::Http2) && !h2 {
+        return Err(connection_error());
+    }
     Ok((Box::new(stream), h2))
 }
 async fn tunnel(

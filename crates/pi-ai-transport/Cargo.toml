@@ -19,6 +19,7 @@ url.workspace = true
 base64 = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 hyper = { workspace = true, optional = true }
+h2 = { workspace = true, optional = true }
 hyper-util = { workspace = true, optional = true }
 http-body-util = { workspace = true, optional = true }
 rustls-platform-verifier = { workspace = true, optional = true }
@@ -30,7 +31,7 @@ zlib-rs = { workspace = true, optional = true }
 
 [features]
 default = []
-native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots", "dep:zlib-rs"]
+native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:h2", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots", "dep:zlib-rs"]
 
 [dev-dependencies]
 serde_json.workspace = true

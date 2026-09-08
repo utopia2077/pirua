@@ -12,6 +12,7 @@ mod provider_retry;
 mod proxy;
 mod request_encoding;
 mod retry_date;
+mod smithy;
 mod sse;
 mod websocket;
 
@@ -25,6 +26,7 @@ pub use policy::*;
 pub use provider_retry::*;
 pub use proxy::*;
 pub use request_encoding::{ZstdRequestLimits, compress_zstd_request};
+pub use smithy::*;
 pub use sse::*;
 pub use websocket::*;
 

@@ -12,6 +12,7 @@ pub enum TransportErrorKind {
     InvalidRequest,
     InvalidProxy,
     UnsupportedProxy,
+    UnsupportedProfile,
     Protocol,
     LimitExceeded,
     RetryDelayExceeded,
@@ -225,6 +226,15 @@ pub trait ResponseBody: Send {
 /// Exactly one wire attempt; automatic retries and redirects are forbidden.
 /// Implementations must release outstanding I/O when the returned future drops.
 pub trait RawHttpClient: Send + Sync {
+    /// One explicitly selected Node/Smithy attempt, never a Fetch fallback.
+    fn send_smithy<'a>(
+        &'a self,
+        _request: &'a HttpRequest,
+        _runtime: &'a RequestRuntime,
+        _profile: &'a crate::SmithyRequestProfile,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        Box::pin(async { Err(TransportError::new(TransportErrorKind::UnsupportedProfile)) })
+    }
     fn send<'a>(
         &'a self,
         request: &'a HttpRequest,

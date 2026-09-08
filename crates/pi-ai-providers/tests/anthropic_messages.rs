@@ -1259,7 +1259,8 @@ fn callback_header_record_projection_matches_executed_helper_and_preserves_raw()
             Box::pin(async move {
                 *self.0.lock().unwrap() = head
                     .headers
-                    .iter_for_wire()
+                    .iter()
+                    .map(|(key, value)| (key, value.as_str().expect("Fetch string record")))
                     .map(|(name, value)| (name.into(), value.into()))
                     .collect();
                 Ok(())
@@ -1283,7 +1284,8 @@ fn callback_header_record_projection_matches_executed_helper_and_preserves_raw()
     assert_eq!(head.status, 200);
     assert_eq!(
         head.headers
-            .iter_for_wire()
+            .iter()
+            .map(|(key, value)| (key, value.as_str().expect("Fetch string record")))
             .map(|(k, v)| (k.into(), v.into()))
             .collect::<Vec<(String, String)>>(),
         expected

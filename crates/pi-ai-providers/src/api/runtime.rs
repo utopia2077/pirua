@@ -7,6 +7,9 @@
 
 use std::collections::BTreeSet;
 use std::fmt;
+#[path = "response_record.rs"]
+mod response_record;
+pub use response_record::{ResponseHeaderRecord, ResponseHeaderValue};
 #[cfg(any(
     feature = "wire-pi-messages",
     feature = "wire-mistral-conversations",
@@ -61,7 +64,7 @@ pub trait PayloadMiddleware: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct AdapterResponseHead {
     pub status: u16,
-    pub headers: HttpHeaders,
+    pub headers: ResponseHeaderRecord,
 }
 
 impl AdapterResponseHead {
@@ -84,7 +87,7 @@ impl AdapterResponseHead {
                 .filter(|index| *index != u32::MAX && index.to_string() == name.as_str())
                 .map_or((1, 0), |index| (0, index))
         });
-        let mut headers = HttpHeaders::new();
+        let mut headers = ResponseHeaderRecord::new();
         for name in names {
             let value = if name == "set-cookie" {
                 raw.iter_for_fetch()
@@ -95,12 +98,54 @@ impl AdapterResponseHead {
                 raw.get_for_fetch(&name)
             }
             .ok_or_else(|| TransportError::new(TransportErrorKind::Protocol))?;
-            headers.append(name, value)?;
+            if value.chars().any(|c| u32::from(c) > 255) {
+                return Err(TransportError::new(TransportErrorKind::Protocol));
+            }
+            headers.insert_inherited(name, ResponseHeaderValue::Text(value))?;
         }
         // This is an already projected record, not a new Headers construction.
         // Keep the same admitted values through both explicit accessors.
-        let fields = headers.clone();
-        let headers = headers.with_fetch_response_fields(fields)?;
+        Ok(Self { status, headers })
+    }
+
+    /// Node's admitted fields followed by Smithy's plain-record projection.
+    /// Physical headers stay strict; only this record contains numeric :status.
+    pub fn from_smithy(
+        status: u16,
+        admitted: &HttpHeaders,
+        protocol: pi_ai_transport::SmithyProtocol,
+    ) -> Result<Self, TransportError> {
+        let mut headers = ResponseHeaderRecord::new();
+        if protocol == pi_ai_transport::SmithyProtocol::Http2 {
+            headers.insert(
+                ":status".into(),
+                ResponseHeaderValue::Number(
+                    pi_ai_core::FiniteF64::new(f64::from(status)).expect("u16 is finite"),
+                ),
+            )?;
+        }
+        for (name, value) in admitted.iter_for_wire() {
+            // getTransformedHeaders assigns strings to a plain object.
+            if name == "__proto__" {
+                continue;
+            }
+            let value = if let Some(old) = headers.get_str(name) {
+                if protocol.is_single_value_header(name) {
+                    continue;
+                }
+                format!(
+                    "{old}{}{value}",
+                    match name {
+                        "cookie" => "; ",
+                        "set-cookie" => ",",
+                        _ => ", ",
+                    }
+                )
+            } else {
+                value.to_owned()
+            };
+            headers.insert(name.into(), ResponseHeaderValue::Text(value))?;
+        }
         Ok(Self { status, headers })
     }
 }

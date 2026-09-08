@@ -1292,7 +1292,14 @@ fn response_callback_receives_exact_pinned_own_header_record() {
     assert_eq!(heads.len(), 1);
     assert_eq!(heads[0].status, 200);
     assert_eq!(
-        serde_json::to_value(heads[0].headers.iter_for_wire().collect::<Vec<_>>()).unwrap(),
+        serde_json::to_value(
+            heads[0]
+                .headers
+                .iter()
+                .map(|(key, value)| (key, value.as_str().expect("Fetch string record")))
+                .collect::<Vec<_>>()
+        )
+        .unwrap(),
         fixture["ownRecordEntries"]
     );
 }
