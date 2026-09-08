@@ -14,7 +14,8 @@ use std::fmt;
     feature = "wire-openai-responses",
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
-    feature = "wire-google-genai"
+    feature = "wire-google-genai",
+    feature = "wire-google-vertex"
 ))]
 use std::future::{Future, poll_fn};
 use std::sync::Arc;
@@ -25,7 +26,8 @@ use std::sync::Arc;
     feature = "wire-openai-responses",
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
-    feature = "wire-google-genai"
+    feature = "wire-google-genai",
+    feature = "wire-google-vertex"
 ))]
 use std::task::Poll;
 
@@ -40,7 +42,8 @@ use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, Tra
     feature = "wire-openai-responses",
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
-    feature = "wire-google-genai"
+    feature = "wire-google-genai",
+    feature = "wire-google-vertex"
 ))]
 use pi_ai_core::{CancellationToken, Cancelled};
 
@@ -151,7 +154,8 @@ impl fmt::Debug for AdapterServices {
     feature = "wire-openai-responses",
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
-    feature = "wire-google-genai"
+    feature = "wire-google-genai",
+    feature = "wire-google-vertex"
 ))]
 pub(crate) async fn cancellable<T>(
     mut operation: BoxFuture<'_, T>,

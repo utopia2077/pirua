@@ -475,18 +475,109 @@ pub(crate) struct Prepared {
     pub timeout: Option<Duration>,
     pub cloud: bool,
 }
+#[cfg(feature = "wire-google-vertex")]
+pub(crate) struct VertexRouting {
+    key: Option<String>,
+    project: Option<String>,
+    location: Option<String>,
+    base: String,
+    version: &'static str,
+    collection: bool,
+}
+#[cfg(feature = "wire-google-vertex")]
+impl VertexRouting {
+    pub(crate) fn new(
+        request: &TextStreamRequest,
+        ambient: &ProviderEnv,
+        key: Option<&str>,
+        project: Option<String>,
+        location: Option<String>,
+    ) -> Self {
+        let candidate = request
+            .resolved
+            .endpoint
+            .expose_for_transport()
+            .trim_matches(whitespace);
+        let custom =
+            (!candidate.is_empty() && !candidate.contains("{location}")).then_some(candidate);
+        let ambient_base = ambient
+            .as_map()
+            .get("GOOGLE_VERTEX_BASE_URL")
+            .map(|v| v.trim_matches(whitespace))
+            .filter(|v| !v.is_empty());
+        let base = custom
+            .or(ambient_base)
+            .map(str::to_owned)
+            .unwrap_or_else(|| match location.as_deref() {
+                _ if key.is_some() => "https://aiplatform.googleapis.com/".into(),
+                Some("global") => "https://aiplatform.googleapis.com/".into(),
+                Some(region @ ("us" | "eu")) => {
+                    format!("https://aiplatform.{region}.rep.googleapis.com/")
+                }
+                Some(region) => format!("https://{region}-aiplatform.googleapis.com/"),
+                None => "https://aiplatform.googleapis.com/".into(),
+            });
+        let version = if custom.is_some_and(|v| {
+            let path = url::Url::parse(v)
+                .map(|u| u.path().to_owned())
+                .unwrap_or_else(|_| v.into());
+            path.split('/').any(|part| {
+                let Some(s) = part.strip_prefix('v') else {
+                    return false;
+                };
+                let n = s.bytes().take_while(u8::is_ascii_digit).count();
+                n > 0
+                    && (n == s.len()
+                        || s[n..]
+                            .strip_prefix("beta")
+                            .is_some_and(|s| s.bytes().all(|b| b.is_ascii_digit())))
+            })
+        }) {
+            ""
+        } else {
+            "v1"
+        };
+        Self {
+            key: key.map(str::to_owned),
+            project,
+            location,
+            base,
+            version,
+            collection: custom.is_some(),
+        }
+    }
+}
 pub(crate) fn prepare(
     request: &TextStreamRequest,
     params: &Value,
     ambient: &ProviderEnv,
+    #[cfg(feature = "wire-google-vertex")] vertex: Option<&VertexRouting>,
 ) -> Result<Prepared, Error> {
+    #[cfg(not(feature = "wire-google-vertex"))]
     let cloud = cloud_mode(ambient);
+    #[cfg(feature = "wire-google-vertex")]
+    let cloud = vertex.is_some() || cloud_mode(ambient);
+    #[cfg(not(feature = "wire-google-vertex"))]
     let key = request
         .auth
         .api_key
         .as_ref()
         .ok_or(Error::Local)?
         .expose_secret();
+    #[cfg(not(feature = "wire-google-vertex"))]
+    let key = Some(key);
+    #[cfg(feature = "wire-google-vertex")]
+    let key = match vertex {
+        Some(v) => v.key.as_deref(),
+        None => Some(
+            request
+                .auth
+                .api_key
+                .as_ref()
+                .ok_or(Error::Local)?
+                .expose_secret(),
+        ),
+    };
     let model = params
         .get("model")
         .and_then(Value::as_str)
@@ -622,15 +713,33 @@ pub(crate) fn prepare(
         }
         if let Some(v) = present(&config, "cachedContent") {
             let s = v.as_str().ok_or(Error::Local)?;
+            #[cfg(feature = "wire-google-vertex")]
+            let resource = vertex.map(|v| {
+                format!(
+                    "projects/{}/locations/{}",
+                    v.project.as_deref().unwrap_or("undefined"),
+                    v.location.as_deref().unwrap_or("undefined")
+                )
+            });
+            #[cfg(not(feature = "wire-google-vertex"))]
+            let resource: Option<String> = None;
+            let resource =
+                resource.unwrap_or_else(|| "projects/undefined/locations/undefined".into());
             body["cachedContent"] = json!(if cloud {
                 if s.starts_with("projects/") {
                     s.into()
                 } else if s.starts_with("locations/") {
-                    format!("projects/undefined/{s}")
+                    format!(
+                        "{}/{s}",
+                        resource
+                            .split("/locations/")
+                            .next()
+                            .unwrap_or("projects/undefined")
+                    )
                 } else if s.starts_with("cachedContents/") {
-                    format!("projects/undefined/locations/undefined/{s}")
+                    format!("{resource}/{s}")
                 } else if !s.contains('/') {
-                    format!("projects/undefined/locations/undefined/cachedContents/{s}")
+                    format!("{resource}/cachedContents/{s}")
                 } else {
                     s.into()
                 }
@@ -704,11 +813,41 @@ pub(crate) fn prepare(
     if let Some(extra) = present(&http, "extraBody") {
         deep_merge(&mut body, extra, 0)?;
     }
+    #[cfg(feature = "wire-google-vertex")]
+    let default_base = vertex
+        .map(|v| v.base.as_str())
+        .unwrap_or(request.resolved.endpoint.expose_for_transport());
+    #[cfg(not(feature = "wire-google-vertex"))]
+    let default_base = request.resolved.endpoint.expose_for_transport();
     let base = http
         .get("baseUrl")
         .and_then(Value::as_str)
-        .unwrap_or(request.resolved.endpoint.expose_for_transport());
-    let version = http.get("apiVersion").and_then(Value::as_str).unwrap_or("");
+        .unwrap_or(default_base);
+    #[cfg(feature = "wire-google-vertex")]
+    let default_version = vertex.map_or("", |v| v.version);
+    #[cfg(not(feature = "wire-google-vertex"))]
+    let default_version = "";
+    let version = http
+        .get("apiVersion")
+        .and_then(Value::as_str)
+        .unwrap_or(default_version);
+    #[cfg(feature = "wire-google-vertex")]
+    let model_path = if let Some(v) = vertex {
+        let collection = http
+            .get("baseUrlResourceScope")
+            .map_or(v.collection, |v| v == "COLLECTION");
+        if !collection && key.is_none() && !model_path.starts_with("projects/") {
+            format!(
+                "projects/{}/locations/{}/{model_path}",
+                v.project.as_deref().unwrap_or("undefined"),
+                v.location.as_deref().unwrap_or("undefined")
+            )
+        } else {
+            model_path
+        }
+    } else {
+        model_path
+    };
     let base = base.strip_suffix('/').unwrap_or(base);
     let path = if version.is_empty() {
         format!("{base}/{model_path}:streamGenerateContent?alt=sse")
@@ -793,10 +932,12 @@ pub(crate) fn prepare(
             )
             .map_err(|_| Error::Local)?;
     }
-    if key.starts_with("auth_tokens/") {
+    if key.is_some_and(|key| key.starts_with("auth_tokens/")) {
         return Err(Error::Local);
     }
-    if wire_headers.get_for_wire("x-goog-api-key").is_none() {
+    if let Some(key) = key
+        && wire_headers.get_for_wire("x-goog-api-key").is_none()
+    {
         wire_headers
             .append("x-goog-api-key", key)
             .map_err(|_| Error::Local)?;

@@ -1,0 +1,587 @@
+{
+  "authority": {
+    "commit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+    "sdk": "1.52.0",
+    "sha256": "748f86443c1c2c80e4ecf568d0c033ad9f1e9f34926c810e35c77e965a951c33",
+    "node": "v26.8.1"
+  },
+  "evidence": "Pinned complete adapter plus installed SDK; injected global fetch observes SDK arguments before network defaults. Counter/clock start0/7 per case; SDK runtime identity normalized.",
+  "cases": [
+    {
+      "id": "payload-header-forward",
+      "replacement": {
+        "model": "synthetic",
+        "contents": "hello",
+        "config": {
+          "httpOptions": {
+            "headers": {
+              "x-order": "lower",
+              "X-Order": "upper"
+            }
+          }
+        }
+      },
+      "model": {
+        "id": "gemini-3-flash-preview",
+        "name": "Synthetic Gemini",
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "baseUrl": "https://example.invalid/v1beta",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 128000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "systemPrompt": "Be precise",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {},
+      "requests": [
+        {
+          "url": "https://example.invalid/v1beta/publishers/google/models/synthetic:streamGenerateContent?alt=sse",
+          "method": "POST",
+          "headers": {
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-goog-api-client": "google-genai-sdk/1.52.0 pi-ai-rust",
+            "x-goog-api-key": "synthetic-key",
+            "x-order": "lower, upper"
+          },
+          "body": {
+            "contents": [
+              {
+                "parts": [
+                  {
+                    "text": "hello"
+                  }
+                ],
+                "role": "user"
+              }
+            ],
+            "generationConfig": {}
+          }
+        }
+      ],
+      "logical": {
+        "model": "gemini-3-flash-preview",
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "hello"
+              }
+            ]
+          }
+        ],
+        "config": {
+          "systemInstruction": "Be precise"
+        }
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "sleeps": [],
+      "warnings": [],
+      "auth": [],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "done",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "done"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "done",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "done"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "done"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "done"
+          }
+        ],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "STOP"
+      },
+      "sourceFlags": {
+        "retryable": false,
+        "overflow": false
+      }
+    },
+    {
+      "id": "payload-header-reverse",
+      "replacement": {
+        "model": "synthetic",
+        "contents": "hello",
+        "config": {
+          "httpOptions": {
+            "headers": {
+              "X-Order": "upper",
+              "x-order": "lower"
+            }
+          }
+        }
+      },
+      "model": {
+        "id": "gemini-3-flash-preview",
+        "name": "Synthetic Gemini",
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "baseUrl": "https://example.invalid/v1beta",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "contextWindow": 128000,
+        "maxTokens": 4096
+      },
+      "context": {
+        "systemPrompt": "Be precise",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello",
+            "timestamp": 7
+          }
+        ]
+      },
+      "options": {},
+      "requests": [
+        {
+          "url": "https://example.invalid/v1beta/publishers/google/models/synthetic:streamGenerateContent?alt=sse",
+          "method": "POST",
+          "headers": {
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-goog-api-client": "google-genai-sdk/1.52.0 pi-ai-rust",
+            "x-goog-api-key": "synthetic-key",
+            "x-order": "upper, lower"
+          },
+          "body": {
+            "contents": [
+              {
+                "parts": [
+                  {
+                    "text": "hello"
+                  }
+                ],
+                "role": "user"
+              }
+            ],
+            "generationConfig": {}
+          }
+        }
+      ],
+      "logical": {
+        "model": "gemini-3-flash-preview",
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "hello"
+              }
+            ]
+          }
+        ],
+        "config": {
+          "systemInstruction": "Be precise"
+        }
+      },
+      "order": [
+        "payload",
+        "send"
+      ],
+      "sleeps": [],
+      "warnings": [],
+      "auth": [],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "done",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "done"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "done",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "done"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "done"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "done"
+          }
+        ],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "STOP"
+      },
+      "sourceFlags": {
+        "retryable": false,
+        "overflow": false
+      }
+    }
+  ]
+}

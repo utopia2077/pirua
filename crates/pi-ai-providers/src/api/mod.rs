@@ -42,5 +42,9 @@ pub mod anthropic_messages;
 
 #[cfg(feature = "wire-google-genai")]
 pub mod google_genai;
-#[cfg(feature = "wire-google-genai")]
+#[cfg(any(feature = "wire-google-genai", feature = "wire-google-vertex"))]
 mod google_sdk;
+#[cfg(any(feature = "wire-google-genai", feature = "wire-google-vertex"))]
+mod google_stream;
+#[cfg(feature = "wire-google-vertex")]
+pub mod google_vertex;

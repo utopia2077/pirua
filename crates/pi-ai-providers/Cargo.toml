@@ -18,6 +18,7 @@ wire-openai-responses = ["dep:url"]
 wire-azure-openai-responses = ["dep:url"]
 wire-openai-completions = ["dep:url"]
 wire-google-genai = ["dep:url"]
+wire-google-vertex = ["dep:url"]
 native = ["pi-ai-transport/native"]
 
 [dependencies]

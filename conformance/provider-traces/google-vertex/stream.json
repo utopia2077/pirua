@@ -1,0 +1,2974 @@
+{
+  "authority": {
+    "commit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+    "sdk": "1.52.0",
+    "sha256": "748f86443c1c2c80e4ecf568d0c033ad9f1e9f34926c810e35c77e965a951c33",
+    "node": "v26.8.1"
+  },
+  "evidence": "Complete pinned adapter+actual SDK. Every LF/raw-error byte split, same aggregate different reads, UTF8 no-final-flush; actual TCP status metadata validates explicit SDK error interpolation.",
+  "model": {
+    "id": "gemini-3-flash-preview",
+    "name": "Synthetic Gemini",
+    "api": "google-vertex",
+    "provider": "google-vertex",
+    "baseUrl": "https://example.invalid/v1beta",
+    "reasoning": true,
+    "input": [
+      "text",
+      "image"
+    ],
+    "cost": {
+      "input": 1,
+      "output": 2,
+      "cacheRead": 3,
+      "cacheWrite": 4
+    },
+    "contextWindow": 128000,
+    "maxTokens": 4096
+  },
+  "context": {
+    "systemPrompt": "Be precise",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hello",
+        "timestamp": 7
+      }
+    ]
+  },
+  "observations": [
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "stream-id"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "A☃B",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "A☃B"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "stream-id"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "A☃B",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "A☃B"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "stream-id",
+            "rawStopReason": "STOP"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "A☃B"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "stream-id",
+            "rawStopReason": "STOP"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A☃B"
+          }
+        ],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "responseId": "stream-id",
+        "rawStopReason": "STOP"
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "got status: UNAVAILABLE. {\"error\":{\"code\":503,\"status\":\"UNAVAILABLE\",\"message\":\"server error prompt is too long\"}}"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "got status: UNAVAILABLE. {\"error\":{\"code\":503,\"status\":\"UNAVAILABLE\",\"message\":\"server error prompt is too long\"}}"
+      },
+      "retryable": true,
+      "overflow": true
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "Incomplete JSON segment at the end"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "Incomplete JSON segment at the end"
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "A�B",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "A�B"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "A�B",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "A�B"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "A�B"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "A�B"
+          }
+        ],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "STOP"
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"server error prompt is too long\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"server error prompt is too long\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": true
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "server error prompt is too long",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "server error prompt is too long"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "server error prompt is too long",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "server error prompt is too long"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "server error prompt is too long"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "server error prompt is too long"
+          }
+        ],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "STOP"
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"server error prompt is too long\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 55357 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"server error prompt is too long\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 55357 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": true
+    }
+  ],
+  "cases": [
+    {
+      "id": "lf-0",
+      "byteChunks": [
+        "",
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-1",
+      "byteChunks": [
+        "64",
+        "6174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-2",
+      "byteChunks": [
+        "6461",
+        "74613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-3",
+      "byteChunks": [
+        "646174",
+        "613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-4",
+      "byteChunks": [
+        "64617461",
+        "3a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-5",
+      "byteChunks": [
+        "646174613a",
+        "207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-6",
+      "byteChunks": [
+        "646174613a20",
+        "7b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-7",
+      "byteChunks": [
+        "646174613a207b",
+        "22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-8",
+      "byteChunks": [
+        "646174613a207b22",
+        "726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-9",
+      "byteChunks": [
+        "646174613a207b2272",
+        "6573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-10",
+      "byteChunks": [
+        "646174613a207b227265",
+        "73706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-11",
+      "byteChunks": [
+        "646174613a207b22726573",
+        "706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-12",
+      "byteChunks": [
+        "646174613a207b2272657370",
+        "6f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-13",
+      "byteChunks": [
+        "646174613a207b22726573706f",
+        "6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-14",
+      "byteChunks": [
+        "646174613a207b22726573706f6e",
+        "73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-15",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73",
+        "654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-16",
+      "byteChunks": [
+        "646174613a207b22726573706f6e7365",
+        "4964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-17",
+      "byteChunks": [
+        "646174613a207b22726573706f6e736549",
+        "64223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-18",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964",
+        "223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-19",
+      "byteChunks": [
+        "646174613a207b22726573706f6e7365496422",
+        "3a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-20",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a",
+        "2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-21",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a22",
+        "73747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-22",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273",
+        "747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-23",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a227374",
+        "7265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-24",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a22737472",
+        "65616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-25",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265",
+        "616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-26",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a227374726561",
+        "6d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-27",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d",
+        "2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-28",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d",
+        "6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-29",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d69",
+        "64222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-30",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964",
+        "222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-31",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d696422",
+        "2c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-32",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c",
+        "2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-33",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c22",
+        "63616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-34",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263",
+        "616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-35",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c226361",
+        "6e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-36",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e",
+        "64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-37",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64",
+        "696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-38",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e6469",
+        "6461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-39",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e646964",
+        "61746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-40",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461",
+        "746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-41",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e6469646174",
+        "6573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-42",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e646964617465",
+        "73223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-43",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573",
+        "223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-44",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e6469646174657322",
+        "3a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-45",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a",
+        "5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-46",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b",
+        "7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-47",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b",
+        "22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-48",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22",
+        "636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-49",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b2263",
+        "6f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-50",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f",
+        "6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-51",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e",
+        "74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-52",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74",
+        "656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-53",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e7465",
+        "6e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-54",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e",
+        "74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-55",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74",
+        "223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-56",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e7422",
+        "3a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-57",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a",
+        "7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-58",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b",
+        "227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-59",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b22",
+        "7061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-60",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b2270",
+        "61727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-61",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061",
+        "727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-62",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b22706172",
+        "7473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-63",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b2270617274",
+        "73223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-64",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473",
+        "223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-65",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b22706172747322",
+        "3a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-66",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a",
+        "5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-67",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b",
+        "7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-68",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b",
+        "2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-69",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b22",
+        "74657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-70",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274",
+        "657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-71",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b227465",
+        "7874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-72",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b22746578",
+        "74223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-73",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874",
+        "223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-74",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b227465787422",
+        "3a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-75",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a",
+        "2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-76",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a22",
+        "41e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-77",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241",
+        "e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-78",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2",
+        "988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-79",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e298",
+        "8342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-80",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e29883",
+        "42227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-81",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342",
+        "227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-82",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e298834222",
+        "7d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-83",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d",
+        "5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-84",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d",
+        "7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-85",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d",
+        "2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-86",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c",
+        "2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-87",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c22",
+        "66696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-88",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266",
+        "696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-89",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c226669",
+        "6e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-90",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e",
+        "697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-91",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e69",
+        "7368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-92",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e6973",
+        "68526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-93",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368",
+        "526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-94",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e69736852",
+        "6561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-95",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e6973685265",
+        "61736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-96",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561",
+        "736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-97",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e69736852656173",
+        "6f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-98",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f",
+        "6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-99",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e",
+        "223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-100",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e22",
+        "3a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-101",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a",
+        "2253544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-102",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a22",
+        "53544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-103",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253",
+        "544f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-104",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a225354",
+        "4f50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-105",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f",
+        "50227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-106",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50",
+        "227d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-107",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f5022",
+        "7d5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-108",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d",
+        "5d7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-109",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d",
+        "7d0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-110",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d",
+        "0a0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-111",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a",
+        "0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "lf-112",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a",
+        ""
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-0",
+      "byteChunks": [
+        "",
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 1,
+      "reads": 2
+    },
+    {
+      "id": "raw-error-1",
+      "byteChunks": [
+        "7b",
+        "226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-2",
+      "byteChunks": [
+        "7b22",
+        "6572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-3",
+      "byteChunks": [
+        "7b2265",
+        "72726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-4",
+      "byteChunks": [
+        "7b226572",
+        "726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-5",
+      "byteChunks": [
+        "7b22657272",
+        "6f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-6",
+      "byteChunks": [
+        "7b226572726f",
+        "72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-7",
+      "byteChunks": [
+        "7b226572726f72",
+        "223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-8",
+      "byteChunks": [
+        "7b226572726f7222",
+        "3a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-9",
+      "byteChunks": [
+        "7b226572726f72223a",
+        "7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-10",
+      "byteChunks": [
+        "7b226572726f72223a7b",
+        "22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-11",
+      "byteChunks": [
+        "7b226572726f72223a7b22",
+        "636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-12",
+      "byteChunks": [
+        "7b226572726f72223a7b2263",
+        "6f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-13",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f",
+        "6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-14",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f64",
+        "65223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-15",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465",
+        "223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-16",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f646522",
+        "3a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-17",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a",
+        "3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-18",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a35",
+        "30332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-19",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530",
+        "332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-20",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a353033",
+        "2c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-21",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c",
+        "22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-22",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22",
+        "737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-23",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c2273",
+        "7461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-24",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c227374",
+        "61747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-25",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461",
+        "747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-26",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c2273746174",
+        "7573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-27",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c227374617475",
+        "73223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-28",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573",
+        "223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-29",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c2273746174757322",
+        "3a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-30",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a",
+        "22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-31",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22",
+        "554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-32",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a2255",
+        "4e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-33",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e",
+        "415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-34",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e41",
+        "5641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-35",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e4156",
+        "41494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-36",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641",
+        "494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-37",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e41564149",
+        "4c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-38",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c",
+        "41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-39",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41",
+        "424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-40",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c4142",
+        "4c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-41",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c",
+        "45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-42",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45",
+        "222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-43",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c4522",
+        "2c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-44",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c",
+        "226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-45",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c22",
+        "6d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-46",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d",
+        "657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-47",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d65",
+        "7373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-48",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d6573",
+        "73616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-49",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373",
+        "616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-50",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d65737361",
+        "6765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-51",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d6573736167",
+        "65223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-52",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765",
+        "223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-53",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d65737361676522",
+        "3a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-54",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a",
+        "22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-55",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22",
+        "736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-56",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a2273",
+        "6572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-57",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a227365",
+        "72766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-58",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572",
+        "766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-59",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a2273657276",
+        "6572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-60",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a227365727665",
+        "72206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-61",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572",
+        "206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-62",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a2273657276657220",
+        "6572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-63",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a227365727665722065",
+        "72726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-64",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572",
+        "726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-65",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a2273657276657220657272",
+        "6f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-66",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f",
+        "722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-67",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f72",
+        "2070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-68",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f7220",
+        "70726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-69",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070",
+        "726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-70",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f72207072",
+        "6f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-71",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f",
+        "6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-72",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d",
+        "707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-73",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d70",
+        "7420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-74",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d7074",
+        "20697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-75",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420",
+        "697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-76",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d70742069",
+        "7320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-77",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d7074206973",
+        "20746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-78",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320",
+        "746f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-79",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d70742069732074",
+        "6f6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-80",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f",
+        "6f206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-81",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f",
+        "206c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-82",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f20",
+        "6c6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-83",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c",
+        "6f6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-84",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f",
+        "6e67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-85",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e",
+        "67227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-86",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67",
+        "227d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-87",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e6722",
+        "7d7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-88",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d",
+        "7d"
+      ],
+      "observation": 2,
+      "reads": 3
+    },
+    {
+      "id": "raw-error-89",
+      "byteChunks": [
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d",
+        ""
+      ],
+      "observation": 1,
+      "reads": 1
+    },
+    {
+      "id": "bom-bytewise",
+      "byteChunks": [
+        "ef",
+        "bb",
+        "bf",
+        "64",
+        "61",
+        "74",
+        "61",
+        "3a",
+        "20",
+        "7b",
+        "22",
+        "72",
+        "65",
+        "73",
+        "70",
+        "6f",
+        "6e",
+        "73",
+        "65",
+        "49",
+        "64",
+        "22",
+        "3a",
+        "22",
+        "73",
+        "74",
+        "72",
+        "65",
+        "61",
+        "6d",
+        "2d",
+        "69",
+        "64",
+        "22",
+        "2c",
+        "22",
+        "63",
+        "61",
+        "6e",
+        "64",
+        "69",
+        "64",
+        "61",
+        "74",
+        "65",
+        "73",
+        "22",
+        "3a",
+        "5b",
+        "7b",
+        "22",
+        "63",
+        "6f",
+        "6e",
+        "74",
+        "65",
+        "6e",
+        "74",
+        "22",
+        "3a",
+        "7b",
+        "22",
+        "70",
+        "61",
+        "72",
+        "74",
+        "73",
+        "22",
+        "3a",
+        "5b",
+        "7b",
+        "22",
+        "74",
+        "65",
+        "78",
+        "74",
+        "22",
+        "3a",
+        "22",
+        "41",
+        "e2",
+        "98",
+        "83",
+        "42",
+        "22",
+        "7d",
+        "5d",
+        "7d",
+        "2c",
+        "22",
+        "66",
+        "69",
+        "6e",
+        "69",
+        "73",
+        "68",
+        "52",
+        "65",
+        "61",
+        "73",
+        "6f",
+        "6e",
+        "22",
+        "3a",
+        "22",
+        "53",
+        "54",
+        "4f",
+        "50",
+        "22",
+        "7d",
+        "5d",
+        "7d",
+        "0a",
+        "0a"
+      ],
+      "observation": 0,
+      "reads": 116
+    },
+    {
+      "id": "unterminated-utf8-after-finish",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a",
+        "f09f"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "invalid-utf8-in-text",
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241ff42227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a"
+      ],
+      "observation": 3,
+      "reads": 2
+    },
+    {
+      "id": "prior-buffer-not-in-error",
+      "byteChunks": [
+        "62696c6c696e67",
+        "7b226572726f72223a7b22636f6465223a3530332c22737461747573223a22554e415641494c41424c45222c226d657373616765223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d7d"
+      ],
+      "observation": 1,
+      "reads": 2
+    },
+    {
+      "id": "trailing-space",
+      "byteChunks": [
+        "646174613a207b22726573706f6e73654964223a2273747265616d2d6964222c2263616e64696461746573223a5b7b22636f6e74656e74223a7b227061727473223a5b7b2274657874223a2241e2988342227d5d7d2c2266696e697368526561736f6e223a2253544f50227d5d7d0a0a",
+        "20090d0a"
+      ],
+      "observation": 0,
+      "reads": 3
+    },
+    {
+      "id": "native-status-ff",
+      "statusHex": "ff",
+      "statusText": "�",
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 4
+    },
+    {
+      "id": "native-status-c3a9",
+      "statusHex": "c3a9",
+      "statusText": "é",
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 5
+    },
+    {
+      "id": "native-status-f09f9aab",
+      "statusHex": "f09f9aab",
+      "statusText": "🚫",
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a22736572766572206572726f722070726f6d707420697320746f6f206c6f6e67227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 6
+    }
+  ]
+}

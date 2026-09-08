@@ -1,0 +1,2962 @@
+{
+  "authority": {
+    "commit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+    "sdk": "1.52.0",
+    "sha256": "748f86443c1c2c80e4ecf568d0c033ad9f1e9f34926c810e35c77e965a951c33",
+    "node": "v26.8.1",
+    "undici": "8.10.0",
+    "undiciHash": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d"
+  },
+  "evidence": "Actual loopback Node Fetch plus complete pinned Google adapter and SDK; fixed ByteString index and UTF16 code-unit template, full data context and controls.",
+  "model": {
+    "id": "gemini-3-flash-preview",
+    "name": "Synthetic Gemini",
+    "api": "google-vertex",
+    "provider": "google-vertex",
+    "baseUrl": "https://example.invalid/v1beta",
+    "reasoning": true,
+    "input": [
+      "text",
+      "image"
+    ],
+    "cost": {
+      "input": 1,
+      "output": 2,
+      "cacheRead": 3,
+      "cacheWrite": 4
+    },
+    "contextWindow": 128000,
+    "maxTokens": 4096
+  },
+  "context": {
+    "systemPrompt": "Be precise",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hello",
+        "timestamp": 7
+      }
+    ]
+  },
+  "observations": [
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 428 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 428 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 429 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 429 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 430 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 430 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 499 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 499 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 501 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 501 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 502 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 502 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 503 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 503 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 504 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 504 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "ordinary text",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ordinary text"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "ordinary text",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ordinary text"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "ordinary text"
+              }
+            ],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "rawStopReason": "STOP"
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "ordinary text"
+          }
+        ],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7,
+        "rawStopReason": "STOP"
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 256 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 256 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 428 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 428 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 429 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 429 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 430 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 430 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 499 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 499 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 500 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 500 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 501 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 501 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 502 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 502 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 503 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 503 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 504 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 504 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 55358 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 55358 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 429 has a value of 55358 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}. TypeError: Cannot convert argument to a ByteString because the character at index 429 has a value of 55358 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk billing server error prompt is too long. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk billing server error prompt is too long. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": true
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk quota exceeded. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk quota exceeded. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk Throttling error. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk Throttling error. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk Service unavailable. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk Service unavailable. TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk 400 (no body). TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk 400 (no body). TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255."
+      },
+      "retryable": true,
+      "overflow": false
+    },
+    {
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "google-vertex",
+            "provider": "google-vertex",
+            "model": "gemini-3-flash-preview",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "exception parsing stream chunk billing. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 503 which is greater than 255."
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "google-vertex",
+        "provider": "google-vertex",
+        "model": "gemini-3-flash-preview",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "timestamp": 7,
+        "errorMessage": "exception parsing stream chunk billing. TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 503 which is greater than 255."
+      },
+      "retryable": false,
+      "overflow": false
+    }
+  ],
+  "cases": [
+    {
+      "id": "index-0",
+      "statusHex": "ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 0
+    },
+    {
+      "id": "index-428",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 428 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 1
+    },
+    {
+      "id": "index-429",
+      "statusHex": "616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 429 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 2
+    },
+    {
+      "id": "index-430",
+      "statusHex": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 430 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 3
+    },
+    {
+      "id": "index-499",
+      "statusHex": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 499 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 4
+    },
+    {
+      "id": "index-500",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 5
+    },
+    {
+      "id": "index-501",
+      "statusHex": "616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 501 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 6
+    },
+    {
+      "id": "index-502",
+      "statusHex": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 502 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 7
+    },
+    {
+      "id": "index-503",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 503 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 8
+    },
+    {
+      "id": "index-504",
+      "statusHex": "616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 504 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 9
+    },
+    {
+      "id": "unit-255",
+      "statusHex": "c3bf",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "ÿ",
+      "constructorError": null,
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 10
+    },
+    {
+      "id": "unit-256",
+      "statusHex": "c480",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ā",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 256 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 11
+    },
+    {
+      "id": "unit-428",
+      "statusHex": "c6ac",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ƭ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 428 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 12
+    },
+    {
+      "id": "unit-429",
+      "statusHex": "c6ad",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "ƭ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 429 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 13
+    },
+    {
+      "id": "unit-430",
+      "statusHex": "c6ae",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ʈ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 430 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 14
+    },
+    {
+      "id": "unit-499",
+      "statusHex": "c7b3",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "ǳ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 499 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 15
+    },
+    {
+      "id": "unit-500",
+      "statusHex": "c7b4",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ǵ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 500 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 16
+    },
+    {
+      "id": "unit-501",
+      "statusHex": "c7b5",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "ǵ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 501 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 17
+    },
+    {
+      "id": "unit-502",
+      "statusHex": "c7b6",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ƕ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 502 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 18
+    },
+    {
+      "id": "unit-503",
+      "statusHex": "c7b7",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ƿ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 503 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 19
+    },
+    {
+      "id": "unit-504",
+      "statusHex": "c7b8",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "Ǹ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 504 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 20
+    },
+    {
+      "id": "valid-e-acute",
+      "statusHex": "c3a9",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "é",
+      "constructorError": null,
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 10
+    },
+    {
+      "id": "high-surrogate",
+      "statusHex": "f09fa6ab",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "🦫",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 55358 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 21
+    },
+    {
+      "id": "high-surrogate-at-429",
+      "statusHex": "616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161f09fa6ab",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa🦫",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 429 has a value of 55358 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 22
+    },
+    {
+      "id": "latin1-prefix-not-byte-index",
+      "statusHex": "c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9c3a9ff",
+      "data": "{\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"ordinary text\"}]}}]}",
+      "statusText": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a207b2263616e64696461746573223a5b7b2266696e697368526561736f6e223a2253544f50222c22636f6e74656e74223a7b227061727473223a5b7b2274657874223a226f7264696e6172792074657874227d5d7d7d5d7d0a0a"
+      ],
+      "observation": 5
+    },
+    {
+      "id": "template-context-billing server error prompt is too long",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "billing server error prompt is too long",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a2062696c6c696e6720736572766572206572726f722070726f6d707420697320746f6f206c6f6e670a0a"
+      ],
+      "observation": 23
+    },
+    {
+      "id": "template-context-quota exceeded",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "quota exceeded",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a2071756f74612065786365656465640a0a"
+      ],
+      "observation": 24
+    },
+    {
+      "id": "template-context-Throttling error",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "Throttling error",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a205468726f74746c696e67206572726f720a0a"
+      ],
+      "observation": 25
+    },
+    {
+      "id": "template-context-Service unavailable",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "Service unavailable",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a205365727669636520756e617661696c61626c650a0a"
+      ],
+      "observation": 26
+    },
+    {
+      "id": "template-context-400 (no body)",
+      "statusHex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161ff",
+      "data": "400 (no body)",
+      "statusText": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa�",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 500 has a value of 65533 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a2034303020286e6f20626f6479290a0a"
+      ],
+      "observation": 27
+    },
+    {
+      "id": "code-unit-billing-veto",
+      "statusHex": "c7b7",
+      "data": "billing",
+      "statusText": "Ƿ",
+      "constructorError": "TypeError: Cannot convert argument to a ByteString because the character at index 0 has a value of 503 which is greater than 255.",
+      "calls": 1,
+      "byteChunks": [
+        "646174613a2062696c6c696e670a0a"
+      ],
+      "observation": 28
+    }
+  ]
+}

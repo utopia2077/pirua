@@ -1,0 +1,43 @@
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {createRequire,stripTypeScriptTypes} from 'node:module';
+import {deepStrictEqual} from 'node:assert';
+import vm from 'node:vm';
+import {GoogleGenAI as ActualGoogleGenAI,FinishReason,FunctionCallingConfigMode,ResourceScope,ThinkingLevel} from 'upstream/pi-mono/node_modules/@google/genai/dist/node/index.mjs';
+import {GoogleAuth} from 'upstream/pi-mono/node_modules/google-auth-library/build/src/index.js';
+const upstream='upstream/pi-mono',commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const require=createRequire(upstream+'/package.json');
+const sdkPath=upstream+'/node_modules/@google/genai/dist/node/index.mjs';
+const authority={commit,sdk:JSON.parse(readFileSync(upstream+'/node_modules/@google/genai/package.json','utf8')).version,sha256:createHash('sha256').update(readFileSync(sdkPath)).digest('hex'),node:process.version};
+deepStrictEqual(authority.sdk,'1.52.0');deepStrictEqual(authority.sha256,'748f86443c1c2c80e4ecf568d0c033ad9f1e9f34926c810e35c77e965a951c33');
+const source=p=>execFileSync('git',['show',commit+':packages/ai/src/'+p],{cwd:upstream,encoding:'utf8'});
+const modules=['utils/json-parse.ts','utils/sanitize-unicode.ts','utils/event-stream.ts','utils/headers.ts','utils/provider-env.ts','utils/pi-user-agent.ts','utils/provider-retry.ts','utils/retry.ts','utils/overflow.ts','utils/deferred-tools.ts','utils/estimate.ts','utils/error-body.ts','api/constrained-sampling.ts','api/transform-messages.ts','api/simple-options.ts','api/google-shared.ts','api/google-vertex.ts'];
+const texts=modules.map(p=>[p,source(p)]);const models=source('models.ts');
+const clean=s=>stripTypeScriptTypes(s.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));
+const model={id:'gemini-3-flash-preview',name:'Synthetic Gemini',api:'google-vertex',provider:'google-vertex',baseUrl:'https://example.invalid/v1beta',reasoning:true,input:['text','image'],cost:{input:1,output:2,cacheRead:3,cacheWrite:4},contextWindow:128000,maxTokens:4096};
+const context={systemPrompt:'Be precise',messages:[{role:'user',content:'hello',timestamp:7}]};
+
+import net from 'node:net';
+import {once} from 'node:events';
+const actualFetch=globalThis.fetch, oldGet=GoogleAuth.prototype.getRequestHeaders, oldClient=GoogleAuth.prototype.getClient;
+GoogleAuth.prototype.getClient=async()=>{throw new Error('host discovery forbidden');};
+const cases=[];
+try {for(const abortCaller of [false,true]){
+ let release,authStarted;const started=new Promise(resolve=>authStarted=resolve);const gate=new Promise(resolve=>release=resolve);const order=[],requests=[],events=[];let connections=0,settled=false;
+ const server=net.createServer(socket=>{connections++;socket.destroy();});server.listen(0,'127.0.0.1');await once(server,'listening');const base=`http://127.0.0.1:${server.address().port}/v1beta`;
+ GoogleAuth.prototype.getRequestHeaders=async function(url){order.push('auth');authStarted();await gate;order.push('auth_return');return new Headers({Authorization:'Bearer synthetic-adc'});};
+ const fetch=async(url,init)=>{if(!String(url).startsWith(base))throw new Error('nonlocal forbidden');order.push('fetch');requests.push({aborted:init.signal.aborted});return actualFetch(url,init);};globalThis.fetch=fetch;
+ const runtime=vm.createContext({Error,JSON,URL,GoogleGenAI:ActualGoogleGenAI,FinishReason,FunctionCallingConfigMode,ResourceScope,ThinkingLevel,TextDecoder,TextEncoder,Response,ReadableStream,Headers,process,structuredClone,AbortController,fetch,Date:class extends Date{static now(){return 7;}},setTimeout,clearTimeout,partialParse:require('partial-json').parse});
+ vm.runInContext(clean(models.slice(models.indexOf('export function calculateCost'),models.indexOf('export function modelsAreEqual'))),runtime);
+ for(const [path,text]of texts)vm.runInContext(clean(text),runtime,{filename:path});vm.runInContext('getPiUserAgent=()=>"pi-ai-rust"',runtime);
+ const Stream=vm.runInContext('AssistantMessageEventStream',runtime),push=Stream.prototype.push;Stream.prototype.push=function(e){events.push(JSON.parse(JSON.stringify(e)));return push.call(this,e);};
+ const caller=new AbortController();
+ const stream=vm.runInContext('stream',runtime)({...model,baseUrl:base},context,{apiKey:'gcp-vertex-credentials',project:'p',location:'global',signal:caller.signal,onPayload:p=>{order.push('payload');p.config.httpOptions={timeout:20};}});
+ const completed=stream.result().then(result=>{settled=true;return result;});
+ await started;if(abortCaller)caller.abort();await new Promise(resolve=>setTimeout(resolve,60));const beforeRelease={settled,connections,fetchCalls:requests.length};release();const result=await completed;server.close();await once(server,'close');
+ deepStrictEqual(beforeRelease,{settled:false,connections:0,fetchCalls:0});deepStrictEqual(requests,[{aborted:true}]);deepStrictEqual(connections,0);
+ cases.push({abortCaller,beforeRelease,order,requests,connections,events,result,retryable:runtime.isRetryableAssistantError(result),overflow:runtime.isContextOverflow(result)});
+ }}finally{globalThis.fetch=actualFetch;GoogleAuth.prototype.getRequestHeaders=oldGet;GoogleAuth.prototype.getClient=oldClient;}
+ const result={authority,evidence:'Complete pinned Vertex + actual SDK and Node Fetch; patched credential leaf never discovers credentials. SDK timer/caller signal do not preempt auth; only eventual Fetch observes aborted signal. Rust caller cancellation preemption is the explicit separate normalization.',cases};
+ if(process.argv.includes('--check'))deepStrictEqual(JSON.parse(JSON.stringify(result)),JSON.parse(readFileSync(new URL('./auth.json',import.meta.url),'utf8')));else console.log(JSON.stringify(result,null,2));
