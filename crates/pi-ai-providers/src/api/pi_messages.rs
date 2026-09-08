@@ -820,7 +820,7 @@ async fn run(
     };
     let mut response = services
         .transport
-        .send(
+        .send_fetch(
             &http_request,
             runtime,
             RetryProfile::None,
@@ -828,10 +828,7 @@ async fn run(
         )
         .await?;
     if let Some(middleware) = &services.response {
-        let head = AdapterResponseHead {
-            status: response.status,
-            headers: response.headers.clone(),
-        };
+        let head = AdapterResponseHead::from_http(response.status, &response.headers)?;
         cancellable(
             middleware.on_response(request, &head),
             &runtime.cancellation,

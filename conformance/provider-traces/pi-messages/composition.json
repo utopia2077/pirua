@@ -1,0 +1,3402 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "hashes": {
+    "utils/hash.ts": "2cdfce4af41810d1a92c7f0a55c78637a3173041038aafd85b378be345761ed8",
+    "utils/json-parse.ts": "828440b19a64773f696ced9461166913ddaddd8479697fbde32d3f298872b153",
+    "utils/sanitize-unicode.ts": "f8ef2c957f9f13a77df45ebf344f1b852dfe8f2e3d164d815127ea7290c12e22",
+    "utils/diagnostics.ts": "d22b4f96a00f032220ff0cc27458c7a525dcec948bdbd2bbb67b4d7598cb395d",
+    "utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "api/transform-messages.ts": "cf309c00b943bc0a90ccaabb185730a3f27a3c92de6696ada3155b0185904161",
+    "utils/overflow.ts": "ed4c74d82619562b2a760ef7953cfd39f6f88e0980d42e27945f8aa81a57a61d",
+    "utils/retry.ts": "69219cbbb0fb9bc83a5dd044e4130dee68c0fb9089c52a814719e72fb243175c",
+    "models.ts": "b53c99c5fa787af57790fa1d971987faab7e7b917ab5cb985374db407a4d88dd",
+    "api/pi-messages.ts": "c8170741db3747d47d0ed46c509d5ae40cb339047bba8b357d208ac8d1b364e6",
+    "api/mistral-conversations.ts": "042e8886f68da48b4218726bcbc20ff440510b23dbdbffe5ea9c7fb8a876b762"
+  },
+  "normalization": [
+    "timestamp=7",
+    "Mistral UA=pi-ai-rust",
+    "ephemeral base URL replaced",
+    "public error prose/diagnostics compared separately"
+  ],
+  "cases": [
+    {
+      "family": "pi-messages",
+      "network": false,
+      "mode": "success",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\ndata: {\"type\":\"text_end\",\"contentIndex\":0,\"content\":\"prefix\"}\n\ndata: {\"type\":\"done\",\"reason\":\"stop\",\"usage\":{\"input\":2,\"output\":1,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":3,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"responseId\":\"response-1\"}\n\n",
+      "encoded": "1f8b08000000000000038d50cb0ac2400cbcfb1532e7155abded1ff42a824709dda8c5925dba29544aff5db6151f68c55b2699cc4ce248c92e7be835302ca252a318160bf7de57eef4300d0d4a2fcaa28538ee60b319b6e35ae9936d300d2c42c3c7aa9b336371df96ef8d5febce0bc3a0618a5ec69b7c80411be9c4b03d2a09adc2ae0d7cab63991b94549e79cbe4269784f64da53c42f54af5ce5f5822ec268588faa2943d95b27f94d2cf861430062f910b07fb00ab3c5d74039b1be71396010000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 1,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "network": false,
+      "mode": "error",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 429,
+      "body": "{\"error\":{\"message\":\"billing quota exhausted\"}}",
+      "encoded": "1f8b0800000000000003ab564a2d2aca2f52b2aa56ca4d2d2e4e4c4f55b2524acaccc9c9cc4b57282ccd2f495448adc8482c2d2e494d51aaad0500152b77772f000000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 429,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 1,
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "errorMessage": "<safe>",
+            "timestamp": 7
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "network": false,
+      "mode": "hook-fail",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\ndata: {\"type\":\"text_end\",\"contentIndex\":0,\"content\":\"prefix\"}\n\ndata: {\"type\":\"done\",\"reason\":\"stop\",\"usage\":{\"input\":2,\"output\":1,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":3,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"responseId\":\"response-1\"}\n\n",
+      "encoded": "1f8b08000000000000038d50cb0ac2400cbcfb1532e7155abded1ff42a824709dda8c5925dba29544aff5db6151f68c55b2699cc4ce248c92e7be835302ca252a318160bf7de57eef4300d0d4a2fcaa28538ee60b319b6e35ae9936d300d2c42c3c7aa9b336371df96ef8d5febce0bc3a0618a5ec69b7c80411be9c4b03d2a09adc2ae0d7cab63991b94549e79cbe4269784f64da53c42f54af5ce5f5822ec268588faa2943d95b27f94d2cf861430062f910b07fb00ab3c5d74039b1be71396010000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "errorMessage": "<safe>",
+            "timestamp": 7
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "network": false,
+      "mode": "hook-cancel",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\ndata: {\"type\":\"text_end\",\"contentIndex\":0,\"content\":\"prefix\"}\n\ndata: {\"type\":\"done\",\"reason\":\"stop\",\"usage\":{\"input\":2,\"output\":1,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":3,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"responseId\":\"response-1\"}\n\n",
+      "encoded": "1f8b08000000000000038d50cb0ac2400cbcfb1532e7155abded1ff42a824709dda8c5925dba29544aff5db6151f68c55b2699cc4ce248c92e7be835302ca252a318160bf7de57eef4300d0d4a2fcaa28538ee60b319b6e35ae9936d300d2c42c3c7aa9b336371df96ef8d5febce0bc3a0618a5ec69b7c80411be9c4b03d2a09adc2ae0d7cab63991b94549e79cbe4269784f64da53c42f54af5ce5f5822ec268588faa2943d95b27f94d2cf861430062f910b07fb00ab3c5d74039b1be71396010000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "error",
+          "reason": "aborted",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "aborted",
+            "errorMessage": "<safe>",
+            "timestamp": 7
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "network": true,
+      "mode": "success",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\ndata: {\"type\":\"text_end\",\"contentIndex\":0,\"content\":\"prefix\"}\n\ndata: {\"type\":\"done\",\"reason\":\"stop\",\"usage\":{\"input\":2,\"output\":1,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":3,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"responseId\":\"response-1\"}\n\n",
+      "encoded": "1f8b08000000000000038d50cb0ac2400cbcfb1532e7155abded1ff42a824709dda8c5925dba29544aff5db6151f68c55b2699cc4ce248c92e7be835302ca252a318160bf7de57eef4300d0d4a2fcaa28538ee60b319b6e35ae9936d300d2c42c3c7aa9b336371df96ef8d5febce0bc3a0618a5ec69b7c80411be9c4b03d2a09adc2ae0d7cab63991b94549e79cbe4269784f64da53c42f54af5ce5f5822ec268588faa2943d95b27f94d2cf861430062f910b07fb00ab3c5d74039b1be71396010000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "connection",
+              "close"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-length",
+              "195"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first , second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        },
+        {
+          "path": "/final",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "network": true,
+      "mode": "error",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 429,
+      "body": "{\"error\":{\"message\":\"billing quota exhausted\"}}",
+      "encoded": "1f8b0800000000000003ab564a2d2aca2f52b2aa56ca4d2d2e4e4c4f55b2524acaccc9c9cc4b57282ccd2f495448adc8482c2d2e494d51aaad0500152b77772f000000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 429,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "connection",
+              "close"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-length",
+              "67"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first , second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        },
+        {
+          "path": "/final",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "errorMessage": "<safe>",
+            "timestamp": 7
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "pi-messages",
+      "network": true,
+      "mode": "cancel",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "encoded": "1f8b08000000000000034b492c49b452a8562aa92c4855b2522a2e492c2a51aae5e24a41152f49ad28898748ea2825e7e795a4e69578e6a5a456285919e0509d929a539288a95a47092261a55450949a965901b20c0033ca06b185000000",
+      "prefix": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"prefix\"}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "connection",
+              "close"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "transfer-encoding",
+              "chunked"
+            ],
+            [
+              "x-trace",
+              "first , second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "maxTokens": 8
+          }
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/messages",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        },
+        {
+          "path": "/final",
+          "body": {
+            "model": "composition-model",
+            "context": {
+              "messages": []
+            },
+            "options": {
+              "maxTokens": 8
+            }
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "error",
+          "reason": "aborted",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "aborted",
+            "errorMessage": "<safe>",
+            "timestamp": 7
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": false,
+      "mode": "success",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+      "encoded": "1f8b08000000000000036d8eb10ac2301445f77c85dc390ed52db3aefa01a59490bcda609b17f29e2094fcbb08d2c9f55c0ef744afde1d36a408874a52380b1d3b588499532081eb37445ad4c36d089c95b2c2a1549ad21bad0d162ff10ffacea5f25a74547e5216b89345e0b52ca489f34e3b0b65f5cb0ecead19137f21ff6e9bc594729279ace485331c44b9a00dbbd85feeb7eb60cc07bef76406d0000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 1,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "response-1",
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "response-1",
+            "rawStopReason": "stop"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": false,
+      "mode": "error",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 429,
+      "body": "{\"error\":{\"message\":\"billing quota exhausted\"}}",
+      "encoded": "1f8b0800000000000003ab564a2d2aca2f52b2aa56ca4d2d2e4e4c4f55b2524acaccc9c9cc4b57282ccd2f495448adc8482c2d2e494d51aaad0500152b77772f000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 429,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 1,
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "<safe>"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": false,
+      "mode": "hook-fail",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+      "encoded": "1f8b08000000000000036d8eb10ac2301445f77c85dc390ed52db3aefa01a59490bcda609b17f29e2094fcbb08d2c9f55c0ef744afde1d36a408874a52380b1d3b588499532081eb37445ad4c36d089c95b2c2a1549ad21bad0d162ff10ffacea5f25a74547e5216b89345e0b52ca489f34e3b0b65f5cb0ecead19137f21ff6e9bc594729279ace485331c44b9a00dbbd85feeb7eb60cc07bef76406d0000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "<safe>"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": false,
+      "mode": "hook-cancel",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+      "encoded": "1f8b08000000000000036d8eb10ac2301445f77c85dc390ed52db3aefa01a59490bcda609b17f29e2094fcbb08d2c9f55c0ef744afde1d36a408874a52380b1d3b588499532081eb37445ad4c36d089c95b2c2a1549ad21bad0d162ff10ffacea5f25a74547e5216b89345e0b52ca489f34e3b0b65f5cb0ecead19137f21ff6e9bc594729279ace485331c44b9a00dbbd85feeb7eb60cc07bef76406d0000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first, second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "error",
+          "reason": "aborted",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "aborted",
+            "timestamp": 7,
+            "errorMessage": "<safe>"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": true,
+      "mode": "success",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n",
+      "encoded": "1f8b08000000000000036d8eb10ac2301445f77c85dc390ed52db3aefa01a59490bcda609b17f29e2094fcbb08d2c9f55c0ef744afde1d36a408874a52380b1d3b588499532081eb37445ad4c36d089c95b2c2a1549ad21bad0d162ff10ffacea5f25a74547e5216b89345e0b52ca489f34e3b0b65f5cb0ecead19137f21ff6e9bc594729279ace485331c44b9a00dbbd85feeb7eb60cc07bef76406d0000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "connection",
+              "close"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-length",
+              "160"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first , second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        },
+        {
+          "path": "/final",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "response-1",
+            "rawStopReason": "stop"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7,
+            "responseId": "response-1",
+            "rawStopReason": "stop"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": true,
+      "mode": "error",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 429,
+      "body": "{\"error\":{\"message\":\"billing quota exhausted\"}}",
+      "encoded": "1f8b0800000000000003ab564a2d2aca2f52b2aa56ca4d2d2e4e4c4f55b2524acaccc9c9cc4b57282ccd2f495448adc8482c2d2e494d51aaad0500152b77772f000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 429,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "connection",
+              "close"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-length",
+              "67"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "x-trace",
+              "first , second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        },
+        {
+          "path": "/final",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 7,
+            "errorMessage": "<safe>"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    },
+    {
+      "family": "mistral-conversations",
+      "network": true,
+      "mode": "cancel",
+      "model": {
+        "id": "composition-model",
+        "name": "Composition",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://example.invalid/base",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "headers": [
+        [
+          "X-Trace",
+          " first "
+        ],
+        [
+          "x-trace",
+          "second"
+        ],
+        [
+          "Cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ],
+        [
+          "Set-Cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "10",
+          "ten"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "__proto__",
+          "hidden"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ],
+        [
+          "Content-Type",
+          "text/event-stream"
+        ],
+        [
+          "Content-Encoding",
+          "gzip"
+        ]
+      ],
+      "status": 200,
+      "body": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "encoded": "1f8b08000000000000033dc9410a02310c05d0fd9c42feba2e4677b98a889436a3c54e529a0842e9ddc5cd6cdfcbd1239d064a06a1b33515e3f38a80f4d292d840b781ccd5236820a9388b83d03a6fe58b39ef011f8b4ffe77ebba377fb8be590c740948bab7ca5e540e5d035c3dd603ae732ecb0fab36fe3989000000",
+      "prefix": "data: {\"id\":\"response-1\",\"choices\":[{\"delta\":{\"content\":\"prefix\"}}],\"usage\":{\"prompt_tokens\":2,\"completion_tokens\":1,\"total_tokens\":3}}\n\n",
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "heads": [
+        {
+          "status": 200,
+          "entries": [
+            [
+              "2",
+              "two"
+            ],
+            [
+              "10",
+              "ten"
+            ],
+            [
+              "connection",
+              "close"
+            ],
+            [
+              "constructor",
+              "ordinary"
+            ],
+            [
+              "content-encoding",
+              "gzip"
+            ],
+            [
+              "content-type",
+              "text/event-stream"
+            ],
+            [
+              "cookie",
+              "a=1; b=2"
+            ],
+            [
+              "set-cookie",
+              "b=2"
+            ],
+            [
+              "transfer-encoding",
+              "chunked"
+            ],
+            [
+              "x-trace",
+              "first , second"
+            ]
+          ]
+        }
+      ],
+      "payloads": [
+        {
+          "model": "composition-model",
+          "stream": true,
+          "messages": [],
+          "maxTokens": 8
+        }
+      ],
+      "requests": [
+        {
+          "path": "/base/v1/chat/completions",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        },
+        {
+          "path": "/final",
+          "body": {
+            "model": "composition-model",
+            "stream": true,
+            "messages": [],
+            "max_tokens": 8
+          }
+        }
+      ],
+      "reads": 0,
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7
+          }
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0,
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": ""
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "prefix",
+          "partial": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 7,
+            "responseId": "response-1"
+          }
+        },
+        {
+          "type": "error",
+          "reason": "aborted",
+          "error": {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prefix"
+              }
+            ],
+            "api": "mistral-conversations",
+            "provider": "mistral",
+            "model": "composition-model",
+            "usage": {
+              "input": 2,
+              "output": 1,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 3,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "aborted",
+            "timestamp": 7,
+            "responseId": "response-1",
+            "errorMessage": "<safe>"
+          }
+        }
+      ],
+      "classifiers": [
+        false,
+        false
+      ]
+    }
+  ]
+}

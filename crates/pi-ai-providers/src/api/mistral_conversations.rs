@@ -300,10 +300,7 @@ impl MistralApi {
             )
             .await?;
         if let Some(hook) = &self.services.response {
-            let head = AdapterResponseHead {
-                status: response.status,
-                headers: response.headers.clone(),
-            };
+            let head = AdapterResponseHead::from_http(response.status, &response.headers)?;
             cancellable(hook.on_response(request, &head), &runtime.cancellation)
                 .await
                 .map_err(|_| Failure::Cancelled)?
