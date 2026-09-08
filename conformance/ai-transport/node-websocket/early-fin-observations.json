@@ -1,0 +1,1151 @@
+{
+  "qualification": "Reachable observations only, not a deterministic cross-runtime ordering contract",
+  "runs": [
+    {
+      "run": 1,
+      "cases": [
+        {
+          "id": "text",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "text-bom",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "binary",
+          "expected": [
+            {
+              "type": "message",
+              "binary": [
+                0,
+                255,
+                128,
+                239,
+                187,
+                191
+              ]
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "empty",
+          "expected": [
+            {
+              "type": "message",
+              "text": ""
+            },
+            {
+              "type": "message",
+              "binary": []
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "fragment-ping",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "fragment-utf8",
+          "expected": [
+            {
+              "type": "message",
+              "text": "💡"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "empty-fragment",
+          "expected": [
+            {
+              "type": "message",
+              "text": "done"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "compressed",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "compressed-binary",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "close-reason",
+          "expected": [
+            {
+              "type": "message",
+              "text": "before"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": "peer-reason"
+            }
+          ]
+        },
+        {
+          "id": "close-empty",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1005,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "close-1009",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1009,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "close-double-bom",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": "reason"
+            }
+          ]
+        },
+        {
+          "id": "invalid-text",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-code",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-body",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-text",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "unexpected-continuation",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "rsv1-without-negotiation",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "prefix-before-codec-error",
+          "expected": [
+            {
+              "type": "message",
+              "text": "prefix"
+            },
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "partial-eof",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "plain-eof",
+          "expected": [
+            {
+              "type": "message",
+              "text": "prefix"
+            },
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "unknown-extension",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-8",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-9",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-10",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-11",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-12",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-13",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-14",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-15",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-08",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-empty",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-7",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-16",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-nine",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "context-takeover",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "context-no-takeover",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "cases": [
+        {
+          "id": "text",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "text-bom",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "binary",
+          "expected": [
+            {
+              "type": "message",
+              "binary": [
+                0,
+                255,
+                128,
+                239,
+                187,
+                191
+              ]
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "empty",
+          "expected": [
+            {
+              "type": "message",
+              "text": ""
+            },
+            {
+              "type": "message",
+              "binary": []
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "fragment-ping",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "fragment-utf8",
+          "expected": [
+            {
+              "type": "message",
+              "text": "💡"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "empty-fragment",
+          "expected": [
+            {
+              "type": "message",
+              "text": "done"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "compressed",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "compressed-binary",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "close-reason",
+          "expected": [
+            {
+              "type": "message",
+              "text": "before"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": "peer-reason"
+            }
+          ]
+        },
+        {
+          "id": "close-empty",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1005,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "close-1009",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1009,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "close-double-bom",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": "reason"
+            }
+          ]
+        },
+        {
+          "id": "invalid-text",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-code",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-body",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-text",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "unexpected-continuation",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "rsv1-without-negotiation",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "prefix-before-codec-error",
+          "expected": [
+            {
+              "type": "message",
+              "text": "prefix"
+            },
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "partial-eof",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "plain-eof",
+          "expected": [
+            {
+              "type": "message",
+              "text": "prefix"
+            },
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "unknown-extension",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-8",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-9",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-10",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-11",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-12",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-13",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-14",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-15",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-08",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-empty",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-7",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-16",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-nine",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "context-takeover",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "context-no-takeover",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": 3,
+      "cases": [
+        {
+          "id": "text",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "text-bom",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "binary",
+          "expected": [
+            {
+              "type": "message",
+              "binary": [
+                0,
+                255,
+                128,
+                239,
+                187,
+                191
+              ]
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "empty",
+          "expected": [
+            {
+              "type": "message",
+              "text": ""
+            },
+            {
+              "type": "message",
+              "binary": []
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "fragment-ping",
+          "expected": [
+            {
+              "type": "message",
+              "text": "hello"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "fragment-utf8",
+          "expected": [
+            {
+              "type": "message",
+              "text": "💡"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "empty-fragment",
+          "expected": [
+            {
+              "type": "message",
+              "text": "done"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "compressed",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "compressed-binary",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "close-reason",
+          "expected": [
+            {
+              "type": "message",
+              "text": "before"
+            },
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": "peer-reason"
+            }
+          ]
+        },
+        {
+          "id": "close-empty",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1005,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "close-1009",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1009,
+              "reason": ""
+            }
+          ]
+        },
+        {
+          "id": "close-double-bom",
+          "expected": [
+            {
+              "type": "close",
+              "code": 1000,
+              "reason": "reason"
+            }
+          ]
+        },
+        {
+          "id": "invalid-text",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-code",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-body",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "invalid-close-text",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "unexpected-continuation",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "rsv1-without-negotiation",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "prefix-before-codec-error",
+          "expected": [
+            {
+              "type": "message",
+              "text": "prefix"
+            },
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "partial-eof",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "plain-eof",
+          "expected": [
+            {
+              "type": "message",
+              "text": "prefix"
+            },
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "unknown-extension",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-8",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-9",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-10",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-11",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-12",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-13",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-14",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-15",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-08",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-empty",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-7",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-16",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "window-nine",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "context-takeover",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        },
+        {
+          "id": "context-no-takeover",
+          "expected": [
+            {
+              "type": "error"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

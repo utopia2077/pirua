@@ -104,6 +104,10 @@ impl RetryJitter for NativeRetryJitter {
 mod native_http;
 pub use native_http::NativeHttpClient;
 
+#[path = "native_node_websocket/mod.rs"]
+mod native_node_websocket;
+pub use native_node_websocket::{Node26WebSocketConnector, NodeWebSocketLimits};
+
 fn latin1_header_bytes(value: &str) -> Result<Vec<u8>, TransportError> {
     value
         .chars()
@@ -178,84 +182,7 @@ impl WebSocketConnector for NativeWebSocketConnector {
                         value,
                     );
                 }
-                let host = url
-                    .host_str()
-                    .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidRequest))?;
-                let port = url
-                    .port_or_known_default()
-                    .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidRequest))?;
-                let socket: Box<dyn SocketIo> = if let Some(proxy) = proxy {
-                    let proxy = Url::parse(proxy.expose_for_transport())
-                        .map_err(|_| TransportError::new(TransportErrorKind::InvalidProxy))?;
-                    let proxy_host = proxy
-                        .host_str()
-                        .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidProxy))?;
-                    let proxy_port = proxy
-                        .port_or_known_default()
-                        .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidProxy))?;
-                    let tcp = TcpStream::connect((unbracket(proxy_host), proxy_port))
-                        .await
-                        .map_err(io_error)?;
-                    let mut stream: Box<dyn SocketIo> = if proxy.scheme() == "https" {
-                        let name = ServerName::try_from(unbracket(proxy_host).to_owned())
-                            .map_err(|_| TransportError::new(TransportErrorKind::InvalidProxy))?;
-                        Box::new(
-                            TlsConnector::from(tls.clone())
-                                .connect(name, tcp)
-                                .await
-                                .map_err(io_error)?,
-                        )
-                    } else {
-                        Box::new(tcp)
-                    };
-                    let authority = format!("{host}:{port}");
-                    let auth = if proxy.username().is_empty() && proxy.password().is_none() {
-                        String::new()
-                    } else {
-                        format!(
-                            "Proxy-Authorization: Basic {}\r\n",
-                            STANDARD.encode(format!(
-                                "{}:{}",
-                                decode_userinfo(proxy.username())?,
-                                decode_userinfo(proxy.password().unwrap_or(""))?
-                            ))
-                        )
-                    };
-                    stream
-                        .write_all(
-                            format!(
-                                "CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\n{auth}\r\n"
-                            )
-                            .as_bytes(),
-                        )
-                        .await
-                        .map_err(io_error)?;
-                    // Read only the CONNECT head; consuming tunneled bytes would
-                    // corrupt the origin TLS/WS handshake. Bound hostile proxies.
-                    let mut head = Vec::new();
-                    let mut byte = [0];
-                    while !head.ends_with(b"\r\n\r\n") {
-                        if head.len() == 16_384 {
-                            return Err(TransportError::new(TransportErrorKind::LimitExceeded));
-                        }
-                        stream.read_exact(&mut byte).await.map_err(io_error)?;
-                        head.push(byte[0]);
-                    }
-                    let status = std::str::from_utf8(&head)
-                        .ok()
-                        .and_then(|s| s.lines().next())
-                        .and_then(|s| s.split_whitespace().nth(1));
-                    if status != Some("200") {
-                        return Err(TransportError::new(TransportErrorKind::Connection));
-                    }
-                    stream
-                } else {
-                    Box::new(
-                        TcpStream::connect((unbracket(host), port))
-                            .await
-                            .map_err(io_error)?,
-                    )
-                };
+                let socket = open_socket(&url, proxy, tls.clone()).await?;
                 let config = WebSocketConfig::default()
                     .max_message_size(Some(max_message))
                     .max_frame_size(Some(max_frame));
@@ -276,6 +203,89 @@ impl WebSocketConnector for NativeWebSocketConnector {
             crate::policy::wait_with_timeout(operation, runtime, request.connect_timeout).await
         })
     }
+}
+async fn open_socket(
+    url: &Url,
+    proxy: Option<crate::ProxyUrl>,
+    tls: Arc<rustls::ClientConfig>,
+) -> Result<Box<dyn SocketIo>, TransportError> {
+    let host = url
+        .host_str()
+        .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidRequest))?;
+    let port = url
+        .port_or_known_default()
+        .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidRequest))?;
+    let socket: Box<dyn SocketIo> = if let Some(proxy) = proxy {
+        let proxy = Url::parse(proxy.expose_for_transport())
+            .map_err(|_| TransportError::new(TransportErrorKind::InvalidProxy))?;
+        let proxy_host = proxy
+            .host_str()
+            .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidProxy))?;
+        let proxy_port = proxy
+            .port_or_known_default()
+            .ok_or_else(|| TransportError::new(TransportErrorKind::InvalidProxy))?;
+        let tcp = TcpStream::connect((unbracket(proxy_host), proxy_port))
+            .await
+            .map_err(io_error)?;
+        let mut stream: Box<dyn SocketIo> = if proxy.scheme() == "https" {
+            let name = ServerName::try_from(unbracket(proxy_host).to_owned())
+                .map_err(|_| TransportError::new(TransportErrorKind::InvalidProxy))?;
+            Box::new(
+                TlsConnector::from(tls.clone())
+                    .connect(name, tcp)
+                    .await
+                    .map_err(io_error)?,
+            )
+        } else {
+            Box::new(tcp)
+        };
+        let authority = format!("{host}:{port}");
+        let auth = if proxy.username().is_empty() && proxy.password().is_none() {
+            String::new()
+        } else {
+            format!(
+                "Proxy-Authorization: Basic {}\r\n",
+                STANDARD.encode(format!(
+                    "{}:{}",
+                    decode_userinfo(proxy.username())?,
+                    decode_userinfo(proxy.password().unwrap_or(""))?
+                ))
+            )
+        };
+        stream
+            .write_all(
+                format!("CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\n{auth}\r\n")
+                    .as_bytes(),
+            )
+            .await
+            .map_err(io_error)?;
+        // Read only the CONNECT head; consuming tunneled bytes would
+        // corrupt the origin TLS/WS handshake. Bound hostile proxies.
+        let mut head = Vec::new();
+        let mut byte = [0];
+        while !head.ends_with(b"\r\n\r\n") {
+            if head.len() == 16_384 {
+                return Err(TransportError::new(TransportErrorKind::LimitExceeded));
+            }
+            stream.read_exact(&mut byte).await.map_err(io_error)?;
+            head.push(byte[0]);
+        }
+        let status = std::str::from_utf8(&head)
+            .ok()
+            .and_then(|s| s.lines().next())
+            .and_then(|s| s.split_whitespace().nth(1));
+        if status != Some("200") {
+            return Err(TransportError::new(TransportErrorKind::Connection));
+        }
+        stream
+    } else {
+        Box::new(
+            TcpStream::connect((unbracket(host), port))
+                .await
+                .map_err(io_error)?,
+        )
+    };
+    Ok(socket)
 }
 fn unbracket(host: &str) -> &str {
     host.strip_prefix('[')

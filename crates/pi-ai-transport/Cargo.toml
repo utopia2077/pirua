@@ -26,10 +26,11 @@ tokio = { workspace = true, optional = true }
 tokio-rustls = { workspace = true, optional = true }
 tokio-tungstenite = { workspace = true, optional = true }
 webpki-roots = { workspace = true, optional = true }
+zlib-rs = { workspace = true, optional = true }
 
 [features]
 default = []
-native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots"]
+native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots", "dep:zlib-rs"]
 
 [dev-dependencies]
 serde_json.workspace = true

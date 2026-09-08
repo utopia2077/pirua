@@ -1,0 +1,44 @@
+{
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "results": [
+    {
+      "closedFirst": true,
+      "events": [
+        {
+          "type": "message",
+          "text": "already-admitted"
+        },
+        {
+          "type": "error"
+        },
+        {
+          "type": "close",
+          "code": 1006,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "closedFirst": false,
+      "events": [
+        {
+          "type": "message",
+          "text": "already-admitted"
+        },
+        {
+          "type": "message",
+          "text": "compressed"
+        },
+        {
+          "type": "error"
+        },
+        {
+          "type": "close",
+          "code": 1006,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1542 @@
+{
+  "node": "v26.8.1",
+  "undici": "8.10.0",
+  "bundleSha256": "9090d7cdbb8b47c2b040f337b05704b385d2ba06d3b79709691c5e8b13090f4d",
+  "cases": [
+    {
+      "id": "text",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "text-bom",
+      "extension": null,
+      "frames": [
+        "gQjvu79oZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "binary",
+      "extension": null,
+      "frames": [
+        "ggYA/4Dvu78=",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "binary": [
+            0,
+            255,
+            128,
+            239,
+            187,
+            191
+          ]
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "empty",
+      "extension": null,
+      "frames": [
+        "gQA=",
+        "ggA=",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": ""
+        },
+        {
+          "type": "message",
+          "binary": []
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "fragment-ping",
+      "extension": null,
+      "frames": [
+        "AQNoZWw=",
+        "iQRwaW5n",
+        "gAJsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "fragment-utf8",
+      "extension": null,
+      "frames": [
+        "AQLwnw==",
+        "gAKSoQ==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "💡"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "empty-fragment",
+      "extension": null,
+      "frames": [
+        "AQA=",
+        "gARkb25l",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "done"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "compressed",
+      "extension": "permessage-deflate",
+      "frames": [
+        "wQxKzs8tKEotLk5NAQA=",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "compressed"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "compressed-binary",
+      "extension": "permessage-deflate",
+      "frames": [
+        "wghKysxLLKoEAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "binary": [
+            98,
+            105,
+            110,
+            97,
+            114,
+            121
+          ]
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "close-reason",
+      "extension": null,
+      "frames": [
+        "gQZiZWZvcmU=",
+        "iA0D6HBlZXItcmVhc29u"
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "before"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": "peer-reason"
+        }
+      ]
+    },
+    {
+      "id": "close-empty",
+      "extension": null,
+      "frames": [
+        "iAA="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "close",
+          "code": 1005,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "close-1009",
+      "extension": null,
+      "frames": [
+        "iAID8Q=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "close",
+          "code": 1009,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "close-double-bom",
+      "extension": null,
+      "frames": [
+        "iA4D6O+7v++7v3JlYXNvbg=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": "reason"
+        }
+      ]
+    },
+    {
+      "id": "invalid-text",
+      "extension": null,
+      "frames": [
+        "gQH/"
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "invalid-close-code",
+      "extension": null,
+      "frames": [
+        "iAID7Q=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "invalid-close-body",
+      "extension": null,
+      "frames": [
+        "iAEB"
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "invalid-close-text",
+      "extension": null,
+      "frames": [
+        "iAMD6P8="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "unexpected-continuation",
+      "extension": null,
+      "frames": [
+        "gANiYWQ="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "rsv1-without-negotiation",
+      "extension": null,
+      "frames": [
+        "wQVKSkwBAA=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "prefix-before-codec-error",
+      "extension": "permessage-deflate",
+      "frames": [
+        "gQZwcmVmaXg=",
+        "wQL//w=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "prefix"
+        },
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "partial-eof",
+      "extension": null,
+      "frames": [
+        "gQVhYg=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "plain-eof",
+      "extension": null,
+      "frames": [
+        "gQZwcmVmaXg="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "prefix"
+        },
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "unknown-extension",
+      "extension": "other",
+      "frames": [],
+      "opened": false,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "window-8",
+      "extension": "permessage-deflate; server_max_window_bits=8",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-9",
+      "extension": "permessage-deflate; server_max_window_bits=9",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-10",
+      "extension": "permessage-deflate; server_max_window_bits=10",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-11",
+      "extension": "permessage-deflate; server_max_window_bits=11",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-12",
+      "extension": "permessage-deflate; server_max_window_bits=12",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-13",
+      "extension": "permessage-deflate; server_max_window_bits=13",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-14",
+      "extension": "permessage-deflate; server_max_window_bits=14",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-15",
+      "extension": "permessage-deflate; server_max_window_bits=15",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-08",
+      "extension": "permessage-deflate; server_max_window_bits=08",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-empty",
+      "extension": "permessage-deflate; server_max_window_bits=",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "window"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "window-7",
+      "extension": "permessage-deflate; server_max_window_bits=7",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "window-16",
+      "extension": "permessage-deflate; server_max_window_bits=16",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "window-nine",
+      "extension": "permessage-deflate; server_max_window_bits=nine",
+      "frames": [
+        "wQgqz8xLyS8HAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "error"
+        }
+      ]
+    },
+    {
+      "id": "context-takeover",
+      "extension": "permessage-deflate",
+      "frames": [
+        "wSNKyUwuyczPSyyq1E1MSk5JTTMwNDI2MTUzt7Ac5Y/y6ckHAA==",
+        "QQVKGU2Kow==",
+        "iQFw",
+        "gAX8wcEHAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "dictionary-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        },
+        {
+          "type": "message",
+          "text": "dictionary-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "context-no-takeover",
+      "extension": "permessage-deflate; server_no_context_takeover",
+      "frames": [
+        "wSNKyUwuyczPSyyq1E1MSk5JTTMwNDI2MTUzt7Ac5Y/y6ckHAA==",
+        "QQVKGU2Kow==",
+        "iQFw",
+        "gAX8wcEHAA==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "dictionary-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        },
+        {
+          "type": "message",
+          "text": "dictionary-abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "informational-head",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "informational": true
+    },
+    {
+      "id": "protocol-accepted",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-protocol": "alpha, beta",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "sec-websocket-protocol": "alpha, beta"
+      },
+      "responseProtocol": "beta"
+    },
+    {
+      "id": "protocol-quoted",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-protocol": "\"alpha,beta\", other",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "sec-websocket-protocol": "\"alpha,beta\", other"
+      },
+      "responseProtocol": "\"alpha,beta\""
+    },
+    {
+      "id": "range-identity",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "range": "bytes=0-1",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "identity"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "range": "bytes=0-1"
+      }
+    },
+    {
+      "id": "range-append",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "range": "bytes=0-1",
+        "accept-encoding": "gzip, identity",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "range": "bytes=0-1",
+        "accept-encoding": "gzip"
+      }
+    },
+    {
+      "id": "host-ignored",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "host": "other.invalid"
+      }
+    },
+    {
+      "id": "cache-overrides",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "pragma": "",
+        "cache-control": "custom",
+        "sec-websocket-version": "13",
+        "sec-websocket-extensions": "permessage-deflate; client_max_window_bits",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "pragma": "",
+        "cache-control": "custom"
+      }
+    },
+    {
+      "id": "custom-extensions",
+      "extension": null,
+      "frames": [
+        "gQVoZWxsbw==",
+        "iAID6A=="
+      ],
+      "opened": true,
+      "requestHeaders": {
+        "connection": "upgrade",
+        "upgrade": "websocket",
+        "x-synthetic": "value",
+        "sec-websocket-extensions": "private, permessage-deflate; client_max_window_bits",
+        "sec-websocket-version": "13",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "websocket",
+        "user-agent": "node",
+        "pragma": "no-cache",
+        "cache-control": "no-cache",
+        "accept-encoding": "gzip, deflate"
+      },
+      "expected": [
+        {
+          "type": "message",
+          "text": "hello"
+        },
+        {
+          "type": "close",
+          "code": 1000,
+          "reason": ""
+        }
+      ],
+      "inputHeaders": {
+        "sec-websocket-extensions": "private"
+      }
+    }
+  ]
+}

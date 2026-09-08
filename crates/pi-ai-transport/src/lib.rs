@@ -6,6 +6,7 @@ mod fetch_content;
 mod http;
 #[cfg(feature = "native")]
 mod native;
+mod persistent_websocket;
 mod policy;
 mod provider_retry;
 mod proxy;
@@ -19,6 +20,7 @@ pub use fetch_content::{FetchContentLimits, FetchResponseSource};
 pub use http::*;
 #[cfg(feature = "native")]
 pub use native::*;
+pub use persistent_websocket::*;
 pub use policy::*;
 pub use provider_retry::*;
 pub use proxy::*;
