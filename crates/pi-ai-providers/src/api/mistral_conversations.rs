@@ -210,8 +210,7 @@ impl MistralApi {
         if let Some(effort) = mapped_effort.filter(|effort| !effort.is_empty()) {
             logical["reasoningEffort"] = serde_json::Value::String(effort.into());
         }
-        let mut payload: JsonValue =
-            serde_json::from_value(logical).map_err(|_| Failure::Protocol)?;
+        let mut payload = super::wire_json::WirePayload::new(logical);
         if let Some(hook) = &self.services.payload
             && let Some(replacement) = cancellable(
                 hook.on_payload(request, &mut payload),
@@ -223,7 +222,7 @@ impl MistralApi {
         {
             payload = replacement;
         }
-        let wire = payload::to_wire(serde_json::to_value(payload).map_err(|_| Failure::Protocol)?)?;
+        let wire = payload::to_wire(payload.into_value())?;
         let mut base = Url::parse(request.resolved.endpoint.expose_for_transport())
             .map_err(|_| Failure::Protocol)?;
         base.set_path(&format!("{}/", base.path().trim_end_matches('/')));

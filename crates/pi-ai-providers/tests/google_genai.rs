@@ -1,5 +1,6 @@
 #![cfg(feature = "wire-google-genai")]
 use pi_ai_core::*;
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{google_genai::*, runtime::*};
 use pi_ai_transport::*;
 use serde_json::{Value, json};
@@ -146,21 +147,18 @@ impl PayloadMiddleware for Hook {
     fn on_payload<'a>(
         &'a self,
         _: &'a TextStreamRequest,
-        p: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        p: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("payload");
-            *self.observed.logical.lock().unwrap() = Some(json!(p));
+            *self.observed.logical.lock().unwrap() = Some(json!(p.as_value()));
             if self.block {
                 return std::future::pending().await;
             }
             if self.fail {
                 return Err(ModelsError::new(ModelsErrorCode::Provider));
             }
-            Ok(self
-                .replacement
-                .clone()
-                .map(|v| serde_json::from_value(v).unwrap()))
+            Ok(self.replacement.clone().map(WirePayload::new))
         })
     }
 }

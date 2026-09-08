@@ -508,7 +508,7 @@ fn build_payload(
     options: &AzureOpenAIResponsesOptions,
     deployment: &str,
     grammar: &BTreeMap<String, String>,
-) -> Result<JsonValue, Failure> {
+) -> Result<super::wire_json::WirePayload, Failure> {
     let model = &request.resolved.model;
     let wire = &request.options.wire;
     let input = convert_responses_messages(
@@ -580,7 +580,7 @@ fn build_payload(
             value[key] = json!(v);
         }
     }
-    serde_json::from_value(value).map_err(|_| Failure::Setup("payload"))
+    Ok(super::wire_json::WirePayload::new(value))
 }
 fn truthy(value: &Value) -> bool {
     match value {
@@ -633,7 +633,7 @@ async fn run(
     {
         value = next;
     }
-    let value = serde_json::to_value(value).map_err(|_| Failure::Setup("payload"))?;
+    let value = value.into_value();
     if value.is_null() {
         return Err(Failure::Setup("payload"));
     }

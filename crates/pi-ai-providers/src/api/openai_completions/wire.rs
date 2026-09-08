@@ -463,7 +463,7 @@ async fn run(
         headers(request, services, None, cache, &compat, false)?;
     }
     let value = payload::build(request, options, &compat, cache, &grammar)?;
-    let mut payload = serde_json::from_value(value).map_err(|_| Failure::plain("payload"))?;
+    let mut payload = crate::api::wire_json::WirePayload::new(value);
     if let Some(middleware) = &services.payload
         && let Some(next) = cancellable(
             middleware.on_payload(request, &mut payload),
@@ -475,7 +475,7 @@ async fn run(
     {
         payload = next;
     }
-    let value = serde_json::to_value(payload).map_err(|_| Failure::plain("payload"))?;
+    let value = payload.into_value();
     if value.is_null() {
         return Err(Failure::plain("payload"));
     }

@@ -1,5 +1,6 @@
 #![cfg(feature = "wire-anthropic-messages")]
 use pi_ai_core::*;
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{anthropic_messages::*, runtime::*};
 use pi_ai_transport::*;
 use serde_json::{Value, json};
@@ -276,11 +277,11 @@ impl PayloadMiddleware for Hooks {
     fn on_payload<'a>(
         &'a self,
         _: &'a TextStreamRequest,
-        payload: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        payload: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("payload");
-            *self.payload.lock().unwrap() = Some(json!(payload));
+            *self.payload.lock().unwrap() = Some(json!(payload.as_value()));
             if self.block && !self.response_only {
                 return pending().await;
             }
@@ -288,13 +289,9 @@ impl PayloadMiddleware for Hooks {
                 return Err(ModelsError::new(ModelsErrorCode::Stream));
             }
             if self.mutate {
-                *payload =
-                    serde_json::from_value(json!({"model":"mutated","stream":false})).unwrap();
+                *payload = WirePayload::new(json!({"model":"mutated","stream":false}));
             }
-            Ok(self
-                .replace
-                .as_ref()
-                .map(|v| serde_json::from_value(v.clone()).unwrap()))
+            Ok(self.replace.as_ref().map(|v| WirePayload::new(v.clone())))
         })
     }
 }
@@ -710,13 +707,13 @@ impl AnthropicClient for SuppliedClient {
     fn create<'a>(
         &'a self,
         request: &'a TextStreamRequest,
-        payload: &'a JsonValue,
+        payload: &'a WirePayload,
         options: AnthropicClientOptions<'a>,
     ) -> BoxFuture<'a, Result<HttpResponse, ProviderAttemptFailure<AnthropicResponseError>>> {
         Box::pin(async move {
             assert_eq!(options.max_retries(), 0);
             assert!(!options.cancellation.is_cancelled());
-            let value = json!(payload);
+            let value = json!(payload.as_value());
             assert_eq!(value["stream"], true);
             assert_eq!(value["tools"][0]["name"], "read");
             assert_eq!(value["system"][0]["text"], "Be precise");

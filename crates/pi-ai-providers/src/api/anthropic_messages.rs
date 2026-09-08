@@ -266,7 +266,7 @@ pub trait AnthropicClient: Send + Sync {
     fn create<'a>(
         &'a self,
         request: &'a TextStreamRequest,
-        payload: &'a JsonValue,
+        payload: &'a super::wire_json::WirePayload,
         options: AnthropicClientOptions<'a>,
     ) -> BoxFuture<'a, Result<HttpResponse, ProviderAttemptFailure<AnthropicResponseError>>>;
 }
@@ -364,14 +364,13 @@ impl AnthropicMessagesApi {
             request::assert_auth(request)?;
         }
         let oauth = self.client.is_none() && request::is_oauth(request);
-        let mut params: JsonValue = serde_json::from_value(payload::build(
+        let mut params = super::wire_json::WirePayload::new(payload::build(
             request,
             options,
             mapped_effort,
             &self.services,
             oauth,
-        )?)
-        .map_err(|_| Failure::Protocol)?;
+        )?);
         if let Some(hook) = &self.services.payload
             && let Some(replacement) =
                 cancellable(hook.on_payload(request, &mut params), &runtime.cancellation)
@@ -381,10 +380,8 @@ impl AnthropicMessagesApi {
         {
             params = replacement;
         }
-        let wire =
-            request::force_stream(serde_json::to_value(params).map_err(|_| Failure::Protocol)?)?;
-        let params: JsonValue =
-            serde_json::from_value(wire.clone()).map_err(|_| Failure::Protocol)?;
+        let wire = request::force_stream(params.into_value())?;
+        let params = super::wire_json::WirePayload::new(wire.clone());
         let http = if self.client.is_none() {
             Some(request::build(request, options, &self.services, &wire)?)
         } else {

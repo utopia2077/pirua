@@ -258,8 +258,7 @@ impl GoogleGenAiApi {
         {
             return Err(Failure::local());
         }
-        let mut params: JsonValue = serde_json::from_value(build_params(request, options)?)
-            .map_err(|_| Failure::local())?;
+        let mut params = super::wire_json::WirePayload::new(build_params(request, options)?);
         if let Some(hook) = &self.services.payload
             && let Some(replacement) = cancellable(
                 hook.on_payload(request, &mut params),
@@ -271,7 +270,7 @@ impl GoogleGenAiApi {
         {
             params = replacement;
         }
-        let params = serde_json::to_value(params).map_err(|_| Failure::local())?;
+        let params = params.into_value();
         let template = &reducer.partial;
         let runtime = &request.options.runtime;
         let (mut response, cloud) = shared::retry_google_request(

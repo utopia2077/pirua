@@ -29,7 +29,8 @@ use std::sync::Arc;
 ))]
 use std::task::Poll;
 
-use pi_ai_core::{BoxFuture, JsonValue, ModelsError, ProviderEnv, TextStreamRequest};
+use super::wire_json::WirePayload;
+use pi_ai_core::{BoxFuture, ModelsError, ProviderEnv, TextStreamRequest};
 use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, TransportErrorKind};
 
 #[cfg(any(
@@ -49,8 +50,8 @@ pub trait PayloadMiddleware: Send + Sync {
     fn on_payload<'a>(
         &'a self,
         request: &'a TextStreamRequest,
-        payload: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>>;
+        payload: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>>;
 }
 
 /// Transient response metadata. Header values are available only to trusted code.

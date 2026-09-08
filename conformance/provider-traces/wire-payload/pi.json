@@ -1,0 +1,670 @@
+{
+  "commit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "v26.8.1",
+  "hashes": {
+    "utils/json-parse.ts": "828440b19a64773f696ced9461166913ddaddd8479697fbde32d3f298872b153",
+    "utils/diagnostics.ts": "d22b4f96a00f032220ff0cc27458c7a525dcec948bdbd2bbb67b4d7598cb395d",
+    "utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "utils/event-stream.ts": "55ddd6e6e4299f377fc3f8876ea9d8073f0051d569f1629f8817ec78e28d64e6",
+    "api/pi-messages.ts": "c8170741db3747d47d0ed46c509d5ae40cb339047bba8b357d208ac8d1b364e6"
+  },
+  "model": {
+    "id": "payload-model",
+    "name": "Payload",
+    "api": "pi-messages",
+    "provider": "pi",
+    "baseUrl": "https://example.invalid/base",
+    "reasoning": false,
+    "input": [
+      "text"
+    ],
+    "cost": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0
+    },
+    "contextWindow": 4096,
+    "maxTokens": 512
+  },
+  "usage": {
+    "input": 0,
+    "output": 0,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "totalTokens": 0,
+    "cost": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "total": 0
+    }
+  },
+  "cases": [
+    {
+      "id": "noop",
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 64,
+      "wire": "{\"model\":\"payload-model\",\"context\":{\"messages\":[]},\"options\":{}}",
+      "sha256": "78582aeaab0029bd5a65759d2c66f90dff0e8e8d1efb45ab3efb20f0f563c2fc",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "replace",
+      "kind": "ordered",
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 150,
+      "wire": "{\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"z\":1,\"01\":\"leading\",\"4294967295\":\"nonindex\",\"a\":100000000000000000000,\"zero\":0,\"rounded\":9007199254740992}",
+      "sha256": "38adf8ccb099889b4fe5b8a04ce6a213414b5fd05d4f317704749d46490c6daf",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "mutate",
+      "kind": "ordered",
+      "mutate": true,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 150,
+      "wire": "{\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"z\":1,\"01\":\"leading\",\"4294967295\":\"nonindex\",\"a\":100000000000000000000,\"zero\":0,\"rounded\":9007199254740992}",
+      "sha256": "38adf8ccb099889b4fe5b8a04ce6a213414b5fd05d4f317704749d46490c6daf",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "large",
+      "size": 1048577,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 1048579,
+      "wire": null,
+      "sha256": "64f74e9ed2280e81efbcb5b8c487a60d3fa61164e446f0f1e541fbd0332c742a",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "large-shrink",
+      "size": 1048577,
+      "shrink": true,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 14,
+      "wire": "{\"small\":true}",
+      "sha256": "178559792c7b8118ef71d209dacc3f67fef3b62c66313e35ddc055ef4ca3fe35",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "depth128",
+      "depth": 128,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 260,
+      "wire": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[null]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "sha256": "9c2ec3e5c558bde9c95f21cd30b81503b5a76ab11f0a1bcbc9e55f45fa38bcf4",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "depth129",
+      "depth": 129,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 262,
+      "wire": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[null]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "sha256": "aea6374322f648efe766b46b158da515b832005c4c2b2ba76de0f3f770bed699",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "depth256",
+      "depth": 256,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 516,
+      "wire": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[null]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "sha256": "f112f4a34c053cf6faeb3f694964da1f5b90f283ff13f11d86cb7332d979faa7",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    },
+    {
+      "id": "depth-shrink",
+      "depth": 256,
+      "shrink": true,
+      "keys": [
+        "model",
+        "context",
+        "options"
+      ],
+      "order": [
+        "payload",
+        "send",
+        "response"
+      ],
+      "bytes": 14,
+      "wire": "{\"small\":true}",
+      "sha256": "178559792c7b8118ef71d209dacc3f67fef3b62c66313e35ddc055ef4ca3fe35",
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "payload-model",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "payload-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      }
+    }
+  ]
+}

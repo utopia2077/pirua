@@ -7,6 +7,7 @@
 ))]
 
 use pi_ai_core::*;
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{
     anthropic_messages::AnthropicMessagesApi, mistral_conversations::MistralApi,
     openai_completions::OpenAICompletionsApi, openai_responses::OpenAIResponsesApi,
@@ -61,8 +62,8 @@ impl PayloadMiddleware for Observed {
     fn on_payload<'a>(
         &'a self,
         _: &'a TextStreamRequest,
-        _: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        _: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         self.order.lock().unwrap().push("payload");
         Box::pin(async { Ok(None) })
     }

@@ -1,6 +1,7 @@
 #![cfg(all(feature = "wire-openai-responses", feature = "wire-openai-completions"))]
 
 use pi_ai_core::*;
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{
     openai_completions::OpenAICompletionsApi, openai_responses::OpenAIResponsesApi, runtime::*,
 };
@@ -101,15 +102,15 @@ impl RawHttpClient for Client {
     }
 }
 struct Hooks {
-    replacement: Option<JsonValue>,
+    replacement: Option<WirePayload>,
     seen: Arc<Seen>,
 }
 impl PayloadMiddleware for Hooks {
     fn on_payload<'a>(
         &'a self,
         _: &'a TextStreamRequest,
-        _: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        _: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async {
             self.seen.order.lock().unwrap().push("payload");
             Ok(self.replacement.clone())
@@ -167,9 +168,7 @@ fn compare(corpus: Value) {
         let seen = Arc::new(Seen::default());
         let host = Arc::new(Host::default());
         let hooks = Arc::new(Hooks {
-            replacement: case
-                .get("replacement")
-                .map(|v| serde_json::from_value(v.clone()).unwrap()),
+            replacement: case.get("replacement").map(|v| WirePayload::new(v.clone())),
             seen: seen.clone(),
         });
         let mut services = AdapterServices::new(Arc::new(

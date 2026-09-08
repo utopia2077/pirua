@@ -1,6 +1,7 @@
 #![cfg(all(feature = "wire-pi-messages", feature = "wire-mistral-conversations"))]
 
 use pi_ai_core::*;
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{
     mistral_conversations::MistralApi, pi_messages::PiMessagesApi, runtime::*,
 };
@@ -80,11 +81,15 @@ impl PayloadMiddleware for Hook {
     fn on_payload<'a>(
         &'a self,
         _: &'a TextStreamRequest,
-        payload: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        payload: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("payload");
-            self.observed.payloads.lock().unwrap().push(json!(payload));
+            self.observed
+                .payloads
+                .lock()
+                .unwrap()
+                .push(json!(payload.as_value()));
             Ok(None)
         })
     }

@@ -1,5 +1,6 @@
 #![cfg(feature = "wire-pi-messages")]
 
+use pi_ai_providers::api::wire_json::WirePayload;
 use std::collections::{BTreeMap, VecDeque};
 use std::future::{Future, pending};
 use std::pin::Pin;
@@ -950,7 +951,7 @@ fn caller_cancellation_discards_partial_output_and_releases_blocked_read() {
 
 struct Hooks {
     observed: Arc<Observed>,
-    replacement: Option<JsonValue>,
+    replacement: Option<WirePayload>,
     fail_payload: bool,
     fail_response: bool,
     block_payload: bool,
@@ -960,8 +961,8 @@ impl PayloadMiddleware for Hooks {
     fn on_payload<'a>(
         &'a self,
         request: &'a TextStreamRequest,
-        payload: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        payload: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("payload");
             assert!(!request.options.runtime.cancellation.is_cancelled());
@@ -972,7 +973,7 @@ impl PayloadMiddleware for Hooks {
             if self.fail_payload {
                 return Err(ModelsError::new(ModelsErrorCode::Provider));
             }
-            *payload = serde_json::from_value(json!({"mutated":true})).unwrap();
+            *payload = WirePayload::new(json!({"mutated":true}));
             Ok(self.replacement.clone())
         })
     }
@@ -1007,7 +1008,7 @@ impl ResponseMiddleware for Hooks {
 fn middleware_mutation_replacement_failure_and_observation_order_are_exact() {
     for (replacement, fail_payload, fail_response, status) in [
         (None, false, false, 200),
-        (Some(JsonValue::Null), false, false, 200),
+        (Some(WirePayload::new(Value::Null)), false, false, 200),
         (None, true, false, 200),
         (None, false, true, 200),
         (None, false, false, 401),

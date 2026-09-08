@@ -770,7 +770,9 @@ async fn run(
             payload_options.insert(name.to_owned(), value);
         }
     }
-    let mut payload: JsonValue = serde_json::from_value(serde_json::json!({ "model": request.resolved.model.id, "context": request.context, "options": payload_options })).map_err(|_| Failure::Protocol)?;
+    let mut payload = super::wire_json::WirePayload::new(
+        serde_json::json!({ "model": request.resolved.model.id, "context": request.context, "options": payload_options }),
+    );
     if let Some(middleware) = &services.payload
         && let Some(replacement) = cancellable(
             middleware.on_payload(request, &mut payload),
@@ -815,7 +817,9 @@ async fn run(
         endpoint: RequestEndpoint::new_resolved(url.as_str()).map_err(|_| Failure::Protocol)?,
         method: "POST".to_owned(),
         headers,
-        body: serde_json::to_vec(&payload).map_err(|_| Failure::Protocol)?,
+        body: super::wire_json::stringify_wire_json_without_fixed_limits(payload.as_value())
+            .map_err(|_| Failure::Protocol)?
+            .into_bytes(),
         proxy: None,
     };
     let mut response = services

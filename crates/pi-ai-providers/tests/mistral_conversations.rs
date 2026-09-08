@@ -1,6 +1,7 @@
 #![cfg(feature = "wire-mistral-conversations")]
 
 use pi_ai_core::*;
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{mistral_conversations::*, runtime::*};
 use pi_ai_transport::*;
 use serde_json::{Value, json};
@@ -298,21 +299,21 @@ impl PayloadMiddleware for Hooks {
     fn on_payload<'a>(
         &'a self,
         _: &'a TextStreamRequest,
-        p: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        p: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("payload");
-            *self.payload.lock().unwrap() = Some(json!(p));
+            *self.payload.lock().unwrap() = Some(json!(p.as_value()));
             if self.block_payload {
                 return pending().await;
             }
             if self.fail {
                 return Err(ModelsError::new(ModelsErrorCode::Stream));
             }
-            let mut p = json!(p);
+            let mut p = json!(p.as_value());
             p["topP"] = json!(0.9);
             p["responseFormat"] = json!({"type":"json_schema","jsonSchema":{"name":"result","schemaDefinition":{"type":"object","properties":{"maxTokens":{"type":"number"}}}}});
-            Ok(Some(serde_json::from_value(p).unwrap()))
+            Ok(Some(WirePayload::new(p)))
         })
     }
 }

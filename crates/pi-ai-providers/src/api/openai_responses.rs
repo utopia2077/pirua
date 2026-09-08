@@ -299,7 +299,7 @@ fn payload(
     options: &OpenAIResponsesOptions,
     cache: CacheRetention,
     grammar: &BTreeMap<String, String>,
-) -> Result<JsonValue, Failure> {
+) -> Result<super::wire_json::WirePayload, Failure> {
     let model = &request.resolved.model;
     let wire = &request.options.wire;
     let mode = if compat_bool(model, "supportsAdditionalTools", false) {
@@ -401,7 +401,7 @@ fn payload(
             params[key] = json!(value);
         }
     }
-    serde_json::from_value(params).map_err(|_| Failure::Setup("payload"))
+    Ok(super::wire_json::WirePayload::new(params))
 }
 
 fn set_header(headers: &mut HttpHeaders, key: &str, value: &str) -> Result<(), Failure> {
@@ -557,7 +557,7 @@ async fn run(
     {
         payload = replacement;
     }
-    let value = serde_json::to_value(&payload).map_err(|_| Failure::Setup("payload"))?;
+    let value = payload.into_value();
     if value.is_null() {
         return Err(Failure::Setup("payload"));
     }

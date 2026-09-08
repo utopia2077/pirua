@@ -2,16 +2,17 @@
 
 use pi_ai_core::ProviderHeaders;
 use pi_ai_core::{
-    ApiAdapter, AssistantMessageEvent, BoxFuture, CancellationToken, Cancelled, Clock, JsonValue,
-    ModelsError, RequestEndpoint, RequestRuntime, ResolvedAuth, ResolvedRequest, SafeUnsigned,
-    SecretString, SimpleStreamOptions, SimpleStreamOptionsWire, SimpleStreamRequest, SpawnError,
-    StopReason, StreamOptions, TaskSpawner, TextStreamRequest, is_context_overflow,
+    ApiAdapter, AssistantMessageEvent, BoxFuture, CancellationToken, Cancelled, Clock, ModelsError,
+    RequestEndpoint, RequestRuntime, ResolvedAuth, ResolvedRequest, SafeUnsigned, SecretString,
+    SimpleStreamOptions, SimpleStreamOptionsWire, SimpleStreamRequest, SpawnError, StopReason,
+    StreamOptions, TaskSpawner, TextStreamRequest, is_context_overflow,
     is_retryable_assistant_error,
 };
 use pi_ai_providers::api::openai_completions::*;
 use pi_ai_providers::api::runtime::{
     AdapterResponseHead, AdapterServices, PayloadMiddleware, ResponseMiddleware,
 };
+use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_transport::{
     HttpHeaders, HttpRequest, HttpResponse, HttpTransport, RawHttpClient, ResponseBody,
     RetryJitter, TransportError,
@@ -1380,7 +1381,7 @@ impl RawHttpClient for Client {
 }
 struct Middleware {
     observed: Arc<Observed>,
-    replacement: Option<JsonValue>,
+    replacement: Option<WirePayload>,
     block_payload: bool,
     block_response: bool,
 }
@@ -1388,8 +1389,8 @@ impl PayloadMiddleware for Middleware {
     fn on_payload<'a>(
         &'a self,
         request: &'a TextStreamRequest,
-        _payload: &'a mut JsonValue,
-    ) -> BoxFuture<'a, Result<Option<JsonValue>, ModelsError>> {
+        _payload: &'a mut WirePayload,
+    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>> {
         Box::pin(async move {
             self.observed.order.lock().unwrap().push("payload");
             self.observed
@@ -1456,9 +1457,7 @@ fn setup(
     });
     let middleware = Arc::new(Middleware {
         observed: observed.clone(),
-        replacement: case
-            .get("replacement")
-            .map(|v| serde_json::from_value(v.clone()).unwrap()),
+        replacement: case.get("replacement").map(|v| WirePayload::new(v.clone())),
         block_payload: false,
         block_response: false,
     });
