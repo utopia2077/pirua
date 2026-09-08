@@ -12,6 +12,7 @@ use std::fmt;
     feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
+    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai"
 ))]
@@ -22,6 +23,7 @@ use std::sync::Arc;
     feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
+    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai"
 ))]
@@ -35,6 +37,7 @@ use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, Tra
     feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
+    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai"
 ))]
@@ -145,6 +148,7 @@ impl fmt::Debug for AdapterServices {
     feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
+    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai"
 ))]

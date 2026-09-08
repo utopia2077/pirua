@@ -9,8 +9,21 @@ pub mod runtime;
 pub mod simple_options;
 pub mod wire_json;
 
-#[cfg(any(feature = "wire-openai-responses", feature = "wire-openai-completions"))]
+#[cfg(any(
+    feature = "wire-openai-responses",
+    feature = "wire-openai-completions",
+    feature = "wire-azure-openai-responses"
+))]
 mod openai_sdk_strings;
+
+#[cfg(any(
+    feature = "wire-openai-responses",
+    feature = "wire-azure-openai-responses"
+))]
+mod openai_sdk;
+
+#[cfg(feature = "wire-azure-openai-responses")]
+pub mod azure_openai_responses;
 
 #[cfg(feature = "wire-openai-responses")]
 pub mod openai_responses;
