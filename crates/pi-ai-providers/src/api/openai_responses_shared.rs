@@ -145,6 +145,8 @@ pub trait ResponsesServiceTierPolicy: Send + Sync {
 /// Shared streaming controls, separate from HTTP options and terminal ownership.
 #[derive(Default)]
 pub struct OpenAIResponsesStreamOptions<'a> {
+    /// Codex-only completion metadata; ordinary Responses leaves endTurn untouched.
+    pub preserve_end_turn: bool,
     /// Requested service tier, preserving omission and explicit null.
     pub service_tier: Presence<ResponsesServiceTier>,
     /// Grammar tool-name to string-property projection.
@@ -1015,7 +1017,14 @@ impl Processor<'_, '_> {
             "response.output_item.done" => {
                 self.finish_item(output_index(&event)?, &event["item"])?
             }
-            "response.completed" | "response.incomplete" => self.finalize(&event["response"])?,
+            "response.completed" | "response.incomplete" => {
+                if self.options.preserve_end_turn
+                    && let Some(value) = event["response"]["end_turn"].as_bool()
+                {
+                    self.output.end_turn = Some(value);
+                }
+                self.finalize(&event["response"])?;
+            }
             "error" | "response.failed" => {
                 let raw = if kind == "error" {
                     format!(

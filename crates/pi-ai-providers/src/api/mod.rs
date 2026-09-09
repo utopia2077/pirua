@@ -55,3 +55,6 @@ pub mod google_vertex;
 
 #[cfg(feature = "wire-bedrock-converse-stream")]
 pub mod bedrock_converse_stream;
+
+#[cfg(feature = "wire-openai-codex-responses")]
+pub mod openai_codex_responses;

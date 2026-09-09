@@ -619,6 +619,7 @@ async fn run(
             streaming,
             max_stream_bytes,
             stream_options: OpenAIResponsesStreamOptions {
+                preserve_end_turn: false,
                 service_tier: options.service_tier.clone(),
                 grammar_tool_input_properties: Some(&grammar),
                 service_tier_policy: Some(&Pricing(&request.resolved.model)),

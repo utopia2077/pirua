@@ -1,0 +1,416 @@
+{
+  "node": "v26.8.1",
+  "zlib": "1.3.2.1-motley-8002e91",
+  "evidence": "Actual persistent Node raw-DEFLATE chunks; complete Codex event records; no dictionary reset between messages or turns.",
+  "groups": [
+    [
+      {
+        "event": {
+          "type": "response.created",
+          "response": {
+            "id": "r1"
+          }
+        },
+        "deflate": [
+          170,
+          86,
+          42,
+          169,
+          44,
+          72,
+          85,
+          178,
+          82,
+          42,
+          74,
+          45,
+          46,
+          200,
+          207,
+          43,
+          78,
+          213,
+          75,
+          46,
+          74,
+          77,
+          44,
+          73,
+          77,
+          81,
+          210,
+          129,
+          11,
+          41,
+          89,
+          85,
+          43,
+          101,
+          166,
+          128,
+          212,
+          24,
+          42,
+          213,
+          214,
+          2,
+          0
+        ]
+      },
+      {
+        "event": {
+          "type": "response.output_item.added",
+          "output_index": 0,
+          "item": {
+            "type": "message",
+            "id": "m-r1",
+            "role": "assistant",
+            "content": []
+          }
+        },
+        "deflate": [
+          170,
+          198,
+          208,
+          145,
+          95,
+          90,
+          82,
+          80,
+          90,
+          18,
+          159,
+          89,
+          146,
+          154,
+          171,
+          151,
+          152,
+          146,
+          2,
+          214,
+          11,
+          19,
+          203,
+          75,
+          73,
+          173,
+          80,
+          178,
+          50,
+          208,
+          81,
+          2,
+          201,
+          130,
+          12,
+          130,
+          106,
+          206,
+          77,
+          45,
+          46,
+          78,
+          76,
+          79,
+          85,
+          210,
+          129,
+          152,
+          156,
+          171,
+          91,
+          100,
+          8,
+          178,
+          49,
+          63,
+          7,
+          36,
+          153,
+          88,
+          92,
+          156,
+          89,
+          92,
+          146,
+          152,
+          87,
+          162,
+          164,
+          163,
+          148,
+          156,
+          159,
+          87,
+          146,
+          154,
+          87,
+          162,
+          100,
+          21,
+          29,
+          91,
+          91,
+          11,
+          0
+        ]
+      },
+      {
+        "event": {
+          "type": "response.output_item.done",
+          "output_index": 0,
+          "item": {
+            "type": "message",
+            "id": "m-r1",
+            "role": "assistant",
+            "status": "completed",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Hello"
+              }
+            ]
+          }
+        },
+        "deflate": [
+          194,
+          111,
+          119,
+          74,
+          126,
+          94,
+          42,
+          53,
+          173,
+          46,
+          46,
+          73,
+          44,
+          41,
+          45,
+          86,
+          178,
+          82,
+          74,
+          206,
+          207,
+          45,
+          200,
+          73,
+          133,
+          4,
+          10,
+          194,
+          61,
+          112,
+          3,
+          161,
+          22,
+          150,
+          164,
+          86,
+          128,
+          116,
+          129,
+          41,
+          43,
+          37,
+          143,
+          212,
+          156,
+          156,
+          124,
+          165,
+          90,
+          160,
+          163,
+          1,
+          0
+        ]
+      },
+      {
+        "event": {
+          "type": "response.completed",
+          "response": {
+            "id": "r1",
+            "status": "completed",
+            "end_turn": false,
+            "usage": {
+              "input_tokens": 17,
+              "output_tokens": 1,
+              "total_tokens": 18
+            }
+          }
+        },
+        "deflate": [
+          194,
+          116,
+          52,
+          178,
+          121,
+          216,
+          2,
+          25,
+          135,
+          213,
+          169,
+          121,
+          41,
+          241,
+          37,
+          165,
+          69,
+          121,
+          74,
+          86,
+          105,
+          137,
+          57,
+          197,
+          169,
+          58,
+          74,
+          165,
+          96,
+          127,
+          128,
+          52,
+          230,
+          129,
+          29,
+          144,
+          159,
+          157,
+          154,
+          87,
+          172,
+          100,
+          101,
+          104,
+          14,
+          15,
+          4,
+          184,
+          144,
+          142,
+          82,
+          73,
+          126,
+          73,
+          98,
+          14,
+          66,
+          192,
+          162,
+          182,
+          182,
+          22,
+          0
+        ]
+      }
+    ],
+    [
+      {
+        "event": {
+          "type": "response.created",
+          "response": {
+            "id": "r2"
+          }
+        },
+        "deflate": [
+          194,
+          226,
+          50,
+          60,
+          145,
+          111,
+          4,
+          140,
+          124,
+          0,
+          0
+        ]
+      },
+      {
+        "event": {
+          "type": "response.output_item.added",
+          "output_index": 0,
+          "item": {
+            "type": "message",
+            "id": "m-r2",
+            "role": "assistant",
+            "content": []
+          }
+        },
+        "deflate": [
+          162,
+          85,
+          228,
+          27,
+          17,
+          17,
+          249,
+          0,
+          0
+        ]
+      },
+      {
+        "event": {
+          "type": "response.output_item.done",
+          "output_index": 0,
+          "item": {
+            "type": "message",
+            "id": "m-r2",
+            "role": "assistant",
+            "status": "completed",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Hello"
+              }
+            ]
+          }
+        },
+        "deflate": [
+          162,
+          81,
+          228,
+          227,
+          176,
+          154,
+          74,
+          145,
+          15,
+          0
+        ]
+      },
+      {
+        "event": {
+          "type": "response.completed",
+          "response": {
+            "id": "r2",
+            "status": "completed",
+            "end_turn": false,
+            "usage": {
+              "input_tokens": 17,
+              "output_tokens": 1,
+              "total_tokens": 18
+            }
+          }
+        },
+        "deflate": [
+          34,
+          53,
+          242,
+          141,
+          232,
+          22,
+          249,
+          0,
+          0
+        ]
+      }
+    ]
+  ]
+}

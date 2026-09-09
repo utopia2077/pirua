@@ -1,6 +1,7 @@
 //! Explicit request policy and incremental network ports.
 //! All raw wire values are transient, non-Serde and redacted in Debug.
 
+mod codex_retry;
 mod fetch;
 mod fetch_content;
 mod fetch_request;
@@ -21,6 +22,7 @@ mod smithy_retry;
 mod sse;
 mod websocket;
 
+pub use codex_retry::*;
 pub use fetch::FetchRedirectMode;
 pub use fetch_content::{FetchContentLimits, FetchResponseSource};
 pub use fetch_request::*;

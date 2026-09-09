@@ -12,6 +12,7 @@ workspace = true
 [features]
 default = []
 cloudflare-gateway-binding = ["dep:url", "serde_json/unbounded_depth"]
+wire-openai-codex-responses = ["dep:url"]
 wire-pi-messages = ["dep:url"]
 wire-mistral-conversations = ["dep:url"]
 wire-anthropic-messages = ["dep:url"]

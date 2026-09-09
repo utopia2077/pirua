@@ -658,6 +658,7 @@ async fn run(
             streaming: value.get("stream").is_some_and(truthy),
             max_stream_bytes: limit,
             stream_options: OpenAIResponsesStreamOptions {
+                preserve_end_turn: false,
                 grammar_tool_input_properties: Some(&grammar),
                 ..Default::default()
             },

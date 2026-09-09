@@ -18,6 +18,7 @@ pub use response_record::{ResponseHeaderRecord, ResponseHeaderValue};
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
+    feature = "wire-openai-codex-responses",
     feature = "wire-google-vertex",
     feature = "wire-bedrock-converse-stream"
 ))]
@@ -31,6 +32,7 @@ use std::sync::Arc;
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
+    feature = "wire-openai-codex-responses",
     feature = "wire-google-vertex",
     feature = "wire-bedrock-converse-stream"
 ))]
@@ -48,6 +50,7 @@ use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, Tra
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
+    feature = "wire-openai-codex-responses",
     feature = "wire-google-vertex",
     feature = "wire-bedrock-converse-stream"
 ))]
@@ -214,6 +217,7 @@ impl<P> fmt::Debug for AdapterServices<P> {
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
+    feature = "wire-openai-codex-responses",
     feature = "wire-google-vertex",
     feature = "wire-bedrock-converse-stream"
 ))]
