@@ -319,7 +319,10 @@ impl MistralApi {
                 &reducer.partial,
             )?));
         }
-        if matches!(response.status, 204 | 205) {
+        if matches!(response.status, 204 | 205)
+            || response.body.presence() == pi_ai_transport::ResponseBodyPresence::Absent
+        {
+            response.body.close();
             return Err(Failure::Protocol);
         }
         reducer.emit(

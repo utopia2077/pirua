@@ -1,0 +1,40 @@
+{
+  "node": "26.8.1",
+  "cases": [
+    {
+      "method": "POST",
+      "status": 200,
+      "absent": false
+    },
+    {
+      "method": "POST",
+      "status": 204,
+      "absent": true
+    },
+    {
+      "method": "POST",
+      "status": 205,
+      "absent": true
+    },
+    {
+      "method": "POST",
+      "status": 304,
+      "absent": true
+    },
+    {
+      "method": "HEAD",
+      "status": 200,
+      "absent": true
+    }
+  ],
+  "constructed": [
+    {
+      "absent": false,
+      "observed": false
+    },
+    {
+      "absent": true,
+      "observed": true
+    }
+  ]
+}

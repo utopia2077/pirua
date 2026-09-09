@@ -581,7 +581,10 @@ async fn run(
                 return Err(Failure::plain("non_streaming_response"));
             }
         } else {
-            if matches!(response.status, 204 | 205) {
+            if matches!(response.status, 204 | 205)
+                || response.body.presence() == pi_ai_transport::ResponseBodyPresence::Absent
+            {
+                response.body.close();
                 return Err(Failure::plain("no_body"));
             }
             let mut decoder = SseDecoder::new(SseProfile::OpenAI, services.sse_limits);

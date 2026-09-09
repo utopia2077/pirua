@@ -228,9 +228,38 @@ impl fmt::Debug for HttpResponse {
     }
 }
 
+/// Immutable construction-time Fetch body presence; EOF/close do not alter it.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum ResponseBodyPresence {
+    #[default]
+    Present,
+    Absent,
+}
+
+/// Explicit absent body for trusted preconstructed responses.
+#[derive(Default, Debug)]
+pub struct AbsentResponseBody;
+impl ResponseBody for AbsentResponseBody {
+    fn presence(&self) -> ResponseBodyPresence {
+        ResponseBodyPresence::Absent
+    }
+    fn next<'a>(
+        &'a mut self,
+        _: &'a RequestRuntime,
+    ) -> BoxFuture<'a, Result<Option<Vec<u8>>, TransportError>> {
+        Box::pin(async { Ok(None) })
+    }
+    fn close(&mut self) {}
+}
+
 /// An incremental owned body. Dropping a pending next future abandons that read;
 /// closing/dropping the body releases the connection. It never restarts a request.
 pub trait ResponseBody: Send {
+    /// This construction fact must remain stable through EOF and close.
+    fn presence(&self) -> ResponseBodyPresence {
+        ResponseBodyPresence::Present
+    }
+
     fn next<'a>(
         &'a mut self,
         runtime: &'a RequestRuntime,

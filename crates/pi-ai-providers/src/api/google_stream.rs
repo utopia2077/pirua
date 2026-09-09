@@ -469,7 +469,9 @@ impl GoogleGenAiApi {
             },
         )?;
         let result = async {
-            if matches!(response.status, 204 | 205) {
+            if matches!(response.status, 204 | 205)
+                || response.body.presence() == pi_ai_transport::ResponseBodyPresence::Absent
+            {
                 return Err(Failure::message(
                     None,
                     "Response body is empty",

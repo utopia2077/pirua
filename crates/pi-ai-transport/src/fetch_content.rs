@@ -116,7 +116,10 @@ pub(crate) fn response(
         || matches!(response.status, 101 | 103 | 204 | 205 | 304)
     {
         response.body.close();
-        response.body = Box::new(EmptyBody);
+        response.body = Box::new(crate::AbsentResponseBody);
+        return Ok(response);
+    }
+    if response.body.presence() == crate::ResponseBodyPresence::Absent {
         return Ok(response);
     }
     let header = response
@@ -173,16 +176,6 @@ pub(crate) fn response(
         });
     }
     Ok(response)
-}
-struct EmptyBody;
-impl ResponseBody for EmptyBody {
-    fn next<'a>(
-        &'a mut self,
-        _: &'a RequestRuntime,
-    ) -> BoxFuture<'a, Result<Option<Vec<u8>>, TransportError>> {
-        Box::pin(async { Ok(None) })
-    }
-    fn close(&mut self) {}
 }
 #[derive(Clone, Copy)]
 enum Kind {

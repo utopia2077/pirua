@@ -399,7 +399,7 @@ pub(super) async fn execute(
         family,
     } = execution;
     let runtime = &request.options.runtime;
-    let (response, buffered) = services
+    let (mut response, buffered) = services
         .transport
         .retry_provider_request(
             runtime,
@@ -446,7 +446,10 @@ pub(super) async fn execute(
             _ => return Err(Failure::Setup("non_streaming_response")),
         }
     } else {
-        if matches!(response.status, 204 | 205) {
+        if matches!(response.status, 204 | 205)
+            || response.body.presence() == pi_ai_transport::ResponseBodyPresence::Absent
+        {
+            response.body.close();
             return Err(Failure::Setup("no_body"));
         }
         Box::new(SseSource {

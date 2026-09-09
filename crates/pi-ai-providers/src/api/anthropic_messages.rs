@@ -437,7 +437,10 @@ impl AnthropicMessagesApi {
                 partial: Box::new(reducer.partial.clone()),
             },
         )?;
-        if matches!(response.status, 204 | 205) {
+        if matches!(response.status, 204 | 205)
+            || response.body.presence() == pi_ai_transport::ResponseBodyPresence::Absent
+        {
+            response.body.close();
             return Err(Failure::Protocol);
         }
         // This is the pinned adapter's private parser profile, NOT the SDK's

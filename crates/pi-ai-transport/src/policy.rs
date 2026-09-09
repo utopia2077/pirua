@@ -488,6 +488,9 @@ struct PolicyBody {
     runtime: RequestRuntime,
 }
 impl ResponseBody for PolicyBody {
+    fn presence(&self) -> crate::ResponseBodyPresence {
+        self.inner.presence()
+    }
     fn next<'a>(
         &'a mut self,
         _runtime: &'a RequestRuntime,
