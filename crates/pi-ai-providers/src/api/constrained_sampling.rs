@@ -307,6 +307,95 @@ pub fn get_json_schema_tool_parameters(
     }
 }
 
+/// Derives an ordered wire schema from the admitted canonical DTO input.
+/// Existing strict validation owns the exact subset, error categories and bounds;
+/// this projection changes only the representation of source mutation order.
+pub fn make_strict_wire_json_schema(
+    schema: &JsonSchema,
+) -> Result<super::wire_json::WirePayload, ConstrainedSamplingError> {
+    // Validate before constructing the second representation. The canonical
+    // helper remains unchanged for DTO consumers and its result is released here.
+    drop(make_strict_json_schema(schema)?);
+    let mut value =
+        serde_json::to_value(schema).map_err(|_| ConstrainedSamplingError::ResourceLimit)?;
+    strict_wire_node(&mut value);
+    Ok(super::wire_json::WirePayload::new(value))
+}
+
+/// Owns ordered parameters for wire consumers. Nonstrict input is copied without
+/// a new schema/serialization cap, matching the existing borrowed helper's domain.
+pub fn get_wire_json_schema_tool_parameters(
+    tool: &Tool,
+    strict: Option<bool>,
+) -> Result<super::wire_json::WirePayload, ConstrainedSamplingError> {
+    if strict == Some(true) {
+        make_strict_wire_json_schema(&tool.parameters)
+    } else {
+        serde_json::to_value(&tool.parameters)
+            .map(super::wire_json::WirePayload::new)
+            .map_err(|_| ConstrainedSamplingError::ResourceLimit)
+    }
+}
+
+fn wire_allows_null(schema: &serde_json::Value) -> bool {
+    use serde_json::Value;
+    schema.get("type").is_some_and(|v| {
+        v == "null"
+            || v.as_array()
+                .is_some_and(|values| values.iter().any(|v| v == "null"))
+    }) || schema.get("const").is_some_and(Value::is_null)
+        || schema
+            .get("enum")
+            .and_then(Value::as_array)
+            .is_some_and(|values| values.iter().any(Value::is_null))
+        || schema
+            .get("anyOf")
+            .and_then(Value::as_array)
+            .is_some_and(|values| values.iter().any(wire_allows_null))
+}
+
+// The canonical helper has already validated every active node. Only source
+// applicators are traversed: default/enum/const/examples/unknown fields stay data.
+fn strict_wire_node(value: &mut serde_json::Value) {
+    use serde_json::{Value, json};
+    if let Some(variants) = value.get_mut("anyOf").and_then(Value::as_array_mut) {
+        for variant in variants {
+            strict_wire_node(variant);
+        }
+    }
+    if let Some(items) = value.get_mut("items") {
+        strict_wire_node(items);
+    }
+    if value.get("type").is_none_or(|kind| kind != "object") {
+        return;
+    }
+    let required: BTreeSet<String> = value
+        .get("required")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::to_owned)
+        .collect();
+    let mut names = Vec::new();
+    if let Some(properties) = value.get_mut("properties").and_then(Value::as_object_mut) {
+        names.extend(properties.keys().cloned());
+        // Numeric own keys precede other keys in Object.keys. Stable sorting
+        // leaves nonnumeric names in their admitted canonical input order.
+        names.sort_by_key(|name| array_index(name).map_or((1, 0), |n| (0, n)));
+        for (name, property) in properties {
+            strict_wire_node(property);
+            if !required.contains(name) && !wire_allows_null(property) {
+                *property = json!({"anyOf":[std::mem::take(property),{"type":"null"}]});
+            }
+        }
+    }
+    // Map::insert replaces an existing slot, or appends an absent key. Do not
+    // route the converted value through the canonical JsonObject representation.
+    value["required"] = json!(names);
+    value["additionalProperties"] = Value::Bool(false);
+}
+
 /// Resolves prefer/require without conflating unsupported schemas and resource limits.
 pub fn resolve_json_schema_strict_sampling(
     tool: &Tool,

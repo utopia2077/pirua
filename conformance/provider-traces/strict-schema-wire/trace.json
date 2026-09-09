@@ -1,0 +1,522 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "path": "packages/ai/src/api/constrained-sampling.ts",
+  "sha256": "1b869f139e5cd1f09b4ebecb8f7ce9ea44b63e75dc6d6158ac8f5d00f2eaddbb",
+  "evidence": "Complete pinned helper on canonical DTO inputs; no helper reimplementation in source oracle.",
+  "cases": [
+    {
+      "id": "append-additional",
+      "inputJson": "{\"properties\":{\"x\":{\"type\":\"string\"}},\"required\":[\"x\"],\"type\":\"object\"}",
+      "input": {
+        "properties": {
+          "x": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "x"
+        ],
+        "type": "object"
+      },
+      "expected": {
+        "properties": {
+          "x": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "x"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"properties\":{\"x\":{\"type\":\"string\"}},\"required\":[\"x\"],\"type\":\"object\",\"additionalProperties\":false}"
+    },
+    {
+      "id": "existing-additional",
+      "inputJson": "{\"additionalProperties\":false,\"properties\":{\"x\":{\"type\":\"string\"}},\"required\":[\"x\"],\"type\":\"object\"}",
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "x"
+        ],
+        "type": "object"
+      },
+      "expected": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "x"
+        ],
+        "type": "object"
+      },
+      "expectedJson": "{\"additionalProperties\":false,\"properties\":{\"x\":{\"type\":\"string\"}},\"required\":[\"x\"],\"type\":\"object\"}"
+    },
+    {
+      "id": "append-both",
+      "inputJson": "{\"properties\":{\"x\":{\"type\":\"string\"}},\"type\":\"object\",\"zzz\":7}",
+      "input": {
+        "properties": {
+          "x": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "zzz": 7
+      },
+      "expected": {
+        "properties": {
+          "x": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "zzz": 7,
+        "required": [
+          "x"
+        ],
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"properties\":{\"x\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]}},\"type\":\"object\",\"zzz\":7,\"required\":[\"x\"],\"additionalProperties\":false}"
+    },
+    {
+      "id": "empty-object",
+      "inputJson": "{\"type\":\"object\",\"zzz\":\"tail\"}",
+      "input": {
+        "type": "object",
+        "zzz": "tail"
+      },
+      "expected": {
+        "type": "object",
+        "zzz": "tail",
+        "required": [],
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"type\":\"object\",\"zzz\":\"tail\",\"required\":[],\"additionalProperties\":false}"
+    },
+    {
+      "id": "empty-properties",
+      "inputJson": "{\"properties\":{},\"type\":\"object\",\"zzz\":\"tail\"}",
+      "input": {
+        "properties": {},
+        "type": "object",
+        "zzz": "tail"
+      },
+      "expected": {
+        "properties": {},
+        "type": "object",
+        "zzz": "tail",
+        "required": [],
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"properties\":{},\"type\":\"object\",\"zzz\":\"tail\",\"required\":[],\"additionalProperties\":false}"
+    },
+    {
+      "id": "nested",
+      "inputJson": "{\"properties\":{\"list\":{\"items\":{\"properties\":{\"z\":{\"type\":\"string\"}},\"type\":\"object\"},\"type\":\"array\"},\"object\":{\"additionalProperties\":false,\"properties\":{\"optional\":{\"description\":\"d\",\"type\":\"number\"}},\"type\":\"object\"},\"union\":{\"anyOf\":[{\"type\":\"integer\"},{\"type\":\"null\"}]}},\"type\":\"object\"}",
+      "input": {
+        "properties": {
+          "list": {
+            "items": {
+              "properties": {
+                "z": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "object": {
+            "additionalProperties": false,
+            "properties": {
+              "optional": {
+                "description": "d",
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "union": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "expected": {
+        "properties": {
+          "list": {
+            "anyOf": [
+              {
+                "items": {
+                  "properties": {
+                    "z": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "z"
+                  ],
+                  "additionalProperties": false
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "object": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "optional": {
+                    "anyOf": [
+                      {
+                        "description": "d",
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "optional"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "union": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "list",
+          "object",
+          "union"
+        ],
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"properties\":{\"list\":{\"anyOf\":[{\"items\":{\"properties\":{\"z\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]}},\"type\":\"object\",\"required\":[\"z\"],\"additionalProperties\":false},\"type\":\"array\"},{\"type\":\"null\"}]},\"object\":{\"anyOf\":[{\"additionalProperties\":false,\"properties\":{\"optional\":{\"anyOf\":[{\"description\":\"d\",\"type\":\"number\"},{\"type\":\"null\"}]}},\"type\":\"object\",\"required\":[\"optional\"]},{\"type\":\"null\"}]},\"union\":{\"anyOf\":[{\"type\":\"integer\"},{\"type\":\"null\"}]}},\"type\":\"object\",\"required\":[\"list\",\"object\",\"union\"],\"additionalProperties\":false}"
+    },
+    {
+      "id": "numeric-names",
+      "inputJson": "{\"properties\":{\"10\":{\"type\":\"string\"},\"2\":{\"type\":\"number\"},\"a\":{\"type\":\"string\"},\"b\":{\"type\":\"boolean\"}},\"required\":[\"b\",\"2\"],\"type\":\"object\"}",
+      "input": {
+        "properties": {
+          "2": {
+            "type": "number"
+          },
+          "10": {
+            "type": "string"
+          },
+          "a": {
+            "type": "string"
+          },
+          "b": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "b",
+          "2"
+        ],
+        "type": "object"
+      },
+      "expected": {
+        "properties": {
+          "2": {
+            "type": "number"
+          },
+          "10": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "a": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "b": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "2",
+          "10",
+          "a",
+          "b"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"properties\":{\"2\":{\"type\":\"number\"},\"10\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]},\"a\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]},\"b\":{\"type\":\"boolean\"}},\"required\":[\"2\",\"10\",\"a\",\"b\"],\"type\":\"object\",\"additionalProperties\":false}"
+    },
+    {
+      "id": "nullable-variants",
+      "inputJson": "{\"properties\":{\"a\":{\"type\":[\"string\",\"null\"]},\"b\":{\"const\":null},\"c\":{\"enum\":[null,1]},\"d\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]},\"e\":{\"type\":\"boolean\"}},\"type\":\"object\"}",
+      "input": {
+        "properties": {
+          "a": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "b": {
+            "const": null
+          },
+          "c": {
+            "enum": [
+              null,
+              1
+            ]
+          },
+          "d": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "e": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "expected": {
+        "properties": {
+          "a": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "b": {
+            "const": null
+          },
+          "c": {
+            "enum": [
+              null,
+              1
+            ]
+          },
+          "d": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "e": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e"
+        ],
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"properties\":{\"a\":{\"type\":[\"string\",\"null\"]},\"b\":{\"const\":null},\"c\":{\"enum\":[null,1]},\"d\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]},\"e\":{\"anyOf\":[{\"type\":\"boolean\"},{\"type\":\"null\"}]}},\"type\":\"object\",\"required\":[\"a\",\"b\",\"c\",\"d\",\"e\"],\"additionalProperties\":false}"
+    },
+    {
+      "id": "metadata-data",
+      "inputJson": "{\"default\":{\"additionalProperties\":true,\"properties\":{\"bad\":true},\"type\":\"object\"},\"examples\":[{\"items\":false}],\"properties\":{\"x\":{\"default\":{\"$ref\":\"not-active\"},\"type\":\"string\"}},\"type\":\"object\"}",
+      "input": {
+        "default": {
+          "additionalProperties": true,
+          "properties": {
+            "bad": true
+          },
+          "type": "object"
+        },
+        "examples": [
+          {
+            "items": false
+          }
+        ],
+        "properties": {
+          "x": {
+            "default": {
+              "$ref": "not-active"
+            },
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "expected": {
+        "default": {
+          "additionalProperties": true,
+          "properties": {
+            "bad": true
+          },
+          "type": "object"
+        },
+        "examples": [
+          {
+            "items": false
+          }
+        ],
+        "properties": {
+          "x": {
+            "anyOf": [
+              {
+                "default": {
+                  "$ref": "not-active"
+                },
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "x"
+        ],
+        "additionalProperties": false
+      },
+      "expectedJson": "{\"default\":{\"additionalProperties\":true,\"properties\":{\"bad\":true},\"type\":\"object\"},\"examples\":[{\"items\":false}],\"properties\":{\"x\":{\"anyOf\":[{\"default\":{\"$ref\":\"not-active\"},\"type\":\"string\"},{\"type\":\"null\"}]}},\"type\":\"object\",\"required\":[\"x\"],\"additionalProperties\":false}"
+    },
+    {
+      "id": "existing-slots-nested",
+      "inputJson": "{\"additionalProperties\":false,\"properties\":{\"x\":{\"additionalProperties\":false,\"properties\":{\"a\":{\"type\":\"string\"}},\"required\":[],\"type\":\"object\",\"zzz\":9}},\"required\":[],\"type\":\"object\",\"zzz\":1}",
+      "input": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "additionalProperties": false,
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            },
+            "required": [],
+            "type": "object",
+            "zzz": 9
+          }
+        },
+        "required": [],
+        "type": "object",
+        "zzz": 1
+      },
+      "expected": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "a": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "a"
+                ],
+                "type": "object",
+                "zzz": 9
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "x"
+        ],
+        "type": "object",
+        "zzz": 1
+      },
+      "expectedJson": "{\"additionalProperties\":false,\"properties\":{\"x\":{\"anyOf\":[{\"additionalProperties\":false,\"properties\":{\"a\":{\"anyOf\":[{\"type\":\"string\"},{\"type\":\"null\"}]}},\"required\":[\"a\"],\"type\":\"object\",\"zzz\":9},{\"type\":\"null\"}]}},\"required\":[\"x\"],\"type\":\"object\",\"zzz\":1}"
+    }
+  ]
+}

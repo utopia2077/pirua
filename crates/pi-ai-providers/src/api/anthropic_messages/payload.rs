@@ -3,7 +3,9 @@ use super::{
     ecma_whitespace,
 };
 use crate::api::{
-    constrained_sampling::{get_json_schema_tool_parameters, resolve_json_schema_strict_sampling},
+    constrained_sampling::{
+        get_wire_json_schema_tool_parameters, resolve_json_schema_strict_sampling,
+    },
     runtime::AdapterServices,
 };
 use pi_ai_core::*;
@@ -443,8 +445,8 @@ fn convert_tools(
 ) -> Result<Vec<Value>, Failure> {
     tools.iter().enumerate().map(|(index,tool)|{
         let strict=resolve_json_schema_strict_sampling(tool,c.supports_strict_tools.unwrap_or(false)).map_err(|_|Failure::Protocol)?;
-        let parameters=get_json_schema_tool_parameters(tool,strict).map_err(|_|Failure::Protocol)?;
-        let parameters=serde_json::to_value(parameters).map_err(|_|Failure::Protocol)?;
+        let parameters=get_wire_json_schema_tool_parameters(tool,strict).map_err(|_|Failure::Protocol)?;
+        let parameters=parameters.into_value();
         let mut schema=if strict==Some(true){parameters.clone()}else{json!({})};
         schema["type"]=json!("object");schema["properties"]=parameters.get("properties").filter(|v|!v.is_null()).cloned().unwrap_or(json!({}));
         schema["required"]=parameters.get("required").filter(|v|!v.is_null()).cloned().unwrap_or(json!([]));

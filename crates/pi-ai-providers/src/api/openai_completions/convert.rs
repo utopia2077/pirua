@@ -9,8 +9,8 @@ use serde_json::{Value, json};
 
 use super::CompletionsError;
 use crate::api::constrained_sampling::{
-    get_grammar_tool_input, get_json_schema_tool_parameters, resolve_grammar_constrained_sampling,
-    resolve_json_schema_strict_sampling,
+    get_grammar_tool_input, get_wire_json_schema_tool_parameters,
+    resolve_grammar_constrained_sampling, resolve_json_schema_strict_sampling,
 };
 use crate::api::wire_json::stringify_wire_json;
 
@@ -193,8 +193,8 @@ pub(super) fn convert_tools(
             return Ok(json!({"type":"custom","custom":{"name":tool.name,"description":tool.description,"format":{"type":"grammar","grammar":{"syntax":g.format,"definition":g.definition}}}}));
         }
         let strict = resolve_json_schema_strict_sampling(tool, compat.flag("supportsStrictMode")).map_err(|_| CompletionsError::Conversion)?;
-        let params = get_json_schema_tool_parameters(tool, strict).map_err(|_| CompletionsError::Conversion)?;
-        let mut value = json!({"type":"function","function":{"name":tool.name,"description":tool.description,"parameters":params}});
+        let params = get_wire_json_schema_tool_parameters(tool, strict).map_err(|_| CompletionsError::Conversion)?;
+        let mut value = json!({"type":"function","function":{"name":tool.name,"description":tool.description,"parameters":params.as_value()}});
         if compat.flag("supportsStrictMode") {value["function"]["strict"] = json!(strict.unwrap_or(false));}
         Ok(value)
     }).collect()

@@ -25,8 +25,8 @@ use super::wire_json::{WireJsonError, project_wire_safe_unsigned, stringify_wire
 
 use super::constrained_sampling::{
     ConstrainedSamplingError, GrammarToolInputJsonBuffer, append_grammar_tool_input_json_delta,
-    get_grammar_tool_input, get_json_schema_tool_parameters, resolve_grammar_constrained_sampling,
-    resolve_json_schema_strict_sampling,
+    get_grammar_tool_input, get_wire_json_schema_tool_parameters,
+    resolve_grammar_constrained_sampling, resolve_json_schema_strict_sampling,
 };
 
 /// Failure categories without provider-controlled text.
@@ -215,12 +215,12 @@ pub fn convert_responses_tools(
                 Presence::Missing => Presence::Value(false),
                 _ => options.strict.clone(),
             });
-            let parameters = get_json_schema_tool_parameters(
+            let parameters = get_wire_json_schema_tool_parameters(
                 tool, Some(matches!(strict, Presence::Value(true))),
             ).map_err(helper_error)?;
             let mut wire = json!({
                 "type":"function", "name":tool.name, "description":tool.description,
-                "parameters":parameters
+                "parameters":parameters.as_value()
             });
             if supports_strict {
                 wire["strict"] = serde_json::to_value(strict)

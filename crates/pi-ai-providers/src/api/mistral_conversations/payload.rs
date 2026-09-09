@@ -5,7 +5,7 @@ use serde_json::{Map, Value, json};
 
 use super::{Failure, MistralOptions, ecma_whitespace};
 use crate::api::constrained_sampling::{
-    get_json_schema_tool_parameters, resolve_json_schema_strict_sampling,
+    get_wire_json_schema_tool_parameters, resolve_json_schema_strict_sampling,
 };
 use crate::api::wire_json::stringify_wire_json;
 
@@ -186,9 +186,9 @@ pub(super) fn build(
     {
         let tools = tools.iter().map(|tool| {
             let strict = resolve_json_schema_strict_sampling(tool,true).map_err(|_| Failure::Protocol)?;
-            let parameters = get_json_schema_tool_parameters(tool,strict).map_err(|_| Failure::Protocol)?;
+            let parameters = get_wire_json_schema_tool_parameters(tool,strict).map_err(|_| Failure::Protocol)?;
             Ok(json!({"type":"function","function":{"name":tool.name,"description":tool.description,
-                "parameters":parameters,"strict":strict.unwrap_or(false)}}))
+                "parameters":parameters.as_value(),"strict":strict.unwrap_or(false)}}))
         }).collect::<Result<Vec<_>,Failure>>()?;
         result["tools"] = json!(tools);
     }

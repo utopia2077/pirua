@@ -19,7 +19,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::constrained_sampling::{
-    ConstrainedSamplingError, get_json_schema_tool_parameters, resolve_json_schema_strict_sampling,
+    ConstrainedSamplingError, get_wire_json_schema_tool_parameters,
+    resolve_json_schema_strict_sampling,
 };
 use super::wire_json::{WireJsonError, stringify_wire_json};
 
@@ -355,9 +356,8 @@ pub fn convert_tools(
             check_depth(value, 1)?;
         }
         let strict = resolve_json_schema_strict_sampling(tool, supports_strict_mode)?;
-        let parameters = get_json_schema_tool_parameters(tool, strict)?;
-        let value = serde_json::to_value(parameters.as_ref())
-            .map_err(|_| GoogleSharedError::InvalidProjection)?;
+        let parameters = get_wire_json_schema_tool_parameters(tool, strict)?;
+        let value = parameters.into_value();
         stringify_wire_json(&value).map_err(GoogleSharedError::WireJson)?;
         declarations.push(GoogleFunctionDeclaration {
             name: tool.name.as_str().to_owned(),
