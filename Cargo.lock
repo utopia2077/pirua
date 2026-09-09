@@ -1171,6 +1171,7 @@ version = "0.0.0"
 dependencies = [
  "pi-ai-core",
  "pi-ai-transport",
+ "ring",
  "ryu-js",
  "serde",
  "serde_json",

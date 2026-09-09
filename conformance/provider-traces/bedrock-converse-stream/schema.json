@@ -1,0 +1,2245 @@
+{
+  "request": "ConverseStreamRequest",
+  "response": "ConverseStreamOutput",
+  "initialResponse": "ConverseStreamResponse",
+  "graph": {
+    "ConverseStreamRequest": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "modelId",
+          "scalar_0"
+        ],
+        [
+          "messages",
+          "Messages"
+        ],
+        [
+          "system",
+          "SystemContentBlocks"
+        ],
+        [
+          "inferenceConfig",
+          "InferenceConfiguration"
+        ],
+        [
+          "toolConfig",
+          "ToolConfiguration"
+        ],
+        [
+          "guardrailConfig",
+          "GuardrailStreamConfiguration"
+        ],
+        [
+          "additionalModelRequestFields",
+          "scalar_15"
+        ],
+        [
+          "promptVariables",
+          "PromptVariableMap"
+        ],
+        [
+          "additionalModelResponseFieldPaths",
+          "scalar_64"
+        ],
+        [
+          "requestMetadata",
+          "RequestMetadata"
+        ],
+        [
+          "performanceConfig",
+          "PerformanceConfiguration"
+        ],
+        [
+          "serviceTier",
+          "ServiceTier"
+        ],
+        [
+          "outputConfig",
+          "OutputConfig"
+        ]
+      ]
+    },
+    "scalar_0": {
+      "kind": "string"
+    },
+    "Messages": {
+      "kind": "list",
+      "sparse": false,
+      "value": "Message"
+    },
+    "Message": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "role",
+          "scalar_0"
+        ],
+        [
+          "content",
+          "ContentBlocks"
+        ]
+      ]
+    },
+    "ContentBlocks": {
+      "kind": "list",
+      "sparse": false,
+      "value": "ContentBlock"
+    },
+    "ContentBlock": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "image",
+          "ImageBlock"
+        ],
+        [
+          "document",
+          "DocumentBlock"
+        ],
+        [
+          "video",
+          "VideoBlock"
+        ],
+        [
+          "audio",
+          "AudioBlock"
+        ],
+        [
+          "toolUse",
+          "ToolUseBlock"
+        ],
+        [
+          "toolResult",
+          "ToolResultBlock"
+        ],
+        [
+          "guardContent",
+          "GuardrailConverseContentBlock"
+        ],
+        [
+          "cachePoint",
+          "CachePointBlock"
+        ],
+        [
+          "reasoningContent",
+          "ReasoningContentBlock"
+        ],
+        [
+          "citationsContent",
+          "CitationsContentBlock"
+        ],
+        [
+          "searchResult",
+          "SearchResultBlock"
+        ]
+      ]
+    },
+    "ImageBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "format",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "ImageSource"
+        ],
+        [
+          "error",
+          "ErrorBlock"
+        ]
+      ]
+    },
+    "ImageSource": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "bytes",
+          "scalar_21"
+        ],
+        [
+          "s3Location",
+          "S3Location"
+        ]
+      ]
+    },
+    "scalar_21": {
+      "kind": "blob"
+    },
+    "S3Location": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "uri",
+          "scalar_0"
+        ],
+        [
+          "bucketOwner",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ErrorBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "message",
+          "scalar_0"
+        ]
+      ]
+    },
+    "DocumentBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "DocumentSource"
+        ],
+        [
+          "format",
+          "scalar_0"
+        ],
+        [
+          "context",
+          "scalar_0"
+        ],
+        [
+          "citations",
+          "CitationsConfig"
+        ]
+      ]
+    },
+    "DocumentSource": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "bytes",
+          "scalar_21"
+        ],
+        [
+          "s3Location",
+          "S3Location"
+        ],
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "content",
+          "DocumentContentBlocks"
+        ]
+      ]
+    },
+    "DocumentContentBlocks": {
+      "kind": "list",
+      "sparse": false,
+      "value": "DocumentContentBlock"
+    },
+    "DocumentContentBlock": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "CitationsConfig": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "enabled",
+          "scalar_2"
+        ]
+      ]
+    },
+    "scalar_2": {
+      "kind": "boolean"
+    },
+    "VideoBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "format",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "VideoSource"
+        ]
+      ]
+    },
+    "VideoSource": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "bytes",
+          "scalar_21"
+        ],
+        [
+          "s3Location",
+          "S3Location"
+        ]
+      ]
+    },
+    "AudioBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "format",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "AudioSource"
+        ],
+        [
+          "error",
+          "ErrorBlock"
+        ]
+      ]
+    },
+    "AudioSource": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "bytes",
+          "scalar_21"
+        ],
+        [
+          "s3Location",
+          "S3Location"
+        ]
+      ]
+    },
+    "ToolUseBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "toolUseId",
+          "scalar_0"
+        ],
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "input",
+          "scalar_15"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ]
+      ]
+    },
+    "scalar_15": {
+      "kind": "document"
+    },
+    "ToolResultBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "toolUseId",
+          "scalar_0"
+        ],
+        [
+          "content",
+          "ToolResultContentBlocks"
+        ],
+        [
+          "status",
+          "scalar_0"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ToolResultContentBlocks": {
+      "kind": "list",
+      "sparse": false,
+      "value": "ToolResultContentBlock"
+    },
+    "ToolResultContentBlock": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "json",
+          "scalar_15"
+        ],
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "image",
+          "ImageBlock"
+        ],
+        [
+          "document",
+          "DocumentBlock"
+        ],
+        [
+          "video",
+          "VideoBlock"
+        ],
+        [
+          "searchResult",
+          "SearchResultBlock"
+        ]
+      ]
+    },
+    "SearchResultBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "source",
+          "scalar_0"
+        ],
+        [
+          "title",
+          "scalar_0"
+        ],
+        [
+          "content",
+          "SearchResultContentBlocks"
+        ],
+        [
+          "citations",
+          "CitationsConfig"
+        ]
+      ]
+    },
+    "SearchResultContentBlocks": {
+      "kind": "list",
+      "sparse": false,
+      "value": "SearchResultContentBlock"
+    },
+    "SearchResultContentBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailConverseContentBlock": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "GuardrailConverseTextBlock"
+        ],
+        [
+          "image",
+          "GuardrailConverseImageBlock"
+        ]
+      ]
+    },
+    "GuardrailConverseTextBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "qualifiers",
+          "scalar_64"
+        ]
+      ]
+    },
+    "scalar_64": {
+      "kind": "list",
+      "sparse": false,
+      "value": "scalar_0"
+    },
+    "GuardrailConverseImageBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "format",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "GuardrailConverseImageSource"
+        ]
+      ]
+    },
+    "GuardrailConverseImageSource": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "bytes",
+          "scalar_21"
+        ]
+      ]
+    },
+    "CachePointBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "ttl",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ReasoningContentBlock": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "reasoningText",
+          "ReasoningTextBlock"
+        ],
+        [
+          "redactedContent",
+          "scalar_21"
+        ]
+      ]
+    },
+    "ReasoningTextBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "signature",
+          "scalar_0"
+        ]
+      ]
+    },
+    "CitationsContentBlock": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "content",
+          "CitationGeneratedContentList"
+        ],
+        [
+          "citations",
+          "Citations"
+        ]
+      ]
+    },
+    "CitationGeneratedContentList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "CitationGeneratedContent"
+    },
+    "CitationGeneratedContent": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "Citations": {
+      "kind": "list",
+      "sparse": false,
+      "value": "Citation"
+    },
+    "Citation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "title",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "scalar_0"
+        ],
+        [
+          "sourceContent",
+          "CitationSourceContentList"
+        ],
+        [
+          "location",
+          "CitationLocation"
+        ]
+      ]
+    },
+    "CitationSourceContentList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "CitationSourceContent"
+    },
+    "CitationSourceContent": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "CitationLocation": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "web",
+          "WebLocation"
+        ],
+        [
+          "documentChar",
+          "DocumentCharLocation"
+        ],
+        [
+          "documentPage",
+          "DocumentPageLocation"
+        ],
+        [
+          "documentChunk",
+          "DocumentChunkLocation"
+        ],
+        [
+          "searchResultLocation",
+          "SearchResultLocation"
+        ]
+      ]
+    },
+    "WebLocation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "url",
+          "scalar_0"
+        ],
+        [
+          "domain",
+          "scalar_0"
+        ]
+      ]
+    },
+    "DocumentCharLocation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "documentIndex",
+          "scalar_1"
+        ],
+        [
+          "start",
+          "scalar_1"
+        ],
+        [
+          "end",
+          "scalar_1"
+        ]
+      ]
+    },
+    "scalar_1": {
+      "kind": "number"
+    },
+    "DocumentPageLocation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "documentIndex",
+          "scalar_1"
+        ],
+        [
+          "start",
+          "scalar_1"
+        ],
+        [
+          "end",
+          "scalar_1"
+        ]
+      ]
+    },
+    "DocumentChunkLocation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "documentIndex",
+          "scalar_1"
+        ],
+        [
+          "start",
+          "scalar_1"
+        ],
+        [
+          "end",
+          "scalar_1"
+        ]
+      ]
+    },
+    "SearchResultLocation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "searchResultIndex",
+          "scalar_1"
+        ],
+        [
+          "start",
+          "scalar_1"
+        ],
+        [
+          "end",
+          "scalar_1"
+        ]
+      ]
+    },
+    "SystemContentBlocks": {
+      "kind": "list",
+      "sparse": false,
+      "value": "SystemContentBlock"
+    },
+    "SystemContentBlock": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "guardContent",
+          "GuardrailConverseContentBlock"
+        ],
+        [
+          "cachePoint",
+          "CachePointBlock"
+        ]
+      ]
+    },
+    "InferenceConfiguration": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "maxTokens",
+          "scalar_1"
+        ],
+        [
+          "temperature",
+          "scalar_1"
+        ],
+        [
+          "topP",
+          "scalar_1"
+        ],
+        [
+          "stopSequences",
+          "scalar_64"
+        ]
+      ]
+    },
+    "ToolConfiguration": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "tools",
+          "Tools"
+        ],
+        [
+          "toolChoice",
+          "ToolChoice"
+        ]
+      ]
+    },
+    "Tools": {
+      "kind": "list",
+      "sparse": false,
+      "value": "Tool"
+    },
+    "Tool": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "toolSpec",
+          "ToolSpecification"
+        ],
+        [
+          "systemTool",
+          "SystemTool"
+        ],
+        [
+          "cachePoint",
+          "CachePointBlock"
+        ]
+      ]
+    },
+    "ToolSpecification": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "inputSchema",
+          "ToolInputSchema"
+        ],
+        [
+          "description",
+          "scalar_0"
+        ],
+        [
+          "strict",
+          "scalar_2"
+        ]
+      ]
+    },
+    "ToolInputSchema": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "json",
+          "scalar_15"
+        ]
+      ]
+    },
+    "SystemTool": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "name",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ToolChoice": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "auto",
+          "AutoToolChoice"
+        ],
+        [
+          "any",
+          "AnyToolChoice"
+        ],
+        [
+          "tool",
+          "SpecificToolChoice"
+        ]
+      ]
+    },
+    "AutoToolChoice": {
+      "kind": "struct",
+      "union": false,
+      "fields": []
+    },
+    "AnyToolChoice": {
+      "kind": "struct",
+      "union": false,
+      "fields": []
+    },
+    "SpecificToolChoice": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "name",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailStreamConfiguration": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "guardrailIdentifier",
+          "scalar_0"
+        ],
+        [
+          "guardrailVersion",
+          "scalar_0"
+        ],
+        [
+          "trace",
+          "scalar_0"
+        ],
+        [
+          "streamProcessingMode",
+          "scalar_0"
+        ]
+      ]
+    },
+    "PromptVariableMap": {
+      "kind": "map",
+      "sparse": false,
+      "value": "PromptVariableValues"
+    },
+    "PromptVariableValues": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "RequestMetadata": {
+      "kind": "map",
+      "sparse": false,
+      "value": "scalar_0"
+    },
+    "PerformanceConfiguration": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "latency",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ServiceTier": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "type",
+          "scalar_0"
+        ]
+      ]
+    },
+    "OutputConfig": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "textFormat",
+          "OutputFormat"
+        ]
+      ]
+    },
+    "OutputFormat": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "structure",
+          "OutputFormatStructure"
+        ]
+      ]
+    },
+    "OutputFormatStructure": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "jsonSchema",
+          "JsonSchemaDefinition"
+        ]
+      ]
+    },
+    "JsonSchemaDefinition": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "schema",
+          "scalar_0"
+        ],
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "description",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ConverseStreamOutput": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "messageStart",
+          "MessageStartEvent"
+        ],
+        [
+          "contentBlockStart",
+          "ContentBlockStartEvent"
+        ],
+        [
+          "contentBlockDelta",
+          "ContentBlockDeltaEvent"
+        ],
+        [
+          "contentBlockStop",
+          "ContentBlockStopEvent"
+        ],
+        [
+          "messageStop",
+          "MessageStopEvent"
+        ],
+        [
+          "metadata",
+          "ConverseStreamMetadataEvent"
+        ],
+        [
+          "internalServerException",
+          "InternalServerException"
+        ],
+        [
+          "modelStreamErrorException",
+          "ModelStreamErrorException"
+        ],
+        [
+          "validationException",
+          "ValidationException"
+        ],
+        [
+          "throttlingException",
+          "ThrottlingException"
+        ],
+        [
+          "serviceUnavailableException",
+          "ServiceUnavailableException"
+        ]
+      ]
+    },
+    "MessageStartEvent": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "role",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ContentBlockStartEvent": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "start",
+          "ContentBlockStart"
+        ],
+        [
+          "contentBlockIndex",
+          "scalar_1"
+        ]
+      ]
+    },
+    "ContentBlockStart": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "toolUse",
+          "ToolUseBlockStart"
+        ],
+        [
+          "toolResult",
+          "ToolResultBlockStart"
+        ],
+        [
+          "image",
+          "ImageBlockStart"
+        ]
+      ]
+    },
+    "ToolUseBlockStart": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "toolUseId",
+          "scalar_0"
+        ],
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ToolResultBlockStart": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "toolUseId",
+          "scalar_0"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "status",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ImageBlockStart": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "format",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ContentBlockDeltaEvent": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "delta",
+          "ContentBlockDelta"
+        ],
+        [
+          "contentBlockIndex",
+          "scalar_1"
+        ]
+      ]
+    },
+    "ContentBlockDelta": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "toolUse",
+          "ToolUseBlockDelta"
+        ],
+        [
+          "toolResult",
+          "ToolResultBlocksDelta"
+        ],
+        [
+          "reasoningContent",
+          "ReasoningContentBlockDelta"
+        ],
+        [
+          "citation",
+          "CitationsDelta"
+        ],
+        [
+          "image",
+          "ImageBlockDelta"
+        ]
+      ]
+    },
+    "ToolUseBlockDelta": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "input",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ToolResultBlocksDelta": {
+      "kind": "list",
+      "sparse": false,
+      "value": "ToolResultBlockDelta"
+    },
+    "ToolResultBlockDelta": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "json",
+          "scalar_15"
+        ]
+      ]
+    },
+    "ReasoningContentBlockDelta": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ],
+        [
+          "redactedContent",
+          "scalar_21"
+        ],
+        [
+          "signature",
+          "scalar_0"
+        ]
+      ]
+    },
+    "CitationsDelta": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "title",
+          "scalar_0"
+        ],
+        [
+          "source",
+          "scalar_0"
+        ],
+        [
+          "sourceContent",
+          "CitationSourceContentListDelta"
+        ],
+        [
+          "location",
+          "CitationLocation"
+        ]
+      ]
+    },
+    "CitationSourceContentListDelta": {
+      "kind": "list",
+      "sparse": false,
+      "value": "CitationSourceContentDelta"
+    },
+    "CitationSourceContentDelta": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ImageBlockDelta": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "source",
+          "ImageSource"
+        ],
+        [
+          "error",
+          "ErrorBlock"
+        ]
+      ]
+    },
+    "ContentBlockStopEvent": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "contentBlockIndex",
+          "scalar_1"
+        ]
+      ]
+    },
+    "MessageStopEvent": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "stopReason",
+          "scalar_0"
+        ],
+        [
+          "additionalModelResponseFields",
+          "scalar_15"
+        ]
+      ]
+    },
+    "ConverseStreamMetadataEvent": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "usage",
+          "TokenUsage"
+        ],
+        [
+          "metrics",
+          "ConverseStreamMetrics"
+        ],
+        [
+          "trace",
+          "ConverseStreamTrace"
+        ],
+        [
+          "performanceConfig",
+          "PerformanceConfiguration"
+        ],
+        [
+          "serviceTier",
+          "ServiceTier"
+        ]
+      ]
+    },
+    "TokenUsage": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "inputTokens",
+          "scalar_1"
+        ],
+        [
+          "outputTokens",
+          "scalar_1"
+        ],
+        [
+          "totalTokens",
+          "scalar_1"
+        ],
+        [
+          "cacheReadInputTokens",
+          "scalar_1"
+        ],
+        [
+          "cacheWriteInputTokens",
+          "scalar_1"
+        ],
+        [
+          "cacheDetails",
+          "CacheDetailsList"
+        ]
+      ]
+    },
+    "CacheDetailsList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "CacheDetail"
+    },
+    "CacheDetail": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "ttl",
+          "scalar_0"
+        ],
+        [
+          "inputTokens",
+          "scalar_1"
+        ]
+      ]
+    },
+    "ConverseStreamMetrics": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "latencyMs",
+          "scalar_1"
+        ]
+      ]
+    },
+    "ConverseStreamTrace": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "guardrail",
+          "GuardrailTraceAssessment"
+        ],
+        [
+          "promptRouter",
+          "PromptRouterTrace"
+        ]
+      ]
+    },
+    "GuardrailTraceAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "modelOutput",
+          "scalar_64"
+        ],
+        [
+          "inputAssessment",
+          "GuardrailAssessmentMap"
+        ],
+        [
+          "outputAssessments",
+          "GuardrailAssessmentListMap"
+        ],
+        [
+          "actionReason",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailAssessmentMap": {
+      "kind": "map",
+      "sparse": false,
+      "value": "GuardrailAssessment"
+    },
+    "GuardrailAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "topicPolicy",
+          "GuardrailTopicPolicyAssessment"
+        ],
+        [
+          "contentPolicy",
+          "GuardrailContentPolicyAssessment"
+        ],
+        [
+          "wordPolicy",
+          "GuardrailWordPolicyAssessment"
+        ],
+        [
+          "sensitiveInformationPolicy",
+          "GuardrailSensitiveInformationPolicyAssessment"
+        ],
+        [
+          "contextualGroundingPolicy",
+          "GuardrailContextualGroundingPolicyAssessment"
+        ],
+        [
+          "automatedReasoningPolicy",
+          "GuardrailAutomatedReasoningPolicyAssessment"
+        ],
+        [
+          "invocationMetrics",
+          "GuardrailInvocationMetrics"
+        ],
+        [
+          "appliedGuardrailDetails",
+          "AppliedGuardrailDetails"
+        ]
+      ]
+    },
+    "GuardrailTopicPolicyAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "topics",
+          "GuardrailTopicList"
+        ]
+      ]
+    },
+    "GuardrailTopicList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailTopic"
+    },
+    "GuardrailTopic": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailContentPolicyAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "filters",
+          "GuardrailContentFilterList"
+        ]
+      ]
+    },
+    "GuardrailContentFilterList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailContentFilter"
+    },
+    "GuardrailContentFilter": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "confidence",
+          "scalar_0"
+        ],
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "filterStrength",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailWordPolicyAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "customWords",
+          "GuardrailCustomWordList"
+        ],
+        [
+          "managedWordLists",
+          "GuardrailManagedWordList"
+        ]
+      ]
+    },
+    "GuardrailCustomWordList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailCustomWord"
+    },
+    "GuardrailCustomWord": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "match",
+          "scalar_0"
+        ],
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailManagedWordList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailManagedWord"
+    },
+    "GuardrailManagedWord": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "match",
+          "scalar_0"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailSensitiveInformationPolicyAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "piiEntities",
+          "GuardrailPiiEntityFilterList"
+        ],
+        [
+          "regexes",
+          "GuardrailRegexFilterList"
+        ]
+      ]
+    },
+    "GuardrailPiiEntityFilterList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailPiiEntityFilter"
+    },
+    "GuardrailPiiEntityFilter": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "match",
+          "scalar_0"
+        ],
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailRegexFilterList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailRegexFilter"
+    },
+    "GuardrailRegexFilter": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "name",
+          "scalar_0"
+        ],
+        [
+          "match",
+          "scalar_0"
+        ],
+        [
+          "regex",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailContextualGroundingPolicyAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "filters",
+          "GuardrailContextualGroundingFilters"
+        ]
+      ]
+    },
+    "GuardrailContextualGroundingFilters": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailContextualGroundingFilter"
+    },
+    "GuardrailContextualGroundingFilter": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "threshold",
+          "scalar_1"
+        ],
+        [
+          "score",
+          "scalar_1"
+        ],
+        [
+          "action",
+          "scalar_0"
+        ],
+        [
+          "detected",
+          "scalar_2"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningPolicyAssessment": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "findings",
+          "GuardrailAutomatedReasoningFindingList"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningFindingList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningFinding"
+    },
+    "GuardrailAutomatedReasoningFinding": {
+      "kind": "struct",
+      "union": true,
+      "fields": [
+        [
+          "valid",
+          "GuardrailAutomatedReasoningValidFinding"
+        ],
+        [
+          "invalid",
+          "GuardrailAutomatedReasoningInvalidFinding"
+        ],
+        [
+          "satisfiable",
+          "GuardrailAutomatedReasoningSatisfiableFinding"
+        ],
+        [
+          "impossible",
+          "GuardrailAutomatedReasoningImpossibleFinding"
+        ],
+        [
+          "translationAmbiguous",
+          "GuardrailAutomatedReasoningTranslationAmbiguousFinding"
+        ],
+        [
+          "tooComplex",
+          "GuardrailAutomatedReasoningTooComplexFinding"
+        ],
+        [
+          "noTranslations",
+          "GuardrailAutomatedReasoningNoTranslationsFinding"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningValidFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "translation",
+          "GuardrailAutomatedReasoningTranslation"
+        ],
+        [
+          "claimsTrueScenario",
+          "GuardrailAutomatedReasoningScenario"
+        ],
+        [
+          "supportingRules",
+          "GuardrailAutomatedReasoningRuleList"
+        ],
+        [
+          "logicWarning",
+          "GuardrailAutomatedReasoningLogicWarning"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningTranslation": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "premises",
+          "GuardrailAutomatedReasoningStatementList"
+        ],
+        [
+          "claims",
+          "GuardrailAutomatedReasoningStatementList"
+        ],
+        [
+          "untranslatedPremises",
+          "GuardrailAutomatedReasoningInputTextReferenceList"
+        ],
+        [
+          "untranslatedClaims",
+          "GuardrailAutomatedReasoningInputTextReferenceList"
+        ],
+        [
+          "confidence",
+          "scalar_1"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningStatementList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningStatement"
+    },
+    "GuardrailAutomatedReasoningStatement": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "logic",
+          "scalar_0"
+        ],
+        [
+          "naturalLanguage",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningInputTextReferenceList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningInputTextReference"
+    },
+    "GuardrailAutomatedReasoningInputTextReference": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "text",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningScenario": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "statements",
+          "GuardrailAutomatedReasoningStatementList"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningRuleList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningRule"
+    },
+    "GuardrailAutomatedReasoningRule": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "identifier",
+          "scalar_0"
+        ],
+        [
+          "policyVersionArn",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningLogicWarning": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "type",
+          "scalar_0"
+        ],
+        [
+          "premises",
+          "GuardrailAutomatedReasoningStatementList"
+        ],
+        [
+          "claims",
+          "GuardrailAutomatedReasoningStatementList"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningInvalidFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "translation",
+          "GuardrailAutomatedReasoningTranslation"
+        ],
+        [
+          "contradictingRules",
+          "GuardrailAutomatedReasoningRuleList"
+        ],
+        [
+          "logicWarning",
+          "GuardrailAutomatedReasoningLogicWarning"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningSatisfiableFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "translation",
+          "GuardrailAutomatedReasoningTranslation"
+        ],
+        [
+          "claimsTrueScenario",
+          "GuardrailAutomatedReasoningScenario"
+        ],
+        [
+          "claimsFalseScenario",
+          "GuardrailAutomatedReasoningScenario"
+        ],
+        [
+          "logicWarning",
+          "GuardrailAutomatedReasoningLogicWarning"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningImpossibleFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "translation",
+          "GuardrailAutomatedReasoningTranslation"
+        ],
+        [
+          "contradictingRules",
+          "GuardrailAutomatedReasoningRuleList"
+        ],
+        [
+          "logicWarning",
+          "GuardrailAutomatedReasoningLogicWarning"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningTranslationAmbiguousFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "options",
+          "GuardrailAutomatedReasoningTranslationOptionList"
+        ],
+        [
+          "differenceScenarios",
+          "GuardrailAutomatedReasoningDifferenceScenarioList"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningTranslationOptionList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningTranslationOption"
+    },
+    "GuardrailAutomatedReasoningTranslationOption": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "translations",
+          "GuardrailAutomatedReasoningTranslationList"
+        ]
+      ]
+    },
+    "GuardrailAutomatedReasoningTranslationList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningTranslation"
+    },
+    "GuardrailAutomatedReasoningDifferenceScenarioList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAutomatedReasoningScenario"
+    },
+    "GuardrailAutomatedReasoningTooComplexFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": []
+    },
+    "GuardrailAutomatedReasoningNoTranslationsFinding": {
+      "kind": "struct",
+      "union": false,
+      "fields": []
+    },
+    "GuardrailInvocationMetrics": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "guardrailProcessingLatency",
+          "scalar_1"
+        ],
+        [
+          "usage",
+          "GuardrailUsage"
+        ],
+        [
+          "guardrailCoverage",
+          "GuardrailCoverage"
+        ]
+      ]
+    },
+    "GuardrailUsage": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "topicPolicyUnits",
+          "scalar_1"
+        ],
+        [
+          "contentPolicyUnits",
+          "scalar_1"
+        ],
+        [
+          "wordPolicyUnits",
+          "scalar_1"
+        ],
+        [
+          "sensitiveInformationPolicyUnits",
+          "scalar_1"
+        ],
+        [
+          "sensitiveInformationPolicyFreeUnits",
+          "scalar_1"
+        ],
+        [
+          "contextualGroundingPolicyUnits",
+          "scalar_1"
+        ],
+        [
+          "contentPolicyImageUnits",
+          "scalar_1"
+        ],
+        [
+          "automatedReasoningPolicyUnits",
+          "scalar_1"
+        ],
+        [
+          "automatedReasoningPolicies",
+          "scalar_1"
+        ]
+      ]
+    },
+    "GuardrailCoverage": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "textCharacters",
+          "GuardrailTextCharactersCoverage"
+        ],
+        [
+          "images",
+          "GuardrailImageCoverage"
+        ]
+      ]
+    },
+    "GuardrailTextCharactersCoverage": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "guarded",
+          "scalar_1"
+        ],
+        [
+          "total",
+          "scalar_1"
+        ]
+      ]
+    },
+    "GuardrailImageCoverage": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "guarded",
+          "scalar_1"
+        ],
+        [
+          "total",
+          "scalar_1"
+        ]
+      ]
+    },
+    "AppliedGuardrailDetails": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "guardrailId",
+          "scalar_0"
+        ],
+        [
+          "guardrailVersion",
+          "scalar_0"
+        ],
+        [
+          "guardrailArn",
+          "scalar_0"
+        ],
+        [
+          "guardrailOrigin",
+          "scalar_64"
+        ],
+        [
+          "guardrailOwnership",
+          "scalar_0"
+        ]
+      ]
+    },
+    "GuardrailAssessmentListMap": {
+      "kind": "map",
+      "sparse": false,
+      "value": "GuardrailAssessmentList"
+    },
+    "GuardrailAssessmentList": {
+      "kind": "list",
+      "sparse": false,
+      "value": "GuardrailAssessment"
+    },
+    "PromptRouterTrace": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "invokedModelId",
+          "scalar_0"
+        ]
+      ]
+    },
+    "InternalServerException": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "message",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ModelStreamErrorException": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "message",
+          "scalar_0"
+        ],
+        [
+          "originalStatusCode",
+          "scalar_1"
+        ],
+        [
+          "originalMessage",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ValidationException": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "message",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ThrottlingException": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "message",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ServiceUnavailableException": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "message",
+          "scalar_0"
+        ]
+      ]
+    },
+    "ConverseStreamResponse": {
+      "kind": "struct",
+      "union": false,
+      "fields": [
+        [
+          "stream",
+          "ConverseStreamOutput"
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,333 @@
+{
+  "signatureV4": "5.4.3",
+  "cases": [
+    {
+      "id": "basic",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          "host": "synthetic.invalid",
+          "content-type": "application/json",
+          "x-custom": "first"
+        },
+        "body": "{\"messages\":[]}"
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          "host": "synthetic.invalid",
+          "content-type": "application/json",
+          "x-custom": "first",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-security-token": "synthetic-session",
+          "x-amz-content-sha256": "5e4ce7b36ba37b78a5d5f9fd08e6b7b54ba6879d651aa46ec9e1d6fa24ebe30a",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-custom, Signature=e8d1e863685ff14216cb85992158a06b10c25dc7df5f9051aec3fa0f7ffe2a86"
+        },
+        "body": "{\"messages\":[]}"
+      }
+    },
+    {
+      "id": "changed-custom",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          "host": "synthetic.invalid",
+          "content-type": "application/json",
+          "x-custom": "second"
+        },
+        "body": "{\"messages\":[]}"
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          "host": "synthetic.invalid",
+          "content-type": "application/json",
+          "x-custom": "second",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-security-token": "synthetic-session",
+          "x-amz-content-sha256": "5e4ce7b36ba37b78a5d5f9fd08e6b7b54ba6879d651aa46ec9e1d6fa24ebe30a",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-custom, Signature=593d85ba4c9983ac0c8bbf67c27918392ab15f7555011c070ae71f7c87697a9f"
+        },
+        "body": "{\"messages\":[]}"
+      }
+    },
+    {
+      "id": "h2-authority",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          ":authority": "synthetic.invalid:8443",
+          "content-type": "application/json",
+          "x-z": "one",
+          "X-Z": "two",
+          "amz-sdk-request": "attempt=1; max=3"
+        },
+        "body": "{\"messages\":[]}"
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          ":authority": "synthetic.invalid:8443",
+          "content-type": "application/json",
+          "x-z": "one",
+          "X-Z": "two",
+          "amz-sdk-request": "attempt=1; max=3",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-security-token": "synthetic-session",
+          "x-amz-content-sha256": "5e4ce7b36ba37b78a5d5f9fd08e6b7b54ba6879d651aa46ec9e1d6fa24ebe30a",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-request;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-z, Signature=1ec4b26d5c890dbbae2edf9bdab3fd5990aee07cab9eb6884f5e15b9b67b080a"
+        },
+        "body": "{\"messages\":[]}"
+      }
+    },
+    {
+      "id": "header-spaces-unsigned",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          "host": "synthetic.invalid",
+          "X-Custom": "  a\t b  \n c ",
+          "x-custom": "last",
+          "expect": "100-continue",
+          "user-agent": "synthetic",
+          "proxy-note": "omit",
+          "sec-test": "omit"
+        },
+        "body": "{}"
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          "host": "synthetic.invalid",
+          "X-Custom": "  a\t b  \n c ",
+          "x-custom": "last",
+          "expect": "100-continue",
+          "user-agent": "synthetic",
+          "proxy-note": "omit",
+          "sec-test": "omit",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-security-token": "synthetic-session",
+          "x-amz-content-sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-custom, Signature=f57f2d7c651fbce3ab84f9fe86be20577c5459915bc6f8c5597ba2b13d767b34"
+        },
+        "body": "{}"
+      }
+    },
+    {
+      "id": "query-escaped-path",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/base//x/../model/a%2Fb%20c/./converse-stream",
+        "headers": {
+          "host": "synthetic.invalid"
+        },
+        "body": "{\"z\":1,\"a\":\"é🙂\"}",
+        "query": {
+          "z": [
+            "2",
+            "1"
+          ],
+          "a": "x y",
+          "X-Amz-Signature": "ignored",
+          "empty": "",
+          "ö": "é"
+        }
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/base//x/../model/a%2Fb%20c/./converse-stream",
+        "query": {
+          "z": [
+            "2",
+            "1"
+          ],
+          "a": "x y",
+          "X-Amz-Signature": "ignored",
+          "empty": "",
+          "ö": "é"
+        },
+        "headers": {
+          "host": "synthetic.invalid",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-security-token": "synthetic-session",
+          "x-amz-content-sha256": "42e9795b5368666b99db815485f903f09e314e273ece20d1438c08d3bf7de0e1",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=f4417fcadd03812e85b219fa5d2ddd9f2717599b3c57d6b21b2942c8295f1520"
+        },
+        "body": "{\"z\":1,\"a\":\"é🙂\"}"
+      }
+    },
+    {
+      "id": "no-session",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          "host": "bedrock-runtime.cn-north-1.amazonaws.com.cn"
+        },
+        "body": ""
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret"
+      },
+      "region": "cn-north-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          "host": "bedrock-runtime.cn-north-1.amazonaws.com.cn",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-content-sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/cn-north-1/bedrock/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=655cb7077ef38da60d0f40e97d2ad69891bd6d8c387956115d7edc7997b9b30c"
+        },
+        "body": ""
+      }
+    },
+    {
+      "id": "existing-content-hash",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          "host": "synthetic.invalid",
+          "X-Amz-Content-Sha256": "SOURCE_HASH"
+        },
+        "body": "ignored-for-hash"
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T03:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          "host": "synthetic.invalid",
+          "X-Amz-Content-Sha256": "SOURCE_HASH",
+          "x-amz-date": "20260102T030405Z",
+          "x-amz-security-token": "synthetic-session",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=7e0f3d167e274ad20806c4219fe63eabcc1b3d57f85120261dcc945240f362de"
+        },
+        "body": "ignored-for-hash"
+      }
+    },
+    {
+      "id": "clock-corrected",
+      "input": {
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "method": "POST",
+        "path": "/model/synthetic/converse-stream",
+        "headers": {
+          "host": "synthetic.invalid",
+          "amz-sdk-request": "attempt=2; max=3"
+        },
+        "body": "{}"
+      },
+      "credentials": {
+        "accessKeyId": "AKID_SYNTHETIC",
+        "secretAccessKey": "synthetic-secret",
+        "sessionToken": "synthetic-session"
+      },
+      "region": "us-east-1",
+      "date": "2026-01-02T04:04:05Z",
+      "signed": {
+        "method": "POST",
+        "protocol": "https:",
+        "hostname": "synthetic.invalid",
+        "path": "/model/synthetic/converse-stream",
+        "query": {},
+        "headers": {
+          "host": "synthetic.invalid",
+          "amz-sdk-request": "attempt=2; max=3",
+          "x-amz-date": "20260102T040405Z",
+          "x-amz-security-token": "synthetic-session",
+          "x-amz-content-sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=amz-sdk-request;host;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=2d43ab8b165333beff75ba4f5afc797a987d37dfa21f924853a8938bd0dddeb7"
+        },
+        "body": "{}"
+      }
+    }
+  ]
+}

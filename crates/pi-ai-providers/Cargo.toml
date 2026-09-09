@@ -20,6 +20,7 @@ wire-azure-openai-responses = ["dep:url"]
 wire-openai-completions = ["dep:url"]
 wire-google-genai = ["dep:url"]
 wire-google-vertex = ["dep:url"]
+wire-bedrock-converse-stream = ["dep:url", "dep:ring"]
 native = ["pi-ai-transport/native"]
 
 [dependencies]
@@ -29,6 +30,7 @@ ryu-js.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["preserve_order"] }
 url = { workspace = true, optional = true }
+ring = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio.workspace = true

@@ -1,0 +1,152 @@
+[
+  {
+    "id": "refused",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": false,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "reset-before-head",
+    "stage": "head",
+    "name": "TimeoutError",
+    "code": "ECONNRESET",
+    "message": "socket hang up",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "malformed-head",
+    "stage": "head",
+    "name": "Error",
+    "code": "HPE_INVALID_CONSTANT",
+    "message": "Parse Error: Expected HTTP/, RTSP/ or ICE/",
+    "assistantRetry": false,
+    "transient": false,
+    "throttling": false
+  },
+  {
+    "id": "truncated-body",
+    "stage": "body",
+    "name": "Error",
+    "code": "ECONNRESET",
+    "message": "aborted",
+    "assistantRetry": false,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "malformed-chunk",
+    "stage": "body",
+    "name": "Error",
+    "code": "ECONNRESET",
+    "message": "aborted",
+    "assistantRetry": false,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "untrusted-cert",
+    "stage": "head",
+    "name": "Error",
+    "code": "DEPTH_ZERO_SELF_SIGNED_CERT",
+    "message": "self-signed certificate; if the root CA is installed locally, try running Node.js with --use-system-ca",
+    "assistantRetry": false,
+    "transient": false,
+    "throttling": false
+  },
+  {
+    "id": "h2-refused",
+    "stage": "head",
+    "name": "Error",
+    "code": "ERR_HTTP2_STREAM_ERROR",
+    "message": "Stream closed with error code NGHTTP2_REFUSED_STREAM",
+    "assistantRetry": false,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "h2-protocol",
+    "stage": "head",
+    "name": "Error",
+    "code": "ERR_HTTP2_STREAM_ERROR",
+    "message": "Stream closed with error code NGHTTP2_PROTOCOL_ERROR",
+    "assistantRetry": false,
+    "transient": false,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-40001",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": false,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-42901",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-50001",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-50201",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-50301",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-50401",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  },
+  {
+    "id": "refused-port-52401",
+    "stage": "head",
+    "name": "Error",
+    "code": "ECONNREFUSED",
+    "message": "connect ECONNREFUSED 127.0.0.1:<port>",
+    "assistantRetry": true,
+    "transient": true,
+    "throttling": false
+  }
+]

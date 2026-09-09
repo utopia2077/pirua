@@ -18,7 +18,8 @@ pub use response_record::{ResponseHeaderRecord, ResponseHeaderValue};
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-google-vertex"
+    feature = "wire-google-vertex",
+    feature = "wire-bedrock-converse-stream"
 ))]
 use std::future::{Future, poll_fn};
 use std::sync::Arc;
@@ -30,7 +31,8 @@ use std::sync::Arc;
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-google-vertex"
+    feature = "wire-google-vertex",
+    feature = "wire-bedrock-converse-stream"
 ))]
 use std::task::Poll;
 
@@ -46,18 +48,19 @@ use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, Tra
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-google-vertex"
+    feature = "wire-google-vertex",
+    feature = "wire-bedrock-converse-stream"
 ))]
 use pi_ai_core::{CancellationToken, Cancelled};
 
 /// Optional mutation and replacement of one provider's logical request payload.
-pub trait PayloadMiddleware: Send + Sync {
+pub trait PayloadMiddleware<P = WirePayload>: Send + Sync {
     /// `None` preserves the potentially mutated payload; `Some` replaces it.
     fn on_payload<'a>(
         &'a self,
         request: &'a TextStreamRequest,
-        payload: &'a mut WirePayload,
-    ) -> BoxFuture<'a, Result<Option<WirePayload>, ModelsError>>;
+        payload: &'a mut P,
+    ) -> BoxFuture<'a, Result<Option<P>, ModelsError>>;
 }
 
 /// Transient response metadata. Header values are available only to trusted code.
@@ -160,10 +163,9 @@ pub trait ResponseMiddleware: Send + Sync {
 }
 
 /// Reusable, non-Serde services explicitly supplied at adapter construction.
-#[derive(Clone)]
-pub struct AdapterServices {
+pub struct AdapterServices<P = WirePayload> {
     pub transport: Arc<HttpTransport>,
-    pub payload: Option<Arc<dyn PayloadMiddleware>>,
+    pub payload: Option<Arc<dyn PayloadMiddleware<P>>>,
     pub response: Option<Arc<dyn ResponseMiddleware>>,
     /// Explicit ambient environment snapshot; never reads the process environment.
     pub env: ProviderEnv,
@@ -171,7 +173,7 @@ pub struct AdapterServices {
     pub max_error_body_bytes: usize,
 }
 
-impl AdapterServices {
+impl<P> AdapterServices<P> {
     /// Creates passive defaults; no host discovery, registration, or I/O occurs.
     pub fn new(transport: Arc<HttpTransport>) -> Self {
         Self {
@@ -185,7 +187,19 @@ impl AdapterServices {
     }
 }
 
-impl fmt::Debug for AdapterServices {
+impl<P> Clone for AdapterServices<P> {
+    fn clone(&self) -> Self {
+        Self {
+            transport: self.transport.clone(),
+            payload: self.payload.clone(),
+            response: self.response.clone(),
+            env: self.env.clone(),
+            sse_limits: self.sse_limits,
+            max_error_body_bytes: self.max_error_body_bytes,
+        }
+    }
+}
+impl<P> fmt::Debug for AdapterServices<P> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("AdapterServices([REDACTED])")
     }
@@ -200,7 +214,8 @@ impl fmt::Debug for AdapterServices {
     feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-google-vertex"
+    feature = "wire-google-vertex",
+    feature = "wire-bedrock-converse-stream"
 ))]
 pub(crate) async fn cancellable<T>(
     mut operation: BoxFuture<'_, T>,

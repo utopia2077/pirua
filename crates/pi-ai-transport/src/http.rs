@@ -21,10 +21,20 @@ pub enum TransportErrorKind {
     RuntimeUnavailable,
 }
 
+/// Closed retry evidence attached only when an explicit Smithy backend retains
+/// the failure's typed cause. Absence is unknown, never assumed transient.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SmithyRetryDisposition {
+    Transient,
+    NotRetryable,
+}
+
 /// Redacted failure. Source chains, when supplied, must themselves be safe.
 pub struct TransportError {
     kind: TransportErrorKind,
     custom_fetch_rejected: bool,
+    smithy_retry: Option<SmithyRetryDisposition>,
+    smithy_assistant_retry: Option<bool>,
 }
 
 impl TransportError {
@@ -32,7 +42,25 @@ impl TransportError {
         Self {
             kind,
             custom_fetch_rejected: false,
+            smithy_retry: None,
+            smithy_assistant_retry: None,
         }
+    }
+    /// Safe source-classifier fact, independent of SDK attempt eligibility.
+    /// Only explicit Smithy native stages or trusted configured ports supply it.
+    pub const fn with_smithy_assistant_retry(mut self, retryable: bool) -> Self {
+        self.smithy_assistant_retry = Some(retryable);
+        self
+    }
+    pub const fn smithy_assistant_retry(&self) -> Option<bool> {
+        self.smithy_assistant_retry
+    }
+    pub const fn with_smithy_retry(mut self, disposition: SmithyRetryDisposition) -> Self {
+        self.smithy_retry = Some(disposition);
+        self
+    }
+    pub const fn smithy_retry(&self) -> Option<SmithyRetryDisposition> {
+        self.smithy_retry
     }
     pub const fn kind(&self) -> TransportErrorKind {
         self.kind

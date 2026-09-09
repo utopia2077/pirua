@@ -1,0 +1,318 @@
+{
+  "smithy": "3.24.3",
+  "rows": [
+    {
+      "id": "all-header-types",
+      "wire": "AAAA0wAAAK/tHmSZDTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcADG1lc3NhZ2VTdGFydAR0cnVlAAVmYWxzZQEEYnl0ZQKABXNob3J0A4AAB2ludGVnZXIEgAAAAARsb25nBYAAAAAAAAABBmJpbmFyeQYAAwCA/wZzdHJpbmcHAAbDqfCfmYIJdGltZXN0YW1wCAAAAZt8qYyIBHV1aWQJEjRWeBI0QyGrzRI0VniavHsicm9sZSI6ImFzc2lzdGFudCJ98CiyKw==",
+      "decoded": {
+        "headers": [
+          [
+            ":message-type",
+            "string",
+            "event"
+          ],
+          [
+            ":event-type",
+            "string",
+            "messageStart"
+          ],
+          [
+            "true",
+            "boolean",
+            true
+          ],
+          [
+            "false",
+            "boolean",
+            false
+          ],
+          [
+            "byte",
+            "byte",
+            -128
+          ],
+          [
+            "short",
+            "short",
+            -32768
+          ],
+          [
+            "integer",
+            "integer",
+            -2147483648
+          ],
+          [
+            "long",
+            "long",
+            "8000000000000001"
+          ],
+          [
+            "binary",
+            "binary",
+            "AID/"
+          ],
+          [
+            "string",
+            "string",
+            "é🙂"
+          ],
+          [
+            "timestamp",
+            "timestamp",
+            1767323045000
+          ],
+          [
+            "uuid",
+            "uuid",
+            "12345678-1234-4321-abcd-123456789abc"
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "empty",
+      "wire": "AAAAEAAAAAAFwkjrfZjI/w==",
+      "decoded": {
+        "headers": [],
+        "body": ""
+      }
+    },
+    {
+      "id": "prelude-crc",
+      "wire": "AAAA0wAAAK/sHmSZDTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcADG1lc3NhZ2VTdGFydAR0cnVlAAVmYWxzZQEEYnl0ZQKABXNob3J0A4AAB2ludGVnZXIEgAAAAARsb25nBYAAAAAAAAABBmJpbmFyeQYAAwCA/wZzdHJpbmcHAAbDqfCfmYIJdGltZXN0YW1wCAAAAZt8qYyIBHV1aWQJEjRWeBI0QyGrzRI0VniavHsicm9sZSI6ImFzc2lzdGFudCJ98CiyKw==",
+      "error": "Error",
+      "message": "The prelude checksum specified in the message (3961414809) does not match the calculated CRC32 checksum (3978192025)"
+    },
+    {
+      "id": "message-crc",
+      "wire": "AAAA0wAAAK/tHmSZDTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcADG1lc3NhZ2VTdGFydAR0cnVlAAVmYWxzZQEEYnl0ZQKABXNob3J0A4AAB2ludGVnZXIEgAAAAARsb25nBYAAAAAAAAABBmJpbmFyeQYAAwCA/wZzdHJpbmcHAAbDqfCfmYIJdGltZXN0YW1wCAAAAZt8qYyIBHV1aWQJEjRWeBI0QyGrzRI0VniavHsicm9sZSI6ImFzc2lzdGFudCJ98CiyKg==",
+      "error": "Error",
+      "message": "The message checksum (4029198891) did not match the expected value of 4029198890"
+    },
+    {
+      "id": "header-length-outside-message",
+      "wire": "AAAA0wAAANO0rVmODTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcADG1lc3NhZ2VTdGFydAR0cnVlAAVmYWxzZQEEYnl0ZQKABXNob3J0A4AAB2ludGVnZXIEgAAAAARsb25nBYAAAAAAAAABBmJpbmFyeQYAAwCA/wZzdHJpbmcHAAbDqfCfmYIJdGltZXN0YW1wCAAAAZt8qYyIBHV1aWQJEjRWeBI0QyGrzRI0VniavHsicm9sZSI6ImFzc2lzdGFudCJ98KwO6Q==",
+      "error": "RangeError",
+      "message": "Invalid DataView length 211"
+    },
+    {
+      "id": "unknown-header-type",
+      "wire": "AAAAJwAAAAOPyn3HAXgKeyJyb2xlIjoiYXNzaXN0YW50In0cBzUX",
+      "error": "Error",
+      "message": "Unrecognized header type tag"
+    },
+    {
+      "id": "duplicate-header-name",
+      "wire": "AAAAKgAAAAYHME35AXgAAXgBeyJyb2xlIjoiYXNzaXN0YW50In0vStBl",
+      "decoded": {
+        "headers": [
+          [
+            "x",
+            "boolean",
+            false
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "prototype-header-name",
+      "wire": "AAAALwAAAAuxYb40CV9fcHJvdG9fXwB7InJvbGUiOiJhc3Npc3RhbnQifSTJSv8=",
+      "decoded": {
+        "headers": [],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "replacement-utf8-name-value",
+      "wire": "AAAAKgAAAAYHME35Af8HAAH/eyJyb2xlIjoiYXNzaXN0YW50In1qp5KO",
+      "decoded": {
+        "headers": [
+          [
+            "�",
+            "string",
+            "�"
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "string-length-crosses-header-section",
+      "wire": "AAAAKQAAAAXZmWaTAXgHAAR7InJvbGUiOiJhc3Npc3RhbnQifcbf79E=",
+      "decoded": {
+        "headers": [
+          [
+            "x",
+            "string",
+            "{\"ro"
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "long-length-crosses-header-section",
+      "wire": "AAAAJwAAAAOPyn3HAXgFeyJyb2xlIjoiYXNzaXN0YW50In1QEro5",
+      "decoded": {
+        "headers": [
+          [
+            "x",
+            "long",
+            "7b22726f6c65223a"
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "string-value-ends-at-message-crc",
+      "wire": "AAAAKQAAAAXZmWaTAXgHABh7InJvbGUiOiJhc3Npc3RhbnQifbow8PA=",
+      "decoded": {
+        "headers": [
+          [
+            "x",
+            "string",
+            "{\"role\":\"assistant\"}�0��"
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "string-value-crosses-owned-message",
+      "wire": "AAAAKQAAAAXZmWaTAXgHABl7InJvbGUiOiJhc3Npc3RhbnQifSXqc24=",
+      "error": "RangeError",
+      "message": "Invalid typed array length: 25"
+    },
+    {
+      "id": "binary-value-ends-at-message-crc",
+      "wire": "AAAAKQAAAAXZmWaTAXgGABh7InJvbGUiOiJhc3Npc3RhbnQifSFDGiQ=",
+      "decoded": {
+        "headers": [
+          [
+            "x",
+            "binary",
+            "eyJyb2xlIjoiYXNzaXN0YW50In0hQxok"
+          ]
+        ],
+        "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+      }
+    },
+    {
+      "id": "binary-value-crosses-owned-message",
+      "wire": "AAAAKQAAAAXZmWaTAXgGABl7InJvbGUiOiJhc3Npc3RhbnQifb6Zmbo=",
+      "error": "RangeError",
+      "message": "Invalid typed array length: 25"
+    },
+    {
+      "id": "long-value-crosses-owned-message",
+      "wire": "AAAAEwAAAAPba2OBAXgF9BQiqw==",
+      "error": "RangeError",
+      "message": "Invalid typed array length: 8"
+    },
+    {
+      "id": "short-value-crosses-header-section",
+      "wire": "AAAAJwAAAAOPyn3HAXgDeyJyb2xlIjoiYXNzaXN0YW50In2mL7//",
+      "error": "RangeError",
+      "message": "Offset is outside the bounds of the DataView"
+    }
+  ],
+  "chunks": [
+    {
+      "id": "one-byte-prefix",
+      "wire": "AA==",
+      "decoded": []
+    },
+    {
+      "id": "three-byte-prefix",
+      "wire": "AAAA",
+      "decoded": []
+    },
+    {
+      "id": "four-byte-prefix",
+      "wire": "AAAA0w==",
+      "error": "Error",
+      "message": "Truncated event message received."
+    },
+    {
+      "id": "truncated-message",
+      "wire": "AAAA0wAAAK/tHmSZDTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcADG1lc3NhZ2VTdGFydAR0cnVlAAVmYWxzZQEEYnl0ZQKABXNob3J0A4AAB2ludGVnZXIEgAAAAARsb25nBYAAAAAAAAABBmJpbmFyeQYAAwCA/wZzdHJpbmcHAAbDqfCfmYIJdGltZXN0YW1wCAAAAZt8qYyIBHV1aWQJEjRWeBI0QyGrzRI0VniavHsicm9sZSI6ImFzc2lzdGFudCJ98Ciy",
+      "error": "Error",
+      "message": "Truncated event message received."
+    },
+    {
+      "id": "complete",
+      "wire": "AAAA0wAAAK/tHmSZDTptZXNzYWdlLXR5cGUHAAVldmVudAs6ZXZlbnQtdHlwZQcADG1lc3NhZ2VTdGFydAR0cnVlAAVmYWxzZQEEYnl0ZQKABXNob3J0A4AAB2ludGVnZXIEgAAAAARsb25nBYAAAAAAAAABBmJpbmFyeQYAAwCA/wZzdHJpbmcHAAbDqfCfmYIJdGltZXN0YW1wCAAAAZt8qYyIBHV1aWQJEjRWeBI0QyGrzRI0VniavHsicm9sZSI6ImFzc2lzdGFudCJ98CiyKw==",
+      "decoded": [
+        {
+          "headers": [
+            [
+              ":message-type",
+              "string",
+              "event"
+            ],
+            [
+              ":event-type",
+              "string",
+              "messageStart"
+            ],
+            [
+              "true",
+              "boolean",
+              true
+            ],
+            [
+              "false",
+              "boolean",
+              false
+            ],
+            [
+              "byte",
+              "byte",
+              -128
+            ],
+            [
+              "short",
+              "short",
+              -32768
+            ],
+            [
+              "integer",
+              "integer",
+              -2147483648
+            ],
+            [
+              "long",
+              "long",
+              "8000000000000001"
+            ],
+            [
+              "binary",
+              "binary",
+              "AID/"
+            ],
+            [
+              "string",
+              "string",
+              "é🙂"
+            ],
+            [
+              "timestamp",
+              "timestamp",
+              1767323045000
+            ],
+            [
+              "uuid",
+              "uuid",
+              "12345678-1234-4321-abcd-123456789abc"
+            ]
+          ],
+          "body": "eyJyb2xlIjoiYXNzaXN0YW50In0="
+        }
+      ]
+    }
+  ],
+  "splits": 212
+}

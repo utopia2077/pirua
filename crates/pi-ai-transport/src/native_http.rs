@@ -129,6 +129,7 @@ impl NativeHttpClient {
                         .map(|profile| smithy::AdmissionClock::new(profile, &smithy_runtime));
                     let body_gate = admission.as_ref().map(smithy::AdmissionClock::gate);
                     let operation = Box::pin(on_runtime(&self.handle, async move {
+                        let is_smithy = smithy_profile.is_some();
                         let mut url = Url::parse(&endpoint).map_err(|_| invalid())?;
                         if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
                             return Err(invalid());
@@ -190,18 +191,33 @@ impl NativeHttpClient {
                                 Url::parse(proxy.expose_for_transport()).map_err(|_| invalid())?;
                             let proxy_host = proxy.host_str().ok_or_else(invalid)?;
                             let proxy_port = proxy.port_or_known_default().ok_or_else(invalid)?;
-                            let tcp = TcpStream::connect((unbracket(proxy_host), proxy_port))
-                                .await
-                                .map_err(io_error)?;
-                            tcp.set_nodelay(true).map_err(io_error)?;
+                            let tcp = connect_tcp(proxy_host, proxy_port, is_smithy).await?;
+                            tcp.set_nodelay(true).map_err(|e| {
+                                if is_smithy {
+                                    crate::smithy_error::io(e)
+                                } else {
+                                    io_error(e)
+                                }
+                            })?;
                             let mut stream: Box<dyn SocketIo> = Box::new(tcp);
                             if proxy.scheme() == "https" {
-                                stream = tls(stream, proxy_host, &roots, false).await?.0;
+                                stream = if is_smithy {
+                                    tls_version(stream, proxy_host, &roots, TlsVersion::Http1, true)
+                                        .await?
+                                        .0
+                                } else {
+                                    tls(stream, proxy_host, &roots, false).await?.0
+                                };
                             }
                             let auth = basic_auth(&proxy)?;
                             if url.scheme() == "https" {
-                                tunnel(&mut stream, &format!("{host}:{port}"), auth.as_ref())
-                                    .await?;
+                                tunnel(
+                                    &mut stream,
+                                    &format!("{host}:{port}"),
+                                    auth.as_ref(),
+                                    is_smithy,
+                                )
+                                .await?;
                             } else {
                                 absolute = true;
                                 if let Some(auth) = auth {
@@ -210,10 +226,14 @@ impl NativeHttpClient {
                             }
                             stream
                         } else {
-                            let tcp = TcpStream::connect((unbracket(&host), port))
-                                .await
-                                .map_err(io_error)?;
-                            tcp.set_nodelay(true).map_err(io_error)?;
+                            let tcp = connect_tcp(&host, port, is_smithy).await?;
+                            tcp.set_nodelay(true).map_err(|e| {
+                                if is_smithy {
+                                    crate::smithy_error::io(e)
+                                } else {
+                                    io_error(e)
+                                }
+                            })?;
                             Box::new(tcp)
                         };
                         let mut h2 = matches!(
@@ -230,7 +250,8 @@ impl NativeHttpClient {
                                 }
                                 None => TlsVersion::Negotiated,
                             };
-                            let secured = tls_version(stream, &host, &roots, version).await?;
+                            let secured =
+                                tls_version(stream, &host, &roots, version, is_smithy).await?;
                             stream = secured.0;
                             h2 = secured.1;
                         }
@@ -385,6 +406,7 @@ impl NativeHttpClient {
                                 handle,
                                 body: Some(response.into_body()),
                                 driver: Some(driver),
+                                smithy: false,
                             }),
                         })
                     }));
@@ -420,6 +442,23 @@ fn basic_auth(url: &Url) -> Result<Option<HeaderValue>, TransportError> {
     header.set_sensitive(true);
     Ok(Some(header))
 }
+// Preserve Tokio's address iteration while retaining the DNS stage before its
+// opaque std::io error becomes indistinguishable from later socket failures.
+async fn connect_tcp(host: &str, port: u16, smithy: bool) -> Result<TcpStream, TransportError> {
+    if !smithy {
+        return TcpStream::connect((unbracket(host), port))
+            .await
+            .map_err(io_error);
+    }
+    let addresses = tokio::net::lookup_host((unbracket(host), port))
+        .await
+        .map_err(|_| crate::smithy_error::transient().with_smithy_assistant_retry(true))?
+        .collect::<Vec<_>>();
+    TcpStream::connect(addresses.as_slice())
+        .await
+        .map_err(|error| crate::smithy_error::connect(error, &addresses))
+}
+
 async fn tls(
     stream: Box<dyn SocketIo>,
     host: &str,
@@ -435,6 +474,7 @@ async fn tls(
         } else {
             TlsVersion::Http1
         },
+        false,
     )
     .await
 }
@@ -448,6 +488,7 @@ async fn tls_version(
     host: &str,
     roots: &Option<Vec<Vec<u8>>>,
     version: TlsVersion,
+    smithy: bool,
 ) -> Result<(Box<dyn SocketIo>, bool), TransportError> {
     let builder = rustls::ClientConfig::builder_with_provider(Arc::new(
         rustls::crypto::aws_lc_rs::default_provider(),
@@ -477,10 +518,20 @@ async fn tls_version(
     let stream = TlsConnector::from(Arc::new(config))
         .connect(name, stream)
         .await
-        .map_err(io_error)?;
+        .map_err(|e| {
+            if smithy {
+                crate::smithy_error::io(e)
+            } else {
+                io_error(e)
+            }
+        })?;
     let h2 = stream.get_ref().1.alpn_protocol() == Some(b"h2");
     if matches!(version, TlsVersion::Http2) && !h2 {
-        return Err(connection_error());
+        return Err(if smithy {
+            crate::smithy_error::no_retry(TransportErrorKind::Connection)
+        } else {
+            connection_error()
+        });
     }
     Ok((Box::new(stream), h2))
 }
@@ -488,6 +539,7 @@ async fn tunnel(
     stream: &mut Box<dyn SocketIo>,
     authority: &str,
     auth: Option<&HeaderValue>,
+    smithy: bool,
 ) -> Result<(), TransportError> {
     let mut request = format!("CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\n").into_bytes();
     if let Some(auth) = auth {
@@ -496,19 +548,41 @@ async fn tunnel(
         request.extend_from_slice(b"\r\n");
     }
     request.extend_from_slice(b"\r\n");
-    stream.write_all(&request).await.map_err(io_error)?;
-    stream.flush().await.map_err(io_error)?;
+    stream.write_all(&request).await.map_err(|e| {
+        if smithy {
+            crate::smithy_error::io(e)
+        } else {
+            io_error(e)
+        }
+    })?;
+    stream.flush().await.map_err(|e| {
+        if smithy {
+            crate::smithy_error::io(e)
+        } else {
+            io_error(e)
+        }
+    })?;
     let mut head = Vec::new();
     let mut byte = [0];
     while !head.ends_with(b"\r\n\r\n") {
         if head.len() == 16_384 {
             return Err(TransportError::new(TransportErrorKind::LimitExceeded));
         }
-        stream.read_exact(&mut byte).await.map_err(io_error)?;
+        stream.read_exact(&mut byte).await.map_err(|e| {
+            if smithy {
+                crate::smithy_error::io(e)
+            } else {
+                io_error(e)
+            }
+        })?;
         head.push(byte[0]);
     }
     if head.get(9..12) != Some(b"200") {
-        return Err(connection_error());
+        return Err(if smithy {
+            crate::smithy_error::no_retry(TransportErrorKind::Connection)
+        } else {
+            connection_error()
+        });
     }
     Ok(())
 }
@@ -684,6 +758,7 @@ impl<S: AsyncWrite + Unpin> AsyncWrite for ObserveHead<S> {
     }
 }
 struct NativeBody {
+    smithy: bool,
     handle: Handle,
     body: Option<Incoming>,
     driver: Option<AbortTask<()>>,
@@ -698,6 +773,7 @@ impl ResponseBody for NativeBody {
                 return Ok(None);
             };
             let driver = self.driver.take();
+            let smithy = self.smithy;
             let (body, driver, chunk) = crate::policy::cancel_wait(
                 Box::pin(on_runtime(&self.handle, async move {
                     let chunk = loop {
@@ -707,7 +783,13 @@ impl ResponseBody for NativeBody {
                                     break Some(data.to_vec());
                                 }
                             }
-                            Some(Err(_)) => return Err(connection_error()),
+                            Some(Err(error)) => {
+                                return Err(if smithy {
+                                    crate::smithy_error::hyper_h1_body(error)
+                                } else {
+                                    connection_error()
+                                });
+                            }
                             None => break None,
                         }
                     };

@@ -231,7 +231,7 @@ pub(super) async fn send(
             };
             let (mut sender, connection) = hyper::client::conn::http1::handshake(TokioIo::new(io))
                 .await
-                .map_err(|_| connection_error())?;
+                .map_err(crate::smithy_error::hyper)?;
             let driver = AbortTask(handle.spawn(async move {
                 let _ = connection.await;
             }));
@@ -245,11 +245,11 @@ pub(super) async fn send(
             });
             let result = sender.send_request(request).await;
             Gate::settle(&gate, Admission::Skip);
-            let response = result.map_err(|_| {
+            let response = result.map_err(|error| {
                 if capture.lock().unwrap_or_else(|p| p.into_inner()).exceeded {
                     TransportError::new(TransportErrorKind::LimitExceeded)
                 } else {
-                    connection_error()
+                    crate::smithy_error::hyper(error)
                 }
             })?;
             let mut c = capture.lock().unwrap_or_else(|p| p.into_inner());
@@ -271,6 +271,7 @@ pub(super) async fn send(
                     handle,
                     body: Some(response.into_body()),
                     driver: Some(driver),
+                    smithy: true,
                 }),
             })
         }
@@ -291,14 +292,14 @@ pub(super) async fn send(
             let (mut sender, connection) = builder
                 .handshake::<_, Bytes>(stream)
                 .await
-                .map_err(|_| connection_error())?;
+                .map_err(h2_failure)?;
             let driver = AbortTask(handle.spawn(async move {
                 let _ = connection.await;
             }));
             sender = poll_fn(|cx| sender.poll_ready(cx))
                 .await
                 .map(|_| sender)
-                .map_err(|_| connection_error())?;
+                .map_err(h2_failure)?;
             let empty = bytes.is_empty() && !waiting;
             let (mut response, send) =
                 sender.send_request(request, empty).map_err(|_| invalid())?;
@@ -334,7 +335,12 @@ pub(super) async fn send(
                 if let Some(task) = &mut upload {
                     match Pin::new(&mut task.0).poll(cx) {
                         Poll::Ready(Ok(Ok(()))) => upload = None,
-                        Poll::Ready(_) => return Poll::Ready(Err(connection_error())),
+                        Poll::Ready(Ok(Err(error))) => return Poll::Ready(Err(error)),
+                        Poll::Ready(Err(_)) => {
+                            return Poll::Ready(Err(crate::smithy_error::no_retry(
+                                TransportErrorKind::Connection,
+                            )));
+                        }
                         Poll::Pending => {}
                     }
                 }
@@ -396,7 +402,7 @@ fn h2_failure(error: h2::Error) -> TransportError {
     if error.is_library() && error.reason() == Some(h2::Reason::REFUSED_STREAM) {
         TransportError::new(TransportErrorKind::LimitExceeded)
     } else {
-        connection_error()
+        crate::smithy_error::h2(error)
     }
 }
 fn charge_head(
@@ -428,20 +434,20 @@ async fn upload(
     let mut bytes = gated.bytes.take().unwrap_or_default();
     if bytes.is_empty() {
         send.send_data(Bytes::new(), true)
-            .map_err(|_| connection_error())?;
+            .map_err(crate::smithy_error::h2)?;
     }
     while !bytes.is_empty() {
         send.reserve_capacity(bytes.len().min(16_384));
         let capacity = poll_fn(|cx| send.poll_capacity(cx))
             .await
             .ok_or_else(connection_error)?
-            .map_err(|_| connection_error())?;
+            .map_err(crate::smithy_error::h2)?;
         if capacity == 0 {
             continue;
         }
         let chunk = bytes.split_to(capacity.min(bytes.len()).min(16_384));
         send.send_data(chunk, bytes.is_empty())
-            .map_err(|_| connection_error())?;
+            .map_err(crate::smithy_error::h2)?;
     }
     Ok(())
 }
@@ -476,7 +482,7 @@ impl ResponseBody for H2Body {
                     if let Some(bytes) = &chunk {
                         body.flow_control()
                             .release_capacity(bytes.len())
-                            .map_err(|_| connection_error())?;
+                            .map_err(crate::smithy_error::h2)?;
                     }
                     Ok((body, driver, upload, chunk.map(|b| b.to_vec())))
                 })),

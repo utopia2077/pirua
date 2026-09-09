@@ -1,0 +1,13 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sha256": {
+    "@aws-sdk/client-bedrock-runtime/dist-cjs/runtimeConfig.js": "6844ccdebd4470dc079e6ab2664d1fce86335c1e0b49aad4978249d53f2342e5",
+    "@aws-sdk/client-bedrock-runtime/dist-cjs/schemas/schemas_0.js": "6acb87a23915762c46e483938aa46c18b40b1e97c58a44bbc753393eebb300c3",
+    "@aws-sdk/core/dist-cjs/submodules/protocols/index.js": "dccb9ed49bf10400f7b0beef917b70756a995b9548be144f6344e40e11aff0c6",
+    "@aws-sdk/core/dist-cjs/submodules/httpAuthSchemes/index.js": "7f8fb58ab5d62bd577300ed2c8493795bdcd9f69701c4f31a004070c47c8bd87",
+    "@smithy/core/dist-cjs/index.js": "bdc10bb0891ab6294d077681ba06cf4340fde8ab850f79926ce9ff60f0b300f1",
+    "@smithy/core/dist-cjs/submodules/retry/index.js": "da02aa388883ddd70a5da1b072dbe7d6352d4ab8f03c747a5ecd193879ea4871",
+    "@smithy/core/dist-cjs/submodules/event-streams/index.js": "e50302f22126359f0d6cc00f449cd89c9f24d05784e74080a82efb653d7abd78",
+    "@smithy/signature-v4/dist-cjs/index.js": "3b7ffa282d9470063d343ab3ce2f07807c96ae3211b2118a983b9871c03acbd7"
+  }
+}

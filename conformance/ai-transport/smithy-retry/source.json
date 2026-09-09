@@ -1,0 +1,2382 @@
+[
+  {
+    "flag": null,
+    "active": false,
+    "constants": {
+      "delay": 100,
+      "throttleDelay": 500,
+      "cost": 5,
+      "modifiedCost": 10,
+      "modifiedClass": "TRANSIENT"
+    },
+    "cases": [
+      {
+        "type": "TRANSIENT",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 50,
+            "cost": 10,
+            "capacity": 490
+          },
+          {
+            "retry": 2,
+            "delay": 100,
+            "cost": 10,
+            "capacity": 480
+          },
+          {
+            "rejected": true,
+            "capacity": 480
+          },
+          {
+            "successCapacity": 490
+          }
+        ]
+      },
+      {
+        "type": "THROTTLING",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 250,
+            "cost": 5,
+            "capacity": 495
+          },
+          {
+            "retry": 2,
+            "delay": 500,
+            "cost": 5,
+            "capacity": 490
+          },
+          {
+            "rejected": true,
+            "capacity": 490
+          },
+          {
+            "successCapacity": 495
+          }
+        ]
+      },
+      {
+        "type": "SERVER_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      },
+      {
+        "type": "CLIENT_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      }
+    ],
+    "quotas": [
+      {
+        "type": "TRANSIENT",
+        "count": 50,
+        "capacity": 0,
+        "lastDelay": 10000
+      },
+      {
+        "type": "THROTTLING",
+        "count": 100,
+        "capacity": 0,
+        "lastDelay": 10000
+      }
+    ],
+    "hints": [
+      {
+        "hint": -1000,
+        "delay": 50
+      },
+      {
+        "hint": 0,
+        "delay": 50
+      },
+      {
+        "hint": 200,
+        "delay": 200
+      },
+      {
+        "hint": 10000,
+        "delay": 5050
+      },
+      {
+        "hint": 100000,
+        "delay": 5050
+      }
+    ],
+    "parsed": [
+      {
+        "headers": {
+          "retry-after": "2.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "2.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 2500
+      },
+      {
+        "headers": {
+          "retry-after": " 2 "
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            " 2 "
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -31633445000
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3500
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -10
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "",
+          "retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            ""
+          ],
+          [
+            "retry-after",
+            "5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "retry-after": "no",
+          "x-amz-retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "no"
+          ],
+          [
+            "x-amz-retry-after",
+            "5"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "inf"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "inf"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "+Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "+Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "infinity"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "1e999"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "1e999"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0x10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0x10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 16
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0b11"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0b11"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0o10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0o10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 8
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-.5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -1
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "  "
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "  "
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "NaN"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "NaN"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      }
+    ],
+    "adaptive": [
+      {
+        "event": "initial",
+        "time": 1767323045000,
+        "enabled": false,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": []
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323047000,
+        "enabled": true,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": [
+          2000
+        ],
+        "retryDelay": 250
+      },
+      {
+        "event": "TRANSIENT",
+        "time": 1767323047797,
+        "enabled": true,
+        "fillRate": 1.6,
+        "capacity": 1.6,
+        "tokens": 0.00019989013671883882,
+        "measured": 0.8,
+        "waits": [
+          546.875
+        ],
+        "retryDelay": 100
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323048647,
+        "enabled": true,
+        "fillRate": 1.12,
+        "capacity": 1.12,
+        "tokens": 0.00020011901855498948,
+        "measured": 1.76,
+        "waits": [
+          749.8213223048617
+        ],
+        "retryDelay": 1000
+      },
+      {
+        "event": "success",
+        "time": 1767323049647,
+        "enabled": true,
+        "fillRate": 1.504,
+        "capacity": 1.504,
+        "tokens": 1.12,
+        "measured": 0.752,
+        "waits": []
+      }
+    ]
+  },
+  {
+    "flag": "false",
+    "active": false,
+    "constants": {
+      "delay": 100,
+      "throttleDelay": 500,
+      "cost": 5,
+      "modifiedCost": 10,
+      "modifiedClass": "TRANSIENT"
+    },
+    "cases": [
+      {
+        "type": "TRANSIENT",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 50,
+            "cost": 10,
+            "capacity": 490
+          },
+          {
+            "retry": 2,
+            "delay": 100,
+            "cost": 10,
+            "capacity": 480
+          },
+          {
+            "rejected": true,
+            "capacity": 480
+          },
+          {
+            "successCapacity": 490
+          }
+        ]
+      },
+      {
+        "type": "THROTTLING",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 250,
+            "cost": 5,
+            "capacity": 495
+          },
+          {
+            "retry": 2,
+            "delay": 500,
+            "cost": 5,
+            "capacity": 490
+          },
+          {
+            "rejected": true,
+            "capacity": 490
+          },
+          {
+            "successCapacity": 495
+          }
+        ]
+      },
+      {
+        "type": "SERVER_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      },
+      {
+        "type": "CLIENT_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      }
+    ],
+    "quotas": [
+      {
+        "type": "TRANSIENT",
+        "count": 50,
+        "capacity": 0,
+        "lastDelay": 10000
+      },
+      {
+        "type": "THROTTLING",
+        "count": 100,
+        "capacity": 0,
+        "lastDelay": 10000
+      }
+    ],
+    "hints": [
+      {
+        "hint": -1000,
+        "delay": 50
+      },
+      {
+        "hint": 0,
+        "delay": 50
+      },
+      {
+        "hint": 200,
+        "delay": 200
+      },
+      {
+        "hint": 10000,
+        "delay": 5050
+      },
+      {
+        "hint": 100000,
+        "delay": 5050
+      }
+    ],
+    "parsed": [
+      {
+        "headers": {
+          "retry-after": "2.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "2.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 2500
+      },
+      {
+        "headers": {
+          "retry-after": " 2 "
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            " 2 "
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -31633445000
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3500
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -10
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "",
+          "retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            ""
+          ],
+          [
+            "retry-after",
+            "5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "retry-after": "no",
+          "x-amz-retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "no"
+          ],
+          [
+            "x-amz-retry-after",
+            "5"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "inf"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "inf"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "+Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "+Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "infinity"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "1e999"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "1e999"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0x10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0x10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 16
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0b11"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0b11"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0o10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0o10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 8
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-.5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -1
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "  "
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "  "
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "NaN"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "NaN"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      }
+    ],
+    "adaptive": [
+      {
+        "event": "initial",
+        "time": 1767323045000,
+        "enabled": false,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": []
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323047000,
+        "enabled": true,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": [
+          2000
+        ],
+        "retryDelay": 250
+      },
+      {
+        "event": "TRANSIENT",
+        "time": 1767323047797,
+        "enabled": true,
+        "fillRate": 1.6,
+        "capacity": 1.6,
+        "tokens": 0.00019989013671883882,
+        "measured": 0.8,
+        "waits": [
+          546.875
+        ],
+        "retryDelay": 100
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323048647,
+        "enabled": true,
+        "fillRate": 1.12,
+        "capacity": 1.12,
+        "tokens": 0.00020011901855498948,
+        "measured": 1.76,
+        "waits": [
+          749.8213223048617
+        ],
+        "retryDelay": 1000
+      },
+      {
+        "event": "success",
+        "time": 1767323049647,
+        "enabled": true,
+        "fillRate": 1.504,
+        "capacity": 1.504,
+        "tokens": 1.12,
+        "measured": 0.752,
+        "waits": []
+      }
+    ]
+  },
+  {
+    "flag": "TRUE",
+    "active": false,
+    "constants": {
+      "delay": 100,
+      "throttleDelay": 500,
+      "cost": 5,
+      "modifiedCost": 10,
+      "modifiedClass": "TRANSIENT"
+    },
+    "cases": [
+      {
+        "type": "TRANSIENT",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 50,
+            "cost": 10,
+            "capacity": 490
+          },
+          {
+            "retry": 2,
+            "delay": 100,
+            "cost": 10,
+            "capacity": 480
+          },
+          {
+            "rejected": true,
+            "capacity": 480
+          },
+          {
+            "successCapacity": 490
+          }
+        ]
+      },
+      {
+        "type": "THROTTLING",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 250,
+            "cost": 5,
+            "capacity": 495
+          },
+          {
+            "retry": 2,
+            "delay": 500,
+            "cost": 5,
+            "capacity": 490
+          },
+          {
+            "rejected": true,
+            "capacity": 490
+          },
+          {
+            "successCapacity": 495
+          }
+        ]
+      },
+      {
+        "type": "SERVER_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      },
+      {
+        "type": "CLIENT_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      }
+    ],
+    "quotas": [
+      {
+        "type": "TRANSIENT",
+        "count": 50,
+        "capacity": 0,
+        "lastDelay": 10000
+      },
+      {
+        "type": "THROTTLING",
+        "count": 100,
+        "capacity": 0,
+        "lastDelay": 10000
+      }
+    ],
+    "hints": [
+      {
+        "hint": -1000,
+        "delay": 50
+      },
+      {
+        "hint": 0,
+        "delay": 50
+      },
+      {
+        "hint": 200,
+        "delay": 200
+      },
+      {
+        "hint": 10000,
+        "delay": 5050
+      },
+      {
+        "hint": 100000,
+        "delay": 5050
+      }
+    ],
+    "parsed": [
+      {
+        "headers": {
+          "retry-after": "2.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "2.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 2500
+      },
+      {
+        "headers": {
+          "retry-after": " 2 "
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            " 2 "
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -31633445000
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3500
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -10
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "",
+          "retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            ""
+          ],
+          [
+            "retry-after",
+            "5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "retry-after": "no",
+          "x-amz-retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "no"
+          ],
+          [
+            "x-amz-retry-after",
+            "5"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "inf"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "inf"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "+Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "+Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "infinity"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "1e999"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "1e999"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0x10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0x10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 16
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0b11"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0b11"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0o10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0o10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 8
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-.5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -1
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "  "
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "  "
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "NaN"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "NaN"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      }
+    ],
+    "adaptive": [
+      {
+        "event": "initial",
+        "time": 1767323045000,
+        "enabled": false,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": []
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323047000,
+        "enabled": true,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": [
+          2000
+        ],
+        "retryDelay": 250
+      },
+      {
+        "event": "TRANSIENT",
+        "time": 1767323047797,
+        "enabled": true,
+        "fillRate": 1.6,
+        "capacity": 1.6,
+        "tokens": 0.00019989013671883882,
+        "measured": 0.8,
+        "waits": [
+          546.875
+        ],
+        "retryDelay": 100
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323048647,
+        "enabled": true,
+        "fillRate": 1.12,
+        "capacity": 1.12,
+        "tokens": 0.00020011901855498948,
+        "measured": 1.76,
+        "waits": [
+          749.8213223048617
+        ],
+        "retryDelay": 1000
+      },
+      {
+        "event": "success",
+        "time": 1767323049647,
+        "enabled": true,
+        "fillRate": 1.504,
+        "capacity": 1.504,
+        "tokens": 1.12,
+        "measured": 0.752,
+        "waits": []
+      }
+    ]
+  },
+  {
+    "flag": "1",
+    "active": false,
+    "constants": {
+      "delay": 100,
+      "throttleDelay": 500,
+      "cost": 5,
+      "modifiedCost": 10,
+      "modifiedClass": "TRANSIENT"
+    },
+    "cases": [
+      {
+        "type": "TRANSIENT",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 50,
+            "cost": 10,
+            "capacity": 490
+          },
+          {
+            "retry": 2,
+            "delay": 100,
+            "cost": 10,
+            "capacity": 480
+          },
+          {
+            "rejected": true,
+            "capacity": 480
+          },
+          {
+            "successCapacity": 490
+          }
+        ]
+      },
+      {
+        "type": "THROTTLING",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 250,
+            "cost": 5,
+            "capacity": 495
+          },
+          {
+            "retry": 2,
+            "delay": 500,
+            "cost": 5,
+            "capacity": 490
+          },
+          {
+            "rejected": true,
+            "capacity": 490
+          },
+          {
+            "successCapacity": 495
+          }
+        ]
+      },
+      {
+        "type": "SERVER_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      },
+      {
+        "type": "CLIENT_ERROR",
+        "events": [
+          {
+            "initialDelay": 100,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      }
+    ],
+    "quotas": [
+      {
+        "type": "TRANSIENT",
+        "count": 50,
+        "capacity": 0,
+        "lastDelay": 10000
+      },
+      {
+        "type": "THROTTLING",
+        "count": 100,
+        "capacity": 0,
+        "lastDelay": 10000
+      }
+    ],
+    "hints": [
+      {
+        "hint": -1000,
+        "delay": 50
+      },
+      {
+        "hint": 0,
+        "delay": 50
+      },
+      {
+        "hint": 200,
+        "delay": 200
+      },
+      {
+        "hint": 10000,
+        "delay": 5050
+      },
+      {
+        "hint": 100000,
+        "delay": 5050
+      }
+    ],
+    "parsed": [
+      {
+        "headers": {
+          "retry-after": "2.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "2.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 2500
+      },
+      {
+        "headers": {
+          "retry-after": " 2 "
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            " 2 "
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -31633445000
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3500
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -10
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "",
+          "retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            ""
+          ],
+          [
+            "retry-after",
+            "5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "retry-after": "no",
+          "x-amz-retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "no"
+          ],
+          [
+            "x-amz-retry-after",
+            "5"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "inf"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "inf"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "+Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "+Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "infinity"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "1e999"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "1e999"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0x10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0x10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 16
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0b11"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0b11"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0o10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0o10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 8
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-.5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -1
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "  "
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "  "
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "NaN"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "NaN"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      }
+    ],
+    "adaptive": [
+      {
+        "event": "initial",
+        "time": 1767323045000,
+        "enabled": false,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": []
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323047000,
+        "enabled": true,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": [
+          2000
+        ],
+        "retryDelay": 250
+      },
+      {
+        "event": "TRANSIENT",
+        "time": 1767323047797,
+        "enabled": true,
+        "fillRate": 1.6,
+        "capacity": 1.6,
+        "tokens": 0.00019989013671883882,
+        "measured": 0.8,
+        "waits": [
+          546.875
+        ],
+        "retryDelay": 100
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323048647,
+        "enabled": true,
+        "fillRate": 1.12,
+        "capacity": 1.12,
+        "tokens": 0.00020011901855498948,
+        "measured": 1.76,
+        "waits": [
+          749.8213223048617
+        ],
+        "retryDelay": 1000
+      },
+      {
+        "event": "success",
+        "time": 1767323049647,
+        "enabled": true,
+        "fillRate": 1.504,
+        "capacity": 1.504,
+        "tokens": 1.12,
+        "measured": 0.752,
+        "waits": []
+      }
+    ]
+  },
+  {
+    "flag": "true",
+    "active": true,
+    "constants": {
+      "delay": 50,
+      "throttleDelay": 1000,
+      "cost": 14,
+      "modifiedCost": 5,
+      "modifiedClass": "THROTTLING"
+    },
+    "cases": [
+      {
+        "type": "TRANSIENT",
+        "events": [
+          {
+            "initialDelay": 50,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 25,
+            "cost": 14,
+            "capacity": 486
+          },
+          {
+            "retry": 2,
+            "delay": 50,
+            "cost": 14,
+            "capacity": 472
+          },
+          {
+            "rejected": true,
+            "capacity": 472
+          },
+          {
+            "successCapacity": 486
+          }
+        ]
+      },
+      {
+        "type": "THROTTLING",
+        "events": [
+          {
+            "initialDelay": 50,
+            "capacity": 500
+          },
+          {
+            "retry": 1,
+            "delay": 500,
+            "cost": 5,
+            "capacity": 495
+          },
+          {
+            "retry": 2,
+            "delay": 1000,
+            "cost": 5,
+            "capacity": 490
+          },
+          {
+            "rejected": true,
+            "capacity": 490
+          },
+          {
+            "successCapacity": 495
+          }
+        ]
+      },
+      {
+        "type": "SERVER_ERROR",
+        "events": [
+          {
+            "initialDelay": 50,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      },
+      {
+        "type": "CLIENT_ERROR",
+        "events": [
+          {
+            "initialDelay": 50,
+            "capacity": 500
+          },
+          {
+            "rejected": true,
+            "capacity": 500
+          },
+          {
+            "successCapacity": 500
+          }
+        ]
+      }
+    ],
+    "quotas": [
+      {
+        "type": "TRANSIENT",
+        "count": 35,
+        "capacity": 10,
+        "lastDelay": 10000
+      },
+      {
+        "type": "THROTTLING",
+        "count": 100,
+        "capacity": 0,
+        "lastDelay": 10000
+      }
+    ],
+    "hints": [
+      {
+        "hint": -1000,
+        "delay": 25
+      },
+      {
+        "hint": 0,
+        "delay": 25
+      },
+      {
+        "hint": 200,
+        "delay": 200
+      },
+      {
+        "hint": 10000,
+        "delay": 5025
+      },
+      {
+        "hint": 100000,
+        "delay": 5025
+      }
+    ],
+    "parsed": [
+      {
+        "headers": {
+          "retry-after": "2.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "2.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 2500
+      },
+      {
+        "headers": {
+          "retry-after": " 2 "
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            " 2 "
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -31633445000
+      },
+      {
+        "headers": {
+          "retry-after": "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "Wed, 01 Jan 2025 00:00:00 GMT, 3.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3500
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -10
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "",
+          "retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            ""
+          ],
+          [
+            "retry-after",
+            "5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "retry-after": "no",
+          "x-amz-retry-after": "5"
+        },
+        "headerEntries": [
+          [
+            "retry-after",
+            "no"
+          ],
+          [
+            "x-amz-retry-after",
+            "5"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "inf"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "inf"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "+Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "+Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-Infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-Infinity"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "infinity"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "infinity"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "1e999"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "1e999"
+          ]
+        ],
+        "present": true,
+        "invalid": true,
+        "delay": null
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0x10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0x10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 16
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0b11"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0b11"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 3
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "0o10"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "0o10"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 8
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "-.5"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "-.5"
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": -1
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "  "
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "  "
+          ]
+        ],
+        "present": true,
+        "invalid": false,
+        "delay": 0
+      },
+      {
+        "headers": {
+          "x-amz-retry-after": "NaN"
+        },
+        "headerEntries": [
+          [
+            "x-amz-retry-after",
+            "NaN"
+          ]
+        ],
+        "present": false,
+        "invalid": false,
+        "delay": null
+      }
+    ],
+    "adaptive": [
+      {
+        "event": "initial",
+        "time": 1767323045000,
+        "enabled": false,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": []
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323047000,
+        "enabled": true,
+        "fillRate": 0.5,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 0,
+        "waits": [
+          2000
+        ],
+        "retryDelay": 500
+      },
+      {
+        "event": "TRANSIENT",
+        "time": 1767323048086,
+        "enabled": true,
+        "fillRate": 1.28,
+        "capacity": 1.28,
+        "tokens": 7.995605468735789e-05,
+        "measured": 0.64,
+        "waits": [
+          585.9375
+        ],
+        "retryDelay": 50
+      },
+      {
+        "event": "THROTTLING",
+        "time": 1767323049181,
+        "enabled": true,
+        "fillRate": 0.896,
+        "capacity": 1,
+        "tokens": 0,
+        "measured": 1.728,
+        "waits": [
+          1044.5536885942731
+        ],
+        "retryDelay": 2000
+      },
+      {
+        "event": "success",
+        "time": 1767323051181,
+        "enabled": true,
+        "fillRate": 1.22453334,
+        "capacity": 1.22453334,
+        "tokens": 1,
+        "measured": 0.61226667,
+        "waits": []
+      }
+    ]
+  }
+]

@@ -14,6 +14,10 @@ mod proxy;
 mod request_encoding;
 mod retry_date;
 mod smithy;
+#[cfg(feature = "native")]
+mod smithy_error;
+mod smithy_eventstream;
+mod smithy_retry;
 mod sse;
 mod websocket;
 
@@ -29,6 +33,8 @@ pub use provider_retry::*;
 pub use proxy::*;
 pub use request_encoding::{ZstdRequestLimits, compress_zstd_request};
 pub use smithy::*;
+pub use smithy_eventstream::*;
+pub use smithy_retry::*;
 pub use sse::*;
 pub use websocket::*;
 

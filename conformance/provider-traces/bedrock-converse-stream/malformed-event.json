@@ -1,0 +1,3068 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "26.8.1",
+  "sdk": "3.1048.0",
+  "normalization": [
+    "synthetic configured handler only",
+    "fixed clock and invocation UUID",
+    "input tool-argument/schema objects use unchanged core canonical construction order",
+    "explicit platform user-agent provider",
+    "event snapshots at push",
+    "configured leaf returns source-proven Node H1/H2 admitted header records",
+    "Uint8Array base64 observation"
+  ],
+  "cases": [
+    {
+      "id": "review-malformed-event-0-false",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "server error"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "00000073000000572e5f81210d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e736572766572206572726f726b0f7a44"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:contentBlockDelta",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 's', \"server error\" is not valid JSON\n  Deserialization error: to see the raw response, inspect the hidden field {error}.$response on this object.",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "status": 200,
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-0-true",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "server error"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "00000073000000572e5f81210d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e736572766572206572726f726b0f7a44"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 's', \"server error\" is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-1-false",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "xxxxxxxxxxxxxxxxxxxxx server error"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "00000089000000572cdbc9dd0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e78787878787878787878787878787878787878787820736572766572206572726f72da0fc897"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:contentBlockDelta",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "200: xxxxxxxxxxxxxxxxxxxxx server error",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "status": 200,
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-1-true",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "xxxxxxxxxxxxxxxxxxxxx server error"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "00000089000000572cdbc9dd0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e78787878787878787878787878787878787878787820736572766572206572726f72da0fc897"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 'x', \"xxxxxxxxxx\"... is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-2-false",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "{\"server error\":}"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "0000007800000057598fb0300d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22736572766572206572726f72223a7dac620845"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:contentBlockDelta",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token '}', \"{\"server error\":}\" is not valid JSON\n  Deserialization error: to see the raw response, inspect the hidden field {error}.$response on this object.",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "status": 200,
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-2-true",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "{\"server error\":}"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000007800000057598fb0300d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22736572766572206572726f72223a7dac620845"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token '}', \"{\"server error\":}\" is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-3-false",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "{\"a\": 503x}"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "0000007200000057133fa8910d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b2261223a20353033787d339c45c9"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:contentBlockDelta",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "200: {\"a\": 503x}",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "status": 200,
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-malformed-event-3-true",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "{\"a\": 503x}"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000007200000057133fa8910d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b2261223a20353033787d339c45c9"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Expected ',' or '}' after property value in JSON at position 9 (line 1 column 10)",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-0",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "xxxxxxxx server error"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000007c00000057ac0f16f00d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e787878787878787820736572766572206572726f729a070e30"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 'x', \"xxxxxxxx s\"... is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-1",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "xxxxxxxxx server error"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000007d00000057916f3f400d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e78787878787878787820736572766572206572726f72b8a72f6b"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 'x', \"xxxxxxxxx \"... is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-2",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "[\"abcdefghijklmnopqrst\",server error]"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000008c00000057e43b46ad0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e5b226162636465666768696a6b6c6d6e6f7071727374222c736572766572206572726f725d480f7d0a"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 's', ...\"mnopqrst\",server err\"... is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-3",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "[\"server error\",xxxxxxxxxxxxxxxxxxxx]"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000008c00000057e43b46ad0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e5b22736572766572206572726f72222c78787878787878787878787878787878787878785d42e5f50a"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 'x', ...\"er error\",xxxxxxxxxx\"... is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-4",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   {"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000025b00000057922644ef0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020207bcb074649"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Expected property name or '}' in JSON at position 500 (line 1 column 501)",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-5",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              {\"a\": 1x}"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000025e000000575ac6cb9f0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020207b2261223a2031787dde5839c9"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Expected ',' or '}' after property value in JSON at position 501 (line 1 column 502)",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-6",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "prompt too long"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000007600000057e6bf0e510d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e70726f6d707420746f6f206c6f6e672e2ddae8"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 'p', \"prompt too long\" is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-7",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "xxxxxxxxxxxxxxxxxxxxx prompt too long"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000008c00000057e43b46ad0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7878787878787878787878787878787878787878782070726f6d707420746f6f206c6f6e67d3e9d229"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected token 'x', \"xxxxxxxxxx\"... is not valid JSON",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-8",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              {\"a\":"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000025a00000057af466d5f0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020207b2261223aeddf9739"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Unexpected end of JSON input",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-9",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  [1"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000025b00000057922644ef0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e2020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020205b3191c54efa"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Expected ',' or ']' after array element in JSON at position 500 (line 1 column 501)",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-neighbor-10",
+      "model": {
+        "id": "anthropic.claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6",
+        "api": "bedrock-converse-stream",
+        "provider": "amazon-bedrock",
+        "baseUrl": "https://synthetic.invalid/base",
+        "reasoning": true,
+        "input": [
+          "text",
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 0.1,
+          "cacheWrite": 0.2
+        },
+        "contextWindow": 200000,
+        "maxTokens": 16384
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "simple": false,
+      "sourceEvents": [
+        [
+          "messageStart",
+          {
+            "role": "assistant"
+          }
+        ],
+        [
+          "contentBlockDelta",
+          {
+            "__reviewRaw": "\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r\r{\"a\": 1x}"
+          }
+        ]
+      ],
+      "payloads": [
+        {
+          "modelId": "anthropic.claude-sonnet-4-6",
+          "messages": [],
+          "inferenceConfig": {
+            "maxTokens": 16384
+          }
+        }
+      ],
+      "wire": [
+        {
+          "method": "POST",
+          "protocol": "https:",
+          "hostname": "synthetic.invalid",
+          "path": "/base/model/anthropic.claude-sonnet-4-6/converse-stream",
+          "query": {},
+          "headers": {
+            "content-type": "application/json",
+            "content-length": "53",
+            "x-amz-user-agent": "aws-sdk-js/3.1048.0",
+            "user-agent": "aws-sdk-js/3.1048.0 api/bedrock-runtime#3.1048.0 m/N,E app/synthetic",
+            ":authority": "synthetic.invalid",
+            "amz-sdk-invocation-id": "12345678-1234-4123-8123-123456789abc",
+            "amz-sdk-request": "attempt=1; max=1",
+            "x-amz-date": "20260102T030405Z",
+            "x-amz-security-token": "synthetic-session",
+            "x-amz-content-sha256": "35e4da217b5f65df82d99aeaade7a5d0140b8af7fb6f8c3585974365100b48eb",
+            "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token;x-amz-user-agent, Signature=773d897a8b92009a6dd9be30ec572ef9d95b8bc3409472a807344c0ab5f261c3"
+          },
+          "body": "{\"messages\":[],\"inferenceConfig\":{\"maxTokens\":16384}}"
+        }
+      ],
+      "responses": [
+        {
+          "status": 200,
+          "headers": {
+            ":status": 200,
+            "content-type": "application/vnd.amazon.eventstream",
+            "x-amzn-requestid": "request-id",
+            "x-custom": "value"
+          }
+        }
+      ],
+      "responseBodies": [
+        [
+          "000000760000005296d5fade0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d7479706507000c6d65737361676553746172740d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e7b22726f6c65223a22617373697374616e74227d1cc6be18",
+          "0000025c00000057200698ff0d3a6d6573736167652d747970650700056576656e740b3a6576656e742d74797065070011636f6e74656e74426c6f636b44656c74610d3a636f6e74656e742d747970650700106170706c69636174696f6e2f6a736f6e0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d7b2261223a2031787d94a5338a"
+        ]
+      ],
+      "effects": [
+        "construct",
+        "payload",
+        "credentials",
+        "handler",
+        "response",
+        "body:messageStart",
+        "body:contentBlockDelta",
+        "sdk-send-resolved",
+        "event:start",
+        "event:error"
+      ],
+      "events": [
+        {
+          "type": "start",
+          "partial": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "pending",
+            "timestamp": 1767323045000
+          }
+        },
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "bedrock-converse-stream",
+            "provider": "amazon-bedrock",
+            "model": "anthropic.claude-sonnet-4-6",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "timestamp": 1767323045000,
+            "errorMessage": "Expected ',' or '}' after property value in JSON at position 499 (line 493 column 8)",
+            "diagnostics": [
+              {
+                "type": "bedrock_response_failure",
+                "timestamp": 1767323045000,
+                "details": {
+                  "requestId": "request-id"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

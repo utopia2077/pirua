@@ -1,0 +1,546 @@
+{
+  "sdk": "3.1048.0",
+  "clockStart": 1767323045000,
+  "cases": [
+    {
+      "mode": "default",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts",
+        "region",
+        "handle:1",
+        "response"
+      ],
+      "reads": 1,
+      "sends": 1,
+      "requests": [
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=0c2c113856343abacf4e5424e395b3cfce61c1a2bfc8a58bbc2609dfaa71fc9f",
+          "attempt": "attempt=1; max=3",
+          "body": "{\"messages\":[]}"
+        }
+      ],
+      "waits": [],
+      "outcome": "ok",
+      "metadata": {
+        "httpStatusCode": 200,
+        "attempts": 1,
+        "totalRetryDelay": 0
+      }
+    },
+    {
+      "mode": "fail:region",
+      "effects": [
+        "constructed",
+        "payload",
+        "region"
+      ],
+      "reads": 0,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:authPreference",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference"
+      ],
+      "reads": 0,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:credentials",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:endpoint",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:fips",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:dual",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:appId",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:retryMode",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "fail:maxAttempts",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts"
+      ],
+      "reads": 1,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "bearer",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "token",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts",
+        "handle:1",
+        "response"
+      ],
+      "reads": 0,
+      "sends": 1,
+      "requests": [
+        {
+          "authorization": "Bearer synthetic-bearer",
+          "attempt": "attempt=1; max=3",
+          "body": "{\"messages\":[]}"
+        }
+      ],
+      "waits": [],
+      "outcome": "ok",
+      "metadata": {
+        "httpStatusCode": 200,
+        "attempts": 1,
+        "totalRetryDelay": 0
+      }
+    },
+    {
+      "mode": "token-failure",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "token"
+      ],
+      "reads": 0,
+      "sends": 0,
+      "requests": [],
+      "waits": [],
+      "outcome": "ConfiguredFailure",
+      "metadata": {
+        "httpStatusCode": 503
+      }
+    },
+    {
+      "mode": "retry-three",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts",
+        "region",
+        "handle:1",
+        "maxAttempts",
+        "region",
+        "handle:2",
+        "maxAttempts",
+        "region",
+        "handle:3",
+        "response"
+      ],
+      "reads": 1,
+      "sends": 3,
+      "requests": [
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=0c2c113856343abacf4e5424e395b3cfce61c1a2bfc8a58bbc2609dfaa71fc9f",
+          "attempt": "attempt=1; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=3845930c0afe02328a92c07ec50cc76d7338ed07be34096462fbd96f272b22b7",
+          "attempt": "attempt=2; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=a600bdcf62de6280b1b156d4d4340b089e3926e7035f4e82fe58077d24902eaf",
+          "attempt": "attempt=3; max=3",
+          "body": "{\"messages\":[]}"
+        }
+      ],
+      "waits": [
+        50,
+        100
+      ],
+      "outcome": "ok",
+      "metadata": {
+        "httpStatusCode": 200,
+        "attempts": 3,
+        "totalRetryDelay": 150
+      }
+    },
+    {
+      "mode": "retry-expiring",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts",
+        "region",
+        "credentials",
+        "handle:1",
+        "maxAttempts",
+        "region",
+        "credentials",
+        "handle:2",
+        "maxAttempts",
+        "region",
+        "credentials",
+        "handle:3",
+        "response"
+      ],
+      "reads": 5,
+      "sends": 3,
+      "requests": [
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=0c2c113856343abacf4e5424e395b3cfce61c1a2bfc8a58bbc2609dfaa71fc9f",
+          "attempt": "attempt=1; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=3845930c0afe02328a92c07ec50cc76d7338ed07be34096462fbd96f272b22b7",
+          "attempt": "attempt=2; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=a600bdcf62de6280b1b156d4d4340b089e3926e7035f4e82fe58077d24902eaf",
+          "attempt": "attempt=3; max=3",
+          "body": "{\"messages\":[]}"
+        }
+      ],
+      "waits": [
+        50,
+        100
+      ],
+      "outcome": "ok",
+      "metadata": {
+        "httpStatusCode": 200,
+        "attempts": 3,
+        "totalRetryDelay": 150
+      }
+    },
+    {
+      "mode": "retry-expiry-exact",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts",
+        "region",
+        "handle:1",
+        "maxAttempts",
+        "region",
+        "credentials",
+        "handle:2",
+        "maxAttempts",
+        "region",
+        "credentials",
+        "handle:3",
+        "response"
+      ],
+      "reads": 3,
+      "sends": 3,
+      "requests": [
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=0c2c113856343abacf4e5424e395b3cfce61c1a2bfc8a58bbc2609dfaa71fc9f",
+          "attempt": "attempt=1; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=3845930c0afe02328a92c07ec50cc76d7338ed07be34096462fbd96f272b22b7",
+          "attempt": "attempt=2; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=a600bdcf62de6280b1b156d4d4340b089e3926e7035f4e82fe58077d24902eaf",
+          "attempt": "attempt=3; max=3",
+          "body": "{\"messages\":[]}"
+        }
+      ],
+      "waits": [
+        50,
+        100
+      ],
+      "outcome": "ok",
+      "metadata": {
+        "httpStatusCode": 200,
+        "attempts": 3,
+        "totalRetryDelay": 150
+      }
+    },
+    {
+      "mode": "retry-skew",
+      "effects": [
+        "constructed",
+        "payload",
+        "region",
+        "authPreference",
+        "credentials",
+        "region",
+        "fips",
+        "endpoint",
+        "region",
+        "dual",
+        "endpoint",
+        "retryMode",
+        "appId",
+        "build",
+        "maxAttempts",
+        "region",
+        "handle:1",
+        "maxAttempts",
+        "region",
+        "handle:2",
+        "maxAttempts",
+        "region",
+        "handle:3",
+        "response"
+      ],
+      "reads": 1,
+      "sends": 3,
+      "requests": [
+        {
+          "date": "20260102T030405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=0c2c113856343abacf4e5424e395b3cfce61c1a2bfc8a58bbc2609dfaa71fc9f",
+          "attempt": "attempt=1; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T040405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=b3d3e5f02c7da5c8fdf1a9d1762592a2251d22380cc752347f29dee0f40784a0",
+          "attempt": "attempt=2; max=3",
+          "body": "{\"messages\":[]}"
+        },
+        {
+          "date": "20260102T040405Z",
+          "authorization": "AWS4-HMAC-SHA256 Credential=AKID_SYNTHETIC/20260102/us-east-1/bedrock/aws4_request, SignedHeaders=:authority;amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;x-amz-content-sha256;x-amz-date;x-amz-security-token, Signature=624376fecde2d8999cda6899ab6a624b5167bfcbc89655ddecf664e6769ab051",
+          "attempt": "attempt=3; max=3",
+          "body": "{\"messages\":[]}"
+        }
+      ],
+      "waits": [
+        50,
+        100
+      ],
+      "outcome": "ok",
+      "metadata": {
+        "httpStatusCode": 200,
+        "attempts": 3,
+        "totalRetryDelay": 150
+      }
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "rows": [
+    {
+      "expiry": null,
+      "initial": "SYNTH_1",
+      "cached": "SYNTH_1",
+      "forced": "SYNTH_2",
+      "calls": 3,
+      "forcedReads": [
+        false,
+        true,
+        false
+      ]
+    },
+    {
+      "expiry": 300000,
+      "initial": "SYNTH_1",
+      "cached": "SYNTH_1",
+      "forced": "SYNTH_2",
+      "calls": 3,
+      "forcedReads": [
+        false,
+        true,
+        false
+      ]
+    },
+    {
+      "expiry": 299999,
+      "initial": "SYNTH_2",
+      "cached": "SYNTH_3",
+      "forced": "SYNTH_5",
+      "calls": 7,
+      "forcedReads": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false
+      ]
+    }
+  ],
+  "coalescedCalls": 2,
+  "failedThenRetriedCalls": 2
+}

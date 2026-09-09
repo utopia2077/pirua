@@ -52,3 +52,6 @@ mod google_sdk;
 mod google_stream;
 #[cfg(feature = "wire-google-vertex")]
 pub mod google_vertex;
+
+#[cfg(feature = "wire-bedrock-converse-stream")]
+pub mod bedrock_converse_stream;
