@@ -1,0 +1,182 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "cancellation": {
+    "calls": 1,
+    "prefix": "start",
+    "prefixUsage": 0,
+    "terminalUsage": 17
+  },
+  "loader": {
+    "before": 0,
+    "synchronous": 1,
+    "after": 4,
+    "plainKeys": [
+      "stream",
+      "streamSimple"
+    ],
+    "enabledKeys": [
+      "stream",
+      "streamSimple",
+      "fetchDeferred",
+      "cancelDeferred"
+    ],
+    "fetchFailure": "API does not support deferred responses",
+    "cancelFailed": true,
+    "directThrows": true
+  },
+  "domain": {
+    "resultOnlyEvents": 0,
+    "resultOnlyUsage": 23,
+    "noResultEvents": 1,
+    "noResultSettled": false,
+    "iteratorThrowTags": [
+      "start",
+      "error"
+    ],
+    "iteratorThrowUsage": 0
+  },
+  "families": [
+    {
+      "id": "anthropic-messages",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "azure-openai-responses",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "google-generative-ai",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "google-vertex",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "mistral-conversations",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "openai-codex-responses",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "openai-completions",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "openai-responses",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "pi-messages",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    },
+    {
+      "id": "bedrock-converse-stream",
+      "calls": 2,
+      "operations": [
+        "raw",
+        "simple"
+      ],
+      "keys": [
+        "stream",
+        "streamSimple"
+      ]
+    }
+  ],
+  "bedrock": {
+    "values": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "calls": 2
+  },
+  "repeatedFailure": {
+    "calls": 2,
+    "values": [
+      {
+        "reason": "error",
+        "usage": 0
+      },
+      {
+        "reason": "error",
+        "usage": 0
+      }
+    ]
+  }
+}
