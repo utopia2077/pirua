@@ -1,0 +1,547 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "hashes": {
+    "api/constrained-sampling.ts": "1b869f139e5cd1f09b4ebecb8f7ce9ea44b63e75dc6d6158ac8f5d00f2eaddbb",
+    "api/openai-responses-shared.ts": "e86649ae0ccc20478df9919dc57e7bb3d8f2fc02e343cc1f87db16d8ca1ca2bb"
+  },
+  "cases": [
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"strict\":false}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "deferLoading": false,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "deferLoading": false,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"strict\":false}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "deferLoading": true,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"defer_loading\":true}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "deferLoading": true,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"defer_loading\":true,\"strict\":false}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": null,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": null,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"strict\":null}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": null,
+        "deferLoading": false,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": null,
+        "deferLoading": false,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"strict\":null}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": null,
+        "deferLoading": true,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"defer_loading\":true}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": null,
+        "deferLoading": true,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"defer_loading\":true,\"strict\":null}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": false,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": false,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"strict\":false}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": false,
+        "deferLoading": false,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": false,
+        "deferLoading": false,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"strict\":false}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": false,
+        "deferLoading": true,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"defer_loading\":true}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": false,
+        "deferLoading": true,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\"},\"defer_loading\":true,\"strict\":false}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": true,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\",\"additionalProperties\":false}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": true,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\",\"additionalProperties\":false},\"strict\":true}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": true,
+        "deferLoading": false,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\",\"additionalProperties\":false}}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": true,
+        "deferLoading": false,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\",\"additionalProperties\":false},\"strict\":true}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": true,
+        "deferLoading": true,
+        "supportsStrictMode": false
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\",\"additionalProperties\":false},\"defer_loading\":true}]"
+    },
+    {
+      "tool": {
+        "name": "lookup",
+        "description": "Synthetic",
+        "parameters": {
+          "properties": {
+            "payload": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "payload"
+          ],
+          "type": "object"
+        }
+      },
+      "options": {
+        "strict": true,
+        "deferLoading": true,
+        "supportsStrictMode": true
+      },
+      "expectedJson": "[{\"type\":\"function\",\"name\":\"lookup\",\"description\":\"Synthetic\",\"parameters\":{\"properties\":{\"payload\":{\"type\":\"string\"}},\"required\":[\"payload\"],\"type\":\"object\",\"additionalProperties\":false},\"defer_loading\":true,\"strict\":true}]"
+    }
+  ]
+}

@@ -222,6 +222,9 @@ pub fn convert_responses_tools(
                 "type":"function", "name":tool.name, "description":tool.description,
                 "parameters":parameters.as_value()
             });
+            if options.defer_loading == Some(true) {
+                wire["defer_loading"] = Value::Bool(true);
+            }
             if supports_strict {
                 wire["strict"] = serde_json::to_value(strict)
                     .map_err(|_| ResponsesError::new(ResponsesErrorKind::Conversion))?;
