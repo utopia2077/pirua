@@ -101,10 +101,30 @@ impl RetryDateParser for HttpRetryDateParser {
     }
 }
 
+enum RequestInput<'a> {
+    Raw(&'a HttpRequest),
+    Fetch(&'a HttpRequest),
+    Logical(&'a crate::FetchRequest),
+}
+struct NoRawClient;
+impl RawHttpClient for NoRawClient {
+    fn send<'a>(
+        &'a self,
+        _: &'a HttpRequest,
+        _: &'a RequestRuntime,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        Box::pin(async {
+            Err(TransportError::new(
+                TransportErrorKind::UnsupportedOperation,
+            ))
+        })
+    }
+}
 /// Request retry owner. Once response headers are returned, body errors cannot
 /// reach the retry loop. No provider payload or error text is retained here.
 pub struct HttpTransport {
     client: Arc<dyn RawHttpClient>,
+    custom_fetch: Option<Arc<dyn crate::CustomFetch>>,
     jitter: Arc<dyn RetryJitter>,
     date_parser: Arc<dyn RetryDateParser>,
     fetch_redirects: crate::FetchRedirectMode,
@@ -141,12 +161,23 @@ impl HttpTransport {
     pub fn new(client: Arc<dyn RawHttpClient>, jitter: Arc<dyn RetryJitter>) -> Self {
         Self {
             client,
+            custom_fetch: None,
             jitter,
             date_parser: Arc::new(HttpRetryDateParser),
             fetch_redirects: crate::FetchRedirectMode::Follow,
             fetch_response_source: crate::FetchResponseSource::RawNetwork,
             fetch_content_limits: crate::FetchContentLimits::default(),
         }
+    }
+    /// A configured custom Fetch with no raw/network fallback capability.
+    pub fn new_custom(custom: Arc<dyn crate::CustomFetch>, jitter: Arc<dyn RetryJitter>) -> Self {
+        Self::new(Arc::new(NoRawClient), jitter).with_custom_fetch(custom)
+    }
+    /// Selects custom Fetch without changing the explicitly supplied raw client.
+    /// Response-source and redirect settings cannot override custom semantics.
+    pub fn with_custom_fetch(mut self, custom: Arc<dyn crate::CustomFetch>) -> Self {
+        self.custom_fetch = Some(custom);
+        self
     }
     pub fn with_date_parser(mut self, parser: Arc<dyn RetryDateParser>) -> Self {
         self.date_parser = parser;
@@ -175,7 +206,7 @@ impl HttpTransport {
         retry: RetryProfile,
         timeout: TimeoutProfile,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
-        self.send_inner(request, runtime, retry, timeout, None)
+        self.send_inner(RequestInput::Raw(request), runtime, retry, timeout)
     }
     /// Fetch composition for replayable byte requests, not arbitrary RequestInit.
     /// Empty bytes mean absent body for GET/HEAD. A chain shares one attempt
@@ -187,15 +218,24 @@ impl HttpTransport {
         retry: RetryProfile,
         timeout: TimeoutProfile,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
-        self.send_inner(request, runtime, retry, timeout, Some(self.fetch_redirects))
+        self.send_inner(RequestInput::Fetch(request), runtime, retry, timeout)
     }
-    fn send_inner<'a>(
+    /// Retains record/Headers and text/byte forms until the chosen consumer.
+    pub fn send_fetch_request<'a>(
         &'a self,
-        request: &'a HttpRequest,
+        request: &'a crate::FetchRequest,
         runtime: &'a RequestRuntime,
         retry: RetryProfile,
         timeout: TimeoutProfile,
-        fetch: Option<crate::FetchRedirectMode>,
+    ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+        self.send_inner(RequestInput::Logical(request), runtime, retry, timeout)
+    }
+    fn send_inner<'a>(
+        &'a self,
+        input: RequestInput<'a>,
+        runtime: &'a RequestRuntime,
+        retry: RetryProfile,
+        timeout: TimeoutProfile,
     ) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
         Box::pin(async move {
             let (max_retries, cap) = match retry {
@@ -220,24 +260,63 @@ impl HttpTransport {
                     TimeoutProfile::HeadersAndIdle { headers, .. } => Some(headers),
                 };
                 let mut deadline = duration.map(|d| timer(runtime.clock.clone(), d));
-                let result = if let Some(mode) = fetch {
-                    crate::fetch::attempt(
-                        self.client.as_ref(),
-                        request,
-                        runtime,
-                        &mut deadline,
-                        mode,
-                        self.fetch_response_source,
-                        self.fetch_content_limits,
-                    )
-                    .await
-                } else {
-                    timed_wait(
-                        self.client.send(request, runtime),
-                        &runtime.cancellation,
-                        &mut deadline,
-                    )
-                    .await
+                let result = match &input {
+                    RequestInput::Raw(request) => {
+                        timed_wait(
+                            self.client.send(request, runtime),
+                            &runtime.cancellation,
+                            &mut deadline,
+                        )
+                        .await
+                    }
+                    RequestInput::Fetch(request) => {
+                        if let Some(custom) = &self.custom_fetch {
+                            let logical = crate::FetchRequest::from_http(request)?;
+                            timed_wait(
+                                custom_fetch_attempt(custom.as_ref(), &logical, runtime),
+                                &runtime.cancellation,
+                                &mut deadline,
+                            )
+                            .await
+                        } else {
+                            crate::fetch::attempt(
+                                self.client.as_ref(),
+                                request,
+                                runtime,
+                                &mut deadline,
+                                self.fetch_redirects,
+                                self.fetch_response_source,
+                                self.fetch_content_limits,
+                            )
+                            .await
+                        }
+                    }
+                    RequestInput::Logical(request) => {
+                        if let Some(custom) = &self.custom_fetch {
+                            timed_wait(
+                                custom_fetch_attempt(custom.as_ref(), request, runtime),
+                                &runtime.cancellation,
+                                &mut deadline,
+                            )
+                            .await
+                        } else {
+                            match request.network_request() {
+                                Ok(physical) => {
+                                    crate::fetch::attempt(
+                                        self.client.as_ref(),
+                                        &physical,
+                                        runtime,
+                                        &mut deadline,
+                                        self.fetch_redirects,
+                                        self.fetch_response_source,
+                                        self.fetch_content_limits,
+                                    )
+                                    .await
+                                }
+                                Err(error) => Err(error),
+                            }
+                        }
+                    }
                 };
                 let retry_headers = match &result {
                     Ok(response)
@@ -445,4 +524,19 @@ impl Drop for PolicyBody {
     fn drop(&mut self) {
         self.close();
     }
+}
+
+// Preserve the original closed kind. Only SDK acquisition owners apply their
+// own Connection wrapper; direct Fetch (Pi) retains typed helper failures.
+fn custom_fetch_attempt<'a>(
+    custom: &'a dyn crate::CustomFetch,
+    request: &'a crate::FetchRequest,
+    runtime: &'a RequestRuntime,
+) -> BoxFuture<'a, Result<HttpResponse, TransportError>> {
+    let pending = custom.fetch(request, runtime);
+    Box::pin(async move {
+        pending
+            .await
+            .map_err(TransportError::at_custom_fetch_rejection)
+    })
 }

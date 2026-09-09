@@ -20,8 +20,8 @@ use pi_ai_core::{
     parse_streaming_json,
 };
 use pi_ai_transport::{
-    HttpHeaders, HttpRequest, RetryProfile, SseDecoder, SseProfile, TimeoutProfile, TransportError,
-    TransportErrorKind, read_body_limited,
+    RetryProfile, SseDecoder, SseProfile, TimeoutProfile, TransportError, TransportErrorKind,
+    read_body_limited,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -799,32 +799,23 @@ async fn run(
             }
         }
     }
-    // The source first spreads exact object keys, then Fetch Headers trims values
-    // and joins case-variant duplicate names. Exact-key overrides still replace.
-    let mut headers = HttpHeaders::new();
+    let mut headers = pi_ai_transport::FetchHeaderRecord::new();
     for (name, value) in raw_headers {
-        if value.chars().any(|character| u32::from(character) > 255) {
-            return Err(Failure::Transport(TransportErrorKind::InvalidRequest));
-        }
-        let value = value.trim_matches([' ', '\t', '\r', '\n']);
-        let value = match headers.get_for_wire(&name) {
-            Some(previous) => format!("{previous}, {value}"),
-            None => value.to_owned(),
-        };
-        headers.set(name, value)?;
+        headers.insert(name, value);
     }
-    let http_request = HttpRequest {
+    let http_request = pi_ai_transport::FetchRequest {
         endpoint: RequestEndpoint::new_resolved(url.as_str()).map_err(|_| Failure::Protocol)?,
         method: "POST".to_owned(),
-        headers,
-        body: super::wire_json::stringify_wire_json_without_fixed_limits(payload.as_value())
-            .map_err(|_| Failure::Protocol)?
-            .into_bytes(),
+        headers: pi_ai_transport::FetchHeaders::Record(headers),
+        body: pi_ai_transport::FetchBody::Text(
+            super::wire_json::stringify_wire_json_without_fixed_limits(payload.as_value())
+                .map_err(|_| Failure::Protocol)?,
+        ),
         proxy: None,
     };
     let mut response = services
         .transport
-        .send_fetch(
+        .send_fetch_request(
             &http_request,
             runtime,
             RetryProfile::None,

@@ -1,0 +1,256 @@
+{
+  "node": "26.8.1",
+  "cases": [
+    {
+      "id": "record-forward",
+      "headers": [
+        [
+          "x-alias",
+          "lower"
+        ],
+        [
+          "X-Alias",
+          "upper"
+        ]
+      ],
+      "text": "{}",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8",
+        "x-alias": "lower, upper"
+      },
+      "selectedBody": [
+        123,
+        125
+      ]
+    },
+    {
+      "id": "record-reverse",
+      "headers": [
+        [
+          "X-Alias",
+          "upper"
+        ],
+        [
+          "x-alias",
+          "lower"
+        ]
+      ],
+      "text": "{}",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8",
+        "x-alias": "upper, lower"
+      },
+      "selectedBody": [
+        123,
+        125
+      ]
+    },
+    {
+      "id": "literal",
+      "headers": [
+        [
+          "x-alias",
+          "lower, upper"
+        ]
+      ],
+      "text": "{}",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8",
+        "x-alias": "lower, upper"
+      },
+      "selectedBody": [
+        123,
+        125
+      ]
+    },
+    {
+      "id": "text-default",
+      "headers": [],
+      "text": "text",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8"
+      },
+      "selectedBody": [
+        116,
+        101,
+        120,
+        116
+      ]
+    },
+    {
+      "id": "bytes-default",
+      "headers": [],
+      "bytes": [
+        116,
+        101,
+        120,
+        116
+      ],
+      "accepted": true,
+      "selectedHeaders": {},
+      "selectedBody": [
+        116,
+        101,
+        120,
+        116
+      ]
+    },
+    {
+      "id": "text-bom",
+      "headers": [],
+      "text": "﻿null",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8"
+      },
+      "selectedBody": [
+        239,
+        187,
+        191,
+        110,
+        117,
+        108,
+        108
+      ]
+    },
+    {
+      "id": "bytes-bom",
+      "headers": [],
+      "bytes": [
+        239,
+        187,
+        191,
+        110,
+        117,
+        108,
+        108
+      ],
+      "accepted": true,
+      "selectedHeaders": {},
+      "selectedBody": [
+        239,
+        187,
+        191,
+        110,
+        117,
+        108,
+        108
+      ]
+    },
+    {
+      "id": "text-empty",
+      "headers": [],
+      "text": "",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8"
+      },
+      "selectedBody": []
+    },
+    {
+      "id": "bytes-empty",
+      "headers": [],
+      "bytes": [],
+      "accepted": true,
+      "selectedHeaders": {},
+      "selectedBody": []
+    },
+    {
+      "id": "trim",
+      "headers": [
+        [
+          "x-space",
+          " \r\nkept \t\r\n"
+        ]
+      ],
+      "text": "{}",
+      "accepted": true,
+      "selectedHeaders": {
+        "content-type": "text/plain;charset=UTF-8",
+        "x-space": "kept"
+      },
+      "selectedBody": [
+        123,
+        125
+      ]
+    },
+    {
+      "id": "unicode",
+      "headers": [
+        [
+          "x-text",
+          "😀"
+        ]
+      ],
+      "text": "{}",
+      "accepted": false
+    },
+    {
+      "id": "bad-name",
+      "headers": [
+        [
+          "bad name",
+          "x"
+        ]
+      ],
+      "text": "{}",
+      "accepted": false
+    },
+    {
+      "id": "interior-newline",
+      "headers": [
+        [
+          "x-text",
+          "one\ntwo"
+        ]
+      ],
+      "text": "{}",
+      "accepted": false
+    },
+    {
+      "id": "get-text",
+      "method": "GET",
+      "headers": [],
+      "text": "",
+      "accepted": false
+    },
+    {
+      "id": "numeric-order",
+      "headers": [
+        [
+          "z",
+          "last"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "01",
+          "leading"
+        ],
+        [
+          "10",
+          "ten"
+        ]
+      ],
+      "text": "{}",
+      "accepted": true,
+      "selectedHeaders": {
+        "2": "two",
+        "10": "ten",
+        "01": "leading",
+        "content-type": "text/plain;charset=UTF-8",
+        "z": "last"
+      },
+      "selectedBody": [
+        123,
+        125
+      ]
+    }
+  ]
+}

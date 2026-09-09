@@ -1,0 +1,1032 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "26.8.1",
+  "hashes": {
+    "api/cloudflare.ts": "6333a0f78e8cd6b75e408fdeb594d5e1e02605206247c5a921c2f56dd99cf96a",
+    "api/cloudflare-gateway-binding.ts": "7438cd5810a6d186d84a5a4a024ded1d857a650fc553af66d802def374a3b3bb"
+  },
+  "constants": {
+    "CLOUDFLARE_WORKERS_AI_BASE_URL": "https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/v1",
+    "CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/compat",
+    "CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/openai",
+    "CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL": "https://gateway.ai.cloudflare.com/v1/{CLOUDFLARE_ACCOUNT_ID}/{CLOUDFLARE_GATEWAY_ID}/anthropic"
+  },
+  "sentinel": "cloudflare-gateway-binding",
+  "base": "https://gateway.ai.cloudflare.com/v1/account/gateway",
+  "cases": [
+    {
+      "id": "default",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "anthropic",
+      "path": "/anthropic/v1/messages",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "anthropic",
+      "endpoint": "v1/messages",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "workers",
+      "path": "/workers-ai/v1/chat/completions",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "workers-ai",
+      "endpoint": "v1/chat/completions",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "normalized",
+      "path": "/openai/../openai/v1/./responses?beta=true#ignored",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "v1/responses?beta=true",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "encoded-dots",
+      "path": "/openai/%2e%2e/openai/responses",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "encoded-slash",
+      "path": "/openai/responses%2fpart?x=%2f&y=two#ignored",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses%2fpart?x=%2f&y=two",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "base-trailing",
+      "base": "https://gateway.ai.cloudflare.com/v1/account/gateway/",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "base-query-fragment",
+      "base": "https://gateway.ai.cloudflare.com/v1/account/gateway?x=ignored#ignored",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "origin-normalization",
+      "url": "https://GATEWAY.AI.CLOUDFLARE.COM:443/v1/account/gateway/openai/responses",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "empty-endpoint",
+      "path": "/openai/",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "empty-query",
+      "path": "/openai/responses?",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "outside",
+      "url": "https://elsewhere.invalid/v1/account/gateway/openai/responses",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "prefix-lookalike",
+      "url": "https://gateway.ai.cloudflare.com/v1/account/gateway-other/openai/responses",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "dot-outside",
+      "path": "/../other/openai/responses",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "provider-only",
+      "path": "/openai",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "empty-provider",
+      "path": "//responses",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "invalid-url",
+      "url": "not a url",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "invalid-base",
+      "base": "not a url",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "get",
+      "method": "GET",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "lower-post",
+      "method": "post",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "put",
+      "method": "PUT",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "null",
+      "body": "null",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": null,
+      "queryWire": "null",
+      "queryBytes": 4,
+      "querySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "id": "boolean",
+      "body": "true",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": true,
+      "queryWire": "true",
+      "queryBytes": 4,
+      "querySha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "id": "number",
+      "body": "9007199254740993",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": 9007199254740992,
+      "queryWire": "9007199254740992",
+      "queryBytes": 16,
+      "querySha256": "c681da39d7273a6a24c15c9cac3a75526ff2ecf8ba4ee60346a0c70c8163bdb2"
+    },
+    {
+      "id": "number-notation",
+      "body": "{\"z\":1e20,\"negativeZero\":-0,\"round\":9007199254740993}",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": true,
+      "queryKeys": [
+        "z",
+        "negativeZero",
+        "round"
+      ],
+      "query": {
+        "z": 100000000000000000000,
+        "negativeZero": 0,
+        "round": 9007199254740992
+      },
+      "queryWire": "{\"z\":100000000000000000000,\"negativeZero\":0,\"round\":9007199254740992}",
+      "queryBytes": 69,
+      "querySha256": "51cfb52195ff903d598a8d16bb3d0f9aec0e1bfdd189a0a1b0854edf512de9cd"
+    },
+    {
+      "id": "array",
+      "body": "[1,null,\"text\"]",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": [
+        1,
+        null,
+        "text"
+      ],
+      "queryWire": "[1,null,\"text\"]",
+      "queryBytes": 15,
+      "querySha256": "89a3e4e3e51fb6d8c157a7513f36acb4239cc4eb04f737717828617c44fdba97"
+    },
+    {
+      "id": "query-own-order",
+      "body": "{\"z\":1,\"10\":\"ten\",\"2\":\"two\",\"01\":\"leading\",\"4294967295\":\"nonindex\",\"4294967294\":\"index\",\"a\":0}",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [
+        "2",
+        "10",
+        "4294967294",
+        "z",
+        "01",
+        "4294967295",
+        "a"
+      ],
+      "query": {
+        "2": "two",
+        "10": "ten",
+        "4294967294": "index",
+        "z": 1,
+        "01": "leading",
+        "4294967295": "nonindex",
+        "a": 0
+      },
+      "queryWire": "{\"2\":\"two\",\"10\":\"ten\",\"4294967294\":\"index\",\"z\":1,\"01\":\"leading\",\"4294967295\":\"nonindex\",\"a\":0}",
+      "queryBytes": 94,
+      "querySha256": "3fbedd2d973707a13c34ffdb0d4b337b7fa2cca0f3db4621d38b1e87b1c5a904"
+    },
+    {
+      "id": "nested-query-order",
+      "body": "{\"z\":{\"10\":1,\"2\":2,\"a\":3},\"a\":0}",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [
+        "z",
+        "a"
+      ],
+      "query": {
+        "z": {
+          "2": 2,
+          "10": 1,
+          "a": 3
+        },
+        "a": 0
+      },
+      "queryWire": "{\"z\":{\"2\":2,\"10\":1,\"a\":3},\"a\":0}",
+      "queryBytes": 32,
+      "querySha256": "af5d4e7c1713b742b87bbdc85b99605f40313555237bf5a0cbdd796f09bb3bed"
+    },
+    {
+      "id": "duplicate-json",
+      "body": "{\"z\":1,\"a\":2,\"z\":3}",
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [
+        "z",
+        "a"
+      ],
+      "query": {
+        "z": 3,
+        "a": 2
+      },
+      "queryWire": "{\"z\":3,\"a\":2}",
+      "queryBytes": 13,
+      "querySha256": "211cc7bd3d243a9303ca407ca30979dc7c2613b09a987afb338a9d16b2324e76"
+    },
+    {
+      "id": "empty-body",
+      "body": "",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "bad-json",
+      "body": "not JSON",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "trailing-json",
+      "body": "{} {}",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "text-bom",
+      "body": "﻿null",
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "bytes-bom",
+      "bytes": [
+        239,
+        187,
+        191,
+        110,
+        117,
+        108,
+        108
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": null,
+      "queryWire": "null",
+      "queryBytes": 4,
+      "querySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "id": "bytes-replacement",
+      "bytes": [
+        34,
+        97,
+        255,
+        98,
+        34
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": "a�b",
+      "queryWire": "\"a�b\"",
+      "queryBytes": 7,
+      "querySha256": "da0b6b76a1813c97f0710c9b5e238b54c57ea04dfa0f794627e1ce8f500a6975"
+    },
+    {
+      "id": "bytes-json",
+      "bytes": [
+        123,
+        125
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "record-alias",
+      "headers": [
+        [
+          "x-alias",
+          "lower"
+        ],
+        [
+          "X-Alias",
+          "upper"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "x-alias",
+          "upper"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "record-reverse",
+      "headers": [
+        [
+          "X-Alias",
+          "upper"
+        ],
+        [
+          "x-alias",
+          "lower"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "x-alias",
+          "lower"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "record-literal",
+      "headers": [
+        [
+          "x-alias",
+          "lower, upper"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "x-alias",
+          "lower, upper"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "headers-alias",
+      "kind": "headers",
+      "headers": [
+        [
+          "x-alias",
+          "lower"
+        ],
+        [
+          "X-Alias",
+          "upper"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "x-alias",
+          "lower, upper"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "record-utf8",
+      "headers": [
+        [
+          "X-Text",
+          "😀"
+        ],
+        [
+          "x-space",
+          " kept \t"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "x-text",
+          "😀"
+        ],
+        [
+          "x-space",
+          " kept \t"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "headers-utf8",
+      "kind": "headers",
+      "headers": [
+        [
+          "x-text",
+          "😀"
+        ]
+      ],
+      "accepted": false,
+      "error": "Error",
+      "order": []
+    },
+    {
+      "id": "headers-trim-cookie",
+      "kind": "headers",
+      "headers": [
+        [
+          "x-space",
+          " kept \t"
+        ],
+        [
+          "set-cookie",
+          "a=1"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "cookie",
+          "a=1"
+        ],
+        [
+          "cookie",
+          "b=2"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "cookie",
+          "a=1; b=2"
+        ],
+        [
+          "set-cookie",
+          "b=2"
+        ],
+        [
+          "x-space",
+          "kept"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "strip-only",
+      "headers": [
+        [
+          "Host",
+          "ignored"
+        ],
+        [
+          "Content-Length",
+          "100"
+        ],
+        [
+          "CF-AIG-Authorization",
+          "Bearer cloudflare-gateway-binding"
+        ],
+        [
+          "Authorization",
+          "Bearer synthetic-byok"
+        ],
+        [
+          "x-api-key",
+          "synthetic-key"
+        ],
+        [
+          "cf-aig-metadata",
+          "{\"user\":\"42\"}"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "authorization",
+          "Bearer synthetic-byok"
+        ],
+        [
+          "x-api-key",
+          "synthetic-key"
+        ],
+        [
+          "cf-aig-metadata",
+          "{\"user\":\"42\"}"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "own-order",
+      "headers": [
+        [
+          "z",
+          "first"
+        ],
+        [
+          "2",
+          "two"
+        ],
+        [
+          "01",
+          "leading"
+        ],
+        [
+          "4294967295",
+          "nonindex"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "z",
+          "last"
+        ],
+        [
+          "__proto__",
+          "ignored"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ]
+      ],
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [
+        [
+          "2",
+          "two"
+        ],
+        [
+          "4294967294",
+          "index"
+        ],
+        [
+          "z",
+          "last"
+        ],
+        [
+          "01",
+          "leading"
+        ],
+        [
+          "4294967295",
+          "nonindex"
+        ],
+        [
+          "constructor",
+          "ordinary"
+        ]
+      ],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "depth129",
+      "depth": 129,
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": null,
+      "queryWire": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[null]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "queryBytes": 262,
+      "querySha256": "aea6374322f648efe766b46b158da515b832005c4c2b2ba76de0f3f770bed699"
+    },
+    {
+      "id": "depth256",
+      "depth": 256,
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": null,
+      "queryWire": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[null]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+      "queryBytes": 516,
+      "querySha256": "f112f4a34c053cf6faeb3f694964da1f5b90f283ff13f11d86cb7332d979faa7"
+    },
+    {
+      "id": "large",
+      "size": 1048577,
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": null,
+      "queryWire": null,
+      "queryBytes": 1048579,
+      "querySha256": "64f74e9ed2280e81efbcb5b8c487a60d3fa61164e446f0f1e541fbd0332c742a"
+    },
+    {
+      "id": "response-redirect",
+      "responseStatus": 302,
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "response-error",
+      "responseStatus": 400,
+      "accepted": true,
+      "order": [
+        "gateway",
+        "run"
+      ],
+      "provider": "openai",
+      "endpoint": "responses",
+      "headerEntries": [],
+      "queryNegativeZero": false,
+      "queryKeys": [],
+      "query": {},
+      "queryWire": "{}",
+      "queryBytes": 2,
+      "querySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    }
+  ]
+}

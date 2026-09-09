@@ -392,6 +392,17 @@ fn attempt<'a>(
             )
             .await
             .map_err(|e| {
+                // OpenAI wraps a rejected configured Fetch promise as a connection
+                // failure. Direct Fetch consumers keep the original helper kind.
+                let e = if e.is_custom_fetch_rejection()
+                    && !matches!(
+                        e.kind(),
+                        TransportErrorKind::Cancelled | TransportErrorKind::Timeout
+                    ) {
+                    TransportError::new(TransportErrorKind::Connection)
+                } else {
+                    e
+                };
                 let kind = e.kind();
                 let error = Failure::from(e);
                 if matches!(

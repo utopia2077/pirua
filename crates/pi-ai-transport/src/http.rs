@@ -13,6 +13,7 @@ pub enum TransportErrorKind {
     InvalidProxy,
     UnsupportedProxy,
     UnsupportedProfile,
+    UnsupportedOperation,
     Protocol,
     LimitExceeded,
     RetryDelayExceeded,
@@ -23,14 +24,28 @@ pub enum TransportErrorKind {
 /// Redacted failure. Source chains, when supplied, must themselves be safe.
 pub struct TransportError {
     kind: TransportErrorKind,
+    custom_fetch_rejected: bool,
 }
 
 impl TransportError {
     pub const fn new(kind: TransportErrorKind) -> Self {
-        Self { kind }
+        Self {
+            kind,
+            custom_fetch_rejected: false,
+        }
     }
     pub const fn kind(&self) -> TransportErrorKind {
         self.kind
+    }
+    /// Rejection of the configured custom Fetch invocation, not a later body
+    /// read. SDK callers may apply their source-specific exception wrapper;
+    /// direct callers retain the original closed kind and helper classification.
+    pub const fn is_custom_fetch_rejection(&self) -> bool {
+        self.custom_fetch_rejected
+    }
+    pub(crate) fn at_custom_fetch_rejection(mut self) -> Self {
+        self.custom_fetch_rejected = true;
+        self
     }
 }
 

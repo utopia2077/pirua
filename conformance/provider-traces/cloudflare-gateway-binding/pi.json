@@ -1,0 +1,774 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "26.8.1",
+  "hashes": {
+    "utils/json-parse.ts": "828440b19a64773f696ced9461166913ddaddd8479697fbde32d3f298872b153",
+    "utils/diagnostics.ts": "d22b4f96a00f032220ff0cc27458c7a525dcec948bdbd2bbb67b4d7598cb395d",
+    "utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "utils/event-stream.ts": "55ddd6e6e4299f377fc3f8876ea9d8073f0051d569f1629f8817ec78e28d64e6",
+    "api/pi-messages.ts": "c8170741db3747d47d0ed46c509d5ae40cb339047bba8b357d208ac8d1b364e6",
+    "api/cloudflare-gateway-binding.ts": "7438cd5810a6d186d84a5a4a024ded1d857a650fc553af66d802def374a3b3bb",
+    "utils/retry.ts": "69219cbbb0fb9bc83a5dd044e4130dee68c0fb9089c52a814719e72fb243175c"
+  },
+  "cases": [
+    {
+      "id": "forward",
+      "headers": {
+        "x-alias": "lower",
+        "X-Alias": "upper"
+      },
+      "model": {
+        "id": "synthetic",
+        "name": "Synthetic",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "fetchInputs": [
+        {
+          "url": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi/messages",
+          "headerKind": "record",
+          "headers": [
+            [
+              "authorization",
+              "Bearer synthetic-key"
+            ],
+            [
+              "accept",
+              "text/event-stream"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "x-alias",
+              "lower"
+            ],
+            [
+              "X-Alias",
+              "upper"
+            ]
+          ],
+          "bodyKind": "string"
+        }
+      ],
+      "calls": [
+        {
+          "stage": "gateway",
+          "id": "gateway"
+        },
+        {
+          "stage": "run",
+          "data": {
+            "provider": "pi",
+            "endpoint": "messages",
+            "headers": {
+              "authorization": "Bearer synthetic-key",
+              "accept": "text/event-stream",
+              "content-type": "application/json",
+              "x-alias": "upper"
+            },
+            "query": {
+              "model": "synthetic",
+              "context": {
+                "messages": []
+              },
+              "options": {}
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "synthetic",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "synthetic",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      },
+      "retryable": false
+    },
+    {
+      "id": "reverse",
+      "headers": {
+        "X-Alias": "upper",
+        "x-alias": "lower"
+      },
+      "model": {
+        "id": "synthetic",
+        "name": "Synthetic",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "fetchInputs": [
+        {
+          "url": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi/messages",
+          "headerKind": "record",
+          "headers": [
+            [
+              "authorization",
+              "Bearer synthetic-key"
+            ],
+            [
+              "accept",
+              "text/event-stream"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "X-Alias",
+              "upper"
+            ],
+            [
+              "x-alias",
+              "lower"
+            ]
+          ],
+          "bodyKind": "string"
+        }
+      ],
+      "calls": [
+        {
+          "stage": "gateway",
+          "id": "gateway"
+        },
+        {
+          "stage": "run",
+          "data": {
+            "provider": "pi",
+            "endpoint": "messages",
+            "headers": {
+              "authorization": "Bearer synthetic-key",
+              "accept": "text/event-stream",
+              "content-type": "application/json",
+              "x-alias": "lower"
+            },
+            "query": {
+              "model": "synthetic",
+              "context": {
+                "messages": []
+              },
+              "options": {}
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "synthetic",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "synthetic",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      },
+      "retryable": false
+    },
+    {
+      "id": "literal-joined",
+      "headers": {
+        "x-alias": "lower, upper"
+      },
+      "model": {
+        "id": "synthetic",
+        "name": "Synthetic",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "fetchInputs": [
+        {
+          "url": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi/messages",
+          "headerKind": "record",
+          "headers": [
+            [
+              "authorization",
+              "Bearer synthetic-key"
+            ],
+            [
+              "accept",
+              "text/event-stream"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "x-alias",
+              "lower, upper"
+            ]
+          ],
+          "bodyKind": "string"
+        }
+      ],
+      "calls": [
+        {
+          "stage": "gateway",
+          "id": "gateway"
+        },
+        {
+          "stage": "run",
+          "data": {
+            "provider": "pi",
+            "endpoint": "messages",
+            "headers": {
+              "authorization": "Bearer synthetic-key",
+              "accept": "text/event-stream",
+              "content-type": "application/json",
+              "x-alias": "lower, upper"
+            },
+            "query": {
+              "model": "synthetic",
+              "context": {
+                "messages": []
+              },
+              "options": {}
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "synthetic",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "synthetic",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      },
+      "retryable": false
+    },
+    {
+      "id": "depth129",
+      "headers": {},
+      "depth": 129,
+      "model": {
+        "id": "synthetic",
+        "name": "Synthetic",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "fetchInputs": [
+        {
+          "url": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi/messages",
+          "headerKind": "record",
+          "headers": [
+            [
+              "authorization",
+              "Bearer synthetic-key"
+            ],
+            [
+              "accept",
+              "text/event-stream"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "bodyKind": "string"
+        }
+      ],
+      "calls": [
+        {
+          "stage": "gateway",
+          "id": "gateway"
+        },
+        {
+          "stage": "run",
+          "data": {
+            "provider": "pi",
+            "endpoint": "messages",
+            "headers": {
+              "authorization": "Bearer synthetic-key",
+              "accept": "text/event-stream",
+              "content-type": "application/json"
+            },
+            "query": null,
+            "queryDepth": 129
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "synthetic",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "synthetic",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      },
+      "retryable": false
+    },
+    {
+      "id": "depth256",
+      "headers": {},
+      "depth": 256,
+      "model": {
+        "id": "synthetic",
+        "name": "Synthetic",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "fetchInputs": [
+        {
+          "url": "https://gateway.ai.cloudflare.com/v1/account/gateway/pi/messages",
+          "headerKind": "record",
+          "headers": [
+            [
+              "authorization",
+              "Bearer synthetic-key"
+            ],
+            [
+              "accept",
+              "text/event-stream"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "bodyKind": "string"
+        }
+      ],
+      "calls": [
+        {
+          "stage": "gateway",
+          "id": "gateway"
+        },
+        {
+          "stage": "run",
+          "data": {
+            "provider": "pi",
+            "endpoint": "messages",
+            "headers": {
+              "authorization": "Bearer synthetic-key",
+              "accept": "text/event-stream",
+              "content-type": "application/json"
+            },
+            "query": null,
+            "queryDepth": 256
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop",
+          "message": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "synthetic",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "synthetic",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 7
+      },
+      "retryable": false
+    },
+    {
+      "id": "outside",
+      "headers": {},
+      "rejected": true,
+      "model": {
+        "id": "synthetic",
+        "name": "Synthetic",
+        "api": "pi-messages",
+        "provider": "pi",
+        "baseUrl": "https://outside.invalid/pi",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "context": {
+        "messages": []
+      },
+      "options": {},
+      "fetchInputs": [
+        {
+          "url": "https://outside.invalid/pi/messages",
+          "headerKind": "record",
+          "headers": [
+            [
+              "authorization",
+              "Bearer synthetic-key"
+            ],
+            [
+              "accept",
+              "text/event-stream"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "bodyKind": "string"
+        }
+      ],
+      "calls": [],
+      "events": [
+        {
+          "type": "error",
+          "reason": "error",
+          "error": {
+            "role": "assistant",
+            "content": [],
+            "api": "pi-messages",
+            "provider": "pi",
+            "model": "synthetic",
+            "usage": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "totalTokens": 0,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "error",
+            "errorMessage": "createGatewayBindingFetch: POST https://outside.invalid/pi/messages is outside the configured gateway prefix (https://gateway.ai.cloudflare.com/v1/account/gateway/); this fetch only serves its gateway-bound client",
+            "timestamp": 7
+          }
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "content": [],
+        "api": "pi-messages",
+        "provider": "pi",
+        "model": "synthetic",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "error",
+        "errorMessage": "createGatewayBindingFetch: POST https://outside.invalid/pi/messages is outside the configured gateway prefix (https://gateway.ai.cloudflare.com/v1/account/gateway/); this fetch only serves its gateway-bound client",
+        "timestamp": 7
+      },
+      "retryable": false
+    }
+  ]
+}

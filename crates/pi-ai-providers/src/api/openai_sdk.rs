@@ -151,7 +151,15 @@ fn sdk_attempt<'a>(
             )
             .await
             .map_err(|error| {
-                let kind = error.kind();
+                let kind = if error.is_custom_fetch_rejection()
+                    && !matches!(
+                        error.kind(),
+                        TransportErrorKind::Cancelled | TransportErrorKind::Timeout
+                    ) {
+                    TransportErrorKind::Connection
+                } else {
+                    error.kind()
+                };
                 let error = Failure::Transport(kind);
                 if matches!(
                     kind,

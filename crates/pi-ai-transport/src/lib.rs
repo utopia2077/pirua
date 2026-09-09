@@ -3,6 +3,7 @@
 
 mod fetch;
 mod fetch_content;
+mod fetch_request;
 mod http;
 #[cfg(feature = "native")]
 mod native;
@@ -18,6 +19,7 @@ mod websocket;
 
 pub use fetch::FetchRedirectMode;
 pub use fetch_content::{FetchContentLimits, FetchResponseSource};
+pub use fetch_request::*;
 pub use http::*;
 #[cfg(feature = "native")]
 pub use native::*;

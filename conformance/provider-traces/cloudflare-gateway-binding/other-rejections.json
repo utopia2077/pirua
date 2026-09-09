@@ -1,0 +1,100 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "26.8.1",
+  "placement": "Google uses the source-allowed global Fetch; Anthropic/Mistral use options.fetch",
+  "cases": [
+    {
+      "family": "anthropic-messages",
+      "model": {
+        "id": "claude-opus-4-6",
+        "name": "Synthetic",
+        "api": "anthropic-messages",
+        "provider": "anthropic",
+        "baseUrl": "https://outside.invalid/v1",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "forms": [
+        {
+          "headers": "Headers",
+          "body": "string"
+        }
+      ],
+      "gateways": 0,
+      "retryable": true,
+      "message": "Connection error."
+    },
+    {
+      "family": "mistral-conversations",
+      "model": {
+        "id": "mistral-large-latest",
+        "name": "Synthetic",
+        "api": "mistral-conversations",
+        "provider": "mistral",
+        "baseUrl": "https://outside.invalid/v1",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "forms": [
+        {
+          "headers": "Headers",
+          "body": "string"
+        }
+      ],
+      "gateways": 0,
+      "retryable": false,
+      "message": "createGatewayBindingFetch: POST https://outside.invalid/v1/v1/chat/completions is outside the configured gateway prefix (https://gateway.ai.cloudflare.com/v1/account/gateway/); this fetch only serves its gateway-bound client"
+    },
+    {
+      "family": "google-generative-ai",
+      "model": {
+        "id": "gemini-2.5-flash",
+        "name": "Synthetic",
+        "api": "google-generative-ai",
+        "provider": "google",
+        "baseUrl": "https://outside.invalid/v1",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 4096,
+        "maxTokens": 512
+      },
+      "forms": [
+        {
+          "headers": "Headers",
+          "body": "string"
+        }
+      ],
+      "gateways": 0,
+      "retryable": false,
+      "message": "createGatewayBindingFetch: POST https://outside.invalid/v1/models/gemini-2.5-flash:streamGenerateContent?alt=sse is outside the configured gateway prefix (https://gateway.ai.cloudflare.com/v1/account/gateway/); this fetch only serves its gateway-bound client"
+    }
+  ]
+}

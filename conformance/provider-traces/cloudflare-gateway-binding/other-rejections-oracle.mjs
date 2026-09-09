@@ -1,0 +1,33 @@
+import {GoogleGenAI,FinishReason,FunctionCallingConfigMode} from 'upstream/pi-mono/node_modules/@google/genai/dist/node/index.mjs';
+import {execFileSync} from 'node:child_process';
+import {createRequire,stripTypeScriptTypes} from 'node:module';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream='upstream/pi-mono';
+const require=createRequire(upstream+'/package.json');
+assert.equal(process.versions.node,'26.8.1');
+assert.equal(JSON.parse(readFileSync(upstream+'/node_modules/@anthropic-ai/sdk/package.json','utf8')).version,'0.91.1');
+assert.equal(JSON.parse(readFileSync(upstream+'/node_modules/@google/genai/package.json','utf8')).version,'1.52.0');
+globalThis.fetch=()=>{throw new Error('unconfigured network forbidden');};
+const source=p=>execFileSync('git',['show',pin+':packages/ai/src/'+p],{cwd:upstream,encoding:'utf8'});
+const clean=s=>stripTypeScriptTypes(s.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));
+const cases=[];
+for(const family of ['anthropic-messages','mistral-conversations','google-generative-ai']) {
+ const context=vm.createContext({Error,GoogleGenAI,FinishReason,FunctionCallingConfigMode,Anthropic:require('@anthropic-ai/sdk').default,Request,Response,Headers,URL,TextDecoder,TextEncoder,AbortSignal,AbortController,process,structuredClone,setTimeout,clearTimeout,Date:class extends Date{static now(){return 7;}},partialParse:require('partial-json').parse});
+ const modelSource=source('models.ts');vm.runInContext(clean(modelSource.slice(modelSource.indexOf('export function calculateCost'),modelSource.indexOf('export function modelsAreEqual'))),context);
+ for(const p of ['utils/hash.ts','utils/json-parse.ts','utils/sanitize-unicode.ts','utils/event-stream.ts','utils/headers.ts','utils/provider-env.ts','utils/pi-user-agent.ts','utils/provider-retry.ts','utils/retry.ts','utils/overflow.ts','utils/deferred-tools.ts','utils/estimate.ts','utils/error-body.ts','api/constrained-sampling.ts','api/transform-messages.ts','api/simple-options.ts','api/github-copilot-headers.ts','api/cloudflare-gateway-binding.ts',...(family==='google-generative-ai'?['api/google-shared.ts']:[]),'api/'+family+'.ts']) vm.runInContext(clean(source(p)),context,{filename:p});
+ vm.runInContext('getPiUserAgent=()=>"pi-ai-rust"',context);
+ const model={id:family==='anthropic-messages'?'claude-opus-4-6':family==='google-generative-ai'?'gemini-2.5-flash':'mistral-large-latest',name:'Synthetic',api:family,provider:family==='anthropic-messages'?'anthropic':family==='google-generative-ai'?'google':'mistral',baseUrl:'https://outside.invalid/v1',reasoning:false,input:['text'],cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:4096,maxTokens:512};
+ let gateways=0;const forms=[];
+ const binding={gateway(){gateways++;throw new Error('must reject prefix first');}};
+ const shim=vm.runInContext('createGatewayBindingFetch',context)({binding,baseUrl:'https://gateway.ai.cloudflare.com/v1/account/gateway',gateway:'gateway'});
+ const fetch=(url,init)=>{forms.push({headers:init?.headers instanceof Headers?'Headers':typeof init?.headers,body:typeof init?.body});return shim(url,init);};
+ const beforeFetch=globalThis.fetch;context.fetch=fetch;if(family==='google-generative-ai')globalThis.fetch=fetch;
+ const output=await vm.runInContext('stream',context)(model,{messages:[{role:'user',content:'hello',timestamp:7}]},{apiKey:'synthetic-key',fetch,maxRetries:0}).result();
+ globalThis.fetch=beforeFetch;
+ assert.equal(output.stopReason,'error');assert.equal(gateways,0);assert.equal(forms.length,1);
+ cases.push({family,model,forms,gateways,retryable:context.isRetryableAssistantError(output),message:output.errorMessage});
+}
+const output={pin,node:process.versions.node,placement:'Google uses the source-allowed global Fetch; Anthropic/Mistral use options.fetch',cases};
+if(process.argv.includes('--check'))assert.deepEqual(output,JSON.parse(readFileSync(new URL('./other-rejections.json',import.meta.url),'utf8')));else console.log(JSON.stringify(output,null,2));

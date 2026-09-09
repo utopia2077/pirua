@@ -103,7 +103,8 @@ pub(super) fn build(
             ..Default::default()
         },
     )?;
-    let mut params = json!({"model":model.id,"stream":true});
+    // The source reserves messages before stream and later optional fields.
+    let mut params = json!({"model":model.id,"messages":Value::Null,"stream":true});
     let long = cache == CacheRetention::Long && compat.flag("supportsLongCacheRetention");
     if ((request
         .resolved

@@ -1,5 +1,8 @@
 //! Shared wire helpers and explicitly enabled canonical provider protocols.
 
+pub mod cloudflare;
+#[cfg(feature = "cloudflare-gateway-binding")]
+pub mod cloudflare_gateway_binding;
 pub mod constrained_sampling;
 pub mod github_copilot_headers;
 pub mod google_shared;
