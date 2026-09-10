@@ -118,6 +118,28 @@ class WorkspaceCheckerTests(unittest.TestCase):
             errors,
         )
 
+    def test_s04_provider_features_cannot_enable_defaults_or_move_native_ownership(self):
+        original = next(package for package in self.default_metadata["packages"]
+            if package["name"] == "pi-ai-providers")
+        for feature, activation, diagnostic in (
+            ("default", ["wire-openai-responses"], "default features must remain empty"),
+            ("wire-openai-responses", ["dep:url", "native"], "feature ownership changed"),
+            ("native", [], "native feature must own"),
+        ):
+            package = copy.deepcopy(original)
+            package["features"][feature] = activation
+            errors = []
+            checker.validate_s04_provider_features(package, errors)
+            self.assertTrue(any(diagnostic in error for error in errors), errors)
+        package = copy.deepcopy(original)
+        next(d for d in package["dependencies"] if d["name"] == "url")["optional"] = False
+        errors = []
+        checker.validate_s04_provider_features(package, errors)
+        self.assertTrue(any("must stay optional" in error for error in errors), errors)
+        errors = []
+        checker.validate_s04_provider_features(original, errors)
+        self.assertEqual(errors, [])
+
     def test_verify_runs_default_and_all_feature_profiles(self) -> None:
         script = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
         expected_commands = [

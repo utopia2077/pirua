@@ -224,6 +224,32 @@ def validate_dependency_declarations(
                 )
 
 
+
+def validate_s04_provider_features(package: dict[str, Any], errors: list[str]) -> None:
+    """Wire selection never grants native IO or enables default provider breadth."""
+    features = package["features"]
+    if features.get("default") != []:
+        errors.append("S04 provider default features must remain empty")
+    if features.get("native") != ["pi-ai-transport/native"]:
+        errors.append("S04 provider native feature must own transport native activation")
+    for name, activations in features.items():
+        if name in {"default", "native"}:
+            continue
+        if name == "cloudflare-gateway-binding":
+            expected = {"dep:url", "serde_json/unbounded_depth"}
+        elif name == "wire-bedrock-converse-stream":
+            expected = {"dep:url", "dep:ring"}
+        elif name.startswith("wire-"):
+            expected = {"dep:url"}
+        else:
+            errors.append("S04 unexpected provider feature: " + name)
+            continue
+        if set(activations) != expected or len(activations) != len(expected):
+            errors.append("S04 provider feature ownership changed: " + name)
+    for dependency in package["dependencies"]:
+        if dependency["name"] in {"url", "ring"} and not dependency.get("optional"):
+            errors.append("S04 provider dependency must stay optional: " + dependency["name"])
+
 def validate_workspace(
     root: Path,
     topology: dict[str, Any],
@@ -300,6 +326,8 @@ def validate_workspace(
 
     groups = {group["id"]: group["members"] for group in topology.get("feature_group", [])}
     packages_by_name = {package["name"]: package for package in workspace_packages}
+    if "pi-ai-providers" in packages_by_name:
+        validate_s04_provider_features(packages_by_name["pi-ai-providers"], errors)
     for (consumer, dependency), edge in sorted(expected_edges.items()):
         if edge.get("kind") != "optional" or consumer not in packages_by_name:
             continue

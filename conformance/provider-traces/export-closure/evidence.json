@@ -1,0 +1,2025 @@
+{
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "exports": [
+    {
+      "id": "packages/ai/src/api/anthropic-messages.lazy.ts:anthropicMessagesApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::anthropic_messages_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/anthropic-messages.ts:AnthropicEffort",
+      "kind": "type",
+      "module": "anthropic_messages",
+      "target": "pi_ai_providers::api::anthropic_messages::AnthropicEffort",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sources": [
+        "anthropic-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/anthropic-messages.ts:AnthropicOptions",
+      "kind": "type",
+      "module": "anthropic_messages",
+      "target": "pi_ai_providers::api::anthropic_messages::AnthropicOptions",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sources": [
+        "anthropic-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/anthropic-messages.ts:AnthropicThinkingDisplay",
+      "kind": "type",
+      "module": "anthropic_messages",
+      "target": "pi_ai_providers::api::anthropic_messages::AnthropicThinkingDisplay",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sources": [
+        "anthropic-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/anthropic-messages.ts:stream",
+      "kind": "value",
+      "module": "anthropic_messages",
+      "target": "pi_ai_providers::api::anthropic_messages::AnthropicMessagesApi::stream_with_options",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "probe": "fn probe() { let _:fn(&AnthropicMessagesApi,TextStreamRequest,AnthropicOptions)->AssistantStream = $target; }",
+      "tests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sources": [
+        "anthropic-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/anthropic-messages.ts:streamSimple",
+      "kind": "value",
+      "module": "anthropic_messages",
+      "target": "<pi_ai_providers::api::anthropic_messages::AnthropicMessagesApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "probe": "fn probe() { let _:fn(&AnthropicMessagesApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sources": [
+        "anthropic-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/azure-openai-responses.lazy.ts:azureOpenAIResponsesApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::azure_openai_responses_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/azure-openai-responses.ts:AzureOpenAIResponsesOptions",
+      "kind": "type",
+      "module": "azure_openai_responses",
+      "target": "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesOptions",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sources": [
+        "azure-openai-responses"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/azure-openai-responses.ts:stream",
+      "kind": "value",
+      "module": "azure_openai_responses",
+      "target": "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesApi::stream_with_options",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&AzureOpenAIResponsesApi,TextStreamRequest,AzureOpenAIResponsesOptions)->AssistantStream = $target; }",
+      "tests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sources": [
+        "azure-openai-responses"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/azure-openai-responses.ts:streamSimple",
+      "kind": "value",
+      "module": "azure_openai_responses",
+      "target": "<pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&AzureOpenAIResponsesApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sources": [
+        "azure-openai-responses"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/bedrock-converse-stream.lazy.ts:bedrockConverseStreamApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::bedrock_converse_stream_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/bedrock-converse-stream.lazy.ts:setBedrockProviderModule",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::set_bedrock_provider_module",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Option<Arc<dyn ApiAdapter>>) = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/bedrock-converse-stream.ts:BedrockOptions",
+      "kind": "type",
+      "module": "bedrock_converse_stream",
+      "target": "pi_ai_providers::api::bedrock_converse_stream::BedrockOptions",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sources": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/bedrock-converse-stream.ts:BedrockThinkingDisplay",
+      "kind": "type",
+      "module": "bedrock_converse_stream",
+      "target": "pi_ai_providers::api::bedrock_converse_stream::BedrockThinkingDisplay",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sources": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/bedrock-converse-stream.ts:stream",
+      "kind": "value",
+      "module": "bedrock_converse_stream",
+      "target": "pi_ai_providers::api::bedrock_converse_stream::BedrockApi::stream_with_options",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "probe": "fn probe() { let _:fn(&BedrockApi,TextStreamRequest,BedrockOptions)->AssistantStream = $target; }",
+      "tests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match",
+        "bedrock_converse_stream#stream_long_body_outside_preview",
+        "bedrock_converse_stream#priming_long_body_fallback"
+      ],
+      "sources": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/bedrock-converse-stream.ts:streamSimple",
+      "kind": "value",
+      "module": "bedrock_converse_stream",
+      "target": "<pi_ai_providers::api::bedrock_converse_stream::BedrockApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "probe": "fn probe() { let _:fn(&BedrockApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sources": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayBinding",
+      "kind": "type",
+      "module": "cloudflare_gateway_binding",
+      "target": "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayBinding",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "probe": "fn probe(_: &dyn $target) {}",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayBindingGateway",
+      "kind": "type",
+      "module": "cloudflare_gateway_binding",
+      "target": "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayBindingGateway",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "probe": "fn probe(_: &dyn $target) {}",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayUniversalRequestLike",
+      "kind": "type",
+      "module": "cloudflare_gateway_binding",
+      "target": "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayUniversalRequestLike",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare-gateway-binding.ts:CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL",
+      "kind": "value",
+      "module": "cloudflare_gateway_binding",
+      "target": "pi_ai_providers::api::cloudflare_gateway_binding::CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "probe": "fn probe() { let _:&'static str = $target; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare-gateway-binding.ts:GatewayBindingFetchOptions",
+      "kind": "type",
+      "module": "cloudflare_gateway_binding",
+      "target": "pi_ai_providers::api::cloudflare_gateway_binding::GatewayBindingFetchOptions",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare-gateway-binding.ts:createGatewayBindingFetch",
+      "kind": "value",
+      "module": "cloudflare_gateway_binding",
+      "target": "pi_ai_providers::api::cloudflare_gateway_binding::create_gateway_binding_fetch",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "probe": "fn probe() { let _:fn(GatewayBindingFetchOptions)->Result<GatewayBindingFetch,pi_ai_transport::TransportError> = $target; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL",
+      "kind": "value",
+      "module": "cloudflare",
+      "target": "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL",
+      "features": [],
+      "probe": "fn probe() { let _:&'static str = $target; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL",
+      "kind": "value",
+      "module": "cloudflare",
+      "target": "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL",
+      "features": [],
+      "probe": "fn probe() { let _:&'static str = $target; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL",
+      "kind": "value",
+      "module": "cloudflare",
+      "target": "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL",
+      "features": [],
+      "probe": "fn probe() { let _:&'static str = $target; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/cloudflare.ts:CLOUDFLARE_WORKERS_AI_BASE_URL",
+      "kind": "value",
+      "module": "cloudflare",
+      "target": "pi_ai_providers::api::cloudflare::CLOUDFLARE_WORKERS_AI_BASE_URL",
+      "features": [],
+      "probe": "fn probe() { let _:&'static str = $target; }",
+      "tests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "testFeatures": [
+        "cloudflare-gateway-binding"
+      ],
+      "sources": [
+        "cloudflare"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:GrammarConstrainedSampling",
+      "kind": "type",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::GrammarConstrainedSampling",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:GrammarToolInputJsonBuffer",
+      "kind": "type",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::GrammarToolInputJsonBuffer",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "provider_helpers#grammar_json_deltas_are_escaped_monotone_and_atomic"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:appendGrammarToolInputJsonDelta",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::append_grammar_tool_input_json_delta",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&mut GrammarToolInputJsonBuffer, &str, &str, bool) -> Result<Option<String>, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "provider_helpers#grammar_json_deltas_are_escaped_monotone_and_atomic"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:createGrammarToolInputProperties",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::create_grammar_tool_input_properties",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Option<&[Tool]>, bool) -> Result<BTreeMap<String,String>, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:getGrammarToolInput",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::get_grammar_tool_input",
+      "features": [],
+      "probe": "fn probe() { let _:for<'a> fn(&str, &'a JsonObject, &str) -> Result<&'a str, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:getJsonSchemaToolParameters",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::get_wire_json_schema_tool_parameters",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Tool, Option<bool>) -> Result<pi_ai_providers::api::wire_json::WirePayload, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "strict_schema_wire#ordered_strict_parameters_match_executed_source_and_preserve_existing_slots"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:makeStrictJsonSchema",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::make_strict_wire_json_schema",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&JsonSchema) -> Result<pi_ai_providers::api::wire_json::WirePayload, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "strict_schema_wire#ordered_strict_parameters_match_executed_source_and_preserve_existing_slots"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:resolveGrammarConstrainedSampling",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::resolve_grammar_constrained_sampling",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Tool,bool) -> Result<Option<GrammarConstrainedSampling>, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/constrained-sampling.ts:resolveJsonSchemaStrictSampling",
+      "kind": "value",
+      "module": "constrained_sampling",
+      "target": "pi_ai_providers::api::constrained_sampling::resolve_json_schema_strict_sampling",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Tool,bool) -> Result<Option<bool>, ConstrainedSamplingError> = $target; }",
+      "tests": [
+        "provider_helpers#strict_schema_rejections_are_atomic_and_prefer_only_swallows_unsupported"
+      ],
+      "sources": [
+        "helpers",
+        "strict-wire"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/github-copilot-headers.ts:buildCopilotDynamicHeaders",
+      "kind": "value",
+      "module": "github_copilot_headers",
+      "target": "pi_ai_providers::api::github_copilot_headers::build_copilot_dynamic_headers",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&[Message],bool) -> BTreeMap<String,String> = $target; }",
+      "tests": [
+        "provider_helpers#copilot_metadata_uses_last_role_and_all_user_tool_images"
+      ],
+      "sources": [
+        "helpers"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/github-copilot-headers.ts:hasCopilotVisionInput",
+      "kind": "value",
+      "module": "github_copilot_headers",
+      "target": "pi_ai_providers::api::github_copilot_headers::has_copilot_vision_input",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&[Message]) -> bool = $target; }",
+      "tests": [
+        "provider_helpers#copilot_metadata_uses_last_role_and_all_user_tool_images"
+      ],
+      "sources": [
+        "helpers"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/github-copilot-headers.ts:inferCopilotInitiator",
+      "kind": "value",
+      "module": "github_copilot_headers",
+      "target": "pi_ai_providers::api::github_copilot_headers::infer_copilot_initiator",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&[Message]) -> &'static str = $target; }",
+      "tests": [
+        "provider_helpers#copilot_metadata_uses_last_role_and_all_user_tool_images"
+      ],
+      "sources": [
+        "helpers"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-generative-ai.lazy.ts:googleGenerativeAIApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::google_generative_ai_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-generative-ai.ts:GoogleOptions",
+      "kind": "type",
+      "module": "google_genai",
+      "target": "pi_ai_providers::api::google_genai::GoogleOptions",
+      "features": [
+        "wire-google-genai"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sources": [
+        "google-generative-ai"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-generative-ai.ts:stream",
+      "kind": "value",
+      "module": "google_genai",
+      "target": "pi_ai_providers::api::google_genai::GoogleGenAiApi::stream_with_options",
+      "features": [
+        "wire-google-genai"
+      ],
+      "probe": "fn probe() { let _:fn(&GoogleGenAiApi,TextStreamRequest,GoogleOptions)->AssistantStream = $target; }",
+      "tests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sources": [
+        "google-generative-ai"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-generative-ai.ts:streamSimple",
+      "kind": "value",
+      "module": "google_genai",
+      "target": "<pi_ai_providers::api::google_genai::GoogleGenAiApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-google-genai"
+      ],
+      "probe": "fn probe() { let _:fn(&GoogleGenAiApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sources": [
+        "google-generative-ai"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:GoogleApiThinkingLevel",
+      "kind": "type",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::GoogleApiThinkingLevel",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:ResolvedGoogleThinkingLevel",
+      "kind": "type",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::ResolvedGoogleThinkingLevel",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:convertMessages",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::convert_messages",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Model,&Context,SafeUnsigned)->Result<Vec<GoogleContent>,GoogleSharedError> = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_complete_message_projections_match_executed_source_without_mutation"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:convertTools",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::convert_tools",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&[Tool],bool,bool) -> Result<Option<Vec<GoogleTool>>,GoogleSharedError> = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#schema_arrays_are_not_sanitized_and_strict_mode_short_circuits_exactly"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:isThinkingPart",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::is_thinking_part",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&GooglePart) -> bool = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:mapStopReason",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::map_stop_reason",
+      "features": [],
+      "probe": "fn probe() { let _:fn(GoogleFinishReason) -> StopReason = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:mapStopReasonString",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::map_stop_reason_string",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&str) -> StopReason = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:mapToolChoice",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::map_tool_choice",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&str) -> GoogleFunctionCallingConfigMode = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:requiresToolCallId",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::requires_tool_call_id",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&str) -> bool = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:resolveGoogleFunctionCallingMode",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::resolve_google_function_calling_mode",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&[Tool],Option<&str>,bool) -> Result<Option<GoogleFunctionCallingConfigMode>,GoogleSharedError> = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#schema_arrays_are_not_sanitized_and_strict_mode_short_circuits_exactly"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:resolveGoogleThinkingLevel",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::resolve_google_thinking_level",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Model,ModelThinkingLevel) -> Result<ResolvedGoogleThinkingLevel,GoogleSharedError> = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:retainThoughtSignature",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::retain_thought_signature",
+      "features": [],
+      "probe": "fn probe() { let _:for<'a> fn(Option<&'a str>,Option<&'a str>) -> Option<&'a str> = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:retryGoogleRequest",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::retry_google_request",
+      "features": [],
+      "probe": "fn probe<'a>(t:&'a pi_ai_transport::HttpTransport,r:&'a RequestRuntime,o:GoogleRetryOptions,f:fn()->BoxFuture<'a,Result<(),GoogleRequestFailure<ModelsError>>>) { let _:BoxFuture<'a,Result<(),pi_ai_transport::ProviderRetryError<ModelsError>>> = $target(t,r,o,f); }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#google_missing_headers_normalization_and_retry_policy_match_executed_sdk_errors"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-shared.ts:supportsGoogleStrictToolSampling",
+      "kind": "value",
+      "module": "google_shared",
+      "target": "pi_ai_providers::api::google_shared::supports_google_strict_tool_sampling",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&str) -> bool = $target; }",
+      "tests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sources": [
+        "google-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-vertex.lazy.ts:googleVertexApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::google_vertex_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-vertex.ts:GoogleVertexOptions",
+      "kind": "type",
+      "module": "google_vertex",
+      "target": "pi_ai_providers::api::google_vertex::GoogleVertexOptions",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sources": [
+        "google-vertex"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-vertex.ts:stream",
+      "kind": "value",
+      "module": "google_vertex",
+      "target": "pi_ai_providers::api::google_vertex::GoogleVertexApi::stream_with_options",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "probe": "fn probe() { let _:fn(&GoogleVertexApi,TextStreamRequest,GoogleVertexOptions)->AssistantStream = $target; }",
+      "tests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sources": [
+        "google-vertex"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/google-vertex.ts:streamSimple",
+      "kind": "value",
+      "module": "google_vertex",
+      "target": "<pi_ai_providers::api::google_vertex::GoogleVertexApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "probe": "fn probe() { let _:fn(&GoogleVertexApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sources": [
+        "google-vertex"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/lazy.ts:LazyApiCapabilities",
+      "kind": "type",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::LazyApiCapabilities",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/lazy.ts:lazyApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::lazy_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(ApiId,Arc<dyn LazyApiLoader>,LazyApiCapabilities) -> LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/lazy.ts:lazyStream",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::lazy_stream",
+      "features": [],
+      "probe": "fn probe(init:AssistantStreamInit, spawner:&dyn TaskSpawner, setup:fn()->BoxFuture<'static,Result<AssistantStream,ModelsError>>) { let _:AssistantStream = $target(init,spawner,setup); }",
+      "tests": [
+        "lazy#child_usage_only_cancellation_and_queued_prefix_are_forwarded_unchanged",
+        "lazy#pending_setup_cancellation_drops_noncooperative_future_and_pre_cancel_still_invokes"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/mistral-conversations.lazy.ts:mistralConversationsApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::mistral_conversations_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/mistral-conversations.ts:MistralOptions",
+      "kind": "type",
+      "module": "mistral_conversations",
+      "target": "pi_ai_providers::api::mistral_conversations::MistralOptions",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sources": [
+        "mistral-conversations"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/mistral-conversations.ts:stream",
+      "kind": "value",
+      "module": "mistral_conversations",
+      "target": "pi_ai_providers::api::mistral_conversations::MistralApi::stream_with_options",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "probe": "fn probe() { let _:fn(&MistralApi,TextStreamRequest,MistralOptions)->AssistantStream = $target; }",
+      "tests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sources": [
+        "mistral-conversations"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/mistral-conversations.ts:streamSimple",
+      "kind": "value",
+      "module": "mistral_conversations",
+      "target": "<pi_ai_providers::api::mistral_conversations::MistralApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "probe": "fn probe() { let _:fn(&MistralApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sources": [
+        "mistral-conversations"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.lazy.ts:openAICodexResponsesApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::openai_codex_responses_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:OpenAICodexResponsesOptions",
+      "kind": "type",
+      "module": "openai_codex_responses",
+      "target": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesOptions",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries"
+      ],
+      "sources": [
+        "codex-requests"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:OpenAICodexWebSocketDebugStats",
+      "kind": "type",
+      "module": "openai_codex_responses",
+      "target": "pi_ai_providers::api::openai_codex_responses::OpenAICodexWebSocketDebugStats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sources": [
+        "codex-cache"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:closeOpenAICodexWebSocketSessions",
+      "kind": "value",
+      "module": "openai_codex_responses",
+      "target": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::close_openai_codex_websocket_sessions",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICodexResponsesApi,Option<&str>,RequestRuntime)->BoxFuture<'static,Result<(),pi_ai_transport::TransportError>> = $target; }",
+      "tests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences",
+        "openai_codex#dropped_graceful_completion_aborts_and_explicit_busy_close_flushes_without_reset",
+        "openai_codex#review_retained_close_futures_preserve_slot_budget_and_drop_recovers_capacity"
+      ],
+      "sources": [
+        "codex-cache",
+        "codex-correction",
+        "codex-comparison"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:getOpenAICodexWebSocketDebugStats",
+      "kind": "value",
+      "module": "openai_codex_responses",
+      "target": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::get_openai_codex_websocket_debug_stats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICodexResponsesApi,&str)->Option<OpenAICodexWebSocketDebugStats> = $target; }",
+      "tests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sources": [
+        "codex-cache"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:resetOpenAICodexWebSocketDebugStats",
+      "kind": "value",
+      "module": "openai_codex_responses",
+      "target": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::reset_openai_codex_websocket_debug_stats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICodexResponsesApi,Option<&str>) = $target; }",
+      "tests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sources": [
+        "codex-cache"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:stream",
+      "kind": "value",
+      "module": "openai_codex_responses",
+      "target": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::stream_with_options",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICodexResponsesApi,TextStreamRequest,OpenAICodexResponsesOptions)->AssistantStream = $target; }",
+      "tests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries",
+        "openai_codex#review_first_completion_start_matches_mapper_stage_and_http_control"
+      ],
+      "sources": [
+        "codex-requests",
+        "codex-correction",
+        "codex-comparison"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-codex-responses.ts:streamSimple",
+      "kind": "value",
+      "module": "openai_codex_responses",
+      "target": "<pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICodexResponsesApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries"
+      ],
+      "sources": [
+        "codex-requests"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-completions.lazy.ts:openAICompletionsApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::openai_completions_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-completions.ts:ConvertCompletionsMessagesOptions",
+      "kind": "type",
+      "module": "openai_completions",
+      "target": "pi_ai_providers::api::openai_completions::ConvertCompletionsMessagesOptions",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "probe": "fn probe() { let _:Option<$target<'_>> = None; }",
+      "tests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sources": [
+        "openai-completions"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-completions.ts:OpenAICompletionsOptions",
+      "kind": "type",
+      "module": "openai_completions",
+      "target": "pi_ai_providers::api::openai_completions::OpenAICompletionsOptions",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sources": [
+        "openai-completions"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-completions.ts:convertMessages",
+      "kind": "value",
+      "module": "openai_completions",
+      "target": "pi_ai_providers::api::openai_completions::convert_messages",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "probe": "fn probe() { let _:fn(&Model,&Context,&ResolvedCompletionsCompat,&ConvertCompletionsMessagesOptions<'_>)->Result<Vec<serde_json::Value>,CompletionsError> = $target; }",
+      "tests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases"
+      ],
+      "sources": [
+        "openai-completions"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-completions.ts:stream",
+      "kind": "value",
+      "module": "openai_completions",
+      "target": "pi_ai_providers::api::openai_completions::OpenAICompletionsApi::stream_with_options",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICompletionsApi,TextStreamRequest,OpenAICompletionsOptions)->AssistantStream = $target; }",
+      "tests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sources": [
+        "openai-completions"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-completions.ts:streamSimple",
+      "kind": "value",
+      "module": "openai_completions",
+      "target": "<pi_ai_providers::api::openai_completions::OpenAICompletionsApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAICompletionsApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sources": [
+        "openai-completions"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-prompt-cache.ts:OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH",
+      "kind": "value",
+      "module": "openai_prompt_cache",
+      "target": "pi_ai_providers::api::openai_prompt_cache::OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH",
+      "features": [],
+      "probe": "fn probe() { let _:usize = $target; }",
+      "tests": [
+        "provider_helpers#prompt_cache_counts_unicode_codepoints"
+      ],
+      "sources": [
+        "helpers"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-prompt-cache.ts:clampOpenAIPromptCacheKey",
+      "kind": "value",
+      "module": "openai_prompt_cache",
+      "target": "pi_ai_providers::api::openai_prompt_cache::clamp_openai_prompt_cache_key",
+      "features": [],
+      "probe": "fn probe() { let _:for<'a> fn(Option<&'a str>) -> Option<&'a str> = $target; }",
+      "tests": [
+        "provider_helpers#prompt_cache_counts_unicode_codepoints"
+      ],
+      "sources": [
+        "helpers"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses-shared.ts:ConvertResponsesMessagesOptions",
+      "kind": "type",
+      "module": "openai_responses_shared",
+      "target": "pi_ai_providers::api::openai_responses_shared::ConvertResponsesMessagesOptions",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target<'_>> = None; }",
+      "tests": [
+        "openai_responses_shared#replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules"
+      ],
+      "sources": [
+        "responses-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses-shared.ts:ConvertResponsesToolsOptions",
+      "kind": "type",
+      "module": "openai_responses_shared",
+      "target": "pi_ai_providers::api::openai_responses_shared::ConvertResponsesToolsOptions",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "openai_responses_shared#tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar"
+      ],
+      "sources": [
+        "responses-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses-shared.ts:OpenAIResponsesStreamOptions",
+      "kind": "type",
+      "module": "openai_responses_shared",
+      "target": "pi_ai_providers::api::openai_responses_shared::OpenAIResponsesStreamOptions",
+      "features": [],
+      "probe": "fn probe() { let _:Option<$target<'_>> = None; }",
+      "tests": [
+        "openai_responses_shared#interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill",
+        "openai_responses_shared#opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order"
+      ],
+      "sources": [
+        "responses-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses-shared.ts:convertResponsesMessages",
+      "kind": "value",
+      "module": "openai_responses_shared",
+      "target": "pi_ai_providers::api::openai_responses_shared::convert_responses_messages",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Model,&Context,&BTreeSet<String>,&ConvertResponsesMessagesOptions<'_>) -> Result<Vec<serde_json::Value>,ResponsesError> = $target; }",
+      "tests": [
+        "openai_responses_shared#replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules"
+      ],
+      "sources": [
+        "responses-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses-shared.ts:convertResponsesTools",
+      "kind": "value",
+      "module": "openai_responses_shared",
+      "target": "pi_ai_providers::api::openai_responses_shared::convert_responses_tools",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&[Tool],&ConvertResponsesToolsOptions) -> Result<Vec<serde_json::Value>,ResponsesError> = $target; }",
+      "tests": [
+        "openai_responses_shared#tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar",
+        "responses_deferred_order#deferred_function_slots_match_complete_pinned_converter"
+      ],
+      "sources": [
+        "responses-shared",
+        "responses-deferred-order"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses-shared.ts:processResponsesStream",
+      "kind": "value",
+      "module": "openai_responses_shared",
+      "target": "pi_ai_providers::api::openai_responses_shared::process_responses_stream",
+      "features": [],
+      "probe": "async fn probe(source:&mut dyn ResponsesEventSource, output:&mut AssistantMessage, producer:&AssistantStreamProducer, model:&Model, options:&OpenAIResponsesStreamOptions<'_>, token:&CancellationToken) { let _:Result<(),ResponsesError> = $target(source,output,producer,model,options,token).await; }",
+      "tests": [
+        "openai_responses_shared#interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill",
+        "openai_responses_shared#opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order"
+      ],
+      "sources": [
+        "responses-shared"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses.lazy.ts:openAIResponsesApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::openai_responses_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses.ts:OpenAIResponsesOptions",
+      "kind": "type",
+      "module": "openai_responses",
+      "target": "pi_ai_providers::api::openai_responses::OpenAIResponsesOptions",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sources": [
+        "openai-responses"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses.ts:stream",
+      "kind": "value",
+      "module": "openai_responses",
+      "target": "pi_ai_providers::api::openai_responses::OpenAIResponsesApi::stream_with_options",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAIResponsesApi,TextStreamRequest,OpenAIResponsesOptions)->AssistantStream = $target; }",
+      "tests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sources": [
+        "openai-responses"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/openai-responses.ts:streamSimple",
+      "kind": "value",
+      "module": "openai_responses",
+      "target": "<pi_ai_providers::api::openai_responses::OpenAIResponsesApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "probe": "fn probe() { let _:fn(&OpenAIResponsesApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sources": [
+        "openai-responses"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.lazy.ts:piMessagesApi",
+      "kind": "value",
+      "module": "lazy",
+      "target": "pi_ai_providers::api::lazy::pi_messages_api",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Arc<dyn LazyApiLoader>)->LazyApi = $target; }",
+      "tests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sources": [
+        "lazy"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.ts:PiMessagesEvent",
+      "kind": "type",
+      "module": "pi_messages",
+      "target": "pi_ai_providers::api::pi_messages::PiMessagesEvent",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sources": [
+        "pi-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.ts:PiMessagesOptions",
+      "kind": "type",
+      "module": "pi_messages",
+      "target": "pi_ai_providers::api::pi_messages::PiMessagesOptions",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sources": [
+        "pi-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.ts:PiMessagesResponseError",
+      "kind": "type-and-value",
+      "module": "pi_messages",
+      "target": "pi_ai_providers::api::pi_messages::PiMessagesResponseError",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "probe": "fn probe(status:u16, reason:&str, body:&[u8], message:&AssistantMessage) { let _:Result<$target,pi_ai_transport::TransportError> = PiMessagesResponseError::from_response(status,reason,body,message); }",
+      "tests": [
+        "pi_messages#redacted_response_error_retains_only_explicit_code_inspection"
+      ],
+      "sources": [
+        "pi-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.ts:PiMessagesRewriteImpact",
+      "kind": "type",
+      "module": "pi_messages",
+      "target": "pi_ai_providers::api::pi_messages::PiMessagesRewriteImpact",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "probe": "fn probe() { let _:Option<$target> = None; }",
+      "tests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sources": [
+        "pi-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.ts:stream",
+      "kind": "value",
+      "module": "pi_messages",
+      "target": "pi_ai_providers::api::pi_messages::PiMessagesApi::stream_with_options",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "probe": "fn probe() { let _:fn(&PiMessagesApi,TextStreamRequest,PiMessagesOptions)->AssistantStream = $target; }",
+      "tests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sources": [
+        "pi-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/pi-messages.ts:streamSimple",
+      "kind": "value",
+      "module": "pi_messages",
+      "target": "<pi_ai_providers::api::pi_messages::PiMessagesApi as pi_ai_core::ApiAdapter>::stream_simple",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "probe": "fn probe() { let _:fn(&PiMessagesApi,SimpleStreamRequest)->AssistantStream = $target; }",
+      "tests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sources": [
+        "pi-messages"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:DEFAULT_THINKING_BUDGETS",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::DEFAULT_THINKING_BUDGETS",
+      "features": [],
+      "probe": "fn probe() { let _:ThinkingBudgets = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:MIN_ANSWER_TOKENS",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::MIN_ANSWER_TOKENS",
+      "features": [],
+      "probe": "fn probe() { let _:u64 = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:adjustMaxTokensForThinking",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::adjust_max_tokens_for_thinking",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Option<SafeUnsigned>,SafeUnsigned,ThinkingLevel,Option<&ThinkingBudgets>) -> AdjustedThinkingTokens = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:buildBaseOptions",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::build_base_options",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Model,&Context,&StreamOptionsWire) -> Result<StreamOptionsWire, NumericError> = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:clampMaxTokensToContext",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::clamp_max_tokens_to_context",
+      "features": [],
+      "probe": "fn probe() { let _:fn(&Model,&Context,SafeUnsigned) -> Result<SafeUnsigned, NumericError> = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:clampReasoning",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::clamp_reasoning",
+      "features": [],
+      "probe": "fn probe() { let _:fn(Option<ThinkingLevel>) -> Option<ThinkingLevel> = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:clampThinkingBudgetToAnswerRoom",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::clamp_thinking_budget_to_answer_room",
+      "features": [],
+      "probe": "fn probe() { let _:fn(SafeUnsigned,SafeUnsigned) -> SafeUnsigned = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    },
+    {
+      "id": "packages/ai/src/api/simple-options.ts:thinkingBudgetForLevel",
+      "kind": "value",
+      "module": "simple_options",
+      "target": "pi_ai_providers::api::simple_options::thinking_budget_for_level",
+      "features": [],
+      "probe": "fn probe() { let _:fn(ThinkingLevel,Option<&ThinkingBudgets>) -> SafeUnsigned = $target; }",
+      "tests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sources": [
+        "helpers",
+        "simple"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "helpers",
+      "script": "conformance/provider-traces/export-closure/helpers-oracle.mjs",
+      "args": [],
+      "origins": [
+        "packages/ai/src/api/constrained-sampling.ts",
+        "packages/ai/src/api/github-copilot-headers.ts",
+        "packages/ai/src/api/openai-prompt-cache.ts",
+        "packages/ai/src/api/simple-options.ts"
+      ],
+      "scriptSha256": "52124765ceb1d247b1c9a2c3d52939f169667795f6386c9bdcc7c7971368e315"
+    },
+    {
+      "id": "strict-wire",
+      "script": "conformance/provider-traces/strict-schema-wire/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/constrained-sampling.ts"
+      ],
+      "scriptSha256": "5ba13a79c2e62cfff3bfa2cfde45885416ec5271e388382ac8f3493097dc17f5"
+    },
+    {
+      "id": "simple",
+      "script": "conformance/provider-traces/simple-options/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/simple-options.ts"
+      ],
+      "scriptSha256": "e1ec675db0f05ed69de9bfea10c9dee0f1d7644c629116305ebd1b27e072e8f4"
+    },
+    {
+      "id": "google-shared",
+      "script": "conformance/provider-helpers/google-shared/oracle.mjs",
+      "args": [],
+      "origins": [
+        "packages/ai/src/api/google-shared.ts"
+      ],
+      "expected": "conformance/provider-helpers/google-shared/vectors.json",
+      "scriptSha256": "c5e684156d6ba32900eb59751492e187655cd1cc9d398b1b2d7807b49c502c41"
+    },
+    {
+      "id": "responses-shared",
+      "script": "conformance/provider-traces/openai-responses-shared/signature-oracle.mjs",
+      "args": [],
+      "origins": [
+        "packages/ai/src/api/openai-responses-shared.ts"
+      ],
+      "expected": "conformance/provider-traces/openai-responses-shared/signature-bytes.json",
+      "scriptSha256": "1013be6a982c927759fe2e962eac2a9df8ef2a3c259f91831f71624025626724"
+    },
+    {
+      "id": "lazy",
+      "script": "conformance/provider-traces/lazy/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/anthropic-messages.lazy.ts",
+        "packages/ai/src/api/azure-openai-responses.lazy.ts",
+        "packages/ai/src/api/bedrock-converse-stream.lazy.ts",
+        "packages/ai/src/api/google-generative-ai.lazy.ts",
+        "packages/ai/src/api/google-vertex.lazy.ts",
+        "packages/ai/src/api/lazy.ts",
+        "packages/ai/src/api/mistral-conversations.lazy.ts",
+        "packages/ai/src/api/openai-codex-responses.lazy.ts",
+        "packages/ai/src/api/openai-completions.lazy.ts",
+        "packages/ai/src/api/openai-responses.lazy.ts",
+        "packages/ai/src/api/pi-messages.lazy.ts"
+      ],
+      "scriptSha256": "031329d41961a28dc9275ccec6a7c72144fd8b8877fda8621d03de7cdac507b5"
+    },
+    {
+      "id": "anthropic-messages",
+      "script": "conformance/provider-traces/anthropic-messages/oracle.mjs",
+      "args": [],
+      "origins": [
+        "packages/ai/src/api/anthropic-messages.ts"
+      ],
+      "scriptSha256": "9ea032425f15b007c6ac65da2f6e3384fb7f09437f09cbdf4da13a13896d1d5c",
+      "expected": "conformance/provider-traces/anthropic-messages/trace.json"
+    },
+    {
+      "id": "azure-openai-responses",
+      "script": "conformance/provider-traces/azure-openai-responses/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/azure-openai-responses.ts"
+      ],
+      "scriptSha256": "167f10e1766f8ce0af791a86a62c216fb3b892da18551847604f2853a5ea3f71"
+    },
+    {
+      "id": "openai-completions",
+      "script": "conformance/provider-traces/openai-completions/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-completions.ts"
+      ],
+      "scriptSha256": "7447e15e4b48c846ece6f9963df3f46461a9cc462b4f1fb17f965b5d7afb0fb1"
+    },
+    {
+      "id": "openai-responses",
+      "script": "conformance/provider-traces/openai-responses/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-responses.ts"
+      ],
+      "scriptSha256": "70ae8f99ecf687b21c2f40ff5db1ac6adde2d202918180ba11f7dc2f9e1c6975"
+    },
+    {
+      "id": "google-generative-ai",
+      "script": "conformance/provider-traces/google-genai/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/google-generative-ai.ts"
+      ],
+      "scriptSha256": "d6fd4917be83dd190ab4a7e12a87c924da92f6bcdc142127e6059a6d2740ddb1"
+    },
+    {
+      "id": "google-vertex",
+      "script": "conformance/provider-traces/google-vertex/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/google-vertex.ts"
+      ],
+      "scriptSha256": "836fc9cef310e4f6062f63a21fa76c50d5cf8b98bea4cbe85c1fc97d8419846e"
+    },
+    {
+      "id": "mistral-conversations",
+      "script": "conformance/provider-traces/mistral-conversations/oracle.mjs",
+      "args": [],
+      "origins": [
+        "packages/ai/src/api/mistral-conversations.ts"
+      ],
+      "scriptSha256": "30934340d29d73873b4db715fb595080fbe0e89d2ac12eccb6b2089e4ed5a110",
+      "expected": "conformance/provider-traces/mistral-conversations/trace.json"
+    },
+    {
+      "id": "pi-messages",
+      "script": "conformance/provider-traces/pi-messages/composition-oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/pi-messages.ts"
+      ],
+      "scriptSha256": "13f4d1eac1a131ae7826c4dffd9bb6a63d744ddbca58ddcc54a1acadcaf6cd3a"
+    },
+    {
+      "id": "cloudflare",
+      "script": "conformance/provider-traces/cloudflare-gateway-binding/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/cloudflare.ts",
+        "packages/ai/src/api/cloudflare-gateway-binding.ts"
+      ],
+      "scriptSha256": "05a055e5840468b4fbb26a36041566849f19b605e630b4bc55e98a75a061d293"
+    },
+    {
+      "id": "bedrock-family",
+      "script": "conformance/provider-traces/bedrock-converse-stream/family-oracle.mjs",
+      "args": [],
+      "origins": [
+        "packages/ai/src/api/bedrock-converse-stream.ts"
+      ],
+      "scriptSha256": "c827556596ecb9a19c1d594ea6aee6b6f4729c584b7bad510a73f9ff57e0a7c6",
+      "expected": "conformance/provider-traces/bedrock-converse-stream/family.json"
+    },
+    {
+      "id": "bedrock-malformed",
+      "script": "conformance/provider-traces/bedrock-converse-stream/malformed-event-oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/bedrock-converse-stream.ts"
+      ],
+      "scriptSha256": "f766bbf317aff02fc75ed4e9a49554209f6dc2e2ee5bebc46320969a7312afe6"
+    },
+    {
+      "id": "responses-deferred-order",
+      "script": "conformance/provider-traces/openai-responses-shared/deferred-order-oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-responses-shared.ts"
+      ],
+      "scriptSha256": "ab52e1895f64cc17d11e666ce424743e3fc1391a04ea0b2060372e1cb3a3a837"
+    },
+    {
+      "id": "codex-requests",
+      "script": "conformance/provider-traces/openai-codex-responses/oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-codex-responses.ts"
+      ],
+      "scriptSha256": "af636e21bf5e4f7a7b3855ea1dd567aa876fa62308b32e9aae14b0092c518140"
+    },
+    {
+      "id": "codex-cache",
+      "script": "conformance/provider-traces/openai-codex-responses/cache-oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-codex-responses.ts"
+      ],
+      "scriptSha256": "b78fb463a37e40c83db5e9c08c0211ce1ca0c2639a08a335d39746315b1a7ae4"
+    },
+    {
+      "id": "codex-correction",
+      "script": "conformance/provider-traces/openai-codex-responses/review-correction-oracle.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-codex-responses.ts"
+      ],
+      "scriptSha256": "97760e5a824c3a5b545e3d1e04695d34d5237948899ebf9fef093c5993508d6a"
+    },
+    {
+      "id": "codex-comparison",
+      "script": "conformance/provider-traces/openai-codex-responses/source-comparison-check.mjs",
+      "args": [
+        "--check"
+      ],
+      "origins": [
+        "packages/ai/src/api/openai-codex-responses.ts"
+      ],
+      "scriptSha256": "5bb735d2919b275e052e1b1e48c22f9554a91d1ea62e47cb9c968dadf126a699"
+    }
+  ],
+  "testFiles": {
+    "anthropic_messages": "361a45f008f249231eb2c07e147d78382fd43d36045a1467829721583e9ad4a3",
+    "azure_openai_responses": "7ddc5cef4ae72326e319d342592f09ca03f24172374816a0661645ddfed2b1d7",
+    "bedrock_converse_stream": "1975c3a86409d4c26b6685693b8dbfce6fd1fcd22abb2161ec82cc155cd1b094",
+    "cloudflare_gateway_binding": "3e7ae40528158858f32c1914b0858416fbd59da14e6daa5c6474bf8c64b59123",
+    "google_genai": "42f1725d7f0972f800709c9447b4bc2b7708f55821e44f1a13765c5aa35d6fb2",
+    "google_shared": "8f9a13344f5aff3243330ba9762fe0f878f20e43b077f70bbbd3c84bedfe7269",
+    "google_vertex": "469dfd2162aacd8dc5ae022592c41061ed8f43ad43c6a179a6ebbd81e526f36e",
+    "lazy": "98927e91a8e5c19a9a2e7c2981efa1530b8b2837808416ebfb1a10aa5039aeb7",
+    "mistral_conversations": "e50ca883acbe13d56c4c6f77c15df8cc2e73ba469430e6f7bc6795624d09bc8d",
+    "openai_codex": "92dc8ef47923dc3b9179d083fad68f1ff5ef1d1293dc224d79a569a48b963047",
+    "openai_completions": "6e696ea626bb29760b2cbfa288ff6263a6e0316aac5fda38e91eac5e92369f89",
+    "openai_responses": "62c7ea5955efd776628d6ad3d38d0475253e0720595148eaf1bc53a89c73a270",
+    "openai_responses_shared": "51ac6033b0ef0746a2bf162475701de33cae0adfc7985695059826db2ef036cc",
+    "pi_messages": "e06cd7fed9810bd315544df70aaa2a9449aaa58734a27b215c916b129356bd82",
+    "provider_helpers": "b2db1348764560de63f5214eedaf41a31dd4a4395cb867ec5a9615247a57f2fd",
+    "responses_deferred_order": "9c1e69438c9fa68776118773d29849f4ae8f545479ec8cddba5e85dadf8227cb",
+    "simple_options": "b4de858db39aad247c38b02eff42d49ff2f507d4abab5efbfb9b0ee964c5fd9b",
+    "strict_schema_wire": "6166311c0709f96df2775b0d6abeaf772c5c82681c3965c21e02821929ae3910"
+  },
+  "evidenceFiles": {
+    "conformance/provider-traces/openai-codex-responses/account-oracle.mjs": "9b3c8db92b5e3abcb5913732ef0b9f80bc2be078d6acd400ae357c3027d3a2da",
+    "conformance/provider-traces/openai-codex-responses/cache-oracle.mjs": "b78fb463a37e40c83db5e9c08c0211ce1ca0c2639a08a335d39746315b1a7ae4",
+    "conformance/provider-traces/openai-codex-responses/harness.mjs": "06925d653f34ad63f0a51e9fe5564225d5306cd5b4e2a7fb80c80f69ece57a97",
+    "conformance/provider-traces/openai-codex-responses/metadata-oracle.mjs": "2667337ba30dc9c5cd781da31338ffdf94817bf2dd71026ac7b6aff99becf5a0",
+    "conformance/provider-traces/openai-codex-responses/native-frame-oracle.mjs": "92411a5cc36492f923d1ed6ef5810415af30012ab983e492e3b2dcc3983c2765",
+    "conformance/provider-traces/openai-codex-responses/oracle.mjs": "af636e21bf5e4f7a7b3855ea1dd567aa876fa62308b32e9aae14b0092c518140",
+    "conformance/provider-traces/openai-codex-responses/payload-oracle.mjs": "d188ed8a4bb6614c09bb87682b02b231aa19fc5764cecff0e59ddcce002c46ca",
+    "conformance/provider-traces/openai-codex-responses/review-correction-oracle.mjs": "97760e5a824c3a5b545e3d1e04695d34d5237948899ebf9fef093c5993508d6a",
+    "conformance/provider-traces/openai-codex-responses/source-comparison-check.mjs": "5bb735d2919b275e052e1b1e48c22f9554a91d1ea62e47cb9c968dadf126a699",
+    "conformance/provider-traces/openai-codex-responses/source-comparison.mjs": "6dfc73c485d6ac2bfcbfa058bd66f971fbac9142370ccf19219141a3ebe2a4bd",
+    "conformance/provider-traces/openai-codex-responses/timeout-oracle.mjs": "65b0d0e2565ffde3cff88fa3757acf64c5f05481d1af91e6c2442d0e5d1229e1"
+  }
+}

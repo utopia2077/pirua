@@ -4,10 +4,9 @@ expected_occurrences = 699
 
 [expected_dispositions]
 s02-dto = 146
-implemented = 123
+implemented = 284
 rust-nonapplicable = 22
-mapped-s04 = 163
-mapped-s05 = 239
+mapped-s05 = 241
 external-schema-projection = 6
 
 [expected_surfaces]
@@ -36,14 +35,1432 @@ evidence = "rust-test:crates/pi-ai-core/tests/schema.rs#models_options_tools_and
 expected_occurrences = 6
 
 [[rule]]
-id = "s04-api-adapters"
+id = "s04-anthropic-messages.lazy-anthropicMessagesApi"
 priority = 2
-surfaces = ["ai.api-adapters"]
-disposition = "mapped-s04"
+origins = ["packages/ai/src/api/anthropic-messages.lazy.ts"]
+names = ["anthropicMessagesApi"]
+disposition = "implemented"
 owner = "S04-provider-adapters"
-rust_target = "pi_ai_providers::adapters"
-evidence = "future:conformance/provider-traces"
-expected_occurrences = 163
+rust_target = "pi_ai_providers::api::lazy::anthropic_messages_api"
+evidence = "s04-export:packages/ai/src/api/anthropic-messages.lazy.ts:anthropicMessagesApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-anthropic-messages-AnthropicEffort"
+priority = 2
+origins = ["packages/ai/src/api/anthropic-messages.ts"]
+names = ["AnthropicEffort"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::anthropic_messages::AnthropicEffort"
+evidence = "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicEffort"
+features = ["wire-anthropic-messages"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-anthropic-messages-AnthropicOptions"
+priority = 2
+origins = ["packages/ai/src/api/anthropic-messages.ts"]
+names = ["AnthropicOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::anthropic_messages::AnthropicOptions"
+evidence = "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicOptions"
+features = ["wire-anthropic-messages"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-anthropic-messages-AnthropicThinkingDisplay"
+priority = 2
+origins = ["packages/ai/src/api/anthropic-messages.ts"]
+names = ["AnthropicThinkingDisplay"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::anthropic_messages::AnthropicThinkingDisplay"
+evidence = "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicThinkingDisplay"
+features = ["wire-anthropic-messages"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-anthropic-messages-stream"
+priority = 2
+origins = ["packages/ai/src/api/anthropic-messages.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::anthropic_messages::AnthropicMessagesApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/anthropic-messages.ts:stream"
+features = ["wire-anthropic-messages"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-anthropic-messages-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/anthropic-messages.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::anthropic_messages::AnthropicMessagesApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/anthropic-messages.ts:streamSimple"
+features = ["wire-anthropic-messages"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-azure-openai-responses.lazy-azureOpenAIResponsesApi"
+priority = 2
+origins = ["packages/ai/src/api/azure-openai-responses.lazy.ts"]
+names = ["azureOpenAIResponsesApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::azure_openai_responses_api"
+evidence = "s04-export:packages/ai/src/api/azure-openai-responses.lazy.ts:azureOpenAIResponsesApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-azure-openai-responses-AzureOpenAIResponsesOptions"
+priority = 2
+origins = ["packages/ai/src/api/azure-openai-responses.ts"]
+names = ["AzureOpenAIResponsesOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesOptions"
+evidence = "s04-export:packages/ai/src/api/azure-openai-responses.ts:AzureOpenAIResponsesOptions"
+features = ["wire-azure-openai-responses"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-azure-openai-responses-stream"
+priority = 2
+origins = ["packages/ai/src/api/azure-openai-responses.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/azure-openai-responses.ts:stream"
+features = ["wire-azure-openai-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-azure-openai-responses-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/azure-openai-responses.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/azure-openai-responses.ts:streamSimple"
+features = ["wire-azure-openai-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-bedrock-converse-stream.lazy-bedrockConverseStreamApi"
+priority = 2
+origins = ["packages/ai/src/api/bedrock-converse-stream.lazy.ts"]
+names = ["bedrockConverseStreamApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::bedrock_converse_stream_api"
+evidence = "s04-export:packages/ai/src/api/bedrock-converse-stream.lazy.ts:bedrockConverseStreamApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-bedrock-converse-stream.lazy-setBedrockProviderModule"
+priority = 2
+origins = ["packages/ai/src/api/bedrock-converse-stream.lazy.ts"]
+names = ["setBedrockProviderModule"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::set_bedrock_provider_module"
+evidence = "s04-export:packages/ai/src/api/bedrock-converse-stream.lazy.ts:setBedrockProviderModule"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-bedrock-converse-stream-BedrockOptions"
+priority = 2
+origins = ["packages/ai/src/api/bedrock-converse-stream.ts"]
+names = ["BedrockOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::bedrock_converse_stream::BedrockOptions"
+evidence = "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockOptions"
+features = ["wire-bedrock-converse-stream"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-bedrock-converse-stream-BedrockThinkingDisplay"
+priority = 2
+origins = ["packages/ai/src/api/bedrock-converse-stream.ts"]
+names = ["BedrockThinkingDisplay"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::bedrock_converse_stream::BedrockThinkingDisplay"
+evidence = "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockThinkingDisplay"
+features = ["wire-bedrock-converse-stream"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-bedrock-converse-stream-stream"
+priority = 2
+origins = ["packages/ai/src/api/bedrock-converse-stream.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::bedrock_converse_stream::BedrockApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:stream"
+features = ["wire-bedrock-converse-stream"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-bedrock-converse-stream-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/bedrock-converse-stream.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::bedrock_converse_stream::BedrockApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:streamSimple"
+features = ["wire-bedrock-converse-stream"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-gateway-binding-AiGatewayBinding"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare-gateway-binding.ts"]
+names = ["AiGatewayBinding"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayBinding"
+evidence = "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayBinding"
+features = ["cloudflare-gateway-binding"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-gateway-binding-AiGatewayBindingGateway"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare-gateway-binding.ts"]
+names = ["AiGatewayBindingGateway"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayBindingGateway"
+evidence = "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayBindingGateway"
+features = ["cloudflare-gateway-binding"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-gateway-binding-AiGatewayUniversalRequestLike"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare-gateway-binding.ts"]
+names = ["AiGatewayUniversalRequestLike"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayUniversalRequestLike"
+evidence = "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayUniversalRequestLike"
+features = ["cloudflare-gateway-binding"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-gateway-binding-CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare-gateway-binding.ts"]
+names = ["CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare_gateway_binding::CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL"
+evidence = "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL"
+features = ["cloudflare-gateway-binding"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-gateway-binding-GatewayBindingFetchOptions"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare-gateway-binding.ts"]
+names = ["GatewayBindingFetchOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare_gateway_binding::GatewayBindingFetchOptions"
+evidence = "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:GatewayBindingFetchOptions"
+features = ["cloudflare-gateway-binding"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-gateway-binding-createGatewayBindingFetch"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare-gateway-binding.ts"]
+names = ["createGatewayBindingFetch"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare_gateway_binding::create_gateway_binding_fetch"
+evidence = "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:createGatewayBindingFetch"
+features = ["cloudflare-gateway-binding"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare.ts"]
+names = ["CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL"
+evidence = "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare.ts"]
+names = ["CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL"
+evidence = "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare.ts"]
+names = ["CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL"
+evidence = "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-cloudflare-CLOUDFLARE_WORKERS_AI_BASE_URL"
+priority = 2
+origins = ["packages/ai/src/api/cloudflare.ts"]
+names = ["CLOUDFLARE_WORKERS_AI_BASE_URL"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::cloudflare::CLOUDFLARE_WORKERS_AI_BASE_URL"
+evidence = "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_WORKERS_AI_BASE_URL"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-GrammarConstrainedSampling"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["GrammarConstrainedSampling"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::GrammarConstrainedSampling"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:GrammarConstrainedSampling"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-GrammarToolInputJsonBuffer"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["GrammarToolInputJsonBuffer"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::GrammarToolInputJsonBuffer"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:GrammarToolInputJsonBuffer"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-appendGrammarToolInputJsonDelta"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["appendGrammarToolInputJsonDelta"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::append_grammar_tool_input_json_delta"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:appendGrammarToolInputJsonDelta"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-createGrammarToolInputProperties"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["createGrammarToolInputProperties"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::create_grammar_tool_input_properties"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:createGrammarToolInputProperties"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-getGrammarToolInput"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["getGrammarToolInput"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::get_grammar_tool_input"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:getGrammarToolInput"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-getJsonSchemaToolParameters"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["getJsonSchemaToolParameters"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::get_wire_json_schema_tool_parameters"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:getJsonSchemaToolParameters"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-makeStrictJsonSchema"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["makeStrictJsonSchema"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::make_strict_wire_json_schema"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:makeStrictJsonSchema"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-resolveGrammarConstrainedSampling"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["resolveGrammarConstrainedSampling"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::resolve_grammar_constrained_sampling"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:resolveGrammarConstrainedSampling"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-constrained-sampling-resolveJsonSchemaStrictSampling"
+priority = 2
+origins = ["packages/ai/src/api/constrained-sampling.ts"]
+names = ["resolveJsonSchemaStrictSampling"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::constrained_sampling::resolve_json_schema_strict_sampling"
+evidence = "s04-export:packages/ai/src/api/constrained-sampling.ts:resolveJsonSchemaStrictSampling"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-github-copilot-headers-buildCopilotDynamicHeaders"
+priority = 2
+origins = ["packages/ai/src/api/github-copilot-headers.ts"]
+names = ["buildCopilotDynamicHeaders"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::github_copilot_headers::build_copilot_dynamic_headers"
+evidence = "s04-export:packages/ai/src/api/github-copilot-headers.ts:buildCopilotDynamicHeaders"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-github-copilot-headers-hasCopilotVisionInput"
+priority = 2
+origins = ["packages/ai/src/api/github-copilot-headers.ts"]
+names = ["hasCopilotVisionInput"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::github_copilot_headers::has_copilot_vision_input"
+evidence = "s04-export:packages/ai/src/api/github-copilot-headers.ts:hasCopilotVisionInput"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-github-copilot-headers-inferCopilotInitiator"
+priority = 2
+origins = ["packages/ai/src/api/github-copilot-headers.ts"]
+names = ["inferCopilotInitiator"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::github_copilot_headers::infer_copilot_initiator"
+evidence = "s04-export:packages/ai/src/api/github-copilot-headers.ts:inferCopilotInitiator"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-generative-ai.lazy-googleGenerativeAIApi"
+priority = 2
+origins = ["packages/ai/src/api/google-generative-ai.lazy.ts"]
+names = ["googleGenerativeAIApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::google_generative_ai_api"
+evidence = "s04-export:packages/ai/src/api/google-generative-ai.lazy.ts:googleGenerativeAIApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-google-generative-ai-GoogleOptions"
+priority = 2
+origins = ["packages/ai/src/api/google-generative-ai.ts"]
+names = ["GoogleOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_genai::GoogleOptions"
+evidence = "s04-export:packages/ai/src/api/google-generative-ai.ts:GoogleOptions"
+features = ["wire-google-genai"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-google-generative-ai-stream"
+priority = 2
+origins = ["packages/ai/src/api/google-generative-ai.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_genai::GoogleGenAiApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/google-generative-ai.ts:stream"
+features = ["wire-google-genai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-generative-ai-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/google-generative-ai.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::google_genai::GoogleGenAiApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/google-generative-ai.ts:streamSimple"
+features = ["wire-google-genai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-GoogleApiThinkingLevel"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["GoogleApiThinkingLevel"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::GoogleApiThinkingLevel"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:GoogleApiThinkingLevel"
+features = []
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-ResolvedGoogleThinkingLevel"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["ResolvedGoogleThinkingLevel"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::ResolvedGoogleThinkingLevel"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:ResolvedGoogleThinkingLevel"
+features = []
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-convertMessages"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["convertMessages"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::convert_messages"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:convertMessages"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-convertTools"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["convertTools"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::convert_tools"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:convertTools"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-isThinkingPart"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["isThinkingPart"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::is_thinking_part"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:isThinkingPart"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-mapStopReason"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["mapStopReason"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::map_stop_reason"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:mapStopReason"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-mapStopReasonString"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["mapStopReasonString"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::map_stop_reason_string"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:mapStopReasonString"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-mapToolChoice"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["mapToolChoice"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::map_tool_choice"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:mapToolChoice"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-requiresToolCallId"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["requiresToolCallId"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::requires_tool_call_id"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:requiresToolCallId"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-resolveGoogleFunctionCallingMode"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["resolveGoogleFunctionCallingMode"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::resolve_google_function_calling_mode"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:resolveGoogleFunctionCallingMode"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-resolveGoogleThinkingLevel"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["resolveGoogleThinkingLevel"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::resolve_google_thinking_level"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:resolveGoogleThinkingLevel"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-retainThoughtSignature"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["retainThoughtSignature"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::retain_thought_signature"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:retainThoughtSignature"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-retryGoogleRequest"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["retryGoogleRequest"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::retry_google_request"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:retryGoogleRequest"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-shared-supportsGoogleStrictToolSampling"
+priority = 2
+origins = ["packages/ai/src/api/google-shared.ts"]
+names = ["supportsGoogleStrictToolSampling"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_shared::supports_google_strict_tool_sampling"
+evidence = "s04-export:packages/ai/src/api/google-shared.ts:supportsGoogleStrictToolSampling"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-vertex.lazy-googleVertexApi"
+priority = 2
+origins = ["packages/ai/src/api/google-vertex.lazy.ts"]
+names = ["googleVertexApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::google_vertex_api"
+evidence = "s04-export:packages/ai/src/api/google-vertex.lazy.ts:googleVertexApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-google-vertex-GoogleVertexOptions"
+priority = 2
+origins = ["packages/ai/src/api/google-vertex.ts"]
+names = ["GoogleVertexOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_vertex::GoogleVertexOptions"
+evidence = "s04-export:packages/ai/src/api/google-vertex.ts:GoogleVertexOptions"
+features = ["wire-google-vertex"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-google-vertex-stream"
+priority = 2
+origins = ["packages/ai/src/api/google-vertex.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::google_vertex::GoogleVertexApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/google-vertex.ts:stream"
+features = ["wire-google-vertex"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-google-vertex-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/google-vertex.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::google_vertex::GoogleVertexApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/google-vertex.ts:streamSimple"
+features = ["wire-google-vertex"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-lazy-LazyApiCapabilities"
+priority = 2
+origins = ["packages/ai/src/api/lazy.ts"]
+names = ["LazyApiCapabilities"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::LazyApiCapabilities"
+evidence = "s04-export:packages/ai/src/api/lazy.ts:LazyApiCapabilities"
+features = []
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-lazy-lazyApi"
+priority = 2
+origins = ["packages/ai/src/api/lazy.ts"]
+names = ["lazyApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::lazy_api"
+evidence = "s04-export:packages/ai/src/api/lazy.ts:lazyApi"
+features = []
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-lazy-lazyStream"
+priority = 2
+origins = ["packages/ai/src/api/lazy.ts"]
+names = ["lazyStream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::lazy_stream"
+evidence = "s04-export:packages/ai/src/api/lazy.ts:lazyStream"
+features = []
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-mistral-conversations.lazy-mistralConversationsApi"
+priority = 2
+origins = ["packages/ai/src/api/mistral-conversations.lazy.ts"]
+names = ["mistralConversationsApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::mistral_conversations_api"
+evidence = "s04-export:packages/ai/src/api/mistral-conversations.lazy.ts:mistralConversationsApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-mistral-conversations-MistralOptions"
+priority = 2
+origins = ["packages/ai/src/api/mistral-conversations.ts"]
+names = ["MistralOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::mistral_conversations::MistralOptions"
+evidence = "s04-export:packages/ai/src/api/mistral-conversations.ts:MistralOptions"
+features = ["wire-mistral-conversations"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-mistral-conversations-stream"
+priority = 2
+origins = ["packages/ai/src/api/mistral-conversations.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::mistral_conversations::MistralApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/mistral-conversations.ts:stream"
+features = ["wire-mistral-conversations"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-mistral-conversations-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/mistral-conversations.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::mistral_conversations::MistralApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/mistral-conversations.ts:streamSimple"
+features = ["wire-mistral-conversations"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses.lazy-openAICodexResponsesApi"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.lazy.ts"]
+names = ["openAICodexResponsesApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::openai_codex_responses_api"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.lazy.ts:openAICodexResponsesApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-OpenAICodexResponsesOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["OpenAICodexResponsesOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesOptions"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexResponsesOptions"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-OpenAICodexWebSocketDebugStats"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["OpenAICodexWebSocketDebugStats"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_codex_responses::OpenAICodexWebSocketDebugStats"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexWebSocketDebugStats"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-closeOpenAICodexWebSocketSessions"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["closeOpenAICodexWebSocketSessions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::close_openai_codex_websocket_sessions"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:closeOpenAICodexWebSocketSessions"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-getOpenAICodexWebSocketDebugStats"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["getOpenAICodexWebSocketDebugStats"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::get_openai_codex_websocket_debug_stats"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:getOpenAICodexWebSocketDebugStats"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-resetOpenAICodexWebSocketDebugStats"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["resetOpenAICodexWebSocketDebugStats"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::reset_openai_codex_websocket_debug_stats"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:resetOpenAICodexWebSocketDebugStats"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-stream"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:stream"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-codex-responses-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/openai-codex-responses.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/openai-codex-responses.ts:streamSimple"
+features = ["wire-openai-codex-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-completions.lazy-openAICompletionsApi"
+priority = 2
+origins = ["packages/ai/src/api/openai-completions.lazy.ts"]
+names = ["openAICompletionsApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::openai_completions_api"
+evidence = "s04-export:packages/ai/src/api/openai-completions.lazy.ts:openAICompletionsApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-completions-ConvertCompletionsMessagesOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-completions.ts"]
+names = ["ConvertCompletionsMessagesOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_completions::ConvertCompletionsMessagesOptions"
+evidence = "s04-export:packages/ai/src/api/openai-completions.ts:ConvertCompletionsMessagesOptions"
+features = ["wire-openai-completions"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-completions-OpenAICompletionsOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-completions.ts"]
+names = ["OpenAICompletionsOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_completions::OpenAICompletionsOptions"
+evidence = "s04-export:packages/ai/src/api/openai-completions.ts:OpenAICompletionsOptions"
+features = ["wire-openai-completions"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-completions-convertMessages"
+priority = 2
+origins = ["packages/ai/src/api/openai-completions.ts"]
+names = ["convertMessages"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_completions::convert_messages"
+evidence = "s04-export:packages/ai/src/api/openai-completions.ts:convertMessages"
+features = ["wire-openai-completions"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-completions-stream"
+priority = 2
+origins = ["packages/ai/src/api/openai-completions.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_completions::OpenAICompletionsApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/openai-completions.ts:stream"
+features = ["wire-openai-completions"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-completions-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/openai-completions.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::openai_completions::OpenAICompletionsApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/openai-completions.ts:streamSimple"
+features = ["wire-openai-completions"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-prompt-cache-OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH"
+priority = 2
+origins = ["packages/ai/src/api/openai-prompt-cache.ts"]
+names = ["OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_prompt_cache::OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH"
+evidence = "s04-export:packages/ai/src/api/openai-prompt-cache.ts:OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-prompt-cache-clampOpenAIPromptCacheKey"
+priority = 2
+origins = ["packages/ai/src/api/openai-prompt-cache.ts"]
+names = ["clampOpenAIPromptCacheKey"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_prompt_cache::clamp_openai_prompt_cache_key"
+evidence = "s04-export:packages/ai/src/api/openai-prompt-cache.ts:clampOpenAIPromptCacheKey"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-shared-ConvertResponsesMessagesOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses-shared.ts"]
+names = ["ConvertResponsesMessagesOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses_shared::ConvertResponsesMessagesOptions"
+evidence = "s04-export:packages/ai/src/api/openai-responses-shared.ts:ConvertResponsesMessagesOptions"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-shared-ConvertResponsesToolsOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses-shared.ts"]
+names = ["ConvertResponsesToolsOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses_shared::ConvertResponsesToolsOptions"
+evidence = "s04-export:packages/ai/src/api/openai-responses-shared.ts:ConvertResponsesToolsOptions"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-shared-OpenAIResponsesStreamOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses-shared.ts"]
+names = ["OpenAIResponsesStreamOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses_shared::OpenAIResponsesStreamOptions"
+evidence = "s04-export:packages/ai/src/api/openai-responses-shared.ts:OpenAIResponsesStreamOptions"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-shared-convertResponsesMessages"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses-shared.ts"]
+names = ["convertResponsesMessages"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses_shared::convert_responses_messages"
+evidence = "s04-export:packages/ai/src/api/openai-responses-shared.ts:convertResponsesMessages"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-shared-convertResponsesTools"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses-shared.ts"]
+names = ["convertResponsesTools"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses_shared::convert_responses_tools"
+evidence = "s04-export:packages/ai/src/api/openai-responses-shared.ts:convertResponsesTools"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-shared-processResponsesStream"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses-shared.ts"]
+names = ["processResponsesStream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses_shared::process_responses_stream"
+evidence = "s04-export:packages/ai/src/api/openai-responses-shared.ts:processResponsesStream"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses.lazy-openAIResponsesApi"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses.lazy.ts"]
+names = ["openAIResponsesApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::openai_responses_api"
+evidence = "s04-export:packages/ai/src/api/openai-responses.lazy.ts:openAIResponsesApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-OpenAIResponsesOptions"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses.ts"]
+names = ["OpenAIResponsesOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses::OpenAIResponsesOptions"
+evidence = "s04-export:packages/ai/src/api/openai-responses.ts:OpenAIResponsesOptions"
+features = ["wire-openai-responses"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-stream"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::openai_responses::OpenAIResponsesApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/openai-responses.ts:stream"
+features = ["wire-openai-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-openai-responses-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/openai-responses.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::openai_responses::OpenAIResponsesApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/openai-responses.ts:streamSimple"
+features = ["wire-openai-responses"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages.lazy-piMessagesApi"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.lazy.ts"]
+names = ["piMessagesApi"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::lazy::pi_messages_api"
+evidence = "s04-export:packages/ai/src/api/pi-messages.lazy.ts:piMessagesApi"
+features = []
+expected_occurrences = 2
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages-PiMessagesEvent"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.ts"]
+names = ["PiMessagesEvent"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::pi_messages::PiMessagesEvent"
+evidence = "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesEvent"
+features = ["wire-pi-messages"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages-PiMessagesOptions"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.ts"]
+names = ["PiMessagesOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::pi_messages::PiMessagesOptions"
+evidence = "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesOptions"
+features = ["wire-pi-messages"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages-PiMessagesResponseError"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.ts"]
+names = ["PiMessagesResponseError"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::pi_messages::PiMessagesResponseError"
+evidence = "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesResponseError"
+features = ["wire-pi-messages"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages-PiMessagesRewriteImpact"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.ts"]
+names = ["PiMessagesRewriteImpact"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::pi_messages::PiMessagesRewriteImpact"
+evidence = "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesRewriteImpact"
+features = ["wire-pi-messages"]
+expected_occurrences = 3
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages-stream"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.ts"]
+names = ["stream"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::pi_messages::PiMessagesApi::stream_with_options"
+evidence = "s04-export:packages/ai/src/api/pi-messages.ts:stream"
+features = ["wire-pi-messages"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-pi-messages-streamSimple"
+priority = 2
+origins = ["packages/ai/src/api/pi-messages.ts"]
+names = ["streamSimple"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "<pi_ai_providers::api::pi_messages::PiMessagesApi as pi_ai_core::ApiAdapter>::stream_simple"
+evidence = "s04-export:packages/ai/src/api/pi-messages.ts:streamSimple"
+features = ["wire-pi-messages"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-DEFAULT_THINKING_BUDGETS"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["DEFAULT_THINKING_BUDGETS"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::DEFAULT_THINKING_BUDGETS"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:DEFAULT_THINKING_BUDGETS"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-MIN_ANSWER_TOKENS"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["MIN_ANSWER_TOKENS"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::MIN_ANSWER_TOKENS"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:MIN_ANSWER_TOKENS"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-adjustMaxTokensForThinking"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["adjustMaxTokensForThinking"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::adjust_max_tokens_for_thinking"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:adjustMaxTokensForThinking"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-buildBaseOptions"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["buildBaseOptions"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::build_base_options"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:buildBaseOptions"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-clampMaxTokensToContext"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["clampMaxTokensToContext"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::clamp_max_tokens_to_context"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:clampMaxTokensToContext"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-clampReasoning"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["clampReasoning"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::clamp_reasoning"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:clampReasoning"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-clampThinkingBudgetToAnswerRoom"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["clampThinkingBudgetToAnswerRoom"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::clamp_thinking_budget_to_answer_room"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:clampThinkingBudgetToAnswerRoom"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s04-simple-options-thinkingBudgetForLevel"
+priority = 2
+origins = ["packages/ai/src/api/simple-options.ts"]
+names = ["thinkingBudgetForLevel"]
+disposition = "implemented"
+owner = "S04-provider-adapters"
+rust_target = "pi_ai_providers::api::simple_options::thinking_budget_for_level"
+evidence = "s04-export:packages/ai/src/api/simple-options.ts:thinkingBudgetForLevel"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-openrouter-images"
+priority = 2
+origins = ["packages/ai/src/api/openrouter-images.ts"]
+subpaths = ["./api/openrouter-images"]
+names = ["generateImages"]
+disposition = "mapped-s05"
+owner = "S05-images"
+rust_target = "pi_ai_providers::oauth_images"
+evidence = "future:conformance/oauth-images"
+expected_occurrences = 1
+
+[[rule]]
+id = "s05-openrouter-images.lazy"
+priority = 2
+origins = ["packages/ai/src/api/openrouter-images.lazy.ts"]
+subpaths = ["./api/openrouter-images.lazy"]
+names = ["openrouterImagesApi"]
+disposition = "mapped-s05"
+owner = "S05-images"
+rust_target = "pi_ai_providers::oauth_images"
+evidence = "future:conformance/oauth-images"
+expected_occurrences = 1
 
 [[rule]]
 id = "s05-catalog-projection"

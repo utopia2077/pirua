@@ -32,13 +32,16 @@ SOURCE_COMMIT = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
 EXPECTED_BEHAVIOR_ROWS = 327
 EXPECTED_EXPORT_ROWS = 699
 EXPECTED_TARGET_PROBES = 120
+EXPECTED_S04_IMAGE_KEYS = {
+    "./api/openrouter-images:generateImages",
+    "./api/openrouter-images.lazy:openrouterImagesApi",
+}
 EXPECTED_SUBPATH_COUNTS = {".": 200, "./compat": 260, "other": 239}
 EXPECTED_DISPOSITIONS = {
     "s02-dto": 146,
-    "implemented": 123,
+    "implemented": 284,
     "rust-nonapplicable": 22,
-    "mapped-s04": 163,
-    "mapped-s05": 239,
+    "mapped-s05": 241,
     "external-schema-projection": 6,
 }
 EXPECTED_SURFACES = {
@@ -429,7 +432,7 @@ def projection_for(rule: dict[str, Any], name: str) -> str:
         target = rule.get("rust_target")
     if not isinstance(target, str) or not target:
         raise ConformanceError(f"mapping rule lacks a concrete Rust target: {rule.get('id')}")
-    if rule.get("compile_probe") and not re.fullmatch(
+    if rule.get("compile_probe") and not rule.get("evidence", "").startswith("s04-export:") and not re.fullmatch(
         r"pi_ai::[A-Za-z_][A-Za-z0-9_:]*", target
     ):
         raise ConformanceError(f"invalid exact Rust target for {rule.get('id')}:{name}")
@@ -484,6 +487,9 @@ def validate_evidence(
             raise ConformanceError(f"Rust test evidence is not live: {evidence}") from error
         if f"fn {binding}(" not in path.read_text(encoding="utf-8"):
             raise ConformanceError(f"Rust test evidence is not live: {evidence}")
+    elif kind == "s04-export":
+        if disposition != "implemented" or not rule.get("compile_probe"):
+            raise ConformanceError("S04 executed evidence requires a present typed projection")
     elif kind == "future":
         if disposition not in {"mapped-s04", "mapped-s05"}:
             raise ConformanceError(f"present implementation claims future evidence: {rule.get('id')}")
@@ -668,6 +674,10 @@ def build_export_inventory(
     matches_by_rule: dict[str, list[str]] = {rule["id"]: [] for rule in rules}
     rows: list[dict[str, Any]] = []
     target_probes: list[tuple[str, str]] = []
+    has_closure = any(rule.get("evidence", "").startswith("s04-export:") for rule in rules)
+    catalog = closure_catalog(root) if has_closure else None
+    s04_targets = set()
+    s04_occurrences = []
     for symbol, surface in sorted(
         zip(symbols, surfaces, strict=True),
         key=lambda item: (item[0]["subpath"], item[0]["name"]),
@@ -687,7 +697,13 @@ def build_export_inventory(
         target = projection_for(rule, symbol["name"])
         evidence, evidence_binding = evidence_for(rule, symbol["name"])
         validate_evidence(rule, evidence, evidence_binding, behavior_by_id, root)
-        if rule.get("compile_probe"):
+        if evidence.startswith("s04-export:"):
+            entry = validate_closure_binding(rule, symbol, catalog)
+            if symbol["kind"] != entry["kind"]:
+                raise ConformanceError("S04 source kind changed: " + key)
+            s04_targets.add((target, symbol["kind"]))
+            s04_occurrences.append(key)
+        elif rule.get("compile_probe"):
             target_probes.append((target, symbol["kind"]))
         row = {
             "key": key,
@@ -708,8 +724,19 @@ def build_export_inventory(
         if rule["disposition"] == "rust-nonapplicable":
             for field in ("reason", "replacement", "decision_reference", "revisit_trigger"):
                 row[field] = rule[field]
+        if evidence.startswith("s04-export:"):
+            row["features"] = entry["features"]
+            row["executedTests"] = entry["tests"]
+            row["sourceOracles"] = entry["sources"]
         rows.append(row)
 
+    if has_closure:
+        if len(s04_occurrences) != 161:
+            raise ConformanceError("S04 exact occurrence coverage changed")
+        images = {row["key"] for row in rows
+            if row["surface"] == "ai.api-adapters" and row["disposition"] == "mapped-s05"}
+        if images != EXPECTED_S04_IMAGE_KEYS:
+            raise ConformanceError("S04 exact two image exclusions changed")
     for rule in rules:
         matched = matches_by_rule[rule["id"]]
         expected = rule.get("expected_occurrences")
@@ -747,6 +774,10 @@ def build_export_inventory(
             "dispositionTotals": EXPECTED_DISPOSITIONS,
             "surfaceTotals": EXPECTED_SURFACES,
             "rows": rows,
+            **({"s04Occurrences": len(s04_occurrences),
+                "s04UniqueSourceSymbols": len(catalog["exports"]),
+                "s04DistinctTargetProbes": len(s04_targets),
+                "distinctTargetProbes": len(set(target_probes) | s04_targets)} if has_closure else {}),
         },
         target_probes,
     )
@@ -948,6 +979,187 @@ def check_generated(path: Path, expected: str) -> None:
         raise ConformanceError(f"stale generated AI conformance output: {display_path}")
 
 
+
+S04_CLOSURE = "conformance/provider-traces/export-closure/evidence.json"
+# Frozen after dependency intake. Catalog changes require explicit evidence review.
+S04_CLOSURE_DIGEST = "4dcf95fa00798450afa1dca39668216dd59349cb824cf792a9da331b2c89de78"
+
+
+def closure_catalog(root: Path = ROOT) -> dict[str, Any]:
+    document = load_json(root / S04_CLOSURE)
+    if canonical_json_digest(document) != S04_CLOSURE_DIGEST:
+        raise ConformanceError("S04 source/target/evidence catalog changed")
+    if document.get("sourceCommit") != SOURCE_COMMIT:
+        raise ConformanceError("S04 source commit changed")
+    entries = document.get("exports", [])
+    if len(entries) != 108 or len({entry["id"] for entry in entries}) != 108:
+        raise ConformanceError("S04 unique source symbol coverage changed")
+    expected_suites = {test.split("#", 1)[0] for entry in entries for test in entry["tests"]}
+    if set(document.get("testFiles", {})) != expected_suites:
+        raise ConformanceError("S04 exact test file coverage changed")
+    for suite, digest in document["testFiles"].items():
+        path = root / "crates/pi-ai-providers/tests" / (suite + ".rs")
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise ConformanceError("S04 exact test evidence changed: " + suite)
+    for path, digest in document.get("evidenceFiles", {}).items():
+        evidence_path = root / path
+        if not evidence_path.is_file() or hashlib.sha256(evidence_path.read_bytes()).hexdigest() != digest:
+            raise ConformanceError("S04 source evidence dependency changed: " + path)
+    sources = {source["id"]: source for source in document["sources"]}
+    if len(sources) != len(document["sources"]):
+        raise ConformanceError("S04 duplicate source oracle identity")
+    for entry in entries:
+        origin = entry["id"].split(":", 1)[0]
+        if not entry["tests"] or not entry["sources"]:
+            raise ConformanceError("S04 export lacks executed source-bound evidence")
+        for source_id in entry["sources"]:
+            if source_id not in sources or origin not in sources[source_id]["origins"]:
+                raise ConformanceError("S04 source/evidence binding mismatch: " + entry["id"])
+    return document
+
+
+def validate_closure_binding(rule, symbol, catalog):
+    identity = symbol["origin"] + ":" + symbol["name"]
+    entries = {entry["id"]: entry for entry in catalog["exports"]}
+    entry = entries.get(identity)
+    if entry is None or rule.get("evidence") != "s04-export:" + identity:
+        raise ConformanceError("S04 source/evidence binding mismatch: " + identity)
+    if rule.get("rust_target") != entry["target"]:
+        raise ConformanceError("S04 target/evidence binding mismatch: " + identity)
+    if rule.get("features") != entry["features"]:
+        raise ConformanceError("S04 required feature binding mismatch: " + identity)
+    return entry
+
+
+def closure_probe_source(entries):
+    blocks = ["#![allow(dead_code, unused_imports)]"]
+    for index, entry in enumerate(entries):
+        target = entry["target"]
+        probe = entry["probe"]
+        if probe.count("$target") != 1:
+            raise ConformanceError("S04 probe must consume its exact target once")
+        blocks.append("mod projection_%03d {\n" % index
+            + "use pi_ai_core::*;\nuse std::{collections::{BTreeMap, BTreeSet}, sync::Arc};\n"
+            + "use pi_ai_providers::api::" + entry["module"] + "::*;\n"
+            + probe.replace("$target", target) + "\n}")
+    return "\n".join(blocks) + "\nfn main() {}\n"
+
+
+def compile_closure_profile(entries, features, root: Path = ROOT):
+    if not entries:
+        raise ConformanceError("S04 profile has no target probes")
+    with tempfile.TemporaryDirectory(prefix="pi-s04-export-") as directory:
+        project = Path(directory)
+        (project / "src").mkdir()
+        dependency = lambda name: json.dumps(str(root / "crates" / name))
+        manifest = ('[package]\nname="pi-s04-export-probe"\nversion="0.0.0"\nedition="2024"\n'
+            + '[workspace]\n[dependencies]\n'
+            + 'pi-ai-providers={path=' + dependency('pi-ai-providers')
+            + ',default-features=false,features=' + json.dumps(features) + '}\n'
+            + 'pi-ai-core={path=' + dependency('pi-ai-core') + '}\n'
+            + 'pi-ai-transport={path=' + dependency('pi-ai-transport') + '}\n'
+            + 'serde_json={version="=1.0.151",default-features=false,features=["std"]}\n')
+        (project / "Cargo.toml").write_text(manifest)
+        (project / "src/main.rs").write_text(closure_probe_source(entries))
+        environment = os.environ.copy()
+        environment["CARGO_NET_OFFLINE"] = "true"
+        environment["CARGO_TARGET_DIR"] = str(root / "target/ai-conformance-probe")
+        result = subprocess.run(["cargo", "check", "--quiet", "--offline", "--manifest-path",
+            str(project / "Cargo.toml")], cwd=root, env=environment, capture_output=True, text=True)
+        if result.returncode:
+            raise ConformanceError("S04 exact typed target probe failed:\n" + result.stderr)
+
+
+def require_executed_test(output: str, name: str):
+    if not re.search(r"^test " + re.escape(name) + r" \.\.\. ok$", output, re.M):
+        raise ConformanceError("S04 required test did not execute: " + name)
+    if not re.search(r"test result: ok\. 1 passed; 0 failed; 0 ignored;", output):
+        raise ConformanceError("S04 test result is empty, filtered or ignored: " + name)
+
+
+def execute_closure_tests(tests, features, root: Path = ROOT):
+    suites = sorted({test.split("#", 1)[0] for test in tests})
+    command = ["cargo", "test", "-p", "pi-ai-providers", "--no-default-features",
+        "--locked", "--offline", "--no-run", "--message-format=json"]
+    if features:
+        command += ["--features", ",".join(features)]
+    for suite in suites:
+        command += ["--test", suite]
+    result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+    if result.returncode:
+        raise ConformanceError("S04 test profile build failed:\n" + result.stderr)
+    artifacts = {}
+    for line in result.stdout.splitlines():
+        try:
+            message = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if (message.get("reason") == "compiler-artifact"
+                and message.get("profile", {}).get("test")
+                and message.get("executable")
+                and "test" in message.get("target", {}).get("kind", [])):
+            name = message["target"]["name"]
+            if name in artifacts:
+                raise ConformanceError("S04 ambiguous exact test artifact: " + name)
+            artifacts[name] = message["executable"]
+    for test in sorted(set(tests)):
+        suite, name = test.split("#", 1)
+        if suite not in artifacts:
+            raise ConformanceError("S04 missing test artifact: " + suite)
+        result = subprocess.run([artifacts[suite], "--exact", name, "--nocapture"],
+            cwd=root, capture_output=True, text=True)
+        if result.returncode:
+            raise ConformanceError("S04 required test failed: " + test + "\n" + result.stdout + result.stderr)
+        require_executed_test(result.stdout, name)
+
+
+
+def require_source_observation(observed, expected, script):
+    # Preserve own-key order as well as values; whitespace in fixture files is not observed.
+    encode = lambda value: json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    if encode(observed) != encode(expected):
+        raise ConformanceError("S04 source observation changed: " + script)
+
+def execute_closure_sources(sources, root: Path = ROOT):
+    for source in sources:
+        if hashlib.sha256((root / source["script"]).read_bytes()).hexdigest() != source["scriptSha256"]:
+            raise ConformanceError("S04 source oracle binding changed: " + source["id"])
+        result = subprocess.run(["node", str(root / source["script"]), *source["args"]],
+            cwd=root, env={"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"},
+            capture_output=True, text=True)
+        if result.returncode:
+            raise ConformanceError("S04 source oracle failed: " + source["script"] + "\n" + result.stderr)
+        if source.get("expected"):
+            try:
+                observed = json.loads(result.stdout)
+                expected = load_json(root / source["expected"])
+            except json.JSONDecodeError as error:
+                raise ConformanceError("S04 source oracle did not produce JSON") from error
+            require_source_observation(observed, expected, source["script"])
+
+
+def verify_export_closure(root: Path = ROOT):
+    catalog = closure_catalog(root)
+    profiles = collections.defaultdict(list)
+    for entry in catalog["exports"]:
+        profiles[tuple(entry["features"])].append(entry)
+    for features, entries in sorted(profiles.items()):
+        compile_closure_profile(entries, list(features), root)
+    test_profiles = collections.defaultdict(set)
+    for entry in catalog["exports"]:
+        features = tuple(entry.get("testFeatures", entry["features"]))
+        test_profiles[features].update(entry["tests"])
+    for features, tests in sorted(test_profiles.items()):
+        if not tests:
+            raise ConformanceError("S04 profile has no executed evidence")
+        execute_closure_tests(tests, list(features), root)
+    execute_closure_sources(catalog["sources"], root)
+    print(f"verified S04 exports: {len(catalog['exports'])} symbols, "
+        f"{len(profiles)} feature profiles, "
+        f"{sum(len(tests) for tests in test_profiles.values())} exact tests, "
+        f"{len(catalog['sources'])} source runs")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
@@ -968,6 +1180,8 @@ def main() -> int:
                 path.write_text(expected, encoding="utf-8")
         verify_dependency_contract()
         compile_target_probe(target_probes)
+        if inventory.get("s04Occurrences"):
+            verify_export_closure()
     except (ConformanceError, OSError, tomllib.TOMLDecodeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

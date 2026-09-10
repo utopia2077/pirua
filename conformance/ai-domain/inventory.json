@@ -2,14 +2,13 @@
   "schemaVersion": 1,
   "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
   "sourceManifestDigest": "sha256:9e0238edccb114d5dc7f9191e5e719ed86aab2fcb754ce8dd8b0b12b200c0237",
-  "mappingDigest": "sha256:c4b3536fa89b3f296a4802e249fc1767ba43156bf5658ae6257464464cfcc2f2",
+  "mappingDigest": "sha256:77a3cc6d6345b13e801a74bc3c92d4d58c02b637ad700c0175abea9efca49c91",
   "expectedRows": 699,
   "dispositionTotals": {
     "s02-dto": 146,
-    "implemented": 123,
+    "implemented": 284,
     "rust-nonapplicable": 22,
-    "mapped-s04": 163,
-    "mapped-s05": 239,
+    "mapped-s05": 241,
     "external-schema-projection": 6
   },
   "surfaceTotals": {
@@ -51,11 +50,21 @@
       "originLine": 167,
       "originDeclaration": "export type AnthropicEffort = \"low\" | \"medium\" | \"high\" | \"xhigh\" | \"max\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicEffort",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicEffort",
+      "ruleId": "s04-anthropic-messages-AnthropicEffort",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": ".:AnthropicMessagesCompat",
@@ -83,11 +92,21 @@
       "originLine": 212,
       "originDeclaration": "export interface AnthropicOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicOptions",
+      "ruleId": "s04-anthropic-messages-AnthropicOptions",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": ".:AnthropicThinkingDisplay",
@@ -99,11 +118,21 @@
       "originLine": 169,
       "originDeclaration": "export type AnthropicThinkingDisplay = \"summarized\" | \"omitted\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicThinkingDisplay",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicThinkingDisplay",
+      "ruleId": "s04-anthropic-messages-AnthropicThinkingDisplay",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": ".:Api",
@@ -427,11 +456,21 @@
       "originLine": 57,
       "originDeclaration": "export interface AzureOpenAIResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.ts:AzureOpenAIResponsesOptions",
+      "ruleId": "s04-azure-openai-responses-AzureOpenAIResponsesOptions",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "executedTests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sourceOracles": [
+        "azure-openai-responses"
+      ]
     },
     {
       "key": ".:BedrockCompat",
@@ -459,11 +498,21 @@
       "originLine": 70,
       "originDeclaration": "export interface BedrockOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockOptions",
+      "ruleId": "s04-bedrock-converse-stream-BedrockOptions",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": ".:BedrockThinkingDisplay",
@@ -475,11 +524,21 @@
       "originLine": 68,
       "originDeclaration": "export type BedrockThinkingDisplay = \"summarized\" | \"omitted\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockThinkingDisplay",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockThinkingDisplay",
+      "ruleId": "s04-bedrock-converse-stream-BedrockThinkingDisplay",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": ".:CacheRetention",
@@ -863,11 +922,19 @@
       "originLine": 28,
       "originDeclaration": "export type GoogleApiThinkingLevel = \"THINKING_LEVEL_UNSPECIFIED\" | \"MINIMAL\" | \"LOW\" | \"MEDIUM\" | \"HIGH\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::GoogleApiThinkingLevel",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:GoogleApiThinkingLevel",
+      "ruleId": "s04-google-shared-GoogleApiThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": ".:GoogleOptions",
@@ -879,11 +946,21 @@
       "originLine": 41,
       "originDeclaration": "export interface GoogleOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_genai::GoogleOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.ts:GoogleOptions",
+      "ruleId": "s04-google-generative-ai-GoogleOptions",
+      "features": [
+        "wire-google-genai"
+      ],
+      "executedTests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sourceOracles": [
+        "google-generative-ai"
+      ]
     },
     {
       "key": ".:GoogleVertexOptions",
@@ -895,11 +972,21 @@
       "originLine": 46,
       "originDeclaration": "export interface GoogleVertexOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_vertex::GoogleVertexOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.ts:GoogleVertexOptions",
+      "ruleId": "s04-google-vertex-GoogleVertexOptions",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "executedTests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sourceOracles": [
+        "google-vertex"
+      ]
     },
     {
       "key": ".:GrammarFormat",
@@ -1247,11 +1334,19 @@
       "originLine": 68,
       "originDeclaration": "export interface LazyApiCapabilities {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::LazyApiCapabilities",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:LazyApiCapabilities",
+      "ruleId": "s04-lazy-LazyApiCapabilities",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": ".:Message",
@@ -1279,11 +1374,21 @@
       "originLine": 34,
       "originDeclaration": "export interface MistralOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::mistral_conversations::MistralOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.ts:MistralOptions",
+      "ruleId": "s04-mistral-conversations-MistralOptions",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "executedTests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sourceOracles": [
+        "mistral-conversations"
+      ]
     },
     {
       "key": ".:Model",
@@ -1795,11 +1900,20 @@
       "originLine": 72,
       "originDeclaration": "export interface OpenAICodexResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexResponsesOptions",
+      "ruleId": "s04-openai-codex-responses-OpenAICodexResponsesOptions",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries"
+      ],
+      "sourceOracles": [
+        "codex-requests"
+      ]
     },
     {
       "key": ".:OpenAICodexWebSocketDebugStats",
@@ -1811,11 +1925,20 @@
       "originLine": 856,
       "originDeclaration": "export interface OpenAICodexWebSocketDebugStats {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexWebSocketDebugStats",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexWebSocketDebugStats",
+      "ruleId": "s04-openai-codex-responses-OpenAICodexWebSocketDebugStats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sourceOracles": [
+        "codex-cache"
+      ]
     },
     {
       "key": ".:OpenAICompletionsCompat",
@@ -1843,11 +1966,21 @@
       "originLine": 163,
       "originDeclaration": "export interface OpenAICompletionsOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_completions::OpenAICompletionsOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:OpenAICompletionsOptions",
+      "ruleId": "s04-openai-completions-OpenAICompletionsOptions",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": ".:OpenAIResponsesCompat",
@@ -1875,11 +2008,21 @@
       "originLine": 93,
       "originDeclaration": "export interface OpenAIResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses::OpenAIResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.ts:OpenAIResponsesOptions",
+      "ruleId": "s04-openai-responses-OpenAIResponsesOptions",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "executedTests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sourceOracles": [
+        "openai-responses"
+      ]
     },
     {
       "key": ".:OpenRouterRouting",
@@ -1907,11 +2050,21 @@
       "originLine": 52,
       "originDeclaration": "export type PiMessagesEvent =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesEvent",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesEvent",
+      "ruleId": "s04-pi-messages-PiMessagesEvent",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": ".:PiMessagesOptions",
@@ -1923,11 +2076,21 @@
       "originLine": 31,
       "originDeclaration": "export interface PiMessagesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesOptions",
+      "ruleId": "s04-pi-messages-PiMessagesOptions",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": ".:PiMessagesRewriteImpact",
@@ -1939,11 +2102,21 @@
       "originLine": 42,
       "originDeclaration": "export type PiMessagesRewriteImpact = {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesRewriteImpact",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesRewriteImpact",
+      "ruleId": "s04-pi-messages-PiMessagesRewriteImpact",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": ".:Provider",
@@ -2187,11 +2360,19 @@
       "originLine": 29,
       "originDeclaration": "export type ResolvedGoogleThinkingLevel = Exclude<ThinkingLevel, \"xhigh\" | \"max\">;",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::ResolvedGoogleThinkingLevel",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:ResolvedGoogleThinkingLevel",
+      "ruleId": "s04-google-shared-ResolvedGoogleThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": ".:RetryCallbacks",
@@ -3087,11 +3268,19 @@
       "originLine": 73,
       "originDeclaration": "export function lazyApi(load: () => Promise<ProviderStreams>, capabilities?: LazyApiCapabilities): ProviderStreams {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::lazy_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:lazyApi",
+      "ruleId": "s04-lazy-lazyApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": ".:lazyOAuth",
@@ -3119,11 +3308,19 @@
       "originLine": 46,
       "originDeclaration": "export function lazyStream(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::lazy_stream",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:lazyStream",
+      "ruleId": "s04-lazy-lazyStream",
+      "features": [],
+      "executedTests": [
+        "lazy#child_usage_only_cancellation_and_queued_prefix_are_forwarded_unchanged",
+        "lazy#pending_setup_cancellation_drops_noncooperative_future_and_pre_cancel_still_invokes"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": ".:modelsAreEqual",
@@ -3279,11 +3476,21 @@
       "originLine": 167,
       "originDeclaration": "export type AnthropicEffort = \"low\" | \"medium\" | \"high\" | \"xhigh\" | \"max\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicEffort",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicEffort",
+      "ruleId": "s04-anthropic-messages-AnthropicEffort",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./api/anthropic-messages:AnthropicOptions",
@@ -3295,11 +3502,21 @@
       "originLine": 212,
       "originDeclaration": "export interface AnthropicOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicOptions",
+      "ruleId": "s04-anthropic-messages-AnthropicOptions",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./api/anthropic-messages:AnthropicThinkingDisplay",
@@ -3311,11 +3528,21 @@
       "originLine": 169,
       "originDeclaration": "export type AnthropicThinkingDisplay = \"summarized\" | \"omitted\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicThinkingDisplay",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicThinkingDisplay",
+      "ruleId": "s04-anthropic-messages-AnthropicThinkingDisplay",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./api/anthropic-messages:stream",
@@ -3327,11 +3554,21 @@
       "originLine": 501,
       "originDeclaration": "export const stream: StreamFunction<\"anthropic-messages\", AnthropicOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicMessagesApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:stream",
+      "ruleId": "s04-anthropic-messages-stream",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./api/anthropic-messages:streamSimple",
@@ -3343,11 +3580,21 @@
       "originLine": 825,
       "originDeclaration": "export const streamSimple: StreamFunction<\"anthropic-messages\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::anthropic_messages::AnthropicMessagesApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:streamSimple",
+      "ruleId": "s04-anthropic-messages-streamSimple",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./api/anthropic-messages.lazy:anthropicMessagesApi",
@@ -3359,11 +3606,18 @@
       "originLine": 4,
       "originDeclaration": "export const anthropicMessagesApi = (): ProviderStreams => lazyApi(() => import(\"./anthropic-messages.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::anthropic_messages_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.lazy.ts:anthropicMessagesApi",
+      "ruleId": "s04-anthropic-messages.lazy-anthropicMessagesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/azure-openai-responses:AzureOpenAIResponsesOptions",
@@ -3375,11 +3629,21 @@
       "originLine": 57,
       "originDeclaration": "export interface AzureOpenAIResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.ts:AzureOpenAIResponsesOptions",
+      "ruleId": "s04-azure-openai-responses-AzureOpenAIResponsesOptions",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "executedTests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sourceOracles": [
+        "azure-openai-responses"
+      ]
     },
     {
       "key": "./api/azure-openai-responses:stream",
@@ -3391,11 +3655,21 @@
       "originLine": 70,
       "originDeclaration": "export const stream: StreamFunction<\"azure-openai-responses\", AzureOpenAIResponsesOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.ts:stream",
+      "ruleId": "s04-azure-openai-responses-stream",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "executedTests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sourceOracles": [
+        "azure-openai-responses"
+      ]
     },
     {
       "key": "./api/azure-openai-responses:streamSimple",
@@ -3407,11 +3681,21 @@
       "originLine": 163,
       "originDeclaration": "export const streamSimple: StreamFunction<\"azure-openai-responses\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.ts:streamSimple",
+      "ruleId": "s04-azure-openai-responses-streamSimple",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "executedTests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sourceOracles": [
+        "azure-openai-responses"
+      ]
     },
     {
       "key": "./api/azure-openai-responses.lazy:azureOpenAIResponsesApi",
@@ -3423,11 +3707,18 @@
       "originLine": 4,
       "originDeclaration": "export const azureOpenAIResponsesApi = (): ProviderStreams => lazyApi(() => import(\"./azure-openai-responses.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::azure_openai_responses_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.lazy.ts:azureOpenAIResponsesApi",
+      "ruleId": "s04-azure-openai-responses.lazy-azureOpenAIResponsesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/bedrock-converse-stream:BedrockOptions",
@@ -3439,11 +3730,21 @@
       "originLine": 70,
       "originDeclaration": "export interface BedrockOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockOptions",
+      "ruleId": "s04-bedrock-converse-stream-BedrockOptions",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": "./api/bedrock-converse-stream:BedrockThinkingDisplay",
@@ -3455,11 +3756,21 @@
       "originLine": 68,
       "originDeclaration": "export type BedrockThinkingDisplay = \"summarized\" | \"omitted\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockThinkingDisplay",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockThinkingDisplay",
+      "ruleId": "s04-bedrock-converse-stream-BedrockThinkingDisplay",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": "./api/bedrock-converse-stream:stream",
@@ -3471,11 +3782,23 @@
       "originLine": 116,
       "originDeclaration": "export const stream: StreamFunction<\"bedrock-converse-stream\", BedrockOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:stream",
+      "ruleId": "s04-bedrock-converse-stream-stream",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match",
+        "bedrock_converse_stream#stream_long_body_outside_preview",
+        "bedrock_converse_stream#priming_long_body_fallback"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": "./api/bedrock-converse-stream:streamSimple",
@@ -3487,11 +3810,21 @@
       "originLine": 511,
       "originDeclaration": "export const streamSimple: StreamFunction<\"bedrock-converse-stream\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::bedrock_converse_stream::BedrockApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:streamSimple",
+      "ruleId": "s04-bedrock-converse-stream-streamSimple",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": "./api/bedrock-converse-stream.lazy:bedrockConverseStreamApi",
@@ -3503,11 +3836,19 @@
       "originLine": 26,
       "originDeclaration": "export const bedrockConverseStreamApi = (): ProviderStreams =>",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::bedrock_converse_stream_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.lazy.ts:bedrockConverseStreamApi",
+      "ruleId": "s04-bedrock-converse-stream.lazy-bedrockConverseStreamApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/bedrock-converse-stream.lazy:setBedrockProviderModule",
@@ -3519,11 +3860,19 @@
       "originLine": 22,
       "originDeclaration": "export function setBedrockProviderModule(module: ProviderStreams): void {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::set_bedrock_provider_module",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.lazy.ts:setBedrockProviderModule",
+      "ruleId": "s04-bedrock-converse-stream.lazy-setBedrockProviderModule",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/cloudflare:CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL",
@@ -3535,11 +3884,18 @@
       "originLine": 14,
       "originDeclaration": "export const CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL",
+      "ruleId": "s04-cloudflare-CLOUDFLARE_AI_GATEWAY_ANTHROPIC_BASE_URL",
+      "features": [],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare:CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL",
@@ -3551,11 +3907,18 @@
       "originLine": 6,
       "originDeclaration": "export const CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL",
+      "ruleId": "s04-cloudflare-CLOUDFLARE_AI_GATEWAY_COMPAT_BASE_URL",
+      "features": [],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare:CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL",
@@ -3567,11 +3930,18 @@
       "originLine": 10,
       "originDeclaration": "export const CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare::CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL",
+      "ruleId": "s04-cloudflare-CLOUDFLARE_AI_GATEWAY_OPENAI_BASE_URL",
+      "features": [],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare:CLOUDFLARE_WORKERS_AI_BASE_URL",
@@ -3583,11 +3953,18 @@
       "originLine": 2,
       "originDeclaration": "export const CLOUDFLARE_WORKERS_AI_BASE_URL =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare::CLOUDFLARE_WORKERS_AI_BASE_URL",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare.ts:CLOUDFLARE_WORKERS_AI_BASE_URL",
+      "ruleId": "s04-cloudflare-CLOUDFLARE_WORKERS_AI_BASE_URL",
+      "features": [],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare-gateway-binding:AiGatewayBinding",
@@ -3599,11 +3976,20 @@
       "originLine": 29,
       "originDeclaration": "export interface AiGatewayBinding {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayBinding",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayBinding",
+      "ruleId": "s04-cloudflare-gateway-binding-AiGatewayBinding",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare-gateway-binding:AiGatewayBindingGateway",
@@ -3615,11 +4001,20 @@
       "originLine": 33,
       "originDeclaration": "export interface AiGatewayBindingGateway {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayBindingGateway",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayBindingGateway",
+      "ruleId": "s04-cloudflare-gateway-binding-AiGatewayBindingGateway",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare-gateway-binding:AiGatewayUniversalRequestLike",
@@ -3631,11 +4026,20 @@
       "originLine": 38,
       "originDeclaration": "export interface AiGatewayUniversalRequestLike {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare_gateway_binding::AiGatewayUniversalRequestLike",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:AiGatewayUniversalRequestLike",
+      "ruleId": "s04-cloudflare-gateway-binding-AiGatewayUniversalRequestLike",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare-gateway-binding:CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL",
@@ -3647,11 +4051,20 @@
       "originLine": 55,
       "originDeclaration": "export const CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL = \"cloudflare-gateway-binding\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare_gateway_binding::CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL",
+      "ruleId": "s04-cloudflare-gateway-binding-CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare-gateway-binding:GatewayBindingFetchOptions",
@@ -3663,11 +4076,20 @@
       "originLine": 57,
       "originDeclaration": "export interface GatewayBindingFetchOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare_gateway_binding::GatewayBindingFetchOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:GatewayBindingFetchOptions",
+      "ruleId": "s04-cloudflare-gateway-binding-GatewayBindingFetchOptions",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/cloudflare-gateway-binding:createGatewayBindingFetch",
@@ -3679,11 +4101,20 @@
       "originLine": 79,
       "originDeclaration": "export function createGatewayBindingFetch(options: GatewayBindingFetchOptions): FetchFunction {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::cloudflare_gateway_binding::create_gateway_binding_fetch",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/cloudflare-gateway-binding.ts:createGatewayBindingFetch",
+      "ruleId": "s04-cloudflare-gateway-binding-createGatewayBindingFetch",
+      "features": [
+        "cloudflare-gateway-binding"
+      ],
+      "executedTests": [
+        "cloudflare_gateway_binding#literals_and_complete_binding_source_matrix_match"
+      ],
+      "sourceOracles": [
+        "cloudflare"
+      ]
     },
     {
       "key": "./api/constrained-sampling:GrammarConstrainedSampling",
@@ -3695,11 +4126,19 @@
       "originLine": 133,
       "originDeclaration": "export interface GrammarConstrainedSampling {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::GrammarConstrainedSampling",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:GrammarConstrainedSampling",
+      "ruleId": "s04-constrained-sampling-GrammarConstrainedSampling",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:GrammarToolInputJsonBuffer",
@@ -3711,11 +4150,19 @@
       "originLine": 139,
       "originDeclaration": "export interface GrammarToolInputJsonBuffer {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::GrammarToolInputJsonBuffer",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:GrammarToolInputJsonBuffer",
+      "ruleId": "s04-constrained-sampling-GrammarToolInputJsonBuffer",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#grammar_json_deltas_are_escaped_monotone_and_atomic"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:appendGrammarToolInputJsonDelta",
@@ -3727,11 +4174,19 @@
       "originLine": 157,
       "originDeclaration": "export function appendGrammarToolInputJsonDelta(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::append_grammar_tool_input_json_delta",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:appendGrammarToolInputJsonDelta",
+      "ruleId": "s04-constrained-sampling-appendGrammarToolInputJsonDelta",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#grammar_json_deltas_are_escaped_monotone_and_atomic"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:createGrammarToolInputProperties",
@@ -3743,11 +4198,19 @@
       "originLine": 265,
       "originDeclaration": "export function createGrammarToolInputProperties(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::create_grammar_tool_input_properties",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:createGrammarToolInputProperties",
+      "ruleId": "s04-constrained-sampling-createGrammarToolInputProperties",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:getGrammarToolInput",
@@ -3759,11 +4222,19 @@
       "originLine": 145,
       "originDeclaration": "export function getGrammarToolInput(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::get_grammar_tool_input",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:getGrammarToolInput",
+      "ruleId": "s04-constrained-sampling-getGrammarToolInput",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:getJsonSchemaToolParameters",
@@ -3775,11 +4246,19 @@
       "originLine": 129,
       "originDeclaration": "export function getJsonSchemaToolParameters(tool: Tool, strict: boolean | undefined): Tool[\"parameters\"] {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::get_wire_json_schema_tool_parameters",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:getJsonSchemaToolParameters",
+      "ruleId": "s04-constrained-sampling-getJsonSchemaToolParameters",
+      "features": [],
+      "executedTests": [
+        "strict_schema_wire#ordered_strict_parameters_match_executed_source_and_preserve_existing_slots"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:makeStrictJsonSchema",
@@ -3791,11 +4270,19 @@
       "originLine": 117,
       "originDeclaration": "export function makeStrictJsonSchema(schema: Tool[\"parameters\"]): Record<string, unknown> {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::make_strict_wire_json_schema",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:makeStrictJsonSchema",
+      "ruleId": "s04-constrained-sampling-makeStrictJsonSchema",
+      "features": [],
+      "executedTests": [
+        "strict_schema_wire#ordered_strict_parameters_match_executed_source_and_preserve_existing_slots"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:resolveGrammarConstrainedSampling",
@@ -3807,11 +4294,19 @@
       "originLine": 230,
       "originDeclaration": "export function resolveGrammarConstrainedSampling(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::resolve_grammar_constrained_sampling",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:resolveGrammarConstrainedSampling",
+      "ruleId": "s04-constrained-sampling-resolveGrammarConstrainedSampling",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#grammar_selection_input_shape_and_maps_follow_source"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/constrained-sampling:resolveJsonSchemaStrictSampling",
@@ -3823,11 +4318,19 @@
       "originLine": 208,
       "originDeclaration": "export function resolveJsonSchemaStrictSampling(tool: Tool, supportsStrictMode: boolean): boolean | undefined {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::constrained_sampling::resolve_json_schema_strict_sampling",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/constrained-sampling.ts:resolveJsonSchemaStrictSampling",
+      "ruleId": "s04-constrained-sampling-resolveJsonSchemaStrictSampling",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#strict_schema_rejections_are_atomic_and_prefer_only_swallows_unsupported"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "strict-wire"
+      ]
     },
     {
       "key": "./api/github-copilot-headers:buildCopilotDynamicHeaders",
@@ -3839,11 +4342,18 @@
       "originLine": 23,
       "originDeclaration": "export function buildCopilotDynamicHeaders(params: {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::github_copilot_headers::build_copilot_dynamic_headers",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/github-copilot-headers.ts:buildCopilotDynamicHeaders",
+      "ruleId": "s04-github-copilot-headers-buildCopilotDynamicHeaders",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#copilot_metadata_uses_last_role_and_all_user_tool_images"
+      ],
+      "sourceOracles": [
+        "helpers"
+      ]
     },
     {
       "key": "./api/github-copilot-headers:hasCopilotVisionInput",
@@ -3855,11 +4365,18 @@
       "originLine": 11,
       "originDeclaration": "export function hasCopilotVisionInput(messages: Message[]): boolean {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::github_copilot_headers::has_copilot_vision_input",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/github-copilot-headers.ts:hasCopilotVisionInput",
+      "ruleId": "s04-github-copilot-headers-hasCopilotVisionInput",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#copilot_metadata_uses_last_role_and_all_user_tool_images"
+      ],
+      "sourceOracles": [
+        "helpers"
+      ]
     },
     {
       "key": "./api/github-copilot-headers:inferCopilotInitiator",
@@ -3871,11 +4388,18 @@
       "originLine": 5,
       "originDeclaration": "export function inferCopilotInitiator(messages: Message[]): \"user\" | \"agent\" {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::github_copilot_headers::infer_copilot_initiator",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/github-copilot-headers.ts:inferCopilotInitiator",
+      "ruleId": "s04-github-copilot-headers-inferCopilotInitiator",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#copilot_metadata_uses_last_role_and_all_user_tool_images"
+      ],
+      "sourceOracles": [
+        "helpers"
+      ]
     },
     {
       "key": "./api/google-generative-ai:GoogleOptions",
@@ -3887,11 +4411,21 @@
       "originLine": 41,
       "originDeclaration": "export interface GoogleOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_genai::GoogleOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.ts:GoogleOptions",
+      "ruleId": "s04-google-generative-ai-GoogleOptions",
+      "features": [
+        "wire-google-genai"
+      ],
+      "executedTests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sourceOracles": [
+        "google-generative-ai"
+      ]
     },
     {
       "key": "./api/google-generative-ai:stream",
@@ -3903,11 +4437,21 @@
       "originLine": 53,
       "originDeclaration": "export const stream: StreamFunction<\"google-generative-ai\", GoogleOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_genai::GoogleGenAiApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.ts:stream",
+      "ruleId": "s04-google-generative-ai-stream",
+      "features": [
+        "wire-google-genai"
+      ],
+      "executedTests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sourceOracles": [
+        "google-generative-ai"
+      ]
     },
     {
       "key": "./api/google-generative-ai:streamSimple",
@@ -3919,11 +4463,21 @@
       "originLine": 297,
       "originDeclaration": "export const streamSimple: StreamFunction<\"google-generative-ai\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::google_genai::GoogleGenAiApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.ts:streamSimple",
+      "ruleId": "s04-google-generative-ai-streamSimple",
+      "features": [
+        "wire-google-genai"
+      ],
+      "executedTests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sourceOracles": [
+        "google-generative-ai"
+      ]
     },
     {
       "key": "./api/google-generative-ai.lazy:googleGenerativeAIApi",
@@ -3935,11 +4489,18 @@
       "originLine": 4,
       "originDeclaration": "export const googleGenerativeAIApi = (): ProviderStreams => lazyApi(() => import(\"./google-generative-ai.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::google_generative_ai_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.lazy.ts:googleGenerativeAIApi",
+      "ruleId": "s04-google-generative-ai.lazy-googleGenerativeAIApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/google-shared:GoogleApiThinkingLevel",
@@ -3951,11 +4512,19 @@
       "originLine": 28,
       "originDeclaration": "export type GoogleApiThinkingLevel = \"THINKING_LEVEL_UNSPECIFIED\" | \"MINIMAL\" | \"LOW\" | \"MEDIUM\" | \"HIGH\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::GoogleApiThinkingLevel",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:GoogleApiThinkingLevel",
+      "ruleId": "s04-google-shared-GoogleApiThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:ResolvedGoogleThinkingLevel",
@@ -3967,11 +4536,19 @@
       "originLine": 29,
       "originDeclaration": "export type ResolvedGoogleThinkingLevel = Exclude<ThinkingLevel, \"xhigh\" | \"max\">;",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::ResolvedGoogleThinkingLevel",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:ResolvedGoogleThinkingLevel",
+      "ruleId": "s04-google-shared-ResolvedGoogleThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:convertMessages",
@@ -3983,11 +4560,19 @@
       "originLine": 131,
       "originDeclaration": "export function convertMessages<T extends GoogleApiType>(model: Model<T>, context: Context): Content[] {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::convert_messages",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:convertMessages",
+      "ruleId": "s04-google-shared-convertMessages",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_complete_message_projections_match_executed_source_without_mutation"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:convertTools",
@@ -3999,11 +4584,19 @@
       "originLine": 318,
       "originDeclaration": "export function convertTools(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::convert_tools",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:convertTools",
+      "ruleId": "s04-google-shared-convertTools",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#schema_arrays_are_not_sanitized_and_strict_mode_short_circuits_exactly"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:isThinkingPart",
@@ -4015,11 +4608,19 @@
       "originLine": 68,
       "originDeclaration": "export function isThinkingPart(part: Pick<Part, \"thought\" | \"thoughtSignature\">): boolean {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::is_thinking_part",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:isThinkingPart",
+      "ruleId": "s04-google-shared-isThinkingPart",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:mapStopReason",
@@ -4031,11 +4632,19 @@
       "originLine": 379,
       "originDeclaration": "export function mapStopReason(reason: FinishReason): StopReason {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::map_stop_reason",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:mapStopReason",
+      "ruleId": "s04-google-shared-mapStopReason",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:mapStopReasonString",
@@ -4047,11 +4656,19 @@
       "originLine": 411,
       "originDeclaration": "export function mapStopReasonString(reason: string): StopReason {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::map_stop_reason_string",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:mapStopReasonString",
+      "ruleId": "s04-google-shared-mapStopReasonString",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:mapToolChoice",
@@ -4063,11 +4680,19 @@
       "originLine": 348,
       "originDeclaration": "export function mapToolChoice(choice: string): FunctionCallingConfigMode {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::map_tool_choice",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:mapToolChoice",
+      "ruleId": "s04-google-shared-mapToolChoice",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:requiresToolCallId",
@@ -4079,11 +4704,19 @@
       "originLine": 105,
       "originDeclaration": "export function requiresToolCallId(modelId: string): boolean {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::requires_tool_call_id",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:requiresToolCallId",
+      "ruleId": "s04-google-shared-requiresToolCallId",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:resolveGoogleFunctionCallingMode",
@@ -4095,11 +4728,19 @@
       "originLine": 361,
       "originDeclaration": "export function resolveGoogleFunctionCallingMode(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::resolve_google_function_calling_mode",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:resolveGoogleFunctionCallingMode",
+      "ruleId": "s04-google-shared-resolveGoogleFunctionCallingMode",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#schema_arrays_are_not_sanitized_and_strict_mode_short_circuits_exactly"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:resolveGoogleThinkingLevel",
@@ -4111,11 +4752,19 @@
       "originLine": 32,
       "originDeclaration": "export function resolveGoogleThinkingLevel<T extends GoogleApiType>(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::resolve_google_thinking_level",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:resolveGoogleThinkingLevel",
+      "ruleId": "s04-google-shared-resolveGoogleThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:retainThoughtSignature",
@@ -4127,11 +4776,19 @@
       "originLine": 81,
       "originDeclaration": "export function retainThoughtSignature(existing: string | undefined, incoming: string | undefined): string | undefined {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::retain_thought_signature",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:retainThoughtSignature",
+      "ruleId": "s04-google-shared-retainThoughtSignature",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:retryGoogleRequest",
@@ -4143,11 +4800,19 @@
       "originLine": 431,
       "originDeclaration": "export function retryGoogleRequest<T>(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::retry_google_request",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:retryGoogleRequest",
+      "ruleId": "s04-google-shared-retryGoogleRequest",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#google_missing_headers_normalization_and_retry_policy_match_executed_sdk_errors"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-shared:supportsGoogleStrictToolSampling",
@@ -4159,11 +4824,19 @@
       "originLine": 342,
       "originDeclaration": "export function supportsGoogleStrictToolSampling(modelId: string): boolean {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::supports_google_strict_tool_sampling",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:supportsGoogleStrictToolSampling",
+      "ruleId": "s04-google-shared-supportsGoogleStrictToolSampling",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./api/google-vertex:GoogleVertexOptions",
@@ -4175,11 +4848,21 @@
       "originLine": 46,
       "originDeclaration": "export interface GoogleVertexOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_vertex::GoogleVertexOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.ts:GoogleVertexOptions",
+      "ruleId": "s04-google-vertex-GoogleVertexOptions",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "executedTests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sourceOracles": [
+        "google-vertex"
+      ]
     },
     {
       "key": "./api/google-vertex:stream",
@@ -4191,11 +4874,21 @@
       "originLine": 71,
       "originDeclaration": "export const stream: StreamFunction<\"google-vertex\", GoogleVertexOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_vertex::GoogleVertexApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.ts:stream",
+      "ruleId": "s04-google-vertex-stream",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "executedTests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sourceOracles": [
+        "google-vertex"
+      ]
     },
     {
       "key": "./api/google-vertex:streamSimple",
@@ -4207,11 +4900,21 @@
       "originLine": 314,
       "originDeclaration": "export const streamSimple: StreamFunction<\"google-vertex\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::google_vertex::GoogleVertexApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.ts:streamSimple",
+      "ruleId": "s04-google-vertex-streamSimple",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "executedTests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sourceOracles": [
+        "google-vertex"
+      ]
     },
     {
       "key": "./api/google-vertex.lazy:googleVertexApi",
@@ -4223,11 +4926,18 @@
       "originLine": 4,
       "originDeclaration": "export const googleVertexApi = (): ProviderStreams => lazyApi(() => import(\"./google-vertex.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::google_vertex_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.lazy.ts:googleVertexApi",
+      "ruleId": "s04-google-vertex.lazy-googleVertexApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/lazy:LazyApiCapabilities",
@@ -4239,11 +4949,19 @@
       "originLine": 68,
       "originDeclaration": "export interface LazyApiCapabilities {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::LazyApiCapabilities",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:LazyApiCapabilities",
+      "ruleId": "s04-lazy-LazyApiCapabilities",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/lazy:lazyApi",
@@ -4255,11 +4973,19 @@
       "originLine": 73,
       "originDeclaration": "export function lazyApi(load: () => Promise<ProviderStreams>, capabilities?: LazyApiCapabilities): ProviderStreams {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::lazy_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:lazyApi",
+      "ruleId": "s04-lazy-lazyApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/lazy:lazyStream",
@@ -4271,11 +4997,19 @@
       "originLine": 46,
       "originDeclaration": "export function lazyStream(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::lazy_stream",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:lazyStream",
+      "ruleId": "s04-lazy-lazyStream",
+      "features": [],
+      "executedTests": [
+        "lazy#child_usage_only_cancellation_and_queued_prefix_are_forwarded_unchanged",
+        "lazy#pending_setup_cancellation_drops_noncooperative_future_and_pre_cancel_still_invokes"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/mistral-conversations:MistralOptions",
@@ -4287,11 +5021,21 @@
       "originLine": 34,
       "originDeclaration": "export interface MistralOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::mistral_conversations::MistralOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.ts:MistralOptions",
+      "ruleId": "s04-mistral-conversations-MistralOptions",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "executedTests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sourceOracles": [
+        "mistral-conversations"
+      ]
     },
     {
       "key": "./api/mistral-conversations:stream",
@@ -4303,11 +5047,21 @@
       "originLine": 122,
       "originDeclaration": "export const stream: StreamFunction<\"mistral-conversations\", MistralOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::mistral_conversations::MistralApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.ts:stream",
+      "ruleId": "s04-mistral-conversations-stream",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "executedTests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sourceOracles": [
+        "mistral-conversations"
+      ]
     },
     {
       "key": "./api/mistral-conversations:streamSimple",
@@ -4319,11 +5073,21 @@
       "originLine": 181,
       "originDeclaration": "export const streamSimple: StreamFunction<\"mistral-conversations\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::mistral_conversations::MistralApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.ts:streamSimple",
+      "ruleId": "s04-mistral-conversations-streamSimple",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "executedTests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sourceOracles": [
+        "mistral-conversations"
+      ]
     },
     {
       "key": "./api/mistral-conversations.lazy:mistralConversationsApi",
@@ -4335,11 +5099,18 @@
       "originLine": 4,
       "originDeclaration": "export const mistralConversationsApi = (): ProviderStreams => lazyApi(() => import(\"./mistral-conversations.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::mistral_conversations_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.lazy.ts:mistralConversationsApi",
+      "ruleId": "s04-mistral-conversations.lazy-mistralConversationsApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:OpenAICodexResponsesOptions",
@@ -4351,11 +5122,20 @@
       "originLine": 72,
       "originDeclaration": "export interface OpenAICodexResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexResponsesOptions",
+      "ruleId": "s04-openai-codex-responses-OpenAICodexResponsesOptions",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries"
+      ],
+      "sourceOracles": [
+        "codex-requests"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:OpenAICodexWebSocketDebugStats",
@@ -4367,11 +5147,20 @@
       "originLine": 856,
       "originDeclaration": "export interface OpenAICodexWebSocketDebugStats {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexWebSocketDebugStats",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexWebSocketDebugStats",
+      "ruleId": "s04-openai-codex-responses-OpenAICodexWebSocketDebugStats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sourceOracles": [
+        "codex-cache"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:closeOpenAICodexWebSocketSessions",
@@ -4383,11 +5172,24 @@
       "originLine": 912,
       "originDeclaration": "export function closeOpenAICodexWebSocketSessions(sessionId?: string): void {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::close_openai_codex_websocket_sessions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:closeOpenAICodexWebSocketSessions",
+      "ruleId": "s04-openai-codex-responses-closeOpenAICodexWebSocketSessions",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences",
+        "openai_codex#dropped_graceful_completion_aborts_and_explicit_busy_close_flushes_without_reset",
+        "openai_codex#review_retained_close_futures_preserve_slot_budget_and_drop_recovers_capacity"
+      ],
+      "sourceOracles": [
+        "codex-cache",
+        "codex-correction",
+        "codex-comparison"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:getOpenAICodexWebSocketDebugStats",
@@ -4399,11 +5201,20 @@
       "originLine": 897,
       "originDeclaration": "export function getOpenAICodexWebSocketDebugStats(sessionId: string): OpenAICodexWebSocketDebugStats | undefined {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::get_openai_codex_websocket_debug_stats",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:getOpenAICodexWebSocketDebugStats",
+      "ruleId": "s04-openai-codex-responses-getOpenAICodexWebSocketDebugStats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sourceOracles": [
+        "codex-cache"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:resetOpenAICodexWebSocketDebugStats",
@@ -4415,11 +5226,20 @@
       "originLine": 902,
       "originDeclaration": "export function resetOpenAICodexWebSocketDebugStats(sessionId?: string): void {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::reset_openai_codex_websocket_debug_stats",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:resetOpenAICodexWebSocketDebugStats",
+      "ruleId": "s04-openai-codex-responses-resetOpenAICodexWebSocketDebugStats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sourceOracles": [
+        "codex-cache"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:stream",
@@ -4431,11 +5251,23 @@
       "originLine": 230,
       "originDeclaration": "export const stream: StreamFunction<\"openai-codex-responses\", OpenAICodexResponsesOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:stream",
+      "ruleId": "s04-openai-codex-responses-stream",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries",
+        "openai_codex#review_first_completion_start_matches_mapper_stage_and_http_control"
+      ],
+      "sourceOracles": [
+        "codex-requests",
+        "codex-correction",
+        "codex-comparison"
+      ]
     },
     {
       "key": "./api/openai-codex-responses:streamSimple",
@@ -4447,11 +5279,20 @@
       "originLine": 492,
       "originDeclaration": "export const streamSimple: StreamFunction<\"openai-codex-responses\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:streamSimple",
+      "ruleId": "s04-openai-codex-responses-streamSimple",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries"
+      ],
+      "sourceOracles": [
+        "codex-requests"
+      ]
     },
     {
       "key": "./api/openai-codex-responses.lazy:openAICodexResponsesApi",
@@ -4463,11 +5304,18 @@
       "originLine": 4,
       "originDeclaration": "export const openAICodexResponsesApi = (): ProviderStreams => lazyApi(() => import(\"./openai-codex-responses.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::openai_codex_responses_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.lazy.ts:openAICodexResponsesApi",
+      "ruleId": "s04-openai-codex-responses.lazy-openAICodexResponsesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/openai-completions:ConvertCompletionsMessagesOptions",
@@ -4479,11 +5327,21 @@
       "originLine": 170,
       "originDeclaration": "export interface ConvertCompletionsMessagesOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_completions::ConvertCompletionsMessagesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:ConvertCompletionsMessagesOptions",
+      "ruleId": "s04-openai-completions-ConvertCompletionsMessagesOptions",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": "./api/openai-completions:OpenAICompletionsOptions",
@@ -4495,11 +5353,21 @@
       "originLine": 163,
       "originDeclaration": "export interface OpenAICompletionsOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_completions::OpenAICompletionsOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:OpenAICompletionsOptions",
+      "ruleId": "s04-openai-completions-OpenAICompletionsOptions",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": "./api/openai-completions:convertMessages",
@@ -4511,11 +5379,20 @@
       "originLine": 1169,
       "originDeclaration": "export function convertMessages(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_completions::convert_messages",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:convertMessages",
+      "ruleId": "s04-openai-completions-convertMessages",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": "./api/openai-completions:stream",
@@ -4527,11 +5404,21 @@
       "originLine": 306,
       "originDeclaration": "export const stream: StreamFunction<\"openai-completions\", OpenAICompletionsOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_completions::OpenAICompletionsApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:stream",
+      "ruleId": "s04-openai-completions-stream",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": "./api/openai-completions:streamSimple",
@@ -4543,11 +5430,21 @@
       "originLine": 721,
       "originDeclaration": "export const streamSimple: StreamFunction<\"openai-completions\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::openai_completions::OpenAICompletionsApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:streamSimple",
+      "ruleId": "s04-openai-completions-streamSimple",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": "./api/openai-completions.lazy:openAICompletionsApi",
@@ -4559,11 +5456,18 @@
       "originLine": 4,
       "originDeclaration": "export const openAICompletionsApi = (): ProviderStreams => lazyApi(() => import(\"./openai-completions.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::openai_completions_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.lazy.ts:openAICompletionsApi",
+      "ruleId": "s04-openai-completions.lazy-openAICompletionsApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/openai-prompt-cache:OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH",
@@ -4575,11 +5479,18 @@
       "originLine": 1,
       "originDeclaration": "export const OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH = 64;",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_prompt_cache::OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-prompt-cache.ts:OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH",
+      "ruleId": "s04-openai-prompt-cache-OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#prompt_cache_counts_unicode_codepoints"
+      ],
+      "sourceOracles": [
+        "helpers"
+      ]
     },
     {
       "key": "./api/openai-prompt-cache:clampOpenAIPromptCacheKey",
@@ -4591,11 +5502,18 @@
       "originLine": 3,
       "originDeclaration": "export function clampOpenAIPromptCacheKey(key: string | undefined): string | undefined {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_prompt_cache::clamp_openai_prompt_cache_key",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-prompt-cache.ts:clampOpenAIPromptCacheKey",
+      "ruleId": "s04-openai-prompt-cache-clampOpenAIPromptCacheKey",
+      "features": [],
+      "executedTests": [
+        "provider_helpers#prompt_cache_counts_unicode_codepoints"
+      ],
+      "sourceOracles": [
+        "helpers"
+      ]
     },
     {
       "key": "./api/openai-responses:OpenAIResponsesOptions",
@@ -4607,11 +5525,21 @@
       "originLine": 93,
       "originDeclaration": "export interface OpenAIResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses::OpenAIResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.ts:OpenAIResponsesOptions",
+      "ruleId": "s04-openai-responses-OpenAIResponsesOptions",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "executedTests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sourceOracles": [
+        "openai-responses"
+      ]
     },
     {
       "key": "./api/openai-responses:stream",
@@ -4623,11 +5551,21 @@
       "originLine": 103,
       "originDeclaration": "export const stream: StreamFunction<\"openai-responses\", OpenAIResponsesOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses::OpenAIResponsesApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.ts:stream",
+      "ruleId": "s04-openai-responses-stream",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "executedTests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sourceOracles": [
+        "openai-responses"
+      ]
     },
     {
       "key": "./api/openai-responses:streamSimple",
@@ -4639,11 +5577,21 @@
       "originLine": 198,
       "originDeclaration": "export const streamSimple: StreamFunction<\"openai-responses\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::openai_responses::OpenAIResponsesApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.ts:streamSimple",
+      "ruleId": "s04-openai-responses-streamSimple",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "executedTests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sourceOracles": [
+        "openai-responses"
+      ]
     },
     {
       "key": "./api/openai-responses-shared:ConvertResponsesMessagesOptions",
@@ -4655,11 +5603,18 @@
       "originLine": 119,
       "originDeclaration": "export interface ConvertResponsesMessagesOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses_shared::ConvertResponsesMessagesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses-shared.ts:ConvertResponsesMessagesOptions",
+      "ruleId": "s04-openai-responses-shared-ConvertResponsesMessagesOptions",
+      "features": [],
+      "executedTests": [
+        "openai_responses_shared#replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules"
+      ],
+      "sourceOracles": [
+        "responses-shared"
+      ]
     },
     {
       "key": "./api/openai-responses-shared:ConvertResponsesToolsOptions",
@@ -4671,11 +5626,18 @@
       "originLine": 127,
       "originDeclaration": "export interface ConvertResponsesToolsOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses_shared::ConvertResponsesToolsOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses-shared.ts:ConvertResponsesToolsOptions",
+      "ruleId": "s04-openai-responses-shared-ConvertResponsesToolsOptions",
+      "features": [],
+      "executedTests": [
+        "openai_responses_shared#tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar"
+      ],
+      "sourceOracles": [
+        "responses-shared"
+      ]
     },
     {
       "key": "./api/openai-responses-shared:OpenAIResponsesStreamOptions",
@@ -4687,11 +5649,19 @@
       "originLine": 106,
       "originDeclaration": "export interface OpenAIResponsesStreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses_shared::OpenAIResponsesStreamOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses-shared.ts:OpenAIResponsesStreamOptions",
+      "ruleId": "s04-openai-responses-shared-OpenAIResponsesStreamOptions",
+      "features": [],
+      "executedTests": [
+        "openai_responses_shared#interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill",
+        "openai_responses_shared#opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order"
+      ],
+      "sourceOracles": [
+        "responses-shared"
+      ]
     },
     {
       "key": "./api/openai-responses-shared:convertResponsesMessages",
@@ -4703,11 +5673,18 @@
       "originLine": 138,
       "originDeclaration": "export function convertResponsesMessages<TApi extends Api>(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses_shared::convert_responses_messages",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses-shared.ts:convertResponsesMessages",
+      "ruleId": "s04-openai-responses-shared-convertResponsesMessages",
+      "features": [],
+      "executedTests": [
+        "openai_responses_shared#replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules"
+      ],
+      "sourceOracles": [
+        "responses-shared"
+      ]
     },
     {
       "key": "./api/openai-responses-shared:convertResponsesTools",
@@ -4719,11 +5696,20 @@
       "originLine": 359,
       "originDeclaration": "export function convertResponsesTools(tools: readonly Tool[], options?: ConvertResponsesToolsOptions): OpenAITool[] {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses_shared::convert_responses_tools",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses-shared.ts:convertResponsesTools",
+      "ruleId": "s04-openai-responses-shared-convertResponsesTools",
+      "features": [],
+      "executedTests": [
+        "openai_responses_shared#tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar",
+        "responses_deferred_order#deferred_function_slots_match_complete_pinned_converter"
+      ],
+      "sourceOracles": [
+        "responses-shared",
+        "responses-deferred-order"
+      ]
     },
     {
       "key": "./api/openai-responses-shared:processResponsesStream",
@@ -4735,11 +5721,19 @@
       "originLine": 432,
       "originDeclaration": "export async function processResponsesStream<TApi extends Api>(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses_shared::process_responses_stream",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses-shared.ts:processResponsesStream",
+      "ruleId": "s04-openai-responses-shared-processResponsesStream",
+      "features": [],
+      "executedTests": [
+        "openai_responses_shared#interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill",
+        "openai_responses_shared#opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order"
+      ],
+      "sourceOracles": [
+        "responses-shared"
+      ]
     },
     {
       "key": "./api/openai-responses.lazy:openAIResponsesApi",
@@ -4751,11 +5745,18 @@
       "originLine": 4,
       "originDeclaration": "export const openAIResponsesApi = (): ProviderStreams => lazyApi(() => import(\"./openai-responses.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::openai_responses_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.lazy.ts:openAIResponsesApi",
+      "ruleId": "s04-openai-responses.lazy-openAIResponsesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/openrouter-images:generateImages",
@@ -4767,11 +5768,11 @@
       "originLine": 40,
       "originDeclaration": "export const generateImages: ImagesFunction<\"openrouter-images\", ImagesOptions> = async (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
-      "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "disposition": "mapped-s05",
+      "rustTarget": "pi_ai_providers::oauth_images",
+      "owner": "S05-images",
+      "evidence": "future:conformance/oauth-images",
+      "ruleId": "s05-openrouter-images"
     },
     {
       "key": "./api/openrouter-images.lazy:openrouterImagesApi",
@@ -4783,11 +5784,11 @@
       "originLine": 3,
       "originDeclaration": "export const openrouterImagesApi = (): ProviderImages => ({",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
-      "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "disposition": "mapped-s05",
+      "rustTarget": "pi_ai_providers::oauth_images",
+      "owner": "S05-images",
+      "evidence": "future:conformance/oauth-images",
+      "ruleId": "s05-openrouter-images.lazy"
     },
     {
       "key": "./api/pi-messages:PiMessagesEvent",
@@ -4799,11 +5800,21 @@
       "originLine": 52,
       "originDeclaration": "export type PiMessagesEvent =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesEvent",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesEvent",
+      "ruleId": "s04-pi-messages-PiMessagesEvent",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./api/pi-messages:PiMessagesOptions",
@@ -4815,11 +5826,21 @@
       "originLine": 31,
       "originDeclaration": "export interface PiMessagesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesOptions",
+      "ruleId": "s04-pi-messages-PiMessagesOptions",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./api/pi-messages:PiMessagesResponseError",
@@ -4831,11 +5852,20 @@
       "originLine": 94,
       "originDeclaration": "export class PiMessagesResponseError extends Error {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesResponseError",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesResponseError",
+      "ruleId": "s04-pi-messages-PiMessagesResponseError",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#redacted_response_error_retains_only_explicit_code_inspection"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./api/pi-messages:PiMessagesRewriteImpact",
@@ -4847,11 +5877,21 @@
       "originLine": 42,
       "originDeclaration": "export type PiMessagesRewriteImpact = {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesRewriteImpact",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesRewriteImpact",
+      "ruleId": "s04-pi-messages-PiMessagesRewriteImpact",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./api/pi-messages:stream",
@@ -4863,11 +5903,21 @@
       "originLine": 345,
       "originDeclaration": "export const stream: StreamFunction<\"pi-messages\", PiMessagesOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesApi::stream_with_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:stream",
+      "ruleId": "s04-pi-messages-stream",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./api/pi-messages:streamSimple",
@@ -4879,11 +5929,21 @@
       "originLine": 421,
       "originDeclaration": "export const streamSimple: StreamFunction<\"pi-messages\", SimpleStreamOptions> = (",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "<pi_ai_providers::api::pi_messages::PiMessagesApi as pi_ai_core::ApiAdapter>::stream_simple",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:streamSimple",
+      "ruleId": "s04-pi-messages-streamSimple",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./api/pi-messages.lazy:piMessagesApi",
@@ -4895,11 +5955,18 @@
       "originLine": 4,
       "originDeclaration": "export const piMessagesApi = (): ProviderStreams => lazyApi(() => import(\"./pi-messages.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::pi_messages_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.lazy.ts:piMessagesApi",
+      "ruleId": "s04-pi-messages.lazy-piMessagesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./api/simple-options:DEFAULT_THINKING_BUDGETS",
@@ -4911,11 +5978,21 @@
       "originLine": 57,
       "originDeclaration": "export const DEFAULT_THINKING_BUDGETS: ThinkingBudgets = {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::DEFAULT_THINKING_BUDGETS",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:DEFAULT_THINKING_BUDGETS",
+      "ruleId": "s04-simple-options-DEFAULT_THINKING_BUDGETS",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:MIN_ANSWER_TOKENS",
@@ -4927,11 +6004,21 @@
       "originLine": 55,
       "originDeclaration": "export const MIN_ANSWER_TOKENS = 1024;",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::MIN_ANSWER_TOKENS",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:MIN_ANSWER_TOKENS",
+      "ruleId": "s04-simple-options-MIN_ANSWER_TOKENS",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:adjustMaxTokensForThinking",
@@ -4943,11 +6030,21 @@
       "originLine": 79,
       "originDeclaration": "export function adjustMaxTokensForThinking(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::adjust_max_tokens_for_thinking",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:adjustMaxTokensForThinking",
+      "ruleId": "s04-simple-options-adjustMaxTokensForThinking",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:buildBaseOptions",
@@ -4959,11 +6056,21 @@
       "originLine": 21,
       "originDeclaration": "export function buildBaseOptions(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::build_base_options",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:buildBaseOptions",
+      "ruleId": "s04-simple-options-buildBaseOptions",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:clampMaxTokensToContext",
@@ -4975,11 +6082,21 @@
       "originLine": 15,
       "originDeclaration": "export function clampMaxTokensToContext(model: Model<Api>, context: Context, maxTokens: number): number {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::clamp_max_tokens_to_context",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:clampMaxTokensToContext",
+      "ruleId": "s04-simple-options-clampMaxTokensToContext",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:clampReasoning",
@@ -4991,11 +6108,21 @@
       "originLine": 64,
       "originDeclaration": "export function clampReasoning(effort: ThinkingLevel | undefined): Exclude<ThinkingLevel, \"xhigh\" | \"max\"> | undefined {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::clamp_reasoning",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:clampReasoning",
+      "ruleId": "s04-simple-options-clampReasoning",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:clampThinkingBudgetToAnswerRoom",
@@ -5007,11 +6134,21 @@
       "originLine": 75,
       "originDeclaration": "export function clampThinkingBudgetToAnswerRoom(thinkingBudget: number, ceiling: number): number {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::clamp_thinking_budget_to_answer_room",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:clampThinkingBudgetToAnswerRoom",
+      "ruleId": "s04-simple-options-clampThinkingBudgetToAnswerRoom",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/simple-options:thinkingBudgetForLevel",
@@ -5023,11 +6160,21 @@
       "originLine": 68,
       "originDeclaration": "export function thinkingBudgetForLevel(reasoningLevel: ThinkingLevel, customBudgets?: ThinkingBudgets): number {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::simple_options::thinking_budget_for_level",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/simple-options.ts:thinkingBudgetForLevel",
+      "ruleId": "s04-simple-options-thinkingBudgetForLevel",
+      "features": [],
+      "executedTests": [
+        "simple_options#base_preserves_neutral_fields_and_merges_sampling_before_context_cap",
+        "simple_options#all_reasoning_levels_and_zero_custom_budget_match_pinned_source",
+        "simple_options#answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+      ],
+      "sourceOracles": [
+        "helpers",
+        "simple"
+      ]
     },
     {
       "key": "./api/transform-messages:transformMessages",
@@ -5151,11 +6298,21 @@
       "originLine": 167,
       "originDeclaration": "export type AnthropicEffort = \"low\" | \"medium\" | \"high\" | \"xhigh\" | \"max\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicEffort",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicEffort",
+      "ruleId": "s04-anthropic-messages-AnthropicEffort",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./compat:AnthropicMessagesCompat",
@@ -5183,11 +6340,21 @@
       "originLine": 212,
       "originDeclaration": "export interface AnthropicOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicOptions",
+      "ruleId": "s04-anthropic-messages-AnthropicOptions",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./compat:AnthropicThinkingDisplay",
@@ -5199,11 +6366,21 @@
       "originLine": 169,
       "originDeclaration": "export type AnthropicThinkingDisplay = \"summarized\" | \"omitted\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::anthropic_messages::AnthropicThinkingDisplay",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.ts:AnthropicThinkingDisplay",
+      "ruleId": "s04-anthropic-messages-AnthropicThinkingDisplay",
+      "features": [
+        "wire-anthropic-messages"
+      ],
+      "executedTests": [
+        "anthropic_messages#installed_sdk_request_and_complete_pinned_event_snapshots",
+        "anthropic_messages#simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+      ],
+      "sourceOracles": [
+        "anthropic-messages"
+      ]
     },
     {
       "key": "./compat:Api",
@@ -5575,11 +6752,21 @@
       "originLine": 57,
       "originDeclaration": "export interface AzureOpenAIResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::azure_openai_responses::AzureOpenAIResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.ts:AzureOpenAIResponsesOptions",
+      "ruleId": "s04-azure-openai-responses-AzureOpenAIResponsesOptions",
+      "features": [
+        "wire-azure-openai-responses"
+      ],
+      "executedTests": [
+        "azure_openai_responses#pinned_azure_sdk_full_requests_and_snapshots_match_75_cases",
+        "azure_openai_responses#azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+      ],
+      "sourceOracles": [
+        "azure-openai-responses"
+      ]
     },
     {
       "key": "./compat:BedrockCompat",
@@ -5607,11 +6794,21 @@
       "originLine": 70,
       "originDeclaration": "export interface BedrockOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockOptions",
+      "ruleId": "s04-bedrock-converse-stream-BedrockOptions",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": "./compat:BedrockThinkingDisplay",
@@ -5623,11 +6820,21 @@
       "originLine": 68,
       "originDeclaration": "export type BedrockThinkingDisplay = \"summarized\" | \"omitted\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::bedrock_converse_stream::BedrockThinkingDisplay",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.ts:BedrockThinkingDisplay",
+      "ruleId": "s04-bedrock-converse-stream-BedrockThinkingDisplay",
+      "features": [
+        "wire-bedrock-converse-stream"
+      ],
+      "executedTests": [
+        "bedrock_converse_stream#complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+      ],
+      "sourceOracles": [
+        "bedrock-family",
+        "bedrock-malformed"
+      ]
     },
     {
       "key": "./compat:BuiltinProvider",
@@ -6027,11 +7234,19 @@
       "originLine": 28,
       "originDeclaration": "export type GoogleApiThinkingLevel = \"THINKING_LEVEL_UNSPECIFIED\" | \"MINIMAL\" | \"LOW\" | \"MEDIUM\" | \"HIGH\";",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::GoogleApiThinkingLevel",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:GoogleApiThinkingLevel",
+      "ruleId": "s04-google-shared-GoogleApiThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./compat:GoogleOptions",
@@ -6043,11 +7258,21 @@
       "originLine": 41,
       "originDeclaration": "export interface GoogleOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_genai::GoogleOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.ts:GoogleOptions",
+      "ruleId": "s04-google-generative-ai-GoogleOptions",
+      "features": [
+        "wire-google-genai"
+      ],
+      "executedTests": [
+        "google_genai#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_genai#typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+      ],
+      "sourceOracles": [
+        "google-generative-ai"
+      ]
     },
     {
       "key": "./compat:GoogleVertexOptions",
@@ -6059,11 +7284,21 @@
       "originLine": 46,
       "originDeclaration": "export interface GoogleVertexOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_vertex::GoogleVertexOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.ts:GoogleVertexOptions",
+      "ruleId": "s04-google-vertex-GoogleVertexOptions",
+      "features": [
+        "wire-google-vertex"
+      ],
+      "executedTests": [
+        "google_vertex#pinned_sdk_requests_and_complete_event_snapshots_match_all_cases",
+        "google_vertex#raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+      ],
+      "sourceOracles": [
+        "google-vertex"
+      ]
     },
     {
       "key": "./compat:GrammarFormat",
@@ -6443,11 +7678,19 @@
       "originLine": 68,
       "originDeclaration": "export interface LazyApiCapabilities {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::LazyApiCapabilities",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:LazyApiCapabilities",
+      "ruleId": "s04-lazy-LazyApiCapabilities",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:Message",
@@ -6475,11 +7718,21 @@
       "originLine": 34,
       "originDeclaration": "export interface MistralOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::mistral_conversations::MistralOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.ts:MistralOptions",
+      "ruleId": "s04-mistral-conversations-MistralOptions",
+      "features": [
+        "wire-mistral-conversations"
+      ],
+      "executedTests": [
+        "mistral_conversations#pinned_full_event_snapshots_and_every_byte_split",
+        "mistral_conversations#simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+      ],
+      "sourceOracles": [
+        "mistral-conversations"
+      ]
     },
     {
       "key": "./compat:Model",
@@ -6991,11 +8244,20 @@
       "originLine": 72,
       "originDeclaration": "export interface OpenAICodexResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexResponsesOptions",
+      "ruleId": "s04-openai-codex-responses-OpenAICodexResponsesOptions",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_complete_codex_requests_events_retries_and_error_boundaries"
+      ],
+      "sourceOracles": [
+        "codex-requests"
+      ]
     },
     {
       "key": "./compat:OpenAICodexWebSocketDebugStats",
@@ -7007,11 +8269,20 @@
       "originLine": 856,
       "originDeclaration": "export interface OpenAICodexWebSocketDebugStats {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_codex_responses::OpenAICodexWebSocketDebugStats",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.ts:OpenAICodexWebSocketDebugStats",
+      "ruleId": "s04-openai-codex-responses-OpenAICodexWebSocketDebugStats",
+      "features": [
+        "wire-openai-codex-responses"
+      ],
+      "executedTests": [
+        "openai_codex#pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+      ],
+      "sourceOracles": [
+        "codex-cache"
+      ]
     },
     {
       "key": "./compat:OpenAICompletionsCompat",
@@ -7039,11 +8310,21 @@
       "originLine": 163,
       "originDeclaration": "export interface OpenAICompletionsOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_completions::OpenAICompletionsOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.ts:OpenAICompletionsOptions",
+      "ruleId": "s04-openai-completions-OpenAICompletionsOptions",
+      "features": [
+        "wire-openai-completions"
+      ],
+      "executedTests": [
+        "openai_completions#pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases",
+        "openai_completions#raw_family_options_keep_exact_null_and_tool_selector_domains"
+      ],
+      "sourceOracles": [
+        "openai-completions"
+      ]
     },
     {
       "key": "./compat:OpenAIResponsesCompat",
@@ -7071,11 +8352,21 @@
       "originLine": 93,
       "originDeclaration": "export interface OpenAIResponsesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::openai_responses::OpenAIResponsesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.ts:OpenAIResponsesOptions",
+      "ruleId": "s04-openai-responses-OpenAIResponsesOptions",
+      "features": [
+        "wire-openai-responses"
+      ],
+      "executedTests": [
+        "openai_responses#pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases",
+        "openai_responses#complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+      ],
+      "sourceOracles": [
+        "openai-responses"
+      ]
     },
     {
       "key": "./compat:OpenRouterRouting",
@@ -7103,11 +8394,21 @@
       "originLine": 52,
       "originDeclaration": "export type PiMessagesEvent =",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesEvent",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesEvent",
+      "ruleId": "s04-pi-messages-PiMessagesEvent",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./compat:PiMessagesOptions",
@@ -7119,11 +8420,21 @@
       "originLine": 31,
       "originDeclaration": "export interface PiMessagesOptions extends StreamOptions {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesOptions",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesOptions",
+      "ruleId": "s04-pi-messages-PiMessagesOptions",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./compat:PiMessagesRewriteImpact",
@@ -7135,11 +8446,21 @@
       "originLine": 42,
       "originDeclaration": "export type PiMessagesRewriteImpact = {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::pi_messages::PiMessagesRewriteImpact",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.ts:PiMessagesRewriteImpact",
+      "ruleId": "s04-pi-messages-PiMessagesRewriteImpact",
+      "features": [
+        "wire-pi-messages"
+      ],
+      "executedTests": [
+        "pi_messages#source_derived_request_and_complete_event_snapshots_match_at_every_byte_split",
+        "pi_messages#raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+      ],
+      "sourceOracles": [
+        "pi-messages"
+      ]
     },
     {
       "key": "./compat:Provider",
@@ -7383,11 +8704,19 @@
       "originLine": 29,
       "originDeclaration": "export type ResolvedGoogleThinkingLevel = Exclude<ThinkingLevel, \"xhigh\" | \"max\">;",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::google_shared::ResolvedGoogleThinkingLevel",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-shared.ts:ResolvedGoogleThinkingLevel",
+      "ruleId": "s04-google-shared-ResolvedGoogleThinkingLevel",
+      "features": [],
+      "executedTests": [
+        "google_shared#exact_export_inventory_and_installed_sdk_enums_are_complete",
+        "google_shared#all_thinking_mappings_markers_and_retention_match_pinned_execution"
+      ],
+      "sourceOracles": [
+        "google-shared"
+      ]
     },
     {
       "key": "./compat:RetryCallbacks",
@@ -7835,11 +9164,18 @@
       "originLine": 4,
       "originDeclaration": "export const anthropicMessagesApi = (): ProviderStreams => lazyApi(() => import(\"./anthropic-messages.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::anthropic_messages_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/anthropic-messages.lazy.ts:anthropicMessagesApi",
+      "ruleId": "s04-anthropic-messages.lazy-anthropicMessagesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:appendAssistantMessageDiagnostic",
@@ -7871,11 +9207,18 @@
       "originLine": 4,
       "originDeclaration": "export const azureOpenAIResponsesApi = (): ProviderStreams => lazyApi(() => import(\"./azure-openai-responses.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::azure_openai_responses_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/azure-openai-responses.lazy.ts:azureOpenAIResponsesApi",
+      "ruleId": "s04-azure-openai-responses.lazy-azureOpenAIResponsesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:bedrockConverseStreamApi",
@@ -7887,11 +9230,19 @@
       "originLine": 26,
       "originDeclaration": "export const bedrockConverseStreamApi = (): ProviderStreams =>",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::bedrock_converse_stream_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.lazy.ts:bedrockConverseStreamApi",
+      "ruleId": "s04-bedrock-converse-stream.lazy-bedrockConverseStreamApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:calculateCost",
@@ -8507,11 +9858,18 @@
       "originLine": 4,
       "originDeclaration": "export const googleGenerativeAIApi = (): ProviderStreams => lazyApi(() => import(\"./google-generative-ai.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::google_generative_ai_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-generative-ai.lazy.ts:googleGenerativeAIApi",
+      "ruleId": "s04-google-generative-ai.lazy-googleGenerativeAIApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:googleVertexApi",
@@ -8523,11 +9881,18 @@
       "originLine": 4,
       "originDeclaration": "export const googleVertexApi = (): ProviderStreams => lazyApi(() => import(\"./google-vertex.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::google_vertex_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/google-vertex.lazy.ts:googleVertexApi",
+      "ruleId": "s04-google-vertex.lazy-googleVertexApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:hasApi",
@@ -8603,11 +9968,19 @@
       "originLine": 73,
       "originDeclaration": "export function lazyApi(load: () => Promise<ProviderStreams>, capabilities?: LazyApiCapabilities): ProviderStreams {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::lazy_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:lazyApi",
+      "ruleId": "s04-lazy-lazyApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:lazyOAuth",
@@ -8635,11 +10008,19 @@
       "originLine": 46,
       "originDeclaration": "export function lazyStream(",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::lazy_stream",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/lazy.ts:lazyStream",
+      "ruleId": "s04-lazy-lazyStream",
+      "features": [],
+      "executedTests": [
+        "lazy#child_usage_only_cancellation_and_queued_prefix_are_forwarded_unchanged",
+        "lazy#pending_setup_cancellation_drops_noncooperative_future_and_pre_cancel_still_invokes"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:mistralConversationsApi",
@@ -8651,11 +10032,18 @@
       "originLine": 4,
       "originDeclaration": "export const mistralConversationsApi = (): ProviderStreams => lazyApi(() => import(\"./mistral-conversations.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::mistral_conversations_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/mistral-conversations.lazy.ts:mistralConversationsApi",
+      "ruleId": "s04-mistral-conversations.lazy-mistralConversationsApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:modelsAreEqual",
@@ -8683,11 +10071,18 @@
       "originLine": 4,
       "originDeclaration": "export const openAICodexResponsesApi = (): ProviderStreams => lazyApi(() => import(\"./openai-codex-responses.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::openai_codex_responses_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-codex-responses.lazy.ts:openAICodexResponsesApi",
+      "ruleId": "s04-openai-codex-responses.lazy-openAICodexResponsesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:openAICompletionsApi",
@@ -8699,11 +10094,18 @@
       "originLine": 4,
       "originDeclaration": "export const openAICompletionsApi = (): ProviderStreams => lazyApi(() => import(\"./openai-completions.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::openai_completions_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-completions.lazy.ts:openAICompletionsApi",
+      "ruleId": "s04-openai-completions.lazy-openAICompletionsApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:openAIResponsesApi",
@@ -8715,11 +10117,18 @@
       "originLine": 4,
       "originDeclaration": "export const openAIResponsesApi = (): ProviderStreams => lazyApi(() => import(\"./openai-responses.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::openai_responses_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/openai-responses.lazy.ts:openAIResponsesApi",
+      "ruleId": "s04-openai-responses.lazy-openAIResponsesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:parseJsonWithRepair",
@@ -8763,11 +10172,18 @@
       "originLine": 4,
       "originDeclaration": "export const piMessagesApi = (): ProviderStreams => lazyApi(() => import(\"./pi-messages.ts\"));",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::pi_messages_api",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/pi-messages.lazy.ts:piMessagesApi",
+      "ruleId": "s04-pi-messages.lazy-piMessagesApi",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:registerApiProvider",
@@ -8923,11 +10339,19 @@
       "originLine": 22,
       "originDeclaration": "export function setBedrockProviderModule(module: ProviderStreams): void {",
       "surface": "ai.api-adapters",
-      "disposition": "mapped-s04",
-      "rustTarget": "pi_ai_providers::adapters",
+      "disposition": "implemented",
+      "rustTarget": "pi_ai_providers::api::lazy::set_bedrock_provider_module",
       "owner": "S04-provider-adapters",
-      "evidence": "future:conformance/provider-traces",
-      "ruleId": "s04-api-adapters"
+      "evidence": "s04-export:packages/ai/src/api/bedrock-converse-stream.lazy.ts:setBedrockProviderModule",
+      "ruleId": "s04-bedrock-converse-stream.lazy-setBedrockProviderModule",
+      "features": [],
+      "executedTests": [
+        "lazy#all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery",
+        "lazy#bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+      ],
+      "sourceOracles": [
+        "lazy"
+      ]
     },
     {
       "key": "./compat:stream",
@@ -11297,5 +12721,9 @@
       "evidence": "future:conformance/catalog/projection",
       "ruleId": "s05-catalog-projection"
     }
-  ]
+  ],
+  "s04Occurrences": 161,
+  "s04UniqueSourceSymbols": 108,
+  "s04DistinctTargetProbes": 108,
+  "distinctTargetProbes": 228
 }
