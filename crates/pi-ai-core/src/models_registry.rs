@@ -852,12 +852,29 @@ fn publication_authority_matches(
 /// ```
 pub struct ModelsRegistry {
     inner: Arc<RegistryInner>,
+    child_cancellation: bool,
 }
 
 impl ModelsRegistry {
     /// Creates an empty registry and consumes its exclusive model store.
     pub fn new(options: ModelsRegistryOptions) -> Self {
+        Self::with_cancellation_owner(options, false)
+    }
+
+    /// Creates a registry whose dispatched child owns cancellation after handoff.
+    ///
+    /// Setup cancellation retains the default empty aborted result. Once an
+    /// adapter returns its validated stream, its terminal content and usage are
+    /// drained even when the original token is cancelled. Trusted adapters must
+    /// wire that child to the supplied request token and eventually settle it.
+    /// Dropping a consumer does not cancel the independently spawned dispatch.
+    pub fn new_with_child_cancellation(options: ModelsRegistryOptions) -> Self {
+        Self::with_cancellation_owner(options, true)
+    }
+
+    fn with_cancellation_owner(options: ModelsRegistryOptions, child_cancellation: bool) -> Self {
         Self {
+            child_cancellation,
             inner: Arc::new(RegistryInner {
                 options,
                 membership: Mutex::new(MembershipState {
@@ -1311,6 +1328,7 @@ impl ModelsRegistry {
     ) -> AssistantStream {
         start_dispatch(
             Arc::clone(&self.inner),
+            self.child_cancellation,
             model,
             overrides,
             DispatchRequest::Stream { context, options },
@@ -1339,6 +1357,7 @@ impl ModelsRegistry {
     ) -> AssistantStream {
         start_dispatch(
             Arc::clone(&self.inner),
+            self.child_cancellation,
             model,
             overrides,
             DispatchRequest::Simple { context, options },
@@ -1367,6 +1386,7 @@ impl ModelsRegistry {
     ) -> BoxFuture<'static, AssistantMessage> {
         let stream = start_dispatch(
             Arc::clone(&self.inner),
+            self.child_cancellation,
             model,
             overrides,
             DispatchRequest::Fetch { handle, options },
@@ -1915,28 +1935,41 @@ impl DispatchRequest {
 
 fn start_dispatch(
     inner: Arc<RegistryInner>,
+    child_cancellation: bool,
     model: Model,
     overrides: ModelsRequestOverrides,
     request: DispatchRequest,
 ) -> AssistantStream {
     let cancellation = request.cancellation();
+    let outer_cancellation = if child_cancellation {
+        CancellationToken::new()
+    } else {
+        cancellation.clone()
+    };
     let (stream, producer) = create_assistant_message_event_stream(AssistantStreamInit {
         api: model.api.clone(),
         provider: model.provider.clone(),
         model: model.id.clone(),
         clock: request.clock(),
-        cancellation: cancellation.clone(),
+        cancellation: outer_cancellation.clone(),
     });
     let spawner = request.spawner();
     let task_producer = producer.clone();
     let task = Box::pin(async move {
+        if child_cancellation && cancellation.is_cancelled() {
+            outer_cancellation.cancel();
+            return;
+        }
         let assembled = match assemble_request(&inner, model, overrides, &cancellation).await {
             Ok(assembled) => assembled,
             Err(SetupAssemblyError::UnknownProvider) => {
                 let _ = task_producer.fail_setup(StreamSetupFailure::UnknownProvider);
                 return;
             }
-            Err(SetupAssemblyError::Authentication(AuthResolutionError::Cancelled)) => return,
+            Err(SetupAssemblyError::Authentication(AuthResolutionError::Cancelled)) => {
+                outer_cancellation.cancel();
+                return;
+            }
             Err(SetupAssemblyError::Authentication(_)) => {
                 let _ = task_producer.fail_setup(StreamSetupFailure::Authentication);
                 return;
@@ -1946,7 +1979,12 @@ fn start_dispatch(
                 return;
             }
         };
-        let Some(adapter) = assembled.record.provider.adapter(&assembled.model.api) else {
+        let adapter = assembled.record.provider.adapter(&assembled.model.api);
+        if child_cancellation && cancellation.is_cancelled() {
+            outer_cancellation.cancel();
+            return;
+        }
+        let Some(adapter) = adapter else {
             let _ = task_producer.fail_setup(StreamSetupFailure::Adapter);
             return;
         };
@@ -1983,13 +2021,24 @@ fn start_dispatch(
                 }) {
                     Ok(stream) => stream,
                     Err(_) => {
-                        let _ = task_producer.fail_setup(StreamSetupFailure::Adapter);
+                        if child_cancellation && cancellation.is_cancelled() {
+                            outer_cancellation.cancel();
+                        } else {
+                            let _ = task_producer.fail_setup(StreamSetupFailure::Adapter);
+                        }
                         return;
                     }
                 }
             }
         };
-        pump_stream(source, task_producer, &cancellation).await;
+        // A returned child owns even cancellation triggered inside adapter setup.
+        // Its latest usage may never have appeared in a progress event.
+        let pump_cancellation = if child_cancellation {
+            &outer_cancellation
+        } else {
+            &cancellation
+        };
+        pump_stream(source, task_producer, pump_cancellation).await;
     });
     if spawner.spawn(task).is_err() {
         let _ = producer.fail_setup(StreamSetupFailure::Spawn);

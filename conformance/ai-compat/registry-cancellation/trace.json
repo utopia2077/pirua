@@ -1,0 +1,89 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "fingerprints": {
+    "utils/event-stream.ts": "55ddd6e6e4299f377fc3f8876ea9d8073f0051d569f1629f8817ec78e28d64e6",
+    "api/lazy.ts": "ff4ce241fb72cdd1900d56865a6295815d8d073b321c2ed20435639ed74bf39a",
+    "utils/abort.ts": "e81dc16de331e82d7f15759b27e38c7d0a3d28955693e0cf157dd52dadea7035",
+    "utils/diagnostics.ts": "d22b4f96a00f032220ff0cc27458c7a525dcec948bdbd2bbb67b4d7598cb395d",
+    "auth/resolve.ts": "08dfcdcbd74dbae5b011b105b9b335321fea816ce262758729a2b29a630bd1b9",
+    "models.ts": "b53c99c5fa787af57790fa1d971987faab7e7b917ab5cb985374db407a4d88dd"
+  },
+  "results": [
+    {
+      "operation": "raw",
+      "duringHandoff": false,
+      "calls": 1,
+      "usage": 17,
+      "reason": "aborted",
+      "content": "retained",
+      "tags": [
+        "start",
+        "error"
+      ]
+    },
+    {
+      "operation": "raw",
+      "duringHandoff": true,
+      "calls": 1,
+      "usage": 17,
+      "reason": "aborted",
+      "content": "retained",
+      "tags": [
+        "start",
+        "error"
+      ]
+    },
+    {
+      "operation": "simple",
+      "duringHandoff": false,
+      "calls": 1,
+      "usage": 17,
+      "reason": "aborted",
+      "content": "retained",
+      "tags": [
+        "start",
+        "error"
+      ]
+    },
+    {
+      "operation": "simple",
+      "duringHandoff": true,
+      "calls": 1,
+      "usage": 17,
+      "reason": "aborted",
+      "content": "retained",
+      "tags": [
+        "start",
+        "error"
+      ]
+    },
+    {
+      "operation": "deferred",
+      "duringHandoff": false,
+      "calls": 1,
+      "usage": 17,
+      "reason": "aborted",
+      "content": "retained",
+      "tags": []
+    },
+    {
+      "operation": "deferred",
+      "duringHandoff": true,
+      "calls": 1,
+      "usage": 17,
+      "reason": "aborted",
+      "content": "retained",
+      "tags": []
+    },
+    {
+      "operation": "setup-cancel",
+      "reads": 1,
+      "settledBeforeAbort": false,
+      "settledAfterAbort": true,
+      "calls": 0,
+      "usage": 0,
+      "reason": "error",
+      "errorMessage": "synthetic registry setup cancellation"
+    }
+  ]
+}
