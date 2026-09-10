@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "upstream": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "claim": "reproducible-parity-for-dated-captured-inputs-not-historical-text-catalog",
+  "clock": 1788764386000,
+  "captureSha256": "0898cbffc0d5befc26b4580894872954faa355661be1097484b430dd96da0475",
+  "sourcesSha256": "657fdb1217ed342982a63e7e77039a28df793378583fcb35aa39f5bb528d23f8",
+  "generatorSha256": "1439c780f2e67371956a5db7f18e475000137336b44d53efdc7a1084ea04422a",
+  "nodeBinarySha256": "19235a9b678f84729464c52623f92de130a165452747c6826d3fdc13df3abcc3",
+  "drivers": {
+    "offline-preload.mjs": "9ffe1a4ddaae04921fb367ee9fcd6561dd5c25056ea0b614391557926dd518f0",
+    "project.mjs": "99369bb1219a47090d71556a1fa193d3d89598b899521b080ed0af426fbfcc7e"
+  },
+  "executions": {
+    "text": {
+      "code": 0,
+      "calls": [
+        "https://models.dev/api.json",
+        "https://integrate.api.nvidia.com/v1/models",
+        "https://openrouter.ai/api/v1/models",
+        "https://ai-gateway.vercel.sh/v1/models"
+      ],
+      "clock": 1788764386000,
+      "node": "v26.8.1",
+      "icu": "78.3",
+      "locale": "en-US"
+    },
+    "images": {
+      "code": 0,
+      "calls": [
+        "https://openrouter.ai/api/v1/models?output_modalities=image"
+      ],
+      "clock": 1788764386000,
+      "node": "v26.8.1",
+      "icu": "78.3",
+      "locale": "en-US"
+    }
+  },
+  "textCounts": {
+    "openai": 39,
+    "google": 22,
+    "anthropic": 14,
+    "deepseek": 3,
+    "openai-codex": 7,
+    "openrouter": 365
+  },
+  "imageCount": 52,
+  "historicalImageCount": 50,
+  "outputs": {
+    "captured-image.ts": {
+      "sha256": "f3a70168ca69729cff00523359d97f1780a9e1767fd7c38a6134b397de0658b2",
+      "bytes": 21013
+    },
+    "historical-images.json": {
+      "sha256": "47eda2365d546d347b4e96d8276cac8014ec92f5b4247b0036f0a0ea04a0cdd3",
+      "bytes": 15056
+    },
+    "images/openrouter.json": {
+      "sha256": "5c825ff85e7ca93476ee116ad9b83fd8c94aac05b1a68f775bf814d6e0ffd3fb",
+      "bytes": 14158
+    },
+    "source-data-manifest.json": {
+      "sha256": "6b47bcbf3cb3aa439e47ca9b7dfec10a7c11a1b8b5efd7bce2e89a1dc746275c",
+      "bytes": 3536
+    },
+    "source-grouped.json": {
+      "sha256": "b614ae580356dc6786980dce2a5dad44971c5d22978a19b85fc37bb9cf086959",
+      "bytes": 586936
+    },
+    "source-images.json": {
+      "sha256": "0f61c704da068b2f1e8e75106d2c4f3782825cceafd999f0033f09c2f8ba0ba3",
+      "bytes": 15659
+    },
+    "source-text.json": {
+      "sha256": "6169c2a428f8975c029c6992054e76f874881e5e2f8de382686ac0f4bacc1db9",
+      "bytes": 585806
+    },
+    "text/anthropic.json": {
+      "sha256": "f6518198e54281c66d3161a4a016e0e2aafd2b265533d578c33bfc6208046c63",
+      "bytes": 5716
+    },
+    "text/deepseek.json": {
+      "sha256": "bc6ed5a64cd973b5326d8bb2b7eef4c1545a7d240e2f63d2ad6fad2a7e2b7f7e",
+      "bytes": 1671
+    },
+    "text/google.json": {
+      "sha256": "d306f43fe99af6870ec7449265b4ed61012baa0684843be81daa35a7465eca5a",
+      "bytes": 7862
+    },
+    "text/openai-codex.json": {
+      "sha256": "3c0f7a8f8121ad45fc3ce8660cbbaae7fcf4deea1d9b16f032b4018fe3ce937f",
+      "bytes": 3486
+    },
+    "text/openai.json": {
+      "sha256": "2062ed870cb0b26d383c5d23d9e16a73a166c3950be935862f9ec81a67844b82",
+      "bytes": 17283
+    },
+    "text/openrouter.json": {
+      "sha256": "db683dd66d8d0ccdffda3976db161c1d589f2fc1256e0b1fac41d74d11db8a54",
+      "bytes": 154927
+    }
+  }
+}

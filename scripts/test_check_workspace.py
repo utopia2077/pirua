@@ -44,6 +44,23 @@ class WorkspaceCheckerTests(unittest.TestCase):
             record for record in package["dependencies"] if record["name"] == dependency
         )
 
+    def test_selected_catalog_features_are_data_only_and_unknown_catalogs_fail(self):
+        package = next(package for package in self.default_metadata["packages"] if package["name"] == "pi-ai-providers")
+        for name in ("catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
+                     "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images"):
+            self.assertEqual(package["features"][name], [])
+            for activation in ("native", "dep:ring", "wire-openai-responses"):
+                changed = copy.deepcopy(package)
+                changed["features"][name] = [activation]
+                errors = []
+                checker.validate_s04_provider_features(changed, errors)
+                self.assertTrue(any("feature ownership changed" in error for error in errors), errors)
+        changed = copy.deepcopy(package)
+        changed["features"]["catalog-excluded"] = []
+        errors = []
+        checker.validate_s04_provider_features(changed, errors)
+        self.assertTrue(any("unexpected provider feature" in error for error in errors), errors)
+
     def test_required_edges_reject_noncanonical_declaration_forms(self) -> None:
         counterexamples = {
             "dev": ("kind", "dev", "kind must be normal"),

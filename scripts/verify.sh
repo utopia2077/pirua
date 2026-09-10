@@ -9,9 +9,11 @@ export RUSTDOCFLAGS="${RUSTDOCFLAGS:+${RUSTDOCFLAGS} }-D warnings"
 
 python3 scripts/generate_upstream_manifests.py --check
 python3 scripts/generate_ai_conformance.py --check
+python3 scripts/generate_selected_catalogs.py --check
 python3 scripts/validate_docs.py
 python3 -m unittest scripts/test_validate_docs.py
 python3 -m unittest scripts/test_generate_ai_conformance.py
+python3 -m unittest scripts/test_generate_selected_catalogs.py
 python3 -m unittest scripts/test_check_workspace.py
 python3 scripts/check_workspace.py
 cargo fmt --all -- --check

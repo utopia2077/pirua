@@ -1,0 +1,71 @@
+{
+  "upstream": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "provenance": "new-dated-public-input-capture-not-historical-git-time-catalog",
+  "feeds": [
+    {
+      "name": "models-dev",
+      "url": "https://models.dev/api.json",
+      "effective_url": "https://models.dev/api.json",
+      "captured_at": "2026-09-07T06:59:46.015367+00:00",
+      "status": 200,
+      "content_type": "application/json",
+      "response_date": "Mon, 07 Sep 2026 06:59:46 GMT",
+      "path": "inputs/models-dev.json",
+      "bytes": 4495462,
+      "sha256": "9dfacfc96ca34b8593df150ded00470905261b5ba2bdc5bc15e9b32aa51ca16c",
+      "top_level_type": "dict"
+    },
+    {
+      "name": "openrouter-text",
+      "url": "https://openrouter.ai/api/v1/models",
+      "effective_url": "https://openrouter.ai/api/v1/models",
+      "captured_at": "2026-09-07T06:59:46.015713+00:00",
+      "status": 200,
+      "content_type": "application/json",
+      "response_date": "Mon, 07 Sep 2026 06:59:46 GMT",
+      "path": "inputs/openrouter-text.json",
+      "bytes": 708304,
+      "sha256": "2af154ed8aabd00696dfdc646006a7b47608998917cbad83176ac2fcd0f51cb3",
+      "top_level_type": "dict"
+    },
+    {
+      "name": "vercel",
+      "url": "https://ai-gateway.vercel.sh/v1/models",
+      "effective_url": "https://ai-gateway.vercel.sh/v1/models",
+      "captured_at": "2026-09-07T06:59:46.015948+00:00",
+      "status": 200,
+      "content_type": "application/json",
+      "response_date": "Mon, 07 Sep 2026 06:56:30 GMT",
+      "path": "inputs/vercel.json",
+      "bytes": 382176,
+      "sha256": "be9033458e0c1ed4d01c6881754532c1d7ddb071dcb1cc61fd074f53ef679279",
+      "top_level_type": "dict"
+    },
+    {
+      "name": "nvidia",
+      "url": "https://integrate.api.nvidia.com/v1/models",
+      "effective_url": "https://integrate.api.nvidia.com/v1/models",
+      "captured_at": "2026-09-07T06:59:46.016533+00:00",
+      "status": 200,
+      "content_type": "application/json",
+      "response_date": "Mon, 07 Sep 2026 06:59:46 GMT",
+      "path": "inputs/nvidia.json",
+      "bytes": 7785,
+      "sha256": "e3a0d721e1380401636796aa1a1dfd9af6df27147e6167e781da2bb33fcc90a4",
+      "top_level_type": "dict"
+    },
+    {
+      "name": "openrouter-images",
+      "url": "https://openrouter.ai/api/v1/models?output_modalities=image",
+      "effective_url": "https://openrouter.ai/api/v1/models?output_modalities=image",
+      "captured_at": "2026-09-07T06:59:46.016812+00:00",
+      "status": 200,
+      "content_type": "application/json",
+      "response_date": "Mon, 07 Sep 2026 06:59:46 GMT",
+      "path": "inputs/openrouter-images.json",
+      "bytes": 62743,
+      "sha256": "fd3856028acf2a1d9e95825efd317555ed3e38378e2f0a5feb2cf15a89c5091b",
+      "top_level_type": "dict"
+    }
+  ]
+}

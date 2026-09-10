@@ -235,7 +235,10 @@ def validate_s04_provider_features(package: dict[str, Any], errors: list[str]) -
     for name, activations in features.items():
         if name in {"default", "native"}:
             continue
-        if name == "cloudflare-gateway-binding":
+        if name in {"catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
+                    "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images"}:
+            expected = set()
+        elif name == "cloudflare-gateway-binding":
             expected = {"dep:url", "serde_json/unbounded_depth"}
         elif name == "wire-bedrock-converse-stream":
             expected = {"dep:url", "dep:ring"}

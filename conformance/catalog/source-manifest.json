@@ -1,0 +1,593 @@
+{
+  "upstream": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sources": [
+    {
+      "source": "packages/ai/scripts/check-model-data.ts",
+      "sha256": "818e463211322ab41fe4c82eb8e9543fe6b40c1bfb734999d49d87f2071802aa",
+      "bytes": 566,
+      "blobOid": "5c61b52c4bdd3cbdb748a45eb1165cd5af19a3bc"
+    },
+    {
+      "source": "packages/ai/scripts/generate-image-models.ts",
+      "sha256": "735c4a5901932eb7e2e0d434ca99cbca9a6437c93ffed06d486e60a3b6b7aaef",
+      "bytes": 5037,
+      "blobOid": "26e46e4503a3e5718787bb781eba2243c492c87c"
+    },
+    {
+      "source": "packages/ai/scripts/generate-models.ts",
+      "sha256": "33f2fc39c1cbb244696ceed3215a1bb31a19efaa3c49b57d25d0f3c1528479c4",
+      "bytes": 105828,
+      "blobOid": "d3a3a3055692a86336e944b6c79fce425446447e"
+    },
+    {
+      "source": "packages/ai/scripts/generate-test-image.ts",
+      "sha256": "7325fae17b7949992a943e8ececacdf1830e1cf1785318c8bf88380951d56e7d",
+      "bytes": 923,
+      "blobOid": "da3df2661f59778c071549dd4249e44ec2bb465a"
+    },
+    {
+      "source": "packages/ai/scripts/model-data.ts",
+      "sha256": "9265bb6f494765be06ad42e50b6f5667c88b690670e9dfd673cb55513d183056",
+      "bytes": 11344,
+      "blobOid": "f2081817af2b038134984fea458b1860dbed0b60"
+    },
+    {
+      "source": "packages/ai/scripts/models-dev-reasoning-options.ts",
+      "sha256": "a0c9deb26bf88b1af8950f06f2594c9f5a08c4c81c7461f9ee1d2a22e358d07f",
+      "bytes": 1222,
+      "blobOid": "9d07113956ccce62e1bc401e785f95ea87bbb307"
+    },
+    {
+      "source": "packages/ai/scripts/openrouter-reasoning-options.ts",
+      "sha256": "d42c473eba5344573b5da31727dba0f2db240eecaea33030d107c160c9533b61",
+      "bytes": 1112,
+      "blobOid": "6fc4a5c6c22617e472b6bd1f7cc73a9f0dd83b3e"
+    },
+    {
+      "source": "packages/ai/src/api/cloudflare.ts",
+      "sha256": "6333a0f78e8cd6b75e408fdeb594d5e1e02605206247c5a921c2f56dd99cf96a",
+      "bytes": 842,
+      "blobOid": "f8b1138ceb34c6a38294a8d366c30c778b764f4a"
+    },
+    {
+      "source": "packages/ai/src/image-models.generated.ts",
+      "sha256": "4c33f4ec8bbb5e9517a2858689352bfbd4662c1a8695989a52ecd11ab1c70c48",
+      "bytes": 20225,
+      "blobOid": "be577a3a4ff3622251b6cd2563bd92b129677596"
+    },
+    {
+      "source": "packages/ai/src/model-catalog.ts",
+      "sha256": "49ea2292bcc7a1cec41dde2c7e263ecd7f5fd6784084619f6e5f85323fb43452",
+      "bytes": 920,
+      "blobOid": "bc6dfd62f0e7615fe2400a4860947a17ae220a43"
+    },
+    {
+      "source": "packages/ai/src/models.generated.ts",
+      "sha256": "d37f49ca5a7dc0f2981e8c52473359ed7c11192c24cc54573bf83e3a0a17a149",
+      "bytes": 6569,
+      "blobOid": "12952045922123bc1e7a696e75bdae386e68d552"
+    },
+    {
+      "source": "packages/ai/src/providers/all.ts",
+      "sha256": "6f2107bd324c85133d5b4ca39f8247c1e07ed7b660849b94e8c546072b9fa552",
+      "bytes": 6251,
+      "blobOid": "8785e94aed69942629bd4c4da69b55fa8db053d2"
+    },
+    {
+      "source": "packages/ai/src/providers/amazon-bedrock.models.ts",
+      "sha256": "9c9cbe9b1c977177454ed12dc48c521fdc88d257ee1b92bc3805aa77eaf9b982",
+      "bytes": 410,
+      "blobOid": "4c9c99e48836b177ffe9e5bce99588bc7ead1b40"
+    },
+    {
+      "source": "packages/ai/src/providers/amazon-bedrock.ts",
+      "sha256": "e32611e8d2d4e71ee5d0ba426da60c0aecf42d1bc34ccc3d0d49ce877c621a8c",
+      "bytes": 3333,
+      "blobOid": "d629f1e1c3090718c782600e51f1d5228f6c3481"
+    },
+    {
+      "source": "packages/ai/src/providers/ant-ling.models.ts",
+      "sha256": "da223d56dbe033f48b96ed451591498cb7ffa8d4851785ea9ad7542377f6c855",
+      "bytes": 386,
+      "blobOid": "ff190daab3aa80ba22a62c3a3a34d9de8bed5935"
+    },
+    {
+      "source": "packages/ai/src/providers/ant-ling.ts",
+      "sha256": "20ba100f8a9150f809fc42bf60f1d23840cc358d636793f1ec9fddf0e9feb2a7",
+      "bytes": 575,
+      "blobOid": "03bb314d9940f30130c7a99c0e7ad478ebc85452"
+    },
+    {
+      "source": "packages/ai/src/providers/anthropic.models.ts",
+      "sha256": "35fb58e216e45b3d1319b610f3f3021ef30e699a9e44250cbfcbefeeaaea2ff7",
+      "bytes": 390,
+      "blobOid": "43d5ed70f16e9bf72f57bc07b28a66a23a275d7d"
+    },
+    {
+      "source": "packages/ai/src/providers/anthropic.ts",
+      "sha256": "dda69449a53c84b8b0a17b28f80fba278988d85665557be2db0dc3b20557567a",
+      "bytes": 1934,
+      "blobOid": "675735396dacf42d712f776059458b39bec6a3ba"
+    },
+    {
+      "source": "packages/ai/src/providers/azure-openai-responses.models.ts",
+      "sha256": "9d0525eab9472b48dee748f7c6d2f3b65f25467389ff1facbf34dc2d40732717",
+      "bytes": 442,
+      "blobOid": "d5f8c48ecdde97934cc9c5d21686d89249d5dab0"
+    },
+    {
+      "source": "packages/ai/src/providers/azure-openai-responses.ts",
+      "sha256": "76e9f5cde761fcd516370d4d99519e4658e0db1029518746d0d0c0550ce54fa5",
+      "bytes": 628,
+      "blobOid": "78351deae417a06d0f05755105aba82fa2e0a76f"
+    },
+    {
+      "source": "packages/ai/src/providers/baseten.models.ts",
+      "sha256": "c3844bac330f9b0d04eef4349a37dbd6cbe5b6782b9f6726277148526c03ea0a",
+      "bytes": 382,
+      "blobOid": "22a55ac42c5cd5941bbe679fbf8bf62d90b7fe81"
+    },
+    {
+      "source": "packages/ai/src/providers/baseten.ts",
+      "sha256": "c3833be0c64c4d5c96810403e23e966bb779bf2c045619b6fbac18ff27ac92f5",
+      "bytes": 572,
+      "blobOid": "79371dac0d4f9e00d21a3593dd6e78c6c201b475"
+    },
+    {
+      "source": "packages/ai/src/providers/cerebras.models.ts",
+      "sha256": "45412b6f921b67cf7b82276bac1d8b95f164c5bf2ff3297b950f94f773162c57",
+      "bytes": 386,
+      "blobOid": "0ae1100797e395ffea19a7e53390b700d00b9036"
+    },
+    {
+      "source": "packages/ai/src/providers/cerebras.ts",
+      "sha256": "457fc35499abea92be4ad7add4f08502d069293380be61bf05b11ae5352bce4f",
+      "bytes": 575,
+      "blobOid": "9ffc737554bc51ea9a155854bcc9d9014c49046b"
+    },
+    {
+      "source": "packages/ai/src/providers/cloudflare-ai-gateway.models.ts",
+      "sha256": "c90e50ce6cd8b536e893ca7180a5b9731581d76b31125aff5bdfc62bd17efe26",
+      "bytes": 438,
+      "blobOid": "819bf7fb6219eeb1c18da7e04214da6dc72090bf"
+    },
+    {
+      "source": "packages/ai/src/providers/cloudflare-ai-gateway.ts",
+      "sha256": "145acf5bae16fbe7c731a61a950bd99f575b027fe76f982f435fa535e212bdde",
+      "bytes": 1102,
+      "blobOid": "7c1cc3b78a15ea8b75b0f6b4b8e88ef26c027e2a"
+    },
+    {
+      "source": "packages/ai/src/providers/cloudflare-auth.ts",
+      "sha256": "d0532efb4f00126286d71dbce6fcb95e581cd9477467dc4bd20f1df1a466f03e",
+      "bytes": 3505,
+      "blobOid": "72fd23d07df18546c3575f7f4d724def1b74c824"
+    },
+    {
+      "source": "packages/ai/src/providers/cloudflare-stream.ts",
+      "sha256": "866117c0e12f6bba9da36842271d0208b200364dc785dc968fa5d31b6da6594b",
+      "bytes": 1153,
+      "blobOid": "7284f65626aed1305019a13577da485a542b9b50"
+    },
+    {
+      "source": "packages/ai/src/providers/cloudflare-workers-ai.models.ts",
+      "sha256": "95da6a78965178d952b46a4de4e2ea52723ac051ad37583537a3b79e4033ecde",
+      "bytes": 438,
+      "blobOid": "35a7578ffc593e5e1e26582352eceda759b2eba6"
+    },
+    {
+      "source": "packages/ai/src/providers/cloudflare-workers-ai.ts",
+      "sha256": "5ab1575a34fd66e35706fcae8a38516d7c2e427521b7f8680e1f756d8420ec9c",
+      "bytes": 671,
+      "blobOid": "89216b5ef641cbc9e950612c27fbf5cbb8003ea8"
+    },
+    {
+      "source": "packages/ai/src/providers/data-json.d.ts",
+      "sha256": "d30c397c753fb4c6a608ab2e2d95e50c763a369b591bcc2bd6e02147016f8aff",
+      "bytes": 74,
+      "blobOid": "73212a8f9674a910d626722e94486a9000a48519"
+    },
+    {
+      "source": "packages/ai/src/providers/deepseek.models.ts",
+      "sha256": "afce9b250edda8c9df66e800cfa791f1a2c2546503956c45c5262204265624cf",
+      "bytes": 386,
+      "blobOid": "f99b3a5b301a33dc8a96b132fc2190edde4c8c7e"
+    },
+    {
+      "source": "packages/ai/src/providers/deepseek.ts",
+      "sha256": "4d4ac9870d3dcdb13a90627a95598314459f5cc2f8a122f802fab3b0d2840fee",
+      "bytes": 573,
+      "blobOid": "580e25c236feb1a283d96bbef538915a142d8416"
+    },
+    {
+      "source": "packages/ai/src/providers/faux.ts",
+      "sha256": "d819e22fcfba388d043246d34d770f2e2614f351de47f102c69f310c21fc6c65",
+      "bytes": 21044,
+      "blobOid": "284a099b314b3b247826f9622bddf25909b252b5"
+    },
+    {
+      "source": "packages/ai/src/providers/fireworks.models.ts",
+      "sha256": "68f77ac268a3e643944401e96fdc71abe7b34e1ccc3c50f885eb3e236b4fb45e",
+      "bytes": 390,
+      "blobOid": "ffb0b09c0a58b9e04dedb78946242e38175c94f1"
+    },
+    {
+      "source": "packages/ai/src/providers/fireworks.ts",
+      "sha256": "72dbb53e3bb8b0bc6c42dd7937ec11dd0126efe3176f11153b1d599a0c7776af",
+      "bytes": 769,
+      "blobOid": "518fb259d350a5bf5277d3cbe78d33c1558a1e74"
+    },
+    {
+      "source": "packages/ai/src/providers/github-copilot.models.ts",
+      "sha256": "6bd4c4ae054ea91fe4c9eea8c8372901584e851532352cb621a9e9de6ecece5c",
+      "bytes": 410,
+      "blobOid": "dc62bd956e14b4137bbdae69c3342c8a90e6f75e"
+    },
+    {
+      "source": "packages/ai/src/providers/github-copilot.ts",
+      "sha256": "9f898d669b65e9650009e4e45518fc207416c94ca9570276ef9bd7f13fde8f3b",
+      "bytes": 1524,
+      "blobOid": "eab784d88840f4a29829066ee4b402d10d94e754"
+    },
+    {
+      "source": "packages/ai/src/providers/google-vertex.models.ts",
+      "sha256": "964109cc69cadf77329846f4fb4baf6c86b00995f33a813230c5a9e54573e93e",
+      "bytes": 406,
+      "blobOid": "3e8b6b5594650cd2278fb939a5612d33b71dd93a"
+    },
+    {
+      "source": "packages/ai/src/providers/google-vertex.ts",
+      "sha256": "5e321e6d5b80824752ca96e7c9aba8a3fccce722a1793a40d5341a0406ef4878",
+      "bytes": 3734,
+      "blobOid": "83c7d0fe89cbb7e425a3e79d2bf954e2c2b8324e"
+    },
+    {
+      "source": "packages/ai/src/providers/google.models.ts",
+      "sha256": "cdb63f50fae431dc67c6627ae7a5b9580039b9807f014f838ebe568b11831d27",
+      "bytes": 378,
+      "blobOid": "4d0989d6a7d73a4b0545dbcdd25dc08cf3d4a627"
+    },
+    {
+      "source": "packages/ai/src/providers/google.ts",
+      "sha256": "2d807d5f9273ede8c23970fe0414883ab362c677df80e4603d30b621232a2036",
+      "bytes": 587,
+      "blobOid": "0bd452373227e781b961a3eb37d6a0fc3aead8a6"
+    },
+    {
+      "source": "packages/ai/src/providers/groq.models.ts",
+      "sha256": "41fbe59a9104788078b57b490ebf2312291905e579a67ceaeff803ff41ffc9c0",
+      "bytes": 370,
+      "blobOid": "770bf0ca568951ae46a8efce8f682bd422d0f064"
+    },
+    {
+      "source": "packages/ai/src/providers/groq.ts",
+      "sha256": "a8bbced4fbc37370892fec68fb7f03cf634d08d134d9f003fa63edb5a8b60873",
+      "bytes": 547,
+      "blobOid": "5892e0488264e2ef53e09ed581179f107e4528db"
+    },
+    {
+      "source": "packages/ai/src/providers/huggingface.models.ts",
+      "sha256": "0da3c6e72a35d04571f1800989c3731df686a8ab1291065b6dd8855966f0e675",
+      "bytes": 398,
+      "blobOid": "490d2793a3224c827d22d2b023b0cb04d4365feb"
+    },
+    {
+      "source": "packages/ai/src/providers/huggingface.ts",
+      "sha256": "51c4af194c9989ab033c5b3303831ec9e2df999f51d9fa40ab6d28f632e8ff43",
+      "bytes": 594,
+      "blobOid": "e8fb628e199203fc63423053bb30f79c4375c992"
+    },
+    {
+      "source": "packages/ai/src/providers/images/register-builtins.ts",
+      "sha256": "8c8bd4e614b8b733c0a4232f7cc974bf38c5a4bb6b9615c732e3b794ff1d908f",
+      "bytes": 1725,
+      "blobOid": "a5c901faf8d4df94c7ad7d6892ef075e49286a6e"
+    },
+    {
+      "source": "packages/ai/src/providers/kimi-coding.models.ts",
+      "sha256": "57ca50b17d1e96ba8f064b63adfe9773c2e494d7495c52336769ef6b86a7e2ff",
+      "bytes": 398,
+      "blobOid": "4decb71f46bc0cc3bbb22510fbcd4be25b1267e6"
+    },
+    {
+      "source": "packages/ai/src/providers/kimi-coding.ts",
+      "sha256": "ef864d572eef11900f24bb6a5dc620982bd9c39fac600970deec55466348f8b0",
+      "bytes": 833,
+      "blobOid": "81ae4af2e92e08eb31eafab4d760c5692bc2b1c2"
+    },
+    {
+      "source": "packages/ai/src/providers/minimax-cn.models.ts",
+      "sha256": "25dd4d8e980898f274a3c787a59e6e7570d596330c7f833f080b780817cdea74",
+      "bytes": 394,
+      "blobOid": "1ee19be2a8c3b347e14cc73191e11fec55919926"
+    },
+    {
+      "source": "packages/ai/src/providers/minimax-cn.ts",
+      "sha256": "ae3170234556ef355f7cffcfc666888992ae50caa8daf07352f22bac69cca0ba",
+      "bytes": 598,
+      "blobOid": "5cbe5acc55926d52fac7ffa3008c2c903ed0d86b"
+    },
+    {
+      "source": "packages/ai/src/providers/minimax.models.ts",
+      "sha256": "e80186fef0f1b647990f029281604c435da5d8ceb659d3f6a79681cdb03c3b41",
+      "bytes": 382,
+      "blobOid": "fa228bdc510e7e5b76d3ff8bba60257af9285dab"
+    },
+    {
+      "source": "packages/ai/src/providers/minimax.ts",
+      "sha256": "d571a6a8b5a47daf40b034a2dae4ac902a252fbd44b073c4caee8eeb1d7035b5",
+      "bytes": 573,
+      "blobOid": "6a956bd6bbdc29084c66ad2100a2ec72485de2f5"
+    },
+    {
+      "source": "packages/ai/src/providers/mistral.models.ts",
+      "sha256": "949f1e72e32a0028beb855db2642f13783c8697c4be236e9061c241f1d698a51",
+      "bytes": 382,
+      "blobOid": "acb8d385435b21a6196f077cee7a85fa2dd08055"
+    },
+    {
+      "source": "packages/ai/src/providers/mistral.ts",
+      "sha256": "dfcd087d7317d6a6cd1acf701547567435f5eaf0c1cc1d8eb89eed7e977c2fb3",
+      "bytes": 575,
+      "blobOid": "9b84a71fb66f8a2cbfb81728d542281c16014548"
+    },
+    {
+      "source": "packages/ai/src/providers/moonshotai-cn.models.ts",
+      "sha256": "059db388929164d03595ead666c3bcf56e8e078be072dc2d4d3a784b9e207cc2",
+      "bytes": 406,
+      "blobOid": "652dcd640fc570040e3e53cf4c43b2060c0198e1"
+    },
+    {
+      "source": "packages/ai/src/providers/moonshotai-cn.ts",
+      "sha256": "da8ec0ed30a2cf42972cead61a93b1fcb64380095f9d062ee4ed9e4807ebd5bc",
+      "bytes": 608,
+      "blobOid": "b813734bcfe6761c4ae000bfce9571c02942f7a9"
+    },
+    {
+      "source": "packages/ai/src/providers/moonshotai.models.ts",
+      "sha256": "ddafd640693869455756b31e87d09df13388531cf8e0421bd3618d8836ac5eb2",
+      "bytes": 394,
+      "blobOid": "a460572d1d70e6d0a95862559ff38bacc9fc3af5"
+    },
+    {
+      "source": "packages/ai/src/providers/moonshotai.ts",
+      "sha256": "2e269cca0231ebdbd2a58848ab3d19b0a43697e132b48a679e3c1b0cd4897665",
+      "bytes": 591,
+      "blobOid": "dc15c5706ad333e58d09daec9daf4b3840e778dd"
+    },
+    {
+      "source": "packages/ai/src/providers/nvidia.models.ts",
+      "sha256": "15b8e279632a231d1794aec8083f00c17ac94cd5e89717393dd48fc182c0e4b4",
+      "bytes": 378,
+      "blobOid": "3d31b205d3abed31291c1ecbb19430f8519ef099"
+    },
+    {
+      "source": "packages/ai/src/providers/nvidia.ts",
+      "sha256": "73c981d27b364f83a32983d19f4ded346acf6af7eb4a653334622f891aedf860",
+      "bytes": 568,
+      "blobOid": "dc539f60b685c63842b0f68ce93d03cfdd05e7fd"
+    },
+    {
+      "source": "packages/ai/src/providers/openai-codex.models.ts",
+      "sha256": "11045582d310b854c4a55e510e3628b8a8652efab918f9f017541b9261db474f",
+      "bytes": 402,
+      "blobOid": "43b500f79a2bbc4cf6550e1639f466d8b6d4d7ac"
+    },
+    {
+      "source": "packages/ai/src/providers/openai-codex.ts",
+      "sha256": "c63a59ad55921466182f2033240178fca715faf09dd7fd9878533829ca90a70f",
+      "bytes": 739,
+      "blobOid": "75ec9e6dda568a6c9127f2de15e413013942322f"
+    },
+    {
+      "source": "packages/ai/src/providers/openai.models.ts",
+      "sha256": "9424770fdbf0ca5f3307c6b20217686d8c448379fd8548ac1c362ad678ac7898",
+      "bytes": 378,
+      "blobOid": "a4ba19c9cc3a0f53339bea4c0d0105a1dfc0eff9"
+    },
+    {
+      "source": "packages/ai/src/providers/openai.ts",
+      "sha256": "1904f9511221f47bbe890dc007571add9ac16ab28cd48c4090b58f13950cbfd0",
+      "bytes": 550,
+      "blobOid": "43f6671f22a9d6e88bc96556afc4814b32e08032"
+    },
+    {
+      "source": "packages/ai/src/providers/opencode-go.models.ts",
+      "sha256": "db2994d632b02692e3cb1a9c7fde97e5b7e4f77719f7d530c9a2cb2628aee52d",
+      "bytes": 398,
+      "blobOid": "8e6a371709a68e8f23b9f080b36c93ae27a15138"
+    },
+    {
+      "source": "packages/ai/src/providers/opencode-go.ts",
+      "sha256": "222388196ed7178d1b2298676cdb745c761f855207c208d413ddd303080942c2",
+      "bytes": 931,
+      "blobOid": "4f5452c164f86a57bbd02346b5ca3fe1b639f08c"
+    },
+    {
+      "source": "packages/ai/src/providers/opencode.models.ts",
+      "sha256": "ddbfa6ca1f40c0ed1bf96904d3e0ecdb9b8298a4fb8d12a084cd4e1669a6596c",
+      "bytes": 386,
+      "blobOid": "a2d6b396126d64a0e41602a7f2a3eb4c07d007e7"
+    },
+    {
+      "source": "packages/ai/src/providers/opencode.ts",
+      "sha256": "5907b03b4f4f24cb8457f2a1fadae2683e2ba5101da84f2b100c32c50b355954",
+      "bytes": 1009,
+      "blobOid": "7d6d2cf7a8b7e38b5ffd636af78cac7190774537"
+    },
+    {
+      "source": "packages/ai/src/providers/openrouter-images.ts",
+      "sha256": "921e057fa1880412c29a849505ddd7dbe466996d78087c0c0628437ec2051880",
+      "bytes": 780,
+      "blobOid": "bdbc214722af3a6b4408dd632b7f2ca80df54406"
+    },
+    {
+      "source": "packages/ai/src/providers/openrouter.models.ts",
+      "sha256": "101afc36afce8bdac7f893b8c2b1dffddc13caf7774c1a371f37e82e69a87b90",
+      "bytes": 394,
+      "blobOid": "bc196236f1b56ded6512b645a05a0a9f6a5a388c"
+    },
+    {
+      "source": "packages/ai/src/providers/openrouter.ts",
+      "sha256": "1d40af55225367209d55d563b25bf79f0a2ed92f3a587c4d0426234ab86bb21f",
+      "bytes": 804,
+      "blobOid": "2a6db8d03c899e81a84748cbfc2bde4535f7def7"
+    },
+    {
+      "source": "packages/ai/src/providers/qwen-token-plan-cn.models.ts",
+      "sha256": "cf75bfef4683dd80f98a33cc8894d5b0a37930c13907f29b08e33a745b7d48f0",
+      "bytes": 426,
+      "blobOid": "5fe4244cd9c87277459b9c87167e00c39df8aa55"
+    },
+    {
+      "source": "packages/ai/src/providers/qwen-token-plan-cn.ts",
+      "sha256": "1869aabbff4baaa12faef00071aab0a5b1b1d38d43f16ce735137fc0e13fa897",
+      "bytes": 692,
+      "blobOid": "259b5a7f028f302e421f91fec6490d5c2e862632"
+    },
+    {
+      "source": "packages/ai/src/providers/qwen-token-plan-individual.models.ts",
+      "sha256": "a12f1307cece97d0a582b6ce09f34cef310012052bcb59582324fc26fbeab99c",
+      "bytes": 458,
+      "blobOid": "30e111a29434979aad8fcd7c3c2bdb6484196cf2"
+    },
+    {
+      "source": "packages/ai/src/providers/qwen-token-plan-individual.ts",
+      "sha256": "0336ecc9c677d9e295a4832fbc84d9197f58e0468fcd00daff3aec491b896375",
+      "bytes": 749,
+      "blobOid": "a231d1b313d1646c5e9053e09d1b9767c2acb2a2"
+    },
+    {
+      "source": "packages/ai/src/providers/qwen-token-plan.models.ts",
+      "sha256": "5a45908ccd14785c3aca0307f12e4e462702b0d469ea06bd90ba20b848c918c7",
+      "bytes": 414,
+      "blobOid": "8e1e746b38d6cf32a3677ad5ac3aac22f583d4b6"
+    },
+    {
+      "source": "packages/ai/src/providers/qwen-token-plan.ts",
+      "sha256": "c26b85ab529779c4c2e61f6dd749592b515ec25b121b49dc81989d8a767d51f5",
+      "bytes": 673,
+      "blobOid": "295560ba2afbcc74d2509d4acbb0c89ba6624f81"
+    },
+    {
+      "source": "packages/ai/src/providers/radius-config.ts",
+      "sha256": "1f82a7db25753be09374792ae0a3cd63417739018fb69b3212ad8b3b9eb11c21",
+      "bytes": 3339,
+      "blobOid": "a2715aaec31ec99afe9b302d1d289546319a97f4"
+    },
+    {
+      "source": "packages/ai/src/providers/radius.ts",
+      "sha256": "a65c0513e1999b318425a49117ebed6f38970702454730287287b644d4825f7f",
+      "bytes": 2573,
+      "blobOid": "21db7852703bfae259a973788e4dc1bf2c925178"
+    },
+    {
+      "source": "packages/ai/src/providers/together.models.ts",
+      "sha256": "09e3a5b9a2afbced7314acb8bfd7f2d77a17283dab78a49ca786a04b466f9d15",
+      "bytes": 386,
+      "blobOid": "d5223b9eb0c2f6c956bfd055d944cb699df04cb8"
+    },
+    {
+      "source": "packages/ai/src/providers/together.ts",
+      "sha256": "cbf232b1bfe5753bba855f0a95e2c4d180db8155121effcbdffc955fe090738c",
+      "bytes": 575,
+      "blobOid": "36631d11abea005e40b62e5f2a69ddc5663728ee"
+    },
+    {
+      "source": "packages/ai/src/providers/vercel-ai-gateway.models.ts",
+      "sha256": "3c4227acdc66f716f4a0af4f84d1ba1e8582384763f6850ed9dcc2fdadee10c5",
+      "bytes": 422,
+      "blobOid": "24cfce859de25839e90e4c53f1f37290e17e690f"
+    },
+    {
+      "source": "packages/ai/src/providers/vercel-ai-gateway.ts",
+      "sha256": "57b77111d50a2238128f56b7f4cc0680415b58c7d3d2eb51cc9f88e508b40343",
+      "bytes": 640,
+      "blobOid": "3aca03283fc55fb158bfced6eb6c0ae7b66f9d64"
+    },
+    {
+      "source": "packages/ai/src/providers/xai.models.ts",
+      "sha256": "8d0a7bf9fd4fc8a0030d9cf93dab88421625bf250030a6d3b2397eea48ea2298",
+      "bytes": 366,
+      "blobOid": "333a41aeba09d68d5475829d63338a50260edce2"
+    },
+    {
+      "source": "packages/ai/src/providers/xai.ts",
+      "sha256": "841c361fc5ebb2d91c3f6aa46ce008f354ea287cce36ed2105ae815b7e5e9831",
+      "bytes": 764,
+      "blobOid": "8e2b179c28a8a7c930015fe629dba9b898f7a763"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi-token-plan-ams.models.ts",
+      "sha256": "26bc2100a4471d0605e768b8aff2e82aedce9c880622b5c7046ac6e32c14fb8b",
+      "bytes": 438,
+      "blobOid": "fdfddae77eb66b0d331596eb7b0ff9a2321b5754"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi-token-plan-ams.ts",
+      "sha256": "59d03fc70eca720f8ca9a9f676aedaf241524dac26c179a78e2e30aabe116e0f",
+      "bytes": 690,
+      "blobOid": "017aa67192c8a1fd4685feb2bf67c08edf0a100c"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi-token-plan-cn.models.ts",
+      "sha256": "bcd190721ecfe6233f2d66e86e68f68e2a9d14a8d6afe27132131e5721793093",
+      "bytes": 434,
+      "blobOid": "f085ad606f016edc64e92daeb14f70cf6ad58d31"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi-token-plan-cn.ts",
+      "sha256": "255528bca12e929f0f683bcbf5a6b8ef0de779bb484b128bdda23bf2fb80caa8",
+      "bytes": 681,
+      "blobOid": "f7ab14fa77a62f290350bc70c8d53cdbf13ca4fb"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi-token-plan-sgp.models.ts",
+      "sha256": "26f56144eac6a3e7d6c86d558a348dc96cea1bb7ec655beea04dc6088e67d761",
+      "bytes": 438,
+      "blobOid": "a8a4e627734437b620e0bd3ccf9e8e86296b3375"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi-token-plan-sgp.ts",
+      "sha256": "536da73a1588741c6a70809b5e94ab5a1ba2b8e81f24116e3ed734d6bc60b5e8",
+      "bytes": 690,
+      "blobOid": "e3762057f42f415fe45c8d5104cf9f453d985812"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi.models.ts",
+      "sha256": "326ec2a587d3f83a92aea6dd9548b317ba91ce9dd8dccdfd83ea14035897dcef",
+      "bytes": 378,
+      "blobOid": "201b7f907ff87308e78c879629272c7f131609e7"
+    },
+    {
+      "source": "packages/ai/src/providers/xiaomi.ts",
+      "sha256": "d0d20dbcbcecca8b02948df1506ffa474461565546f7c24dfce44aebebef2344",
+      "bytes": 562,
+      "blobOid": "5abf51691fe457443bb952abc2dc5b76291577a8"
+    },
+    {
+      "source": "packages/ai/src/providers/zai-coding-cn.models.ts",
+      "sha256": "b96ff0b9ebb1792993256178de1b6c89741a651dfd07a7735c38dd05bfc25708",
+      "bytes": 406,
+      "blobOid": "a91f6edd12ccdb81718c6b7e5afc8eda81b71d09"
+    },
+    {
+      "source": "packages/ai/src/providers/zai-coding-cn.ts",
+      "sha256": "89ff82b1f7b1a7e3427498598ce03574d76217f1c38b0d1731be82b6d8ff87a7",
+      "bytes": 632,
+      "blobOid": "2f15a6ca31c3a4e85a35ed5b87c9d2dd3b552a30"
+    },
+    {
+      "source": "packages/ai/src/providers/zai.models.ts",
+      "sha256": "9ff2f0e33f4299651cd265543d6387ee3d9ef2715ab7315dfaf5e67130c14125",
+      "bytes": 366,
+      "blobOid": "6d8a6668a251bb050933fbed5264d30ab6ad0906"
+    },
+    {
+      "source": "packages/ai/src/providers/zai.ts",
+      "sha256": "489a48539c3abc291315dad6f8b7c5554f5f3f9bf8b2a11a60d4ab2cbd3c2f74",
+      "bytes": 546,
+      "blobOid": "854010661655298b2774c99542c7292abf51b4bd"
+    }
+  ]
+}
