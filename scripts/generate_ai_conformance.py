@@ -1080,7 +1080,7 @@ def check_generated(path: Path, expected: str) -> None:
 
 S04_CLOSURE = "conformance/provider-traces/export-closure/evidence.json"
 # Frozen after dependency intake. Catalog changes require explicit evidence review.
-S04_CLOSURE_DIGEST = "4dcf95fa00798450afa1dca39668216dd59349cb824cf792a9da331b2c89de78"
+S04_CLOSURE_DIGEST = "00bc1ecd6cba6f75b435ef6375c86e7ceaf7cf3189daa76f4acd065dd0ce7a85"
 
 
 def closure_catalog(root: Path = ROOT) -> dict[str, Any]:

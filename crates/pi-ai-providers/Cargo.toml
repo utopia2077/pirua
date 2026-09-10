@@ -11,6 +11,7 @@ workspace = true
 
 [features]
 default = []
+wire-openrouter-images = ["dep:url"]
 cloudflare-gateway-binding = ["dep:url", "serde_json/unbounded_depth"]
 wire-openai-codex-responses = ["dep:url"]
 wire-pi-messages = ["dep:url"]

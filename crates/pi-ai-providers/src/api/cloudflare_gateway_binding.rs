@@ -103,6 +103,9 @@ impl GatewayBindingFetch {
             None => tail.to_owned(),
         };
         let text = match &request.body {
+            FetchBody::Absent => {
+                return Err(TransportError::new(TransportErrorKind::InvalidRequest));
+            }
             FetchBody::Text(text) => std::borrow::Cow::Borrowed(text.as_str()),
             FetchBody::Bytes(bytes) => {
                 let bytes = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(bytes);

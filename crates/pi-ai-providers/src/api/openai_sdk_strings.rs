@@ -2,13 +2,13 @@
 
 use pi_ai_core::ProviderEnv;
 
-pub(super) fn trim(value: &str) -> &str {
+pub(crate) fn trim(value: &str) -> &str {
     value.trim_matches(|c| matches!(c, '\u{9}'..='\u{d}' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' | '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}'))
 }
 
 /// SDK readEnv uses the captured ambient value, String.trim, then `|| undefined`.
 /// Pi's scoped provider environment and ordinary header trimming are separate.
-pub(super) fn read_env<'a>(env: &'a ProviderEnv, name: &str) -> Option<&'a str> {
+pub(crate) fn read_env<'a>(env: &'a ProviderEnv, name: &str) -> Option<&'a str> {
     env.as_map()
         .get(name)
         .map(|value| trim(value))
@@ -18,7 +18,7 @@ pub(super) fn read_env<'a>(env: &'a ProviderEnv, name: &str) -> Option<&'a str> 
 /// Settle SDK `parsed = {}` before any HTTP name/value validation. Exact-key
 /// replacement retains its original slot; string __proto__ assignments create
 /// no own entry. This finite string record does not emulate executable objects.
-pub(super) fn custom_headers(value: &str) -> Vec<(&str, &str)> {
+pub(crate) fn custom_headers(value: &str) -> Vec<(&str, &str)> {
     let mut entries: Vec<(&str, &str)> = Vec::new();
     for line in value.split('\n') {
         let Some((name, value)) = line.split_once(':') else {

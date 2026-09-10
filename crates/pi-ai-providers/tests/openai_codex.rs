@@ -167,6 +167,7 @@ impl CustomFetch for Peer {
                 panic!("Codex source supplies constructed Headers");
             };
             let (kind, body) = match &r.body {
+                FetchBody::Absent => panic!("Codex always supplies a body"),
                 FetchBody::Text(v) => ("text", v.as_bytes().to_vec()),
                 FetchBody::Bytes(v) => ("bytes", v.clone()),
             };

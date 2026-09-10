@@ -50,6 +50,8 @@ pub enum FetchHeaders {
 }
 #[derive(Clone)]
 pub enum FetchBody {
+    /// No RequestInit body property. Preserved until a custom/network consumer.
+    Absent,
     Text(String),
     Bytes(Vec<u8>),
 }
@@ -100,6 +102,7 @@ impl FetchRequest {
             }
         };
         let body = match &self.body {
+            FetchBody::Absent => Vec::new(),
             FetchBody::Bytes(bytes) => bytes.clone(),
             FetchBody::Text(text) => {
                 if matches!(self.method.to_ascii_uppercase().as_str(), "GET" | "HEAD") {

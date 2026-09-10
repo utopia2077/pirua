@@ -14,11 +14,12 @@ pub mod simple_options;
 pub mod wire_json;
 
 #[cfg(any(
+    feature = "wire-openrouter-images",
     feature = "wire-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-azure-openai-responses"
 ))]
-mod openai_sdk_strings;
+pub(crate) mod openai_sdk_strings;
 
 #[cfg(any(
     feature = "wire-openai-responses",

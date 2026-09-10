@@ -1,0 +1,6170 @@
+{
+  "node": "v26.8.1",
+  "driverSha256": "4b821c12e81ab1ff183540d260fdba1047b0dd688f36d335d2dba3818bbd9c44",
+  "fetchPresence": [
+    {
+      "form": "absent",
+      "bodyPresent": false,
+      "contentType": null,
+      "text": ""
+    },
+    {
+      "form": "text",
+      "bodyPresent": true,
+      "contentType": "text/plain;charset=UTF-8",
+      "text": ""
+    },
+    {
+      "form": "bytes",
+      "bodyPresent": true,
+      "contentType": null,
+      "text": ""
+    }
+  ],
+  "upstream": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "files": {
+    "packages/ai/src/api/openrouter-images.ts": "c658f331cb2278e7accc925fa72eb3c3902d32d6ff37c4263b6bb6108888d440",
+    "packages/ai/src/utils/error-body.ts": "7170181ae6926709fe4ab7ac6b5b51c46ffe906868a7aac3c7627cb28ad77c09",
+    "packages/ai/src/utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "packages/ai/src/utils/provider-retry.ts": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
+    "packages/ai/src/utils/sanitize-unicode.ts": "f8ef2c957f9f13a77df45ebf344f1b852dfe8f2e3d164d815127ea7290c12e22"
+  },
+  "sdk": {
+    "version": "6.40.0",
+    "files": 279,
+    "sha256": "a6845a58408dd8bc1c746f4033354acd6a102d38e319060c9024efcdff85022e"
+  },
+  "baseResponse": {
+    "id": "synthetic-response",
+    "choices": [
+      {
+        "message": {
+          "content": "caption",
+          "images": [
+            {
+              "image_url": "data:image/png;base64,A==="
+            },
+            {
+              "image_url": {
+                "url": "data:image/webp;base64,+/="
+              }
+            },
+            {
+              "image_url": "https://skip.invalid/a"
+            },
+            {
+              "image_url": "data:image/png;base64,a\nb"
+            },
+            {
+              "image_url": "data:;base64,A"
+            },
+            {
+              "image_url": "data:image/png;base64,"
+            }
+          ]
+        }
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 20,
+      "completion_tokens": 5,
+      "prompt_tokens_details": {
+        "cached_tokens": 8,
+        "cache_write_tokens": 3
+      },
+      "total_tokens": 999
+    }
+  },
+  "admissionCases": [
+    {
+      "id": "numeric-admission-0",
+      "config": {
+        "response": {
+          "id": "kept",
+          "choices": [],
+          "usage": {
+            "completion_tokens": 0.5
+          }
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "kept",
+        "usage": {
+          "input": 0,
+          "output": 0.5,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0.5,
+          "cost": {
+            "input": 0,
+            "output": 0.000001,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000001
+          }
+        }
+      }
+    },
+    {
+      "id": "numeric-admission-1",
+      "config": {
+        "response": {
+          "id": "kept",
+          "choices": [],
+          "usage": {
+            "completion_tokens": -1
+          }
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "kept",
+        "usage": {
+          "input": 0,
+          "output": -1,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": -1,
+          "cost": {
+            "input": 0,
+            "output": -0.000002,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": -0.000002
+          }
+        }
+      }
+    },
+    {
+      "id": "numeric-admission-2",
+      "config": {
+        "response": {
+          "id": "kept",
+          "choices": [],
+          "usage": {
+            "completion_tokens": 9007199254740992
+          }
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "kept",
+        "usage": {
+          "input": 0,
+          "output": 9007199254740992,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 9007199254740992,
+          "cost": {
+            "input": 0,
+            "output": 18014398509.481983,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 18014398509.481983
+          }
+        }
+      }
+    }
+  ],
+  "normalization": [
+    "SDK user-agent -> pi-ai-rust; platform x-stainless headers omitted",
+    "fixed injected timestamp and jitter",
+    "Rust errors compare presence/reason, not synthetic source prose"
+  ],
+  "cases": [
+    {
+      "id": "normal",
+      "config": {},
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "image-only",
+      "config": {
+        "model": {
+          "output": [
+            "image"
+          ]
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "no-key",
+      "config": {
+        "key": ""
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "No API key for provider: openrouter"
+      }
+    },
+    {
+      "id": "header-only-no-key",
+      "config": {
+        "key": "",
+        "headers": {
+          "authorization": "SYNTHETIC_HEADER"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "No API key for provider: openrouter"
+      }
+    },
+    {
+      "id": "whitespace-key",
+      "config": {
+        "key": " "
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "null-auth",
+      "config": {
+        "headers": {
+          "Authorization": null
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "header-order",
+      "config": {
+        "model": {
+          "headers": {
+            "x-first": "model",
+            "x-null": "model"
+          }
+        },
+        "headers": {
+          "X-A": "replacement",
+          "x-a": "later",
+          "x-null": null,
+          "content-type": "wrong"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        },
+        "headers": {
+          "x-first": "model",
+          "x-null": "model"
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-a": "later",
+            "x-first": "model",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "ambient-headers",
+      "config": {
+        "env": {
+          "OPENAI_ORG_ID": " synthetic-org ",
+          "OPENAI_PROJECT_ID": " synthetic-project ",
+          "OPENAI_CUSTOM_HEADERS": "x-env: one\nx-env: two\nAuthorization: SYNTHETIC_ENV"
+        },
+        "headers": {
+          "x-env": "explicit"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "SYNTHETIC_ENV",
+            "content-type": "application/json",
+            "openai-organization": "synthetic-org",
+            "openai-project": "synthetic-project",
+            "user-agent": "pi-ai-rust",
+            "x-env": "explicit",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "bad-header-after-payload",
+      "config": {
+        "headers": {
+          "bad header": "x"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Headers.delete: \"bad header\" is an invalid header name."
+      }
+    },
+    {
+      "id": "bad-header-before-payload",
+      "config": {
+        "env": {
+          "OPENAI_CUSTOM_HEADERS": "bad header: x"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Headers.delete: \"bad header\" is an invalid header name."
+      }
+    },
+    {
+      "id": "payload-null",
+      "config": {
+        "payload": null
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Cannot read properties of null (reading 'stream')"
+      }
+    },
+    {
+      "id": "payload-false",
+      "config": {
+        "payload": false
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "absent"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-zero",
+      "config": {
+        "payload": 0
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "absent"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-empty-string",
+      "config": {
+        "payload": ""
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "absent"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-true",
+      "config": {
+        "payload": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "true"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-number",
+      "config": {
+        "payload": 3.5
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "3.5"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-string",
+      "config": {
+        "payload": "a"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "\"a\""
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-array",
+      "config": {
+        "payload": []
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "[]"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-object",
+      "config": {
+        "payload": {}
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-stream",
+      "config": {
+        "payload": {
+          "stream": true
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"stream\":true}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Cannot read properties of undefined (reading '0')"
+      }
+    },
+    {
+      "id": "payload-mutate",
+      "config": {
+        "mutate": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"],\"extra\":{\"1\":\"one\",\"2\":\"two\",\"z\":1}}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "payload-reject",
+      "config": {
+        "payloadReject": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "SYNTHETIC_PAYLOAD_ERROR"
+      }
+    },
+    {
+      "id": "response-reject",
+      "config": {
+        "responseReject": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "SYNTHETIC_RESPONSE_ERROR"
+      }
+    },
+    {
+      "id": "response-abort",
+      "config": {
+        "responseAbort": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "pre-abort",
+      "config": {
+        "preAbort": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "aborted",
+        "timestamp": 1700000000000,
+        "errorMessage": "Request aborted"
+      }
+    },
+    {
+      "id": "payload-abort",
+      "config": {
+        "payloadAbort": true
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "aborted",
+        "timestamp": 1700000000000,
+        "errorMessage": "Request aborted"
+      }
+    },
+    {
+      "id": "no-choice",
+      "config": {
+        "response": {
+          "id": "empty",
+          "choices": []
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "empty"
+      }
+    },
+    {
+      "id": "no-id-usage",
+      "config": {
+        "response": {
+          "choices": [
+            {
+              "message": {
+                "content": ""
+              }
+            }
+          ]
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000
+      }
+    },
+    {
+      "id": "bad-choices",
+      "config": {
+        "response": {
+          "id": "synthetic-response",
+          "choices": null,
+          "usage": {
+            "prompt_tokens": 20,
+            "completion_tokens": 5,
+            "prompt_tokens_details": {
+              "cached_tokens": 8,
+              "cache_write_tokens": 3
+            },
+            "total_tokens": 999
+          }
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        },
+        "errorMessage": "Cannot read properties of null (reading '0')"
+      }
+    },
+    {
+      "id": "partial-images",
+      "config": {
+        "response": {
+          "id": "synthetic-response",
+          "choices": [
+            {
+              "message": {
+                "content": "retained",
+                "images": [
+                  {
+                    "image_url": "data:image/png;base64,A"
+                  },
+                  null
+                ]
+              }
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 20,
+            "completion_tokens": 5,
+            "prompt_tokens_details": {
+              "cached_tokens": 8,
+              "cache_write_tokens": 3
+            },
+            "total_tokens": 999
+          }
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "retained"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A"
+          }
+        ],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        },
+        "errorMessage": "Cannot read properties of null (reading 'image_url')"
+      }
+    },
+    {
+      "id": "usage-zero",
+      "config": {
+        "response": {
+          "choices": [],
+          "usage": {}
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "usage-negative-prompt",
+      "config": {
+        "response": {
+          "choices": [],
+          "usage": {
+            "prompt_tokens": -2,
+            "completion_tokens": 1
+          }
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "usage": {
+          "input": 0,
+          "output": 1,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 1,
+          "cost": {
+            "input": 0,
+            "output": 0.000002,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0.000002
+          }
+        }
+      }
+    },
+    {
+      "id": "no-usage-null",
+      "config": {
+        "response": {
+          "choices": [],
+          "usage": null
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "stop",
+        "timestamp": 1700000000000
+      }
+    },
+    {
+      "id": "json-invalid",
+      "config": {
+        "raw": "{"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+      }
+    },
+    {
+      "id": "plain-text",
+      "config": {
+        "raw": "synthetic text",
+        "contentType": "text/plain"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "text/plain"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Cannot read properties of undefined (reading '0')"
+      }
+    },
+    {
+      "id": "json-primitive",
+      "config": {
+        "raw": "3"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Cannot read properties of undefined (reading '0')"
+      }
+    },
+    {
+      "id": "json-bom",
+      "config": {
+        "raw": "﻿{\"id\":\"synthetic-response\",\"choices\":[{\"message\":{\"content\":\"caption\",\"images\":[{\"image_url\":\"data:image/png;base64,A===\"},{\"image_url\":{\"url\":\"data:image/webp;base64,+/=\"}},{\"image_url\":\"https://skip.invalid/a\"},{\"image_url\":\"data:image/png;base64,a\\nb\"},{\"image_url\":\"data:;base64,A\"},{\"image_url\":\"data:image/png;base64,\"}]}}],\"usage\":{\"prompt_tokens\":20,\"completion_tokens\":5,\"prompt_tokens_details\":{\"cached_tokens\":8,\"cache_write_tokens\":3},\"total_tokens\":999}}"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "no-content",
+      "config": {
+        "status": 204
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 204,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Cannot read properties of null (reading 'id')"
+      }
+    },
+    {
+      "id": "json-length-zero",
+      "config": {
+        "status": 200,
+        "raw": "",
+        "responseHeaders": {
+          "content-length": "0"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-length": "0",
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Cannot read properties of undefined (reading 'id')"
+      }
+    },
+    {
+      "id": "http-error",
+      "config": {
+        "status": 400,
+        "raw": "{\"error\":{\"message\":\"SYNTHETIC_PROVIDER_FAILURE\"}}"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "400: {\"message\":\"SYNTHETIC_PROVIDER_FAILURE\"}"
+      }
+    },
+    {
+      "id": "retry-success",
+      "config": {
+        "statuses": [
+          429,
+          200
+        ],
+        "maxRetries": 1,
+        "responseHeaders": {
+          "retry-after-ms": "0"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json",
+            "retry-after-ms": "0"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "retry-veto",
+      "config": {
+        "statuses": [
+          500,
+          200
+        ],
+        "maxRetries": 1,
+        "responseHeaders": {
+          "x-should-retry": "false"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "500 status code (no body)"
+      }
+    },
+    {
+      "id": "retry-cap",
+      "config": {
+        "statuses": [
+          429,
+          200
+        ],
+        "maxRetries": 1,
+        "maxRetryDelayMs": 1,
+        "responseHeaders": {
+          "retry-after-ms": "2"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "Server requested 1s retry delay (max: 1s). 429 status code (no body)"
+      }
+    },
+    {
+      "id": "fetch-retry",
+      "config": {
+        "fetchReject": 1,
+        "maxRetries": 1,
+        "responseHeaders": {
+          "retry-after-ms": "0"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json",
+            "retry-after-ms": "0"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "success-read-failure",
+      "config": {
+        "readFailure": 1,
+        "maxRetries": 1
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [],
+        "stopReason": "error",
+        "timestamp": 1700000000000,
+        "errorMessage": "synthetic read failure"
+      }
+    },
+    {
+      "id": "http-read-failure-retry",
+      "config": {
+        "readFailure": 1,
+        "statuses": [
+          500,
+          200
+        ],
+        "maxRetries": 1,
+        "responseHeaders": {
+          "retry-after-ms": "0"
+        }
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json",
+            "retry-after-ms": "0"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "endpoint-query",
+      "config": {
+        "endpoint": "https://synthetic.invalid/api?b=1&b=2&1=x&a=a%20b"
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api?1=x&b=2&a=a%20b%2Fchat%2Fcompletions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "timeout-header",
+      "config": {
+        "timeoutMs": 1501
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0",
+            "x-stainless-timeout": "1"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    },
+    {
+      "id": "timeout-zero",
+      "config": {
+        "timeoutMs": 0
+      },
+      "model": {
+        "id": "synthetic-image",
+        "name": "Synthetic",
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "baseUrl": "https://synthetic.invalid/api",
+        "input": [
+          "text",
+          "image"
+        ],
+        "output": [
+          "image",
+          "text"
+        ],
+        "cost": {
+          "input": 1,
+          "output": 2,
+          "cacheRead": 3,
+          "cacheWrite": 4
+        },
+        "samplingParams": {
+          "ignored": 7
+        }
+      },
+      "context": {
+        "input": [
+          {
+            "type": "text",
+            "text": "hello ☀"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          }
+        ]
+      },
+      "calls": [
+        {
+          "kind": "payload",
+          "value": {
+            "model": "synthetic-image",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hello ☀"
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": "data:image/png;base64,A==="
+                    }
+                  }
+                ]
+              }
+            ],
+            "stream": false,
+            "modalities": [
+              "image",
+              "text"
+            ]
+          }
+        },
+        {
+          "kind": "fetch",
+          "url": "https://synthetic.invalid/api/chat/completions",
+          "method": "POST",
+          "headers": {
+            "accept": "application/json",
+            "authorization": "Bearer SYNTHETIC_IMAGE_KEY",
+            "content-type": "application/json",
+            "user-agent": "pi-ai-rust",
+            "x-stainless-retry-count": "0"
+          },
+          "headerForm": "constructed",
+          "bodyForm": "string",
+          "body": "{\"model\":\"synthetic-image\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello ☀\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/png;base64,A===\"}}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+        },
+        {
+          "kind": "response",
+          "status": 200,
+          "headers": {
+            "content-type": "application/json"
+          }
+        }
+      ],
+      "result": {
+        "api": "openrouter-images",
+        "provider": "openrouter",
+        "model": "synthetic-image",
+        "output": [
+          {
+            "type": "text",
+            "text": "caption"
+          },
+          {
+            "type": "image",
+            "mimeType": "image/png",
+            "data": "A==="
+          },
+          {
+            "type": "image",
+            "mimeType": "image/webp",
+            "data": "+/="
+          }
+        ],
+        "stopReason": "stop",
+        "timestamp": 1700000000000,
+        "responseId": "synthetic-response",
+        "usage": {
+          "input": 12,
+          "output": 5,
+          "cacheRead": 5,
+          "cacheWrite": 3,
+          "totalTokens": 25,
+          "cost": {
+            "input": 0.000012,
+            "output": 0.000009999999999999999,
+            "cacheRead": 0.000015,
+            "cacheWrite": 0.000012,
+            "total": 0.000049
+          }
+        }
+      }
+    }
+  ]
+}

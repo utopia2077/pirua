@@ -103,6 +103,7 @@ impl CustomFetch for Custom {
             }
         };
         let body = match &r.body {
+            FetchBody::Absent => panic!("existing fixtures supply a body"),
             FetchBody::Text(v) => json!({"kind":"text","value":v}),
             FetchBody::Bytes(v) => json!({"kind":"bytes","value":v}),
         };
