@@ -1,0 +1,30 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "hashes": {
+    "packages/ai/src/auth/oauth/pkce.ts": "33835111577490103dbb7509b7687db1643691d7b425845428f3cbeb873fe9cf",
+    "packages/ai/src/auth/helpers.ts": "2799858cc159794451870b86d2e2f50e2bd9453900f31b8ab50bb4ed8ca4a5fc",
+    "packages/ai/src/providers/anthropic.ts": "dda69449a53c84b8b0a17b28f80fba278988d85665557be2db0dc3b20557567a",
+    "packages/ai/src/auth/oauth/load.ts": "2efc92129803bd2eddacaaedfc4328c24c694b2d1916b30606fcc4fceeceacef",
+    "packages/ai/src/env-api-keys.ts": "6876b915ffe1342f8be69ef1f75721c8a265a332a1bbbf5afe36b6f80b332552",
+    "packages/ai/src/utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "packages/ai/src/auth/context.ts": "03101bfa711fad214af111e25328b6f607d6b0a7ebfe289af58a89cd55baf639"
+  },
+  "observations": {
+    "pkce": {
+      "verifier": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "challenge": "6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A"
+    },
+    "emptyStoredFallsThrough": "TWO",
+    "envReads": [
+      "ONE",
+      "TWO"
+    ],
+    "anthropicSource": "ANTHROPIC_AUTH_TOKEN",
+    "bomAbsent": true,
+    "nelPresent": true,
+    "lazyLoadCounts": [
+      1,
+      1
+    ]
+  }
+}

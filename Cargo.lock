@@ -1195,6 +1195,7 @@ dependencies = [
  "log",
  "pi-ai-core",
  "rcgen",
+ "ring",
  "rustls-platform-verifier",
  "serde_json",
  "tokio",

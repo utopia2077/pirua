@@ -10,6 +10,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+ring = { workspace = true, optional = true }
 brotli-decompressor.workspace = true
 flate2.workspace = true
 zstd-safe.workspace = true
@@ -31,6 +32,7 @@ zlib-rs = { workspace = true, optional = true }
 
 [features]
 default = []
+auth-native = ["native", "dep:ring"]
 native = ["dep:base64", "dep:futures-util", "dep:hyper", "dep:h2", "dep:hyper-util", "dep:http-body-util", "dep:rustls-platform-verifier", "dep:tokio", "dep:tokio-rustls", "dep:tokio-tungstenite", "dep:webpki-roots", "dep:zlib-rs"]
 
 [dev-dependencies]
