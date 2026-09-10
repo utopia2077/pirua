@@ -339,6 +339,123 @@ class AiConformanceGenerationTest(unittest.TestCase):
             ),
         )
 
+    def test_s05_scope_partition_preserves_all_accepted_evidence(self):
+        inventory, _ = self.build_export()
+        rows = inventory["rows"]
+        self.assertEqual(inventory["dispositionTotals"], {
+            "s02-dto": 146, "implemented": 284, "rust-nonapplicable": 24,
+            "mapped-s05": 114, "owner-excluded": 125, "external-schema-projection": 6,
+        })
+        self.assertEqual(inventory["selectedProviderScope"]["scopeTotals"], {
+            "selected": 17, "shared": 97, "owner-excluded": 125, "rust-platform": 2,
+        })
+        original_nonapplicable = [row for row in rows if row["disposition"] == "rust-nonapplicable"
+                                  and row["owner"] != "S05-platform-replacement"]
+        self.assertEqual(len(original_nonapplicable), 22)
+        self.assertEqual(generator.canonical_json_digest({"rows": original_nonapplicable}),
+            "001c3de26f703e4aa7ba1cc13034175452cb7a521b4066b7935ff77f3d84b9b1")
+        self.assertEqual(generator.canonical_json_digest({"rows": [row for row in rows
+            if row["evidence"].startswith("s04-export:")]}),
+            "c9ea7f49563886c7145fd9b62a740433c1624d18364adae5c53712566fcbe9a0")
+        aliases = [row for row in rows if row["origin"] == "packages/ai/src/legacy-api-aliases.ts"]
+        self.assertEqual(len(aliases), 16)
+        self.assertTrue(all(row["disposition"] == "mapped-s05" for row in aliases))
+        by_name = {row["name"]: row for row in rows}
+        self.assertEqual(by_name["bedrockProviderModule"]["disposition"], "mapped-s05")
+        for name in ("amazonBedrockProvider", "AMAZON_BEDROCK_MODELS", "registerFauxProvider"):
+            self.assertEqual(by_name[name]["disposition"], "owner-excluded")
+        for name in ("registerBunOAuthFlows", "default"):
+            self.assertEqual(by_name[name]["owner"], "S05-platform-replacement")
+
+    def test_s05_count_preserving_factory_and_shared_alias_exclusions_fail(self):
+        for retained, excluded in (
+            ("./providers/openai:openaiProvider", "./providers/amazon-bedrock:amazonBedrockProvider"),
+            ("./bedrock-provider:bedrockProviderModule", "./providers/amazon-bedrock:amazonBedrockProvider"),
+            ("./compat:streamMistral", "./compat:registerFauxProvider"),
+        ):
+            with self.subTest(retained=retained):
+                mapping = copy.deepcopy(self.mapping)
+                retained_rule = next(rule for rule in mapping["rule"] if retained in rule.get("occurrences", []))
+                excluded_rule = next(rule for rule in mapping["rule"] if excluded in rule.get("occurrences", []))
+                retained_rule["occurrences"].remove(retained)
+                retained_rule["occurrences"].append(excluded)
+                excluded_rule["occurrences"].remove(excluded)
+                excluded_rule["occurrences"].append(retained)
+                self.assert_fails("scope disposition contradicts source decision",
+                                  lambda: self.build_export(mapping=mapping))
+
+    def test_s05_exclusions_require_owner_decision_and_never_claim_implementation(self):
+        for field in ("reason", "replacement", "decision_reference", "revisit_trigger"):
+            mapping = copy.deepcopy(self.mapping)
+            rule = next(rule for rule in mapping["rule"] if rule["disposition"] == "owner-excluded")
+            del rule[field]
+            self.assert_fails("rationale fields", lambda: self.build_export(mapping=mapping))
+        for field, value, diagnostic in (
+            ("evidence", "future:conformance/providers", "present implementation claims future evidence"),
+            ("compile_probe", True, "invalid exact Rust target"),
+            ("rust_target", "pi_ai::InventedFactory", "cannot claim a Rust product target"),
+            ("decision_reference", "unrelated-owner-decision", "selected-scope owner decision"),
+        ):
+            mapping = copy.deepcopy(self.mapping)
+            next(rule for rule in mapping["rule"] if rule["disposition"] == "owner-excluded")[field] = value
+            self.assert_fails(diagnostic, lambda: self.build_export(mapping=mapping))
+
+    def test_s05_scope_ledger_has_independent_factory_and_wrapper_controls(self):
+        inventory, _ = self.build_export()
+        scope = generator.load_json(ROOT / generator.SELECTED_SCOPE_PATH)
+        mutated = copy.deepcopy(scope)
+        mutated["selectedSourceEntries"][-1]["providerId"] = "openrouter-images"
+        self.assert_fails("exact six text and one image", lambda: generator.validate_selected_provider_scope(
+            inventory["rows"], document=mutated))
+        for retained_name, excluded_name, diagnostic in (
+            ("openaiProvider", "amazonBedrockProvider", "factory source classification"),
+            ("streamMistral", "registerFauxProvider", "Faux compatibility registration remains owner-excluded"),
+            ("bedrockProviderModule", "RadiusProviderOptions", "must remain shared"),
+        ):
+            mutated = copy.deepcopy(scope)
+            left = next(row for row in mutated["rows"] if row["name"] == retained_name)
+            right = next(row for row in mutated["rows"] if row["name"] == excluded_name)
+            left["scope"], right["scope"] = right["scope"], left["scope"]
+            # Rehashing a count-preserving ledger cannot change actual selected factories or shared wrappers.
+            with mock.patch.object(generator, "SELECTED_SCOPE_DIGEST", generator.canonical_json_digest(mutated)):
+                self.assert_fails(diagnostic, lambda: generator.validate_selected_provider_scope(
+                    inventory["rows"], document=mutated))
+        mutated = copy.deepcopy(scope)
+        mutated["rows"].pop()
+        self.assert_fails("all 241 source occurrences", lambda: generator.validate_selected_provider_scope(
+            inventory["rows"], document=mutated))
+        rows = copy.deepcopy(inventory["rows"])
+        target = next(row for row in rows if row["name"] == "openaiProvider")
+        target["key"] = "./providers/synthetic:syntheticProvider"
+        self.assert_fails("source identity missing or changed", lambda: generator.validate_selected_provider_scope(rows))
+
+    def test_s05_new_source_factory_and_changed_image_namespace_are_rejected(self):
+        inventory, _ = self.build_export()
+        providers = generator.load_toml(ROOT / "upstream/manifests/providers.toml")
+        for change, diagnostic in (("new", "factory source classification"),
+                                   ("image-id", "source entry IDs disagree")):
+            mutated = copy.deepcopy(providers)
+            if change == "new":
+                extra = copy.deepcopy(mutated["provider"][0])
+                extra.update(module="synthetic-new", factory_symbol="syntheticNewProvider",
+                             provider_ids=["synthetic-new"])
+                mutated["provider"].append(extra)
+            else:
+                next(entry for entry in mutated["provider"] if entry["kind"] == "image")["provider_ids"] = ["openrouter-images"]
+            with mock.patch.object(generator, "load_toml", return_value=mutated):
+                self.assert_fails(diagnostic, lambda: generator.validate_selected_provider_scope(inventory["rows"]))
+
+    def test_s05_scope_cannot_turn_a_retained_future_into_unproved_implementation(self):
+        inventory, _ = self.build_export()
+        rows = copy.deepcopy(inventory["rows"])
+        next(row for row in rows if row["name"] == "openaiProvider")["disposition"] = "implemented"
+        # The scope ledger allows progress; mapping/evidence checks still require the actual proof.
+        generator.validate_selected_provider_scope(rows)
+        mapping = copy.deepcopy(self.mapping)
+        next(rule for rule in mapping["rule"] if rule["id"] == "s05-provider-factories")["disposition"] = "implemented"
+        self.assert_fails("present projection lacks an exact target compile probe",
+                          lambda: self.build_export(mapping=mapping))
+
 
 class S04ExportExecutionTest(unittest.TestCase):
     @classmethod

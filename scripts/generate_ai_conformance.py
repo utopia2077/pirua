@@ -40,8 +40,9 @@ EXPECTED_SUBPATH_COUNTS = {".": 200, "./compat": 260, "other": 239}
 EXPECTED_DISPOSITIONS = {
     "s02-dto": 146,
     "implemented": 284,
-    "rust-nonapplicable": 22,
-    "mapped-s05": 241,
+    "rust-nonapplicable": 24,
+    "mapped-s05": 114,
+    "owner-excluded": 125,
     "external-schema-projection": 6,
 }
 EXPECTED_SURFACES = {
@@ -56,6 +57,13 @@ EXPECTED_SURFACES = {
     "ai.provider-factories": 76,
     "external": 6,
 }
+SELECTED_SCOPE_PATH = "conformance/ai-domain/selected-provider-scope.json"
+SELECTED_SCOPE_DECISION = "docs/scope.md#selected-provider-scope"
+SELECTED_TEXT_ENTRIES = ("openai", "google", "anthropic", "deepseek", "openai-codex", "openrouter")
+SELECTED_SCOPE_TOTALS = {"selected": 17, "shared": 97, "owner-excluded": 125, "rust-platform": 2}
+# Frozen scope identity and decision evidence; implementation progress does not rewrite this ledger.
+SELECTED_SCOPE_DIGEST = "e7ea5a0505582c17eb7bca608e88037023d815b93cd01b1e0a9939cf6daaceda"
+
 EXTERNAL_KEYS = {
     ".:Static",
     ".:TSchema",
@@ -407,6 +415,7 @@ def rule_matches(rule: dict[str, Any], symbol: dict[str, Any], surface: str) -> 
         "names": symbol.get("name"),
         "origins": symbol.get("origin"),
         "surfaces": surface,
+        "occurrences": f"{symbol.get('subpath')}:{symbol.get('name')}",
     }
     constrained = False
     for field, value in selectors.items():
@@ -494,7 +503,7 @@ def validate_evidence(
         if disposition not in {"mapped-s04", "mapped-s05"}:
             raise ConformanceError(f"present implementation claims future evidence: {rule.get('id')}")
     elif kind == "decision":
-        if disposition != "rust-nonapplicable":
+        if disposition not in {"rust-nonapplicable", "owner-excluded"}:
             raise ConformanceError(f"non-decision row uses decision evidence: {rule.get('id')}")
         path_value = value.split("#", 1)[0]
         try:
@@ -503,6 +512,13 @@ def validate_evidence(
             raise ConformanceError(f"decision evidence path is missing: {evidence}") from error
     else:
         raise ConformanceError(f"unknown evidence kind: {kind}")
+    if disposition == "owner-excluded":
+        if kind != "decision" or rule.get("compile_probe"):
+            raise ConformanceError("owner exclusion must use a decision without an implementation probe")
+        if rule.get("rust_target") != "none:owner-scope-exclusion":
+            raise ConformanceError("owner exclusion cannot claim a Rust product target")
+        if evidence != "decision:" + SELECTED_SCOPE_DECISION or rule.get("decision_reference") != SELECTED_SCOPE_DECISION:
+            raise ConformanceError("owner exclusion lacks the selected-scope owner decision")
     if disposition in {"implemented", "s02-dto"} and not rule.get("compile_probe"):
         raise ConformanceError(f"present projection lacks an exact target probe: {rule.get('id')}")
     if disposition == "s02-dto" and not evidence.startswith(
@@ -511,7 +527,7 @@ def validate_evidence(
         raise ConformanceError(f"S02 projection lacks schema evidence: {rule.get('id')}")
     if disposition in {"mapped-s04", "mapped-s05"} and rule.get("compile_probe"):
         raise ConformanceError(f"deferred projection claims a present implementation: {rule.get('id')}")
-    if disposition == "rust-nonapplicable":
+    if disposition in {"rust-nonapplicable", "owner-excluded"}:
         required = ("reason", "replacement", "decision_reference", "revisit_trigger")
         if any(not isinstance(rule.get(field), str) or not rule[field] for field in required):
             raise ConformanceError(f"nonapplicable rule lacks rationale fields: {rule.get('id')}")
@@ -554,7 +570,7 @@ def validate_mapping_header(mapping: dict[str, Any]) -> list[dict[str, Any]]:
         if rule.get("target_mode") not in {None, "same-name"}:
             raise ConformanceError(f"unknown target mode: {rule.get('id')}")
         selector_count = 0
-        for field in ("subpaths", "names", "origins", "surfaces"):
+        for field in ("subpaths", "names", "origins", "surfaces", "occurrences"):
             values = rule.get(field)
             if values is None:
                 continue
@@ -598,7 +614,7 @@ def validate_mapping_header(mapping: dict[str, Any]) -> list[dict[str, Any]]:
             raise ConformanceError(
                 f"deferred projection claims a present implementation: {rule.get('id')}"
             )
-        if disposition == "rust-nonapplicable":
+        if disposition in {"rust-nonapplicable", "owner-excluded"}:
             required = ("reason", "replacement", "decision_reference", "revisit_trigger")
             if any(
                 not isinstance(rule.get(field), str) or not rule[field]
@@ -608,6 +624,80 @@ def validate_mapping_header(mapping: dict[str, Any]) -> list[dict[str, Any]]:
                     f"nonapplicable rule lacks rationale fields: {rule.get('id')}"
                 )
     return rules
+
+
+def validate_selected_provider_scope(
+    rows: list[dict[str, Any]], root: Path = ROOT, *, document: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Keep product scope independent of implementation progress and shared wire coverage."""
+    scope = load_json(root / SELECTED_SCOPE_PATH) if document is None else document
+    if (scope.get("schemaVersion") != 1 or scope.get("sourceCommit") != SOURCE_COMMIT
+            or scope.get("decisionReference") != SELECTED_SCOPE_DECISION):
+        raise ConformanceError("selected provider scope authority changed")
+    selected = [{"kind": "text", "module": name, "providerId": name} for name in SELECTED_TEXT_ENTRIES]
+    selected.append({"kind": "image", "module": "openrouter-images", "providerId": "openrouter"})
+    if scope.get("selectedSourceEntries") != selected:
+        raise ConformanceError("selected provider scope must contain the exact six text and one image entries")
+    proposal = (root / SELECTED_SCOPE_DECISION.split("#", 1)[0]).read_text(encoding="utf-8")
+    source_entries = re.findall(r"^\| (text|images) \| `([^`]+)` \|", proposal, re.MULTILINE)
+    if source_entries != [("text", name) for name in SELECTED_TEXT_ENTRIES] + [("images", "openrouter-images")]:
+        raise ConformanceError("selected provider scope disagrees with the owner proposal")
+    entries = scope.get("rows")
+    if not isinstance(entries, list) or len(entries) != 241:
+        raise ConformanceError("selected provider scope must retain all 241 source occurrences")
+    if any(not isinstance(entry, dict) or set(entry) != {"key", "origin", "name", "scope"}
+           or any(not isinstance(value, str) or not value for value in entry.values()) for entry in entries):
+        raise ConformanceError("selected provider scope occurrence fields changed")
+    keys = [entry["key"] for entry in entries]
+    if keys != sorted(set(keys)):
+        raise ConformanceError("selected provider scope source occurrences collapsed or reordered")
+    if scope.get("scopeTotals") != SELECTED_SCOPE_TOTALS or dict(collections.Counter(
+            entry["scope"] for entry in entries)) != SELECTED_SCOPE_TOTALS:
+        raise ConformanceError("selected provider scope exact partition changed")
+    # Validate source factory selection independently of the frozen ledger digest. This
+    # distinguishes Bedrock's accepted wire wrapper from its excluded product factory.
+    providers = load_toml(root / "upstream/manifests/providers.toml")["provider"]
+    selected_manifest = {(provider["kind"], provider["module"]): provider["provider_ids"]
+                         for provider in providers
+                         if (provider["kind"], provider["module"]) in
+                         {(entry["kind"], entry["module"]) for entry in selected}}
+    if selected_manifest != {(entry["kind"], entry["module"]): [entry["providerId"]] for entry in selected}:
+        raise ConformanceError("selected provider source entry IDs disagree with the upstream manifest")
+    factory_scopes = {}
+    for provider in providers:
+        origin = f"packages/ai/src/providers/{provider['module']}.ts"
+        chosen = (provider["kind"] == "text" and provider["module"] in SELECTED_TEXT_ENTRIES
+                  or provider["kind"] == "image" and provider["module"] == "openrouter-images")
+        factory_scopes[(origin, provider["factory_symbol"])] = "selected" if chosen else "owner-excluded"
+    factories = {(entry["origin"], entry["name"]): entry["scope"] for entry in entries
+                 if (entry["origin"], entry["name"]) in factory_scopes}
+    if factories != factory_scopes:
+        raise ConformanceError("selected provider factory source classification changed")
+    for entry in entries:
+        if entry["origin"] in {"packages/ai/src/legacy-api-aliases.ts", "packages/ai/src/bedrock-provider.ts"}:
+            if entry["scope"] != "shared":
+                raise ConformanceError("accepted legacy aliases and Bedrock wire wrapper must remain shared")
+        if entry["origin"] == "packages/ai/src/compat.ts" and entry["name"] == "registerFauxProvider":
+            if entry["scope"] != "owner-excluded":
+                raise ConformanceError("public Faux compatibility registration remains owner-excluded")
+    if canonical_json_digest(scope) != SELECTED_SCOPE_DIGEST:
+        raise ConformanceError("selected provider scope frozen source ledger changed")
+    by_key = {row["key"]: row for row in rows}
+    # Future retained rows may become implemented, but they must pass the original
+    # typed-target/evidence validation above. Scope never grants implementation status.
+    allowed = {"selected": {"mapped-s05", "implemented"}, "shared": {"mapped-s05", "implemented"},
+               "owner-excluded": {"owner-excluded"}, "rust-platform": {"rust-nonapplicable"}}
+    for entry in entries:
+        row = by_key.get(entry["key"])
+        if row is None or any(row[field] != entry[field] for field in ("origin", "name")):
+            raise ConformanceError("selected provider scope source identity missing or changed: " + entry["key"])
+        if row["disposition"] not in allowed[entry["scope"]]:
+            raise ConformanceError("selected provider scope disposition contradicts source decision: " + entry["key"])
+    scoped_keys = set(keys)
+    if any(row["key"] not in scoped_keys and row["disposition"] in {"mapped-s05", "owner-excluded"}
+           for row in rows):
+        raise ConformanceError("S05 disposition lacks an explicit source scope decision")
+    return scope
 
 
 def build_export_inventory(
@@ -721,7 +811,7 @@ def build_export_inventory(
             "evidence": evidence,
             "ruleId": rule["id"],
         }
-        if rule["disposition"] == "rust-nonapplicable":
+        if rule["disposition"] in {"rust-nonapplicable", "owner-excluded"}:
             for field in ("reason", "replacement", "decision_reference", "revisit_trigger"):
                 row[field] = rule[field]
         if evidence.startswith("s04-export:"):
@@ -729,6 +819,8 @@ def build_export_inventory(
             row["executedTests"] = entry["tests"]
             row["sourceOracles"] = entry["sources"]
         rows.append(row)
+
+    scope = validate_selected_provider_scope(rows, root)
 
     if has_closure:
         if len(s04_occurrences) != 161:
@@ -773,6 +865,12 @@ def build_export_inventory(
             "expectedRows": EXPECTED_EXPORT_ROWS,
             "dispositionTotals": EXPECTED_DISPOSITIONS,
             "surfaceTotals": EXPECTED_SURFACES,
+            "selectedProviderScope": {
+                "sourceOccurrences": len(scope["rows"]),
+                "scopeTotals": scope["scopeTotals"],
+                "decisionReference": scope["decisionReference"],
+                "digest": canonical_json_digest(scope),
+            },
             "rows": rows,
             **({"s04Occurrences": len(s04_occurrences),
                 "s04UniqueSourceSymbols": len(catalog["exports"]),

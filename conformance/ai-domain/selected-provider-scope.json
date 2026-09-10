@@ -1,0 +1,1496 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "decisionReference": "docs/scope.md#selected-provider-scope",
+  "selectedSourceEntries": [
+    {
+      "kind": "text",
+      "module": "openai",
+      "providerId": "openai"
+    },
+    {
+      "kind": "text",
+      "module": "google",
+      "providerId": "google"
+    },
+    {
+      "kind": "text",
+      "module": "anthropic",
+      "providerId": "anthropic"
+    },
+    {
+      "kind": "text",
+      "module": "deepseek",
+      "providerId": "deepseek"
+    },
+    {
+      "kind": "text",
+      "module": "openai-codex",
+      "providerId": "openai-codex"
+    },
+    {
+      "kind": "text",
+      "module": "openrouter",
+      "providerId": "openrouter"
+    },
+    {
+      "kind": "image",
+      "module": "openrouter-images",
+      "providerId": "openrouter"
+    }
+  ],
+  "scopeTotals": {
+    "selected": 17,
+    "shared": 97,
+    "owner-excluded": 125,
+    "rust-platform": 2
+  },
+  "rows": [
+    {
+      "key": "./api/openrouter-images.lazy:openrouterImagesApi",
+      "origin": "packages/ai/src/api/openrouter-images.lazy.ts",
+      "name": "openrouterImagesApi",
+      "scope": "selected"
+    },
+    {
+      "key": "./api/openrouter-images:generateImages",
+      "origin": "packages/ai/src/api/openrouter-images.ts",
+      "name": "generateImages",
+      "scope": "selected"
+    },
+    {
+      "key": "./bedrock-provider:bedrockProviderModule",
+      "origin": "packages/ai/src/bedrock-provider.ts",
+      "name": "bedrockProviderModule",
+      "scope": "shared"
+    },
+    {
+      "key": "./bun-oauth:registerBunOAuthFlows",
+      "origin": "packages/ai/src/bun-oauth.ts",
+      "name": "registerBunOAuthFlows",
+      "scope": "rust-platform"
+    },
+    {
+      "key": "./compat:ANTHROPIC_API_KEY_ENV",
+      "origin": "packages/ai/src/env-api-keys.ts",
+      "name": "ANTHROPIC_API_KEY_ENV",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ANTHROPIC_AUTH_TOKEN_ENV",
+      "origin": "packages/ai/src/env-api-keys.ts",
+      "name": "ANTHROPIC_AUTH_TOKEN_ENV",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ANTHROPIC_OAUTH_TOKEN_ENV",
+      "origin": "packages/ai/src/env-api-keys.ts",
+      "name": "ANTHROPIC_OAUTH_TOKEN_ENV",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ApiProvider",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "ApiProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ApiStreamFunction",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "ApiStreamFunction",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ApiStreamSimpleFunction",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "ApiStreamSimpleFunction",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:BuiltinProvider",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "BuiltinProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:CreateImagesProviderOptions",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "CreateImagesProviderOptions",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:FauxContentBlock",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxContentBlock",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:FauxModelDefinition",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxModelDefinition",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:FauxProviderHandle",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderHandle",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:FauxProviderRegistration",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderRegistration",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:FauxProviderState",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderState",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:FauxResponseFactory",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxResponseFactory",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:FauxResponseStep",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxResponseStep",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:ImagesApiFunction",
+      "origin": "packages/ai/src/images-api-registry.ts",
+      "name": "ImagesApiFunction",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ImagesApiProvider",
+      "origin": "packages/ai/src/images-api-registry.ts",
+      "name": "ImagesApiProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ImagesModels",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "ImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:ImagesProvider",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "ImagesProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:MutableImagesModels",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "MutableImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:OAuthAuthInfo",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthAuthInfo",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:OAuthDeviceCodeInfo",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthDeviceCodeInfo",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:OAuthLoginCallbacks",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthLoginCallbacks",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:OAuthPrompt",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthPrompt",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:OAuthSelectOption",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthSelectOption",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:OAuthSelectPrompt",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthSelectPrompt",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:RegisterFauxProviderOptions",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "RegisterFauxProviderOptions",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:RetryCallbacks",
+      "origin": "packages/ai/src/utils/retry.ts",
+      "name": "RetryCallbacks",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:complete",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "complete",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:completeSimple",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "completeSimple",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:createFauxCore",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "createFauxCore",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:createImagesModels",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "createImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:createImagesProvider",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "createImagesProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:defaultProviderAuthContext",
+      "origin": "packages/ai/src/auth/context.ts",
+      "name": "defaultProviderAuthContext",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:envApiKeyAuth",
+      "origin": "packages/ai/src/auth/helpers.ts",
+      "name": "envApiKeyAuth",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:fauxAssistantMessage",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxAssistantMessage",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:fauxProvider",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:fauxText",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxText",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:fauxThinking",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxThinking",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:fauxToolCall",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxToolCall",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:findEnvKeys",
+      "origin": "packages/ai/src/env-api-keys.ts",
+      "name": "findEnvKeys",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:generateImages",
+      "origin": "packages/ai/src/images.ts",
+      "name": "generateImages",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:generateImagesOpenRouter",
+      "origin": "packages/ai/src/providers/images/register-builtins.ts",
+      "name": "generateImagesOpenRouter",
+      "scope": "selected"
+    },
+    {
+      "key": "./compat:getApiProvider",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "getApiProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getApiProviders",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "getApiProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getEnvApiKey",
+      "origin": "packages/ai/src/env-api-keys.ts",
+      "name": "getEnvApiKey",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getImageModel",
+      "origin": "packages/ai/src/image-models.ts",
+      "name": "getImageModel",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getImageModels",
+      "origin": "packages/ai/src/image-models.ts",
+      "name": "getImageModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getImageProviders",
+      "origin": "packages/ai/src/image-models.ts",
+      "name": "getImageProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getImagesApiProvider",
+      "origin": "packages/ai/src/images-api-registry.ts",
+      "name": "getImagesApiProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getModel",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "getModel",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getModels",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "getModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:getProviders",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "getProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:lazyOAuth",
+      "origin": "packages/ai/src/auth/helpers.ts",
+      "name": "lazyOAuth",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:registerApiProvider",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "registerApiProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:registerBuiltInApiProviders",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "registerBuiltInApiProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:registerBuiltInImagesApiProviders",
+      "origin": "packages/ai/src/providers/images/register-builtins.ts",
+      "name": "registerBuiltInImagesApiProviders",
+      "scope": "selected"
+    },
+    {
+      "key": "./compat:registerFauxProvider",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "registerFauxProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./compat:registerImagesApiProvider",
+      "origin": "packages/ai/src/images-api-registry.ts",
+      "name": "registerImagesApiProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:resetApiProviders",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "resetApiProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:retryAssistantCall",
+      "origin": "packages/ai/src/utils/retry.ts",
+      "name": "retryAssistantCall",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:stream",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "stream",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamAnthropic",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamAnthropic",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamAzureOpenAIResponses",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamAzureOpenAIResponses",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamGoogle",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamGoogle",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamGoogleVertex",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamGoogleVertex",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamMistral",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamMistral",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamOpenAICodexResponses",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamOpenAICodexResponses",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamOpenAICompletions",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamOpenAICompletions",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamOpenAIResponses",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamOpenAIResponses",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimple",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "streamSimple",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleAnthropic",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleAnthropic",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleAzureOpenAIResponses",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleAzureOpenAIResponses",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleGoogle",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleGoogle",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleGoogleVertex",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleGoogleVertex",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleMistral",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleMistral",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleOpenAICodexResponses",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleOpenAICodexResponses",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleOpenAICompletions",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleOpenAICompletions",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:streamSimpleOpenAIResponses",
+      "origin": "packages/ai/src/legacy-api-aliases.ts",
+      "name": "streamSimpleOpenAIResponses",
+      "scope": "shared"
+    },
+    {
+      "key": "./compat:unregisterApiProviders",
+      "origin": "packages/ai/src/compat.ts",
+      "name": "unregisterApiProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthAuthInfo",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthAuthInfo",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthCredentials",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthCredentials",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthDeviceCodeInfo",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthDeviceCodeInfo",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthLoginCallbacks",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthLoginCallbacks",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthPrompt",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthPrompt",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthSelectOption",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthSelectOption",
+      "scope": "shared"
+    },
+    {
+      "key": "./oauth:OAuthSelectPrompt",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthSelectPrompt",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:BuiltinProvider",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "BuiltinProvider",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:builtinImagesModels",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "builtinImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:builtinImagesProviders",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "builtinImagesProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:builtinModels",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "builtinModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:builtinProviders",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "builtinProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:getBuiltinModel",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "getBuiltinModel",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:getBuiltinModelDataGeneratedAt",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "getBuiltinModelDataGeneratedAt",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:getBuiltinModels",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "getBuiltinModels",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:getBuiltinProviders",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "getBuiltinProviders",
+      "scope": "shared"
+    },
+    {
+      "key": "./providers/all:radiusProvider",
+      "origin": "packages/ai/src/providers/all.ts",
+      "name": "radiusProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/amazon-bedrock.models:AMAZON_BEDROCK_MODELS",
+      "origin": "packages/ai/src/providers/amazon-bedrock.models.ts",
+      "name": "AMAZON_BEDROCK_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/amazon-bedrock:amazonBedrockProvider",
+      "origin": "packages/ai/src/providers/amazon-bedrock.ts",
+      "name": "amazonBedrockProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/ant-ling.models:ANT_LING_MODELS",
+      "origin": "packages/ai/src/providers/ant-ling.models.ts",
+      "name": "ANT_LING_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/ant-ling:antLingProvider",
+      "origin": "packages/ai/src/providers/ant-ling.ts",
+      "name": "antLingProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/anthropic.models:ANTHROPIC_MODELS",
+      "origin": "packages/ai/src/providers/anthropic.models.ts",
+      "name": "ANTHROPIC_MODELS",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/anthropic:anthropicProvider",
+      "origin": "packages/ai/src/providers/anthropic.ts",
+      "name": "anthropicProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/azure-openai-responses.models:AZURE_OPENAI_RESPONSES_MODELS",
+      "origin": "packages/ai/src/providers/azure-openai-responses.models.ts",
+      "name": "AZURE_OPENAI_RESPONSES_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/azure-openai-responses:azureOpenAIResponsesProvider",
+      "origin": "packages/ai/src/providers/azure-openai-responses.ts",
+      "name": "azureOpenAIResponsesProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/baseten.models:BASETEN_MODELS",
+      "origin": "packages/ai/src/providers/baseten.models.ts",
+      "name": "BASETEN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/baseten:basetenProvider",
+      "origin": "packages/ai/src/providers/baseten.ts",
+      "name": "basetenProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cerebras.models:CEREBRAS_MODELS",
+      "origin": "packages/ai/src/providers/cerebras.models.ts",
+      "name": "CEREBRAS_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cerebras:cerebrasProvider",
+      "origin": "packages/ai/src/providers/cerebras.ts",
+      "name": "cerebrasProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-ai-gateway.models:CLOUDFLARE_AI_GATEWAY_MODELS",
+      "origin": "packages/ai/src/providers/cloudflare-ai-gateway.models.ts",
+      "name": "CLOUDFLARE_AI_GATEWAY_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-ai-gateway:cloudflareAIGatewayProvider",
+      "origin": "packages/ai/src/providers/cloudflare-ai-gateway.ts",
+      "name": "cloudflareAIGatewayProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-auth:cloudflareAIGatewayAuth",
+      "origin": "packages/ai/src/providers/cloudflare-auth.ts",
+      "name": "cloudflareAIGatewayAuth",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-auth:cloudflareWorkersAIAuth",
+      "origin": "packages/ai/src/providers/cloudflare-auth.ts",
+      "name": "cloudflareWorkersAIAuth",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-stream:cloudflareStreams",
+      "origin": "packages/ai/src/providers/cloudflare-stream.ts",
+      "name": "cloudflareStreams",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-stream:resolveCloudflareModel",
+      "origin": "packages/ai/src/providers/cloudflare-stream.ts",
+      "name": "resolveCloudflareModel",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-workers-ai.models:CLOUDFLARE_WORKERS_AI_MODELS",
+      "origin": "packages/ai/src/providers/cloudflare-workers-ai.models.ts",
+      "name": "CLOUDFLARE_WORKERS_AI_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/cloudflare-workers-ai:cloudflareWorkersAIProvider",
+      "origin": "packages/ai/src/providers/cloudflare-workers-ai.ts",
+      "name": "cloudflareWorkersAIProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/data-json.d:default",
+      "origin": "packages/ai/src/providers/data-json.d.ts",
+      "name": "default",
+      "scope": "rust-platform"
+    },
+    {
+      "key": "./providers/deepseek.models:DEEPSEEK_MODELS",
+      "origin": "packages/ai/src/providers/deepseek.models.ts",
+      "name": "DEEPSEEK_MODELS",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/deepseek:deepseekProvider",
+      "origin": "packages/ai/src/providers/deepseek.ts",
+      "name": "deepseekProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/faux:FauxContentBlock",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxContentBlock",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:FauxModelDefinition",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxModelDefinition",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:FauxProviderHandle",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderHandle",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:FauxProviderRegistration",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderRegistration",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:FauxProviderState",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderState",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:FauxResponseFactory",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxResponseFactory",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:FauxResponseStep",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxResponseStep",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:RegisterFauxProviderOptions",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "RegisterFauxProviderOptions",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:createFauxCore",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "createFauxCore",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:fauxAssistantMessage",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxAssistantMessage",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:fauxProvider",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:fauxText",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxText",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:fauxThinking",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxThinking",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/faux:fauxToolCall",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxToolCall",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/fireworks.models:FIREWORKS_MODELS",
+      "origin": "packages/ai/src/providers/fireworks.models.ts",
+      "name": "FIREWORKS_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/fireworks:fireworksProvider",
+      "origin": "packages/ai/src/providers/fireworks.ts",
+      "name": "fireworksProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/github-copilot.models:GITHUB_COPILOT_MODELS",
+      "origin": "packages/ai/src/providers/github-copilot.models.ts",
+      "name": "GITHUB_COPILOT_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/github-copilot:githubCopilotProvider",
+      "origin": "packages/ai/src/providers/github-copilot.ts",
+      "name": "githubCopilotProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/google-vertex.models:GOOGLE_VERTEX_MODELS",
+      "origin": "packages/ai/src/providers/google-vertex.models.ts",
+      "name": "GOOGLE_VERTEX_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/google-vertex:googleVertexProvider",
+      "origin": "packages/ai/src/providers/google-vertex.ts",
+      "name": "googleVertexProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/google.models:GOOGLE_MODELS",
+      "origin": "packages/ai/src/providers/google.models.ts",
+      "name": "GOOGLE_MODELS",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/google:googleProvider",
+      "origin": "packages/ai/src/providers/google.ts",
+      "name": "googleProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/groq.models:GROQ_MODELS",
+      "origin": "packages/ai/src/providers/groq.models.ts",
+      "name": "GROQ_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/groq:groqProvider",
+      "origin": "packages/ai/src/providers/groq.ts",
+      "name": "groqProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/huggingface.models:HUGGINGFACE_MODELS",
+      "origin": "packages/ai/src/providers/huggingface.models.ts",
+      "name": "HUGGINGFACE_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/huggingface:huggingfaceProvider",
+      "origin": "packages/ai/src/providers/huggingface.ts",
+      "name": "huggingfaceProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/kimi-coding.models:KIMI_CODING_MODELS",
+      "origin": "packages/ai/src/providers/kimi-coding.models.ts",
+      "name": "KIMI_CODING_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/kimi-coding:kimiCodingProvider",
+      "origin": "packages/ai/src/providers/kimi-coding.ts",
+      "name": "kimiCodingProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/minimax-cn.models:MINIMAX_CN_MODELS",
+      "origin": "packages/ai/src/providers/minimax-cn.models.ts",
+      "name": "MINIMAX_CN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/minimax-cn:minimaxCnProvider",
+      "origin": "packages/ai/src/providers/minimax-cn.ts",
+      "name": "minimaxCnProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/minimax.models:MINIMAX_MODELS",
+      "origin": "packages/ai/src/providers/minimax.models.ts",
+      "name": "MINIMAX_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/minimax:minimaxProvider",
+      "origin": "packages/ai/src/providers/minimax.ts",
+      "name": "minimaxProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/mistral.models:MISTRAL_MODELS",
+      "origin": "packages/ai/src/providers/mistral.models.ts",
+      "name": "MISTRAL_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/mistral:mistralProvider",
+      "origin": "packages/ai/src/providers/mistral.ts",
+      "name": "mistralProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/moonshotai-cn.models:MOONSHOTAI_CN_MODELS",
+      "origin": "packages/ai/src/providers/moonshotai-cn.models.ts",
+      "name": "MOONSHOTAI_CN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/moonshotai-cn:moonshotaiCnProvider",
+      "origin": "packages/ai/src/providers/moonshotai-cn.ts",
+      "name": "moonshotaiCnProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/moonshotai.models:MOONSHOTAI_MODELS",
+      "origin": "packages/ai/src/providers/moonshotai.models.ts",
+      "name": "MOONSHOTAI_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/moonshotai:moonshotaiProvider",
+      "origin": "packages/ai/src/providers/moonshotai.ts",
+      "name": "moonshotaiProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/nvidia.models:NVIDIA_MODELS",
+      "origin": "packages/ai/src/providers/nvidia.models.ts",
+      "name": "NVIDIA_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/nvidia:nvidiaProvider",
+      "origin": "packages/ai/src/providers/nvidia.ts",
+      "name": "nvidiaProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/openai-codex.models:OPENAI_CODEX_MODELS",
+      "origin": "packages/ai/src/providers/openai-codex.models.ts",
+      "name": "OPENAI_CODEX_MODELS",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/openai-codex:openaiCodexProvider",
+      "origin": "packages/ai/src/providers/openai-codex.ts",
+      "name": "openaiCodexProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/openai.models:OPENAI_MODELS",
+      "origin": "packages/ai/src/providers/openai.models.ts",
+      "name": "OPENAI_MODELS",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/openai:openaiProvider",
+      "origin": "packages/ai/src/providers/openai.ts",
+      "name": "openaiProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/opencode-go.models:OPENCODE_GO_MODELS",
+      "origin": "packages/ai/src/providers/opencode-go.models.ts",
+      "name": "OPENCODE_GO_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/opencode-go:opencodeGoProvider",
+      "origin": "packages/ai/src/providers/opencode-go.ts",
+      "name": "opencodeGoProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/opencode.models:OPENCODE_MODELS",
+      "origin": "packages/ai/src/providers/opencode.models.ts",
+      "name": "OPENCODE_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/opencode:opencodeProvider",
+      "origin": "packages/ai/src/providers/opencode.ts",
+      "name": "opencodeProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/openrouter-images:openrouterImagesProvider",
+      "origin": "packages/ai/src/providers/openrouter-images.ts",
+      "name": "openrouterImagesProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/openrouter.models:OPENROUTER_MODELS",
+      "origin": "packages/ai/src/providers/openrouter.models.ts",
+      "name": "OPENROUTER_MODELS",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/openrouter:openrouterProvider",
+      "origin": "packages/ai/src/providers/openrouter.ts",
+      "name": "openrouterProvider",
+      "scope": "selected"
+    },
+    {
+      "key": "./providers/qwen-token-plan-cn.models:QWEN_TOKEN_PLAN_CN_MODELS",
+      "origin": "packages/ai/src/providers/qwen-token-plan-cn.models.ts",
+      "name": "QWEN_TOKEN_PLAN_CN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/qwen-token-plan-cn:qwenTokenPlanCnProvider",
+      "origin": "packages/ai/src/providers/qwen-token-plan-cn.ts",
+      "name": "qwenTokenPlanCnProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/qwen-token-plan-individual.models:QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS",
+      "origin": "packages/ai/src/providers/qwen-token-plan-individual.models.ts",
+      "name": "QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/qwen-token-plan-individual:qwenTokenPlanIndividualProvider",
+      "origin": "packages/ai/src/providers/qwen-token-plan-individual.ts",
+      "name": "qwenTokenPlanIndividualProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/qwen-token-plan.models:QWEN_TOKEN_PLAN_MODELS",
+      "origin": "packages/ai/src/providers/qwen-token-plan.models.ts",
+      "name": "QWEN_TOKEN_PLAN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/qwen-token-plan:qwenTokenPlanProvider",
+      "origin": "packages/ai/src/providers/qwen-token-plan.ts",
+      "name": "qwenTokenPlanProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:DEFAULT_RADIUS_GATEWAY",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "DEFAULT_RADIUS_GATEWAY",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:RadiusGatewayConfig",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "RadiusGatewayConfig",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:RadiusGatewayModel",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "RadiusGatewayModel",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:RadiusOAuthCredential",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "RadiusOAuthCredential",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:getRadiusCredentialConfig",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "getRadiusCredentialConfig",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:getRadiusModels",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "getRadiusModels",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:getRadiusModelsFromConfig",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "getRadiusModelsFromConfig",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:loadRadiusGatewayConfig",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "loadRadiusGatewayConfig",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius-config:normalizeRadiusGatewayUrl",
+      "origin": "packages/ai/src/providers/radius-config.ts",
+      "name": "normalizeRadiusGatewayUrl",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius:RadiusProviderOptions",
+      "origin": "packages/ai/src/providers/radius.ts",
+      "name": "RadiusProviderOptions",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/radius:radiusProvider",
+      "origin": "packages/ai/src/providers/radius.ts",
+      "name": "radiusProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/together.models:TOGETHER_MODELS",
+      "origin": "packages/ai/src/providers/together.models.ts",
+      "name": "TOGETHER_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/together:togetherProvider",
+      "origin": "packages/ai/src/providers/together.ts",
+      "name": "togetherProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/vercel-ai-gateway.models:VERCEL_AI_GATEWAY_MODELS",
+      "origin": "packages/ai/src/providers/vercel-ai-gateway.models.ts",
+      "name": "VERCEL_AI_GATEWAY_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/vercel-ai-gateway:vercelAIGatewayProvider",
+      "origin": "packages/ai/src/providers/vercel-ai-gateway.ts",
+      "name": "vercelAIGatewayProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xai.models:XAI_MODELS",
+      "origin": "packages/ai/src/providers/xai.models.ts",
+      "name": "XAI_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xai:xaiProvider",
+      "origin": "packages/ai/src/providers/xai.ts",
+      "name": "xaiProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi-token-plan-ams.models:XIAOMI_TOKEN_PLAN_AMS_MODELS",
+      "origin": "packages/ai/src/providers/xiaomi-token-plan-ams.models.ts",
+      "name": "XIAOMI_TOKEN_PLAN_AMS_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi-token-plan-ams:xiaomiTokenPlanAmsProvider",
+      "origin": "packages/ai/src/providers/xiaomi-token-plan-ams.ts",
+      "name": "xiaomiTokenPlanAmsProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi-token-plan-cn.models:XIAOMI_TOKEN_PLAN_CN_MODELS",
+      "origin": "packages/ai/src/providers/xiaomi-token-plan-cn.models.ts",
+      "name": "XIAOMI_TOKEN_PLAN_CN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi-token-plan-cn:xiaomiTokenPlanCnProvider",
+      "origin": "packages/ai/src/providers/xiaomi-token-plan-cn.ts",
+      "name": "xiaomiTokenPlanCnProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi-token-plan-sgp.models:XIAOMI_TOKEN_PLAN_SGP_MODELS",
+      "origin": "packages/ai/src/providers/xiaomi-token-plan-sgp.models.ts",
+      "name": "XIAOMI_TOKEN_PLAN_SGP_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi-token-plan-sgp:xiaomiTokenPlanSgpProvider",
+      "origin": "packages/ai/src/providers/xiaomi-token-plan-sgp.ts",
+      "name": "xiaomiTokenPlanSgpProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi.models:XIAOMI_MODELS",
+      "origin": "packages/ai/src/providers/xiaomi.models.ts",
+      "name": "XIAOMI_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/xiaomi:xiaomiProvider",
+      "origin": "packages/ai/src/providers/xiaomi.ts",
+      "name": "xiaomiProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/zai-coding-cn.models:ZAI_CODING_CN_MODELS",
+      "origin": "packages/ai/src/providers/zai-coding-cn.models.ts",
+      "name": "ZAI_CODING_CN_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/zai-coding-cn:zaiCodingCnProvider",
+      "origin": "packages/ai/src/providers/zai-coding-cn.ts",
+      "name": "zaiCodingCnProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/zai.models:ZAI_MODELS",
+      "origin": "packages/ai/src/providers/zai.models.ts",
+      "name": "ZAI_MODELS",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": "./providers/zai:zaiProvider",
+      "origin": "packages/ai/src/providers/zai.ts",
+      "name": "zaiProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:CreateImagesProviderOptions",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "CreateImagesProviderOptions",
+      "scope": "shared"
+    },
+    {
+      "key": ".:FauxContentBlock",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxContentBlock",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:FauxModelDefinition",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxModelDefinition",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:FauxProviderHandle",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderHandle",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:FauxProviderRegistration",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderRegistration",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:FauxProviderState",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxProviderState",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:FauxResponseFactory",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxResponseFactory",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:FauxResponseStep",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "FauxResponseStep",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:ImagesModels",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "ImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": ".:ImagesProvider",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "ImagesProvider",
+      "scope": "shared"
+    },
+    {
+      "key": ".:MutableImagesModels",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "MutableImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": ".:OAuthAuthInfo",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthAuthInfo",
+      "scope": "shared"
+    },
+    {
+      "key": ".:OAuthDeviceCodeInfo",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthDeviceCodeInfo",
+      "scope": "shared"
+    },
+    {
+      "key": ".:OAuthLoginCallbacks",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthLoginCallbacks",
+      "scope": "shared"
+    },
+    {
+      "key": ".:OAuthPrompt",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthPrompt",
+      "scope": "shared"
+    },
+    {
+      "key": ".:OAuthSelectOption",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthSelectOption",
+      "scope": "shared"
+    },
+    {
+      "key": ".:OAuthSelectPrompt",
+      "origin": "packages/ai/src/compat/extension-oauth-types.ts",
+      "name": "OAuthSelectPrompt",
+      "scope": "shared"
+    },
+    {
+      "key": ".:RegisterFauxProviderOptions",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "RegisterFauxProviderOptions",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:RetryCallbacks",
+      "origin": "packages/ai/src/utils/retry.ts",
+      "name": "RetryCallbacks",
+      "scope": "shared"
+    },
+    {
+      "key": ".:createFauxCore",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "createFauxCore",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:createImagesModels",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "createImagesModels",
+      "scope": "shared"
+    },
+    {
+      "key": ".:createImagesProvider",
+      "origin": "packages/ai/src/images-models.ts",
+      "name": "createImagesProvider",
+      "scope": "shared"
+    },
+    {
+      "key": ".:defaultProviderAuthContext",
+      "origin": "packages/ai/src/auth/context.ts",
+      "name": "defaultProviderAuthContext",
+      "scope": "shared"
+    },
+    {
+      "key": ".:envApiKeyAuth",
+      "origin": "packages/ai/src/auth/helpers.ts",
+      "name": "envApiKeyAuth",
+      "scope": "shared"
+    },
+    {
+      "key": ".:fauxAssistantMessage",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxAssistantMessage",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:fauxProvider",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxProvider",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:fauxText",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxText",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:fauxThinking",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxThinking",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:fauxToolCall",
+      "origin": "packages/ai/src/providers/faux.ts",
+      "name": "fauxToolCall",
+      "scope": "owner-excluded"
+    },
+    {
+      "key": ".:lazyOAuth",
+      "origin": "packages/ai/src/auth/helpers.ts",
+      "name": "lazyOAuth",
+      "scope": "shared"
+    },
+    {
+      "key": ".:retryAssistantCall",
+      "origin": "packages/ai/src/utils/retry.ts",
+      "name": "retryAssistantCall",
+      "scope": "shared"
+    }
+  ]
+}

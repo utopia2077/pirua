@@ -5,8 +5,9 @@ expected_occurrences = 699
 [expected_dispositions]
 s02-dto = 146
 implemented = 284
-rust-nonapplicable = 22
-mapped-s05 = 241
+rust-nonapplicable = 24
+mapped-s05 = 114
+owner-excluded = 125
 external-schema-projection = 6
 
 [expected_surfaces]
@@ -1470,7 +1471,64 @@ disposition = "mapped-s05"
 owner = "S05-catalog"
 rust_target = "pi_ai::catalog"
 evidence = "future:conformance/catalog/projection"
-expected_occurrences = 39
+expected_occurrences = 6
+occurrences = [
+  "./providers/anthropic.models:ANTHROPIC_MODELS",
+  "./providers/deepseek.models:DEEPSEEK_MODELS",
+  "./providers/google.models:GOOGLE_MODELS",
+  "./providers/openai-codex.models:OPENAI_CODEX_MODELS",
+  "./providers/openai.models:OPENAI_MODELS",
+  "./providers/openrouter.models:OPENROUTER_MODELS",
+]
+
+[[rule]]
+id = "s05-catalog-projection-owner-excluded"
+priority = 3
+surfaces = ["ai.catalog.projection"]
+occurrences = [
+  "./providers/amazon-bedrock.models:AMAZON_BEDROCK_MODELS",
+  "./providers/ant-ling.models:ANT_LING_MODELS",
+  "./providers/azure-openai-responses.models:AZURE_OPENAI_RESPONSES_MODELS",
+  "./providers/baseten.models:BASETEN_MODELS",
+  "./providers/cerebras.models:CEREBRAS_MODELS",
+  "./providers/cloudflare-ai-gateway.models:CLOUDFLARE_AI_GATEWAY_MODELS",
+  "./providers/cloudflare-workers-ai.models:CLOUDFLARE_WORKERS_AI_MODELS",
+  "./providers/fireworks.models:FIREWORKS_MODELS",
+  "./providers/github-copilot.models:GITHUB_COPILOT_MODELS",
+  "./providers/google-vertex.models:GOOGLE_VERTEX_MODELS",
+  "./providers/groq.models:GROQ_MODELS",
+  "./providers/huggingface.models:HUGGINGFACE_MODELS",
+  "./providers/kimi-coding.models:KIMI_CODING_MODELS",
+  "./providers/minimax-cn.models:MINIMAX_CN_MODELS",
+  "./providers/minimax.models:MINIMAX_MODELS",
+  "./providers/mistral.models:MISTRAL_MODELS",
+  "./providers/moonshotai-cn.models:MOONSHOTAI_CN_MODELS",
+  "./providers/moonshotai.models:MOONSHOTAI_MODELS",
+  "./providers/nvidia.models:NVIDIA_MODELS",
+  "./providers/opencode-go.models:OPENCODE_GO_MODELS",
+  "./providers/opencode.models:OPENCODE_MODELS",
+  "./providers/qwen-token-plan-cn.models:QWEN_TOKEN_PLAN_CN_MODELS",
+  "./providers/qwen-token-plan-individual.models:QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS",
+  "./providers/qwen-token-plan.models:QWEN_TOKEN_PLAN_MODELS",
+  "./providers/together.models:TOGETHER_MODELS",
+  "./providers/vercel-ai-gateway.models:VERCEL_AI_GATEWAY_MODELS",
+  "./providers/xai.models:XAI_MODELS",
+  "./providers/xiaomi-token-plan-ams.models:XIAOMI_TOKEN_PLAN_AMS_MODELS",
+  "./providers/xiaomi-token-plan-cn.models:XIAOMI_TOKEN_PLAN_CN_MODELS",
+  "./providers/xiaomi-token-plan-sgp.models:XIAOMI_TOKEN_PLAN_SGP_MODELS",
+  "./providers/xiaomi.models:XIAOMI_MODELS",
+  "./providers/zai-coding-cn.models:ZAI_CODING_CN_MODELS",
+  "./providers/zai.models:ZAI_MODELS",
+]
+disposition = "owner-excluded"
+owner = "S05-owner-selected-scope"
+rust_target = "none:owner-scope-exclusion"
+evidence = "decision:docs/scope.md#selected-provider-scope"
+reason = "The owner excludes catalogs belonging to unselected product factories."
+replacement = "No built-in product projection. Preserve source identities and accepted shared APIs; custom open-ID providers remain supported."
+decision_reference = "docs/scope.md#selected-provider-scope"
+revisit_trigger = "The project owner changes the selected provider or public Faux scope."
+expected_occurrences = 33
 
 [[rule]]
 id = "s05-compat"
@@ -1480,16 +1538,134 @@ disposition = "mapped-s05"
 owner = "S05-facade"
 rust_target = "pi_ai::compat"
 evidence = "future:conformance/ai-compat"
-expected_occurrences = 52
+expected_occurrences = 51
+occurrences = [
+  "./compat:ApiProvider",
+  "./compat:ApiStreamFunction",
+  "./compat:ApiStreamSimpleFunction",
+  "./compat:OAuthAuthInfo",
+  "./compat:OAuthDeviceCodeInfo",
+  "./compat:OAuthLoginCallbacks",
+  "./compat:OAuthPrompt",
+  "./compat:OAuthSelectOption",
+  "./compat:OAuthSelectPrompt",
+  "./compat:complete",
+  "./compat:completeSimple",
+  "./compat:getApiProvider",
+  "./compat:getApiProviders",
+  "./compat:getModel",
+  "./compat:getModels",
+  "./compat:getProviders",
+  "./compat:registerApiProvider",
+  "./compat:registerBuiltInApiProviders",
+  "./compat:resetApiProviders",
+  "./compat:stream",
+  "./compat:streamAnthropic",
+  "./compat:streamAzureOpenAIResponses",
+  "./compat:streamGoogle",
+  "./compat:streamGoogleVertex",
+  "./compat:streamMistral",
+  "./compat:streamOpenAICodexResponses",
+  "./compat:streamOpenAICompletions",
+  "./compat:streamOpenAIResponses",
+  "./compat:streamSimple",
+  "./compat:streamSimpleAnthropic",
+  "./compat:streamSimpleAzureOpenAIResponses",
+  "./compat:streamSimpleGoogle",
+  "./compat:streamSimpleGoogleVertex",
+  "./compat:streamSimpleMistral",
+  "./compat:streamSimpleOpenAICodexResponses",
+  "./compat:streamSimpleOpenAICompletions",
+  "./compat:streamSimpleOpenAIResponses",
+  "./compat:unregisterApiProviders",
+  "./oauth:OAuthAuthInfo",
+  "./oauth:OAuthCredentials",
+  "./oauth:OAuthDeviceCodeInfo",
+  "./oauth:OAuthLoginCallbacks",
+  "./oauth:OAuthPrompt",
+  "./oauth:OAuthSelectOption",
+  "./oauth:OAuthSelectPrompt",
+  ".:OAuthAuthInfo",
+  ".:OAuthDeviceCodeInfo",
+  ".:OAuthLoginCallbacks",
+  ".:OAuthPrompt",
+  ".:OAuthSelectOption",
+  ".:OAuthSelectPrompt",
+]
 
 [[rule]]
-id = "s05-faux"
+id = "s05-compat-owner-excluded"
+priority = 3
+surfaces = ["ai.compat"]
+occurrences = [
+  "./compat:registerFauxProvider",
+]
+disposition = "owner-excluded"
+owner = "S05-owner-selected-scope"
+rust_target = "none:owner-scope-exclusion"
+evidence = "decision:docs/scope.md#selected-provider-scope"
+reason = "The owner excludes public Faux registration; shared wire compatibility remains retained."
+replacement = "No built-in product projection. Preserve source identities and accepted shared APIs; custom open-ID providers remain supported."
+decision_reference = "docs/scope.md#selected-provider-scope"
+revisit_trigger = "The project owner changes the selected provider or public Faux scope."
+expected_occurrences = 1
+
+[[rule]]
+id = "s05-faux-owner-excluded"
 priority = 3
 surfaces = ["ai.faux"]
-disposition = "mapped-s05"
-owner = "S05-testkit"
-rust_target = "pi_ai::faux"
-evidence = "future:conformance/ai-faux"
+occurrences = [
+  "./compat:FauxContentBlock",
+  "./compat:FauxModelDefinition",
+  "./compat:FauxProviderHandle",
+  "./compat:FauxProviderRegistration",
+  "./compat:FauxProviderState",
+  "./compat:FauxResponseFactory",
+  "./compat:FauxResponseStep",
+  "./compat:RegisterFauxProviderOptions",
+  "./compat:createFauxCore",
+  "./compat:fauxAssistantMessage",
+  "./compat:fauxProvider",
+  "./compat:fauxText",
+  "./compat:fauxThinking",
+  "./compat:fauxToolCall",
+  "./providers/faux:FauxContentBlock",
+  "./providers/faux:FauxModelDefinition",
+  "./providers/faux:FauxProviderHandle",
+  "./providers/faux:FauxProviderRegistration",
+  "./providers/faux:FauxProviderState",
+  "./providers/faux:FauxResponseFactory",
+  "./providers/faux:FauxResponseStep",
+  "./providers/faux:RegisterFauxProviderOptions",
+  "./providers/faux:createFauxCore",
+  "./providers/faux:fauxAssistantMessage",
+  "./providers/faux:fauxProvider",
+  "./providers/faux:fauxText",
+  "./providers/faux:fauxThinking",
+  "./providers/faux:fauxToolCall",
+  ".:FauxContentBlock",
+  ".:FauxModelDefinition",
+  ".:FauxProviderHandle",
+  ".:FauxProviderRegistration",
+  ".:FauxProviderState",
+  ".:FauxResponseFactory",
+  ".:FauxResponseStep",
+  ".:RegisterFauxProviderOptions",
+  ".:createFauxCore",
+  ".:fauxAssistantMessage",
+  ".:fauxProvider",
+  ".:fauxText",
+  ".:fauxThinking",
+  ".:fauxToolCall",
+]
+disposition = "owner-excluded"
+owner = "S05-owner-selected-scope"
+rust_target = "none:owner-scope-exclusion"
+evidence = "decision:docs/scope.md#selected-provider-scope"
+reason = "The owner explicitly excludes the public Faux compatibility surface; internal conformance doubles are not a product provider."
+replacement = "No built-in product projection. Preserve source identities and accepted shared APIs; custom open-ID providers remain supported."
+decision_reference = "docs/scope.md#selected-provider-scope"
+revisit_trigger = "The project owner changes the selected provider or public Faux scope."
 expected_occurrences = 42
 
 [[rule]]
@@ -1500,7 +1676,49 @@ disposition = "mapped-s05"
 owner = "S05-oauth-images"
 rust_target = "pi_ai_providers::oauth_images"
 evidence = "future:conformance/oauth-images"
-expected_occurrences = 26
+expected_occurrences = 25
+occurrences = [
+  "./compat:ANTHROPIC_API_KEY_ENV",
+  "./compat:ANTHROPIC_AUTH_TOKEN_ENV",
+  "./compat:ANTHROPIC_OAUTH_TOKEN_ENV",
+  "./compat:CreateImagesProviderOptions",
+  "./compat:ImagesApiFunction",
+  "./compat:ImagesApiProvider",
+  "./compat:ImagesModels",
+  "./compat:ImagesProvider",
+  "./compat:MutableImagesModels",
+  "./compat:createImagesModels",
+  "./compat:createImagesProvider",
+  "./compat:findEnvKeys",
+  "./compat:generateImages",
+  "./compat:getEnvApiKey",
+  "./compat:getImageModel",
+  "./compat:getImageModels",
+  "./compat:getImageProviders",
+  "./compat:getImagesApiProvider",
+  "./compat:registerImagesApiProvider",
+  ".:CreateImagesProviderOptions",
+  ".:ImagesModels",
+  ".:ImagesProvider",
+  ".:MutableImagesModels",
+  ".:createImagesModels",
+  ".:createImagesProvider",
+]
+
+[[rule]]
+id = "s05-rust-platform-bun-oauth"
+priority = 3
+origins = ["packages/ai/src/bun-oauth.ts"]
+names = ["registerBunOAuthFlows"]
+disposition = "rust-nonapplicable"
+owner = "S05-platform-replacement"
+rust_target = "explicit Rust OAuth feature construction"
+evidence = "decision:docs/contracts/ai-integration/index.md#source-and-scope"
+reason = "Bun standalone-binary loader registration is a JavaScript packaging mechanism, not an excluded OAuth flow."
+replacement = "Explicit selected Rust OAuth feature and constructor registration; selected OAuth behavior remains required."
+decision_reference = "docs/contracts/ai-integration/index.md#source-and-scope"
+revisit_trigger = "A portable observable OAuth loader registration contract replaces the Bun packaging mechanism."
+expected_occurrences = 1
 
 [[rule]]
 id = "s05-provider-factories"
@@ -1510,7 +1728,115 @@ disposition = "mapped-s05"
 owner = "S05-provider-registry"
 rust_target = "pi_ai_providers::registry"
 evidence = "future:conformance/providers"
-expected_occurrences = 76
+expected_occurrences = 26
+occurrences = [
+  "./bedrock-provider:bedrockProviderModule",
+  "./compat:BuiltinProvider",
+  "./compat:defaultProviderAuthContext",
+  "./compat:envApiKeyAuth",
+  "./compat:generateImagesOpenRouter",
+  "./compat:lazyOAuth",
+  "./compat:registerBuiltInImagesApiProviders",
+  "./providers/all:BuiltinProvider",
+  "./providers/all:builtinImagesModels",
+  "./providers/all:builtinImagesProviders",
+  "./providers/all:builtinModels",
+  "./providers/all:builtinProviders",
+  "./providers/all:getBuiltinModel",
+  "./providers/all:getBuiltinModelDataGeneratedAt",
+  "./providers/all:getBuiltinModels",
+  "./providers/all:getBuiltinProviders",
+  "./providers/anthropic:anthropicProvider",
+  "./providers/deepseek:deepseekProvider",
+  "./providers/google:googleProvider",
+  "./providers/openai-codex:openaiCodexProvider",
+  "./providers/openai:openaiProvider",
+  "./providers/openrouter-images:openrouterImagesProvider",
+  "./providers/openrouter:openrouterProvider",
+  ".:defaultProviderAuthContext",
+  ".:envApiKeyAuth",
+  ".:lazyOAuth",
+]
+
+[[rule]]
+id = "s05-provider-factories-owner-excluded"
+priority = 3
+surfaces = ["ai.provider-factories"]
+occurrences = [
+  "./providers/all:radiusProvider",
+  "./providers/amazon-bedrock:amazonBedrockProvider",
+  "./providers/ant-ling:antLingProvider",
+  "./providers/azure-openai-responses:azureOpenAIResponsesProvider",
+  "./providers/baseten:basetenProvider",
+  "./providers/cerebras:cerebrasProvider",
+  "./providers/cloudflare-ai-gateway:cloudflareAIGatewayProvider",
+  "./providers/cloudflare-auth:cloudflareAIGatewayAuth",
+  "./providers/cloudflare-auth:cloudflareWorkersAIAuth",
+  "./providers/cloudflare-stream:cloudflareStreams",
+  "./providers/cloudflare-stream:resolveCloudflareModel",
+  "./providers/cloudflare-workers-ai:cloudflareWorkersAIProvider",
+  "./providers/fireworks:fireworksProvider",
+  "./providers/github-copilot:githubCopilotProvider",
+  "./providers/google-vertex:googleVertexProvider",
+  "./providers/groq:groqProvider",
+  "./providers/huggingface:huggingfaceProvider",
+  "./providers/kimi-coding:kimiCodingProvider",
+  "./providers/minimax-cn:minimaxCnProvider",
+  "./providers/minimax:minimaxProvider",
+  "./providers/mistral:mistralProvider",
+  "./providers/moonshotai-cn:moonshotaiCnProvider",
+  "./providers/moonshotai:moonshotaiProvider",
+  "./providers/nvidia:nvidiaProvider",
+  "./providers/opencode-go:opencodeGoProvider",
+  "./providers/opencode:opencodeProvider",
+  "./providers/qwen-token-plan-cn:qwenTokenPlanCnProvider",
+  "./providers/qwen-token-plan-individual:qwenTokenPlanIndividualProvider",
+  "./providers/qwen-token-plan:qwenTokenPlanProvider",
+  "./providers/radius-config:DEFAULT_RADIUS_GATEWAY",
+  "./providers/radius-config:RadiusGatewayConfig",
+  "./providers/radius-config:RadiusGatewayModel",
+  "./providers/radius-config:RadiusOAuthCredential",
+  "./providers/radius-config:getRadiusCredentialConfig",
+  "./providers/radius-config:getRadiusModels",
+  "./providers/radius-config:getRadiusModelsFromConfig",
+  "./providers/radius-config:loadRadiusGatewayConfig",
+  "./providers/radius-config:normalizeRadiusGatewayUrl",
+  "./providers/radius:RadiusProviderOptions",
+  "./providers/radius:radiusProvider",
+  "./providers/together:togetherProvider",
+  "./providers/vercel-ai-gateway:vercelAIGatewayProvider",
+  "./providers/xai:xaiProvider",
+  "./providers/xiaomi-token-plan-ams:xiaomiTokenPlanAmsProvider",
+  "./providers/xiaomi-token-plan-cn:xiaomiTokenPlanCnProvider",
+  "./providers/xiaomi-token-plan-sgp:xiaomiTokenPlanSgpProvider",
+  "./providers/xiaomi:xiaomiProvider",
+  "./providers/zai-coding-cn:zaiCodingCnProvider",
+  "./providers/zai:zaiProvider",
+]
+disposition = "owner-excluded"
+owner = "S05-owner-selected-scope"
+rust_target = "none:owner-scope-exclusion"
+evidence = "decision:docs/scope.md#selected-provider-scope"
+reason = "The owner excludes unselected product factories and their dedicated Cloudflare/Radius composition helpers."
+replacement = "No built-in product projection. Preserve source identities and accepted shared APIs; custom open-ID providers remain supported."
+decision_reference = "docs/scope.md#selected-provider-scope"
+revisit_trigger = "The project owner changes the selected provider or public Faux scope."
+expected_occurrences = 49
+
+[[rule]]
+id = "s05-rust-platform-json-module"
+priority = 3
+origins = ["packages/ai/src/providers/data-json.d.ts"]
+names = ["default"]
+disposition = "rust-nonapplicable"
+owner = "S05-platform-replacement"
+rust_target = "validated Rust catalog decoding"
+evidence = "decision:docs/contracts/ai-integration/index.md#source-and-scope"
+reason = "TypeScript JSON module declaration typing has no independent runtime behavior."
+replacement = "Policy-aware validated Rust model decoding and static catalog types."
+decision_reference = "docs/contracts/ai-integration/index.md#source-and-scope"
+revisit_trigger = "Upstream JSON module typing gains portable runtime behavior."
+expected_occurrences = 1
 
 [[rule]]
 id = "s05-retry-compat"
