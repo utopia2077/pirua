@@ -8,3 +8,11 @@ pub use pi_ai_core::*;
 #[path = "retry.rs"]
 mod assistant_retry;
 pub use assistant_retry::*;
+
+#[cfg(feature = "compat")]
+pub mod compat;
+#[cfg(feature = "compat")]
+pub use compat::{
+    OAuthAuthInfo, OAuthDeviceCodeInfo, OAuthLoginCallbacks, OAuthPrompt, OAuthSelectOption,
+    OAuthSelectPrompt,
+};

@@ -12,6 +12,7 @@ workspace = true
 [features]
 default = []
 dev-catalog-tools = []
+compat = []
 provider-anthropic = ["dep:pi-ai-providers"]
 
 [dependencies]

@@ -1,0 +1,60 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sha256": {
+    "packages/ai/src/compat/extension-oauth-types.ts": "52065af0c8958696c9e37852d5005bf410679f4afba1b92a6e107e9320c44ff3",
+    "packages/ai/src/oauth.ts": "1250a2a276dc310849e64a0fd306a896d42e47ad0fc8d9394279eaee4e11cdff",
+    "packages/ai/src/index.ts": "709ddb426ce4471df84490d00da07743532e0493aab9667de2359f2de4b1d8ad"
+  },
+  "declarations": {
+    "OAuthPrompt": [
+      "message:string",
+      "placeholder?:string",
+      "allowEmpty?:boolean"
+    ],
+    "OAuthAuthInfo": [
+      "url:string",
+      "instructions?:string"
+    ],
+    "OAuthDeviceCodeInfo": [
+      "userCode:string",
+      "verificationUri:string",
+      "intervalSeconds?:number",
+      "expiresInSeconds?:number"
+    ],
+    "OAuthSelectOption": [
+      "id:string",
+      "label:string"
+    ],
+    "OAuthSelectPrompt": [
+      "message:string",
+      "options:OAuthSelectOption[]"
+    ],
+    "OAuthLoginCallbacks": [
+      "onAuth(info:OAuthAuthInfo):void",
+      "onDeviceCode(info:OAuthDeviceCodeInfo):void",
+      "onPrompt(prompt:OAuthPrompt):Promise<string>",
+      "onProgress?(message:string):void",
+      "onManualCodeInput?():Promise<string>",
+      "onSelect(prompt:OAuthSelectPrompt):Promise<string|undefined>",
+      "signal?:AbortSignal"
+    ]
+  },
+  "oauthExports": [
+    "OAuthAuthInfo",
+    "OAuthCredentials",
+    "OAuthDeviceCodeInfo",
+    "OAuthLoginCallbacks",
+    "OAuthPrompt",
+    "OAuthSelectOption",
+    "OAuthSelectPrompt"
+  ],
+  "rootCompatExports": [
+    "OAuthAuthInfo",
+    "OAuthDeviceCodeInfo",
+    "OAuthLoginCallbacks",
+    "OAuthPrompt",
+    "OAuthSelectOption",
+    "OAuthSelectPrompt"
+  ],
+  "credentialOrigin": "packages/ai/src/auth/types.ts"
+}
