@@ -1151,6 +1151,7 @@ dependencies = [
  "pi-ai-core",
  "pi-ai-providers",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

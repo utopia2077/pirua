@@ -17,3 +17,6 @@ provider-anthropic = ["dep:pi-ai-providers"]
 pi-ai-core.workspace = true
 pi-ai-providers = { workspace = true, optional = true }
 serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
