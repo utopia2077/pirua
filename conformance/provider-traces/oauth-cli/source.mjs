@@ -1,0 +1,24 @@
+import {execFileSync} from 'node:child_process';
+import {registerHooks,stripTypeScriptTypes} from 'node:module';
+import {createHash} from 'node:crypto';
+const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const raw=execFileSync('git',['-C','upstream/pi-mono','show',`${pin}:packages/ai/src/cli.ts`],{encoding:'utf8'});
+if(createHash('sha256').update(raw).digest('hex')!=='e04e6cd5f0e9da829d10b9b285592d5170d59eff29ae985aecf3f5f9bd15cb2d')throw Error('Pinned CLI mismatch');
+const js=stripTypeScriptTypes(raw);
+registerHooks({resolve(s,c,next){if(c.parentURL?.startsWith('data:')&&['node:fs','node:readline','./providers/all.ts'].includes(s))return {url:'fixture:'+s,shortCircuit:true};return next(s,c)},load(u,c,next){if(!u.startsWith('fixture:'))return next(u,c);let source=u==='fixture:node:fs'?'export const existsSync=(...x)=>globalThis.fixture.exists(...x),readFileSync=(...x)=>globalThis.fixture.read(...x),writeFileSync=(...x)=>globalThis.fixture.write(...x);':u==='fixture:node:readline'?'export const createInterface=()=>globalThis.fixture.rl();':'export const builtinProviders=()=>globalThis.fixture.providers;';return {format:'module',source,shortCircuit:true}}});
+const realProcess=process, realConsole=console;
+const ids=['anthropic','deepseek','google','openai','openai-codex','openrouter'];
+const names=['Anthropic','DeepSeek','Google','OpenAI','OpenAI Codex','OpenRouter'];
+const cases=[{id:'help',args:[]},{id:'list',args:['list']},...['help','--help','-h'].map(a=>({id:a,args:[a]})),{id:'extra-args',args:['list','ignored']},{id:'unknown',args:['wat']},{id:'bad-provider',args:['login','google']},...['1x','  +2.9','0x2','','4','-1','3e2'].map(choice=>({id:'choice-'+JSON.stringify(choice),args:['login'],answers:[choice]})),...['missing','malformed','object','array','null','number','string','boolean','read-error','write-error','login-error','select-error','empty-secret','events','eof-pending','question-error','exists-error'].map(kind=>({id:kind,args:['login','anthropic'],kind}))];
+const results=[];
+for(const c of cases){const trace=[],answers=[...(c.answers??[])];let serial=0;const kind=c.kind;
+ globalThis.process={argv:['node','cli',...c.args],stdin:{},stdout:{},exit:n=>trace.push(['exit',n])};
+ globalThis.console={log:(...x)=>trace.push(['out',...x]),error:(...x)=>trace.push(['error',...x])};
+ globalThis.fixture={providers:ids.map((id,i)=>({id,name:names[i],auth:{oauth:[0,4,5].includes(i)?{login:async host=>{trace.push(['login',id]);if(kind==='login-error')throw Error('synthetic login failure');if(kind==='select-error')await host.prompt({type:'select',message:'Method',options:[{id:'browser',label:'Browser'},{id:'device',label:'Device'}]});if(['empty-secret','eof-pending','question-error'].includes(kind))trace.push(['answer',await host.prompt({type:'secret',message:'Paste',placeholder:'code'})]);if(kind==='events'){for(const e of [{type:'auth_url',url:'https://synthetic.invalid',instructions:'Instructions'},{type:'device_code',verificationUri:'https://synthetic.invalid/device',userCode:'SYNTHETIC'},{type:'info',message:'Info'},{type:'progress',message:'Progress',intervalMs:1000}])host.notify(e);answers.push('2junk');trace.push(['answer',await host.prompt({type:'select',message:'Method',options:[{id:'browser',label:'Browser'},{id:'device',label:'Device'}]})]);}trace.push(['login-success']);return {type:'oauth',access:'synthetic-access',refresh:'synthetic-refresh',expires:123,accountId:'synthetic-account'};}}:undefined}})),exists:p=>{trace.push(['exists',p]);if(kind==='exists-error')throw Error('synthetic exists');return kind!=='missing'},read:(p,e)=>{trace.push(['read',p,e]);if(kind==='read-error')throw Error('synthetic read');return ({malformed:'{',object:'{"unrelated":{"keep":true},"anthropic":"old"}',array:'[1]',null:'null',number:'5',string:'"abc"',boolean:'true'})[kind]??'{}'},write:(p,v,e)=>{trace.push(['write',p,JSON.parse(v),e]);if(kind==='write-error')throw Error('synthetic write')},rl:()=>{const n=++serial;trace.push(['open',n]);return {question:(q,cb)=>{trace.push(['question',n,q]);if(kind==='eof-pending')return;if(kind==='question-error')throw Error('synthetic question');cb(answers.shift()??'')},close:()=>trace.push(['close',n])}}};
+ await import('data:text/javascript;base64,'+Buffer.from(js+`\n//# sourceURL=synthetic-${results.length}.mjs`).toString('base64'));
+ for(let i=0;i<20;i++)await Promise.resolve();
+ results.push({...c,trace});
+}
+globalThis.process=realProcess;globalThis.console=realConsole;
+const result={pin,sha256:createHash('sha256').update(raw).digest('hex'),cases:results};
+console.log(JSON.stringify(result,null,2));

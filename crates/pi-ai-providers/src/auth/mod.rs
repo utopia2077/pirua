@@ -14,3 +14,6 @@ pub use services::*;
     feature = "oauth-openrouter"
 ))]
 pub mod oauth;
+
+#[cfg(feature = "auth-native")]
+pub mod native_host;

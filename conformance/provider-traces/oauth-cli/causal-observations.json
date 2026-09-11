@@ -1,0 +1,50 @@
+[
+  {
+    "mutation": "whole-string-parser",
+    "test": "oauth_cli_32_source_command_observations_and_explicit_normalizations",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "early-file-read",
+    "test": "oauth_cli_32_source_command_observations_and_explicit_normalizations",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "lost-unrelated",
+    "test": "oauth_cli_32_source_command_observations_and_explicit_normalizations",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "wrong-credential-shape",
+    "test": "oauth_cli_32_source_command_observations_and_explicit_normalizations",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "lost-finally",
+    "test": "oauth_cli_32_source_command_observations_and_explicit_normalizations",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "admission-as-syntax",
+    "test": "oauth_cli_auth_file_admission_and_preservation_controls",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "lost-cancellation",
+    "test": "oauth_cli_reader_cancellation_identity_close_empty_and_eof",
+    "exit": 101,
+    "result": "one named test failed"
+  },
+  {
+    "mutation": "joined-reader",
+    "test": "oauth_cli_browser_success_exits_while_physical_stdin_remains_blocked",
+    "exit": 101,
+    "result": "one named test failed"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "crates/pi-ai/src/bin/pi_ai_cli/console.rs": "e58fbda0d3b1c37c4b1dcab654712f2eb57d2308c22b32edb14c2752acc44ac8",
+  "crates/pi-ai/src/bin/pi_ai_cli/file.rs": "c9f82fadfcfd168d1ea2e059d11446b86531c74a5eca62957a68afd225cb284d",
+  "crates/pi-ai/src/bin/pi_ai_cli/mod.rs": "675b4aef0ea88d65b35d6a09bdd0bcbe9454aac3d154a26ee4e01c61d107a79b",
+  "crates/pi-ai/src/bin/pi_ai_cli/native.rs": "821a651c76ca89f789803d7a0471edd3ffd737096b5f8a7104df10c676218897",
+  "crates/pi-ai/src/bin/pi_ai_cli.rs": "7e907673e31b6fb5b22e17ee8bbabfcb841d1395939203df0603de901f971c5b"
+}

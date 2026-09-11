@@ -44,6 +44,31 @@ class WorkspaceCheckerTests(unittest.TestCase):
             record for record in package["dependencies"] if record["name"] == dependency
         )
 
+    def test_s05_oauth_cli_dependency_target_and_activation_controls(self):
+        original = next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai")
+        errors = []
+        checker.validate_s05_oauth_cli(original, errors)
+        self.assertEqual(errors, [])
+        for mutation in ("required", "target", "optional", "version", "features", "default", "native", "all-oauth", "unknown"):
+            changed = copy.deepcopy(original)
+            dep = next(d for d in changed["dependencies"] if d["name"] == "tokio" and d.get("kind") is None)
+            target = next(t for t in changed["targets"] if t["name"] == "pi_ai_cli")
+            if mutation == "required": target["required-features"] = []
+            elif mutation == "target": target["src_path"] = "/wrong.rs"
+            elif mutation == "optional": dep["optional"] = False
+            elif mutation == "version": dep["req"] = "*"
+            elif mutation == "features": dep["features"].append("io-std")
+            else: changed["features"][mutation] = ["dev-oauth-cli"]
+            errors = []
+            checker.validate_s05_oauth_cli(changed, errors)
+            self.assertTrue(errors, mutation)
+        for bad in (["all-providers", "auth-native", "dep:tokio"], ["all-oauth", "auth-native"], []):
+            changed = copy.deepcopy(original)
+            changed["features"]["dev-oauth-cli"] = bad
+            errors = []
+            checker.validate_s05_facade_features(changed, errors)
+            self.assertTrue(errors)
+
     def test_selected_catalog_features_are_data_only_and_unknown_catalogs_fail(self):
         package = next(package for package in self.default_metadata["packages"] if package["name"] == "pi-ai-providers")
         for name in ("catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",

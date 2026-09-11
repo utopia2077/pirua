@@ -1,0 +1,1357 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "sha256": "e04e6cd5f0e9da829d10b9b285592d5170d59eff29ae985aecf3f5f9bd15cb2d",
+  "cases": [
+    {
+      "id": "help",
+      "args": [],
+      "trace": [
+        [
+          "out",
+          "Usage: npx @earendil-works/pi-ai <command> [provider]\n\nCommands:\n  login [provider]  Login to an OAuth provider\n  list              List available providers\n\nProviders:\n  anthropic            Anthropic\n  openai-codex         OpenAI Codex\n  openrouter           OpenRouter"
+        ]
+      ]
+    },
+    {
+      "id": "list",
+      "args": [
+        "list"
+      ],
+      "trace": [
+        [
+          "out",
+          "anthropic            Anthropic"
+        ],
+        [
+          "out",
+          "openai-codex         OpenAI Codex"
+        ],
+        [
+          "out",
+          "openrouter           OpenRouter"
+        ]
+      ]
+    },
+    {
+      "id": "help",
+      "args": [
+        "help"
+      ],
+      "trace": [
+        [
+          "out",
+          "Usage: npx @earendil-works/pi-ai <command> [provider]\n\nCommands:\n  login [provider]  Login to an OAuth provider\n  list              List available providers\n\nProviders:\n  anthropic            Anthropic\n  openai-codex         OpenAI Codex\n  openrouter           OpenRouter"
+        ]
+      ]
+    },
+    {
+      "id": "--help",
+      "args": [
+        "--help"
+      ],
+      "trace": [
+        [
+          "out",
+          "Usage: npx @earendil-works/pi-ai <command> [provider]\n\nCommands:\n  login [provider]  Login to an OAuth provider\n  list              List available providers\n\nProviders:\n  anthropic            Anthropic\n  openai-codex         OpenAI Codex\n  openrouter           OpenRouter"
+        ]
+      ]
+    },
+    {
+      "id": "-h",
+      "args": [
+        "-h"
+      ],
+      "trace": [
+        [
+          "out",
+          "Usage: npx @earendil-works/pi-ai <command> [provider]\n\nCommands:\n  login [provider]  Login to an OAuth provider\n  list              List available providers\n\nProviders:\n  anthropic            Anthropic\n  openai-codex         OpenAI Codex\n  openrouter           OpenRouter"
+        ]
+      ]
+    },
+    {
+      "id": "extra-args",
+      "args": [
+        "list",
+        "ignored"
+      ],
+      "trace": [
+        [
+          "out",
+          "anthropic            Anthropic"
+        ],
+        [
+          "out",
+          "openai-codex         OpenAI Codex"
+        ],
+        [
+          "out",
+          "openrouter           OpenRouter"
+        ]
+      ]
+    },
+    {
+      "id": "unknown",
+      "args": [
+        "wat"
+      ],
+      "trace": [
+        [
+          "error",
+          "Error:",
+          "Unknown command: wat"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "bad-provider",
+      "args": [
+        "login",
+        "google"
+      ],
+      "trace": [
+        [
+          "error",
+          "Error:",
+          "Unknown provider: google"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"1x\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        "1x"
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "open",
+          2
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"  +2.9\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        "  +2.9"
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "open",
+          2
+        ],
+        [
+          "login",
+          "openai-codex"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "openai-codex": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"0x2\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        "0x2"
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Unknown provider: "
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        ""
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Unknown provider: "
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"4\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        "4"
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Unknown provider: "
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"-1\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        "-1"
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Unknown provider: "
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "choice-\"3e2\"",
+      "args": [
+        "login"
+      ],
+      "answers": [
+        "3e2"
+      ],
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "out",
+          "  1. Anthropic"
+        ],
+        [
+          "out",
+          "  2. OpenAI Codex"
+        ],
+        [
+          "out",
+          "  3. OpenRouter"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-3): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "open",
+          2
+        ],
+        [
+          "login",
+          "openrouter"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "openrouter": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "missing",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "missing",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "malformed",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "malformed",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "object",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "object",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "unrelated": {
+              "keep": true
+            },
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "array",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "array",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          [
+            1
+          ],
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "null",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "null",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Cannot set properties of null (setting 'anthropic')"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "number",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "number",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Cannot create property 'anthropic' on number '5'"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "string",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "string",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Cannot create property 'anthropic' on string 'abc'"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "boolean",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "boolean",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Cannot create property 'anthropic' on boolean 'true'"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "read-error",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "read-error",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "write-error",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "write-error",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "synthetic write"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "login-error",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "login-error",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "synthetic login failure"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "select-error",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "select-error",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "out",
+          "\nMethod"
+        ],
+        [
+          "out",
+          "  1. Browser"
+        ],
+        [
+          "out",
+          "  2. Device"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-2): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "Invalid selection"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "empty-secret",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "empty-secret",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "question",
+          1,
+          "Paste (code): "
+        ],
+        [
+          "answer",
+          ""
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "events",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "events",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "out",
+          "\nOpen this URL in your browser:\nhttps://synthetic.invalid"
+        ],
+        [
+          "out",
+          "Instructions"
+        ],
+        [
+          "out",
+          "\nOpen this URL in your browser:\nhttps://synthetic.invalid/device"
+        ],
+        [
+          "out",
+          "Enter code: SYNTHETIC"
+        ],
+        [
+          "out",
+          "Info"
+        ],
+        [
+          "out",
+          "Progress"
+        ],
+        [
+          "out",
+          "\nMethod"
+        ],
+        [
+          "out",
+          "  1. Browser"
+        ],
+        [
+          "out",
+          "  2. Device"
+        ],
+        [
+          "question",
+          1,
+          "Enter number (1-2): "
+        ],
+        [
+          "answer",
+          "device"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "read",
+          "auth.json",
+          "utf-8"
+        ],
+        [
+          "write",
+          "auth.json",
+          {
+            "anthropic": {
+              "type": "oauth",
+              "access": "synthetic-access",
+              "refresh": "synthetic-refresh",
+              "expires": 123,
+              "accountId": "synthetic-account"
+            }
+          },
+          "utf-8"
+        ],
+        [
+          "out",
+          "\nCredentials saved to auth.json"
+        ],
+        [
+          "close",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "eof-pending",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "eof-pending",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "question",
+          1,
+          "Paste (code): "
+        ]
+      ]
+    },
+    {
+      "id": "question-error",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "question-error",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "question",
+          1,
+          "Paste (code): "
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "synthetic question"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "exists-error",
+      "args": [
+        "login",
+        "anthropic"
+      ],
+      "kind": "exists-error",
+      "trace": [
+        [
+          "open",
+          1
+        ],
+        [
+          "login",
+          "anthropic"
+        ],
+        [
+          "login-success"
+        ],
+        [
+          "exists",
+          "auth.json"
+        ],
+        [
+          "close",
+          1
+        ],
+        [
+          "error",
+          "Error:",
+          "synthetic exists"
+        ],
+        [
+          "exit",
+          1
+        ]
+      ]
+    }
+  ]
+}

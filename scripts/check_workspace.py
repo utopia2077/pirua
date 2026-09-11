@@ -254,13 +254,25 @@ S05_FACADE_GROUP = [*S05_FACADE_FEATURES, "catalog-gen", "dev-oauth-cli"]
 
 
 def validate_s05_facade_features(package: dict[str, Any], errors: list[str]) -> None:
-    expected = {"default": [], "compat": [], "dev-catalog-tools": [], **S05_FACADE_FEATURES}
+    expected = {"default": [], "compat": [], "dev-catalog-tools": [], "dev-oauth-cli": ["all-oauth", "auth-native", "dep:tokio"], **S05_FACADE_FEATURES}
     if set(package["features"]) != set(expected):
         errors.append("S05 facade feature inventory changed")
     for name, values in expected.items():
         actual = package["features"].get(name)
         if actual is None or set(actual) != set(values) or len(actual) != len(values):
             errors.append("S05 facade feature ownership changed: " + name)
+
+
+def validate_s05_oauth_cli(package: dict[str, Any], errors: list[str]) -> None:
+    normal = [d for d in package["dependencies"] if d["name"] == "tokio" and d.get("kind") is None]
+    if len(normal) != 1 or not normal[0].get("optional") or normal[0].get("uses_default_features") or normal[0].get("req") != "=1.53.1" or set(normal[0].get("features", [])) != {"rt-multi-thread", "net", "io-util", "sync", "time"}:
+        errors.append("S05 CLI Tokio must be exact optional existing host dependency")
+    for name in package["features"]:
+        if name != "dev-oauth-cli" and feature_activates_dependency(package["features"], name, "tokio"):
+            errors.append("S05 CLI Tokio activated outside developer target: " + name)
+    targets = [t for t in package["targets"] if t["name"] == "pi_ai_cli"]
+    if len(targets) != 1 or targets[0].get("kind") != ["bin"] or targets[0].get("required-features") != ["dev-oauth-cli"] or not targets[0]["src_path"].endswith("/src/bin/pi_ai_cli.rs"):
+        errors.append("S05 CLI target admission changed")
 
 
 def validate_s05_facade_topology(topology: dict[str, Any], errors: list[str]) -> None:
@@ -394,6 +406,7 @@ def validate_workspace(
         validate_s04_provider_features(packages_by_name["pi-ai-providers"], errors)
     if "pi-ai" in packages_by_name:
         validate_s05_facade_features(packages_by_name["pi-ai"], errors)
+        validate_s05_oauth_cli(packages_by_name["pi-ai"], errors)
     for (consumer, dependency), edge in sorted(expected_edges.items()):
         if edge.get("kind") != "optional" or consumer not in packages_by_name:
             continue

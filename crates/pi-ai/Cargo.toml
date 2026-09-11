@@ -12,6 +12,7 @@ workspace = true
 [features]
 default = []
 dev-catalog-tools = []
+dev-oauth-cli = ["all-oauth", "auth-native", "dep:tokio"]
 compat = []
 catalog-anthropic = ["dep:pi-ai-providers", "pi-ai-providers/catalog-anthropic"]
 catalog-deepseek = ["dep:pi-ai-providers", "pi-ai-providers/catalog-deepseek"]
@@ -41,6 +42,7 @@ auth-native = ["native", "pi-ai-providers/auth-native"]
 pi-ai-core.workspace = true
 pi-ai-providers = { workspace = true, optional = true }
 serde_json.workspace = true
+tokio = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio.workspace = true
@@ -54,3 +56,8 @@ required-features = ["dev-catalog-tools"]
 name = "image_catalog_gen"
 path = "src/bin/image_catalog_gen.rs"
 required-features = ["dev-catalog-tools"]
+
+[[bin]]
+name = "pi_ai_cli"
+path = "src/bin/pi_ai_cli.rs"
+required-features = ["dev-oauth-cli"]
