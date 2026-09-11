@@ -61,6 +61,51 @@ class WorkspaceCheckerTests(unittest.TestCase):
         checker.validate_s04_provider_features(changed, errors)
         self.assertTrue(any("unexpected provider feature" in error for error in errors), errors)
 
+    def test_s05_exact_factory_and_facade_feature_controls(self):
+        for owner, validator, expected in (
+            ("pi-ai-providers", checker.validate_s04_provider_features, checker.S05_FACTORY_FEATURES),
+            ("pi-ai", checker.validate_s05_facade_features, checker.S05_FACADE_FEATURES),
+        ):
+            original = next(p for p in self.default_metadata["packages"] if p["name"] == owner)
+            errors = []
+            validator(original, errors)
+            self.assertEqual(errors, [])
+            for name in expected:
+                for mutation in ("missing", "extra", "wrong", "duplicate"):
+                    changed = copy.deepcopy(original)
+                    if mutation == "missing":
+                        del changed["features"][name]
+                    elif mutation == "extra":
+                        changed["features"][name].append("native")
+                    elif mutation == "wrong":
+                        changed["features"][name] = ["pi-ai-providers/all-providers"]
+                    else:
+                        changed["features"][name] += changed["features"][name][:1]
+                    errors = []
+                    validator(changed, errors)
+                    self.assertTrue(errors, (owner, name, mutation))
+            for name in ("provider-excluded", "images-excluded", "catalog-excluded", "oauth-excluded"):
+                changed = copy.deepcopy(original)
+                changed["features"][name] = []
+                errors = []
+                validator(changed, errors)
+                self.assertTrue(errors, (owner, name))
+
+    def test_s05_facade_group_does_not_broaden_coding_or_compat(self):
+        for group, member in (("ai-facade-provider-selection", "compat"),
+                              ("ai-facade-provider-selection", "provider-*"),
+                              ("provider-selection", "all-providers")):
+            changed = copy.deepcopy(self.topology)
+            next(g for g in changed["feature_group"] if g["id"] == group)["members"].append(member)
+            errors = []
+            checker.validate_s05_facade_topology(changed, errors)
+            self.assertTrue(errors)
+        changed = copy.deepcopy(self.topology)
+        next(e for e in changed["edge"] if e["consumer"] == "pi-ai" and e["dependency"] == "pi-ai-providers")["feature_group"] = "provider-selection"
+        errors = []
+        checker.validate_s05_facade_topology(changed, errors)
+        self.assertTrue(errors)
+
     def test_required_edges_reject_noncanonical_declaration_forms(self) -> None:
         counterexamples = {
             "dev": ("kind", "dev", "kind must be normal"),

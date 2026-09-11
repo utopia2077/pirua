@@ -6,3 +6,5 @@ pub mod auth;
 /// Validated, feature-selected catalogs from the dated public capture.
 pub mod catalog;
 pub mod images;
+
+pub mod providers;

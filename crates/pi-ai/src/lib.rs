@@ -16,3 +16,60 @@ pub use compat::{
     OAuthAuthInfo, OAuthDeviceCodeInfo, OAuthLoginCallbacks, OAuthPrompt, OAuthSelectOption,
     OAuthSelectPrompt,
 };
+
+#[cfg(any(
+    feature = "catalog-anthropic",
+    feature = "catalog-deepseek",
+    feature = "catalog-google",
+    feature = "catalog-openai",
+    feature = "catalog-openai-codex",
+    feature = "catalog-openrouter",
+    feature = "catalog-openrouter-images",
+    feature = "provider-anthropic",
+    feature = "provider-deepseek",
+    feature = "provider-google",
+    feature = "provider-openai",
+    feature = "provider-openai-codex",
+    feature = "provider-openrouter",
+    feature = "images-runtime",
+    feature = "images-openrouter",
+    feature = "oauth-anthropic",
+    feature = "oauth-openai-codex",
+    feature = "oauth-openrouter",
+    feature = "all-providers",
+    feature = "all-images",
+    feature = "all-oauth",
+    feature = "native",
+    feature = "auth-native"
+))]
+pub mod builtins;
+#[cfg(any(
+    feature = "catalog-anthropic",
+    feature = "catalog-deepseek",
+    feature = "catalog-google",
+    feature = "catalog-openai",
+    feature = "catalog-openai-codex",
+    feature = "catalog-openrouter",
+    feature = "catalog-openrouter-images",
+    feature = "provider-anthropic",
+    feature = "provider-deepseek",
+    feature = "provider-google",
+    feature = "provider-openai",
+    feature = "provider-openai-codex",
+    feature = "provider-openrouter",
+    feature = "images-runtime",
+    feature = "images-openrouter",
+    feature = "oauth-anthropic",
+    feature = "oauth-openai-codex",
+    feature = "oauth-openrouter",
+    feature = "all-providers",
+    feature = "all-images",
+    feature = "all-oauth",
+    feature = "native",
+    feature = "auth-native"
+))]
+pub mod catalog;
+#[cfg(feature = "images-runtime")]
+pub mod images {
+    pub use pi_ai_providers::images::*;
+}

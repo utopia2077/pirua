@@ -225,6 +225,57 @@ def validate_dependency_declarations(
 
 
 
+S05_PROVIDERS = ("anthropic", "deepseek", "google", "openai", "openai-codex", "openrouter")
+S05_CATALOGS = (*S05_PROVIDERS, "openrouter-images")
+S05_OAUTH = ("anthropic", "openai-codex", "openrouter")
+S05_FACTORY_FEATURES = {
+    "provider-anthropic": ["wire-anthropic-messages", "catalog-anthropic"],
+    "provider-deepseek": ["wire-openai-completions", "catalog-deepseek"],
+    "provider-google": ["wire-google-genai", "catalog-google"],
+    "provider-openai": ["wire-openai-responses", "catalog-openai"],
+    "provider-openai-codex": ["wire-openai-codex-responses", "catalog-openai-codex"],
+    "provider-openrouter": ["wire-openai-completions", "catalog-openrouter"],
+    "images-openrouter": ["wire-openrouter-images", "catalog-openrouter-images"],
+    "all-providers": ["provider-" + name for name in S05_PROVIDERS],
+    "all-images": ["images-openrouter"],
+    "all-oauth": ["oauth-" + name for name in S05_OAUTH],
+}
+S05_FACADE_FEATURES = {
+    **{"catalog-" + name: ["dep:pi-ai-providers", "pi-ai-providers/catalog-" + name] for name in S05_CATALOGS},
+    **{"provider-" + name: ["catalog-" + name, "pi-ai-providers/provider-" + name] for name in S05_PROVIDERS},
+    "images-runtime": ["dep:pi-ai-providers"],
+    "images-openrouter": ["images-runtime", "catalog-openrouter-images", "pi-ai-providers/images-openrouter"],
+    **{"oauth-" + name: ["dep:pi-ai-providers", "pi-ai-providers/oauth-" + name] for name in S05_OAUTH},
+    **{name: values for name, values in S05_FACTORY_FEATURES.items() if name.startswith("all-")},
+    "native": ["dep:pi-ai-providers", "pi-ai-providers/native"],
+    "auth-native": ["native", "pi-ai-providers/auth-native"],
+}
+S05_FACADE_GROUP = [*S05_FACADE_FEATURES, "catalog-gen", "dev-oauth-cli"]
+
+
+def validate_s05_facade_features(package: dict[str, Any], errors: list[str]) -> None:
+    expected = {"default": [], "compat": [], "dev-catalog-tools": [], **S05_FACADE_FEATURES}
+    if set(package["features"]) != set(expected):
+        errors.append("S05 facade feature inventory changed")
+    for name, values in expected.items():
+        actual = package["features"].get(name)
+        if actual is None or set(actual) != set(values) or len(actual) != len(values):
+            errors.append("S05 facade feature ownership changed: " + name)
+
+
+def validate_s05_facade_topology(topology: dict[str, Any], errors: list[str]) -> None:
+    groups = {group["id"]: group["members"] for group in topology.get("feature_group", [])}
+    if groups.get("ai-facade-provider-selection") != S05_FACADE_GROUP:
+        errors.append("S05 exact facade selector group changed")
+    if groups.get("provider-selection") != ["provider-*", "oauth-*", "images-*", "catalog-gen"]:
+        errors.append("S05 coding-runtime selector authorization changed")
+    for edge in topology.get("edge", []):
+        if edge.get("dependency") == "pi-ai-providers" and edge.get("consumer") in {"pi-ai", "pi-coding-runtime"}:
+            expected = "ai-facade-provider-selection" if edge["consumer"] == "pi-ai" else "provider-selection"
+            if edge.get("feature_group") != expected:
+                errors.append("S05 provider edge selector changed: " + edge["consumer"])
+
+
 def validate_s04_provider_features(package: dict[str, Any], errors: list[str]) -> None:
     """Wire selection never grants native IO or enables default provider breadth."""
     features = package["features"]
@@ -232,10 +283,15 @@ def validate_s04_provider_features(package: dict[str, Any], errors: list[str]) -
         errors.append("S04 provider default features must remain empty")
     if features.get("native") != ["pi-ai-transport/native"]:
         errors.append("S04 provider native feature must own transport native activation")
+    for name in S05_FACTORY_FEATURES:
+        if name not in features:
+            errors.append("S05 missing selected provider feature: " + name)
     for name, activations in features.items():
         if name in {"default", "native"}:
             continue
-        if name in {"catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
+        if name in S05_FACTORY_FEATURES:
+            expected = set(S05_FACTORY_FEATURES[name])
+        elif name in {"catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
                     "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images"}:
             expected = set()
         elif name in {"oauth-anthropic", "oauth-openai-codex", "oauth-openrouter"}:
@@ -264,6 +320,7 @@ def validate_workspace(
     all_feature_metadata: dict[str, Any],
 ) -> list[str]:
     errors: list[str] = []
+    validate_s05_facade_topology(topology, errors)
     crates = topology.get("production_crates", [])
     if len(crates) != 15 or len(set(crates)) != 15:
         errors.append("workspace-topology.toml must name exactly 15 unique production crates")
@@ -335,6 +392,8 @@ def validate_workspace(
     packages_by_name = {package["name"]: package for package in workspace_packages}
     if "pi-ai-providers" in packages_by_name:
         validate_s04_provider_features(packages_by_name["pi-ai-providers"], errors)
+    if "pi-ai" in packages_by_name:
+        validate_s05_facade_features(packages_by_name["pi-ai"], errors)
     for (consumer, dependency), edge in sorted(expected_edges.items()):
         if edge.get("kind") != "optional" or consumer not in packages_by_name:
             continue
