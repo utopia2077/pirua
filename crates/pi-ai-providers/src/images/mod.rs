@@ -8,3 +8,15 @@ pub mod openrouter;
 mod wire_request;
 #[cfg(feature = "wire-openrouter-images")]
 mod wire_response;
+
+mod generator;
+mod provider;
+mod registry;
+mod runtime_shared;
+pub use generator::*;
+pub use provider::*;
+pub use registry::*;
+mod lazy;
+mod models;
+pub use lazy::*;
+pub use models::*;

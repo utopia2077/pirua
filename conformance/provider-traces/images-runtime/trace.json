@@ -1,0 +1,1212 @@
+{
+  "upstream": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "v26.8.1",
+  "files": {
+    "packages/ai/src/images-models.ts": "9a3a2bf47263e577925850b182d2b508d0bbf0e1437124b1240bff95b8deeb3a",
+    "packages/ai/src/images-api-registry.ts": "604636b0a4b59d1798d79aad48a1dfdd96ee79e3f16b16cdc54dbd1b81c44ffe",
+    "packages/ai/src/images.ts": "de83a96c1eb420cfb1b6f4e3ce8430f19b2312399d195fb786c76ebae4111dcf",
+    "packages/ai/src/auth/context.ts": "03101bfa711fad214af111e25328b6f607d6b0a7ebfe289af58a89cd55baf639",
+    "packages/ai/src/auth/credential-store.ts": "50ebde56b80b5862025e031719006ea303edd9aa80fec780fbc64319bb9e2847",
+    "packages/ai/src/auth/resolve.ts": "08dfcdcbd74dbae5b011b105b9b335321fea816ce262758729a2b29a630bd1b9",
+    "packages/ai/src/utils/abort.ts": "e81dc16de331e82d7f15759b27e38c7d0a3d28955693e0cf157dd52dadea7035",
+    "packages/ai/src/utils/diagnostics.ts": "d22b4f96a00f032220ff0cc27458c7a525dcec948bdbd2bbb67b4d7598cb395d",
+    "packages/ai/src/api/openrouter-images.lazy.ts": "04c18f8c065779c2f705850e593cee4e0d6207a4121473540a223fc83026a8f4",
+    "packages/ai/src/providers/images/register-builtins.ts": "8c8bd4e614b8b733c0a4232f7cc974bf38c5a4bb6b9615c732e3b794ff1d908f",
+    "packages/ai/src/api/openrouter-images.ts": "c658f331cb2278e7accc925fa72eb3c3902d32d6ff37c4263b6bb6108888d440",
+    "packages/ai/src/utils/error-body.ts": "7170181ae6926709fe4ab7ac6b5b51c46ffe906868a7aac3c7627cb28ad77c09",
+    "packages/ai/src/utils/headers.ts": "db52ff4621bef3e5a6b6ace56fd0ff09063ae840517c16b1690c60f89f85e106",
+    "packages/ai/src/utils/provider-retry.ts": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
+    "packages/ai/src/utils/sanitize-unicode.ts": "f8ef2c957f9f13a77df45ebf344f1b852dfe8f2e3d164d815127ea7290c12e22"
+  },
+  "driverSha256": "3db6ebef96e4cdb067b698e224a80bdbd8eeaa39f10c948f88cd1186ded7eafb",
+  "model": {
+    "id": "synthetic-model",
+    "name": "Synthetic",
+    "api": "synthetic-images",
+    "provider": "openrouter",
+    "baseUrl": "https://public.invalid/api",
+    "input": [
+      "text"
+    ],
+    "output": [
+      "image"
+    ],
+    "cost": {
+      "input": 1,
+      "output": 2,
+      "cacheRead": 3,
+      "cacheWrite": 4
+    }
+  },
+  "context": {
+    "input": [
+      {
+        "type": "text",
+        "text": "synthetic prompt"
+      }
+    ]
+  },
+  "generations": [
+    {
+      "config": {
+        "id": "no-auth-success",
+        "auth": false
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://public.invalid/api",
+          "headers": [],
+          "env": {},
+          "key": null,
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "stopReason": "stop",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "no-auth-reject",
+        "auth": false,
+        "reject": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://public.invalid/api",
+          "headers": [],
+          "env": {},
+          "key": null,
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "rejected",
+        "message": "SYNTHETIC_ASYNC_ERROR"
+      }
+    },
+    {
+      "config": {
+        "id": "no-auth-launch-throw",
+        "auth": false,
+        "syncThrow": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://public.invalid/api",
+          "headers": [],
+          "env": {},
+          "key": null,
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "SYNTHETIC_LAUNCH_ERROR",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "empty-auth-object-catches",
+        "auth": true,
+        "emptyAuth": true,
+        "reject": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://public.invalid/api",
+          "headers": [],
+          "env": {},
+          "key": null,
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "SYNTHETIC_ASYNC_ERROR",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "auth-success",
+        "auth": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "SYNTHETIC_RESOLVED",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "stopReason": "stop",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "auth-reject",
+        "auth": true,
+        "reject": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "SYNTHETIC_RESOLVED",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "SYNTHETIC_ASYNC_ERROR",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "auth-launch-throw",
+        "auth": true,
+        "syncThrow": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "SYNTHETIC_RESOLVED",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "SYNTHETIC_LAUNCH_ERROR",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "auth-failure",
+        "auth": true,
+        "authFail": true
+      },
+      "events": [
+        "read",
+        "auth"
+      ],
+      "calls": [],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "API key auth failed for provider openrouter: SYNTHETIC_AUTH_ERROR",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "unknown-provider",
+        "unknown": true
+      },
+      "events": [],
+      "calls": [],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "Unknown provider: openrouter",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "auth-cancel-after-entry",
+        "auth": true,
+        "authPending": true
+      },
+      "events": [
+        "read",
+        "auth"
+      ],
+      "calls": [],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "This operation was aborted",
+          "timestamp": 1700000000017
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "no-auth-cancel-then-reject",
+        "auth": false,
+        "generationPending": true,
+        "reject": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://public.invalid/api",
+          "headers": [],
+          "env": {},
+          "key": null,
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "rejected",
+        "message": "SYNTHETIC_ASYNC_ERROR"
+      }
+    },
+    {
+      "config": {
+        "id": "auth-cancel-then-reject",
+        "auth": true,
+        "generationPending": true,
+        "reject": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "SYNTHETIC_RESOLVED",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [],
+          "stopReason": "error",
+          "errorMessage": "SYNTHETIC_ASYNC_ERROR",
+          "timestamp": 1700000000017
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "auth-cancel-then-success",
+        "auth": true,
+        "generationPending": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "SYNTHETIC_RESOLVED",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "stopReason": "stop",
+          "timestamp": 1700000000017
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "explicit-empty-key-env",
+        "auth": true,
+        "options": {
+          "apiKey": "",
+          "env": {}
+        }
+      },
+      "events": [
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "stopReason": "stop",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "exact-header-env-endpoint-merge",
+        "auth": true,
+        "options": {
+          "apiKey": "SYNTHETIC_EXPLICIT",
+          "env": {
+            "A": "explicit",
+            "C": "extra"
+          },
+          "headers": {
+            "X-Shared": "explicit",
+            "x-shared": "case-later",
+            "X-Null": null
+          }
+        }
+      },
+      "events": [
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://credential.invalid/api?synthetic=1",
+          "headers": [
+            [
+              "X-Shared",
+              "explicit"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              null
+            ],
+            [
+              "x-shared",
+              "case-later"
+            ]
+          ],
+          "env": {
+            "A": "explicit",
+            "B": "kept",
+            "C": "extra"
+          },
+          "key": "SYNTHETIC_EXPLICIT",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "stopReason": "stop",
+          "timestamp": 1700000000000
+        }
+      }
+    },
+    {
+      "config": {
+        "id": "empty-auth-endpoint",
+        "auth": true,
+        "emptyEndpoint": true
+      },
+      "events": [
+        "read",
+        "auth",
+        "generate"
+      ],
+      "calls": [
+        {
+          "endpoint": "https://public.invalid/api",
+          "headers": [
+            [
+              "X-Shared",
+              "auth"
+            ],
+            [
+              "X-Keep",
+              "kept"
+            ],
+            [
+              "X-Null",
+              "auth"
+            ]
+          ],
+          "env": {
+            "A": "auth",
+            "B": "kept"
+          },
+          "key": "SYNTHETIC_RESOLVED",
+          "context": {
+            "input": [
+              {
+                "type": "text",
+                "text": "synthetic prompt"
+              }
+            ]
+          }
+        }
+      ],
+      "outcome": {
+        "kind": "resolved",
+        "value": {
+          "api": "synthetic-images",
+          "provider": "openrouter",
+          "model": "synthetic-model",
+          "output": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "stopReason": "stop",
+          "timestamp": 1700000000000
+        }
+      }
+    }
+  ],
+  "listing": {
+    "initial": [
+      "a",
+      "b",
+      "throw"
+    ],
+    "models": [
+      "same",
+      "same",
+      "b"
+    ],
+    "first": "first",
+    "unknown": [],
+    "replaced": [
+      "a",
+      "b",
+      "throw"
+    ],
+    "reinserted": [
+      "b",
+      "throw",
+      "a"
+    ],
+    "cleared": 0
+  },
+  "live": [
+    {
+      "mode": "add",
+      "refreshMode": false,
+      "snapshot": [
+        "a"
+      ],
+      "events": [
+        "a",
+        "b-new"
+      ],
+      "models": [
+        "a",
+        "b-new"
+      ],
+      "providers": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "mode": "replace",
+      "refreshMode": false,
+      "snapshot": [
+        "a",
+        "b",
+        "c"
+      ],
+      "events": [
+        "a",
+        "b-new",
+        "c"
+      ],
+      "models": [
+        "a",
+        "b-new",
+        "c"
+      ],
+      "providers": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "mode": "delete-reinsert",
+      "refreshMode": false,
+      "snapshot": [
+        "a",
+        "b",
+        "c"
+      ],
+      "events": [
+        "a",
+        "c",
+        "b-new"
+      ],
+      "models": [
+        "a",
+        "c",
+        "b-new"
+      ],
+      "providers": [
+        "a",
+        "c",
+        "b"
+      ]
+    },
+    {
+      "mode": "clear",
+      "refreshMode": false,
+      "snapshot": [
+        "a",
+        "b",
+        "c"
+      ],
+      "events": [
+        "a",
+        "d"
+      ],
+      "models": [
+        "a",
+        "d"
+      ],
+      "providers": [
+        "d"
+      ]
+    },
+    {
+      "mode": "add",
+      "refreshMode": true,
+      "snapshot": [
+        "a"
+      ],
+      "events": [
+        "start:a",
+        "start:b-new",
+        "finish:a",
+        "finish:b-new"
+      ],
+      "providers": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "mode": "replace",
+      "refreshMode": true,
+      "snapshot": [
+        "a",
+        "b",
+        "c"
+      ],
+      "events": [
+        "start:a",
+        "start:b-new",
+        "start:c",
+        "finish:a",
+        "finish:b-new",
+        "finish:c"
+      ],
+      "providers": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    {
+      "mode": "delete-reinsert",
+      "refreshMode": true,
+      "snapshot": [
+        "a",
+        "b",
+        "c"
+      ],
+      "events": [
+        "start:a",
+        "start:c",
+        "start:b-new",
+        "finish:a",
+        "finish:c",
+        "finish:b-new"
+      ],
+      "providers": [
+        "a",
+        "c",
+        "b"
+      ]
+    },
+    {
+      "mode": "clear",
+      "refreshMode": true,
+      "snapshot": [
+        "a",
+        "b",
+        "c"
+      ],
+      "events": [
+        "start:a",
+        "start:d",
+        "finish:a",
+        "finish:d"
+      ],
+      "providers": [
+        "d"
+      ]
+    }
+  ],
+  "nestedRefresh": {
+    "afterLaunchCalls": 2,
+    "joinedOuter": true,
+    "afterChildCalls": 3,
+    "afterOuterCalls": 4,
+    "afterFourth": [
+      "model-4"
+    ],
+    "final": [
+      "model-3"
+    ]
+  },
+  "refresh": {
+    "sharedPromise": true,
+    "fetchesBefore": 1,
+    "oldWhilePending": [
+      "synthetic-model"
+    ],
+    "failures": [
+      "rejected",
+      "rejected"
+    ],
+    "oldAfterFailure": [
+      "synthetic-model"
+    ],
+    "afterRetry": [
+      "fresh"
+    ],
+    "fetches": 2,
+    "codedCode": "oauth",
+    "plainCode": "model_source",
+    "allSettled": true,
+    "unknownNoop": true
+  },
+  "refreshLaunch": [
+    {
+      "synchronous": true,
+      "calls": 1,
+      "samePromise": true,
+      "models": [
+        "synthetic-model"
+      ]
+    },
+    {
+      "synchronous": false,
+      "calls": 2,
+      "samePromise": false,
+      "models": [
+        "synthetic-model"
+      ]
+    }
+  ],
+  "refreshReplacement": {
+    "old": [
+      "old-fresh"
+    ],
+    "current": [
+      "new-current"
+    ]
+  },
+  "getAuth": {
+    "auth": {
+      "headers": {
+        "X-Auth": "auth"
+      }
+    },
+    "source": "API key"
+  },
+  "binding": {
+    "old": "old",
+    "new": "new",
+    "unknown": true,
+    "mismatch": "Mismatched api: other expected synthetic-images"
+  },
+  "lazy": [
+    {
+      "mode": "per-call-success",
+      "events": [
+        "load:per-call-success",
+        "generate",
+        "load:per-call-success",
+        "generate"
+      ],
+      "values": [
+        "stop",
+        "stop"
+      ]
+    },
+    {
+      "mode": "per-call-failure",
+      "events": [
+        "load:per-call-failure",
+        "load:per-call-failure"
+      ],
+      "values": [
+        "rejected",
+        "rejected"
+      ]
+    },
+    {
+      "mode": "cached-success",
+      "events": [
+        "load:cached-success",
+        "generate",
+        "generate"
+      ],
+      "values": [
+        "stop",
+        "stop"
+      ]
+    },
+    {
+      "mode": "cached-failure",
+      "events": [
+        "load:cached-failure"
+      ],
+      "values": [
+        "error",
+        "error"
+      ]
+    }
+  ],
+  "unknownGlobal": "No API provider registered for api: unknown",
+  "integration": {
+    "model": {
+      "id": "synthetic-model",
+      "name": "Synthetic",
+      "api": "openrouter-images",
+      "provider": "openrouter",
+      "baseUrl": "https://public.invalid/api",
+      "input": [
+        "text"
+      ],
+      "output": [
+        "image",
+        "text"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 3,
+        "cacheWrite": 4
+      }
+    },
+    "response": {
+      "id": "integrated",
+      "choices": [
+        {
+          "message": {
+            "content": "caption",
+            "images": [
+              {
+                "image_url": "data:image/png;base64,A==="
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 20,
+        "completion_tokens": 5
+      }
+    },
+    "events": [
+      "read",
+      "auth",
+      "payload",
+      "fetch",
+      "response"
+    ],
+    "calls": [
+      {
+        "url": "https://credential.invalid/api/chat/completions",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer SYNTHETIC_WIRE_KEY",
+          "content-type": "application/json",
+          "user-agent": "pi-ai-rust",
+          "x-auth": "auth",
+          "x-explicit": "explicit",
+          "x-stainless-retry-count": "0"
+        },
+        "body": "{\"model\":\"synthetic-model\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"synthetic prompt\"}]}],\"stream\":false,\"modalities\":[\"image\",\"text\"]}"
+      }
+    ],
+    "output": {
+      "api": "openrouter-images",
+      "provider": "openrouter",
+      "model": "synthetic-model",
+      "output": [
+        {
+          "type": "text",
+          "text": "caption"
+        },
+        {
+          "type": "image",
+          "mimeType": "image/png",
+          "data": "A==="
+        }
+      ],
+      "stopReason": "stop",
+      "timestamp": 1700000000000,
+      "responseId": "integrated",
+      "usage": {
+        "input": 20,
+        "output": 5,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 25,
+        "cost": {
+          "input": 0.000019999999999999998,
+          "output": 0.000009999999999999999,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0.000029999999999999997
+        }
+      }
+    },
+    "originalBaseUrl": "https://public.invalid/api",
+    "cancelled": true
+  },
+  "sdk": {
+    "version": "6.40.0",
+    "files": 279,
+    "sha256": "a6845a58408dd8bc1c746f4033354acd6a102d38e319060c9024efcdff85022e"
+  }
+}
