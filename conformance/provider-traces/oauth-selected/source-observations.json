@@ -1,0 +1,3425 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "node": "26.8.1",
+  "hashes": {
+    "packages/ai/src/auth/oauth/anthropic.ts": "8bf457ab5f0e7756898bff324d54d7ad9e4d4977c1053cb744791ac024945810",
+    "packages/ai/src/utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675",
+    "packages/ai/src/auth/oauth/oauth-page.ts": "f58b133d271be4ff47352947fd4e55ab66230dc2647b7cbc7c79a574a93de632",
+    "packages/ai/src/auth/oauth/pkce.ts": "33835111577490103dbb7509b7687db1643691d7b425845428f3cbeb873fe9cf",
+    "packages/ai/src/auth/oauth/openai-codex.ts": "757c6cff2bc67d89df30ad175eead549519e1d3756397b5b4189460ac9dbcaba",
+    "packages/ai/src/auth/oauth/device-code.ts": "b402bbbf66d693ee7dd6c5e2c4e45544050722d5bfa3668b100df76284a4fb37",
+    "packages/ai/src/auth/oauth/openrouter.ts": "3215ff89c9e4615d3b205455225f87763ef02973380abce070aced81bbe1fbed"
+  },
+  "observations": [
+    {
+      "scenario": {
+        "id": "anthropic-manual",
+        "provider": "anthropic",
+        "manual": "synthetic-code"
+      },
+      "id": "anthropic-manual",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003300000,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for tokens..."
+          }
+        ],
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"authorization_code\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code\":\"synthetic-code\",\"state\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"redirect_uri\":\"http://localhost:53692/callback\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"}"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-callback",
+        "provider": "anthropic",
+        "callback": true,
+        "invalid": true
+      },
+      "id": "anthropic-callback",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003300000,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "reply",
+          404,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>Callback route not found.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          400,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>State mismatch.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>Anthropic authentication completed. You can close this window.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for tokens..."
+          }
+        ],
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"authorization_code\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code\":\"synthetic-callback-code\",\"state\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"redirect_uri\":\"http://localhost:53692/callback\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"}"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-bind-failure",
+        "provider": "anthropic",
+        "bindFailure": true
+      },
+      "id": "anthropic-bind-failure",
+      "result": null,
+      "error": "synthetic bind failure",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-state-mismatch",
+        "provider": "anthropic",
+        "manual": "synthetic-code#wrong-state"
+      },
+      "id": "anthropic-state-mismatch",
+      "result": null,
+      "error": "OAuth state mismatch",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-missing-code",
+        "provider": "anthropic",
+        "manual": ""
+      },
+      "id": "anthropic-missing-code",
+      "result": null,
+      "error": "Missing authorization code",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-refresh",
+        "provider": "anthropic",
+        "refresh": true
+      },
+      "id": "anthropic-refresh",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003300000,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"refresh_token\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"refresh_token\":\"synthetic-refresh\"}"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-http-error",
+        "provider": "anthropic",
+        "refresh": true,
+        "status": 400
+      },
+      "id": "anthropic-http-error",
+      "result": null,
+      "error": "Anthropic token refresh request failed. url=https://platform.claude.com/v1/oauth/token; details=Error: HTTP request failed. status=400; url=https://platform.claude.com/v1/oauth/token; body={\"access_token\":\"e30.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoic3ludGhldGljLWFjY291bnQifX0=.synthetic\",\"refresh_token\":\"synthetic-refresh\",\"expires_in\":3600}; stack=Error: HTTP request failed. status=400; url=https://platform.claude.com/v1/oauth/token; body={\"access_token\":\"e30.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOnsiY2hhdGdwdF9hY2NvdW50X2lkIjoic3ludGhldGljLWFjY291bnQifX0=.synthetic\",\"refresh_token\":\"synthetic-refresh\",\"expires_in\":3600}\n    at postJson (pinned:packages/ai/src/auth/oauth/anthropic.ts:184:9)\n    at async refreshAnthropicToken (pinned:packages/ai/src/auth/oauth/anthropic.ts:320:18)",
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"refresh_token\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"refresh_token\":\"synthetic-refresh\"}"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-manual",
+        "provider": "codex",
+        "manual": "synthetic-code"
+      },
+      "id": "codex-manual",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "bind",
+          "127.0.0.1",
+          1455
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+profile+email+offline_access&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=000102030405060708090a0b0c0d0e0f&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi",
+            "instructions": "A browser window should open. Complete login to finish."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:1455/auth/callback"
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-code&code_verifier=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-callback",
+        "provider": "codex",
+        "callback": true,
+        "invalid": true
+      },
+      "id": "codex-callback",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "bind",
+          "127.0.0.1",
+          1455
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+profile+email+offline_access&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=000102030405060708090a0b0c0d0e0f&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi",
+            "instructions": "A browser window should open. Complete login to finish."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:1455/auth/callback"
+          }
+        ],
+        [
+          "reply",
+          404,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>Callback route not found.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          400,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>State mismatch.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>OpenAI authentication completed. You can close this window.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-callback-code&code_verifier=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-bind-fallback",
+        "provider": "codex",
+        "bindFailure": true,
+        "manual": "synthetic-code"
+      },
+      "id": "codex-bind-fallback",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "bind",
+          "127.0.0.1",
+          1455
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+profile+email+offline_access&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=000102030405060708090a0b0c0d0e0f&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi",
+            "instructions": "A browser window should open. Complete login to finish."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:1455/auth/callback"
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-code&code_verifier=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device",
+        "provider": "codex",
+        "device": true,
+        "polls": [
+          403,
+          404,
+          "slow_down",
+          "pending",
+          200
+        ]
+      },
+      "id": "codex-device",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003614000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [
+        1000,
+        1000,
+        6000,
+        6000
+      ],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 0,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-device-code&code_verifier=synthetic-device-verifier&redirect_uri=https%3A%2F%2Fauth.openai.com%2Fdeviceauth%2Fcallback"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-fractional",
+        "provider": "codex",
+        "device": true,
+        "interval": "0.5",
+        "polls": [
+          200
+        ]
+      },
+      "id": "codex-device-fractional",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 0.5,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-device-code&code_verifier=synthetic-device-verifier&redirect_uri=https%3A%2F%2Fauth.openai.com%2Fdeviceauth%2Fcallback"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-timeout",
+        "provider": "codex",
+        "device": true,
+        "interval": 900,
+        "polls": [
+          403
+        ]
+      },
+      "id": "codex-device-timeout",
+      "result": null,
+      "error": "Device flow timed out",
+      "sleeps": [
+        900000
+      ],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 900,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-slow-timeout",
+        "provider": "codex",
+        "device": true,
+        "interval": 900,
+        "polls": [
+          "slow_down"
+        ]
+      },
+      "id": "codex-device-slow-timeout",
+      "result": null,
+      "error": "Device flow timed out after one or more slow_down responses. This is often caused by clock drift in WSL or VM environments. Please sync or restart the VM clock and try again.",
+      "sleeps": [
+        900000
+      ],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 900,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-refresh",
+        "provider": "codex",
+        "refresh": true
+      },
+      "id": "codex-refresh",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=refresh_token&refresh_token=synthetic-refresh&client_id=app_EMoamEEZ73f0CkXaXp7hrann"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-manual",
+        "provider": "openrouter",
+        "manual": "synthetic-code"
+      },
+      "id": "openrouter-manual",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 9007199254740991,
+        "refreshEmpty": true,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for an API key..."
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-callback-claimed",
+        "provider": "openrouter",
+        "callback": true,
+        "claimedManual": true,
+        "invalid": true
+      },
+      "id": "openrouter-callback-claimed",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 9007199254740991,
+        "refreshEmpty": true,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "reply",
+          404,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OAuth callback route not found.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "reply",
+          400,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter returned no authorization code.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "reply",
+          409,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>This OAuth callback has already been used.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>Signed in to OpenRouter. You may now close this page.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-callback-manual-error",
+        "provider": "openrouter",
+        "callback": true,
+        "claimedManual": true,
+        "manualError": true
+      },
+      "id": "openrouter-callback-manual-error",
+      "result": null,
+      "error": "synthetic manual rejection",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "reply",
+          409,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>This OAuth callback has already been used.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>Signed in to OpenRouter. You may now close this page.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-denied",
+        "provider": "openrouter",
+        "denied": true
+      },
+      "id": "openrouter-denied",
+      "result": null,
+      "error": "OpenRouter authorization failed: Denied <b>&",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "reply",
+          400,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter authorization was denied.</p>\n    <div class=\"details\">Denied &lt;b&gt;&amp;</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-timeout",
+        "provider": "openrouter"
+      },
+      "id": "openrouter-timeout",
+      "result": null,
+      "error": "OpenRouter OAuth login timed out",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-exchange-timeout",
+        "provider": "openrouter",
+        "manual": "synthetic-code",
+        "hold": true
+      },
+      "id": "openrouter-exchange-timeout",
+      "result": null,
+      "error": "OpenRouter OAuth token exchange timed out",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for an API key..."
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-unknown-method",
+        "provider": "codex",
+        "method": "synthetic-unknown"
+      },
+      "id": "codex-unknown-method",
+      "result": null,
+      "error": "Unknown OpenAI Codex login method: synthetic-unknown",
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-disabled",
+        "provider": "codex",
+        "device": true,
+        "status": 404
+      },
+      "id": "codex-device-disabled",
+      "result": null,
+      "error": "OpenAI Codex device code login is not enabled for this server. Use browser login or verify the server URL.",
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-denied",
+        "provider": "codex",
+        "device": true,
+        "polls": [
+          500
+        ]
+      },
+      "id": "codex-device-denied",
+      "result": null,
+      "error": "OpenAI Codex device auth failed with status 500: {\"error\":500}",
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 0,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-invalid-jwt",
+        "provider": "codex",
+        "refresh": true,
+        "access": "synthetic-invalid"
+      },
+      "id": "codex-invalid-jwt",
+      "result": null,
+      "error": "Failed to extract accountId from token",
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=refresh_token&refresh_token=synthetic-refresh&client_id=app_EMoamEEZ73f0CkXaXp7hrann"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-fractional-seconds",
+        "provider": "anthropic",
+        "refresh": true,
+        "expires": 0.5
+      },
+      "id": "anthropic-fractional-seconds",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1699999700500,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"refresh_token\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"refresh_token\":\"synthetic-refresh\"}"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "admission-anthropic-fractional-ms",
+        "provider": "anthropic",
+        "refresh": true,
+        "expires": 0.0005
+      },
+      "id": "admission-anthropic-fractional-ms",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1699999700000.5,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"refresh_token\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"refresh_token\":\"synthetic-refresh\"}"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "admission-anthropic-negative-expiry",
+        "provider": "anthropic",
+        "refresh": true,
+        "expires": 0,
+        "now": 0
+      },
+      "id": "admission-anthropic-negative-expiry",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": -300000,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"refresh_token\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"refresh_token\":\"synthetic-refresh\"}"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-empty-key",
+        "provider": "openrouter",
+        "manual": "synthetic-code",
+        "key": ""
+      },
+      "id": "openrouter-empty-key",
+      "result": null,
+      "error": "OpenRouter OAuth response carries no \"key\"",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for an API key..."
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-callback-http-error",
+        "provider": "openrouter",
+        "callback": true,
+        "status": 403
+      },
+      "id": "openrouter-callback-http-error",
+      "result": null,
+      "error": "OpenRouter OAuth key exchange failed (HTTP 403)",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          502,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter key exchange failed.</p>\n    <div class=\"details\">OpenRouter OAuth key exchange failed (HTTP 403)</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-manual-empty-state",
+        "provider": "anthropic",
+        "manual": "code=synthetic-code&state="
+      },
+      "id": "anthropic-manual-empty-state",
+      "result": null,
+      "error": "Missing OAuth state",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-manual-url",
+        "provider": "anthropic",
+        "manual": "http://localhost:53692/callback?code=synthetic-code"
+      },
+      "id": "anthropic-manual-url",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003300000,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for tokens..."
+          }
+        ],
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"authorization_code\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code\":\"synthetic-code\",\"state\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"redirect_uri\":\"http://localhost:53692/callback\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"}"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-manual-empty-state",
+        "provider": "codex",
+        "manual": "code=synthetic-code&state="
+      },
+      "id": "codex-manual-empty-state",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "bind",
+          "127.0.0.1",
+          1455
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+profile+email+offline_access&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=000102030405060708090a0b0c0d0e0f&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi",
+            "instructions": "A browser window should open. Complete login to finish."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:1455/auth/callback"
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-code&code_verifier=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-hex-interval",
+        "provider": "codex",
+        "device": true,
+        "interval": "0x2",
+        "polls": [
+          "nested_pending",
+          200
+        ]
+      },
+      "id": "codex-device-hex-interval",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003602000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [
+        2000
+      ],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 2,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-device-code&code_verifier=synthetic-device-verifier&redirect_uri=https%3A%2F%2Fauth.openai.com%2Fdeviceauth%2Fcallback"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-device-completes-after-deadline",
+        "provider": "codex",
+        "device": true,
+        "polls": [
+          200
+        ],
+        "pollAdvance": 1000000
+      },
+      "id": "codex-device-completes-after-deadline",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700004600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"client_id\":\"app_EMoamEEZ73f0CkXaXp7hrann\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/usercode"
+        ],
+        [
+          "notify",
+          {
+            "type": "device_code",
+            "userCode": "synthetic-user",
+            "verificationUri": "https://auth.openai.com/codex/device",
+            "intervalSeconds": 0,
+            "expiresInSeconds": 900
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/api/accounts/deviceauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ]
+          ],
+          "{\"device_auth_id\":\"synthetic-device\",\"user_code\":\"synthetic-user\"}"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/api/accounts/deviceauth/token"
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-device-code&code_verifier=synthetic-device-verifier&redirect_uri=https%3A%2F%2Fauth.openai.com%2Fdeviceauth%2Fcallback"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-http-body-failure",
+        "provider": "codex",
+        "refresh": true,
+        "status": 400,
+        "readError": true
+      },
+      "id": "codex-http-body-failure",
+      "result": null,
+      "error": "OpenAI Codex token refresh failed (400): Synthetic",
+      "sleeps": [],
+      "trace": [
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=refresh_token&refresh_token=synthetic-refresh&client_id=app_EMoamEEZ73f0CkXaXp7hrann"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-http-body-failure",
+        "provider": "openrouter",
+        "manual": "synthetic-code",
+        "status": 400,
+        "readError": true
+      },
+      "id": "openrouter-http-body-failure",
+      "result": null,
+      "error": "OpenRouter OAuth key exchange failed (HTTP 400)",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for an API key..."
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-invalid-json",
+        "provider": "openrouter",
+        "callback": true,
+        "invalidJson": true
+      },
+      "id": "openrouter-invalid-json",
+      "result": null,
+      "error": "OpenRouter OAuth returned invalid JSON",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          502,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter key exchange failed.</p>\n    <div class=\"details\">OpenRouter OAuth returned invalid JSON</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-error-detail",
+        "provider": "openrouter",
+        "callback": true,
+        "status": 400,
+        "errorDescription": "synthetic-private-detail <&>"
+      },
+      "id": "openrouter-error-detail",
+      "result": null,
+      "error": "OpenRouter OAuth key exchange failed (HTTP 400): synthetic-private-detail <&>",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          502,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter key exchange failed.</p>\n    <div class=\"details\">OpenRouter OAuth key exchange failed (HTTP 400): synthetic-private-detail &lt;&amp;&gt;</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-manual-hash",
+        "provider": "openrouter",
+        "manual": "synthetic-code#synthetic-state"
+      },
+      "id": "openrouter-manual-hash",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 9007199254740991,
+        "refreshEmpty": true,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for an API key..."
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-code#synthetic-state\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-manual-rejected",
+        "provider": "openrouter",
+        "manualRejectBefore": true
+      },
+      "id": "openrouter-manual-rejected",
+      "result": null,
+      "error": "synthetic manual rejection",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "anthropic-callback-error-routes",
+        "provider": "anthropic",
+        "callback": true,
+        "extraError": true,
+        "malformedTarget": true,
+        "callbackMethod": "POST"
+      },
+      "id": "anthropic-callback-error-routes",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003300000,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          53692
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://claude.ai/oauth/authorize?code=true&client_id=9d1c250a-e61b-44d9-88ed-5944d1962f5e&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A53692%2Fcallback&scope=org%3Acreate_api_key+user%3Aprofile+user%3Ainference+user%3Asessions%3Aclaude_code+user%3Amcp_servers+user%3Afile_upload&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+            "instructions": "Complete login in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:53692/callback"
+          }
+        ],
+        [
+          "reply",
+          400,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>Anthropic authentication did not complete.</p>\n    <div class=\"details\">Error: synthetic-denied</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          500,
+          "Internal error",
+          {
+            "content-type": "text/plain; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>Anthropic authentication completed. You can close this window.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Exchanging authorization code for tokens..."
+          }
+        ],
+        [
+          "fetch",
+          "https://platform.claude.com/v1/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/json"
+            ],
+            [
+              "Accept",
+              "application/json"
+            ]
+          ],
+          "{\"grant_type\":\"authorization_code\",\"client_id\":\"9d1c250a-e61b-44d9-88ed-5944d1962f5e\",\"code\":\"synthetic-callback-code\",\"state\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"redirect_uri\":\"http://localhost:53692/callback\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"}"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://platform.claude.com/v1/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "codex-callback-error-routes",
+        "provider": "codex",
+        "callback": true,
+        "extraError": true,
+        "malformedTarget": true
+      },
+      "id": "codex-callback-error-routes",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 1700003600000,
+        "refreshEmpty": false,
+        "accountId": "synthetic-account",
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "prompt",
+          {
+            "type": "select",
+            "message": "Select OpenAI Codex login method:",
+            "options": [
+              {
+                "id": "browser",
+                "label": "Browser login (default)"
+              },
+              {
+                "id": "device_code",
+                "label": "Device code login (headless)"
+              }
+            ]
+          }
+        ],
+        [
+          "bind",
+          "127.0.0.1",
+          1455
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&scope=openid+profile+email+offline_access&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256&state=000102030405060708090a0b0c0d0e0f&id_token_add_organizations=true&codex_cli_simplified_flow=true&originator=pi",
+            "instructions": "A browser window should open. Complete login to finish."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete login in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://localhost:1455/auth/callback"
+          }
+        ],
+        [
+          "reply",
+          400,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>State mismatch.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          500,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>Internal error while processing OAuth callback.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>OpenAI authentication completed. You can close this window.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8"
+          }
+        ],
+        [
+          "fetch",
+          "https://auth.openai.com/oauth/token",
+          [
+            [
+              "Content-Type",
+              "application/x-www-form-urlencoded"
+            ]
+          ],
+          "grant_type=authorization_code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&code=synthetic-callback-code&code_verifier=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8&redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+        ],
+        [
+          "manual-cancel"
+        ],
+        [
+          "close"
+        ],
+        [
+          "read",
+          "https://auth.openai.com/oauth/token"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-invalid-method",
+        "provider": "openrouter",
+        "callback": true,
+        "invalidMethod": true
+      },
+      "id": "openrouter-invalid-method",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 9007199254740991,
+        "refreshEmpty": true,
+        "accountId": null,
+        "extra": null
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "reply",
+          404,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OAuth callback route not found.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          200,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication successful</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication successful</h1>\n    <p>Signed in to OpenRouter. You may now close this page.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-invalid-route-timeout",
+        "provider": "openrouter",
+        "invalidOnly": true,
+        "holdReply": true
+      },
+      "id": "openrouter-invalid-route-timeout",
+      "result": null,
+      "error": "OpenRouter OAuth login timed out",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "reply",
+          404,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OAuth callback route not found.</p>\n    \n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-empty-error-detail",
+        "provider": "openrouter",
+        "callback": true,
+        "status": 400,
+        "errorDescription": "",
+        "errorMessage": "synthetic-secondary-detail"
+      },
+      "id": "openrouter-empty-error-detail",
+      "result": null,
+      "error": "OpenRouter OAuth key exchange failed (HTTP 400)",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          502,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter key exchange failed.</p>\n    <div class=\"details\">OpenRouter OAuth key exchange failed (HTTP 400)</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-refresh",
+        "provider": "openrouter",
+        "refresh": true
+      },
+      "id": "openrouter-refresh",
+      "result": {
+        "authMatchesAccess": true,
+        "type": "oauth",
+        "expires": 0,
+        "refreshEmpty": false,
+        "accountId": null,
+        "extra": "synthetic-extra"
+      },
+      "error": null,
+      "sleeps": [],
+      "trace": []
+    },
+    {
+      "scenario": {
+        "id": "openrouter-callback-body-read-failure",
+        "provider": "openrouter",
+        "callback": true,
+        "readError": true
+      },
+      "id": "openrouter-callback-body-read-failure",
+      "result": null,
+      "error": "OpenRouter OAuth returned invalid JSON",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "read",
+          "https://openrouter.ai/api/v1/auth/keys"
+        ],
+        [
+          "reply",
+          502,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter key exchange failed.</p>\n    <div class=\"details\">OpenRouter OAuth returned invalid JSON</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    },
+    {
+      "scenario": {
+        "id": "openrouter-callback-exchange-timeout",
+        "provider": "openrouter",
+        "callback": true,
+        "hold": true
+      },
+      "id": "openrouter-callback-exchange-timeout",
+      "result": null,
+      "error": "OpenRouter OAuth token exchange timed out",
+      "sleeps": [],
+      "trace": [
+        [
+          "bind",
+          "127.0.0.1",
+          0
+        ],
+        [
+          "notify",
+          {
+            "type": "progress",
+            "message": "Listening for OpenRouter OAuth callback on http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "notify",
+          {
+            "type": "auth_url",
+            "url": "https://openrouter.ai/auth?callback_url=http%3A%2F%2F127.0.0.1%3A40000%2Foauth%2Fcallback%2F00010203-0405-4607-8809-0a0b0c0d0e0f&code_challenge=6oZqdX5MOLq_qBJ8vppAnT4fk6AP8UiP9zX8-Rev_9A&code_challenge_method=S256",
+            "instructions": "Complete sign-in in your browser. If the browser is on another machine, paste the final redirect URL here."
+          }
+        ],
+        [
+          "prompt",
+          {
+            "type": "manual_code",
+            "message": "Complete sign-in in your browser, or paste the authorization code / redirect URL here:",
+            "placeholder": "http://127.0.0.1:40000/oauth/callback/00010203-0405-4607-8809-0a0b0c0d0e0f"
+          }
+        ],
+        [
+          "fetch",
+          "https://openrouter.ai/api/v1/auth/keys",
+          [
+            [
+              "accept",
+              "application/json"
+            ],
+            [
+              "content-type",
+              "application/json"
+            ]
+          ],
+          "{\"code\":\"synthetic-callback-code\",\"code_verifier\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\",\"code_challenge_method\":\"S256\"}"
+        ],
+        [
+          "reply",
+          502,
+          "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n  <title>Authentication failed</title>\n  <style>\n    :root {\n      --text: #fafafa;\n      --text-dim: #a1a1aa;\n      --page-bg: #09090b;\n      --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"Noto Sans\", sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\";\n      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \"Liberation Mono\", \"Courier New\", monospace;\n    }\n    * { box-sizing: border-box; }\n    html { color-scheme: dark; }\n    body {\n      margin: 0;\n      min-height: 100vh;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      padding: 24px;\n      background: var(--page-bg);\n      color: var(--text);\n      font-family: var(--font-sans);\n      text-align: center;\n    }\n    main {\n      width: 100%;\n      max-width: 560px;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n    }\n    .logo {\n      width: 72px;\n      height: 72px;\n      display: block;\n      margin-bottom: 24px;\n    }\n    h1 {\n      margin: 0 0 10px;\n      font-size: 28px;\n      line-height: 1.15;\n      font-weight: 650;\n      color: var(--text);\n    }\n    p {\n      margin: 0;\n      line-height: 1.7;\n      color: var(--text-dim);\n      font-size: 15px;\n    }\n    .details {\n      margin-top: 16px;\n      font-family: var(--font-mono);\n      font-size: 13px;\n      color: var(--text-dim);\n      white-space: pre-wrap;\n      word-break: break-word;\n    }\n  </style>\n</head>\n<body>\n  <main>\n    <div class=\"logo\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 800\" aria-hidden=\"true\"><path fill=\"#fff\" fill-rule=\"evenodd\" d=\"M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z\"/><path fill=\"#fff\" d=\"M517.36 400 H634.72 V634.72 H517.36 Z\"/></svg></div>\n    <h1>Authentication failed</h1>\n    <p>OpenRouter key exchange failed.</p>\n    <div class=\"details\">OpenRouter OAuth token exchange timed out</div>\n  </main>\n</body>\n</html>",
+          {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-store"
+          }
+        ],
+        [
+          "close"
+        ],
+        [
+          "manual-cancel"
+        ]
+      ]
+    }
+  ],
+  "credentialDigests": {
+    "anthropic-manual": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "anthropic-callback": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "anthropic-refresh": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-manual": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-callback": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-bind-fallback": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-device": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-device-fractional": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-refresh": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "openrouter-manual": {
+      "access": "2ee8f42267a3635138b7b04501b6a854349d168cdc4e2db23bf05b64e65371f7",
+      "refresh": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "openrouter-callback-claimed": {
+      "access": "2ee8f42267a3635138b7b04501b6a854349d168cdc4e2db23bf05b64e65371f7",
+      "refresh": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "anthropic-fractional-seconds": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "admission-anthropic-fractional-ms": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "admission-anthropic-negative-expiry": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "anthropic-manual-url": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-manual-empty-state": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-device-hex-interval": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-device-completes-after-deadline": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "openrouter-manual-hash": {
+      "access": "2ee8f42267a3635138b7b04501b6a854349d168cdc4e2db23bf05b64e65371f7",
+      "refresh": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "anthropic-callback-error-routes": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "codex-callback-error-routes": {
+      "access": "c9d0db88bb7fe3028c2ca383df7617201baa2574f8c3099d88cfc8799a5394b5",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    },
+    "openrouter-invalid-method": {
+      "access": "2ee8f42267a3635138b7b04501b6a854349d168cdc4e2db23bf05b64e65371f7",
+      "refresh": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "openrouter-refresh": {
+      "access": "f0bd9f20f03b1bc8ab2312d09026ca217477ab2a37e38f5ec26ef600649df207",
+      "refresh": "fb63872586eea8086d4136ee772120fbda3dc651ad073703631a8ec3b02ca2d7"
+    }
+  }
+}

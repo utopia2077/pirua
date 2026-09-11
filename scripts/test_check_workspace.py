@@ -135,6 +135,27 @@ class WorkspaceCheckerTests(unittest.TestCase):
             errors,
         )
 
+    def test_selected_oauth_features_preserve_independent_native_activation(self):
+        original = copy.deepcopy(next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai-providers"))
+        for name in ("oauth-anthropic", "oauth-openai-codex", "oauth-openrouter"):
+            self.assertEqual(original["features"][name], ["dep:url"])
+        self.assertEqual(original["features"]["auth-native"], ["native", "pi-ai-transport/auth-native"])
+        for name, activations in (
+            ("oauth-anthropic", ["dep:url", "auth-native"]),
+            ("oauth-openai-codex", ["dep:url", "native"]),
+            ("oauth-openrouter", ["dep:url", "pi-ai-transport/auth-native"]),
+            ("auth-native", ["native"]),
+            ("oauth-excluded", ["dep:url"]),
+        ):
+            package = copy.deepcopy(original)
+            package["features"][name] = activations
+            errors = []
+            checker.validate_s04_provider_features(package, errors)
+            self.assertTrue(errors, name)
+        errors = []
+        checker.validate_s04_provider_features(original, errors)
+        self.assertEqual(errors, [])
+
     def test_s04_provider_features_cannot_enable_defaults_or_move_native_ownership(self):
         original = next(package for package in self.default_metadata["packages"]
             if package["name"] == "pi-ai-providers")

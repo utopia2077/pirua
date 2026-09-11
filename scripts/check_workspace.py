@@ -238,6 +238,10 @@ def validate_s04_provider_features(package: dict[str, Any], errors: list[str]) -
         if name in {"catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
                     "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images"}:
             expected = set()
+        elif name in {"oauth-anthropic", "oauth-openai-codex", "oauth-openrouter"}:
+            expected = {"dep:url"}
+        elif name == "auth-native":
+            expected = {"native", "pi-ai-transport/auth-native"}
         elif name == "cloudflare-gateway-binding":
             expected = {"dep:url", "serde_json/unbounded_depth"}
         elif name == "wire-bedrock-converse-stream":

@@ -7,3 +7,10 @@ pub use context::*;
 pub use helpers::*;
 pub use lazy::*;
 pub use services::*;
+
+#[cfg(any(
+    feature = "oauth-anthropic",
+    feature = "oauth-openai-codex",
+    feature = "oauth-openrouter"
+))]
+pub mod oauth;
