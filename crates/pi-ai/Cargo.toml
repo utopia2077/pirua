@@ -11,6 +11,7 @@ workspace = true
 
 [features]
 default = []
+dev-catalog-tools = []
 provider-anthropic = ["dep:pi-ai-providers"]
 
 [dependencies]
@@ -20,3 +21,13 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true
+
+[[bin]]
+name = "catalog_gen"
+path = "src/bin/catalog_gen.rs"
+required-features = ["dev-catalog-tools"]
+
+[[bin]]
+name = "image_catalog_gen"
+path = "src/bin/image_catalog_gen.rs"
+required-features = ["dev-catalog-tools"]
