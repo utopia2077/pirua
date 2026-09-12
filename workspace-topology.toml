@@ -23,7 +23,7 @@ members = ["provider-*", "oauth-*", "images-*", "catalog-gen"]
 
 [[feature_group]]
 id = "ai-facade-provider-selection"
-members = ["catalog-anthropic", "catalog-deepseek", "catalog-google", "catalog-openai", "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images", "provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "provider-openai-codex", "provider-openrouter", "images-runtime", "images-openrouter", "oauth-anthropic", "oauth-openai-codex", "oauth-openrouter", "all-providers", "all-images", "all-oauth", "native", "auth-native", "catalog-gen", "dev-oauth-cli"]
+members = ["compat", "catalog-anthropic", "catalog-deepseek", "catalog-google", "catalog-openai", "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images", "provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "provider-openai-codex", "provider-openrouter", "images-runtime", "images-openrouter", "oauth-anthropic", "oauth-openai-codex", "oauth-openrouter", "all-providers", "all-images", "all-oauth", "native", "auth-native", "catalog-gen", "dev-oauth-cli"]
 
 [[edge]]
 consumer = "pi-ai-core"

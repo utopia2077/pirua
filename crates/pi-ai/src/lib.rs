@@ -73,3 +73,11 @@ pub mod catalog;
 pub mod images {
     pub use pi_ai_providers::images::*;
 }
+
+#[cfg(feature = "compat")]
+pub use pi_ai_providers::auth::{DefaultProviderAuthContext, LazyOAuth, env_api_key_auth};
+#[cfg(feature = "images-runtime")]
+pub use pi_ai_providers::images::{
+    CreateImagesProviderOptions, ImagesModels, ImagesProvider, MutableImagesModels,
+    create_images_models, create_images_provider,
+};

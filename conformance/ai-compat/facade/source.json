@@ -1,0 +1,201 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "capturedImagesSha256": "5c825ff85e7ca93476ee116ad9b83fd8c94aac05b1a68f775bf814d6e0ffd3fb",
+  "imageCount": 52,
+  "hashes": {
+    "compat.ts": "c1212487653e4508243ddc2c420334166699470b9908326ff8f74b8aeb4fc8a5",
+    "image-models.ts": "58f11488a6623fe8528153235f9216c249d70e146b0f99f8b22db8d88a49ae74",
+    "images.ts": "de83a96c1eb420cfb1b6f4e3ce8430f19b2312399d195fb786c76ebae4111dcf",
+    "providers/images/register-builtins.ts": "8c8bd4e614b8b733c0a4232f7cc974bf38c5a4bb6b9615c732e3b794ff1d908f",
+    "images-api-registry.ts": "604636b0a4b59d1798d79aad48a1dfdd96ee79e3f16b16cdc54dbd1b81c44ffe",
+    "legacy-api-aliases.ts": "784ae74c00b3cf2836b6ed930519b5d7d3aa1a7a4e7ace933af3bdad77df67e3",
+    "bedrock-provider.ts": "427a4e76812ea4ac42133e7f41e75df99e0edaff883659c96a0e4ec78f670f9f",
+    "session-resources.ts": "3e6d76f038d6b7fe515ede0b6650d41a7df16eb4b3a9f1aa91c9de329ff092e2"
+  },
+  "boundaries": [
+    {
+      "path": "api/anthropic-messages.lazy.ts",
+      "exports": [
+        "anthropicMessagesApi"
+      ],
+      "sourceSha256": "5d1925e8b2664c91a11ef4c73d8c400b4075597c8c4e8beb085f8e4ba137fc08",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/azure-openai-responses.lazy.ts",
+      "exports": [
+        "azureOpenAIResponsesApi"
+      ],
+      "sourceSha256": "de36a9a2749ac4cb45a5449356bceadb676d1a16e6d46f4fc5522a3f700aa2fd",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/bedrock-converse-stream.lazy.ts",
+      "exports": [
+        "bedrockConverseStreamApi"
+      ],
+      "sourceSha256": "3ee8a1b2a2cd58927bee18ab5b4150401da810e9d5f4595822b3b10ded35de86",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/bedrock-converse-stream.ts",
+      "exports": [
+        "stream",
+        "streamSimple"
+      ],
+      "sourceSha256": "b8cff28740f8a549fc5fd2d466980f8900688c01fcad3df96ba68f7eaf4fbaf3",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/google-generative-ai.lazy.ts",
+      "exports": [
+        "googleGenerativeAIApi"
+      ],
+      "sourceSha256": "ba7700f2e44838fb19da46f866f47f35f4e10f5068800be1ea698e9e95e1e1ce",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/google-vertex.lazy.ts",
+      "exports": [
+        "googleVertexApi"
+      ],
+      "sourceSha256": "891f0e07eaaa1bb1df97f0a2d8f067df6acbab50078242108d93b96a710c4712",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/mistral-conversations.lazy.ts",
+      "exports": [
+        "mistralConversationsApi"
+      ],
+      "sourceSha256": "74267bc430c0c2562d166e4ae9d05966634e91b226bc564010b2b199db52dd86",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/openai-codex-responses.lazy.ts",
+      "exports": [
+        "openAICodexResponsesApi"
+      ],
+      "sourceSha256": "89e1883f937df0992b852970f574b5e1fc2a69fefaacc89628cd1d924a8af63f",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/openai-completions.lazy.ts",
+      "exports": [
+        "openAICompletionsApi"
+      ],
+      "sourceSha256": "a1defe07f6d7bd37de3933164cc88cfeb2d46cf390d0bbb52c85b280cc58d193",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/openai-responses.lazy.ts",
+      "exports": [
+        "openAIResponsesApi"
+      ],
+      "sourceSha256": "ea6bf6019f6b2f949bce4ad248ec1e0fa25dd058a009cf70fb5eb0e99b4c94db",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/openrouter-images.ts",
+      "exports": [
+        "generateImages"
+      ],
+      "sourceSha256": "c658f331cb2278e7accc925fa72eb3c3902d32d6ff37c4263b6bb6108888d440",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "api/pi-messages.lazy.ts",
+      "exports": [
+        "piMessagesApi"
+      ],
+      "sourceSha256": "620e55f1a498f70c8578deb6375f9433c6991c98f6c323465b1889c2f07a72d9",
+      "role": "configured-wire-boundary"
+    },
+    {
+      "path": "env-api-keys.ts",
+      "exports": [
+        "getEnvApiKey"
+      ],
+      "sourceSha256": "6876b915ffe1342f8be69ef1f75721c8a265a332a1bbbf5afe36b6f80b332552",
+      "role": "synchronous-environment-boundary"
+    },
+    {
+      "path": "image-models.generated.ts",
+      "exports": [
+        "IMAGE_MODELS"
+      ],
+      "sourceSha256": "4c33f4ec8bbb5e9517a2858689352bfbd4662c1a8695989a52ecd11ab1c70c48",
+      "role": "dated-captured-image-input"
+    },
+    {
+      "path": "index.ts",
+      "exports": [],
+      "sourceSha256": "709ddb426ce4471df84490d00da07743532e0493aab9667de2359f2de4b1d8ad",
+      "role": "unexercised-reexport-boundary"
+    },
+    {
+      "path": "providers/all.ts",
+      "exports": [
+        "builtinModels",
+        "getBuiltinModel",
+        "getBuiltinModels",
+        "getBuiltinProviders"
+      ],
+      "sourceSha256": "6f2107bd324c85133d5b4ca39f8247c1e07ed7b660849b94e8c546072b9fa552",
+      "role": "configured-builtin-direct-vs-auth-boundary"
+    },
+    {
+      "path": "providers/faux.ts",
+      "exports": [
+        "createFauxCore"
+      ],
+      "sourceSha256": "d819e22fcfba388d043246d34d770f2e2614f351de47f102c69f310c21fc6c65",
+      "role": "excluded-uninvoked"
+    }
+  ],
+  "order": [
+    "anthropic-messages",
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses",
+    "azure-openai-responses",
+    "google-generative-ai",
+    "google-vertex",
+    "mistral-conversations",
+    "bedrock-converse-stream",
+    "pi-messages"
+  ],
+  "aliases": [
+    "streamAnthropic",
+    "streamAzureOpenAIResponses",
+    "streamGoogle",
+    "streamGoogleVertex",
+    "streamMistral",
+    "streamOpenAICodexResponses",
+    "streamOpenAICompletions",
+    "streamOpenAIResponses",
+    "streamSimpleAnthropic",
+    "streamSimpleAzureOpenAIResponses",
+    "streamSimpleGoogle",
+    "streamSimpleGoogleVertex",
+    "streamSimpleMistral",
+    "streamSimpleOpenAICodexResponses",
+    "streamSimpleOpenAICompletions",
+    "streamSimpleOpenAIResponses"
+  ],
+  "retainedFactoryCounts": [
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    1
+  ],
+  "direct": 7,
+  "resolved": 0,
+  "loads": 1,
+  "cleaned": 2
+}

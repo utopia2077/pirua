@@ -250,11 +250,12 @@ S05_FACADE_FEATURES = {
     "native": ["dep:pi-ai-providers", "pi-ai-providers/native"],
     "auth-native": ["native", "pi-ai-providers/auth-native"],
 }
-S05_FACADE_GROUP = [*S05_FACADE_FEATURES, "catalog-gen", "dev-oauth-cli"]
+S05_COMPAT_FEATURES = ['provider-anthropic', 'provider-deepseek', 'provider-google', 'provider-openai', 'provider-openai-codex', 'provider-openrouter', 'images-openrouter', 'pi-ai-providers/wire-azure-openai-responses', 'pi-ai-providers/wire-google-vertex', 'pi-ai-providers/wire-mistral-conversations', 'pi-ai-providers/wire-bedrock-converse-stream', 'pi-ai-providers/wire-pi-messages']
+S05_FACADE_GROUP = ["compat", *S05_FACADE_FEATURES, "catalog-gen", "dev-oauth-cli"]
 
 
 def validate_s05_facade_features(package: dict[str, Any], errors: list[str]) -> None:
-    expected = {"default": [], "compat": [], "dev-catalog-tools": [], "dev-oauth-cli": ["all-oauth", "auth-native", "dep:tokio"], **S05_FACADE_FEATURES}
+    expected = {"default": [], "compat": S05_COMPAT_FEATURES, "dev-catalog-tools": [], "dev-oauth-cli": ["all-oauth", "auth-native", "dep:tokio"], **S05_FACADE_FEATURES}
     if set(package["features"]) != set(expected):
         errors.append("S05 facade feature inventory changed")
     for name, values in expected.items():

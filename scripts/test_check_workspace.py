@@ -116,8 +116,18 @@ class WorkspaceCheckerTests(unittest.TestCase):
                 validator(changed, errors)
                 self.assertTrue(errors, (owner, name))
 
+    def test_compat_runtime_activations_are_exact_and_never_native_or_oauth(self):
+        original = next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai")
+        self.assertEqual(set(original["features"]["compat"]), set(checker.S05_COMPAT_FEATURES))
+        for value in ([], ["all-providers"], checker.S05_COMPAT_FEATURES + ["native"], checker.S05_COMPAT_FEATURES + ["all-oauth"], checker.S05_COMPAT_FEATURES[:-1]):
+            changed = copy.deepcopy(original)
+            changed["features"]["compat"] = value
+            errors = []
+            checker.validate_s05_facade_features(changed, errors)
+            self.assertTrue(errors)
+
     def test_s05_facade_group_does_not_broaden_coding_or_compat(self):
-        for group, member in (("ai-facade-provider-selection", "compat"),
+        for group, member in (("ai-facade-provider-selection", "compat-unlisted"),
                               ("ai-facade-provider-selection", "provider-*"),
                               ("provider-selection", "all-providers")):
             changed = copy.deepcopy(self.topology)
