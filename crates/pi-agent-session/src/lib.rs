@@ -1,1 +1,4 @@
-//! Private Agent-session crate for the Rust harness workspace.
+//! One-session storage and the Memory reference backend.
+
+pub mod memory;
+pub mod storage;

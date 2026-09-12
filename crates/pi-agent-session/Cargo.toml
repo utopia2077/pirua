@@ -12,3 +12,5 @@ workspace = true
 [dependencies]
 pi-agent-schema.workspace = true
 pi-telemetry.workspace = true
+serde.workspace = true
+serde_json.workspace = true

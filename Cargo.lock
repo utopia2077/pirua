@@ -1134,6 +1134,8 @@ version = "0.0.0"
 dependencies = [
  "pi-agent-schema",
  "pi-telemetry",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
