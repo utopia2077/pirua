@@ -1,0 +1,24 @@
+{
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/agent/docs/harness.md",
+  "clauses": {"version_gate":"866,2739-2748","stable_register_keys":"2736","all_registers":"2754-2758","immutable_domains":"2725,2763-2768"},
+  "scope": "SYNTHETIC registry and atomic-store mechanics; no historical operation mapping",
+  "production_current": 1,
+  "synthetic_target": 3,
+  "expected_committed_versions": [2,3],
+  "expected_values_by_version": {"1":{"SYNTHETIC":true,"revision":1},"2":{"SYNTHETIC":true,"revision":2},"3":{"SYNTHETIC":true,"revision":3}},
+  "expected_visit_seqs_per_step": [10,11,12,13,14,15,16,17,18,19,20,21],
+  "registers": [
+    {"namespace":"lane.leaf","key":"SYNTHETIC-main","seq":10},
+    {"namespace":"lane.config","key":"SYNTHETIC-main","seq":11},
+    {"namespace":"lane.state","key":"SYNTHETIC-main","seq":12},
+    {"namespace":"lane.lastResult","key":"SYNTHETIC-main","seq":13},
+    {"namespace":"op.meta","key":"SYNTHETIC-op","seq":14},
+    {"namespace":"op.state","key":"SYNTHETIC-op","seq":15},
+    {"namespace":"op.tool_args","key":"SYNTHETIC-op:step:0","seq":16},
+    {"namespace":"op.preparation","key":"SYNTHETIC-op:task","seq":17},
+    {"namespace":"pending.entry","key":"SYNTHETIC-pending","seq":18},
+    {"namespace":"fact.name","key":"","seq":19},
+    {"namespace":"fact.label","key":"SYNTHETIC-entry","seq":20},
+    {"namespace":"fact.custom","key":"SYNTHETIC-custom","seq":21}
+  ]
+}
