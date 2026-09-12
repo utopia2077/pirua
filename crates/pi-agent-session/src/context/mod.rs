@@ -110,12 +110,9 @@ impl<S: CheckedStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
                             .await
                             .map_err(ContextError::Application)?
                     {
-                        items.extend(
-                            messages
-                                .into_iter()
-                                .filter(retain)
-                                .map(ContextItem::Message),
-                        );
+                        // Stored assistant filtering is source step 3. Projector output
+                        // is step 4 and reaches the caller's transform unchanged.
+                        items.extend(messages.into_iter().map(ContextItem::Message));
                     }
                 }
             }

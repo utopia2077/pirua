@@ -54,3 +54,13 @@ changing snapshots or emitting write telemetry; preexisting and earlier-in-tx
 sources succeed. Imported off-path provenance is preserved without this new-write
 check. This is the pre-navigation source constraint in pinned Harness lines631–635,
 not interpretation of operation-state ownership.
+
+Context filtering follows the pinned numbered stages (Harness lines753–761 and
+2217–2218): stored assistant Error/Aborted/Deferred values, including retainedTail,
+are removed before custom projection; stored Length remains. Valid projector
+outputs then reach the supplied transform in their original order and content.
+`projected_assistant_statuses_reach_transform_after_stored_filter` witnesses all
+four projected statuses with actual codec validation and a recording transform.
+The earlier independent expectation that projected errors were omitted is
+superseded only at this stage; historical reports remain unchanged. Downstream
+caller transforms and converters still own their own filtering policy.

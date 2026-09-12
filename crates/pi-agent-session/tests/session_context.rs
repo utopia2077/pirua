@@ -208,3 +208,127 @@ fn root_context_and_typed_application_failure() {
     assert!(!format!("{error:?} {error}").contains("secret"));
     assert!(stages.0.lock().unwrap().is_empty());
 }
+
+#[test]
+fn projected_assistant_statuses_reach_transform_after_stored_filter() {
+    fn tagged(reason: &str, origin: &str) -> AgentMessage {
+        let mut value = serde_json::to_value(assistant(reason)).unwrap();
+        value["content"] = json!([{"type":"text","text":format!("{origin}:{reason}")}]);
+        serde_json::from_value(value).unwrap()
+    }
+    struct Projected(Vec<AgentMessage>);
+    impl EntryProjector for Projected {
+        fn project(
+            &self,
+            _: CustomEntry,
+        ) -> BoxFuture<'_, Result<Option<Vec<AgentMessage>>, HarnessRuntimeError>> {
+            Box::pin(async move { Ok(Some(self.0.clone())) })
+        }
+    }
+    struct Record(Mutex<Vec<AgentMessage>>);
+    impl AgentContextTransform for Record {
+        fn transform<'a>(
+            &'a self,
+            messages: Vec<AgentMessage>,
+            _: &'a dyn Cancellation,
+        ) -> BoxFuture<'a, Result<Vec<AgentMessage>, HarnessRuntimeError>> {
+            Box::pin(async move {
+                *self.0.lock().unwrap() = messages.clone();
+                Ok(messages)
+            })
+        }
+    }
+    let contract: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/session/context-contract.json"
+    ))
+    .unwrap();
+    let reasons: Vec<_> = contract["projectedReasons"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect();
+    let (_, raw, session) = fresh();
+    let retained: Vec<_> = reasons
+        .iter()
+        .map(|reason| tagged(reason, "tail"))
+        .collect();
+    let compaction: NewEntry = serde_json::from_value(json!({"id":"compaction","parentId":null,"type":"compaction","summary":"summary","retainedTail":retained,"tokensBefore":0,"fromHook":false})).unwrap();
+    ready(session.commit(tx(vec![
+        Write::Entry(compaction),
+        set(RegisterSet::LaneLeaf {
+            key: "main".into(),
+            value: Some(eid("compaction")),
+        }),
+    ])))
+    .unwrap();
+    for reason in &reasons {
+        ready(session.append_message(tagged(reason, "stored"))).unwrap();
+    }
+    ready(session.append_custom_entry(ct("projected"), Presence::Missing)).unwrap();
+    let projected: Vec<_> = reasons
+        .iter()
+        .map(|reason| tagged(reason, "projected"))
+        .collect();
+    // All four returned values satisfy the actual durable message codec. Their loss
+    // cannot be explained as invalid output or a malformed error/aborted response.
+    for message in &projected {
+        codec().validate_message(message).unwrap();
+    }
+    let projector = Projected(projected.clone());
+    let before = bytes(raw.as_ref());
+    let items = ready(
+        session.context_items(&[(ct("projected"), &projector as &dyn EntryProjector)].into()),
+    )
+    .unwrap();
+    let record = Record(Mutex::new(vec![]));
+    let stages = Stages(Arc::new(Mutex::new(vec![])));
+    let converted = ready(materialize(items, &stages, Some(&record), &stages, &Cancel)).unwrap();
+    let observed = record.0.lock().unwrap().clone();
+    let observed_reasons: Vec<_> = observed
+        .iter()
+        .map(|message| {
+            let value = serde_json::to_value(message).unwrap();
+            value
+                .get("stopReason")
+                .unwrap_or(&value["role"])
+                .as_str()
+                .unwrap()
+                .to_owned()
+        })
+        .collect();
+    assert_eq!(
+        bytes(raw.as_ref()),
+        before,
+        "context stages never change durable state"
+    );
+    assert_eq!(
+        serde_json::to_value(&observed_reasons).unwrap(),
+        contract["transformReasons"],
+        "stored filtering must precede projection, without filtering callback output again"
+    );
+    let expected: Vec<_> = [
+        vec![
+            user("summary"),
+            tagged("length", "tail"),
+            tagged("length", "stored"),
+        ],
+        projected,
+    ]
+    .concat();
+    assert_eq!(
+        observed, expected,
+        "transform must receive exact projector content and order"
+    );
+    let expected_provider: Vec<_> = expected
+        .into_iter()
+        .map(|message| match message {
+            AgentMessage::BuiltIn(message) => message,
+            _ => panic!(),
+        })
+        .collect();
+    assert_eq!(
+        converted, expected_provider,
+        "identity downstream stages preserve their input"
+    );
+}
