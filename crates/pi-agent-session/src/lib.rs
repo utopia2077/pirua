@@ -10,3 +10,5 @@ pub mod session;
 pub mod tree;
 
 pub mod migration;
+
+pub mod repo;
