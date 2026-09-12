@@ -1,0 +1,12 @@
+{
+  "authority":"853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/agent/docs/harness.md",
+  "sourceLines":[647,753,755,756,757,758,759],
+  "test":"bounded_compaction_tail_filters_and_explicit_callback_order",
+  "structuralItems":5,
+  "withoutProjector":4,
+  "providerMessages":6,
+  "callbackOrder":["project","render","render","transform","convert"],
+  "excludedAssistantReasons":["error","aborted","deferred"],
+  "retainedAssistantReason":"length",
+  "scan":{"start":"custom","order":"newestFirst","stopAtType":"compaction"}
+}

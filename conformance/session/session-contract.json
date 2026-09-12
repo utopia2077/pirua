@@ -1,0 +1,120 @@
+{
+  "authority":"853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/agent/docs/harness.md",
+  "sourceLines":[732,751,864,1188,1435,2232,2266,2270],
+  "test":"literal_session_query_contract",
+  "writes":[
+    {"kind":"entry","entry":{"id":"a","parentId":null,"type":"custom","customType":"state","data":{"revision":1}}},
+    {"kind":"entry","entry":{"id":"b","parentId":"a","type":"custom","customType":"other"}},
+    {"kind":"entry","entry":{"id":"c","parentId":"b","type":"custom","customType":"state","data":null}},
+    {"kind":"register","op":"set","namespace":"lane.leaf","key":"main","value":"c"}
+  ],
+  "globalCases":[
+    {"query":{},"ids":["c","b","a"]},
+    {"query":{"customType":"state","limit":1},"ids":["c"]},
+    {"query":{"cursor":{"seq":4},"limit":1},"ids":["b"]},
+    {"query":{"order":"asc","cursor":{"seq":2},"limit":1},"ids":["b"]},
+    {"query":{"limit":0},"ids":[]}
+  ],
+  "branchCases":[
+    {"query":{"stopAtId":"b","customType":"state"},"ids":["c"]},
+    {"query":{"order":"oldestFirst","stopAtId":"b","customType":"state"},"ids":["a"]},
+    {"query":{"cursor":{"seq":4},"limit":1},"ids":["b"]}
+  ],
+  "provenanceTest": "direct_summary_sources_precede_new_summary_and_imports_remain_opaque",
+  "provenanceSourceLines": [
+    398,
+    631,
+    632,
+    633,
+    635
+  ],
+  "provenanceCases": [
+    {
+      "name": "self",
+      "writes": [
+        {
+          "kind": "entry",
+          "entry": {
+            "id": "summary",
+            "parentId": null,
+            "type": "branch_summary",
+            "fromId": "summary",
+            "summary": "retained summary text",
+            "fromHook": false
+          }
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "forward",
+      "writes": [
+        {
+          "kind": "entry",
+          "entry": {
+            "id": "summary",
+            "parentId": null,
+            "type": "branch_summary",
+            "fromId": "source",
+            "summary": "retained summary text",
+            "fromHook": false
+          }
+        },
+        {
+          "kind": "entry",
+          "entry": {
+            "id": "source",
+            "parentId": null,
+            "type": "custom",
+            "customType": "state"
+          }
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "missing",
+      "writes": [
+        {
+          "kind": "entry",
+          "entry": {
+            "id": "summary",
+            "parentId": null,
+            "type": "branch_summary",
+            "fromId": "missing",
+            "summary": "retained summary text",
+            "fromHook": false
+          }
+        }
+      ],
+      "accepted": false
+    },
+    {
+      "name": "earlier_in_transaction",
+      "writes": [
+        {
+          "kind": "entry",
+          "entry": {
+            "id": "source",
+            "parentId": null,
+            "type": "custom",
+            "customType": "state"
+          }
+        },
+        {
+          "kind": "entry",
+          "entry": {
+            "id": "summary",
+            "parentId": null,
+            "type": "branch_summary",
+            "fromId": "source",
+            "summary": "retained summary text",
+            "fromHook": false
+          }
+        }
+      ],
+      "accepted": true
+    }
+  ]
+
+}

@@ -3,4 +3,10 @@
 pub mod memory;
 pub mod storage;
 
+pub mod codec;
+pub mod context;
+pub mod id;
+pub mod session;
+pub mod tree;
+
 pub mod migration;

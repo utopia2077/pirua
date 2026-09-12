@@ -1132,6 +1132,7 @@ dependencies = [
 name = "pi-agent-session"
 version = "0.0.0"
 dependencies = [
+ "jsonschema",
  "pi-agent-schema",
  "pi-telemetry",
  "serde",
