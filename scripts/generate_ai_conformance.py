@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import validate_docs as validator
+import s05_export_closure as s05
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,9 +40,8 @@ EXPECTED_S04_IMAGE_KEYS = {
 EXPECTED_SUBPATH_COUNTS = {".": 200, "./compat": 260, "other": 239}
 EXPECTED_DISPOSITIONS = {
     "s02-dto": 146,
-    "implemented": 284,
+    "implemented": 398,
     "rust-nonapplicable": 24,
-    "mapped-s05": 114,
     "owner-excluded": 125,
     "external-schema-projection": 6,
 }
@@ -441,7 +441,7 @@ def projection_for(rule: dict[str, Any], name: str) -> str:
         target = rule.get("rust_target")
     if not isinstance(target, str) or not target:
         raise ConformanceError(f"mapping rule lacks a concrete Rust target: {rule.get('id')}")
-    if rule.get("compile_probe") and not rule.get("evidence", "").startswith("s04-export:") and not re.fullmatch(
+    if rule.get("compile_probe") and not rule.get("evidence", "").startswith(("s04-export:", "s05-export:")) and not re.fullmatch(
         r"pi_ai::[A-Za-z_][A-Za-z0-9_:]*", target
     ):
         raise ConformanceError(f"invalid exact Rust target for {rule.get('id')}:{name}")
@@ -499,6 +499,9 @@ def validate_evidence(
     elif kind == "s04-export":
         if disposition != "implemented" or not rule.get("compile_probe"):
             raise ConformanceError("S04 executed evidence requires a present typed projection")
+    elif kind == "s05-export":
+        if disposition != "implemented" or not rule.get("compile_probe"):
+            raise ConformanceError("S05 executed evidence requires a present typed projection")
     elif kind == "future":
         if disposition not in {"mapped-s04", "mapped-s05"}:
             raise ConformanceError(f"present implementation claims future evidence: {rule.get('id')}")
@@ -768,6 +771,9 @@ def build_export_inventory(
     catalog = closure_catalog(root) if has_closure else None
     s04_targets = set()
     s04_occurrences = []
+    s05_document = checked_s05(s05.catalog, root)
+    s05_occurrences = []
+    s05_targets = {(v["owningTarget"], v["sourceKind"]) for v in s05_document["symbols"]}
     for symbol, surface in sorted(
         zip(symbols, surfaces, strict=True),
         key=lambda item: (item[0]["subpath"], item[0]["name"]),
@@ -793,6 +799,10 @@ def build_export_inventory(
                 raise ConformanceError("S04 source kind changed: " + key)
             s04_targets.add((target, symbol["kind"]))
             s04_occurrences.append(key)
+        elif evidence.startswith("s05-export:"):
+            s05_entry, s05_route = checked_s05(s05.binding, rule, symbol, s05_document)
+            s05_occurrences.append(key)
+            s05_targets.add((target, symbol["kind"]))
         elif rule.get("compile_probe"):
             target_probes.append((target, symbol["kind"]))
         row = {
@@ -818,6 +828,11 @@ def build_export_inventory(
             row["features"] = entry["features"]
             row["executedTests"] = entry["tests"]
             row["sourceOracles"] = entry["sources"]
+        if evidence.startswith("s05-export:"):
+            row["features"] = s05_route["routeFeatures"]
+            row["package"] = s05_route["routePackage"]
+            row["executedTests"] = s05_route["tests"]
+            row["sourceOracles"] = s05_route["sources"]
         rows.append(row)
 
     scope = validate_selected_provider_scope(rows, root)
@@ -826,9 +841,11 @@ def build_export_inventory(
         if len(s04_occurrences) != 161:
             raise ConformanceError("S04 exact occurrence coverage changed")
         images = {row["key"] for row in rows
-            if row["surface"] == "ai.api-adapters" and row["disposition"] == "mapped-s05"}
+            if row["surface"] == "ai.api-adapters" and row["evidence"].startswith("s05-export:")}
         if images != EXPECTED_S04_IMAGE_KEYS:
             raise ConformanceError("S04 exact two image exclusions changed")
+    if len(s05_occurrences) != 114 or len(set(s05_occurrences)) != 114:
+        raise ConformanceError("S05 exact occurrence coverage changed")
     for rule in rules:
         matched = matches_by_rule[rule["id"]]
         expected = rule.get("expected_occurrences")
@@ -875,10 +892,22 @@ def build_export_inventory(
             **({"s04Occurrences": len(s04_occurrences),
                 "s04UniqueSourceSymbols": len(catalog["exports"]),
                 "s04DistinctTargetProbes": len(s04_targets),
-                "distinctTargetProbes": len(set(target_probes) | s04_targets)} if has_closure else {}),
+                "distinctTargetProbes": len(set(target_probes) | s04_targets | s05_targets),
+                "s05Occurrences": len(s05_occurrences),
+                "s05UniqueSourceSymbols": len(s05_document["symbols"]),
+                "s05OwningTargetProbes": s05.counts(s05_document)["owning"],
+                "s05RouteTargetProbes": s05.counts(s05_document)["routes"],
+                "s05DistinctTargetProbes": len(s05_targets)} if has_closure else {}),
         },
         target_probes,
     )
+
+
+def checked_s05(function, *args, **kwargs):
+    try:
+        return function(*args, **kwargs)
+    except s05.ClosureError as error:
+        raise ConformanceError(str(error)) from error
 
 
 def expected_export_inventory(
@@ -1280,6 +1309,8 @@ def main() -> int:
         compile_target_probe(target_probes)
         if inventory.get("s04Occurrences"):
             verify_export_closure()
+        if inventory.get("s05Occurrences"):
+            checked_s05(s05.verify)
     except (ConformanceError, OSError, tomllib.TOMLDecodeError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1

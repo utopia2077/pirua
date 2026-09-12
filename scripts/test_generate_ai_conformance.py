@@ -252,11 +252,11 @@ class AiConformanceGenerationTest(unittest.TestCase):
             lambda: self.build_export(mapping=unrelated),
         )
         premature = copy.deepcopy(self.mapping)
-        next(rule for rule in premature["rule"] if rule["id"] == "s05-openrouter-images")[
-            "compile_probe"
-        ] = True
+        rule = next(rule for rule in premature["rule"] if "./api/openrouter-images:generateImages" in rule.get("occurrences", []))
+        rule.update(disposition="implemented", evidence="future:conformance/openrouter-images",
+                    rust_target="pi_ai::compat::ImagesApiRegistry::generate", compile_probe=True)
         self.assert_fails(
-            "deferred projection claims a present implementation",
+            "present implementation claims future evidence",
             lambda: self.build_export(mapping=premature),
         )
 
@@ -343,8 +343,8 @@ class AiConformanceGenerationTest(unittest.TestCase):
         inventory, _ = self.build_export()
         rows = inventory["rows"]
         self.assertEqual(inventory["dispositionTotals"], {
-            "s02-dto": 146, "implemented": 284, "rust-nonapplicable": 24,
-            "mapped-s05": 114, "owner-excluded": 125, "external-schema-projection": 6,
+            "s02-dto": 146, "implemented": 398, "rust-nonapplicable": 24,
+            "owner-excluded": 125, "external-schema-projection": 6,
         })
         self.assertEqual(inventory["selectedProviderScope"]["scopeTotals"], {
             "selected": 17, "shared": 97, "owner-excluded": 125, "rust-platform": 2,
@@ -359,9 +359,9 @@ class AiConformanceGenerationTest(unittest.TestCase):
             "c9ea7f49563886c7145fd9b62a740433c1624d18364adae5c53712566fcbe9a0")
         aliases = [row for row in rows if row["origin"] == "packages/ai/src/legacy-api-aliases.ts"]
         self.assertEqual(len(aliases), 16)
-        self.assertTrue(all(row["disposition"] == "mapped-s05" for row in aliases))
+        self.assertTrue(all(row["disposition"] == "implemented" and row["evidence"].startswith("s05-export:") for row in aliases))
         by_name = {row["name"]: row for row in rows}
-        self.assertEqual(by_name["bedrockProviderModule"]["disposition"], "mapped-s05")
+        self.assertEqual(by_name["bedrockProviderModule"]["disposition"], "implemented")
         for name in ("amazonBedrockProvider", "AMAZON_BEDROCK_MODELS", "registerFauxProvider"):
             self.assertEqual(by_name[name]["disposition"], "owner-excluded")
         for name in ("registerBunOAuthFlows", "default"):
@@ -381,8 +381,21 @@ class AiConformanceGenerationTest(unittest.TestCase):
                 retained_rule["occurrences"].append(excluded)
                 excluded_rule["occurrences"].remove(excluded)
                 excluded_rule["occurrences"].append(retained)
+                inventory, _ = self.build_export()
+                by_key = {row["key"]: row for row in inventory["rows"]}
+                # Rebind every selector, not only the occurrence key, so the exact
+                # evidence binding (rather than an unrelated missing match) rejects it.
+                for selector, field in (("origins", "origin"), ("names", "name"), ("surfaces", "surface")):
+                    retained_rule[selector] = [by_key[excluded][field]]
+                if by_key[retained]["surface"] not in excluded_rule["surfaces"]:
+                    excluded_rule["surfaces"].append(by_key[retained]["surface"])
+                self.assert_fails("S05 symbol binding missing", lambda: self.build_export(mapping=mapping))
+                # Preserve the original, independent scope-policy failure as well.
+                swapped = copy.deepcopy(inventory["rows"])
+                changed = {row["key"]: row for row in swapped}
+                changed[retained]["disposition"], changed[excluded]["disposition"] = changed[excluded]["disposition"], changed[retained]["disposition"]
                 self.assert_fails("scope disposition contradicts source decision",
-                                  lambda: self.build_export(mapping=mapping))
+                                  lambda: generator.validate_selected_provider_scope(swapped))
 
     def test_s05_exclusions_require_owner_decision_and_never_claim_implementation(self):
         for field in ("reason", "replacement", "decision_reference", "revisit_trigger"):
@@ -448,11 +461,11 @@ class AiConformanceGenerationTest(unittest.TestCase):
     def test_s05_scope_cannot_turn_a_retained_future_into_unproved_implementation(self):
         inventory, _ = self.build_export()
         rows = copy.deepcopy(inventory["rows"])
-        next(row for row in rows if row["name"] == "openaiProvider")["disposition"] = "implemented"
+        next(row for row in rows if row["name"] == "openaiProvider")["disposition"] = "mapped-s05"
         # The scope ledger allows progress; mapping/evidence checks still require the actual proof.
         generator.validate_selected_provider_scope(rows)
         mapping = copy.deepcopy(self.mapping)
-        next(rule for rule in mapping["rule"] if rule["id"] == "s05-provider-factories")["disposition"] = "implemented"
+        next(rule for rule in mapping["rule"] if "./providers/openai:openaiProvider" in rule.get("occurrences", []))["compile_probe"] = False
         self.assert_fails("present projection lacks an exact target compile probe",
                           lambda: self.build_export(mapping=mapping))
 
@@ -504,11 +517,14 @@ class S04ExportExecutionTest(unittest.TestCase):
         catalog = generator.closure_catalog()
         inventory = generator.load_json(generator.EXPORT_OUTPUT)
         self.assertEqual((inventory["s04Occurrences"], inventory["s04UniqueSourceSymbols"]), (161, 108))
+        owning = {(entry["owningTarget"], entry["sourceKind"]) for entry in generator.s05.catalog()["symbols"]}
         self.assertEqual(inventory["distinctTargetProbes"],
             len({(row["rustTarget"], row["kind"]) for row in inventory["rows"]
-                if row["disposition"] in {"implemented", "s02-dto"}}))
+                if row["disposition"] in {"implemented", "s02-dto"}} | owning))
+        self.assertEqual(inventory["s04DistinctTargetProbes"], 108)
+        self.assertEqual(inventory["s05DistinctTargetProbes"], 131)
         self.assertEqual({row["key"] for row in inventory["rows"]
-            if row["surface"] == "ai.api-adapters" and row["disposition"] == "mapped-s05"},
+            if row["surface"] == "ai.api-adapters" and row["evidence"].startswith("s05-export:")},
             generator.EXPECTED_S04_IMAGE_KEYS)
         for field in ("tests", "sources"):
             changed = copy.deepcopy(catalog)
@@ -552,6 +568,196 @@ class S04ExportExecutionTest(unittest.TestCase):
                 generator.require_executed_test(output, name)
         generator.require_executed_test(
             "test selected_test ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored;", name)
+
+
+
+
+class S05ExportAdmissionTests(unittest.TestCase):
+    """Rehashed candidate content cannot redefine independent S05 authority."""
+    @classmethod
+    def setUpClass(cls):
+        import s05_export_closure
+        cls.s05 = s05_export_closure
+        cls.document = cls.s05.catalog()
+
+    def rejected(self, mutate):
+        changed = copy.deepcopy(self.document)
+        mutate(changed)
+        with self.assertRaises(self.s05.ClosureError):
+            self.s05.catalog(document=changed, expected_digest=self.s05.digest(changed), check_files=False)
+        self.s05.catalog(document=self.document, check_files=False)
+
+    def test_s05_schema_version_rejects_bool_and_float_after_rehash(self):
+        for value in (True, 1.0):
+            changed = copy.deepcopy(self.document)
+            changed["schemaVersion"] = value
+            with self.assertRaisesRegex(self.s05.ClosureError, "schema identity|type-preserving"):
+                self.s05.catalog(document=changed, expected_digest=self.s05.digest(changed), check_files=False)
+        self.s05.catalog(document=self.document, check_files=False)
+
+    def test_s05_env_constant_probes_have_compile_time_value_checks(self):
+        for name in ("ANTHROPIC_API_KEY_ENV", "ANTHROPIC_AUTH_TOKEN_ENV", "ANTHROPIC_OAUTH_TOKEN_ENV"):
+            policy = self.s05.SYMBOL_POLICY["packages/ai/src/env-api-keys.ts:" + name]
+            for body in [policy["owningProbe"], *[r["routeProbe"] for r in policy["occurrences"]]]:
+                self.assertIn("const _: ()", body)
+                self.assertIn('b"' + name.removesuffix("_ENV") + '"', body)
+                self.assertEqual(body.count("$target"), 1)
+
+    def test_s05_exact_occurrence_source_kind_and_route_policy_survive_rehash(self):
+        def route(d):
+            return next(s for s in d["symbols"] if any(r["routeTarget"].startswith("pi_ai::compat::") for r in s["occurrences"]))["occurrences"][0]
+        for mutate in (
+            lambda d: d["symbols"].pop(),
+            lambda d: d["symbols"].append(copy.deepcopy(d["symbols"][0])),
+            lambda d: d["symbols"][0]["occurrences"].pop(),
+            lambda d: d["symbols"][0]["occurrences"].append(copy.deepcopy(d["symbols"][0]["occurrences"][0])),
+            lambda d: d["symbols"][0].update(id="packages/ai/src/providers/faux.ts:createFauxCore"),
+            lambda d: d["symbols"][0].update(sourceKind="type-and-value" if d["symbols"][0]["sourceKind"] != "type-and-value" else "type"),
+            lambda d: route(d).update(routeTarget="pi_ai_providers::auth::LazyOAuth::new"),
+            lambda d: route(d).update(routePackage="pi-ai-providers"),
+            lambda d: route(d).update(routeFeatures=[]),
+            lambda d: route(d).update(key=".:synthetic-swapped"),
+        ):
+            self.rejected(mutate)
+        self.assertEqual(self.s05.counts(self.document), {"symbols":90,"occurrences":114,"owning":87,"routes":108,"union":131})
+
+    def test_s05_exact_typed_probe_policy_rejects_import_option_unconstrained_and_wrong_outputs(self):
+        for body in ("fn probe(){let _ = $target;}", "use $target as V;", "fn probe(){let _:Option<$target>=None;}", "fn probe(){let _:fn()->()=$target;}", "fn probe(){let _:fn()->BoxFuture<'static,()>= $target;}"):
+            self.rejected(lambda d, body=body: d["symbols"][0].update(owningProbe=body))
+        first = self.document["symbols"][0]
+        with self.assertRaises(self.s05.ClosureError):
+            self.s05.probe_source({(first["owningTarget"], first["sourceKind"]): "fn probe(){let _=$target;}"})
+        trait = next(s for s in self.document["symbols"] if s["id"].endswith(":ImagesApiFunction"))
+        self.assertIn("Result<BoxFuture<'a,Result<AssistantImages,ModelsError>>,ModelsError>", trait["owningProbe"])
+        self.rejected(lambda d: next(s for s in d["symbols"] if s["id"]==trait["id"]).update(owningProbe=trait["owningProbe"].replace("Result<BoxFuture<'a,Result<AssistantImages,ModelsError>>,ModelsError>","BoxFuture<'a,AssistantImages>")))
+
+    def test_s05_independent_source_ownership_modes_and_fingerprints_survive_rehash(self):
+        def relabel(d):
+            symbol=d["symbols"][0]
+            unrelated=next(s for s in d["sources"] if s["id"] not in symbol["sources"])
+            symbol["sources"]=[unrelated["id"]]
+            unrelated["origins"].append(symbol["id"].rsplit(":",1)[0])
+        self.rejected(relabel)
+        for field,value in [("args",["--capture"]),("mode","success"),("executable","sh"),("script","unrelated.py"),("scriptSha256","0"*64),("expected","other.json"),("relation","arbitrary-success")]:
+            self.rejected(lambda d,f=field,v=value:d["sources"][0].update({f:v}))
+        for field in ("testFiles","evidenceFiles"):
+            self.rejected(lambda d,f=field:d[f].update({next(iter(d[f])):"0"*64}))
+        self.rejected(lambda d:d["symbols"][0]["tests"][0].update(sha256="0"*64))
+
+    def test_s05_actual_stale_source_or_test_bytes_fail_without_catalog_changes(self):
+        original = Path.read_bytes
+        for field in ("testFiles", "evidenceFiles"):
+            target = ROOT / next(iter(self.document[field]))
+            def changed(path, target=target):
+                return b"synthetic changed bytes" if path == target else original(path)
+            with mock.patch.object(Path, "read_bytes", autospec=True, side_effect=changed):
+                with self.assertRaisesRegex(self.s05.ClosureError, "evidence file changed"):
+                    self.s05.catalog(document=self.document)
+        self.s05.catalog(document=self.document)
+
+    def test_s05_mandatory_composition_cannot_be_dropped_emptied_or_relabelled(self):
+        self.assertEqual({c["id"] for c in self.document["composition"]},{"selected-oauth-flows","oauth-developer-cli","catalog-developer-binaries","codex-cleanup-ownership"})
+        for mutate in (lambda d:d["composition"].pop(),lambda d:d["composition"][0].update(tests=[]),lambda d:d["composition"][0].update(sources=[]),lambda d:d["composition"][0].update(id="synthetic"),lambda d:d["composition"].append(copy.deepcopy(d["composition"][0]))):self.rejected(mutate)
+        profiles=self.s05.test_profiles(self.document)
+        names={t["name"] for tests in profiles.values() for t in tests.values()}
+        self.assertIn("oauth_cli_real_binary_no_network_help_errors_pipes_and_eof",names)
+        self.assertIn("actual_linked_facade_executes_physical_codex_snapshot_and_drop_proof",names)
+        self.assertNotIn("oauth_cli_internal_browser_child",names)
+
+    def test_s05_package_kind_profile_and_exact_executable_admission(self):
+        good={"reason":"compiler-artifact","package_id":"local-package","target":{"name":"same-suite","kind":["test"]},"profile":{"test":True},"executable":"/synthetic/executable"}
+        self.assertEqual(self.s05.select_artifacts([good],"local-package",{"same-suite":"test"}),{"same-suite":"/synthetic/executable"})
+        variants=[[],[good,good]]
+        for field,value in [("package_id","foreign-package"),("profile",{"test":False}),("executable",None),("target",{"name":"same-suite","kind":["lib"]})]:
+            changed=copy.deepcopy(good);changed[field]=value;variants.append([changed])
+        for messages in variants:
+            with self.assertRaises(self.s05.ClosureError):self.s05.select_artifacts(messages,"local-package",{"same-suite":"test"})
+        good_output="test exact_name ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 3 filtered out;\n"
+        self.s05.executed_test(good_output,"exact_name")
+        for bad in [good_output.replace("exact_name","wrong_name"),good_output.replace("1 passed","0 passed"),good_output.replace("0 ignored","1 ignored"),good_output.replace("... ok","... ignored"),good_output+good_output]:
+            with self.assertRaises(self.s05.ClosureError):self.s05.executed_test(bad,"exact_name")
+
+    def test_s05_measured_feature_removal_and_transitive_repair_fail(self):
+        expected=self.s05.FEATURE_POLICY[("pi-ai",("catalog-openai",))]
+        def metadata(features):
+            return {"packages":[{"id":p,"name":p} for p in expected],"resolve":{"nodes":[{"id":p,"features":features[p]} for p in expected]}}
+        self.s05.validate_feature_closure(metadata(expected),expected)
+        manifests={p:generator.load_toml(ROOT/"crates"/p/"Cargo.toml") for p in expected}
+        manifests["pi-ai"]["features"]["catalog-openai"]=["dep:pi-ai-providers"]
+        broken=self.s05.local_feature_closure(ROOT,"pi-ai",["catalog-openai"],manifests)
+        for p in expected:broken.setdefault(p,[])
+        with self.assertRaises(self.s05.ClosureError):self.s05.validate_feature_closure(metadata(broken),expected)
+        # Supplying the backend feature independently cannot replace the facade feature.
+        repaired=copy.deepcopy(expected);repaired["pi-ai"]=[]
+        with self.assertRaises(self.s05.ClosureError):self.s05.validate_feature_closure(metadata(repaired),expected)
+        self.s05.validate_feature_closure(metadata(expected),expected)
+
+    def test_s05_source_execution_requires_exact_json_or_approved_check_output(self):
+        source=next(s for s in self.document["sources"] if s["mode"]=="json")
+        expected=(ROOT/source["expected"]).read_text()
+        result=mock.Mock(returncode=0,stdout=expected,stderr="")
+        with mock.patch.object(self.s05.subprocess,"run",return_value=result) as run:
+            self.s05.execute_sources([source])
+            self.assertEqual(run.call_args.kwargs["env"],{"PATH":"/usr/bin:/bin","NODE_NO_WARNINGS":"1"})
+        for stdout in ("success", "{}", "[]", ""):
+            with mock.patch.object(self.s05.subprocess,"run",return_value=mock.Mock(returncode=0,stdout=stdout,stderr="")):
+                with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([source])
+        altered=copy.deepcopy(source);altered["executable"]="sh"
+        with mock.patch.object(self.s05.subprocess,"run") as run:
+            with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([altered])
+            run.assert_not_called()
+        checked=next(s for s in self.document["sources"] if s["mode"]=="check" and s["stdout"])
+        with mock.patch.object(self.s05.subprocess,"run",return_value=mock.Mock(returncode=0,stdout="arbitrary success\n",stderr="")):
+            with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([checked])
+
+
+
+class S05ConstantValueCompilerTests(unittest.TestCase):
+    """Actual compiler controls, separate from the pure policy-review test class."""
+    def test_s05_real_constant_probes_reject_wrong_values_then_restore(self):
+        import os
+        import subprocess
+        import s05_export_closure as s05
+        names = ("ANTHROPIC_API_KEY_ENV", "ANTHROPIC_AUTH_TOKEN_ENV", "ANTHROPIC_OAUTH_TOKEN_ENV")
+        probes = []
+        for name in names:
+            policy = s05.SYMBOL_POLICY["packages/ai/src/env-api-keys.ts:" + name]
+            probes.append((policy["owningTarget"], policy["owningProbe"]))
+            probes += [(r["routeTarget"], r["routeProbe"]) for r in policy["occurrences"]]
+        self.assertEqual(len(probes), 6)
+        # Exact approved bodies/real referenced constants, with all names resolved.
+        positive = "\n".join("mod p" + str(i) + "{" + body.replace("$target", target) + "}" for i, (target, body) in enumerate(probes)) + "\nfn main(){}\n"
+        with tempfile.TemporaryDirectory(prefix="pi-s05-constant-values-") as directory:
+            project = Path(directory)
+            (project / "src").mkdir()
+            manifest = '[package]\nname="s05-constant-value-probe"\nversion="0.0.0"\nedition="2024"\n[workspace]\n[dependencies]\n'
+            for package, features in (("pi-ai", ["compat"]), ("pi-ai-providers", [])):
+                manifest += package + "={path=" + json.dumps(str(ROOT / "crates" / package)) + ",default-features=false,features=" + json.dumps(features) + "}\n"
+            (project / "Cargo.toml").write_text(manifest)
+            environment = {**os.environ, "CARGO_NET_OFFLINE": "true", "CARGO_TARGET_DIR": str(ROOT / "target/ai-conformance-probe"), "CARGO_PROFILE_DEV_DEBUG": "0", "CARGO_PROFILE_TEST_DEBUG": "0", "CARGO_BUILD_JOBS": "2"}
+            def check(source):
+                (project / "src/main.rs").write_text(source)
+                return subprocess.run(["cargo", "check", "--offline", "--manifest-path", str(project / "Cargo.toml")], cwd=ROOT, env=environment, capture_output=True, text=True)
+            initial = check(positive)
+            self.assertEqual(initial.returncode, 0, initial.stderr)
+            print("S05_CONST_VALUES_POSITIVE: six real constants resolved and evaluated")
+            for name in names:
+                expected = 'b"' + name.removesuffix("_ENV") + '"'
+                wrong = 'b"' + name + '"'
+                self.assertIn(expected, positive)
+                # Change only the expected VALUE, after positive type/name admission.
+                # The candidate-policy guard is intentionally not the negative target.
+                negative = check(positive.replace(expected, wrong, 1))
+                self.assertNotEqual(negative.returncode, 0)
+                self.assertIn("E0080", negative.stderr)
+                self.assertIn("S05 constant value mismatch", negative.stderr)
+                self.assertNotIn("cannot find", negative.stderr)
+                self.assertNotIn("unresolved import", negative.stderr)
+                print("EXPECTED_S05_CONST_VALUE_FAILURE:", name)
+                print(negative.stderr)
+            restored = check(positive)
+            self.assertEqual(restored.returncode, 0, restored.stderr)
+            print("S05_CONST_VALUES_RESTORED: all six positive assertions evaluated")
 
 
 if __name__ == "__main__":

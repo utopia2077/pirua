@@ -4,9 +4,8 @@ expected_occurrences = 699
 
 [expected_dispositions]
 s02-dto = 146
-implemented = 284
+implemented = 398
 rust-nonapplicable = 24
-mapped-s05 = 114
 owner-excluded = 125
 external-schema-projection = 6
 
@@ -1440,46 +1439,132 @@ expected_occurrences = 1
 compile_probe = true
 
 [[rule]]
-id = "s05-openrouter-images"
+id = "s05-export-001"
 priority = 2
 origins = ["packages/ai/src/api/openrouter-images.ts"]
-subpaths = ["./api/openrouter-images"]
 names = ["generateImages"]
-disposition = "mapped-s05"
+surfaces = ["ai.api-adapters"]
+occurrences = ["./api/openrouter-images:generateImages"]
+disposition = "implemented"
 owner = "S05-images"
-rust_target = "pi_ai_providers::oauth_images"
-evidence = "future:conformance/oauth-images"
+rust_target = "pi_ai_providers::images::openrouter::generate_images"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/api/openrouter-images.ts:generateImages"
+features = ["wire-openrouter-images"]
 expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
-id = "s05-openrouter-images.lazy"
+id = "s05-export-000"
 priority = 2
 origins = ["packages/ai/src/api/openrouter-images.lazy.ts"]
-subpaths = ["./api/openrouter-images.lazy"]
 names = ["openrouterImagesApi"]
-disposition = "mapped-s05"
+surfaces = ["ai.api-adapters"]
+occurrences = ["./api/openrouter-images.lazy:openrouterImagesApi"]
+disposition = "implemented"
 owner = "S05-images"
-rust_target = "pi_ai_providers::oauth_images"
-evidence = "future:conformance/oauth-images"
+rust_target = "pi_ai_providers::images::PerCallImagesApi::new"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/api/openrouter-images.lazy.ts:openrouterImagesApi"
+features = []
 expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
-id = "s05-catalog-projection"
+id = "s05-export-084"
 priority = 3
+origins = ["packages/ai/src/providers/anthropic.models.ts"]
+names = ["ANTHROPIC_MODELS"]
 surfaces = ["ai.catalog.projection"]
-disposition = "mapped-s05"
+occurrences = ["./providers/anthropic.models:ANTHROPIC_MODELS"]
+disposition = "implemented"
 owner = "S05-catalog"
-rust_target = "pi_ai::catalog"
-evidence = "future:conformance/catalog/projection"
-expected_occurrences = 6
-occurrences = [
-  "./providers/anthropic.models:ANTHROPIC_MODELS",
-  "./providers/deepseek.models:DEEPSEEK_MODELS",
-  "./providers/google.models:GOOGLE_MODELS",
-  "./providers/openai-codex.models:OPENAI_CODEX_MODELS",
-  "./providers/openai.models:OPENAI_MODELS",
-  "./providers/openrouter.models:OPENROUTER_MODELS",
-]
+rust_target = "pi_ai_providers::catalog::anthropic_models"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/anthropic.models.ts:ANTHROPIC_MODELS"
+features = ["catalog-anthropic"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-086"
+priority = 3
+origins = ["packages/ai/src/providers/deepseek.models.ts"]
+names = ["DEEPSEEK_MODELS"]
+surfaces = ["ai.catalog.projection"]
+occurrences = ["./providers/deepseek.models:DEEPSEEK_MODELS"]
+disposition = "implemented"
+owner = "S05-catalog"
+rust_target = "pi_ai_providers::catalog::deepseek_models"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/deepseek.models.ts:DEEPSEEK_MODELS"
+features = ["catalog-deepseek"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-088"
+priority = 3
+origins = ["packages/ai/src/providers/google.models.ts"]
+names = ["GOOGLE_MODELS"]
+surfaces = ["ai.catalog.projection"]
+occurrences = ["./providers/google.models:GOOGLE_MODELS"]
+disposition = "implemented"
+owner = "S05-catalog"
+rust_target = "pi_ai_providers::catalog::google_models"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/google.models.ts:GOOGLE_MODELS"
+features = ["catalog-google"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-090"
+priority = 3
+origins = ["packages/ai/src/providers/openai-codex.models.ts"]
+names = ["OPENAI_CODEX_MODELS"]
+surfaces = ["ai.catalog.projection"]
+occurrences = ["./providers/openai-codex.models:OPENAI_CODEX_MODELS"]
+disposition = "implemented"
+owner = "S05-catalog"
+rust_target = "pi_ai_providers::catalog::openai_codex_models"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openai-codex.models.ts:OPENAI_CODEX_MODELS"
+features = ["catalog-openai-codex"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-092"
+priority = 3
+origins = ["packages/ai/src/providers/openai.models.ts"]
+names = ["OPENAI_MODELS"]
+surfaces = ["ai.catalog.projection"]
+occurrences = ["./providers/openai.models:OPENAI_MODELS"]
+disposition = "implemented"
+owner = "S05-catalog"
+rust_target = "pi_ai_providers::catalog::openai_models"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openai.models.ts:OPENAI_MODELS"
+features = ["catalog-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-095"
+priority = 3
+origins = ["packages/ai/src/providers/openrouter.models.ts"]
+names = ["OPENROUTER_MODELS"]
+surfaces = ["ai.catalog.projection"]
+occurrences = ["./providers/openrouter.models:OPENROUTER_MODELS"]
+disposition = "implemented"
+owner = "S05-catalog"
+rust_target = "pi_ai_providers::catalog::openrouter_models"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openrouter.models.ts:OPENROUTER_MODELS"
+features = ["catalog-openrouter"]
+expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
 id = "s05-catalog-projection-owner-excluded"
@@ -1531,67 +1616,820 @@ revisit_trigger = "The project owner changes the selected provider or public Fau
 expected_occurrences = 33
 
 [[rule]]
-id = "s05-compat"
+id = "s05-export-101"
 priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthAuthInfo"]
 surfaces = ["ai.compat"]
-disposition = "mapped-s05"
+occurrences = [".:OAuthAuthInfo"]
+disposition = "implemented"
 owner = "S05-facade"
-rust_target = "pi_ai::compat"
-evidence = "future:conformance/ai-compat"
-expected_occurrences = 51
-occurrences = [
-  "./compat:ApiProvider",
-  "./compat:ApiStreamFunction",
-  "./compat:ApiStreamSimpleFunction",
-  "./compat:OAuthAuthInfo",
-  "./compat:OAuthDeviceCodeInfo",
-  "./compat:OAuthLoginCallbacks",
-  "./compat:OAuthPrompt",
-  "./compat:OAuthSelectOption",
-  "./compat:OAuthSelectPrompt",
-  "./compat:complete",
-  "./compat:completeSimple",
-  "./compat:getApiProvider",
-  "./compat:getApiProviders",
-  "./compat:getModel",
-  "./compat:getModels",
-  "./compat:getProviders",
-  "./compat:registerApiProvider",
-  "./compat:registerBuiltInApiProviders",
-  "./compat:resetApiProviders",
-  "./compat:stream",
-  "./compat:streamAnthropic",
-  "./compat:streamAzureOpenAIResponses",
-  "./compat:streamGoogle",
-  "./compat:streamGoogleVertex",
-  "./compat:streamMistral",
-  "./compat:streamOpenAICodexResponses",
-  "./compat:streamOpenAICompletions",
-  "./compat:streamOpenAIResponses",
-  "./compat:streamSimple",
-  "./compat:streamSimpleAnthropic",
-  "./compat:streamSimpleAzureOpenAIResponses",
-  "./compat:streamSimpleGoogle",
-  "./compat:streamSimpleGoogleVertex",
-  "./compat:streamSimpleMistral",
-  "./compat:streamSimpleOpenAICodexResponses",
-  "./compat:streamSimpleOpenAICompletions",
-  "./compat:streamSimpleOpenAIResponses",
-  "./compat:unregisterApiProviders",
-  "./oauth:OAuthAuthInfo",
-  "./oauth:OAuthCredentials",
-  "./oauth:OAuthDeviceCodeInfo",
-  "./oauth:OAuthLoginCallbacks",
-  "./oauth:OAuthPrompt",
-  "./oauth:OAuthSelectOption",
-  "./oauth:OAuthSelectPrompt",
-  ".:OAuthAuthInfo",
-  ".:OAuthDeviceCodeInfo",
-  ".:OAuthLoginCallbacks",
-  ".:OAuthPrompt",
-  ".:OAuthSelectOption",
-  ".:OAuthSelectPrompt",
-]
+rust_target = "pi_ai::OAuthAuthInfo"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthAuthInfo"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-102"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthDeviceCodeInfo"]
+surfaces = ["ai.compat"]
+occurrences = [".:OAuthDeviceCodeInfo"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::OAuthDeviceCodeInfo"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthDeviceCodeInfo"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-103"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthLoginCallbacks"]
+surfaces = ["ai.compat"]
+occurrences = [".:OAuthLoginCallbacks"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::OAuthLoginCallbacks"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthLoginCallbacks"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-104"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthPrompt"]
+surfaces = ["ai.compat"]
+occurrences = [".:OAuthPrompt"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::OAuthPrompt"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthPrompt"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-105"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthSelectOption"]
+surfaces = ["ai.compat"]
+occurrences = [".:OAuthSelectOption"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::OAuthSelectOption"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthSelectOption"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-106"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthSelectPrompt"]
+surfaces = ["ai.compat"]
+occurrences = [".:OAuthSelectPrompt"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::OAuthSelectPrompt"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthSelectPrompt"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-006"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["ApiProvider"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:ApiProvider"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiBinding"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:ApiProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-007"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["ApiStreamFunction"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:ApiStreamFunction"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiBinding::stream"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:ApiStreamFunction"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-008"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["ApiStreamSimpleFunction"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:ApiStreamSimpleFunction"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiBinding::stream_simple"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:ApiStreamSimpleFunction"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-016"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthAuthInfo"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:OAuthAuthInfo"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthAuthInfo"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthAuthInfo"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-017"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthDeviceCodeInfo"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:OAuthDeviceCodeInfo"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthDeviceCodeInfo"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthDeviceCodeInfo"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-018"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthLoginCallbacks"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:OAuthLoginCallbacks"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthLoginCallbacks"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthLoginCallbacks"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-019"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthPrompt"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:OAuthPrompt"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthPrompt"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthPrompt"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-020"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthSelectOption"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:OAuthSelectOption"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthSelectOption"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthSelectOption"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-021"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthSelectPrompt"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:OAuthSelectPrompt"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthSelectPrompt"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthSelectPrompt"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-023"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["complete"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:complete"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatFacade::complete"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:complete"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-024"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["completeSimple"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:completeSimple"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatFacade::complete_simple"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:completeSimple"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-032"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["getApiProvider"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:getApiProvider"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiRegistry::get_api_provider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:getApiProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-033"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["getApiProviders"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:getApiProviders"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiRegistry::get_api_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:getApiProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-039"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["getModel"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:getModel"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::get_model"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:getModel"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-040"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["getModels"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:getModels"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::get_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:getModels"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-041"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["getProviders"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:getProviders"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::get_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:getProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-043"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["registerApiProvider"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:registerApiProvider"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiRegistry::register_api_provider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:registerApiProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-044"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["registerBuiltInApiProviders"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:registerBuiltInApiProviders"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiRegistry::register_builtin_api_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:registerBuiltInApiProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-047"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["resetApiProviders"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:resetApiProviders"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiRegistry::reset_api_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:resetApiProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-049"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["stream"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:stream"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatFacade::stream"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:stream"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-050"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamAnthropic"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamAnthropic"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_anthropic"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamAnthropic"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-051"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamAzureOpenAIResponses"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamAzureOpenAIResponses"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_azure_openai_responses"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamAzureOpenAIResponses"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-052"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamGoogle"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamGoogle"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_google"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamGoogle"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-053"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamGoogleVertex"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamGoogleVertex"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_google_vertex"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamGoogleVertex"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-054"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamMistral"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamMistral"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_mistral"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamMistral"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-055"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamOpenAICodexResponses"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamOpenAICodexResponses"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_openai_codex_responses"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamOpenAICodexResponses"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-056"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamOpenAICompletions"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamOpenAICompletions"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_openai_completions"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamOpenAICompletions"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-057"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamOpenAIResponses"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamOpenAIResponses"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_openai_responses"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamOpenAIResponses"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-058"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["streamSimple"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimple"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatFacade::stream_simple"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:streamSimple"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-059"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleAnthropic"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleAnthropic"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_anthropic"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleAnthropic"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-060"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleAzureOpenAIResponses"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleAzureOpenAIResponses"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_azure_openai_responses"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleAzureOpenAIResponses"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-061"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleGoogle"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleGoogle"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_google"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleGoogle"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-062"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleGoogleVertex"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleGoogleVertex"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_google_vertex"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleGoogleVertex"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-063"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleMistral"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleMistral"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_mistral"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleMistral"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-064"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleOpenAICodexResponses"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleOpenAICodexResponses"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_openai_codex_responses"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleOpenAICodexResponses"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-065"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleOpenAICompletions"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleOpenAICompletions"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_openai_completions"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleOpenAICompletions"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-066"
+priority = 3
+origins = ["packages/ai/src/legacy-api-aliases.ts"]
+names = ["streamSimpleOpenAIResponses"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:streamSimpleOpenAIResponses"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::LegacyApiAliases::stream_simple_openai_responses"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/legacy-api-aliases.ts:streamSimpleOpenAIResponses"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-067"
+priority = 3
+origins = ["packages/ai/src/compat.ts"]
+names = ["unregisterApiProviders"]
+surfaces = ["ai.compat"]
+occurrences = ["./compat:unregisterApiProviders"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::CompatApiRegistry::unregister_api_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat.ts:unregisterApiProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-068"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthAuthInfo"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthAuthInfo"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthAuthInfo"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthAuthInfo"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-069"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthCredentials"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthCredentials"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthCredentials"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthCredentials"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-070"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthDeviceCodeInfo"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthDeviceCodeInfo"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthDeviceCodeInfo"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthDeviceCodeInfo"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-071"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthLoginCallbacks"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthLoginCallbacks"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthLoginCallbacks"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthLoginCallbacks"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-072"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthPrompt"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthPrompt"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthPrompt"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthPrompt"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-073"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthSelectOption"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthSelectOption"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthSelectOption"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthSelectOption"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-074"
+priority = 3
+origins = ["packages/ai/src/compat/extension-oauth-types.ts"]
+names = ["OAuthSelectPrompt"]
+surfaces = ["ai.compat"]
+occurrences = ["./oauth:OAuthSelectPrompt"]
+disposition = "implemented"
+owner = "S05-facade"
+rust_target = "pi_ai::compat::OAuthSelectPrompt"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/compat/extension-oauth-types.ts:OAuthSelectPrompt"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
 id = "s05-compat-owner-excluded"
@@ -1669,41 +2507,404 @@ revisit_trigger = "The project owner changes the selected provider or public Fau
 expected_occurrences = 42
 
 [[rule]]
-id = "s05-oauth-images"
+id = "s05-export-097"
 priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["CreateImagesProviderOptions"]
 surfaces = ["ai.oauth-images"]
-disposition = "mapped-s05"
+occurrences = [".:CreateImagesProviderOptions"]
+disposition = "implemented"
 owner = "S05-oauth-images"
-rust_target = "pi_ai_providers::oauth_images"
-evidence = "future:conformance/oauth-images"
-expected_occurrences = 25
-occurrences = [
-  "./compat:ANTHROPIC_API_KEY_ENV",
-  "./compat:ANTHROPIC_AUTH_TOKEN_ENV",
-  "./compat:ANTHROPIC_OAUTH_TOKEN_ENV",
-  "./compat:CreateImagesProviderOptions",
-  "./compat:ImagesApiFunction",
-  "./compat:ImagesApiProvider",
-  "./compat:ImagesModels",
-  "./compat:ImagesProvider",
-  "./compat:MutableImagesModels",
-  "./compat:createImagesModels",
-  "./compat:createImagesProvider",
-  "./compat:findEnvKeys",
-  "./compat:generateImages",
-  "./compat:getEnvApiKey",
-  "./compat:getImageModel",
-  "./compat:getImageModels",
-  "./compat:getImageProviders",
-  "./compat:getImagesApiProvider",
-  "./compat:registerImagesApiProvider",
-  ".:CreateImagesProviderOptions",
-  ".:ImagesModels",
-  ".:ImagesProvider",
-  ".:MutableImagesModels",
-  ".:createImagesModels",
-  ".:createImagesProvider",
-]
+rust_target = "pi_ai::CreateImagesProviderOptions"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:CreateImagesProviderOptions"
+features = ["images-runtime"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-098"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["ImagesModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = [".:ImagesModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::ImagesModels"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:ImagesModels"
+features = ["images-runtime"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-099"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["ImagesProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = [".:ImagesProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::ImagesProvider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:ImagesProvider"
+features = ["images-runtime"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-100"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["MutableImagesModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = [".:MutableImagesModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::MutableImagesModels"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:MutableImagesModels"
+features = ["images-runtime"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-108"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["createImagesModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = [".:createImagesModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::create_images_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:createImagesModels"
+features = ["images-runtime"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-109"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["createImagesProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = [".:createImagesProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::create_images_provider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:createImagesProvider"
+features = ["images-runtime"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-003"
+priority = 3
+origins = ["packages/ai/src/env-api-keys.ts"]
+names = ["ANTHROPIC_API_KEY_ENV"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ANTHROPIC_API_KEY_ENV"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ANTHROPIC_API_KEY_ENV"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/env-api-keys.ts:ANTHROPIC_API_KEY_ENV"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-004"
+priority = 3
+origins = ["packages/ai/src/env-api-keys.ts"]
+names = ["ANTHROPIC_AUTH_TOKEN_ENV"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ANTHROPIC_AUTH_TOKEN_ENV"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ANTHROPIC_AUTH_TOKEN_ENV"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/env-api-keys.ts:ANTHROPIC_AUTH_TOKEN_ENV"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-005"
+priority = 3
+origins = ["packages/ai/src/env-api-keys.ts"]
+names = ["ANTHROPIC_OAUTH_TOKEN_ENV"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ANTHROPIC_OAUTH_TOKEN_ENV"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ANTHROPIC_OAUTH_TOKEN_ENV"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/env-api-keys.ts:ANTHROPIC_OAUTH_TOKEN_ENV"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-010"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["CreateImagesProviderOptions"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:CreateImagesProviderOptions"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::CreateImagesProviderOptions"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:CreateImagesProviderOptions"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-011"
+priority = 3
+origins = ["packages/ai/src/images-api-registry.ts"]
+names = ["ImagesApiFunction"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ImagesApiFunction"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesGenerator"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-api-registry.ts:ImagesApiFunction"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-012"
+priority = 3
+origins = ["packages/ai/src/images-api-registry.ts"]
+names = ["ImagesApiProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ImagesApiProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesApiBinding"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-api-registry.ts:ImagesApiProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-013"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["ImagesModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ImagesModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesModels"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:ImagesModels"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-014"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["ImagesProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:ImagesProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesProvider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:ImagesProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-015"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["MutableImagesModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:MutableImagesModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::MutableImagesModels"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:MutableImagesModels"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-025"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["createImagesModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:createImagesModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::create_images_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:createImagesModels"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-026"
+priority = 3
+origins = ["packages/ai/src/images-models.ts"]
+names = ["createImagesProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:createImagesProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::create_images_provider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-models.ts:createImagesProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-029"
+priority = 3
+origins = ["packages/ai/src/env-api-keys.ts"]
+names = ["findEnvKeys"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:findEnvKeys"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::find_env_keys"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/env-api-keys.ts:findEnvKeys"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-030"
+priority = 3
+origins = ["packages/ai/src/images.ts"]
+names = ["generateImages"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:generateImages"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesApiRegistry::generate"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images.ts:generateImages"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-034"
+priority = 3
+origins = ["packages/ai/src/env-api-keys.ts"]
+names = ["getEnvApiKey"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:getEnvApiKey"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::get_env_api_key"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/env-api-keys.ts:getEnvApiKey"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-035"
+priority = 3
+origins = ["packages/ai/src/image-models.ts"]
+names = ["getImageModel"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:getImageModel"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::get_image_model"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/image-models.ts:getImageModel"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-036"
+priority = 3
+origins = ["packages/ai/src/image-models.ts"]
+names = ["getImageModels"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:getImageModels"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::get_image_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/image-models.ts:getImageModels"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-037"
+priority = 3
+origins = ["packages/ai/src/image-models.ts"]
+names = ["getImageProviders"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:getImageProviders"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::get_image_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/image-models.ts:getImageProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-038"
+priority = 3
+origins = ["packages/ai/src/images-api-registry.ts"]
+names = ["getImagesApiProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:getImagesApiProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesApiRegistry::get"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-api-registry.ts:getImagesApiProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-046"
+priority = 3
+origins = ["packages/ai/src/images-api-registry.ts"]
+names = ["registerImagesApiProvider"]
+surfaces = ["ai.oauth-images"]
+occurrences = ["./compat:registerImagesApiProvider"]
+disposition = "implemented"
+owner = "S05-oauth-images"
+rust_target = "pi_ai::compat::ImagesApiRegistry::register"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/images-api-registry.ts:registerImagesApiProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
 id = "s05-rust-platform-bun-oauth"
@@ -1721,42 +2922,420 @@ revisit_trigger = "A portable observable OAuth loader registration contract repl
 expected_occurrences = 1
 
 [[rule]]
-id = "s05-provider-factories"
+id = "s05-export-110"
 priority = 3
+origins = ["packages/ai/src/auth/context.ts"]
+names = ["defaultProviderAuthContext"]
 surfaces = ["ai.provider-factories"]
-disposition = "mapped-s05"
+occurrences = [".:defaultProviderAuthContext"]
+disposition = "implemented"
 owner = "S05-provider-registry"
-rust_target = "pi_ai_providers::registry"
-evidence = "future:conformance/providers"
-expected_occurrences = 26
-occurrences = [
-  "./bedrock-provider:bedrockProviderModule",
-  "./compat:BuiltinProvider",
-  "./compat:defaultProviderAuthContext",
-  "./compat:envApiKeyAuth",
-  "./compat:generateImagesOpenRouter",
-  "./compat:lazyOAuth",
-  "./compat:registerBuiltInImagesApiProviders",
-  "./providers/all:BuiltinProvider",
-  "./providers/all:builtinImagesModels",
-  "./providers/all:builtinImagesProviders",
-  "./providers/all:builtinModels",
-  "./providers/all:builtinProviders",
-  "./providers/all:getBuiltinModel",
-  "./providers/all:getBuiltinModelDataGeneratedAt",
-  "./providers/all:getBuiltinModels",
-  "./providers/all:getBuiltinProviders",
-  "./providers/anthropic:anthropicProvider",
-  "./providers/deepseek:deepseekProvider",
-  "./providers/google:googleProvider",
-  "./providers/openai-codex:openaiCodexProvider",
-  "./providers/openai:openaiProvider",
-  "./providers/openrouter-images:openrouterImagesProvider",
-  "./providers/openrouter:openrouterProvider",
-  ".:defaultProviderAuthContext",
-  ".:envApiKeyAuth",
-  ".:lazyOAuth",
-]
+rust_target = "pi_ai::DefaultProviderAuthContext::new"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/auth/context.ts:defaultProviderAuthContext"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-111"
+priority = 3
+origins = ["packages/ai/src/auth/helpers.ts"]
+names = ["envApiKeyAuth"]
+surfaces = ["ai.provider-factories"]
+occurrences = [".:envApiKeyAuth"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::env_api_key_auth"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/auth/helpers.ts:envApiKeyAuth"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-112"
+priority = 3
+origins = ["packages/ai/src/auth/helpers.ts"]
+names = ["lazyOAuth"]
+surfaces = ["ai.provider-factories"]
+occurrences = [".:lazyOAuth"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::LazyOAuth::new"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/auth/helpers.ts:lazyOAuth"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-002"
+priority = 3
+origins = ["packages/ai/src/bedrock-provider.ts"]
+names = ["bedrockProviderModule"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./bedrock-provider:bedrockProviderModule"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::LegacyApiAliases::bedrock_provider_module"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/bedrock-provider.ts:bedrockProviderModule"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-009"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["BuiltinProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./compat:BuiltinProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::BuiltinProvider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:BuiltinProvider"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-027"
+priority = 3
+origins = ["packages/ai/src/auth/context.ts"]
+names = ["defaultProviderAuthContext"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./compat:defaultProviderAuthContext"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::DefaultProviderAuthContext::new"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/auth/context.ts:defaultProviderAuthContext"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-028"
+priority = 3
+origins = ["packages/ai/src/auth/helpers.ts"]
+names = ["envApiKeyAuth"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./compat:envApiKeyAuth"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::env_api_key_auth"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/auth/helpers.ts:envApiKeyAuth"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-031"
+priority = 3
+origins = ["packages/ai/src/providers/images/register-builtins.ts"]
+names = ["generateImagesOpenRouter"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./compat:generateImagesOpenRouter"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::CompatFacade::generate_images_openrouter"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/images/register-builtins.ts:generateImagesOpenRouter"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-042"
+priority = 3
+origins = ["packages/ai/src/auth/helpers.ts"]
+names = ["lazyOAuth"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./compat:lazyOAuth"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::LazyOAuth::new"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/auth/helpers.ts:lazyOAuth"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-045"
+priority = 3
+origins = ["packages/ai/src/providers/images/register-builtins.ts"]
+names = ["registerBuiltInImagesApiProviders"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./compat:registerBuiltInImagesApiProviders"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::compat::CompatFacade::register_builtin_images_api_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/images/register-builtins.ts:registerBuiltInImagesApiProviders"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-075"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["BuiltinProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:BuiltinProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::catalog::BuiltinProvider"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:BuiltinProvider"
+features = ["catalog-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-076"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["builtinImagesModels"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:builtinImagesModels"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::builtins::builtin_images_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:builtinImagesModels"
+features = ["images-openrouter"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-077"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["builtinImagesProviders"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:builtinImagesProviders"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::builtins::builtin_images_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:builtinImagesProviders"
+features = ["images-openrouter"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-078"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["builtinModels"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:builtinModels"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::builtins::builtin_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:builtinModels"
+features = ["all-providers"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-079"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["builtinProviders"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:builtinProviders"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::builtins::builtin_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:builtinProviders"
+features = ["all-providers"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-080"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["getBuiltinModel"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:getBuiltinModel"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::catalog::get_builtin_model"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:getBuiltinModel"
+features = ["catalog-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-081"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["getBuiltinModelDataGeneratedAt"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:getBuiltinModelDataGeneratedAt"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::catalog::get_builtin_model_data_generated_at"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:getBuiltinModelDataGeneratedAt"
+features = ["catalog-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-082"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["getBuiltinModels"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:getBuiltinModels"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::catalog::get_builtin_models"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:getBuiltinModels"
+features = ["catalog-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-083"
+priority = 3
+origins = ["packages/ai/src/providers/all.ts"]
+names = ["getBuiltinProviders"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/all:getBuiltinProviders"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai::catalog::get_builtin_providers"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/providers/all.ts:getBuiltinProviders"
+features = ["catalog-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-085"
+priority = 3
+origins = ["packages/ai/src/providers/anthropic.ts"]
+names = ["anthropicProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/anthropic:anthropicProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::anthropic_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/anthropic.ts:anthropicProvider"
+features = ["provider-anthropic"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-087"
+priority = 3
+origins = ["packages/ai/src/providers/deepseek.ts"]
+names = ["deepseekProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/deepseek:deepseekProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::deepseek_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/deepseek.ts:deepseekProvider"
+features = ["provider-deepseek"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-089"
+priority = 3
+origins = ["packages/ai/src/providers/google.ts"]
+names = ["googleProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/google:googleProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::google_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/google.ts:googleProvider"
+features = ["provider-google"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-093"
+priority = 3
+origins = ["packages/ai/src/providers/openai.ts"]
+names = ["openaiProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/openai:openaiProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::openai_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openai.ts:openaiProvider"
+features = ["provider-openai"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-091"
+priority = 3
+origins = ["packages/ai/src/providers/openai-codex.ts"]
+names = ["openaiCodexProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/openai-codex:openaiCodexProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::openai_codex_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openai-codex.ts:openaiCodexProvider"
+features = ["provider-openai-codex"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-096"
+priority = 3
+origins = ["packages/ai/src/providers/openrouter.ts"]
+names = ["openrouterProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/openrouter:openrouterProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::openrouter_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openrouter.ts:openrouterProvider"
+features = ["provider-openrouter"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-094"
+priority = 3
+origins = ["packages/ai/src/providers/openrouter-images.ts"]
+names = ["openrouterImagesProvider"]
+surfaces = ["ai.provider-factories"]
+occurrences = ["./providers/openrouter-images:openrouterImagesProvider"]
+disposition = "implemented"
+owner = "S05-provider-registry"
+rust_target = "pi_ai_providers::providers::openrouter_images_provider"
+package = "pi-ai-providers"
+evidence = "s05-export:packages/ai/src/providers/openrouter-images.ts:openrouterImagesProvider"
+features = ["images-openrouter"]
+expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
 id = "s05-provider-factories-owner-excluded"
@@ -1839,14 +3418,68 @@ revisit_trigger = "Upstream JSON module typing gains portable runtime behavior."
 expected_occurrences = 1
 
 [[rule]]
-id = "s05-retry-compat"
+id = "s05-export-107"
 priority = 3
+origins = ["packages/ai/src/utils/retry.ts"]
+names = ["RetryCallbacks"]
 surfaces = ["ai.retry-compat"]
-disposition = "mapped-s05"
+occurrences = [".:RetryCallbacks"]
+disposition = "implemented"
 owner = "S05-retry-compat"
-rust_target = "pi_ai::retry_compat"
-evidence = "future:conformance/ai-compat/retry"
-expected_occurrences = 4
+rust_target = "pi_ai::RetryCallbacks"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/utils/retry.ts:RetryCallbacks"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-113"
+priority = 3
+origins = ["packages/ai/src/utils/retry.ts"]
+names = ["retryAssistantCall"]
+surfaces = ["ai.retry-compat"]
+occurrences = [".:retryAssistantCall"]
+disposition = "implemented"
+owner = "S05-retry-compat"
+rust_target = "pi_ai::retry_assistant_call"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/utils/retry.ts:retryAssistantCall"
+features = []
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-022"
+priority = 3
+origins = ["packages/ai/src/utils/retry.ts"]
+names = ["RetryCallbacks"]
+surfaces = ["ai.retry-compat"]
+occurrences = ["./compat:RetryCallbacks"]
+disposition = "implemented"
+owner = "S05-retry-compat"
+rust_target = "pi_ai::compat::RetryCallbacks"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/utils/retry.ts:RetryCallbacks"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
+
+[[rule]]
+id = "s05-export-048"
+priority = 3
+origins = ["packages/ai/src/utils/retry.ts"]
+names = ["retryAssistantCall"]
+surfaces = ["ai.retry-compat"]
+occurrences = ["./compat:retryAssistantCall"]
+disposition = "implemented"
+owner = "S05-retry-compat"
+rust_target = "pi_ai::compat::retry_assistant_call"
+package = "pi-ai"
+evidence = "s05-export:packages/ai/src/utils/retry.ts:retryAssistantCall"
+features = ["compat"]
+expected_occurrences = 1
+compile_probe = true
 
 [[rule]]
 id = "s02-dto"

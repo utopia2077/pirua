@@ -1,0 +1,772 @@
+{
+  "pin": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "hashes": {
+    "packages/ai/src/env-api-keys.ts": "6876b915ffe1342f8be69ef1f75721c8a265a332a1bbbf5afe36b6f80b332552",
+    "packages/ai/src/utils/provider-env.ts": "3829251ae0674cef7ca09800cee9f46d4e305770129b72b822ea2f6f85efe675"
+  },
+  "imports": [
+    "node:fs",
+    "node:os",
+    "node:path"
+  ],
+  "constants": [
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_OAUTH_TOKEN",
+    "ANTHROPIC_API_KEY"
+  ],
+  "excludedDiscoveryCalls": [],
+  "values": [
+    "SYNTHETIC_AMBIENT",
+    "SYNTHETIC_SCOPED",
+    " ",
+    "SYNTHETIC_OAUTH",
+    "SYNTHETIC_KEY"
+  ],
+  "cases": [
+    {
+      "id": "anthropic-missing",
+      "provider": "anthropic",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-ambient",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-scoped",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "ANTHROPIC_API_KEY": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": [
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 1,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-empty-scoped-fallback",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "ANTHROPIC_API_KEY": ""
+      },
+      "observed": {
+        "keys": [
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-whitespace-scoped",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "ANTHROPIC_API_KEY": " "
+      },
+      "observed": {
+        "keys": [
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 2,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN"
+        ]
+      }
+    },
+    {
+      "id": "deepseek-missing",
+      "provider": "deepseek",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "getReads": [
+          "DEEPSEEK_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "deepseek-ambient",
+      "provider": "deepseek",
+      "ambient": {
+        "DEEPSEEK_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "getReads": [
+          "DEEPSEEK_API_KEY",
+          "DEEPSEEK_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "deepseek-scoped",
+      "provider": "deepseek",
+      "ambient": {
+        "DEEPSEEK_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "DEEPSEEK_API_KEY": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "keyIndex": 1,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "deepseek-empty-scoped-fallback",
+      "provider": "deepseek",
+      "ambient": {
+        "DEEPSEEK_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "DEEPSEEK_API_KEY": ""
+      },
+      "observed": {
+        "keys": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "getReads": [
+          "DEEPSEEK_API_KEY",
+          "DEEPSEEK_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "deepseek-whitespace-scoped",
+      "provider": "deepseek",
+      "ambient": {
+        "DEEPSEEK_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "DEEPSEEK_API_KEY": " "
+      },
+      "observed": {
+        "keys": [
+          "DEEPSEEK_API_KEY"
+        ],
+        "keyIndex": 2,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "google-missing",
+      "provider": "google",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [
+          "GEMINI_API_KEY"
+        ],
+        "getReads": [
+          "GEMINI_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "google-ambient",
+      "provider": "google",
+      "ambient": {
+        "GEMINI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "GEMINI_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "GEMINI_API_KEY"
+        ],
+        "getReads": [
+          "GEMINI_API_KEY",
+          "GEMINI_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "google-scoped",
+      "provider": "google",
+      "ambient": {
+        "GEMINI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "GEMINI_API_KEY": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": [
+          "GEMINI_API_KEY"
+        ],
+        "keyIndex": 1,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "google-empty-scoped-fallback",
+      "provider": "google",
+      "ambient": {
+        "GEMINI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "GEMINI_API_KEY": ""
+      },
+      "observed": {
+        "keys": [
+          "GEMINI_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "GEMINI_API_KEY"
+        ],
+        "getReads": [
+          "GEMINI_API_KEY",
+          "GEMINI_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "google-whitespace-scoped",
+      "provider": "google",
+      "ambient": {
+        "GEMINI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "GEMINI_API_KEY": " "
+      },
+      "observed": {
+        "keys": [
+          "GEMINI_API_KEY"
+        ],
+        "keyIndex": 2,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-missing",
+      "provider": "openai",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [
+          "OPENAI_API_KEY"
+        ],
+        "getReads": [
+          "OPENAI_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "openai-ambient",
+      "provider": "openai",
+      "ambient": {
+        "OPENAI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "OPENAI_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "OPENAI_API_KEY"
+        ],
+        "getReads": [
+          "OPENAI_API_KEY",
+          "OPENAI_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "openai-scoped",
+      "provider": "openai",
+      "ambient": {
+        "OPENAI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "OPENAI_API_KEY": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": [
+          "OPENAI_API_KEY"
+        ],
+        "keyIndex": 1,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-empty-scoped-fallback",
+      "provider": "openai",
+      "ambient": {
+        "OPENAI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "OPENAI_API_KEY": ""
+      },
+      "observed": {
+        "keys": [
+          "OPENAI_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "OPENAI_API_KEY"
+        ],
+        "getReads": [
+          "OPENAI_API_KEY",
+          "OPENAI_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "openai-whitespace-scoped",
+      "provider": "openai",
+      "ambient": {
+        "OPENAI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "OPENAI_API_KEY": " "
+      },
+      "observed": {
+        "keys": [
+          "OPENAI_API_KEY"
+        ],
+        "keyIndex": 2,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-codex-missing",
+      "provider": "openai-codex",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-codex-ambient",
+      "provider": "openai-codex",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-codex-scoped",
+      "provider": "openai-codex",
+      "ambient": {},
+      "scoped": {
+        "null": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-codex-empty-scoped-fallback",
+      "provider": "openai-codex",
+      "ambient": {},
+      "scoped": {
+        "null": ""
+      },
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openai-codex-whitespace-scoped",
+      "provider": "openai-codex",
+      "ambient": {},
+      "scoped": {
+        "null": " "
+      },
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openrouter-missing",
+      "provider": "openrouter",
+      "ambient": {},
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [
+          "OPENROUTER_API_KEY"
+        ],
+        "getReads": [
+          "OPENROUTER_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "openrouter-ambient",
+      "provider": "openrouter",
+      "ambient": {
+        "OPENROUTER_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "OPENROUTER_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "OPENROUTER_API_KEY"
+        ],
+        "getReads": [
+          "OPENROUTER_API_KEY",
+          "OPENROUTER_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "openrouter-scoped",
+      "provider": "openrouter",
+      "ambient": {
+        "OPENROUTER_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "OPENROUTER_API_KEY": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": [
+          "OPENROUTER_API_KEY"
+        ],
+        "keyIndex": 1,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "openrouter-empty-scoped-fallback",
+      "provider": "openrouter",
+      "ambient": {
+        "OPENROUTER_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "OPENROUTER_API_KEY": ""
+      },
+      "observed": {
+        "keys": [
+          "OPENROUTER_API_KEY"
+        ],
+        "keyIndex": 0,
+        "findReads": [
+          "OPENROUTER_API_KEY"
+        ],
+        "getReads": [
+          "OPENROUTER_API_KEY",
+          "OPENROUTER_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "openrouter-whitespace-scoped",
+      "provider": "openrouter",
+      "ambient": {
+        "OPENROUTER_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {
+        "OPENROUTER_API_KEY": " "
+      },
+      "observed": {
+        "keys": [
+          "OPENROUTER_API_KEY"
+        ],
+        "keyIndex": 2,
+        "findReads": [],
+        "getReads": []
+      }
+    },
+    {
+      "id": "anthropic-bearer-only",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_AUTH_TOKEN": "SYNTHETIC_BEARER"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "ANTHROPIC_AUTH_TOKEN"
+        ],
+        "keyIndex": null,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-all",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_AUTH_TOKEN": "SYNTHETIC_BEARER",
+        "ANTHROPIC_OAUTH_TOKEN": "SYNTHETIC_OAUTH",
+        "ANTHROPIC_API_KEY": "SYNTHETIC_KEY"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 3,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY",
+          "ANTHROPIC_OAUTH_TOKEN"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-scoped-oauth",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_AUTH_TOKEN": "SYNTHETIC_BEARER",
+        "ANTHROPIC_OAUTH_TOKEN": "SYNTHETIC_OAUTH",
+        "ANTHROPIC_API_KEY": "SYNTHETIC_KEY"
+      },
+      "scoped": {
+        "ANTHROPIC_OAUTH_TOKEN": "SYNTHETIC_SCOPED"
+      },
+      "observed": {
+        "keys": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 1,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-empty-oauth-fallback",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_OAUTH_TOKEN": "SYNTHETIC_OAUTH",
+        "ANTHROPIC_API_KEY": "SYNTHETIC_KEY"
+      },
+      "scoped": {
+        "ANTHROPIC_OAUTH_TOKEN": ""
+      },
+      "observed": {
+        "keys": [
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 3,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY",
+          "ANTHROPIC_OAUTH_TOKEN"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-empty-all",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_AUTH_TOKEN": "",
+        "ANTHROPIC_OAUTH_TOKEN": "",
+        "ANTHROPIC_API_KEY": ""
+      },
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "anthropic-whitespace-bearer",
+      "provider": "anthropic",
+      "ambient": {
+        "ANTHROPIC_AUTH_TOKEN": " ",
+        "ANTHROPIC_API_KEY": "SYNTHETIC_KEY"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "keyIndex": 4,
+        "findReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY"
+        ],
+        "getReads": [
+          "ANTHROPIC_AUTH_TOKEN",
+          "ANTHROPIC_OAUTH_TOKEN",
+          "ANTHROPIC_API_KEY",
+          "ANTHROPIC_API_KEY"
+        ]
+      }
+    },
+    {
+      "id": "unknown",
+      "provider": "synthetic-unknown",
+      "ambient": {
+        "OPENAI_API_KEY": "SYNTHETIC_AMBIENT"
+      },
+      "scoped": {},
+      "observed": {
+        "keys": null,
+        "keyIndex": null,
+        "findReads": [],
+        "getReads": []
+      }
+    }
+  ]
+}
