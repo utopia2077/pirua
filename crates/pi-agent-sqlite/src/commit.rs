@@ -147,7 +147,7 @@ pub(crate) fn capture(
         full,
     }))
 }
-fn add_usage(a: &mut Usage, b: &Usage) -> Result<(), StorageError> {
+pub(crate) fn add_usage(a: &mut Usage, b: &Usage) -> Result<(), StorageError> {
     fn optional(
         a: Option<SafeUnsigned>,
         b: Option<SafeUnsigned>,

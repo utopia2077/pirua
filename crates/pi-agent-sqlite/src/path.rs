@@ -193,3 +193,19 @@ impl Drop for Temporary {
         }
     }
 }
+
+impl Temporary {
+    /// Replace only under an already-verified exclusive path scope. Every old and
+    /// temporary connection is closed before entry; no old WAL authority survives.
+    pub(crate) fn replace(
+        mut self,
+        target: &Path,
+        _exclusive: &Scope,
+        permissions: std::fs::Permissions,
+    ) -> Result<(), StorageError> {
+        std::fs::set_permissions(&self.path, permissions).map_err(io)?;
+        std::fs::rename(&self.path, target).map_err(io)?;
+        self.published = true;
+        Ok(())
+    }
+}

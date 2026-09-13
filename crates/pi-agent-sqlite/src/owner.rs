@@ -890,3 +890,212 @@ impl Storage for SqliteStorage {
         Box::pin(async move { self.inner.finish_close() })
     }
 }
+
+/// Same-crate administrative authority; never exports a writer/fence or connection.
+pub(crate) struct Administrative {
+    storage: Arc<SqliteStorage>,
+    pub observation: SnapshotObservation,
+    permissions: std::fs::Permissions,
+}
+impl Administrative {
+    pub(crate) fn capture(
+        path: &Path,
+        codec: Arc<SessionCodec>,
+        clock: Arc<dyn StorageClock>,
+        options: SqliteOptions,
+    ) -> Result<Self, SessionError> {
+        // Claim under the existing shared-scope writer protocol FIRST. A live
+        // foreign lease must refuse without ever excluding its heartbeat.
+        let storage = SqliteStorage::open(path, codec.clone(), clock, options)?;
+        let inner = &storage.inner;
+        let life = inner.lock().map_err(as_session)?;
+        if inner.sealed.load(Ordering::SeqCst) {
+            return Err(as_session(closed()));
+        }
+        // Our own renewal also takes Life, so it cannot contend on this exclusive
+        // scope and misclassify the admin operation as foreign path contention.
+        let scope = path::Scope::acquire(&inner.path, true).map_err(as_session)?;
+        #[cfg(test)]
+        crate::repo::tests::phase("admin_exclusive", &inner.path)?;
+        inner.verify_identity().map_err(as_session)?;
+        let permissions = std::fs::metadata(&inner.path)
+            .map_err(|e| as_session(io(e)))?
+            .permissions();
+        let mut db = path::connection(&inner.path, options, false).map_err(as_session)?;
+        let tx = db
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(sql)
+            .map_err(as_session)?;
+        data::current(&tx)?;
+        let header = data::header(&tx).map_err(as_session)?;
+        let snapshot = data::snapshot(&tx, &header, &codec).map_err(as_session)?;
+        data::validate(&snapshot, &codec)?;
+        branch::audit(&tx).map_err(as_session)?;
+        let time = now().map_err(as_session)?;
+        inner.verify(&tx, &header, time).map_err(as_session)?;
+        inner.renew_sql(&tx, time).map_err(as_session)?;
+        tx.commit().map_err(sql).map_err(as_session)?;
+        drop(db);
+        drop(scope);
+        drop(life);
+        Ok(Self {
+            storage,
+            observation: SnapshotObservation {
+                metadata: header.metadata,
+                snapshot,
+                store_token: header.token,
+                revision: header.revision,
+            },
+            permissions,
+        })
+    }
+    pub(crate) fn finish(
+        self,
+        prepared: Result<StorageSnapshot, SessionError>,
+    ) -> Result<SessionMetadata, SessionError> {
+        // Build only a detached private file while the logical lease may renew.
+        // Even a prepared error reaches the final authority recheck below.
+        let prepared = prepared.and_then(|snapshot| {
+            let mut metadata = self.observation.metadata.clone();
+            metadata.store_generation = snapshot.store_generation;
+            let temporary = path::Temporary::new(&self.storage.inner.path).map_err(as_session)?;
+            let mut db = path::connection(&temporary.path, self.storage.inner.options, false)
+                .map_err(as_session)?;
+            db.pragma_update(None, "journal_mode", "WAL")
+                .map_err(sql)
+                .map_err(as_session)?;
+            let tx = db
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+                .map_err(sql)
+                .map_err(as_session)?;
+            data::init(&tx, &metadata, &snapshot, token().map_err(as_session)?)
+                .map_err(as_session)?;
+            tx.commit().map_err(sql).map_err(as_session)?;
+            #[cfg(test)]
+            crate::repo::tests::phase("before_admin_checkpoint", &self.storage.inner.path)?;
+            checkpoint(&db).map_err(as_session)?;
+            db.close().map_err(|(_, e)| as_session(sql(e)))?;
+            Ok((temporary, metadata))
+        });
+        let inner = &self.storage.inner;
+        inner.signal.stop();
+        let worker = inner
+            .worker
+            .lock()
+            .map_err(|_| as_session(corrupt("admin worker lock")))?
+            .take();
+        if let Some(worker) = worker {
+            worker
+                .join()
+                .map_err(|_| as_session(corrupt("admin worker join")))?;
+        }
+        let mut life = inner.lock().map_err(as_session)?;
+        if inner.sealed.load(Ordering::SeqCst) {
+            return Err(as_session(closed()));
+        }
+        let scope = path::Scope::acquire(&inner.path, true).map_err(as_session)?;
+        inner.verify_identity().map_err(as_session)?;
+        let mut db = path::connection(&inner.path, inner.options, false).map_err(as_session)?;
+        let tx = db
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(sql)
+            .map_err(as_session)?;
+        data::current(&tx)?;
+        let header = data::header(&tx).map_err(as_session)?;
+        let time = now().map_err(as_session)?;
+        inner.verify(&tx, &header, time).map_err(as_session)?;
+        if header.revision != self.observation.revision {
+            return Err(as_session(StorageError::Conflict(context(
+                "administrative source changed",
+            ))));
+        }
+        let (temporary, metadata) = prepared?;
+        inner.renew_sql(&tx, time).map_err(as_session)?;
+        tx.commit().map_err(sql).map_err(as_session)?;
+        checkpoint(&db).map_err(as_session)?;
+        db.close().map_err(|(_, e)| as_session(sql(e)))?;
+        #[cfg(test)]
+        crate::repo::tests::phase("before_admin_replace", &inner.path)?;
+        temporary
+            .replace(&inner.path, &scope, self.permissions)
+            .map_err(as_session)?;
+        inner.seal();
+        life.released = true;
+        drop(life);
+        drop(scope);
+        Ok(metadata)
+    }
+}
+fn checkpoint(db: &Connection) -> Result<(), StorageError> {
+    let busy: i64 = db
+        .query_row("PRAGMA wal_checkpoint(TRUNCATE)", [], |r| r.get(0))
+        .map_err(sql)?;
+    if busy != 0 {
+        return Err(StorageError::Busy(context(
+            "administrative checkpoint busy",
+        )));
+    }
+    Ok(())
+}
+pub(crate) fn delete_file(
+    path: &Path,
+    observed: &SnapshotObservation,
+    codec: Arc<SessionCodec>,
+    clock: Arc<dyn StorageClock>,
+    options: SqliteOptions,
+) -> Result<(), SessionError> {
+    let admin = Administrative::capture(path, codec, clock, options)?;
+    if admin.observation.metadata.id != observed.metadata.id
+        || admin.observation.store_token != observed.store_token
+    {
+        return Err(as_session(closed()));
+    }
+    admin.delete()
+}
+impl Administrative {
+    fn delete(self) -> Result<(), SessionError> {
+        let inner = &self.storage.inner;
+        inner.signal.stop();
+        let worker = inner
+            .worker
+            .lock()
+            .map_err(|_| as_session(corrupt("admin worker lock")))?
+            .take();
+        if let Some(worker) = worker {
+            worker
+                .join()
+                .map_err(|_| as_session(corrupt("admin worker join")))?;
+        }
+        let mut life = inner.lock().map_err(as_session)?;
+        if inner.sealed.load(Ordering::SeqCst) {
+            return Err(as_session(closed()));
+        }
+        let scope = path::Scope::acquire(&inner.path, true).map_err(as_session)?;
+        inner.verify_identity().map_err(as_session)?;
+        let mut db = path::connection(&inner.path, inner.options, false).map_err(as_session)?;
+        let tx = db
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(sql)
+            .map_err(as_session)?;
+        data::current(&tx)?;
+        let header = data::header(&tx).map_err(as_session)?;
+        inner
+            .verify(&tx, &header, now().map_err(as_session)?)
+            .map_err(as_session)?;
+        if header.revision != self.observation.revision {
+            return Err(as_session(StorageError::Conflict(context(
+                "administrative source changed",
+            ))));
+        }
+        release(&tx, inner.store, inner.owner, inner.fence).map_err(as_session)?;
+        tx.commit().map_err(sql).map_err(as_session)?;
+        checkpoint(&db).map_err(as_session)?;
+        db.close().map_err(|(_, e)| as_session(sql(e)))?;
+        std::fs::remove_file(&inner.path).map_err(|e| as_session(io(e)))?;
+        inner.seal();
+        life.released = true;
+        drop(life);
+        drop(scope);
+        Ok(())
+    }
+}

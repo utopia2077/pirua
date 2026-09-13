@@ -14,6 +14,7 @@ mod commit;
 mod data;
 mod owner;
 mod path;
+pub mod repo;
 #[cfg(test)]
 mod tests;
 pub use owner::SqliteStorage;
