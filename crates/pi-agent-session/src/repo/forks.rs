@@ -2,7 +2,7 @@ use super::*;
 use crate::storage::values::structure;
 use std::collections::BTreeSet;
 
-pub(super) fn lane_writes(
+pub fn lane_writes(
     key: &str,
     leaf: Option<EntryId>,
     config: Option<LaneConfiguration>,
@@ -27,7 +27,7 @@ pub(super) fn lane_writes(
     })));
     writes
 }
-pub(super) fn prepare(
+pub fn prepare(
     source: StorageSnapshot,
     options: ForkOptions,
     version: SafeUnsigned,

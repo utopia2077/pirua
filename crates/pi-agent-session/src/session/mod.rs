@@ -156,6 +156,9 @@ struct SessionPublication<'a> {
 }
 impl PublicationValidator for SessionPublication<'_> {
     type Error = SessionError;
+    fn indexed(&self) -> Option<&dyn IndexedPublicationValidator<Error = Self::Error>> {
+        Some(self)
+    }
     fn validate(&self, snapshot: &StorageSnapshot) -> Result<(), SessionError> {
         PendingPublication.validate(snapshot)?;
         // Only newly authored provenance/label links require a local target. Imported
@@ -261,5 +264,70 @@ impl<S: CheckedStorage + 'static, M: SessionMetadataRecord> Session for RuntimeS
     }
     fn close(&self) -> BoxFuture<'_, Result<(), SessionError>> {
         Box::pin(async move { self.inner.storage.close().await.map_err(storage) })
+    }
+}
+
+impl IndexedPublicationValidator for SessionPublication<'_> {
+    type Error = SessionError;
+    fn read_set(&self) -> IndexedReadSet {
+        let mut read = IndexedReadSet {
+            all_pending_keys: true,
+            ..Default::default()
+        };
+        for write in &self.transaction.writes {
+            match write {
+                Write::Entry(entry) => {
+                    let id = match entry {
+                        NewEntry::Message(value) => &value.id,
+                        NewEntry::Compaction(value) => &value.id,
+                        NewEntry::BranchSummary(value) => &value.id,
+                        NewEntry::Custom(value) => &value.id,
+                    };
+                    read.entry_ids.insert(id.to_string());
+                    if let NewEntry::BranchSummary(entry) = entry {
+                        read.entry_ids.insert(entry.from_id.to_string());
+                    }
+                }
+                Write::SetRegister(value) => match value.as_ref() {
+                    RegisterSet::FactLabel { key, .. } | RegisterSet::PendingEntry { key, .. } => {
+                        read.entry_ids.insert(key.clone());
+                    }
+                    _ => (),
+                },
+                _ => (),
+            }
+        }
+        read
+    }
+    fn validate_projection(&self, projection: &IndexedProjection) -> Result<(), SessionError> {
+        self.read_set().check(projection).map_err(|_| schema())?;
+        let pending = projection.pending_keys.as_ref().ok_or_else(schema)?;
+        if pending
+            .iter()
+            .any(|key| projection.entries.get(key).is_some_and(Option::is_some))
+        {
+            return Err(schema());
+        }
+        let entry = |id: &str| projection.entries.get(id).and_then(Option::as_ref);
+        for write in &self.transaction.writes {
+            match write {
+                Write::Entry(NewEntry::BranchSummary(value)) => {
+                    let source = entry(value.from_id.as_str()).ok_or_else(schema)?;
+                    let summary = entry(value.id.as_str()).ok_or_else(schema)?;
+                    if source.seq >= summary.seq {
+                        return Err(schema());
+                    }
+                }
+                Write::SetRegister(value) => {
+                    if let RegisterSet::FactLabel { key, .. } = value.as_ref()
+                        && entry(key).is_none()
+                    {
+                        return Err(schema());
+                    }
+                }
+                _ => (),
+            }
+        }
+        Ok(())
     }
 }

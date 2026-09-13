@@ -86,6 +86,10 @@ pub enum CheckedCommitError<E> {
 pub trait PublicationValidator: Send + Sync {
     /// Session-owned rejection category.
     type Error: Send;
+    /// Optional equivalent structural validator; None retains complete validation.
+    fn indexed(&self) -> Option<&dyn IndexedPublicationValidator<Error = Self::Error>> {
+        None
+    }
     /// Validate a complete detached candidate, never intermediate writes.
     fn validate(&self, staged: &StorageSnapshot) -> Result<(), Self::Error>;
 }
@@ -114,3 +118,6 @@ pub trait CheckedStorage: AtomicStorage {
         validator: &'a V,
     ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>>;
 }
+
+mod indexed;
+pub use indexed::{IndexedProjection, IndexedPublicationValidator, IndexedReadSet};

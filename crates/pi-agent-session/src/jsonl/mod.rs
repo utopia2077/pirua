@@ -255,6 +255,11 @@ impl JsonlStorage {
         live.file.as_ref().ok_or_else(closed)?.ensure()?;
         read(&live)
     }
+    /// Coherent readonly batch source, with no writer acquisition or maintenance.
+    pub(crate) fn read_snapshot(&self) -> Result<(SessionMetadata, StorageSnapshot), StorageError> {
+        let (snapshot, metadata, _, _) = self.capture()?;
+        Ok((metadata, snapshot))
+    }
     fn capture(&self) -> Result<(StorageSnapshot, SessionMetadata, Mode, u128), StorageError> {
         self.read(|live| {
             Ok((

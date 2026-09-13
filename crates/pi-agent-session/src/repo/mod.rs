@@ -13,7 +13,7 @@ use pi_telemetry::TelemetryContext;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-mod forks;
+pub(crate) mod forks;
 mod migration;
 #[cfg(test)]
 mod tests;
@@ -32,6 +32,7 @@ struct Inner {
     clock: Arc<dyn StorageClock>,
     telemetry: Arc<dyn TelemetryContext>,
     migrations: Arc<MigrationRegistry<Register>>,
+    read_domain: crate::read::LazyDomain,
     #[cfg(test)]
     hooks: tests::Hooks,
 }
@@ -241,6 +242,7 @@ impl MemorySessionRepo {
                 clock,
                 telemetry,
                 migrations: Arc::new(MigrationRegistry::current()),
+                read_domain: crate::read::LazyDomain::default(),
                 #[cfg(test)]
                 hooks: tests::Hooks::default(),
             }),
@@ -494,3 +496,5 @@ impl SessionRepo for MemorySessionRepo {
 
 /// File-backed session repository and canonical path metadata.
 pub mod jsonl;
+
+mod read;

@@ -78,6 +78,10 @@ impl MemoryBacking {
     pub fn from_snapshot(snapshot: StorageSnapshot) -> Result<Self, StorageError> {
         Ok(Self::from_state(State::from_snapshot(snapshot)?))
     }
+    /// Detached authority read without opening or advancing a storage incarnation.
+    pub(crate) fn read_snapshot(&self) -> Result<StorageSnapshot, StorageError> {
+        Ok(self.lock()?.state.snapshot())
+    }
     fn lock(&self) -> Result<MutexGuard<'_, BackingState>, StorageError> {
         self.inner
             .lock()
@@ -346,5 +350,75 @@ impl CheckedStorage for MemoryStorage {
         validator: &'a V,
     ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
         MemoryStorage::commit_checked(self, request, validator)
+    }
+}
+
+#[cfg(test)]
+mod readonly_tests {
+    use super::*;
+    use crate::{
+        read::{ReadBatchRequest, RepositoryRead},
+        repo::MemorySessionRepo,
+    };
+    fn ready<T>(f: impl std::future::Future<Output = T>) -> T {
+        let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+        match std::pin::pin!(f).as_mut().poll(&mut cx) {
+            std::task::Poll::Ready(v) => v,
+            _ => panic!("Memory suspended"),
+        }
+    }
+    struct Clock;
+    impl StorageClock for Clock {
+        fn now(&self) -> Result<SafeUnsigned, StorageError> {
+            Ok(SafeUnsigned::new(1).unwrap())
+        }
+    }
+    struct Ids;
+    impl IdGenerator for Ids {
+        fn next(&self, _: Option<SafeUnsigned>) -> String {
+            panic!("explicit creation/read must not mint")
+        }
+    }
+    #[test]
+    fn actual_memory_repository_reads_never_advance_writer_incarnation() {
+        let repo = MemorySessionRepo::new(
+            SessionCodecOptions::default(),
+            ProviderHeaderPolicy::default(),
+            Arc::new(Ids),
+            Arc::new(Clock),
+            Arc::new(pi_telemetry::NoopTelemetryContext),
+        )
+        .unwrap();
+        let root = ready(repo.create(SessionCreateOptions {
+            id: Some(SessionId::new("reader").unwrap()),
+            ..Default::default()
+        }))
+        .unwrap();
+        let backing = root.inner.storage.backing.clone();
+        let metadata = root.metadata();
+        ready(root.close()).unwrap();
+        let before = {
+            let owner = backing.inner.lock().unwrap();
+            (owner.next_generation, owner.active)
+        };
+        assert_eq!(repo.read_list(()).unwrap().len(), 1);
+        let batch = repo
+            .read_batch(
+                &metadata,
+                ReadBatchRequest {
+                    cursor: None,
+                    limit: SafeUnsigned::new(1).unwrap(),
+                },
+            )
+            .unwrap();
+        assert!(batch.complete && batch.entries.is_empty());
+        let after = {
+            let owner = backing.inner.lock().unwrap();
+            (owner.next_generation, owner.active)
+        };
+        assert_eq!(
+            after, before,
+            "readonly repository must never open a MemoryStorage"
+        );
     }
 }

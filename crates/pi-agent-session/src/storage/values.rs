@@ -2,7 +2,7 @@ use super::RegisterKey;
 use pi_agent_schema::session_values::SafeUnsigned;
 use pi_agent_schema::*;
 
-pub(crate) fn structure(entry: &Entry) -> EntryStructure {
+pub fn structure(entry: &Entry) -> EntryStructure {
     macro_rules! common {
         ($v:expr, $kind:expr, $custom:expr) => {
             EntryStructure {
@@ -23,7 +23,7 @@ pub(crate) fn structure(entry: &Entry) -> EntryStructure {
     }
 }
 
-pub(crate) fn materialize(entry: NewEntry, seq: SafeUnsigned, timestamp: SafeUnsigned) -> Entry {
+pub fn materialize(entry: NewEntry, seq: SafeUnsigned, timestamp: SafeUnsigned) -> Entry {
     match entry {
         NewEntry::Message(v) => Entry::Message(MessageEntry {
             id: v.id,
@@ -71,7 +71,7 @@ pub(crate) fn materialize(entry: NewEntry, seq: SafeUnsigned, timestamp: SafeUns
     }
 }
 
-pub(crate) fn register_key(register: &Register) -> RegisterKey {
+pub fn register_key(register: &Register) -> RegisterKey {
     match register {
         Register::LaneLeaf { key, .. } => RegisterKey {
             namespace: RegisterNamespace::LaneLeaf,
@@ -123,7 +123,7 @@ pub(crate) fn register_key(register: &Register) -> RegisterKey {
         },
     }
 }
-pub(crate) fn register_seq(register: &Register) -> SafeUnsigned {
+pub fn register_seq(register: &Register) -> SafeUnsigned {
     match register {
         Register::LaneLeaf { seq, .. } => *seq,
         Register::LaneConfig { seq, .. } => *seq,
@@ -139,7 +139,7 @@ pub(crate) fn register_seq(register: &Register) -> SafeUnsigned {
         Register::FactCustom { seq, .. } => *seq,
     }
 }
-pub(crate) fn set_register(value: RegisterSet, seq: SafeUnsigned) -> Register {
+pub fn set_register(value: RegisterSet, seq: SafeUnsigned) -> Register {
     match value {
         RegisterSet::LaneLeaf { key, value } => Register::LaneLeaf { key, value, seq },
         RegisterSet::LaneConfig { key, value } => Register::LaneConfig { key, value, seq },
