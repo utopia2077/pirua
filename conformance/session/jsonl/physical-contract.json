@@ -1,0 +1,13 @@
+{
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "localContract": "plan33/conventions54; S07 index and corrected review494",
+  "sourceClauses": ["H398-401", "H396-450", "H481-511", "Appendix B"],
+  "wire": {"version":4,"kind":"header","storageVersion":1},
+  "orderedRegisterHistory": [
+    {"kind":"register","op":"set","namespace":"fact.custom","key":"k","seq":0,"value":1},
+    {"kind":"register","op":"set","namespace":"fact.custom","key":"k","seq":1,"value":2},
+    {"kind":"register","op":"delete","namespace":"fact.custom","key":"k","seq":2}
+  ],
+  "afterHistory": {"liveRegisters":0,"nextSeq":3},
+  "scope": "Resolved commit host-process durability; no fsync, power-loss, or cross-process ownership guarantee."
+}

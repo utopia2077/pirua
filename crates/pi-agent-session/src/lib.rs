@@ -13,4 +13,5 @@ pub mod migration;
 
 pub mod repo;
 
+pub mod jsonl;
 pub mod legacy_v3;
