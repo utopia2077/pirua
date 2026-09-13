@@ -1135,6 +1135,7 @@ dependencies = [
  "jsonschema",
  "pi-agent-schema",
  "pi-telemetry",
+ "ring",
  "serde",
  "serde_json",
 ]

@@ -12,3 +12,5 @@ pub mod tree;
 pub mod migration;
 
 pub mod repo;
+
+pub mod legacy_v3;
