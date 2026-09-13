@@ -12,3 +12,10 @@ workspace = true
 [dependencies]
 pi-agent-schema.workspace = true
 pi-agent-session.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+ring.workspace = true
+
+[dev-dependencies]
+rusqlite = { workspace = true, features = ["trace"] }

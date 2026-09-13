@@ -1172,6 +1172,10 @@ version = "0.0.0"
 dependencies = [
  "pi-agent-schema",
  "pi-agent-session",
+ "ring",
+ "rusqlite",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
