@@ -1,0 +1,934 @@
+{
+  "authority": {
+    "contractCommit": "bf106ddb05f17fb4021bbd5e55e454b2a9f90898",
+    "sharedApiTree": "2f0812a115a24001e296dfc3f99cbcc44ffbe92b",
+    "source": "853a80d26c90a14c1886f0ebb8ffaae133ca2185:H872-938",
+    "status": "AUTHOR-ENTRY FIXTURES/PREDICTIONS ONLY; NO EXECUTION OR INDEPENDENT FINAL ACCEPTANCE"
+  },
+  "textCorpus": {
+    "sessionId": "text-corpus",
+    "storageVersion": 1,
+    "storeGeneration": 0,
+    "entries": [
+      {
+        "id": "u-string",
+        "parentId": null,
+        "seq": 0,
+        "timestamp": 1000,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "userneedle café 東京",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-stop",
+        "parentId": "u-string",
+        "seq": 2,
+        "timestamp": 1002,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statusstop"
+            },
+            {
+              "type": "thinking",
+              "thinking": "neverthinking"
+            },
+            {
+              "type": "toolCall",
+              "id": "nevercallid",
+              "name": "tool",
+              "arguments": {
+                "text": "nevertoolargs"
+              }
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-length",
+        "parentId": "assistant-stop",
+        "seq": 4,
+        "timestamp": 1004,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statuslength"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "length",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-toolUse",
+        "parentId": "assistant-length",
+        "seq": 6,
+        "timestamp": 1006,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statustooluse"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-error",
+        "parentId": "assistant-toolUse",
+        "seq": 8,
+        "timestamp": 1008,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statuserror"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "error",
+          "timestamp": 9000,
+          "errorMessage": "nevererrorfield"
+        }
+      },
+      {
+        "id": "assistant-aborted",
+        "parentId": "assistant-error",
+        "seq": 10,
+        "timestamp": 1010,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statusaborted"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "aborted",
+          "timestamp": 9000,
+          "errorMessage": "nevererrorfield"
+        }
+      },
+      {
+        "id": "assistant-deferred",
+        "parentId": "assistant-aborted",
+        "seq": 12,
+        "timestamp": 1012,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statusdeferred"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "deferred",
+          "timestamp": 9000,
+          "deferred": {
+            "api": "a",
+            "provider": "p",
+            "modelId": "m",
+            "id": "neverdeferredtoken"
+          }
+        }
+      },
+      {
+        "id": "tool-result",
+        "parentId": "assistant-deferred",
+        "seq": 14,
+        "timestamp": 1014,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "nevercallid",
+          "toolName": "nevertoolname",
+          "content": [
+            {
+              "type": "text",
+              "text": "toolneedle"
+            },
+            {
+              "type": "image",
+              "data": "bmV2ZXJpbWFnZXRleHQ=",
+              "mimeType": "image/png"
+            }
+          ],
+          "details": {
+            "text": "neverdetails"
+          },
+          "isError": true,
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "u-blocks",
+        "parentId": "tool-result",
+        "seq": 16,
+        "timestamp": 1016,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "blockone"
+            },
+            {
+              "type": "image",
+              "data": "b3BhcXVl",
+              "mimeType": "image/png"
+            },
+            {
+              "type": "text",
+              "text": "blocktwo"
+            }
+          ],
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "note-string",
+        "parentId": "u-blocks",
+        "seq": 18,
+        "timestamp": 1018,
+        "type": "message",
+        "message": {
+          "role": "note",
+          "content": "customneedle",
+          "extra": "nevercustomextra",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "note-blocks",
+        "parentId": "note-string",
+        "seq": 20,
+        "timestamp": 1020,
+        "type": "message",
+        "message": {
+          "role": "note",
+          "content": [
+            {
+              "type": "text",
+              "text": "customblocks"
+            },
+            {
+              "type": "image",
+              "data": "b3BhcXVl",
+              "mimeType": "image/png"
+            }
+          ],
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "bash-output",
+        "parentId": "note-blocks",
+        "seq": 22,
+        "timestamp": 1022,
+        "type": "message",
+        "message": {
+          "role": "bashExecution",
+          "command": "echo",
+          "output": "customoutputneedle",
+          "cancelled": false,
+          "truncated": false,
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "opaque-entry",
+        "parentId": "bash-output",
+        "seq": 24,
+        "timestamp": 1024,
+        "type": "custom",
+        "customType": "opaque",
+        "data": {
+          "role": "user",
+          "content": "nevercustomentry"
+        }
+      },
+      {
+        "id": "compaction",
+        "parentId": "opaque-entry",
+        "seq": 26,
+        "timestamp": 1026,
+        "type": "compaction",
+        "summary": "nevercompactionbody",
+        "retainedTail": [
+          {
+            "role": "user",
+            "content": "nevertailcopy",
+            "timestamp": 9000
+          }
+        ],
+        "tokensBefore": 7,
+        "fromHook": false
+      },
+      {
+        "id": "branch-summary",
+        "parentId": "compaction",
+        "seq": 28,
+        "timestamp": 1028,
+        "type": "branch_summary",
+        "fromId": "u-string",
+        "summary": "neverbranchbody",
+        "fromHook": false
+      },
+      {
+        "id": "off-branch",
+        "parentId": "u-string",
+        "seq": 30,
+        "timestamp": 1030,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "offbranchneedle",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "note-no-content",
+        "parentId": "branch-summary",
+        "seq": 32,
+        "timestamp": 1032,
+        "type": "message",
+        "message": {
+          "role": "note",
+          "extra": "nevercustomextra",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "neverentryid",
+        "parentId": "note-no-content",
+        "seq": 34,
+        "timestamp": 1034,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "thinking-only",
+        "parentId": "neverentryid",
+        "seq": 36,
+        "timestamp": 1036,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "thinking",
+              "thinking": "neverthinking"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 9000
+        }
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "seq": 100,
+        "value": "branch-summary"
+      },
+      {
+        "namespace": "lane.state",
+        "key": "main",
+        "seq": 101,
+        "value": {
+          "currentOperationId": null,
+          "pendingNextRun": []
+        }
+      },
+      {
+        "namespace": "fact.custom",
+        "key": "fact",
+        "seq": 102,
+        "value": {
+          "content": "neverregister"
+        }
+      },
+      {
+        "namespace": "fact.name",
+        "key": "",
+        "seq": 103,
+        "value": "nevername"
+      }
+    ],
+    "usage": [
+      {
+        "id": "ledger",
+        "seq": 104,
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "adjustment": true,
+        "details": {
+          "content": "neverledger"
+        }
+      }
+    ],
+    "nextSeq": 105,
+    "defaultProjectedTextByMessageId": {
+      "u-string": "userneedle café 東京",
+      "assistant-stop": "statusstop",
+      "assistant-length": "statuslength",
+      "assistant-toolUse": "statustooluse",
+      "assistant-error": "statuserror",
+      "assistant-aborted": "statusaborted",
+      "assistant-deferred": "statusdeferred",
+      "tool-result": "toolneedle",
+      "u-blocks": "blockone\nblocktwo",
+      "note-string": "customneedle",
+      "note-blocks": "customblocks",
+      "bash-output": "",
+      "off-branch": "offbranchneedle",
+      "note-no-content": "",
+      "neverentryid": "",
+      "thinking-only": ""
+    },
+    "defaultPositiveQueries": {
+      "userneedle": [
+        "u-string"
+      ],
+      "café": [
+        "u-string"
+      ],
+      "東京": [
+        "u-string"
+      ],
+      "toolneedle": [
+        "tool-result"
+      ],
+      "blockone blocktwo": [
+        "u-blocks"
+      ],
+      "customneedle": [
+        "note-string"
+      ],
+      "customblocks": [
+        "note-blocks"
+      ],
+      "offbranchneedle": [
+        "off-branch"
+      ],
+      "statusstop": [
+        "assistant-stop"
+      ],
+      "statuslength": [
+        "assistant-length"
+      ],
+      "statustooluse": [
+        "assistant-toolUse"
+      ],
+      "statuserror": [
+        "assistant-error"
+      ],
+      "statusaborted": [
+        "assistant-aborted"
+      ],
+      "statusdeferred": [
+        "assistant-deferred"
+      ]
+    },
+    "defaultNegativeQueries": [
+      "neverthinking",
+      "nevertoolargs",
+      "nevererrorfield",
+      "neverdeferredtoken",
+      "nevercallid",
+      "nevertoolname",
+      "neverdetails",
+      "bmV2ZXJpbWFnZXRleHQ",
+      "b3BhcXVl",
+      "nevercustomextra",
+      "customoutputneedle",
+      "nevercustomentry",
+      "nevercompactionbody",
+      "nevertailcopy",
+      "neverbranchbody",
+      "neverregister",
+      "nevername",
+      "neverledger",
+      "neverentryid"
+    ],
+    "expectedLastProcessedEntrySeq": 36,
+    "timestampRule": "Hit timestamps equal Entry.timestamp (1000+seq), never inner9000.",
+    "customSchemas": {
+      "note": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "const": "note"
+          },
+          "content": {},
+          "extra": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "bashExecution": "Use explicitly selected pinned coding-message schema; no automatic role registration."
+    },
+    "customProjection": {
+      "identity": "review-output-v1",
+      "rule": "Same default content projection plus bashExecution.output; all other extra fields excluded.",
+      "query": "customoutputneedle",
+      "expectedEntryIds": [
+        "bash-output"
+      ]
+    }
+  },
+  "grammarCorpus": {
+    "sessionId": "grammar",
+    "documents": [
+      {
+        "entryId": "allterms",
+        "seq": 0,
+        "text": "alpha OR beta"
+      },
+      {
+        "entryId": "andterms",
+        "seq": 2,
+        "text": "alpha beta"
+      },
+      {
+        "entryId": "alphaonly",
+        "seq": 4,
+        "text": "alpha"
+      },
+      {
+        "entryId": "betaonly",
+        "seq": 6,
+        "text": "beta"
+      },
+      {
+        "entryId": "reverse",
+        "seq": 8,
+        "text": "beta alpha"
+      },
+      {
+        "entryId": "unicode",
+        "seq": 10,
+        "text": "東京 café"
+      }
+    ],
+    "cases": [
+      {
+        "text": "alpha OR beta",
+        "expectedLiteralExpression": "\"alpha\" AND \"OR\" AND \"beta\"",
+        "matchingEntryIds": [
+          "allterms"
+        ]
+      },
+      {
+        "text": "alpha beta",
+        "matchingEntryIds": [
+          "allterms",
+          "andterms",
+          "reverse"
+        ]
+      },
+      {
+        "text": "\"alpha beta\"",
+        "matchingEntryIds": [
+          "allterms",
+          "andterms",
+          "reverse"
+        ],
+        "reason": "Quotes are literal escaped term data, not a raw phrase operator; whitespace terms still AND."
+      },
+      {
+        "text": "\"alpha\"",
+        "matchingEntryIds": [
+          "allterms",
+          "andterms",
+          "alphaonly",
+          "reverse"
+        ],
+        "reason": "Embedded quote characters must be escaped rather than producing invalid/raw FTS syntax."
+      },
+      {
+        "text": " 東京\tcafé ",
+        "matchingEntryIds": [
+          "unicode"
+        ]
+      },
+      {
+        "text": "京都",
+        "matchingEntryIds": []
+      },
+      {
+        "text": "   \t\n",
+        "matchingEntryIds": [],
+        "sourcePulls": 0
+      },
+      {
+        "text": "alpha",
+        "limit": 0,
+        "matchingEntryIds": [],
+        "sourcePulls": 0
+      }
+    ],
+    "ordering": "Matching sets here do not invent non-tie BM25 numbers/order. Exact order is frozen in dedicated tie corpus."
+  },
+  "rankingCorpus": {
+    "documents": [
+      {
+        "sessionId": "sa",
+        "entryId": "early",
+        "seq": 2,
+        "timestamp": 8000,
+        "text": "quasar"
+      },
+      {
+        "sessionId": "sa",
+        "entryId": "late",
+        "seq": 7,
+        "timestamp": 1000,
+        "text": "quasar"
+      },
+      {
+        "sessionId": "sb",
+        "entryId": "only",
+        "seq": 2,
+        "timestamp": 500,
+        "text": "quasar"
+      }
+    ],
+    "query": "quasar",
+    "entryLimit2": [
+      {
+        "sessionId": "sa",
+        "entryId": "early"
+      },
+      {
+        "sessionId": "sa",
+        "entryId": "late"
+      }
+    ],
+    "sessionLimit2": [
+      {
+        "sessionId": "sa",
+        "topEntryId": "early"
+      },
+      {
+        "sessionId": "sb",
+        "topEntryId": "only"
+      }
+    ],
+    "sessionLimit1": [
+      {
+        "sessionId": "sa",
+        "topEntryId": "early"
+      }
+    ],
+    "assertions": [
+      "Identical projected texts yield a tie corpus; session ID, then entry seq, then entry ID define deterministic tie breaks.",
+      "Select top per session before session limit; global entryLimit2 would wrongly omit sb.",
+      "Timestamps do not decide tie order.",
+      "Score if present must be finite; do not assert invented numeric BM25 constants."
+    ],
+    "defaultLimitFixture": {
+      "sessions": 26,
+      "sessionIds": "s00..s25",
+      "oneEntryPerSession": "only,seq2,text=defaultneedle",
+      "omittedLimitExpectedSessionIds": [
+        "s00",
+        "s01",
+        "s02",
+        "s03",
+        "s04",
+        "s05",
+        "s06",
+        "s07",
+        "s08",
+        "s09",
+        "s10",
+        "s11",
+        "s12",
+        "s13",
+        "s14",
+        "s15",
+        "s16",
+        "s17",
+        "s18",
+        "s19"
+      ],
+      "explicitLimit26ExpectedSessionIds": [
+        "s00",
+        "s01",
+        "s02",
+        "s03",
+        "s04",
+        "s05",
+        "s06",
+        "s07",
+        "s08",
+        "s09",
+        "s10",
+        "s11",
+        "s12",
+        "s13",
+        "s14",
+        "s15",
+        "s16",
+        "s17",
+        "s18",
+        "s19",
+        "s20",
+        "s21",
+        "s22",
+        "s23",
+        "s24",
+        "s25"
+      ]
+    }
+  },
+  "progressCorpus": {
+    "sessionId": "progress",
+    "generation": 0,
+    "entries": [
+      {
+        "id": "n0",
+        "seq": 0,
+        "type": "custom",
+        "customType": "opaque",
+        "data": "nonmessage",
+        "parentId": null,
+        "timestamp": 1000
+      },
+      {
+        "id": "m7",
+        "seq": 7,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "progressneedle",
+          "timestamp": 9000
+        },
+        "parentId": "n0",
+        "timestamp": 1007
+      },
+      {
+        "id": "nmax",
+        "seq": 9007199254740991,
+        "type": "custom",
+        "customType": "opaque",
+        "data": null,
+        "parentId": "m7",
+        "timestamp": 1008
+      }
+    ],
+    "limit": 1,
+    "pages": [
+      {
+        "requestCursor": null,
+        "entryIds": [
+          "n0"
+        ],
+        "lastEntrySeq": 0,
+        "complete": false,
+        "reset": false,
+        "textHits": []
+      },
+      {
+        "requestCursor": "exact prior next_cursor bytes",
+        "entryIds": [
+          "m7"
+        ],
+        "lastEntrySeq": 7,
+        "complete": false,
+        "reset": false,
+        "textHits": [
+          "m7"
+        ]
+      },
+      {
+        "requestCursor": "exact prior next_cursor bytes",
+        "entryIds": [
+          "nmax"
+        ],
+        "lastEntrySeq": 9007199254740991,
+        "complete": true,
+        "reset": false,
+        "textHits": [
+          "m7"
+        ]
+      },
+      {
+        "requestCursor": "exact prior next_cursor bytes",
+        "entryIds": [],
+        "lastEntrySeq": 9007199254740991,
+        "complete": true,
+        "reset": false,
+        "textHits": [
+          "m7"
+        ]
+      }
+    ],
+    "witnessRule": "Use actual RepositoryRead.next_cursor witnesses; persist/return byte-exact, never calculate expected hash from search implementation.",
+    "backendFixtureRule": "Use actual JSONL snapshot-prefix fixture for sparse/MAX rows; ordinary smaller-seq histories also execute through real Memory. No fake Repo rows count as backend proof.",
+    "privateBatchLimitZero": "typed invalid request, not SearchQuery.limit0 semantics"
+  }
+}

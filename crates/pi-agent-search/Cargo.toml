@@ -9,6 +9,17 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+default = []
+sqlite-fts = ["dep:rusqlite", "dep:serde", "dep:serde_json"]
+
 [dependencies]
 pi-agent-schema.workspace = true
 pi-agent-session.workspace = true
+rusqlite = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+
+[dev-dependencies]
+rusqlite = { workspace = true, features = ["trace"] }
+serde_json.workspace = true

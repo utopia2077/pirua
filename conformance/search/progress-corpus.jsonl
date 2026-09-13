@@ -1,0 +1,6 @@
+{"v":4,"kind":"header","id":"progress","createdAt":0,"storageVersion":1,"storeGeneration":0,"snapshotItems":5,"nextSeq":null}
+{"kind":"entry","id":"n0","seq":0,"type":"custom","customType":"opaque","data":"nonmessage","parentId":null,"timestamp":1000}
+{"kind":"register","op":"set","seq":1,"namespace":"lane.leaf","key":"main","value":null}
+{"kind":"register","op":"set","seq":2,"namespace":"lane.state","key":"main","value":{"currentOperationId":null,"pendingNextRun":[]}}
+{"kind":"entry","id":"m7","seq":7,"type":"message","message":{"role":"user","content":"progressneedle","timestamp":9000},"parentId":"n0","timestamp":1007}
+{"kind":"entry","id":"nmax","seq":9007199254740991,"type":"custom","customType":"opaque","data":null,"parentId":"m7","timestamp":1008}

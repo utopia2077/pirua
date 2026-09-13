@@ -1,0 +1,455 @@
+{
+  "status": "UNEXECUTED AUTHOR-ENTRY PREDICTIONS",
+  "authority": "bf106dd conventions57/plan35 S08; sourceH872-938",
+  "scenarios": [
+    {
+      "id": "six-method-contract",
+      "authorityClass": "source+fixedDTO",
+      "history": [
+        "Construct real sqlite-fts SqliteSearchService over actual RepositoryRead with explicit list options.",
+        "Invoke search_sessions/search_entries/sync/notify/remove/close."
+      ],
+      "expected": {
+        "searchEntries": "Some implemented capability; no-hit Some(Ok([])) differs from error; never None for reference concrete service",
+        "DTO": "Only text/limit accepted; optional score/snippet finite/plain if present; no metadata fields added",
+        "close": "idempotent; repeat close succeeds; no source writer close"
+      },
+      "actualConsumerSeam": "Actual fixed SessionSearchService, not constructor/method-name inventory alone.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "text-policy-session-wide",
+      "authorityClass": "source+frozen-local-text",
+      "history": [
+        "Seed complete text corpus in actual Memory and JSONL sources with supplied note/bash schemas.",
+        "sync from empty index using small real batches; issue every frozen positive/negative query."
+      ],
+      "expected": {
+        "hits": "Exact .corpora.json positive IDs; every negative returns[] under DEFAULT projection",
+        "statuses": "All six settled assistant statuses included through content; toolResult isError=true included",
+        "scope": "Old pre-compaction and off-branch Message rows included; top-level summaries/tail copies/plaincustom/metadata/ledger excluded",
+        "projection": "Text blocks joined exact newline; no JSON dump; outer entry timestamp returned",
+        "canonical": "Snapshots/files byte-equivalent before/after sync; borrowed writer/view usable"
+      },
+      "actualConsumerSeam": "Actual reader + actual projector + durable FTS, never context_items or current-branch scan.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "custom-policy-and-explicit-schema",
+      "authorityClass": "frozen-local-text+source-role-admission",
+      "history": [
+        "DEFAULT cannot find bash.output without content.",
+        "Initialize separate empty index with explicit projection identity review-output-v1 and extractor for bash.output.",
+        "Try opening same index with changed policy identity; also try reading unregistered note source."
+      ],
+      "expected": {
+        "customOutput": "bash-output hit only under explicit policy",
+        "mismatch": "Refuse policy mismatch before data changes",
+        "schema": "Actual source codec rejects unregistered role; indexing error cannot auto-register/override or advance bad batch"
+      },
+      "actualConsumerSeam": "Actual bound text-projector identity + actual SessionCodec-backed RepositoryRead.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "literal-and-quotes-unicode",
+      "authorityClass": "frozen-local-query",
+      "history": [
+        "Use isolated grammar corpus.",
+        "Run alpha OR beta, alpha beta, quoted alpha beta, quoted alpha, 東京 plus tab café, and京都."
+      ],
+      "expected": {
+        "sets": "Exact matching ID sets in grammarCorpus; OR and quotes are escaped term data, not raw operators",
+        "syntax": "Quote-containing input remains valid literal query, not raw FTS or SQL injection",
+        "unicode": "Exact 東京/café terms match unicode;京都 absent",
+        "ranking": "No invented numeric score or non-tie grammar ordering"
+      },
+      "actualConsumerSeam": "Actual literal FTS5 expression builder and bound SQL parameters.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "ranking-unit-limit-before-dedup",
+      "authorityClass": "source+frozen-local-ranking",
+      "history": [
+        "Index three identical quasar documents from ranking corpus.",
+        "Entry search limit2; session search limit2 and1.",
+        "Index26 identical defaultneedle sessions s00..s25 in separate index."
+      ],
+      "expected": {
+        "entry2": [
+          "sa/early",
+          "sa/late"
+        ],
+        "sessions2": [
+          "sa(top early)",
+          "sb(top only)"
+        ],
+        "sessions1": [
+          "sa(top early)"
+        ],
+        "default20": "s00..s19",
+        "explicit26": "s00..s25",
+        "ordering": "BM25 ascending; ties by sessionID then entryseq then entryID, not timestamps; top per session before limit"
+      },
+      "actualConsumerSeam": "Actual session SQL grouping/window/top selection + entry SQL, not post-filtered entry-limit results.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "empty-query-and-zero-limit-no-pull",
+      "authorityClass": "frozen-local-query",
+      "history": [
+        "Queue no hints; record actual source read counters.",
+        "Call empty/whitespace text and nonempty text with limit0 on both methods."
+      ],
+      "expected": {
+        "hits": [],
+        "sourceReadListDelta": 0,
+        "sourceReadBatchDelta": 0,
+        "indexData": "unchanged"
+      },
+      "actualConsumerSeam": "Public query fast path on initialized actual index.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "cursor-nonmessage-zero-max",
+      "authorityClass": "source+frozen-local-reader",
+      "history": [
+        "Seed actual JSONL progress prefix fixture; use batch limit1.",
+        "Run sync batches or observed publication hooks at each of four frozen pages."
+      ],
+      "expected": {
+        "pages": "n0(seq0), m7(seq7), nmax(MAX), empty; exact page lastseq/complete/reset from corpora",
+        "FTSHits": "Only m7, even after final nonmessageMAX",
+        "cursor": "None distinct0; persist exact returned witness bytes; MAX completes without overflow; register/usage gaps do not become cursor",
+        "invalidPrivateLimit0": "RepositoryRead error, distinct SearchQuery.limit0"
+      },
+      "actualConsumerSeam": "Actual RepositoryRead/read_batch into atomic FTS+cursor publication; no mock batch producer for MAX proof.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "generation-reset-and-stale-g",
+      "authorityClass": "source+frozen-index-epoch",
+      "history": [
+        "Index sessionS generation0 with oldterm.",
+        "Pause workerA after actual generation0 read_batch outside index transaction.",
+        "Actual inactive JSONL fixture replacement or SQLite admin rewrite publishes generation1/newterm; workerB syncs reset.",
+        "Release A stale page."
+      ],
+      "expected": {
+        "oldterm": [],
+        "newterm": [
+          "S/new"
+        ],
+        "generation": "Stored current cursor remains1 with actual new witness; old docs removed atomically",
+        "stale": "G0 cannot overwrite G1; ordinary-progress retry may only use fresh cursor/source",
+        "canonical": "No index operation modifies canonical source"
+      },
+      "actualConsumerSeam": "Two real service instances/shared index + actual generation-changing source; control timing after real read, not thread start.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "same-id-recreate-witness-reset",
+      "authorityClass": "frozen-local-reader",
+      "history": [
+        "Actual same Memory repository owner or same JSONL root: index S/gen0 entryE at processed seq with oldtext.",
+        "Delete+recreate S between sweeps without remove; insert E at same seq/timestamp but changedtext, generation0.",
+        "sync then query."
+      ],
+      "expected": {
+        "reset": true,
+        "oldtext": [],
+        "changedtext": [
+          "S/E"
+        ],
+        "domain": "Same actual source domain; witness changes and is stored unchanged",
+        "rowCount": "one logical E; no stale old row"
+      },
+      "actualConsumerSeam": "Actual canonical delete/recreate and prefix-witness RepositoryRead, not forcing search cursor fields.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "identical-prefix-append-and-physical-rewrite",
+      "authorityClass": "frozen-local-reader",
+      "history": [
+        "Index prefix S/E, capture actual cursor.",
+        "Recreate same-ID with IDENTICAL semantic processed Entry prefix and append new entry; or JSONL compact/legacy convert without changing processed Entry values.",
+        "sync."
+      ],
+      "expected": {
+        "prefix": "May continue safely without reset for Memory/JSONL identical prefix; appended row caught once",
+        "physicalOnly": "Compaction/format3 conversion do not invalidate semantic prefix merely because bytes changed",
+        "canonicalConversion": "Triggered explicitly by canonical owner, never search"
+      },
+      "actualConsumerSeam": "Actual prefix reader with real native/legacy source operations; witness bytes opaque to service.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "truncated-prefix-and-invalid-witness",
+      "authorityClass": "frozen-local-reader",
+      "history": [
+        "Index through second entry then recreate/truncate so processed entry no longer exists.",
+        "Separately corrupt only derived stored witness version/length in an isolated private index fixture."
+      ],
+      "expected": {
+        "truncated": "Actual reader reset and full reindex; removed old docs disappear",
+        "invalidEncoding": "Typed bounded error; not accepted as seq0 or silently advanced; source unchanged"
+      },
+      "actualConsumerSeam": "Actual reader reset/error distinction plus consumer persistence; no invented witness hashes.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "stale-batch-crossed-by-remove",
+      "authorityClass": "frozen-index-epoch",
+      "history": [
+        "A captures expected cursor/epoch and actual source batch, then pauses outside index transaction.",
+        "B.remove(S) acknowledges deleting documents and cursor/coordination state.",
+        "Release old A while canonicalS still exists.",
+        "Query without sync/hint; later explicit sync(S domain) or new notify(S)."
+      ],
+      "expected": {
+        "afterRemoveAndOldRelease": "No S hits; old work discarded, no automatic retry that undoes acknowledged remove",
+        "newExplicitWork": "May index S again",
+        "atomic": "No documents without matching progress or orphan cursor"
+      },
+      "actualConsumerSeam": "Two real service instances/index epochs; wrapper only schedules actual source batch, not alternate repo rows.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "pre-list-epoch-must-enclose-list",
+      "authorityClass": "frozen-index-epoch",
+      "history": [
+        "Index S/old. Canonical deleteS.",
+        "SweepA captures its index epoch BEFORE read_list. Actual read_list returns[]; pause before returning those captured rows.",
+        "Canonical recreateS/new; B.sync publishes new current S documents.",
+        "Release A empty stale listing."
+      ],
+      "expected": {
+        "S/new": "Retained; stale[] cannot purge it",
+        "failureControl": "Reading epoch only AFTER list would wrongly certify/delete new S",
+        "allowed": "Abandon stale reconciliation or restart from a new enclosing listing; never apply stale deletion"
+      },
+      "actualConsumerSeam": "Real read_list with deterministic after-result barrier + two services/shared durable index.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "own-progress-and-reconcile",
+      "authorityClass": "source+frozen-index-epoch",
+      "history": [
+        "Index canonical A with entry a-old; canonical B does not yet exist. Delete canonical A and create canonical B with entry b-new.",
+        "One uncontended sync captures its epoch BEFORE actual successful read_list returns only B, catches up B, then reconciles absent A within that same invocation.",
+        "Repeat sync with identical canonical B and unchanged complete cursor: its complete empty batch must terminate without retry churn.",
+        "Preserve the prior append variant: index A and D, append A and delete D; one successful uncontended sync must publish the append and remove D."
+      ],
+      "expected": {
+        "firstSyncHitIDs": [
+          "B/b-new"
+        ],
+        "absentA": [],
+        "repeatedSyncHitIDs": [
+          "B/b-new"
+        ],
+        "appendVariant": "New A message appears once and D is absent after the same sync.",
+        "epoch": "Self-attributable B publication must not invalidate this sweep solely because it advanced progress. An unchanged complete batch must not induce endless epoch/retry churn. External newer publication/removal remains protected by the separate stale-sweep/removal schedules; no private epoch representation is prescribed.",
+        "termination": "Both successful sync calls terminate; one-call reconciliation cannot require another caller sync in this uncontended history."
+      },
+      "actualConsumerSeam": "Actual sync source enumeration, publication and reconciliation in one invocation.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "failed-or-busy-list-never-purges",
+      "authorityClass": "source+frozen-index-epoch",
+      "history": [
+        "Index existingA.",
+        "Force actual source listing Busy via a foreign JSONL owner, and separately a controlled source I/O listing failure.",
+        "Attempt sync."
+      ],
+      "expected": {
+        "result": "Typed bounded error/diagnostic, not successful empty list",
+        "A": "Documents/cursor retained; no reconciliation deletion",
+        "canonical": "unchanged"
+      },
+      "actualConsumerSeam": "Actual RepositoryRead.read_list; error injection may surround real adapter, never fabricate successful rows.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "busy-or-moved-locator-is-not-absence",
+      "authorityClass": "frozen-local-reader+index-epoch",
+      "history": [
+        "Successful list containsA/B. A batch commits; B read is Busy or its old file locator vanished after a same-ID file rename.",
+        "Fresh authoritative list still containsB under new locator."
+      ],
+      "expected": {
+        "A": "Partial successful progress may remain",
+        "B": "Existing docs/cursor not removed solely from Busy/old-locator NotFound",
+        "nextSuccessfulSync": "Uses fresh locator and catches up; removal only if ID absent from authoritative complete list"
+      },
+      "actualConsumerSeam": "Actual JSONL file rename/inactive reader ownership and batch errors; not treating a cached path as session authority.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "real-removal-and-fresh-reindex",
+      "authorityClass": "source+frozen-index-epoch",
+      "history": [
+        "Index A/B. Actual canonical deleteB, then successful sync.",
+        "Explicit removeA while canonicalA still exists; query; send NEW notifyA or explicit sync."
+      ],
+      "expected": {
+        "B": "Docs AND cursor removed by reconcile",
+        "AafterRemove": [],
+        "AafterNewRequest": "Can return again",
+        "noQueryPull": "Query alone must not undo remove"
+      },
+      "actualConsumerSeam": "Actual remove/reconcile and subsequent new work, not private DB deletes as the behavioral operation.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "notify-debounce-single-source",
+      "authorityClass": "source+frozen-local-worker",
+      "history": [
+        "Use actual bound repoA/B and injectable debounce50ms semantics with deterministic test gate.",
+        "Append inA; burst notifyA several times before deadline; notifyunknownID from outside listing.",
+        "Release debounce; await worker quiescence."
+      ],
+      "expected": {
+        "A": "One coalesced single-session catch-up (batch pagination may require multiple batch reads)",
+        "B": "No read_batch caused by A hint",
+        "unknown": "No out-of-domain document/source pull",
+        "missingHint": "Later sync catches an unnotified append",
+        "sourceContentInHint": "none"
+      },
+      "actualConsumerSeam": "Actual owned std worker/Condvar with real RepositoryRead; gate schedule, not elapsed-time benchmark.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "notify-reentry-and-background-failure",
+      "authorityClass": "frozen-local-worker",
+      "history": [
+        "From a once-only actual projector/source callback reenter same service sync and close.",
+        "Enqueue notify reentrantly; separately cause background read failure then successful later sync."
+      ],
+      "expected": {
+        "conflictingReentry": "Busy or documented closed result, never deadlock/self-join",
+        "queueLock": "No source/projector/index work under queue lock",
+        "failure": "Bounded observable diagnostic; not silently counted as successful sync",
+        "recovery": "Later explicit sync succeeds with canonical unchanged"
+      },
+      "actualConsumerSeam": "Actual worker and callback stack with deterministic once gate; no mock scheduling-only implementation.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "close-seals-and-drains",
+      "authorityClass": "fixedDTO+frozen-local-worker",
+      "history": [
+        "Drop an unpolled sync future.",
+        "Queue hints but close before admission/debounce; repeatclose.",
+        "Separate case: pause an admitted actual read/publish task, startclose from another thread, verify close cannot acknowledge until admitted work settles.",
+        "After close ACK attempt sync/search/notify; keep a second service on shared index alive."
+      ],
+      "expected": {
+        "unpolled": "No work",
+        "unadmittedHints": "Discarded, worker joined",
+        "admitted": "Finishes/settles before close ACK; no later publication/source callback",
+        "afterClose": "Documented closed behavior, no restarted worker/index mutation; repeatclose succeeds",
+        "otherService": "Still usable; close is not deletion of shared DB"
+      },
+      "actualConsumerSeam": "Actual first-poll admission, owned worker shutdown and joined thread; no self-join from callback.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "domain-and-projector-binding",
+      "authorityClass": "frozen-local-scope",
+      "history": [
+        "Create index over actual repo domainDA/policyP with sessionID same/textA. Close it.",
+        "Attempt opening same index over distinct actual repo DB with sameID/textB, then DA/policyQ.",
+        "Reopen DA/P."
+      ],
+      "expected": {
+        "mismatches": "Refuse before index data/binding mutation; no textA leak intoDB and no textB pollution",
+        "original": "DA/P data intact",
+        "sameDomain": "Clones/file-root aliases produce same legitimate source domain; new Memory owner differs"
+      },
+      "actualConsumerSeam": "Actual SourceDomain and stable projector identity persisted in index transaction, no new SearchQuery filter.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "managed-path-and-non-index-refusal",
+      "authorityClass": "frozen-local-scope",
+      "history": [
+        "Attempt index path matching managed canonical suffix in repository root, including absent target, lexical parent symlink and outside symlink pointing to canonical session.",
+        "Attempt nonempty unrelated SQLite DB outside managed suffix domain.",
+        "Attempt path with unresolvable/unreadable parent."
+      ],
+      "expected": {
+        "canonical": "Refuse before SQLite open/pragma/schema/data mutation; no new sidecars/file/content changes",
+        "nonIndex": "Refuse before pragma/schema changes; original database byte/logical state unchanged",
+        "parentFailure": "Error, not assumed-safe namespace",
+        "positive": "Separate auxiliary path/new or empty index may initialize transactionally"
+      },
+      "actualConsumerSeam": "Actual RepositoryRead.managed_files/contains_path + preflight existing-file identity before mutable SQLite setup.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "crash-before-index-batch-commit",
+      "authorityClass": "source+frozen-local-index",
+      "history": [
+        "Initialize real index with prefixC0/docold. Canonical source appends new rows.",
+        "Child reads actual batch then performs index document/cursor transaction; pause at real pre-COMMIT boundary and signal reached.",
+        "Kill child; distinct process opens index then syncs."
+      ],
+      "expected": {
+        "beforeResync": "Old committed prefix/cursor only; no advance past absent docs",
+        "afterResync": "Exactly expected new docs and actual cursor, no duplicates",
+        "canonical": "Files unchanged"
+      },
+      "actualConsumerSeam": "Actual FTS transaction and process death; signal is precommit observation, never commit ACK.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "crash-after-index-batch-commit",
+      "authorityClass": "source+frozen-local-index",
+      "history": [
+        "Same setup; child signals ACK only after real document+cursor COMMIT succeeds.",
+        "Kill without close, reopen in distinct process, then sync again."
+      ],
+      "expected": {
+        "afterReopen": "Complete new docs and matching cursor already present",
+        "resync": "Equivalent state, idempotent rows/cursor",
+        "canonical": "unchanged"
+      },
+      "actualConsumerSeam": "Actual durable index commit acknowledgment and WAL recovery, not in-memory receipt.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "two-process-shared-index",
+      "authorityClass": "source+frozen-local-index",
+      "history": [
+        "Two processes bind same JSONL root domain/policy/index. Both capture same old cursor and overlapping actual batches outside index transactions.",
+        "Force one publication then release the other; also test older completion after newer cursor."
+      ],
+      "expected": {
+        "rows": "One per actual(sessionId,entryId)",
+        "cursor": "Monotonic and byte-exact witness from committed valid batch; ordinary conflict may retry fresh",
+        "database": "WAL/busy_timeout/BEGIN IMMEDIATE real SQL discipline",
+        "canonical": "No writer opens/changes; unsupported cross-domain sharing refuses"
+      },
+      "actualConsumerSeam": "Actual shared FTS database/processes and real static JSONL source; SQLite canonical source later uses same service.",
+      "expectedFutureTestExit": 0
+    },
+    {
+      "id": "remove-derived-and-rebuild",
+      "authorityClass": "source+plan35",
+      "history": [
+        "Catch up reference index over actual Memory/JSONL (and later SQLite) and capture normalized hit IDs/order/timestamps and canonical snapshots/bytes.",
+        "Close all services/workers/connections, delete ONLY derived DB and its owned sidecars, create fresh index with same actual domain/policy and sync."
+      ],
+      "expected": {
+        "results": "Equivalent normalized hits/order/timestamps; no invented requirement of identical raw SQLite bytes/BM25 numeric storage",
+        "canonical": "Every canonical byte/snapshot unchanged",
+        "authority": "Deleted index/cursors lose no canonical data"
+      },
+      "actualConsumerSeam": "Actual rebuild from RepositoryRead, not copied derived backup or mock store.",
+      "expectedFutureTestExit": 0
+    }
+  ],
+  "processExitPolicy": "Later success tests exit0 only after all assertions; controlled semantic removals should execute>0 named tests and fail101, then restore. No process/test execution occurs in this preparation.",
+  "numericScorePolicy": "No numeric BM25 oracle measured or invented; grammar tests use matching sets, tie corpus freezes IDs/order."
+}
