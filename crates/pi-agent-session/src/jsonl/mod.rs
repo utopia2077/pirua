@@ -226,6 +226,16 @@ impl JsonlStorage {
             clock,
         })
     }
+    /// Seal all old views while transferring, rather than releasing, path ownership.
+    /// The repository retains this claim through its identity-checked unlink.
+    pub(crate) fn take_file_claim(&self) -> Result<FileClaim, StorageError> {
+        self.live
+            .lock()
+            .map_err(|_| corrupt("JSONL owner lock poisoned"))?
+            .file
+            .take()
+            .ok_or_else(closed)
+    }
     /// Bound canonical path, retained for metadata even after this handle closes.
     pub fn path(&self) -> &Path {
         &self.path

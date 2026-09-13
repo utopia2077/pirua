@@ -161,6 +161,17 @@ impl FileClaim {
         }
         Ok(())
     }
+    /// Remove only this still-owned file object. The caller checks its header ID.
+    /// Absence is idempotent; the path token remains held until this claim drops.
+    pub(crate) fn unlink_owned(&mut self) -> Result<(), StorageError> {
+        match fs::symlink_metadata(&self.path) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(io_error(error)),
+            Ok(_) => (),
+        }
+        self.ensure()?;
+        fs::remove_file(&self.path).map_err(io_error)
+    }
     pub fn read_source(&mut self) -> Result<Vec<u8>, StorageError> {
         self.ensure()?;
         let file = self.file.as_mut().ok_or_else(closed)?;

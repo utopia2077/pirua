@@ -491,3 +491,6 @@ impl SessionRepo for MemorySessionRepo {
         })
     }
 }
+
+/// File-backed session repository and canonical path metadata.
+pub mod jsonl;
