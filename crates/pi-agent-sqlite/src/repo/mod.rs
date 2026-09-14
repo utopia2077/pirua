@@ -469,6 +469,14 @@ impl SessionRepo for SqliteSessionRepo {
         mut options: SessionForkRequest<SessionCreateOptions>,
     ) -> BoxFuture<'_, Result<Arc<SqliteSession>, SessionError>> {
         Box::pin(async move {
+            if options
+                .create
+                .parent_session_id
+                .as_ref()
+                .is_some_and(|parent| parent != &source.base.id)
+            {
+                return Err(invalid_repo());
+            }
             let path = self.select_path(&source.path)?;
             let reserved_source = self.reserve(path.clone(), None)?;
             let source_snapshot =
@@ -476,6 +484,9 @@ impl SessionRepo for SqliteSessionRepo {
             if source_snapshot.metadata.id != source.base.id {
                 return Err(invalid_repo());
             }
+            self.inner
+                .codec
+                .validate_snapshot(&source_snapshot.snapshot)?;
             drop(reserved_source);
             let (snapshot, writes) = prepare_fork(source_snapshot.snapshot, options.fork, n(1))?;
             options.create.parent_session_id = Some(source_snapshot.metadata.id);
