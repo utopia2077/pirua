@@ -172,6 +172,9 @@ impl OpenAIResponsesApi {
 }
 
 impl ApiAdapter for OpenAIResponsesApi {
+    fn lifecycle_adapter(&self) -> Option<&dyn pi_ai_core::RequestLifecycleAdapter> {
+        Some(self)
+    }
     fn api_id(&self) -> &ApiId {
         &self.api
     }
@@ -557,6 +560,17 @@ async fn run(
     {
         payload = replacement;
     }
+    if let Some(handler) = &services.request_payload
+        && let Some(replacement) = cancellable(
+            super::request_lifecycle::transform(handler.as_ref(), request, &mut payload),
+            &runtime.cancellation,
+        )
+        .await
+        .map_err(|_| Failure::Transport(TransportErrorKind::Cancelled))?
+        .map_err(|_| Failure::Setup("payload_middleware"))?
+    {
+        payload = replacement;
+    }
     let value = payload.into_value();
     if value.is_null() {
         return Err(Failure::Setup("payload"));
@@ -691,5 +705,26 @@ impl ResponsesServiceTierPricing for Pricing<'_> {
         )
         .map_err(|_| ResponsesError::new(ResponsesErrorKind::Policy))?;
         Ok(())
+    }
+}
+
+impl pi_ai_core::RequestLifecycleAdapter for OpenAIResponsesApi {
+    fn stream_with_lifecycle(
+        &self,
+        request: TextStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream(request)
+    }
+    fn stream_simple_with_lifecycle(
+        &self,
+        request: SimpleStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream_simple(request)
     }
 }

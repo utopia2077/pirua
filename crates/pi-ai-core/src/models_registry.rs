@@ -1,5 +1,6 @@
 //! Provider registry, catalog publication, authentication, and text dispatch.
 
+use crate::{ObservedAssistantStream, RequestLifecycleInvocation, RequestLifecycleOptions};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::future::{Future, poll_fn};
@@ -1331,8 +1332,36 @@ impl ModelsRegistry {
             self.child_cancellation,
             model,
             overrides,
-            DispatchRequest::Stream { context, options },
+            DispatchRequest::Stream {
+                context,
+                options,
+                lifecycle: None,
+            },
         )
+    }
+
+    /// Starts a resolved request with isolated payload and response observation.
+    pub fn stream_with_lifecycle(
+        &self,
+        model: Model,
+        context: Context,
+        overrides: ModelsRequestOverrides,
+        options: StreamOptions,
+        lifecycle: RequestLifecycleOptions,
+    ) -> ObservedAssistantStream {
+        let (lifecycle, metadata) = RequestLifecycleInvocation::new(lifecycle);
+        let stream = start_dispatch(
+            Arc::clone(&self.inner),
+            self.child_cancellation,
+            model,
+            overrides,
+            DispatchRequest::Stream {
+                context,
+                options,
+                lifecycle: Some(lifecycle),
+            },
+        );
+        ObservedAssistantStream { stream, metadata }
     }
 
     /// Completes a resolved raw text request.
@@ -1360,8 +1389,36 @@ impl ModelsRegistry {
             self.child_cancellation,
             model,
             overrides,
-            DispatchRequest::Simple { context, options },
+            DispatchRequest::Simple {
+                context,
+                options,
+                lifecycle: None,
+            },
         )
+    }
+
+    /// Starts a resolved request with isolated payload and response observation.
+    pub fn stream_simple_with_lifecycle(
+        &self,
+        model: Model,
+        context: Context,
+        overrides: ModelsRequestOverrides,
+        options: SimpleStreamOptions,
+        lifecycle: RequestLifecycleOptions,
+    ) -> ObservedAssistantStream {
+        let (lifecycle, metadata) = RequestLifecycleInvocation::new(lifecycle);
+        let stream = start_dispatch(
+            Arc::clone(&self.inner),
+            self.child_cancellation,
+            model,
+            overrides,
+            DispatchRequest::Simple {
+                context,
+                options,
+                lifecycle: Some(lifecycle),
+            },
+        );
+        ObservedAssistantStream { stream, metadata }
     }
 
     /// Completes a resolved provider-neutral simple request.
@@ -1896,10 +1953,12 @@ enum DispatchRequest {
     Stream {
         context: Context,
         options: StreamOptions,
+        lifecycle: Option<RequestLifecycleInvocation>,
     },
     Simple {
         context: Context,
         options: SimpleStreamOptions,
+        lifecycle: Option<RequestLifecycleInvocation>,
     },
     Fetch {
         handle: DeferredHandle,
@@ -1989,17 +2048,12 @@ fn start_dispatch(
             return;
         };
         let source = match request {
-            DispatchRequest::Stream { context, options } => adapter.stream(TextStreamRequest {
-                resolved: ResolvedRequest {
-                    model: assembled.model,
-                    endpoint: assembled.endpoint,
-                },
+            DispatchRequest::Stream {
                 context,
-                auth: assembled.auth,
                 options,
-            }),
-            DispatchRequest::Simple { context, options } => {
-                adapter.stream_simple(SimpleStreamRequest {
+                lifecycle,
+            } => {
+                let request = TextStreamRequest {
                     resolved: ResolvedRequest {
                         model: assembled.model,
                         endpoint: assembled.endpoint,
@@ -2007,7 +2061,42 @@ fn start_dispatch(
                     context,
                     auth: assembled.auth,
                     options,
-                })
+                };
+                match lifecycle {
+                    None => adapter.stream(request),
+                    Some(lifecycle) => {
+                        let Some(capability) = adapter.lifecycle_adapter() else {
+                            let _ = task_producer.fail_setup(StreamSetupFailure::Adapter);
+                            return;
+                        };
+                        capability.stream_with_lifecycle(request, lifecycle)
+                    }
+                }
+            }
+            DispatchRequest::Simple {
+                context,
+                options,
+                lifecycle,
+            } => {
+                let request = SimpleStreamRequest {
+                    resolved: ResolvedRequest {
+                        model: assembled.model,
+                        endpoint: assembled.endpoint,
+                    },
+                    context,
+                    auth: assembled.auth,
+                    options,
+                };
+                match lifecycle {
+                    None => adapter.stream_simple(request),
+                    Some(lifecycle) => {
+                        let Some(capability) = adapter.lifecycle_adapter() else {
+                            let _ = task_producer.fail_setup(StreamSetupFailure::Adapter);
+                            return;
+                        };
+                        capability.stream_simple_with_lifecycle(request, lifecycle)
+                    }
+                }
             }
             DispatchRequest::Fetch { handle, options } => {
                 match adapter.fetch_deferred(DeferredFetchRequest {

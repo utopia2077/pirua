@@ -380,6 +380,17 @@ impl AnthropicMessagesApi {
         {
             params = replacement;
         }
+        if let Some(handler) = &self.services.request_payload
+            && let Some(replacement) = cancellable(
+                super::request_lifecycle::transform(handler.as_ref(), request, &mut params),
+                &runtime.cancellation,
+            )
+            .await
+            .map_err(|_| Failure::Cancelled)?
+            .map_err(|_| Failure::Middleware)?
+        {
+            params = replacement;
+        }
         let wire = request::force_stream(params.into_value())?;
         let params = super::wire_json::WirePayload::new(wire.clone());
         let http = if self.client.is_none() {
@@ -430,6 +441,13 @@ impl AnthropicMessagesApi {
                 .await
                 .map_err(|_| Failure::Cancelled)?
                 .map_err(|_| Failure::Middleware)?;
+            super::request_lifecycle::record(&self.services, &head);
+        } else {
+            super::request_lifecycle::observe_only(
+                &self.services,
+                response.status,
+                &response.headers,
+            );
         }
         reducer.emit(
             producer,
@@ -499,6 +517,9 @@ impl AnthropicMessagesApi {
 }
 
 impl ApiAdapter for AnthropicMessagesApi {
+    fn lifecycle_adapter(&self) -> Option<&dyn pi_ai_core::RequestLifecycleAdapter> {
+        Some(self)
+    }
     fn api_id(&self) -> &ApiId {
         &self.api
     }
@@ -696,4 +717,25 @@ fn compat(model: &Model) -> Result<AnthropicMessagesCompat, Failure> {
 fn ecma_whitespace(c: char) -> bool {
     matches!(c, '\u{9}'..='\u{d}' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'..='\u{200a}' |
         '\u{2028}' | '\u{2029}' | '\u{202f}' | '\u{205f}' | '\u{3000}' | '\u{feff}')
+}
+
+impl pi_ai_core::RequestLifecycleAdapter for AnthropicMessagesApi {
+    fn stream_with_lifecycle(
+        &self,
+        request: TextStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream(request)
+    }
+    fn stream_simple_with_lifecycle(
+        &self,
+        request: SimpleStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream_simple(request)
+    }
 }

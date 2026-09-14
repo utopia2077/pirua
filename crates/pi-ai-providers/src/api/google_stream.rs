@@ -300,6 +300,17 @@ impl GoogleGenAiApi {
         {
             params = replacement;
         }
+        if let Some(handler) = &self.services.request_payload
+            && let Some(replacement) = cancellable(
+                super::request_lifecycle::transform(handler.as_ref(), request, &mut params),
+                &request.options.runtime.cancellation,
+            )
+            .await
+            .map_err(|_| Failure::local())?
+            .map_err(|_| Failure::local())?
+        {
+            params = replacement;
+        }
         let params = params.into_value();
         let template = &reducer.partial;
         let runtime = &request.options.runtime;
@@ -574,6 +585,9 @@ impl GoogleGenAiApi {
     }
 }
 impl ApiAdapter for GoogleGenAiApi {
+    fn lifecycle_adapter(&self) -> Option<&dyn pi_ai_core::RequestLifecycleAdapter> {
+        Some(self)
+    }
     fn api_id(&self) -> &ApiId {
         &self.api
     }
@@ -1166,4 +1180,25 @@ fn count(value: &Value) -> Result<SafeUnsigned, Failure> {
 }
 fn number(value: &Value) -> f64 {
     sdk::number(value)
+}
+
+impl pi_ai_core::RequestLifecycleAdapter for GoogleGenAiApi {
+    fn stream_with_lifecycle(
+        &self,
+        request: TextStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream(request)
+    }
+    fn stream_simple_with_lifecycle(
+        &self,
+        request: SimpleStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream_simple(request)
+    }
 }

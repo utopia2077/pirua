@@ -98,6 +98,9 @@ impl OpenAICompletionsApi {
     }
 }
 impl ApiAdapter for OpenAICompletionsApi {
+    fn lifecycle_adapter(&self) -> Option<&dyn pi_ai_core::RequestLifecycleAdapter> {
+        Some(self)
+    }
     fn api_id(&self) -> &ApiId {
         &self.api
     }
@@ -486,6 +489,17 @@ async fn run(
     {
         payload = next;
     }
+    if let Some(handler) = &services.request_payload
+        && let Some(replacement) = cancellable(
+            super::super::request_lifecycle::transform(handler.as_ref(), request, &mut payload),
+            &runtime.cancellation,
+        )
+        .await
+        .map_err(|_| Failure::plain("cancelled"))?
+        .map_err(|_| Failure::plain("payload_middleware"))?
+    {
+        payload = replacement;
+    }
     let value = payload.into_value();
     if value.is_null() {
         return Err(Failure::plain("payload"));
@@ -561,6 +575,9 @@ async fn run(
         .await
         .map_err(|_| Failure::plain("cancelled"))?
         .map_err(|_| Failure::plain("response_middleware"))?;
+        super::super::request_lifecycle::record(services, &head);
+    } else {
+        super::super::request_lifecycle::observe_only(services, response.status, &response.headers);
     }
     producer
         .publish_cancellation_snapshot(output.clone())
@@ -879,4 +896,25 @@ fn fail(
         },
         error: Box::new(output),
     });
+}
+
+impl pi_ai_core::RequestLifecycleAdapter for OpenAICompletionsApi {
+    fn stream_with_lifecycle(
+        &self,
+        request: TextStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream(request)
+    }
+    fn stream_simple_with_lifecycle(
+        &self,
+        request: SimpleStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        let mut scoped = self.clone();
+        super::super::request_lifecycle::bind(&mut scoped.services, lifecycle);
+        scoped.stream_simple(request)
+    }
 }

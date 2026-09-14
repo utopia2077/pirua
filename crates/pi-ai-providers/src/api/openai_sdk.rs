@@ -429,6 +429,9 @@ pub(super) async fn execute(
         .await
         .map_err(|_| Failure::Transport(TransportErrorKind::Cancelled))?
         .map_err(|_| Failure::Setup("response_middleware"))?;
+        super::request_lifecycle::record(services, &head);
+    } else {
+        super::request_lifecycle::observe_only(services, response.status, &response.headers);
     }
     producer
         .publish_cancellation_snapshot(output.clone())

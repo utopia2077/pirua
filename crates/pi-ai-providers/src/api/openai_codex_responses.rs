@@ -235,6 +235,9 @@ impl OpenAICodexResponsesApi {
 }
 
 impl ApiAdapter for OpenAICodexResponsesApi {
+    fn lifecycle_adapter(&self) -> Option<&dyn pi_ai_core::RequestLifecycleAdapter> {
+        Some(self)
+    }
     fn api_id(&self) -> &ApiId {
         &self.api
     }
@@ -349,6 +352,17 @@ impl OpenAICodexResponsesApi {
             .map_err(|_| Failure::setup("payload_middleware"))?
         {
             payload = next;
+        }
+        if let Some(handler) = &self.services.adapter.request_payload
+            && let Some(replacement) = cancellable(
+                super::request_lifecycle::transform(handler.as_ref(), r, &mut payload),
+                &runtime.cancellation,
+            )
+            .await
+            .map_err(|_| Failure::Transport(TransportErrorKind::Cancelled))?
+            .map_err(|_| Failure::setup("payload_middleware"))?
+        {
+            payload = replacement;
         }
         let body = payload.into_value();
         let json = stringify_wire_json(&body).map_err(|_| Failure::Limit)?;
@@ -587,6 +601,13 @@ impl OpenAICodexResponsesApi {
                             retry: CodexRetryObservation::Backoff,
                         });
                     }
+                    super::request_lifecycle::record(&self.services.adapter, &head);
+                } else {
+                    super::request_lifecycle::observe_only(
+                        &self.services.adapter,
+                        response.status,
+                        &response.headers,
+                    );
                 }
                 if (200..300).contains(&response.status) {
                     return Ok(response);
@@ -1050,4 +1071,27 @@ fn string_spread_json(
     }
     out.push('}');
     Ok(out)
+}
+
+impl pi_ai_core::RequestLifecycleAdapter for OpenAICodexResponsesApi {
+    fn stream_with_lifecycle(
+        &self,
+        request: TextStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        // Retain the existing shared ResourceOwner across this scoped binding.
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services.adapter, lifecycle);
+        scoped.stream(request)
+    }
+    fn stream_simple_with_lifecycle(
+        &self,
+        request: SimpleStreamRequest,
+        lifecycle: pi_ai_core::RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        // Retain the existing shared ResourceOwner across this scoped binding.
+        let mut scoped = self.clone();
+        super::request_lifecycle::bind(&mut scoped.services.adapter, lifecycle);
+        scoped.stream_simple(request)
+    }
 }

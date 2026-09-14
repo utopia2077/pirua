@@ -169,7 +169,11 @@ pub trait ResponseMiddleware: Send + Sync {
 pub struct AdapterServices<P = WirePayload> {
     pub transport: Arc<HttpTransport>,
     pub payload: Option<Arc<dyn PayloadMiddleware<P>>>,
+    /// Optional request-local transform after the original captured payload callback.
+    pub request_payload: Option<Arc<dyn pi_ai_core::RequestPayloadTransform>>,
     pub response: Option<Arc<dyn ResponseMiddleware>>,
+    /// Passive per-request recorder, separate from captured callback failure policy.
+    pub response_recorder: Option<pi_ai_core::ResponseMetadataRecorder>,
     /// Explicit ambient environment snapshot; never reads the process environment.
     pub env: ProviderEnv,
     pub sse_limits: SseLimits,
@@ -182,7 +186,9 @@ impl<P> AdapterServices<P> {
         Self {
             transport,
             payload: None,
+            request_payload: None,
             response: None,
+            response_recorder: None,
             env: ProviderEnv::default(),
             sse_limits: SseLimits::default(),
             max_error_body_bytes: 262_144,
@@ -195,7 +201,9 @@ impl<P> Clone for AdapterServices<P> {
         Self {
             transport: self.transport.clone(),
             payload: self.payload.clone(),
+            request_payload: self.request_payload.clone(),
             response: self.response.clone(),
+            response_recorder: self.response_recorder.clone(),
             env: self.env.clone(),
             sse_limits: self.sse_limits,
             max_error_body_bytes: self.max_error_body_bytes,

@@ -9,6 +9,7 @@ pub mod google_shared;
 pub mod lazy;
 pub mod openai_prompt_cache;
 pub mod openai_responses_shared;
+mod request_lifecycle;
 pub mod runtime;
 pub mod simple_options;
 pub mod wire_json;

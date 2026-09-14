@@ -19,6 +19,11 @@ pub trait ApiAdapter: Send + Sync {
     /// Returns the API protocol implemented by this adapter.
     fn api_id(&self) -> &ApiId;
 
+    /// Optional request-scoped payload and passive response capability.
+    fn lifecycle_adapter(&self) -> Option<&dyn crate::RequestLifecycleAdapter> {
+        None
+    }
+
     /// Starts a raw provider stream.
     fn stream(&self, request: TextStreamRequest) -> AssistantStream;
 
