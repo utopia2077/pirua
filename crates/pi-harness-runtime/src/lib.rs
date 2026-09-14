@@ -1,1 +1,4 @@
-//! Private Harness effect-interpreter crate for the Rust harness workspace.
+//! Concrete Harness runtime components. Full driver and Effects composition are separate.
+
+pub mod manual_gate;
+pub mod scheduler;
