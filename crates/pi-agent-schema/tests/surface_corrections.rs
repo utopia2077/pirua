@@ -392,7 +392,7 @@ fn effect_key() -> EffectKey {
         operation_id: OperationId::new("op").expect("id"),
         kind: EffectKind::Hook,
         step_or_task_id: EffectStepId::new("hook").expect("id"),
-        logical_attempt: 1,
+        logical_attempt: pi_ai_core::SafeUnsigned::new(1).expect("attempt"),
         item_index: None,
     }
 }

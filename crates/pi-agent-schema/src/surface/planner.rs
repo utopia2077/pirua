@@ -10,11 +10,11 @@ use pi_ai_core::{DeferredHandle, SafeUnsigned};
 use crate::surface::BoxFuture;
 use crate::{
     AgentHarnessStreamOptions, AgentMessage, AgentToolResult, BranchSummaryResult, CompactResult,
-    Deferred, EffectStepId, Entry, EntryId, Generation, GenerationContext, HarnessFault, HookEvent,
-    HookResult, LaneConfiguration, LaneId, LaneState, NormalizedRetryPolicy, OneBasedSafeUnsigned,
-    Operation, OperationId, OperationResult, OperationState, Register, SessionId,
-    SettledAssistantMessage, SummaryContext, SummaryGeneration, SummaryRequestIntent, TaskId,
-    UsageId,
+    Deferred, EffectStepId, Entry, EntryId, Generation, GenerationContext, HarnessRuntimeError,
+    HookEvent, HookResult, LaneConfiguration, LaneId, LaneState, NormalizedRetryPolicy,
+    OneBasedSafeUnsigned, Operation, OperationId, OperationResult, OperationState, Register,
+    SessionId, SettledAssistantMessage, SummaryContext, SummaryGeneration, SummaryRequestIntent,
+    TaskId, UsageId,
 };
 
 /// Fully hydrated current operation and expected register sequence tokens.
@@ -68,10 +68,11 @@ pub struct EffectKey {
     pub kind: EffectKind,
     /// Durable step or task identity.
     pub step_or_task_id: EffectStepId,
-    /// Logical attempt number.
-    pub logical_attempt: u32,
+    /// Logical attempt in the full safe-number domain; zero is available to
+    /// effect kinds without a numbered attempt.
+    pub logical_attempt: SafeUnsigned,
     /// Optional source or request index.
-    pub item_index: Option<u32>,
+    pub item_index: Option<SafeUnsigned>,
 }
 
 /// Assistant provider effect plan.
@@ -673,6 +674,15 @@ pub struct SummaryRequestSettlement<C> {
 }
 
 /// Behavior-free effect interpreter boundary.
+///
+/// Lifecycle rejection uses the outer closed/fault channel; ordinary provider,
+/// tool and hook failures remain in-band outputs. A definitive admitted commit
+/// success must not be rewritten as a lifecycle failure by a later close.
+///
+/// Conditional `Ok(None)` means no result was admitted against the supplied
+/// ownership/key. It carries no dispatch or consumed permit. The caller reloads
+/// under lane discipline to distinguish newer state from external finalization;
+/// absence alone does not establish completion or corruption.
 pub trait Effects<C>: Send + Sync
 where
     C: Clone + Send + Sync + 'static,
@@ -681,37 +691,37 @@ where
     fn commit_transition(
         &self,
         plan: TransitionCommit<C>,
-    ) -> BoxFuture<'_, Result<Option<CurrentOperation>, HarnessFault>>;
+    ) -> BoxFuture<'_, Result<Option<CurrentOperation>, HarnessRuntimeError>>;
     /// Conditionally commits one exact effect settlement.
     fn commit_settlement(
         &self,
         plan: SettlementCommit<C>,
-    ) -> BoxFuture<'_, Result<SettlementResult<C>, HarnessFault>>;
+    ) -> BoxFuture<'_, Result<Option<SettlementResult<C>>, HarnessRuntimeError>>;
     /// Conditionally commits terminal cleanup and result publication.
     fn commit_terminal(
         &self,
         plan: TerminalCommit<C>,
-    ) -> BoxFuture<'_, Result<Option<CurrentOperation>, HarnessFault>>;
+    ) -> BoxFuture<'_, Result<Option<CurrentOperation>, HarnessRuntimeError>>;
     /// Revalidates effect start, then executes one external plan in-band.
-    fn run(&self, plan: EffectPlan<C>) -> BoxFuture<'_, EffectOutput>;
+    fn run(&self, plan: EffectPlan<C>) -> BoxFuture<'_, Result<EffectOutput, HarnessRuntimeError>>;
     /// Runs source-ordered after-tool finalization.
     fn finalize_tool(
         &self,
         plan: ToolEffectPlan<C>,
         output: ToolRawOutput,
-    ) -> BoxFuture<'_, ToolSettlementOutput>;
+    ) -> BoxFuture<'_, Result<ToolSettlementOutput, HarnessRuntimeError>>;
     /// Runs one nested provider request in a structural attempt.
     fn run_summary_request(
         &self,
         plan: SummaryRequestPlan<C>,
-    ) -> BoxFuture<'_, SummaryRequestOutput>;
+    ) -> BoxFuture<'_, Result<SummaryRequestOutput, HarnessRuntimeError>>;
     /// Atomically settles nested summary usage and request state.
     fn settle_summary_request(
         &self,
         plan: SummaryRequestSettlement<C>,
-    ) -> BoxFuture<'_, Result<CurrentOperation, HarnessFault>>;
+    ) -> BoxFuture<'_, Result<Option<CurrentOperation>, HarnessRuntimeError>>;
     /// Waits using the runtime clock/cancellation boundary.
-    fn sleep(&self, delay: Duration, context: C) -> BoxFuture<'_, ()>;
+    fn sleep(&self, delay: Duration, context: C) -> BoxFuture<'_, Result<(), HarnessRuntimeError>>;
 }
 
 /// Exact Effects boundary method inventory.
