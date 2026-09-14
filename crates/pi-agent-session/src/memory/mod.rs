@@ -165,9 +165,11 @@ impl MemoryStorage {
                 }
                 (inner.state.clone(), inner.revision)
             };
-            let timestamp = self.clock.now().map_err(Failure)?;
-            let candidate = stage.apply(request.transaction.clone(), timestamp);
-            // A staged mechanical error is also returned only after checking incarnation.
+            let candidate = self
+                .clock
+                .now()
+                .and_then(|timestamp| stage.apply(request.transaction.clone(), timestamp));
+            // Clock and mechanical errors also wait for incarnation and revision checks.
             let validation = match &candidate {
                 Ok(_) => Some(validator.validate(&stage.snapshot())),
                 Err(_) => None,
