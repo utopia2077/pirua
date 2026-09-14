@@ -1,0 +1,2305 @@
+{
+  "status": "before-code composition predictions; no execution",
+  "acceptedSourceCommit": "104ad48b39e8803b7736edd92a3ccaf9d8794fce",
+  "sqliteRepoIntakeTree": "b9709b5776a5213ff34746df4b2cfa7e00fd5881",
+  "sqliteRepoAcceptance": "pending; rebind exact final delta before execution",
+  "canonicalContract": "plan35/conventions57/S08",
+  "textHistory": {
+    "createClockMs": 42,
+    "createOptions": {
+      "id": "text-corpus"
+    },
+    "seedExpectation": "main leaf seq0/null and main state seq1/idle; no Entry rows",
+    "clockRule": "caller-owned settable clock returns the listed value, does not auto-increment",
+    "steps": [
+      {
+        "clockMs": 1000,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "u-string",
+                "parentId": null,
+                "type": "message",
+                "message": {
+                  "role": "user",
+                  "content": "userneedle café 東京",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 2
+      },
+      {
+        "clockMs": 1002,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "assistant-stop",
+                "parentId": "u-string",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "statusstop"
+                    },
+                    {
+                      "type": "thinking",
+                      "thinking": "neverthinking"
+                    },
+                    {
+                      "type": "toolCall",
+                      "id": "nevercallid",
+                      "name": "tool",
+                      "arguments": {
+                        "text": "nevertoolargs"
+                      }
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 4
+      },
+      {
+        "clockMs": 1004,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "assistant-length",
+                "parentId": "assistant-stop",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "statuslength"
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "length",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 6
+      },
+      {
+        "clockMs": 1006,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "assistant-toolUse",
+                "parentId": "assistant-length",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "statustooluse"
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "toolUse",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 8
+      },
+      {
+        "clockMs": 1008,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "assistant-error",
+                "parentId": "assistant-toolUse",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "statuserror"
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "error",
+                  "timestamp": 9000,
+                  "errorMessage": "nevererrorfield"
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 10
+      },
+      {
+        "clockMs": 1010,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "assistant-aborted",
+                "parentId": "assistant-error",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "statusaborted"
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "aborted",
+                  "timestamp": 9000,
+                  "errorMessage": "nevererrorfield"
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 12
+      },
+      {
+        "clockMs": 1012,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "assistant-deferred",
+                "parentId": "assistant-aborted",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "statusdeferred"
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "deferred",
+                  "timestamp": 9000,
+                  "deferred": {
+                    "api": "a",
+                    "provider": "p",
+                    "modelId": "m",
+                    "id": "neverdeferredtoken"
+                  }
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 14
+      },
+      {
+        "clockMs": 1014,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "tool-result",
+                "parentId": "assistant-deferred",
+                "type": "message",
+                "message": {
+                  "role": "toolResult",
+                  "toolCallId": "nevercallid",
+                  "toolName": "nevertoolname",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "toolneedle"
+                    },
+                    {
+                      "type": "image",
+                      "data": "bmV2ZXJpbWFnZXRleHQ=",
+                      "mimeType": "image/png"
+                    }
+                  ],
+                  "details": {
+                    "text": "neverdetails"
+                  },
+                  "isError": true,
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 16
+      },
+      {
+        "clockMs": 1016,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "u-blocks",
+                "parentId": "tool-result",
+                "type": "message",
+                "message": {
+                  "role": "user",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "blockone"
+                    },
+                    {
+                      "type": "image",
+                      "data": "b3BhcXVl",
+                      "mimeType": "image/png"
+                    },
+                    {
+                      "type": "text",
+                      "text": "blocktwo"
+                    }
+                  ],
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 18
+      },
+      {
+        "clockMs": 1018,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "note-string",
+                "parentId": "u-blocks",
+                "type": "message",
+                "message": {
+                  "role": "note",
+                  "content": "customneedle",
+                  "extra": "nevercustomextra",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 20
+      },
+      {
+        "clockMs": 1020,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "note-blocks",
+                "parentId": "note-string",
+                "type": "message",
+                "message": {
+                  "role": "note",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "customblocks"
+                    },
+                    {
+                      "type": "image",
+                      "data": "b3BhcXVl",
+                      "mimeType": "image/png"
+                    }
+                  ],
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 22
+      },
+      {
+        "clockMs": 1022,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "bash-output",
+                "parentId": "note-blocks",
+                "type": "message",
+                "message": {
+                  "role": "bashExecution",
+                  "command": "echo",
+                  "output": "customoutputneedle",
+                  "cancelled": false,
+                  "truncated": false,
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 24
+      },
+      {
+        "clockMs": 1024,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "opaque-entry",
+                "parentId": "bash-output",
+                "type": "custom",
+                "customType": "opaque",
+                "data": {
+                  "role": "user",
+                  "content": "nevercustomentry"
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 26
+      },
+      {
+        "clockMs": 1026,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "compaction",
+                "parentId": "opaque-entry",
+                "type": "compaction",
+                "summary": "nevercompactionbody",
+                "retainedTail": [
+                  {
+                    "role": "user",
+                    "content": "nevertailcopy",
+                    "timestamp": 9000
+                  }
+                ],
+                "tokensBefore": 7,
+                "fromHook": false
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 28
+      },
+      {
+        "clockMs": 1028,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "branch-summary",
+                "parentId": "compaction",
+                "type": "branch_summary",
+                "fromId": "u-string",
+                "summary": "neverbranchbody",
+                "fromHook": false
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 30
+      },
+      {
+        "clockMs": 1030,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "off-branch",
+                "parentId": "u-string",
+                "type": "message",
+                "message": {
+                  "role": "user",
+                  "content": "offbranchneedle",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 32
+      },
+      {
+        "clockMs": 1032,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "note-no-content",
+                "parentId": "branch-summary",
+                "type": "message",
+                "message": {
+                  "role": "note",
+                  "extra": "nevercustomextra",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 34
+      },
+      {
+        "clockMs": 1034,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "neverentryid",
+                "parentId": "note-no-content",
+                "type": "message",
+                "message": {
+                  "role": "user",
+                  "content": "",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 36
+      },
+      {
+        "clockMs": 1036,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "entry",
+              "entry": {
+                "id": "thinking-only",
+                "parentId": "neverentryid",
+                "type": "message",
+                "message": {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "thinking",
+                      "thinking": "neverthinking"
+                    }
+                  ],
+                  "api": "a",
+                  "provider": "p",
+                  "model": "m",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 9000
+                }
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "composition-gap",
+              "value": null
+            }
+          ]
+        },
+        "expectedFirstSeq": 38
+      },
+      {
+        "clockMs": 2000,
+        "call": "Session.commit",
+        "transaction": {
+          "writes": [
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "lane.leaf",
+              "key": "main",
+              "value": "branch-summary"
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.custom",
+              "key": "fact",
+              "value": {
+                "content": "neverregister"
+              }
+            },
+            {
+              "kind": "register",
+              "op": "set",
+              "namespace": "fact.name",
+              "key": "",
+              "value": "nevername"
+            },
+            {
+              "kind": "usage",
+              "row": {
+                "id": "ledger",
+                "usage": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "totalTokens": 0,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0
+                  }
+                },
+                "adjustment": true,
+                "details": {
+                  "content": "neverledger"
+                }
+              }
+            }
+          ]
+        },
+        "expectedFirstSeq": 40
+      }
+    ],
+    "expectedEntries": [
+      {
+        "id": "u-string",
+        "parentId": null,
+        "seq": 2,
+        "timestamp": 1000,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "userneedle café 東京",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-stop",
+        "parentId": "u-string",
+        "seq": 4,
+        "timestamp": 1002,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statusstop"
+            },
+            {
+              "type": "thinking",
+              "thinking": "neverthinking"
+            },
+            {
+              "type": "toolCall",
+              "id": "nevercallid",
+              "name": "tool",
+              "arguments": {
+                "text": "nevertoolargs"
+              }
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-length",
+        "parentId": "assistant-stop",
+        "seq": 6,
+        "timestamp": 1004,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statuslength"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "length",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-toolUse",
+        "parentId": "assistant-length",
+        "seq": 8,
+        "timestamp": 1006,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statustooluse"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "assistant-error",
+        "parentId": "assistant-toolUse",
+        "seq": 10,
+        "timestamp": 1008,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statuserror"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "error",
+          "timestamp": 9000,
+          "errorMessage": "nevererrorfield"
+        }
+      },
+      {
+        "id": "assistant-aborted",
+        "parentId": "assistant-error",
+        "seq": 12,
+        "timestamp": 1010,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statusaborted"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "aborted",
+          "timestamp": 9000,
+          "errorMessage": "nevererrorfield"
+        }
+      },
+      {
+        "id": "assistant-deferred",
+        "parentId": "assistant-aborted",
+        "seq": 14,
+        "timestamp": 1012,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "statusdeferred"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "deferred",
+          "timestamp": 9000,
+          "deferred": {
+            "api": "a",
+            "provider": "p",
+            "modelId": "m",
+            "id": "neverdeferredtoken"
+          }
+        }
+      },
+      {
+        "id": "tool-result",
+        "parentId": "assistant-deferred",
+        "seq": 16,
+        "timestamp": 1014,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "nevercallid",
+          "toolName": "nevertoolname",
+          "content": [
+            {
+              "type": "text",
+              "text": "toolneedle"
+            },
+            {
+              "type": "image",
+              "data": "bmV2ZXJpbWFnZXRleHQ=",
+              "mimeType": "image/png"
+            }
+          ],
+          "details": {
+            "text": "neverdetails"
+          },
+          "isError": true,
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "u-blocks",
+        "parentId": "tool-result",
+        "seq": 18,
+        "timestamp": 1016,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "blockone"
+            },
+            {
+              "type": "image",
+              "data": "b3BhcXVl",
+              "mimeType": "image/png"
+            },
+            {
+              "type": "text",
+              "text": "blocktwo"
+            }
+          ],
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "note-string",
+        "parentId": "u-blocks",
+        "seq": 20,
+        "timestamp": 1018,
+        "type": "message",
+        "message": {
+          "role": "note",
+          "content": "customneedle",
+          "extra": "nevercustomextra",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "note-blocks",
+        "parentId": "note-string",
+        "seq": 22,
+        "timestamp": 1020,
+        "type": "message",
+        "message": {
+          "role": "note",
+          "content": [
+            {
+              "type": "text",
+              "text": "customblocks"
+            },
+            {
+              "type": "image",
+              "data": "b3BhcXVl",
+              "mimeType": "image/png"
+            }
+          ],
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "bash-output",
+        "parentId": "note-blocks",
+        "seq": 24,
+        "timestamp": 1022,
+        "type": "message",
+        "message": {
+          "role": "bashExecution",
+          "command": "echo",
+          "output": "customoutputneedle",
+          "cancelled": false,
+          "truncated": false,
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "opaque-entry",
+        "parentId": "bash-output",
+        "seq": 26,
+        "timestamp": 1024,
+        "type": "custom",
+        "customType": "opaque",
+        "data": {
+          "role": "user",
+          "content": "nevercustomentry"
+        }
+      },
+      {
+        "id": "compaction",
+        "parentId": "opaque-entry",
+        "seq": 28,
+        "timestamp": 1026,
+        "type": "compaction",
+        "summary": "nevercompactionbody",
+        "retainedTail": [
+          {
+            "role": "user",
+            "content": "nevertailcopy",
+            "timestamp": 9000
+          }
+        ],
+        "tokensBefore": 7,
+        "fromHook": false
+      },
+      {
+        "id": "branch-summary",
+        "parentId": "compaction",
+        "seq": 30,
+        "timestamp": 1028,
+        "type": "branch_summary",
+        "fromId": "u-string",
+        "summary": "neverbranchbody",
+        "fromHook": false
+      },
+      {
+        "id": "off-branch",
+        "parentId": "u-string",
+        "seq": 32,
+        "timestamp": 1030,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "offbranchneedle",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "note-no-content",
+        "parentId": "branch-summary",
+        "seq": 34,
+        "timestamp": 1032,
+        "type": "message",
+        "message": {
+          "role": "note",
+          "extra": "nevercustomextra",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "neverentryid",
+        "parentId": "note-no-content",
+        "seq": 36,
+        "timestamp": 1034,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 9000
+        }
+      },
+      {
+        "id": "thinking-only",
+        "parentId": "neverentryid",
+        "seq": 38,
+        "timestamp": 1036,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "thinking",
+              "thinking": "neverthinking"
+            }
+          ],
+          "api": "a",
+          "provider": "p",
+          "model": "m",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 9000
+        }
+      }
+    ],
+    "expectedLastProcessedEntrySeq": 38,
+    "expectedNextAllocatedSeqAfterHistory": 44,
+    "canonicalObservationBoundary": "Memory public entries/registers/stats/metadata and post-index allocator canary; no claim to observe Memory ledger bytes or raw backing",
+    "customSchemas": {
+      "note": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "const": "note"
+          },
+          "content": {},
+          "extra": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "additionalProperties": false
+      },
+      "bashExecution": {
+        "type": "object",
+        "required": [
+          "role",
+          "command",
+          "output",
+          "cancelled",
+          "truncated",
+          "timestamp"
+        ],
+        "properties": {
+          "role": {
+            "const": "bashExecution"
+          },
+          "command": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          },
+          "exitCode": {
+            "type": "number"
+          },
+          "cancelled": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "timestamp": {
+            "type": "integer"
+          },
+          "fullOutputPath": {
+            "type": "string"
+          },
+          "excludeFromContext": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "defaultProjectedTextByMessageId": {
+      "u-string": "userneedle café 東京",
+      "assistant-stop": "statusstop",
+      "assistant-length": "statuslength",
+      "assistant-toolUse": "statustooluse",
+      "assistant-error": "statuserror",
+      "assistant-aborted": "statusaborted",
+      "assistant-deferred": "statusdeferred",
+      "tool-result": "toolneedle",
+      "u-blocks": "blockone\nblocktwo",
+      "note-string": "customneedle",
+      "note-blocks": "customblocks",
+      "bash-output": "",
+      "off-branch": "offbranchneedle",
+      "note-no-content": "",
+      "neverentryid": "",
+      "thinking-only": ""
+    },
+    "queryCases": [
+      {
+        "query": {
+          "text": "userneedle"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "u-string",
+            "timestamp": 1000,
+            "snippet": "userneedle café 東京"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "café"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "u-string",
+            "timestamp": 1000,
+            "snippet": "userneedle café 東京"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "東京"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "u-string",
+            "timestamp": 1000,
+            "snippet": "userneedle café 東京"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "toolneedle"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "tool-result",
+            "timestamp": 1014,
+            "snippet": "toolneedle"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "blockone blocktwo"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "u-blocks",
+            "timestamp": 1016,
+            "snippet": "blockone\nblocktwo"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "customneedle"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "note-string",
+            "timestamp": 1018,
+            "snippet": "customneedle"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "customblocks"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "note-blocks",
+            "timestamp": 1020,
+            "snippet": "customblocks"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "offbranchneedle"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "off-branch",
+            "timestamp": 1030,
+            "snippet": "offbranchneedle"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "statusstop"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "assistant-stop",
+            "timestamp": 1002,
+            "snippet": "statusstop"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "statuslength"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "assistant-length",
+            "timestamp": 1004,
+            "snippet": "statuslength"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "statustooluse"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "assistant-toolUse",
+            "timestamp": 1006,
+            "snippet": "statustooluse"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "statuserror"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "assistant-error",
+            "timestamp": 1008,
+            "snippet": "statuserror"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "statusaborted"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "assistant-aborted",
+            "timestamp": 1010,
+            "snippet": "statusaborted"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "statusdeferred"
+        },
+        "expectedHits": [
+          {
+            "sessionId": "text-corpus",
+            "entryId": "assistant-deferred",
+            "timestamp": 1012,
+            "snippet": "statusdeferred"
+          }
+        ]
+      },
+      {
+        "query": {
+          "text": "neverthinking"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevertoolargs"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevererrorfield"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "neverdeferredtoken"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevercallid"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevertoolname"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "neverdetails"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "bmV2ZXJpbWFnZXRleHQ"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "b3BhcXVl"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevercustomextra"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "customoutputneedle"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevercustomentry"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevercompactionbody"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevertailcopy"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "neverbranchbody"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "neverregister"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "nevername"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "neverledger"
+        },
+        "expectedHits": []
+      },
+      {
+        "query": {
+          "text": "neverentryid"
+        },
+        "expectedHits": []
+      }
+    ],
+    "allocatorCanary": {
+      "clockMs": 2100,
+      "write": {
+        "kind": "entry",
+        "entry": {
+          "id": "canary",
+          "parentId": "branch-summary",
+          "type": "message",
+          "message": {
+            "role": "user",
+            "content": "canaryneedle",
+            "timestamp": 9000
+          }
+        }
+      },
+      "expectedFirstSeq": 44,
+      "expectedSearchHit": {
+        "sessionId": "text-corpus",
+        "entryId": "canary",
+        "timestamp": 2100,
+        "snippet": "canaryneedle"
+      },
+      "note": "explicit caller mutation AFTER before/after search observations; not attributed to indexing"
+    }
+  },
+  "rankingHistory": {
+    "documents": [
+      {
+        "sessionId": "sa",
+        "entryId": "early",
+        "seq": 2,
+        "timestamp": 8000,
+        "text": "quasar"
+      },
+      {
+        "sessionId": "sa",
+        "entryId": "late",
+        "seq": 7,
+        "timestamp": 1000,
+        "text": "quasar"
+      },
+      {
+        "sessionId": "sb",
+        "entryId": "only",
+        "seq": 2,
+        "timestamp": 500,
+        "text": "quasar"
+      }
+    ],
+    "construction": "create sa,sb with seed seq0/1. sa early one entry at seq2/clock8000; then four fact.custom gap writes seq3..6; sa late at7/clock1000. sb only first entry seq2/clock500. Content is quasar, inner message timestamp9000. No other matching docs.",
+    "entryLimit2": [
+      {
+        "sessionId": "sa",
+        "entryId": "early"
+      },
+      {
+        "sessionId": "sa",
+        "entryId": "late"
+      }
+    ],
+    "sessionLimit2": [
+      {
+        "sessionId": "sa",
+        "topEntryId": "early"
+      },
+      {
+        "sessionId": "sb",
+        "topEntryId": "only"
+      }
+    ],
+    "sessionLimit1": [
+      {
+        "sessionId": "sa",
+        "topEntryId": "early"
+      }
+    ],
+    "snippets": "quasar",
+    "scores": "Some finite; numeric constants deliberately unspecified"
+  },
+  "defaultLimitHistory": {
+    "sessions": 26,
+    "sessionIds": "s00..s25",
+    "oneEntryPerSession": "only,seq2,text=defaultneedle",
+    "omittedLimitExpectedSessionIds": [
+      "s00",
+      "s01",
+      "s02",
+      "s03",
+      "s04",
+      "s05",
+      "s06",
+      "s07",
+      "s08",
+      "s09",
+      "s10",
+      "s11",
+      "s12",
+      "s13",
+      "s14",
+      "s15",
+      "s16",
+      "s17",
+      "s18",
+      "s19"
+    ],
+    "explicitLimit26ExpectedSessionIds": [
+      "s00",
+      "s01",
+      "s02",
+      "s03",
+      "s04",
+      "s05",
+      "s06",
+      "s07",
+      "s08",
+      "s09",
+      "s10",
+      "s11",
+      "s12",
+      "s13",
+      "s14",
+      "s15",
+      "s16",
+      "s17",
+      "s18",
+      "s19",
+      "s20",
+      "s21",
+      "s22",
+      "s23",
+      "s24",
+      "s25"
+    ],
+    "construction": "Create explicit IDs s00..s25, each with one user Message only at actual entry seq2; outer timestamp7000+session index, inner timestamp9000, text defaultneedle. Session limit ties are ID order, not timestamps."
+  },
+  "grammarHistory": {
+    "sessionId": "grammar",
+    "documents": [
+      {
+        "entryId": "allterms",
+        "seq": 0,
+        "text": "alpha OR beta",
+        "actualEntrySeq": 2,
+        "expectedOuterTimestamp": 6000
+      },
+      {
+        "entryId": "andterms",
+        "seq": 2,
+        "text": "alpha beta",
+        "actualEntrySeq": 4,
+        "expectedOuterTimestamp": 6002
+      },
+      {
+        "entryId": "alphaonly",
+        "seq": 4,
+        "text": "alpha",
+        "actualEntrySeq": 6,
+        "expectedOuterTimestamp": 6004
+      },
+      {
+        "entryId": "betaonly",
+        "seq": 6,
+        "text": "beta",
+        "actualEntrySeq": 8,
+        "expectedOuterTimestamp": 6006
+      },
+      {
+        "entryId": "reverse",
+        "seq": 8,
+        "text": "beta alpha",
+        "actualEntrySeq": 10,
+        "expectedOuterTimestamp": 6008
+      },
+      {
+        "entryId": "unicode",
+        "seq": 10,
+        "text": "東京 café",
+        "actualEntrySeq": 12,
+        "expectedOuterTimestamp": 6010
+      }
+    ],
+    "cases": [
+      {
+        "text": "alpha OR beta",
+        "expectedLiteralExpression": "\"alpha\" AND \"OR\" AND \"beta\"",
+        "matchingEntryIds": [
+          "allterms"
+        ]
+      },
+      {
+        "text": "alpha beta",
+        "matchingEntryIds": [
+          "allterms",
+          "andterms",
+          "reverse"
+        ]
+      },
+      {
+        "text": "\"alpha beta\"",
+        "matchingEntryIds": [
+          "allterms",
+          "andterms",
+          "reverse"
+        ],
+        "reason": "Quotes are literal escaped term data, not a raw phrase operator; whitespace terms still AND."
+      },
+      {
+        "text": "\"alpha\"",
+        "matchingEntryIds": [
+          "allterms",
+          "andterms",
+          "alphaonly",
+          "reverse"
+        ],
+        "reason": "Embedded quote characters must be escaped rather than producing invalid/raw FTS syntax."
+      },
+      {
+        "text": " 東京\tcafé ",
+        "matchingEntryIds": [
+          "unicode"
+        ]
+      },
+      {
+        "text": "京都",
+        "matchingEntryIds": []
+      },
+      {
+        "text": "   \t\n",
+        "matchingEntryIds": [],
+        "sourcePulls": 0
+      },
+      {
+        "text": "alpha",
+        "limit": 0,
+        "matchingEntryIds": [],
+        "sourcePulls": 0
+      }
+    ],
+    "ordering": "Matching sets here do not invent non-tie BM25 numbers/order. Exact order is frozen in dedicated tie corpus.",
+    "construction": "Real Repo.create grammar seeds seq0/1. For each listed document commit a user Message entry plus one fact.custom gap register, outer clock6000+original seq. Actual entry seq=original seq+2. Matching sets stay unchanged; no non-tie order is asserted."
+  },
+  "forkHistory": {
+    "sessionId": "fork-source",
+    "entries": [
+      {
+        "id": "shared",
+        "parentId": null,
+        "seq": 2,
+        "timestamp": 2000,
+        "text": "forkneedle"
+      },
+      {
+        "id": "main",
+        "parentId": "shared",
+        "seq": 4,
+        "timestamp": 2001,
+        "text": "mainneedle"
+      },
+      {
+        "id": "off",
+        "parentId": "shared",
+        "seq": 6,
+        "timestamp": 2002,
+        "text": "offneedle"
+      }
+    ],
+    "construction": "First two commits append entry and set main leaf; third appends only off, keeping leaf main. All are user messages, inner timestamp9000.",
+    "forkRequests": [
+      {
+        "create": {
+          "id": "fork-branch"
+        },
+        "fork": {
+          "scope": "branch",
+          "entryId": "main",
+          "position": "at"
+        }
+      },
+      {
+        "create": {
+          "id": "fork-tree"
+        },
+        "fork": {
+          "scope": "tree"
+        }
+      }
+    ],
+    "expectedForkEntries": {
+      "fork-branch": [
+        "shared",
+        "main"
+      ],
+      "fork-tree": [
+        "shared",
+        "main",
+        "off"
+      ]
+    },
+    "expectedForkneedleHitOrder": [
+      [
+        "fork-branch",
+        "shared",
+        2000
+      ],
+      [
+        "fork-source",
+        "shared",
+        2000
+      ],
+      [
+        "fork-tree",
+        "shared",
+        2000
+      ]
+    ],
+    "expectedOffneedleHitOrder": [
+      [
+        "fork-source",
+        "off",
+        2002
+      ],
+      [
+        "fork-tree",
+        "off",
+        2002
+      ]
+    ],
+    "retain": "Entry IDs, seq, outer timestamps, text retained exactly; query key is session ID plus entry ID"
+  },
+  "rewriteHistory": {
+    "backend": "SQLite only via SqliteSessionRepo::rewrite(metadata, transform), immutable intake b9709b5; acceptance pending",
+    "sessionId": "rewrite",
+    "entries": [
+      {
+        "id": "r0",
+        "parentId": null,
+        "seq": 2,
+        "timestamp": 3000,
+        "text": "eraseme"
+      },
+      {
+        "id": "r1",
+        "parentId": "r0",
+        "seq": 4,
+        "timestamp": 3001,
+        "text": "keepneedle"
+      },
+      {
+        "id": "r2",
+        "parentId": "r1",
+        "seq": 6,
+        "timestamp": 3002,
+        "text": "copied eraseme"
+      }
+    ],
+    "construction": "Each is a user message plus main leaf update in one commit; inner timestamp9000; allocator8; main leaf r2 token7. No pending/operation/ledger.",
+    "initialHits": {
+      "eraseme": [
+        "r0",
+        "r2"
+      ],
+      "keepneedle": [
+        "r1"
+      ]
+    },
+    "beforeRewrite": "sync actual service, capture actual read cursor and SqliteStorage.read_snapshot, close source Session/all views; derived service may stay open idle",
+    "transform": "clone observation.snapshot; remove r0; set r1.parentId null; replace only r2.message.content with redactedcopy; retain all other entry fields, idle registers, empty usage and next_seq8. Admin recomputes stats/generation.",
+    "expectedGeneration": 1,
+    "expectedRetained": [
+      {
+        "id": "r1",
+        "seq": 4,
+        "timestamp": 3001,
+        "text": "keepneedle"
+      },
+      {
+        "id": "r2",
+        "seq": 6,
+        "timestamp": 3002,
+        "text": "redactedcopy"
+      }
+    ],
+    "expectedSearch": {
+      "eraseme": [],
+      "keepneedle": [
+        "r1"
+      ],
+      "redactedcopy": [
+        "r2"
+      ]
+    },
+    "expectedReadCursor": "old cursor -> reset true, new witness different, starts at retained r1; exact backend bytes captured, never fabricated",
+    "preserve": "retained outer timestamps/IDs/types; new store token; derived old docs removed by sync, not hand-written FTS"
+  },
+  "recreationHistory": {
+    "allBackends": {
+      "sessionId": "recreate",
+      "before": {
+        "id": "same",
+        "seq": 2,
+        "timestamp": 4000,
+        "text": "oldneedle"
+      },
+      "after": {
+        "id": "same",
+        "seq": 2,
+        "timestamp": 4000,
+        "text": "recreatedneedle"
+      },
+      "steps": "sync; capture cursor; close source; Repo.delete selected metadata; Repo.create same ID; commit changed source prefix; sync same index",
+      "expected": "both generation0, old cursor reset true, oldneedle [], recreatedneedle [(recreate,same,4000)]"
+    },
+    "sqliteIdenticalPrefixExtra": {
+      "beforeAndAfter": {
+        "sessionId": "same-prefix",
+        "entryId": "same",
+        "seq": 2,
+        "timestamp": 4100,
+        "text": "repeatneedle"
+      },
+      "expected": "generation0 in both stores, new token/witness, old cursor reset true despite identical Entry prefix; search still exactly one hit. Memory/JSONL are NOT required to reset identical semantic prefixes."
+    }
+  },
+  "scenarios": [
+    {
+      "id": "C01",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "history": "textHistory",
+      "observation": "same actual SqliteSearchService; all 14 positive queries and19 forbidden queries; timestamps/snippets exact; no active-branch/context restriction"
+    },
+    {
+      "id": "C02",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "history": "rankingHistory + separate defaultLimitHistory + grammarHistory",
+      "observation": "top per session before limit, literal AND grammar, finite scores, default20 s00..s19; no BM25 numbers"
+    },
+    {
+      "id": "C03",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "steps": "capture public canonical observations and active main view; sync twice; remove(text-corpus), query empty; new sync restores; close/drop service; delete only derived index/closed sidecars; reopen/sync; compare normalized results; source and view remain usable",
+      "observation": "canonical observations unchanged during indexing; explicit later canary getsseq44; JSONL bytes exact, SQLite complete snapshot semantic equality without raw live DB FD reads"
+    },
+    {
+      "id": "C04",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "steps": "after successful initial sync and source canary commit, notify only source ID; poll actual query until canary hit without calling sync; drain take_background_errors; compare to new explicit sync result",
+      "observation": "same content-free notify pathway; errors empty; query alone does not pull source; timeout is watchdog, not normative latency"
+    },
+    {
+      "id": "C05",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "history": "forkHistory",
+      "observation": "copied Entry IDs remain distinct scoped hits; active source root/view survive forks and indexing"
+    },
+    {
+      "id": "C06",
+      "backends": [
+        "SQLite"
+      ],
+      "history": "rewriteHistory",
+      "observation": "actual admin rewrite drives real Search cursor reset and old-text removal"
+    },
+    {
+      "id": "C07",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "history": "recreationHistory",
+      "observation": "same-ID generation0 reset through actual repository deletion/recreation; SQLite extra identical-prefix nonce case"
+    },
+    {
+      "id": "C08",
+      "backends": [
+        "SQLite"
+      ],
+      "steps": "separate child owns actual SqliteSessionRepo-opened writer; acknowledged entry foreign-a atclock5000; parent separate Repo same root -> Search sync/read, query foreign-a; child then appends foreign-b atclock5001 and remains usable; parent sync sees both; finish child",
+      "expectedHits": [
+        [
+          "foreign",
+          "foreign-a",
+          5000
+        ],
+        [
+          "foreign",
+          "foreign-b",
+          5001
+        ]
+      ],
+      "observation": "parent read path must not acquire or close child writer lease; baseline writer Busy belongs to storage owner, Search sync remains readable",
+      "sourceMessageText": "foreignneedle",
+      "expectedQuery": {
+        "text": "foreignneedle"
+      },
+      "entrySeqs": [
+        2,
+        4
+      ],
+      "construction": "Each child append is explicit Message entry plus main leaf update, inner timestamp9000. Equal text yields deterministic seq order. Parent read-side snapshots are SQL observations, never unmanaged File reads of a live SQLite DB."
+    },
+    {
+      "id": "C09",
+      "backends": [
+        "Memory",
+        "JSONL",
+        "SQLite"
+      ],
+      "steps": "bind index to repoA containing same session ID as repoB with other text; constructing service on same index with repoB refuses; repoA results/canonical observations unchanged. File repos additionally try fresh managed-suffix filename and actual canonical metadata.path as index; both refuse before creation/mutation",
+      "observation": "SourceDomain differs for distinct owners/roots; clone/equivalent canonical-root read adapter agrees; no metadata filter extensions"
+    },
+    {
+      "id": "C10",
+      "backends": [
+        "JSONL"
+      ],
+      "history": "legacyHistory",
+      "observation": "readonly indexing preserves original v3 bytes; real first-write conversion preserves cursor prefix/ID/timestamp and does not duplicate doc"
+    },
+    {
+      "id": "C11",
+      "features": [
+        "default",
+        "sqlite",
+        "search-sqlite",
+        "sqlite+search-sqlite"
+      ],
+      "observation": "default has real schema/trait compile-contract witness but no concrete FTS behavior claim; sqlite alone enables canonical SQLite only; search-sqlite enables concrete FTS over Memory/JSONL; both run actual three-repository suite. Runtime cfg exclusion counted separately."
+    }
+  ],
+  "legacyHistory": {
+    "sourceLines": [
+      {
+        "type": "session",
+        "version": 3,
+        "id": "composition-legacy",
+        "timestamp": "1970-01-01T00:00:00Z",
+        "cwd": "/fixture"
+      },
+      {
+        "type": "message",
+        "id": "old-a",
+        "parentId": null,
+        "timestamp": "1970-01-01T00:00:01Z",
+        "message": {
+          "role": "user",
+          "content": "legacyneedle",
+          "timestamp": 9000
+        }
+      }
+    ],
+    "expectedSessionId": "composition-legacy",
+    "expectedEntryId": "00000000-03e8-769d-a600-a1c41d06de86",
+    "expectedOuterTimestamp": 1000,
+    "expectedEntrySeq": 0,
+    "expectedSnippet": "legacyneedle",
+    "idDerivation": "before-code Python SHA256 length framing of accepted legacy_v3/ids.rs:40-95; no normalization/runtime execution",
+    "steps": "install fixture as legacy.jsonl; actual JsonlRepo.read_list/read_batch and Search.sync; capture actual cursor; assert v3 bytes exact; Repo.open then Session.commit(empty transaction) first-write conversion; assert actual bytes now v4, same ID/time and read_batch(oldcursor) reset=false/empty complete; Search.sync has exactly one same hit; append legacy-new atclock5000 via Session.commit and notify to prove catch-up"
+  },
+  "sqliteRepoApiIntake": {
+    "tree": "b9709b5776a5213ff34746df4b2cfa7e00fd5881",
+    "module": "pi_agent_sqlite::repo",
+    "types": [
+      "SqliteSessionRepo",
+      "SqliteSessionMetadata {base: SessionMetadata,path: PathBuf}",
+      "SqliteSession = RuntimeSession<SqliteStorage,SqliteSessionMetadata>"
+    ],
+    "constructor": "new(root, SessionCodecOptions, ProviderHeaderPolicy, Arc<dyn IdGenerator>, Arc<dyn StorageClock>, Arc<dyn TelemetryContext>, SqliteOptions) -> Result<Self,SessionError>",
+    "withCodec": "with_codec(root, Arc<SessionCodec>, ids, clock, telemetry, SqliteOptions) -> Result<Self,SessionError>",
+    "repoAssociatedTypes": {
+      "Metadata": "SqliteSessionMetadata",
+      "CreateOptions": "SessionCreateOptions",
+      "ListOptions": "()",
+      "Session": "SqliteSession"
+    },
+    "rewrite": "rewrite<'a,F>(&'a self, metadata: SqliteSessionMetadata, transform:F) -> BoxFuture<'a,Result<SqliteSessionMetadata,SessionError>> where F: FnOnce(&SnapshotObservation)->Result<StorageSnapshot,SessionError>+Send+'a",
+    "managedSuffix": ".sqlite",
+    "domainKind": "sqlite-session-v1",
+    "acceptance": "compiled intake only; final immutable acceptance/delta required before implementation"
+  },
+  "controlPlan": {
+    "baseline": "test-only observing RepositoryRead wrapper faithfully forwards all calls to actual SqliteSessionRepo; same actual SqliteSearchService consumes it",
+    "isolatedMutation": "force only returned ReadBatch.reset=false in control copy after actual rewrite; preserve actual rows/metadata/cursor",
+    "intendedFailure": "C06 old eraseme docs remain, intended assertion requires zero; original actual read reset separately remains true",
+    "classification": "planned integration signal-interruption control, not a new canonical reader, production fix, executed result, or feature-off compile failure",
+    "restore": "restore faithful forwarding and require named C06 runtime pass; no accepted implementation changes"
+  },
+  "sourceHashes": {
+    "conformance/search/corpora.json": "9ede478f449362f602dde1e1c1e08353b2fa0e0f03ddace0a1c0b2a86423f5d7",
+    "conformance/search/text-corpus.jsonl": "fd8a9d46c82eacd816162c1692b8aca21254c80ff6d089e0db84c432eb518cec",
+    "conformance/search/progress-corpus.jsonl": "2ccf746cd79a2655ac55640d42fd3c15f0a44becdc8f42b7804f4d6e26f02140",
+    "crates/pi-agent-search/src/sqlite/mod.rs": "75fe1081d54b9d7325806afc621f2cff0710d055aafda1eaaba48ed8b9d65a9e",
+    "crates/pi-agent-search/src/sqlite/project.rs": "8c87a9ba9f78122fc3b0b7bbc2a0ad96c0b1b0f6e3b303d544ca056fb73c93db",
+    "crates/pi-agent-search/src/sqlite/database.rs": "da47f0bfc3bb4d17f54696f43074de634dc76dcdfd0cf70718cffbab1b5354aa"
+  }
+}

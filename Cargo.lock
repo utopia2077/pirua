@@ -1122,6 +1122,8 @@ dependencies = [
  "pi-harness-core",
  "pi-harness-runtime",
  "pi-telemetry",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
