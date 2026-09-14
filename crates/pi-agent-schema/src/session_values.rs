@@ -2,4 +2,4 @@
 
 pub use pi_ai_core::{FiniteF64, JsonObject, JsonValue, Presence, SafeUnsigned, Usage, UsageCost};
 
-pub use pi_ai_core::{CustomRole, JsonSchema, Message, StopReason, UserMessage};
+pub use pi_ai_core::{AssistantContent, CustomRole, JsonSchema, Message, StopReason, UserMessage};

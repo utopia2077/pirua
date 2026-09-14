@@ -1268,6 +1268,7 @@ name = "pi-harness-core"
 version = "0.0.0"
 dependencies = [
  "pi-agent-schema",
+ "serde_json",
 ]
 
 [[package]]
