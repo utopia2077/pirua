@@ -1,0 +1,1635 @@
+[
+  {
+    "name": "run.checkpoint",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": false,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "one-at-a-time",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "checkpoint",
+            "continuation": {
+              "kind": "may_finish",
+              "includeFinalAssistant": false
+            },
+            "triggerEntryId": "entry-0",
+            "thresholdCheckedTriggerEntryId": "threshold",
+            "skipInboxOnce": false
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": null
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-0",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "threshold",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-0",
+      "leaf",
+      "prompt",
+      "source",
+      "threshold"
+    ],
+    "reserved": []
+  },
+  {
+    "name": "run.assistant.ready",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": true,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "sequential"
+          },
+          "phase": {
+            "kind": "assistant",
+            "generation": {
+              "status": "ready",
+              "context": {
+                "stepId": "step-1",
+                "triggerEntryId": "entry-0",
+                "configuration": {
+                  "model": {
+                    "provider": "azure-openai-responses",
+                    "modelId": "runtime-resolved"
+                  },
+                  "thinkingLevel": "off",
+                  "activeToolNames": []
+                },
+                "streamOptions": {},
+                "retryPolicy": {
+                  "maxAttempts": 1,
+                  "baseDelayMs": 0
+                },
+                "overflowRecoveryUsed": false
+              },
+              "nextAttempt": 1
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": null
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-0",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-0",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": []
+  },
+  {
+    "name": "run.assistant.effect_pending",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": true,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "assistant",
+            "generation": {
+              "status": "effect_pending",
+              "context": {
+                "stepId": "step-1",
+                "triggerEntryId": "entry-0",
+                "configuration": {
+                  "model": {
+                    "provider": "azure-openai-responses",
+                    "modelId": "runtime-resolved"
+                  },
+                  "thinkingLevel": "minimal",
+                  "activeToolNames": []
+                },
+                "streamOptions": {
+                  "transport": "auto",
+                  "timeoutMs": 0,
+                  "maxRetries": 0,
+                  "maxRetryDelayMs": 0,
+                  "headers": {},
+                  "metadata": {},
+                  "cacheRetention": "none",
+                  "deferred": false
+                },
+                "retryPolicy": {
+                  "maxAttempts": 1,
+                  "baseDelayMs": 0
+                },
+                "overflowRecoveryUsed": false
+              },
+              "attempt": 1,
+              "responseEntryId": "entry-response",
+              "usageId": "usage-response",
+              "intendedOutputLimit": 0,
+              "contextWindow": 0
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": null
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-response",
+        "parentId": null,
+        "seq": 10,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [],
+          "provider": "post-hook-provider",
+          "model": "post-hook-model",
+          "api": "post-hook-api",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-0",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-0",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": [
+      "entry-response"
+    ]
+  },
+  {
+    "name": "run.assistant.retry_wait",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": true,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "assistant",
+            "generation": {
+              "status": "retry_wait",
+              "context": {
+                "stepId": "step-1",
+                "triggerEntryId": "entry-0",
+                "configuration": {
+                  "model": {
+                    "provider": "future-provider",
+                    "modelId": "future-model"
+                  },
+                  "thinkingLevel": "max",
+                  "activeToolNames": []
+                },
+                "streamOptions": {},
+                "retryPolicy": {
+                  "maxAttempts": 2,
+                  "baseDelayMs": 0
+                },
+                "overflowRecoveryUsed": true
+              },
+              "nextAttempt": 2,
+              "notBefore": 0,
+              "errorMessage": ""
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": null
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-0",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-0",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": []
+  },
+  {
+    "name": "run.tools.planned",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": false,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "tools",
+            "batch": {
+              "assistantEntryId": "entry-response",
+              "configuration": {
+                "model": {
+                  "provider": "future-provider",
+                  "modelId": "future-model"
+                },
+                "thinkingLevel": "low",
+                "activeToolNames": [
+                  "read"
+                ]
+              },
+              "turnId": "step-1",
+              "calls": [
+                {
+                  "status": "planned",
+                  "sourceIndex": 1,
+                  "resultEntryId": "result-0"
+                },
+                {
+                  "status": "planned",
+                  "sourceIndex": 3,
+                  "resultEntryId": "result-1"
+                },
+                {
+                  "status": "planned",
+                  "sourceIndex": 5,
+                  "resultEntryId": "result-2"
+                }
+              ]
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": "entry-response"
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "result-0",
+        "parentId": null,
+        "seq": 20,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "call-0",
+          "toolName": "tool-0",
+          "content": [],
+          "isError": false,
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "result-1",
+        "parentId": null,
+        "seq": 30,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "tool-1",
+          "content": [],
+          "isError": false,
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "result-2",
+        "parentId": null,
+        "seq": 40,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "tool-2",
+          "content": [],
+          "isError": false,
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-response",
+        "parentId": null,
+        "seq": 10,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "prefix"
+            },
+            {
+              "type": "toolCall",
+              "id": "call-0",
+              "name": "tool-0",
+              "arguments": {}
+            },
+            {
+              "type": "text",
+              "text": "interleaved"
+            },
+            {
+              "type": "toolCall",
+              "id": "call-1",
+              "name": "tool-1",
+              "arguments": {}
+            },
+            {
+              "type": "text",
+              "text": "interleaved"
+            },
+            {
+              "type": "toolCall",
+              "id": "call-2",
+              "name": "tool-2",
+              "arguments": {}
+            },
+            {
+              "type": "text",
+              "text": "interleaved"
+            }
+          ],
+          "provider": "post-hook-provider",
+          "model": "post-hook-model",
+          "api": "post-hook-api",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 0
+        }
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-response",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": [
+      "result-0",
+      "result-1",
+      "result-2"
+    ]
+  },
+  {
+    "name": "run.tools.effect_pending",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": false,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "tools",
+            "batch": {
+              "assistantEntryId": "entry-response",
+              "configuration": {
+                "model": {
+                  "provider": "future-provider",
+                  "modelId": "future-model"
+                },
+                "thinkingLevel": "low",
+                "activeToolNames": [
+                  "read"
+                ]
+              },
+              "turnId": "step-1",
+              "calls": [
+                {
+                  "status": "effect_pending",
+                  "sourceIndex": 1,
+                  "resultEntryId": "result-0",
+                  "replay": "never"
+                },
+                {
+                  "status": "planned",
+                  "sourceIndex": 3,
+                  "resultEntryId": "result-1"
+                },
+                {
+                  "status": "planned",
+                  "sourceIndex": 5,
+                  "resultEntryId": "result-2"
+                }
+              ]
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": "entry-response"
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "result-0",
+        "parentId": null,
+        "seq": 20,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "call-0",
+          "toolName": "tool-0",
+          "content": [],
+          "isError": false,
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "result-1",
+        "parentId": null,
+        "seq": 30,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "tool-1",
+          "content": [],
+          "isError": false,
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "result-2",
+        "parentId": null,
+        "seq": 40,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "tool-2",
+          "content": [],
+          "isError": false,
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-response",
+        "parentId": null,
+        "seq": 10,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "prefix"
+            },
+            {
+              "type": "toolCall",
+              "id": "call-0",
+              "name": "tool-0",
+              "arguments": {}
+            },
+            {
+              "type": "text",
+              "text": "interleaved"
+            },
+            {
+              "type": "toolCall",
+              "id": "call-1",
+              "name": "tool-1",
+              "arguments": {}
+            },
+            {
+              "type": "text",
+              "text": "interleaved"
+            },
+            {
+              "type": "toolCall",
+              "id": "call-2",
+              "name": "tool-2",
+              "arguments": {}
+            },
+            {
+              "type": "text",
+              "text": "interleaved"
+            }
+          ],
+          "provider": "post-hook-provider",
+          "model": "post-hook-model",
+          "api": "post-hook-api",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 0
+        }
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      },
+      {
+        "namespace": "op.tool_args",
+        "key": "op:step-1:1",
+        "value": {},
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-response",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": [
+      "result-0",
+      "result-1",
+      "result-2"
+    ]
+  },
+  {
+    "name": "run.deferred.suspended",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": false,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "deferred",
+            "deferred": {
+              "status": "suspended",
+              "stepId": "step-1",
+              "sourceEntryId": "entry-response",
+              "poll": 0,
+              "configuration": {
+                "model": {
+                  "provider": "future-provider",
+                  "modelId": "future-model"
+                },
+                "thinkingLevel": "off",
+                "activeToolNames": []
+              },
+              "streamOptions": {
+                "deferred": {
+                  "window": "15m"
+                }
+              }
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": "entry-response"
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-response",
+        "parentId": null,
+        "seq": 10,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [],
+          "provider": "post-hook-provider",
+          "model": "post-hook-model",
+          "api": "post-hook-api",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "deferred",
+          "timestamp": 0,
+          "deferred": {
+            "provider": "post-hook-provider",
+            "modelId": "post-hook-model",
+            "api": "post-hook-api",
+            "id": "handle"
+          }
+        }
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-response",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": []
+  },
+  {
+    "name": "run.failure_drain.response",
+    "roots": {
+      "lane": "main",
+      "configuration": {
+        "namespace": "lane.config",
+        "key": "main",
+        "value": {
+          "model": {
+            "provider": "captured-provider",
+            "modelId": "captured-model"
+          },
+          "thinkingLevel": "off",
+          "activeToolNames": []
+        },
+        "seq": 9007199254740980
+      },
+      "lane_state": {
+        "namespace": "lane.state",
+        "key": "main",
+        "value": {
+          "currentOperationId": "op",
+          "pendingNextRun": [
+            "next"
+          ]
+        },
+        "seq": 9007199254740981
+      },
+      "leaf": {
+        "namespace": "lane.leaf",
+        "key": "main",
+        "value": "leaf",
+        "seq": 9007199254740982
+      },
+      "operation_meta": {
+        "namespace": "op.meta",
+        "key": "op",
+        "value": {
+          "operationId": "op",
+          "lane": "main",
+          "sourceLeafId": "source",
+          "startedAt": 0,
+          "intent": {
+            "kind": "run",
+            "promptEntryIds": [
+              "prompt"
+            ]
+          }
+        },
+        "seq": 9007199254740983
+      },
+      "operation_state": {
+        "namespace": "op.state",
+        "key": "op",
+        "value": {
+          "kind": "run",
+          "control": {
+            "status": "running"
+          },
+          "settings": {
+            "compaction": {
+              "enabled": false,
+              "reserveTokens": 0,
+              "keepRecentTokens": 0
+            },
+            "steeringMode": "all",
+            "followUpMode": "all",
+            "toolExecution": "parallel"
+          },
+          "phase": {
+            "kind": "failure_drain",
+            "error": {
+              "code": "future_error",
+              "message": "",
+              "details": null
+            },
+            "provenance": {
+              "kind": "response",
+              "entryId": "entry-response"
+            }
+          },
+          "inbox": {
+            "steer": [],
+            "followUp": [],
+            "writes": []
+          },
+          "latestAssistantEntryId": "entry-response"
+        },
+        "seq": 9007199254740984
+      }
+    },
+    "entries": [
+      {
+        "id": "leaf",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "source",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "fixture"
+      },
+      {
+        "id": "prompt",
+        "parentId": null,
+        "seq": 1,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "",
+          "timestamp": 0
+        }
+      },
+      {
+        "id": "entry-response",
+        "parentId": null,
+        "seq": 10,
+        "timestamp": 0,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [],
+          "provider": "post-hook-provider",
+          "model": "post-hook-model",
+          "api": "post-hook-api",
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "error",
+          "timestamp": 0,
+          "errorMessage": "fixed failure"
+        }
+      }
+    ],
+    "registers": [
+      {
+        "namespace": "pending.entry",
+        "key": "next",
+        "value": {
+          "type": "message",
+          "payload": {
+            "role": "user",
+            "content": "next",
+            "timestamp": 0
+          }
+        },
+        "seq": 100
+      }
+    ],
+    "required": [
+      "entry-response",
+      "leaf",
+      "prompt",
+      "source"
+    ],
+    "reserved": []
+  }
+]

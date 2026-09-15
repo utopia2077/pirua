@@ -359,6 +359,8 @@ pub enum EffectPlan<C> {
     CancelDeferred(CancelDeferredEffectPlan<C>),
     /// Awaited hook pipeline.
     Hook(HookEffectPlan<C>),
+    /// Tool preparation before durable intent.
+    ToolClearance(ToolClearancePlan<C>),
 }
 
 impl<C> EffectPlan<C> {
@@ -371,6 +373,7 @@ impl<C> EffectPlan<C> {
             Self::Deferred(plan) => &plan.key,
             Self::CancelDeferred(plan) => &plan.key,
             Self::Hook(plan) => &plan.key,
+            Self::ToolClearance(plan) => &plan.key,
         }
     }
 }
@@ -430,6 +433,10 @@ pub enum EffectOutput {
     ToolRaw(ToolRawOutput),
     /// Typed hook-pipeline aggregate.
     Hook(HookEffectOutput),
+    /// Complete effective before-request options.
+    RequestOptions(RequestOptionsOutput),
+    /// Complete tool preparation receipt.
+    ToolClearance(ToolClearanceOutput),
     /// Best-effort deferred cancellation completed.
     CancelDeferred { key: EffectKey },
 }
@@ -450,6 +457,8 @@ pub struct ToolSettlementOutput {
 /// Effect output accepted by durable settlement.
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettlementOutput {
+    /// Synthetic settlement without external execution.
+    Reconciled(ReconciledOutput),
     /// Serialized start check found cancellation first.
     NotStarted { key: EffectKey },
     /// Settled assistant response.
@@ -471,6 +480,10 @@ pub enum SettlementOutput {
     Tool(ToolSettlementOutput),
     /// Typed hook-pipeline aggregate.
     Hook(HookEffectOutput),
+    /// Complete effective before-request options.
+    RequestOptions(RequestOptionsOutput),
+    /// Complete tool preparation receipt.
+    ToolClearance(ToolClearanceOutput),
     /// Best-effort deferred cancellation completed.
     CancelDeferred { key: EffectKey },
 }
@@ -478,6 +491,8 @@ pub enum SettlementOutput {
 /// Settlement commit result and any immediate follow-up dispatch.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettlementResult<C> {
+    /// Exact approved terminal continuation, committed through commit_terminal.
+    pub terminal: Option<OperationResult>,
     /// Reloaded current operation after settlement.
     pub current: CurrentOperation,
     /// Immediate process-local dispatch prepared by pre-intent settlement.
@@ -735,3 +750,262 @@ pub const EFFECTS_METHODS: &[&str] = &[
     "settle_summary_request",
     "sleep",
 ];
+
+/// Lossless complete-options receipt paired with a before-request plan.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RequestOptionsOutput {
+    key: EffectKey,
+    options: AgentHarnessStreamOptions,
+}
+impl RequestOptionsOutput {
+    pub fn new<C>(
+        plan: &HookEffectPlan<C>,
+        options: AgentHarnessStreamOptions,
+    ) -> Result<Self, HookPairError> {
+        let HookEvent::BeforeRequest(event) = &plan.event else {
+            return Err(HookPairError);
+        };
+        if plan.key.kind != EffectKind::Hook
+            || plan.key.lane != event.lane
+            || plan.key.operation_id != event.run_id
+            || plan.key.logical_attempt.get() != event.attempt.get()
+            || plan.key.item_index.is_some()
+        {
+            return Err(HookPairError);
+        }
+        Ok(Self {
+            key: plan.key.clone(),
+            options,
+        })
+    }
+    pub const fn key(&self) -> &EffectKey {
+        &self.key
+    }
+    pub const fn options(&self) -> &AgentHarnessStreamOptions {
+        &self.options
+    }
+}
+
+/// Detached phase-one tool invocation. Runtime owns all actual preparation.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolClearancePlan<C> {
+    pub key: EffectKey,
+    pub assistant_entry_id: EntryId,
+    pub source_index: SafeUnsigned,
+    pub turn_id: crate::StepId,
+    pub result_entry_id: EntryId,
+    pub producing_configuration: LaneConfiguration,
+    pub telemetry_context: C,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub enum ToolClearanceOutcome {
+    Prepared {
+        effective_args: pi_ai_core::JsonObject,
+        replay: crate::ToolReplay,
+    },
+    Immediate {
+        result: AgentToolResult,
+        is_error: bool,
+        terminate: bool,
+    },
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolClearanceOutput {
+    key: EffectKey,
+    assistant_entry_id: EntryId,
+    source_index: SafeUnsigned,
+    result_entry_id: EntryId,
+    outcome: ToolClearanceOutcome,
+}
+impl ToolClearanceOutput {
+    pub fn new<C>(
+        plan: &ToolClearancePlan<C>,
+        outcome: ToolClearanceOutcome,
+    ) -> Result<Self, HookPairError> {
+        if plan.key.kind != EffectKind::Hook
+            || plan.key.item_index != Some(plan.source_index)
+            || plan.key.logical_attempt.get() != 0
+            || plan.key.step_or_task_id.as_str() != plan.turn_id.as_str()
+        {
+            return Err(HookPairError);
+        }
+        Ok(Self {
+            key: plan.key.clone(),
+            assistant_entry_id: plan.assistant_entry_id.clone(),
+            source_index: plan.source_index,
+            result_entry_id: plan.result_entry_id.clone(),
+            outcome,
+        })
+    }
+    pub const fn key(&self) -> &EffectKey {
+        &self.key
+    }
+    pub const fn assistant_entry_id(&self) -> &EntryId {
+        &self.assistant_entry_id
+    }
+    pub const fn source_index(&self) -> SafeUnsigned {
+        self.source_index
+    }
+    pub const fn result_entry_id(&self) -> &EntryId {
+        &self.result_entry_id
+    }
+    pub const fn outcome(&self) -> &ToolClearanceOutcome {
+        &self.outcome
+    }
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ReconcileReason {
+    UnknownAtCap,
+    CancelledNotStarted,
+    InterruptedTool,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReconciledValue {
+    Assistant(Box<SettledAssistantMessage>),
+    Tool {
+        result: AgentToolResult,
+        is_error: bool,
+        terminate: bool,
+    },
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReconciledOutput {
+    key: EffectKey,
+    reason: ReconcileReason,
+    value: ReconciledValue,
+}
+impl ReconciledOutput {
+    pub fn new<C>(
+        plan: &EffectPlan<C>,
+        reason: ReconcileReason,
+        value: ReconciledValue,
+    ) -> Result<Self, HookPairError> {
+        let valid_key = match plan {
+            EffectPlan::Assistant(p) => {
+                p.key.kind == EffectKind::Assistant
+                    && p.key.item_index.is_none()
+                    && p.key.step_or_task_id.as_str() == p.generation.context.step_id.as_str()
+                    && p.key.logical_attempt.get() == p.generation.attempt.get()
+            }
+            EffectPlan::Tool(p) => {
+                p.key.kind == EffectKind::Tool
+                    && p.key.item_index == Some(p.source_index)
+                    && p.key.logical_attempt.get() == 0
+                    && p.args_key
+                        == format!(
+                            "{}:{}:{}",
+                            p.key.operation_id.as_str(),
+                            p.key.step_or_task_id.as_str(),
+                            p.source_index.get()
+                        )
+            }
+            EffectPlan::ToolClearance(p) => {
+                p.key.kind == EffectKind::Hook
+                    && p.key.item_index == Some(p.source_index)
+                    && p.key.logical_attempt.get() == 0
+                    && p.key.step_or_task_id.as_str() == p.turn_id.as_str()
+            }
+            _ => false,
+        };
+        if !valid_key {
+            return Err(HookPairError);
+        }
+        let paired = matches!(
+            (plan, reason, &value),
+            (
+                EffectPlan::Assistant(_),
+                ReconcileReason::UnknownAtCap | ReconcileReason::CancelledNotStarted,
+                ReconciledValue::Assistant(_)
+            ) | (
+                EffectPlan::Tool(_) | EffectPlan::ToolClearance(_),
+                ReconcileReason::InterruptedTool | ReconcileReason::CancelledNotStarted,
+                ReconciledValue::Tool { .. }
+            )
+        );
+        if !paired {
+            return Err(HookPairError);
+        }
+        Ok(Self {
+            key: plan.key().clone(),
+            reason,
+            value,
+        })
+    }
+    pub const fn key(&self) -> &EffectKey {
+        &self.key
+    }
+    pub const fn reason(&self) -> ReconcileReason {
+        self.reason
+    }
+    pub const fn value(&self) -> &ReconciledValue {
+        &self.value
+    }
+}
+
+/// Checks already-admitted pending payload identity without losing JSON presence.
+fn pending_placement_matches(pending: &crate::PendingEntry, entry: &crate::NewEntry) -> bool {
+    match entry {
+        crate::NewEntry::Message(entry) => {
+            if pending.entry_type != crate::PendingEntryType::Message
+                || pending.custom_type.is_some()
+                || entry.terminate.is_some()
+            {
+                return false;
+            }
+            let Ok(value) = serde_json::to_value(&entry.message) else {
+                return false;
+            };
+            let Ok(value) = serde_json::from_value::<pi_ai_core::JsonValue>(value) else {
+                return false;
+            };
+            pending.payload == pi_ai_core::Presence::Value(value)
+        }
+        crate::NewEntry::Custom(entry) => {
+            pending.entry_type == crate::PendingEntryType::Custom
+                && pending.custom_type.as_ref() == Some(&entry.custom_type)
+                && pending.payload == entry.data
+        }
+        crate::NewEntry::Compaction(_) | crate::NewEntry::BranchSummary(_) => false,
+    }
+}
+
+/// Checked process-local proof that a pending payload and its placed content agree.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PendingPlacement {
+    entry: crate::NewEntry,
+    pending: crate::PendingEntry,
+    seq: SafeUnsigned,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PendingPlacementError;
+impl std::fmt::Display for PendingPlacementError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("pending payload does not match placed content")
+    }
+}
+impl std::error::Error for PendingPlacementError {}
+impl PendingPlacement {
+    pub fn new(
+        entry: crate::NewEntry,
+        pending: crate::PendingEntry,
+        seq: SafeUnsigned,
+    ) -> Result<Self, PendingPlacementError> {
+        if !pending_placement_matches(&pending, &entry) {
+            return Err(PendingPlacementError);
+        }
+        Ok(Self {
+            entry,
+            pending,
+            seq,
+        })
+    }
+    pub const fn entry(&self) -> &crate::NewEntry {
+        &self.entry
+    }
+    pub const fn pending(&self) -> &crate::PendingEntry {
+        &self.pending
+    }
+    pub const fn seq(&self) -> SafeUnsigned {
+        self.seq
+    }
+}

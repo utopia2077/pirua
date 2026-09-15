@@ -211,6 +211,7 @@ impl Effects<OpaqueContext> for BoundaryWitness {
         plan: SettlementCommit<OpaqueContext>,
     ) -> BoxFuture<'_, Result<Option<SettlementResult<OpaqueContext>>, HarnessRuntimeError>> {
         self.reply(self.conditional(SettlementResult {
+            terminal: None,
             current: plan.current,
             dispatch: None,
             suspend: None,
