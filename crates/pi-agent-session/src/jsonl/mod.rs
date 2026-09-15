@@ -114,6 +114,7 @@ struct Live {
 }
 /// One path-owned JSONL storage incarnation. Share its Arc; close seals this owner.
 pub struct JsonlStorage {
+    attachment: RuntimeAttachment,
     live: Mutex<Live>,
     path: PathBuf,
     clock: Arc<dyn StorageClock>,
@@ -215,6 +216,7 @@ impl JsonlStorage {
     ) -> Arc<Self> {
         let path = claim.path.clone();
         Arc::new(Self {
+            attachment: RuntimeAttachment::new(),
             live: Mutex::new(Live {
                 file: Some(claim),
                 view,
@@ -646,5 +648,14 @@ impl Storage for JsonlStorage {
             drop(retired);
             Ok(())
         })
+    }
+}
+
+impl RuntimeStorage for JsonlStorage {
+    fn runtime_attachment(&self) -> &RuntimeAttachment {
+        &self.attachment
+    }
+    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+        Box::pin(async move { self.read(|live| Ok(self.attachment.stamp(live.revision))) })
     }
 }

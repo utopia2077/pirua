@@ -21,6 +21,7 @@ impl Signal {
     }
 }
 struct Inner {
+    attachment: RuntimeAttachment,
     path: PathBuf,
     identity: path::Identity,
     store: StoreToken,
@@ -206,6 +207,7 @@ impl SqliteStorage {
     ) -> Result<Arc<Self>, SessionError> {
         let (store, owner, fence) = authority;
         let inner = Arc::new(Inner {
+            attachment: RuntimeAttachment::new(),
             path,
             identity,
             store,
@@ -1097,5 +1099,21 @@ impl Administrative {
         drop(life);
         drop(scope);
         Ok(())
+    }
+}
+
+impl RuntimeStorage for SqliteStorage {
+    fn runtime_attachment(&self) -> &RuntimeAttachment {
+        &self.inner.attachment
+    }
+    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+        Box::pin(async move {
+            self.inner.read(|_, header| {
+                Ok(self
+                    .inner
+                    .attachment
+                    .stamp(u128::from(header.revision.get())))
+            })
+        })
     }
 }

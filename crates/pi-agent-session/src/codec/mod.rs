@@ -27,6 +27,10 @@ pub struct SessionCodec {
     policy: ProviderHeaderPolicy,
 }
 impl SessionCodec {
+    /// The actual durable-header policy used by this compiled codec.
+    pub fn header_policy(&self) -> &ProviderHeaderPolicy {
+        &self.policy
+    }
     /// Compile registered custom schemas offline, with explicit durable-header policy.
     pub fn new(
         options: SessionCodecOptions,

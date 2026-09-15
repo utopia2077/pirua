@@ -33,6 +33,7 @@ struct BackingState {
 pub struct MemoryStorage {
     backing: Arc<MemoryBacking>,
     generation: u128,
+    attachment: RuntimeAttachment,
     clock: Arc<dyn StorageClock>,
 }
 
@@ -106,6 +107,7 @@ impl MemoryBacking {
         let handle = Arc::new(MemoryStorage {
             backing: self.clone(),
             generation,
+            attachment: RuntimeAttachment::new(),
             clock,
         });
         inner.active = Some(generation);
@@ -422,5 +424,18 @@ mod readonly_tests {
             after, before,
             "readonly repository must never open a MemoryStorage"
         );
+    }
+}
+
+impl RuntimeStorage for MemoryStorage {
+    fn runtime_attachment(&self) -> &RuntimeAttachment {
+        &self.attachment
+    }
+    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+        Box::pin(async move {
+            let inner = self.backing.lock()?;
+            self.ensure_open(&inner)?;
+            Ok(self.attachment.stamp(inner.revision))
+        })
     }
 }

@@ -52,6 +52,10 @@ impl<S: CheckedStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
             lane: LaneId::new("main").expect("static lane"),
         })
     }
+    /// Borrow the actual custom-role codec and its associated header policy.
+    pub fn codec(&self) -> &SessionCodec {
+        &self.inner.codec
+    }
     /// Create an inert typed lane view; existence is checked when an operation executes.
     pub fn lane_view(&self, lane: LaneId) -> Self {
         Self {
@@ -329,5 +333,20 @@ impl IndexedPublicationValidator for SessionPublication<'_> {
             }
         }
         Ok(())
+    }
+}
+
+impl<S: RuntimeStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M> {
+    /// Claim this backend incarnation, including through independent Session wrappers.
+    pub fn claim_runtime(&self) -> Result<RuntimeLease, SessionError> {
+        self.inner
+            .storage
+            .runtime_attachment()
+            .try_claim()
+            .map_err(storage)
+    }
+    /// Bracket bounded root/hydration reads without taking a complete snapshot.
+    pub fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, SessionError>> {
+        Box::pin(async move { self.inner.storage.read_stamp().await.map_err(storage) })
     }
 }

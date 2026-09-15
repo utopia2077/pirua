@@ -121,3 +121,6 @@ pub trait CheckedStorage: AtomicStorage {
 
 mod indexed;
 pub use indexed::{IndexedProjection, IndexedPublicationValidator, IndexedReadSet};
+
+mod runtime;
+pub use runtime::{ReadStamp, RuntimeAttachment, RuntimeLease, RuntimeStorage};
