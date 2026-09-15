@@ -21,4 +21,5 @@ pi-ai-core.workspace = true
 pi-extension-protocol = { workspace = true, optional = true }
 pi-harness-core.workspace = true
 pi-telemetry.workspace = true
+ryu-js.workspace = true
 serde_json.workspace = true

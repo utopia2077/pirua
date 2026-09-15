@@ -1283,6 +1283,7 @@ dependencies = [
  "pi-extension-protocol",
  "pi-harness-core",
  "pi-telemetry",
+ "ryu-js",
  "serde_json",
 ]
 
