@@ -114,6 +114,11 @@ kind = "required"
 
 [[edge]]
 consumer = "pi-harness-runtime"
+dependency = "pi-agent-loop"
+kind = "required"
+
+[[edge]]
+consumer = "pi-harness-runtime"
 dependency = "pi-agent-schema"
 kind = "required"
 

@@ -14,9 +14,11 @@ default = []
 extensions = ["dep:pi-extension-protocol"]
 
 [dependencies]
+pi-agent-loop.workspace = true
 pi-agent-schema.workspace = true
 pi-agent-session.workspace = true
 pi-ai-core.workspace = true
 pi-extension-protocol = { workspace = true, optional = true }
 pi-harness-core.workspace = true
 pi-telemetry.workspace = true
+serde_json.workspace = true

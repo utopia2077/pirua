@@ -1134,6 +1134,7 @@ dependencies = [
  "pi-ai-core",
  "pi-ai-transport",
  "pi-telemetry",
+ "serde_json",
 ]
 
 [[package]]
@@ -1275,12 +1276,14 @@ dependencies = [
 name = "pi-harness-runtime"
 version = "0.0.0"
 dependencies = [
+ "pi-agent-loop",
  "pi-agent-schema",
  "pi-agent-session",
  "pi-ai-core",
  "pi-extension-protocol",
  "pi-harness-core",
  "pi-telemetry",
+ "serde_json",
 ]
 
 [[package]]

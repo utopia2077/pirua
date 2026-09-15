@@ -18,3 +18,6 @@ pi-agent-schema.workspace = true
 pi-ai-core.workspace = true
 pi-ai-transport = { workspace = true, optional = true }
 pi-telemetry.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
