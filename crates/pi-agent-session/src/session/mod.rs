@@ -69,6 +69,16 @@ impl<S: CheckedStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
         &self,
         request: ConditionalCommit,
     ) -> Result<ConditionalOutcome, CheckedCommitError<SessionError>> {
+        self.commit_conditional_with_telemetry(request, self.inner.telemetry.as_ref())
+            .await
+    }
+    /// Use a borrowed context for this call's retrospective write observation only.
+    /// Validation, checked publication and outcome semantics match `commit_conditional`.
+    pub async fn commit_conditional_with_telemetry(
+        &self,
+        request: ConditionalCommit,
+        telemetry: &dyn TelemetryContext,
+    ) -> Result<ConditionalOutcome, CheckedCommitError<SessionError>> {
         self.inner
             .codec
             .validate_transaction(&request.transaction)
@@ -96,19 +106,26 @@ impl<S: CheckedStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
             .commit_checked(request.clone(), &validator)
             .await;
         match &result {
-            Ok(ConditionalOutcome::Applied(commit)) => self.observe(count, kinds, Some(commit)),
-            Err(CheckedCommitError::Storage(_)) => self.observe(count, kinds, None),
+            Ok(ConditionalOutcome::Applied(commit)) => {
+                Self::observe(telemetry, count, kinds, Some(commit))
+            }
+            Err(CheckedCommitError::Storage(_)) => Self::observe(telemetry, count, kinds, None),
             _ => (),
         }
         result
     }
-    fn observe(&self, count: usize, kinds: Vec<String>, result: Option<&CommitResult>) {
+    fn observe(
+        telemetry: &dyn TelemetryContext,
+        count: usize,
+        kinds: Vec<String>,
+        result: Option<&CommitResult>,
+    ) {
         fn number(value: f64) -> AttributeValue {
             AttributeValue::Number(
                 FiniteTelemetryNumber::new(value).expect("bounded integer is finite"),
             )
         }
-        let span = self.inner.telemetry.start_span(SpanOptions {
+        let span = telemetry.start_span(SpanOptions {
             name: "pi.session.write".to_owned(),
             attributes: [
                 ("pi.session.item_count".to_owned(), number(count as f64)),
