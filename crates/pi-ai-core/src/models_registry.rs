@@ -1040,6 +1040,55 @@ impl ModelsRegistry {
         Ok(ObservedAssistantStream { stream, metadata })
     }
 
+    /// Consumes captured provider selection and observes one deferred fetch.
+    pub fn fetch_deferred_captured_with_lifecycle(
+        &self,
+        captured: CapturedTextDispatch,
+        handle: DeferredHandle,
+        overrides: ModelsRequestOverrides,
+        options: DeferredFetchOptions,
+        lifecycle: RequestLifecycleOptions,
+    ) -> Result<ObservedAssistantStream, CaptureDispatchError> {
+        if !Arc::ptr_eq(&self.inner, &captured.registry) {
+            return Err(CaptureDispatchError::WrongRegistry);
+        }
+        let (lifecycle, metadata) = RequestLifecycleInvocation::new(lifecycle);
+        let stream = start_dispatch_selected(
+            captured.registry,
+            captured.child_cancellation,
+            captured.model,
+            overrides,
+            DispatchRequest::Fetch {
+                handle,
+                options,
+                lifecycle: Some(lifecycle),
+            },
+            Some(captured.record),
+        );
+        Ok(ObservedAssistantStream { stream, metadata })
+    }
+
+    /// Consumes captured provider selection for an owned best-effort cancellation.
+    pub fn cancel_deferred_captured(
+        &self,
+        captured: CapturedTextDispatch,
+        handle: DeferredHandle,
+        overrides: ModelsRequestOverrides,
+        options: DeferredCancelOptions,
+    ) -> Result<BoxFuture<'static, Result<(), AuthResolutionError>>, CaptureDispatchError> {
+        if !Arc::ptr_eq(&self.inner, &captured.registry) {
+            return Err(CaptureDispatchError::WrongRegistry);
+        }
+        Ok(cancel_deferred_selected(
+            captured.registry,
+            captured.model,
+            handle,
+            overrides,
+            options,
+            Some(captured.record),
+        ))
+    }
+
     fn mutate<'a>(&'a self, kind: MutationKind) -> BoxFuture<'a, Result<(), ModelsError>> {
         let intent = match &kind {
             MutationKind::Set(provider) => MutationIntent::Set(provider.id().clone()),
@@ -1581,7 +1630,11 @@ impl ModelsRegistry {
             self.child_cancellation,
             model,
             overrides,
-            DispatchRequest::Fetch { handle, options },
+            DispatchRequest::Fetch {
+                handle,
+                options,
+                lifecycle: None,
+            },
         );
         Box::pin(async move { stream.result().await })
     }
@@ -1594,30 +1647,14 @@ impl ModelsRegistry {
         overrides: ModelsRequestOverrides,
         options: DeferredCancelOptions,
     ) -> BoxFuture<'static, Result<(), AuthResolutionError>> {
-        let inner = Arc::clone(&self.inner);
-        Box::pin(async move {
-            let cancellation = options.runtime.cancellation.clone();
-            let assembled = assemble_request(&inner, model, overrides, &cancellation)
-                .await
-                .map_err(SetupAssemblyError::into_auth_error)?;
-            let Some(adapter) = assembled.record.provider.adapter(&assembled.model.api) else {
-                return Err(AuthResolutionError::Models(ModelsError::new(
-                    ModelsErrorCode::Provider,
-                )));
-            };
-            let request = DeferredCancelRequest {
-                resolved: ResolvedRequest {
-                    model: assembled.model,
-                    endpoint: assembled.endpoint,
-                },
-                handle,
-                auth: assembled.auth,
-                options,
-            };
-            caller_first(&cancellation, adapter.cancel_deferred(request))
-                .await?
-                .map_err(AuthResolutionError::Models)
-        })
+        cancel_deferred_selected(
+            Arc::clone(&self.inner),
+            model,
+            handle,
+            overrides,
+            options,
+            None,
+        )
     }
 }
 
@@ -1996,6 +2033,43 @@ fn find_record(inner: &RegistryInner, provider: &ProviderId) -> Option<Arc<Provi
         .cloned()
 }
 
+fn cancel_deferred_selected(
+    inner: Arc<RegistryInner>,
+    model: Model,
+    handle: DeferredHandle,
+    overrides: ModelsRequestOverrides,
+    options: DeferredCancelOptions,
+    captured: Option<Arc<ProviderRecord>>,
+) -> BoxFuture<'static, Result<(), AuthResolutionError>> {
+    Box::pin(async move {
+        let cancellation = options.runtime.cancellation.clone();
+        let assembled = match captured {
+            Some(record) => {
+                assemble_request_from_record(&inner, record, model, overrides, &cancellation).await
+            }
+            None => assemble_request(&inner, model, overrides, &cancellation).await,
+        }
+        .map_err(SetupAssemblyError::into_auth_error)?;
+        let Some(adapter) = assembled.record.provider.adapter(&assembled.model.api) else {
+            return Err(AuthResolutionError::Models(ModelsError::new(
+                ModelsErrorCode::Provider,
+            )));
+        };
+        let request = DeferredCancelRequest {
+            resolved: ResolvedRequest {
+                model: assembled.model,
+                endpoint: assembled.endpoint,
+            },
+            handle,
+            auth: assembled.auth,
+            options,
+        };
+        caller_first(&cancellation, adapter.cancel_deferred(request))
+            .await?
+            .map_err(AuthResolutionError::Models)
+    })
+}
+
 async fn assemble_request(
     inner: &RegistryInner,
     model: Model,
@@ -2108,6 +2182,7 @@ enum DispatchRequest {
     Fetch {
         handle: DeferredHandle,
         options: DeferredFetchOptions,
+        lifecycle: Option<RequestLifecycleInvocation>,
     },
 }
 
@@ -2260,8 +2335,12 @@ fn start_dispatch_selected(
                     }
                 }
             }
-            DispatchRequest::Fetch { handle, options } => {
-                match adapter.fetch_deferred(DeferredFetchRequest {
+            DispatchRequest::Fetch {
+                handle,
+                options,
+                lifecycle,
+            } => {
+                let request = DeferredFetchRequest {
                     resolved: ResolvedRequest {
                         model: assembled.model,
                         endpoint: assembled.endpoint,
@@ -2269,7 +2348,21 @@ fn start_dispatch_selected(
                     handle,
                     auth: assembled.auth,
                     options,
-                }) {
+                };
+                let result = match lifecycle {
+                    None => adapter.fetch_deferred(request),
+                    Some(lifecycle) => {
+                        let Some(capability) = adapter
+                            .lifecycle_adapter()
+                            .and_then(|capability| capability.deferred_lifecycle())
+                        else {
+                            let _ = task_producer.fail_setup(StreamSetupFailure::Adapter);
+                            return;
+                        };
+                        capability.fetch_deferred_with_lifecycle(request, lifecycle)
+                    }
+                };
+                match result {
                     Ok(stream) => stream,
                     Err(_) => {
                         if child_cancellation && cancellation.is_cancelled() {

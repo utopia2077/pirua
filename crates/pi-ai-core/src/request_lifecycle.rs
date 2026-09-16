@@ -1,8 +1,8 @@
 //! Optional, process-local request payload and passive response observation.
 
 use crate::{
-    AssistantStream, BoxFuture, FiniteF64, Model, ModelsError, SimpleStreamRequest,
-    TextStreamRequest,
+    AssistantStream, BoxFuture, CapabilityError, DeferredFetchRequest, FiniteF64, Model,
+    ModelsError, SimpleStreamRequest, TextStreamRequest,
 };
 use std::{
     fmt,
@@ -100,6 +100,11 @@ pub struct ObservedAssistantStream {
 
 /// Optional adapter capability; ordinary stream methods never activate it.
 pub trait RequestLifecycleAdapter: Send + Sync {
+    /// Optional deferred-fetch lifecycle; ordinary fetch never activates it.
+    fn deferred_lifecycle(&self) -> Option<&dyn DeferredRequestLifecycleAdapter> {
+        None
+    }
+
     /// Starts a raw stream bound to one invocation.
     fn stream_with_lifecycle(
         &self,
@@ -112,6 +117,16 @@ pub trait RequestLifecycleAdapter: Send + Sync {
         request: SimpleStreamRequest,
         lifecycle: RequestLifecycleInvocation,
     ) -> AssistantStream;
+}
+
+/// Optional deferred fetch using the ordinary validated child-stream machinery.
+pub trait DeferredRequestLifecycleAdapter: Send + Sync {
+    /// Starts one fetch bound to this invocation's payload and response observation.
+    fn fetch_deferred_with_lifecycle(
+        &self,
+        request: DeferredFetchRequest,
+        lifecycle: RequestLifecycleInvocation,
+    ) -> Result<AssistantStream, CapabilityError>;
 }
 
 macro_rules! redacted_debug {
