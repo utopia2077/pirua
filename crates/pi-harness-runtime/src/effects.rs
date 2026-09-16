@@ -146,6 +146,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         h: &crate::restore::HydratedLane,
         step: Option<StepId>,
+        now: SafeUnsigned,
     ) -> Result<PlanningFacts<Telemetry>, HarnessRuntimeError> {
         let current = h
             .current
@@ -222,11 +223,49 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         },
                     }
                 }
-                RequiredFacts::Generation => PlanningFacts::Generation {
-                    session_id,
-                    telemetry_context,
-                    synthetic: None,
-                },
+                RequiredFacts::Generation => {
+                    let synthetic = match &current.state {
+                        OperationState::Run(run) => match &run.phase {
+                            RunPhase::Assistant(AssistantPhase {
+                                generation:
+                                    Generation::EffectPending {
+                                        context, attempt, ..
+                                    },
+                                ..
+                            }) if !matches!(run.control, Control::Running(_))
+                                || attempt.get() >= context.retry_policy.max_attempts.get() =>
+                            {
+                                let key = EffectKey {
+                                    session_id: session_id.clone(),
+                                    lane: current.operation.lane.clone(),
+                                    operation_id: current.operation.operation_id.clone(),
+                                    kind: EffectKind::Assistant,
+                                    step_or_task_id: EffectStepId::new(context.step_id.as_str())
+                                        .map_err(|_| {
+                                            self.lane.owner.fail("generation step invalid")
+                                        })?,
+                                    logical_attempt: SafeUnsigned::new(attempt.get()).map_err(
+                                        |_| self.lane.owner.fail("generation attempt invalid"),
+                                    )?,
+                                    item_index: None,
+                                };
+                                Some(Box::new(self.synthetic_generation(
+                                    &key,
+                                    context,
+                                    now,
+                                    !matches!(run.control, Control::Running(_)),
+                                )?))
+                            }
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    PlanningFacts::Generation {
+                        session_id,
+                        telemetry_context,
+                        synthetic,
+                    }
+                }
                 RequiredFacts::Finish => PlanningFacts::Finish {
                     session_id,
                     telemetry_context,
@@ -295,7 +334,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             _ => None,
         };
         let inputs = self.inputs(&h).await?;
-        let planning = self.planning(&h, step).await?;
+        let planning = self.planning(&h, step, inputs.now).await?;
         let decision = pi_harness_core::transition::transition_recipe(
             current,
             &plan,
@@ -346,7 +385,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             }
-            let facts = self.settlement_facts(&plan).await?;
+            let facts = self.settlement_facts(&plan, inputs.now).await?;
             let decision =
                 settlement_recipe(current, &plan, &inputs, &self.lane.facts(&h)?, &facts)
                     .map_err(|_| self.lane.owner.fail("settlement recipe rejected"))?;
@@ -381,7 +420,21 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         // iteration replans it against newer inbox/control roots.
                         continue;
                     };
-                    if let SettlementOutput::Assistant { message, .. } = &plan.output {
+                    let assistant = match &plan.output {
+                        SettlementOutput::Assistant { message, .. } => Some(message),
+                        SettlementOutput::Reconciled(output) => match output.value() {
+                            ReconciledValue::Assistant(message) => Some(message.as_ref()),
+                            _ => None,
+                        },
+                        SettlementOutput::NotStarted { .. } => match &facts {
+                            SettlementFacts::NotStarted {
+                                value: ReconciledValue::Assistant(message),
+                            } => Some(message.as_ref()),
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    if let Some(message) = assistant {
                         let retry = applied.current.as_ref().is_some_and(|c| matches!(&c.state,OperationState::Run(r) if matches!(&r.phase,RunPhase::Assistant(AssistantPhase {generation:Generation::RetryWait {..},..}))));
                         let outcome = if retry {
                             "retry"
@@ -849,6 +902,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     async fn settlement_facts(
         &self,
         commit: &SettlementCommit<Telemetry>,
+        now: SafeUnsigned,
     ) -> Result<SettlementFacts, HarnessRuntimeError> {
         Ok(match &commit.output {
             SettlementOutput::RequestOptions(_) => SettlementFacts::Request {
@@ -964,33 +1018,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         terminate: false,
                     },
                 },
-                EffectPlan::Assistant(plan) => {
-                    let binding = self
-                        .request_bindings
-                        .lock()
-                        .unwrap_or_else(|p| p.into_inner())
-                        .get(&plan.key)
-                        .cloned();
-                    let binding = binding.ok_or_else(|| {
-                        self.lane
-                            .owner
-                            .fail("restored cancelled assistant requires owner API policy")
-                    })?;
-                    SettlementFacts::NotStarted {
-                        value: ReconciledValue::Assistant(Box::new(
-                            crate::provider::synthetic_response(
-                                binding.model.api,
-                                binding.model.provider,
-                                binding.model.id,
-                                SafeUnsigned::new(self.lane.owner.clock.now_unix_ms()).map_err(
-                                    |_| self.lane.owner.fail("synthetic clock range failure"),
-                                )?,
-                                true,
-                                "Operation aborted".into(),
-                            )?,
-                        )),
-                    }
-                }
+                EffectPlan::Assistant(plan) => SettlementFacts::NotStarted {
+                    value: ReconciledValue::Assistant(Box::new(self.synthetic_generation(
+                        &plan.key,
+                        &plan.generation.context,
+                        now,
+                        true,
+                    )?)),
+                },
                 _ => {
                     return Err(self
                         .lane

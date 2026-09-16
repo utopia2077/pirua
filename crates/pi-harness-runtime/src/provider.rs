@@ -41,6 +41,40 @@ pub fn synthetic_response(
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeEffects<C, S, M>
 {
+    /// Recovery uses only captured state and a matching process-local API, never
+    /// a fresh registry lookup or the constructor's current model selection.
+    pub(crate) fn synthetic_generation(
+        &self,
+        key: &EffectKey,
+        context: &GenerationContext,
+        now: SafeUnsigned,
+        aborted: bool,
+    ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+        let model = &context.configuration.model;
+        let api = self
+            .request_bindings
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .filter(|binding| {
+                binding.model.provider == model.provider && binding.model.id == model.model_id
+            })
+            .map(|binding| binding.model.api.clone())
+            .unwrap_or_else(|| pi_ai_core::ApiId::new("unknown").expect("fixed API identity"));
+        synthetic_response(
+            api,
+            model.provider.clone(),
+            model.model_id.clone(),
+            now,
+            aborted,
+            if aborted {
+                "Operation aborted"
+            } else {
+                "Generation outcome unknown at attempt cap"
+            }
+            .into(),
+        )
+    }
     pub(crate) async fn request(
         self: &Arc<Self>,
         plan: AssistantEffectPlan<Telemetry>,

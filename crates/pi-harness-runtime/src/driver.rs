@@ -540,7 +540,7 @@ async fn drive<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
         let current = h.current.clone().expect("matching drive operation");
         fx.trace.sync(&current);
         let inputs = fx.inputs(&h).await?;
-        let facts = fx.planning(&h, None).await?;
+        let facts = fx.planning(&h, None, inputs.now).await?;
         let action = if let Some(key) = immediate_key.take() {
             ProcedureAction::Existing(Action::AwaitEffect(key))
         } else {
