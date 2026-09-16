@@ -34,6 +34,7 @@ pub struct MemoryStorage {
     backing: Arc<MemoryBacking>,
     generation: u128,
     attachment: RuntimeAttachment,
+    preparation: PreparedEntryAuthority,
     clock: Arc<dyn StorageClock>,
 }
 
@@ -108,6 +109,7 @@ impl MemoryBacking {
             backing: self.clone(),
             generation,
             attachment: RuntimeAttachment::new(),
+            preparation: PreparedEntryAuthority::new(),
             clock,
         });
         inner.active = Some(generation);
@@ -117,6 +119,16 @@ impl MemoryBacking {
 }
 
 impl MemoryStorage {
+    pub(crate) fn preparation_metadata(
+        &self,
+    ) -> Result<(ReadStamp, Option<SafeUnsigned>), StorageError> {
+        let inner = self.backing.lock()?;
+        self.ensure_open(&inner)?;
+        Ok((
+            self.attachment.stamp(inner.revision),
+            inner.state.next_seq(),
+        ))
+    }
     fn ensure_open(&self, inner: &BackingState) -> Result<(), StorageError> {
         if inner.active == Some(self.generation) {
             Ok(())
@@ -147,6 +159,14 @@ impl MemoryStorage {
         request: ConditionalCommit,
         validator: &V,
     ) -> Result<ConditionalOutcome, CheckedCommitError<V::Error>> {
+        self.commit_sync_prepared(request, validator, None)
+    }
+    fn commit_sync_prepared<V: PublicationValidator + ?Sized>(
+        &self,
+        request: ConditionalCommit,
+        validator: &V,
+        prepared: Option<&PreparedEntries>,
+    ) -> Result<ConditionalOutcome, CheckedCommitError<V::Error>> {
         use CheckedCommitError::{Rejected, Storage as Failure};
         // No callback or canonical mutation occurs before duplicate-condition admission.
         let mut keys = BTreeSet::new();
@@ -159,17 +179,32 @@ impl MemoryStorage {
         serde_json::to_writer(std::io::sink(), &request.transaction)
             .map_err(|_| Failure(invalid("transaction is not serializable")))?;
         loop {
-            let (mut stage, revision) = {
+            let (mut stage, revision, frozen_time) = {
                 let inner = self.backing.lock().map_err(Failure)?;
                 self.ensure_open(&inner).map_err(Failure)?;
                 if !inner.state.matches(&request.conditions) {
                     return Ok(ConditionalOutcome::NotApplied);
                 }
-                (inner.state.clone(), inner.revision)
+                let frozen_time = match prepared {
+                    Some(prepared) => {
+                        let Some(time) = self.preparation.timestamp(
+                            prepared,
+                            &self.attachment.stamp(inner.revision),
+                            inner.state.next_seq(),
+                        ) else {
+                            return Ok(ConditionalOutcome::NotApplied);
+                        };
+                        self.preparation
+                            .validate_inventory(prepared, &request.transaction)
+                            .map_err(Failure)?;
+                        Some(time)
+                    }
+                    None => None,
+                };
+                (inner.state.clone(), inner.revision, frozen_time)
             };
-            let candidate = self
-                .clock
-                .now()
+            let candidate = frozen_time
+                .map_or_else(|| self.clock.now(), Ok)
                 .and_then(|timestamp| stage.apply(request.transaction.clone(), timestamp));
             // Clock and mechanical errors also wait for incarnation and revision checks.
             let validation = match &candidate {
@@ -179,6 +214,9 @@ impl MemoryStorage {
             let mut inner = self.backing.lock().map_err(Failure)?;
             self.ensure_open(&inner).map_err(Failure)?;
             if inner.revision != revision {
+                if prepared.is_some() {
+                    return Ok(ConditionalOutcome::NotApplied);
+                }
                 continue;
             }
             let result = candidate.map_err(Failure)?;
@@ -360,6 +398,34 @@ impl CheckedStorage for MemoryStorage {
 impl RuntimeStorage for MemoryStorage {
     fn runtime_attachment(&self) -> &RuntimeAttachment {
         &self.attachment
+    }
+    fn prepare_entries(
+        &self,
+        expected_stamp: ReadStamp,
+        slots: Vec<PreparedEntrySlot>,
+    ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+        Box::pin(async move {
+            let (stamp, next) = self.preparation_metadata()?;
+            if stamp != expected_stamp {
+                return Ok(None);
+            }
+            let time = self.clock.now();
+            let (after, _) = self.preparation_metadata()?;
+            if after != stamp {
+                return Ok(None);
+            }
+            self.preparation
+                .prepare(stamp, next, time?, slots)
+                .map(Some)
+        })
+    }
+    fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        prepared: PreparedEntries,
+        request: ConditionalCommit,
+        validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        Box::pin(async move { self.commit_sync_prepared(request, validator, Some(&prepared)) })
     }
     fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
         Box::pin(async move {

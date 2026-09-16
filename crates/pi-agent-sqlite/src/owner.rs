@@ -22,6 +22,7 @@ impl Signal {
 }
 struct Inner {
     attachment: RuntimeAttachment,
+    preparation: PreparedEntryAuthority,
     path: PathBuf,
     identity: path::Identity,
     store: StoreToken,
@@ -208,6 +209,7 @@ impl SqliteStorage {
         let (store, owner, fence) = authority;
         let inner = Arc::new(Inner {
             attachment: RuntimeAttachment::new(),
+            preparation: PreparedEntryAuthority::new(),
             path,
             identity,
             store,
@@ -591,6 +593,14 @@ impl SqliteStorage {
         request: ConditionalCommit,
         validator: &V,
     ) -> Result<ConditionalOutcome, CheckedCommitError<V::Error>> {
+        self.checked_prepared(request, validator, None)
+    }
+    fn checked_prepared<V: PublicationValidator + ?Sized>(
+        &self,
+        request: ConditionalCommit,
+        validator: &V,
+        preparation: Option<&PreparedEntries>,
+    ) -> Result<ConditionalOutcome, CheckedCommitError<V::Error>> {
         use CheckedCommitError::Storage as Failure;
         let mut keys = BTreeSet::new();
         for condition in &request.conditions {
@@ -606,6 +616,18 @@ impl SqliteStorage {
             let captured = self
                 .inner
                 .read(|db, h| {
+                    if preparation.is_some_and(|p| {
+                        self.inner
+                            .preparation
+                            .timestamp(
+                                p,
+                                &self.inner.attachment.stamp(u128::from(h.revision.get())),
+                                h.next,
+                            )
+                            .is_none()
+                    }) {
+                        return Ok(None);
+                    }
                     commit::capture(db, h.clone(), &request, read.as_ref(), &self.inner.codec)
                 })
                 .map_err(Failure)?;
@@ -618,7 +640,23 @@ impl SqliteStorage {
                     .codec
                     .validate_transaction(&request.transaction)
                     .map_err(|_| Failure(invalid("transaction fails storage codec")))?;
-                let time = self.inner.clock.now().map_err(Failure)?;
+                let time = match preparation {
+                    Some(p) => {
+                        self.inner
+                            .preparation
+                            .validate_inventory(p, &request.transaction)
+                            .map_err(Failure)?;
+                        self.inner
+                            .preparation
+                            .timestamp(
+                                p,
+                                &self.inner.attachment.stamp(u128::from(revision.get())),
+                                captured.header.next,
+                            )
+                            .ok_or_else(|| Failure(invalid("prepared prestate changed")))?
+                    }
+                    None => self.inner.clock.now().map_err(Failure)?,
+                };
                 let prepared = commit::prepare(captured, request.transaction.clone(), time)
                     .map_err(Failure)?;
                 match indexed {
@@ -650,6 +688,9 @@ impl SqliteStorage {
             let header = data::header(&tx).map_err(Failure)?;
             self.inner.verify(&tx, &header, time).map_err(Failure)?;
             if header.revision != revision {
+                if preparation.is_some() {
+                    return Ok(ConditionalOutcome::NotApplied);
+                }
                 continue;
             }
             let prepared = prepared?;
@@ -1105,6 +1146,47 @@ impl Administrative {
 impl RuntimeStorage for SqliteStorage {
     fn runtime_attachment(&self) -> &RuntimeAttachment {
         &self.inner.attachment
+    }
+    fn prepare_entries(
+        &self,
+        expected_stamp: ReadStamp,
+        slots: Vec<PreparedEntrySlot>,
+    ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+        Box::pin(async move {
+            let (stamp, next) = self.inner.read(|_, header| {
+                Ok((
+                    self.inner
+                        .attachment
+                        .stamp(u128::from(header.revision.get())),
+                    header.next,
+                ))
+            })?;
+            if stamp != expected_stamp {
+                return Ok(None);
+            }
+            let time = self.inner.clock.now();
+            let after = self.inner.read(|_, header| {
+                Ok(self
+                    .inner
+                    .attachment
+                    .stamp(u128::from(header.revision.get())))
+            })?;
+            if after != stamp {
+                return Ok(None);
+            }
+            self.inner
+                .preparation
+                .prepare(stamp, next, time?, slots)
+                .map(Some)
+        })
+    }
+    fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        prepared: PreparedEntries,
+        request: ConditionalCommit,
+        validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        Box::pin(async move { self.checked_prepared(request, validator, Some(&prepared)) })
     }
     fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
         Box::pin(async move {

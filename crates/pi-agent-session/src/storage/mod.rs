@@ -124,3 +124,6 @@ pub use indexed::{IndexedProjection, IndexedPublicationValidator, IndexedReadSet
 
 mod runtime;
 pub use runtime::{ReadStamp, RuntimeAttachment, RuntimeLease, RuntimeStorage};
+
+mod prepared;
+pub use prepared::{PreparedEntries, PreparedEntryAuthority, PreparedEntrySlot};

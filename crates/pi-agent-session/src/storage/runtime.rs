@@ -1,5 +1,8 @@
 //! Backend-incarnation ownership and bounded coherent-read observations.
-use super::CheckedStorage;
+use super::{
+    CheckedCommitError, CheckedStorage, ConditionalCommit, ConditionalOutcome, PreparedEntries,
+    PreparedEntrySlot, PublicationValidator,
+};
 use pi_agent_schema::{BoxFuture, ErrorContext, StorageError};
 use std::sync::{
     Arc,
@@ -14,6 +17,23 @@ pub trait RuntimeStorage: CheckedStorage {
     /// Observe the protected nonwrapping publication revision after checking the
     /// same live/fenced authority as ordinary reads. Never captures a full snapshot.
     fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>>;
+    /// Prepare exact entry metadata without reserving sequences or publishing.
+    fn prepare_entries(
+        &self,
+        _expected_stamp: ReadStamp,
+        _slots: Vec<PreparedEntrySlot>,
+    ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+        Box::pin(async { Err(unsupported()) })
+    }
+    /// Publish the final validated transaction only against its prepared prestate.
+    fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        _prepared: PreparedEntries,
+        _request: ConditionalCommit,
+        _validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        Box::pin(async { Err(CheckedCommitError::Storage(unsupported())) })
+    }
 }
 
 /// One local attachment cell per backend incarnation. Deliberately not Clone.
@@ -80,4 +100,10 @@ impl std::fmt::Debug for ReadStamp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("ReadStamp([OPAQUE])")
     }
+}
+
+fn unsupported() -> StorageError {
+    StorageError::Unsupported(
+        ErrorContext::new("prepared publication is unsupported").expect("static context"),
+    )
 }

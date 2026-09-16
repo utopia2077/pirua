@@ -115,6 +115,7 @@ struct Live {
 /// One path-owned JSONL storage incarnation. Share its Arc; close seals this owner.
 pub struct JsonlStorage {
     attachment: RuntimeAttachment,
+    preparation: PreparedEntryAuthority,
     live: Mutex<Live>,
     path: PathBuf,
     clock: Arc<dyn StorageClock>,
@@ -217,6 +218,7 @@ impl JsonlStorage {
         let path = claim.path.clone();
         Arc::new(Self {
             attachment: RuntimeAttachment::new(),
+            preparation: PreparedEntryAuthority::new(),
             live: Mutex::new(Live {
                 file: Some(claim),
                 view,
@@ -299,14 +301,42 @@ impl JsonlStorage {
         request: ConditionalCommit,
         validator: &V,
     ) -> Result<ConditionalOutcome, CheckedCommitError<V::Error>> {
+        self.checked_prepared(request, validator, None)
+    }
+    fn checked_prepared<V: PublicationValidator + ?Sized>(
+        &self,
+        request: ConditionalCommit,
+        validator: &V,
+        preparation: Option<&PreparedEntries>,
+    ) -> Result<ConditionalOutcome, CheckedCommitError<V::Error>> {
         use CheckedCommitError::Storage as Failure;
         loop {
             let (snapshot, metadata, mode, revision) = self.capture().map_err(Failure)?;
             if !Self::matches(&snapshot, &request.conditions).map_err(Failure)? {
                 return Ok(ConditionalOutcome::NotApplied);
             }
+            let frozen_time = match preparation {
+                Some(prepared) => {
+                    let Some(time) = self.preparation.timestamp(
+                        prepared,
+                        &self.attachment.stamp(revision),
+                        snapshot.next_seq,
+                    ) else {
+                        return Ok(ConditionalOutcome::NotApplied);
+                    };
+                    Some(time)
+                }
+                None => None,
+            };
             let prepared = (|| {
-                let timestamp = self.clock.now().map_err(Failure)?;
+                if let Some(prepared) = preparation {
+                    self.preparation
+                        .validate_inventory(prepared, &request.transaction)
+                        .map_err(Failure)?;
+                }
+                let timestamp = frozen_time
+                    .map_or_else(|| self.clock.now(), Ok)
+                    .map_err(Failure)?;
                 let staged = projection(snapshot.clone(), timestamp).map_err(Failure)?;
                 let result = immediate(staged.commit_checked(request.clone(), validator))
                     .map_err(Failure)??;
@@ -335,6 +365,9 @@ impl JsonlStorage {
                 return Err(Failure(closed()));
             }
             if live.revision != revision {
+                if preparation.is_some() {
+                    return Ok(ConditionalOutcome::NotApplied);
+                }
                 continue;
             }
             let (staged, result, frame, replacement) = prepared?;
@@ -654,6 +687,39 @@ impl Storage for JsonlStorage {
 impl RuntimeStorage for JsonlStorage {
     fn runtime_attachment(&self) -> &RuntimeAttachment {
         &self.attachment
+    }
+    fn prepare_entries(
+        &self,
+        expected_stamp: ReadStamp,
+        slots: Vec<PreparedEntrySlot>,
+    ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+        Box::pin(async move {
+            let (stamp, next) = self.read(|live| {
+                Ok((
+                    self.attachment.stamp(live.revision),
+                    live.view.preparation_metadata()?.1,
+                ))
+            })?;
+            if stamp != expected_stamp {
+                return Ok(None);
+            }
+            let time = self.clock.now();
+            let after = self.read(|live| Ok(self.attachment.stamp(live.revision)))?;
+            if after != stamp {
+                return Ok(None);
+            }
+            self.preparation
+                .prepare(stamp, next, time?, slots)
+                .map(Some)
+        })
+    }
+    fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        prepared: PreparedEntries,
+        request: ConditionalCommit,
+        validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        Box::pin(async move { self.checked_prepared(request, validator, Some(&prepared)) })
     }
     fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
         Box::pin(async move { self.read(|live| Ok(self.attachment.stamp(live.revision))) })

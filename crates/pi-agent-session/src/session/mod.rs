@@ -354,6 +354,64 @@ impl IndexedPublicationValidator for SessionPublication<'_> {
 }
 
 impl<S: RuntimeStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M> {
+    /// Materialize exact candidate entries against bounded hydration's stamp.
+    pub fn prepare_entries(
+        &self,
+        expected_stamp: ReadStamp,
+        slots: Vec<PreparedEntrySlot>,
+    ) -> BoxFuture<'_, Result<Option<PreparedEntries>, SessionError>> {
+        Box::pin(async move {
+            self.inner
+                .storage
+                .prepare_entries(expected_stamp, slots)
+                .await
+                .map_err(storage)
+        })
+    }
+    /// Publish a prepared transaction with the same codec, validator and observation
+    /// as ordinary conditional publication. Stale preparation emits no write span.
+    pub async fn commit_prepared_conditional_with_telemetry(
+        &self,
+        prepared: PreparedEntries,
+        request: ConditionalCommit,
+        telemetry: &dyn TelemetryContext,
+    ) -> Result<ConditionalOutcome, CheckedCommitError<SessionError>> {
+        self.inner
+            .codec
+            .validate_transaction(&request.transaction)
+            .map_err(CheckedCommitError::Rejected)?;
+        let validator = SessionPublication {
+            transaction: &request.transaction,
+        };
+        let count = request.transaction.writes.len();
+        let kinds = request
+            .transaction
+            .writes
+            .iter()
+            .map(|write| {
+                match write {
+                    Write::Entry(_) => "entry",
+                    Write::Usage(_) => "usage",
+                    Write::SetRegister(_) | Write::DeleteRegister(_) => "register",
+                }
+                .to_owned()
+            })
+            .collect();
+        let result = self
+            .inner
+            .storage
+            .commit_prepared_checked(prepared, request.clone(), &validator)
+            .await;
+        match &result {
+            Ok(ConditionalOutcome::Applied(commit)) => {
+                Self::observe(telemetry, count, kinds, Some(commit))
+            }
+            Err(CheckedCommitError::Storage(_)) => Self::observe(telemetry, count, kinds, None),
+            _ => (),
+        }
+        result
+    }
+
     /// Claim this backend incarnation, including through independent Session wrappers.
     pub fn claim_runtime(&self) -> Result<RuntimeLease, SessionError> {
         self.inner

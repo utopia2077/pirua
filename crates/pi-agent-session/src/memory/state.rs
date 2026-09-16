@@ -199,6 +199,9 @@ impl State {
             }
         })
     }
+    pub(super) fn next_seq(&self) -> Option<SafeUnsigned> {
+        self.next_seq
+    }
     pub fn apply(
         &mut self,
         tx: Transaction,
