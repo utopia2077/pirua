@@ -1,4 +1,4 @@
-//! Concrete session owner and configured restore-only factory.
+//! Concrete session owner with explicit first attachment and strict restore.
 #![allow(missing_docs)]
 use crate::{
     hooks::HookRegistry,
@@ -119,15 +119,71 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         options: AgentHarnessOptions<C, Telemetry, RuntimeSession<S, M>, ModelsRegistry>,
     ) -> Result<AgentHarnessCreate<RuntimeHarness<C, S, M>>, HarnessRuntimeError> {
+        self.create_attached(options, false).await
+    }
+    /// Explicit caller-authorized first attachment. Only this concrete entry may
+    /// initialize missing main configuration; the factory trait remains strict.
+    pub async fn create_first_attachment(
+        &self,
+        options: AgentHarnessOptions<C, Telemetry, RuntimeSession<S, M>, ModelsRegistry>,
+    ) -> Result<AgentHarnessCreate<RuntimeHarness<C, S, M>>, HarnessRuntimeError> {
+        let factory = Self::new(
+            self.clock.clone(),
+            self.spawner.clone(),
+            self.ids.clone(),
+            self.context.clone(),
+            self.summaries.clone(),
+        );
+        // The host task owns the sole lease through seed publication and complete
+        // construction, even if the initiating waiter disappears while storage
+        // has already admitted the seed. An unpolled call starts no host task.
+        crate::scheduler::retained(
+            self.spawner.clone(),
+            Box::pin(crate::scheduler::catch_task(Box::pin(async move {
+                factory.create_attached(options, true).await
+            }))),
+        )
+        .await??
+    }
+    async fn create_attached(
+        &self,
+        options: AgentHarnessOptions<C, Telemetry, RuntimeSession<S, M>, ModelsRegistry>,
+        first_attachment: bool,
+    ) -> Result<AgentHarnessCreate<RuntimeHarness<C, S, M>>, HarnessRuntimeError> {
         validate_stream_options(
             &options.stream_options,
             options.session.codec().header_policy(),
         )?;
+        // Capture once, outside locks, for both permitted main initialization and
+        // every future lane. Existing main configuration never replaces this seed.
+        let seed = LaneConfiguration {
+            model: LaneModel {
+                provider: options.model.provider.clone(),
+                model_id: options.model.id.clone(),
+            },
+            thinking_level: options.thinking_level.unwrap_or(AgentThinkingLevel::Off),
+            active_tool_names: options.active_tool_names.clone().unwrap_or_else(|| {
+                options
+                    .tools
+                    .iter()
+                    .map(|tool| tool.descriptor().name.clone())
+                    .collect()
+            }),
+        };
         let admission = Admission::new();
         let lease = options
             .session
             .claim_runtime()
             .map_err(|_| fault("session already attached or unavailable"))?;
+        if first_attachment {
+            crate::restore::initialize_main(
+                options.session.as_ref(),
+                &seed,
+                options.telemetry_context.as_ref(),
+                &admission,
+            )
+            .await?;
+        }
         let restored = restore_configured(options.session.as_ref(), &admission).await?;
         let suspended = restored.values().filter_map(suspended).collect();
         let lanes = restored
@@ -196,20 +252,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             drive_mode: options.drive,
             close_started: std::sync::atomic::AtomicBool::new(false),
             closed: pi_ai_core::CancellationToken::new(),
-            seed: LaneConfiguration {
-                model: LaneModel {
-                    provider: options.model.provider,
-                    model_id: options.model.id,
-                },
-                thinking_level: options.thinking_level.unwrap_or(AgentThinkingLevel::Off),
-                active_tool_names: options.active_tool_names.unwrap_or_else(|| {
-                    options
-                        .tools
-                        .iter()
-                        .map(|t| t.descriptor().name.clone())
-                        .collect()
-                }),
-            },
+            seed,
             tools: Mutex::new(options.tools),
             lanes: Mutex::new(lanes),
             lease: Mutex::new(Some(lease)),

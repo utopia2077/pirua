@@ -155,9 +155,7 @@ pub async fn restore_configured<S: RuntimeStorage + 'static, M: SessionMetadataR
                 lanes.insert(lane, value);
             }
             if !lanes.contains_key(&LaneId::new("main").expect("static lane")) {
-                return Err(fault(
-                    "configured main lane is required; attachment policy is unresolved",
-                ));
+                return Err(fault("configured main lane is required"));
             }
             Ok(lanes)
         }
@@ -168,6 +166,92 @@ pub async fn restore_configured<S: RuntimeStorage + 'static, M: SessionMetadataR
             .map_err(|_| fault("runtime read stamp failed"))?;
         if before == after {
             return candidate;
+        }
+    }
+}
+
+/// Seed only the explicitly authorized, idle, unconfigured main lane. Seed
+/// publication intentionally precedes full restore; later restore errors do not
+/// roll it back. This reads no history, usage, model or application context.
+pub(crate) async fn initialize_main<S: RuntimeStorage + 'static, M: SessionMetadataRecord>(
+    session: &RuntimeSession<S, M>,
+    seed: &LaneConfiguration,
+    telemetry: &dyn pi_telemetry::TelemetryContext,
+    admission: &Admission,
+) -> Result<(), HarnessRuntimeError> {
+    use pi_agent_session::storage::{
+        ConditionalCommit, ConditionalOutcome, ExpectedRegister, RegisterCondition, RegisterKey,
+    };
+    loop {
+        admission.check()?;
+        let before = session
+            .read_stamp()
+            .await
+            .map_err(|_| fault("initialization stamp read failed"))?;
+        let candidate = async {
+            if session
+                .get_register(RegisterNamespace::LaneConfig, "main")
+                .await
+                .map_err(|_| fault("initialization configuration read failed"))?
+                .is_some()
+            {
+                return Ok(None);
+            }
+            let state = session
+                .get_register(RegisterNamespace::LaneState, "main")
+                .await
+                .map_err(|_| fault("initialization state read failed"))?
+                .ok_or_else(|| fault("initialization main state missing"))?;
+            let leaf = session
+                .get_register(RegisterNamespace::LaneLeaf, "main")
+                .await
+                .map_err(|_| fault("initialization leaf read failed"))?
+                .ok_or_else(|| fault("initialization main leaf missing"))?;
+            let idle_main = matches!(&state, Register::LaneState { key, value, .. }
+                if key == "main" && value.current_operation_id.is_none());
+            let main_leaf = matches!(&leaf, Register::LaneLeaf { key, .. } if key == "main");
+            if !idle_main || !main_leaf {
+                return Err(fault("initialization requires actual idle main roots"));
+            }
+            Ok(Some(ConditionalCommit {
+                conditions: vec![
+                    RegisterCondition {
+                        register: RegisterKey {
+                            namespace: RegisterNamespace::LaneConfig,
+                            key: "main".into(),
+                        },
+                        expected: ExpectedRegister::Absent,
+                    },
+                    crate::publication::observed(&state),
+                    crate::publication::observed(&leaf),
+                ],
+                transaction: Transaction {
+                    writes: vec![Write::SetRegister(Box::new(RegisterSet::LaneConfig {
+                        key: "main".into(),
+                        value: seed.clone(),
+                    }))],
+                },
+            }))
+        }
+        .await;
+        let after = session
+            .read_stamp()
+            .await
+            .map_err(|_| fault("initialization stamp read failed"))?;
+        if before != after {
+            continue;
+        }
+        let Some(request) = candidate? else {
+            return Ok(());
+        };
+        let _permit = admission.try_admit()?;
+        match session
+            .commit_conditional_with_telemetry(request, telemetry)
+            .await
+            .map_err(|_| fault("initialization conditional publication failed"))?
+        {
+            ConditionalOutcome::Applied(_) => return Ok(()),
+            ConditionalOutcome::NotApplied => {}
         }
     }
 }
