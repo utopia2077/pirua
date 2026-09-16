@@ -66,6 +66,13 @@ fn conversion_fault() -> HarnessRuntimeError {
     ))
 }
 
+fn capture_fault() -> HarnessRuntimeError {
+    HarnessRuntimeError::Fault(HarnessFault::new(
+        ErrorContext::new("captured request registration or model mismatch")
+            .expect("fixed bounded error context"),
+    ))
+}
+
 fn callback_panic() -> HarnessRuntimeError {
     HarnessRuntimeError::Fault(HarnessFault::new(
         ErrorContext::new("trusted request callback panicked")
@@ -130,6 +137,24 @@ impl RequestPayloadTransform for PayloadBridge {
 pub async fn run_request(
     input: RequestInput,
 ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    run_request_inner(input, None).await
+}
+
+/// Owner-only route: captured registration survives listener reentry and delayed spawn.
+pub(crate) async fn run_captured_request(
+    input: RequestInput,
+    captured: pi_ai_core::CapturedTextDispatch,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    if &input.model != captured.model() {
+        return Err(capture_fault());
+    }
+    run_request_inner(input, Some(captured)).await
+}
+
+async fn run_request_inner(
+    input: RequestInput,
+    captured: Option<pi_ai_core::CapturedTextDispatch>,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
     let cancellation = input.runtime.cancellation.clone();
     let error = Arc::new(Mutex::new(None));
     let handlers = catch_unwind(AssertUnwindSafe(|| input.callbacks.has_payload_handlers()))
@@ -181,16 +206,30 @@ pub async fn run_request(
             ..Default::default()
         },
     };
-    let mut observed = input.models.stream_simple_with_lifecycle(
-        input.model,
-        input.context,
-        ModelsRequestOverrides {
-            headers: ProviderHeaders::new(headers),
-            ..Default::default()
-        },
-        options,
-        RequestLifecycleOptions { payload },
-    );
+    let overrides = ModelsRequestOverrides {
+        headers: ProviderHeaders::new(headers),
+        ..Default::default()
+    };
+    let lifecycle = RequestLifecycleOptions { payload };
+    let mut observed = match captured {
+        Some(captured) => input
+            .models
+            .stream_simple_captured_with_lifecycle(
+                captured,
+                input.context,
+                overrides,
+                options,
+                lifecycle,
+            )
+            .map_err(|_| capture_fault())?,
+        None => input.models.stream_simple_with_lifecycle(
+            input.model,
+            input.context,
+            overrides,
+            options,
+            lifecycle,
+        ),
+    };
     while let Some(event) = observed.stream.next().await {
         let callback_error = error.lock().unwrap_or_else(|e| e.into_inner()).take();
         if let Some(error) = callback_error {

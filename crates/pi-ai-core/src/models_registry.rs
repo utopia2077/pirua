@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::future::{Future, poll_fn};
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 use std::task::{Context as TaskContext, Poll, Waker};
 
 use crate::adapter::ApiAdapter;
@@ -856,6 +856,60 @@ pub struct ModelsRegistry {
     child_cancellation: bool,
 }
 
+/// Opaque identity of one committed registration in one registry incarnation.
+#[derive(Clone)]
+pub struct ProviderRegistration {
+    registry: Weak<RegistryInner>,
+    record: Arc<ProviderRecord>,
+}
+impl ProviderRegistration {
+    /// Compares registration allocations, not merely the provider object's Arc.
+    pub fn same_registration(&self, other: &Self) -> bool {
+        Weak::ptr_eq(&self.registry, &other.registry) && Arc::ptr_eq(&self.record, &other.record)
+    }
+}
+/// One-use authority to dispatch a full text model through a captured registration.
+pub struct CapturedTextDispatch {
+    registry: Arc<RegistryInner>,
+    record: Arc<ProviderRecord>,
+    model: Model,
+    child_cancellation: bool,
+}
+impl CapturedTextDispatch {
+    /// The complete observed model, fixed independently of later catalog changes.
+    pub fn model(&self) -> &Model {
+        &self.model
+    }
+}
+/// Failure to bind a request to the expected registration.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CaptureDispatchError {
+    /// The token or dispatch belongs to a different registry instance.
+    WrongRegistry,
+    /// No registration remains for this provider identity.
+    MissingRegistration,
+    /// A different registration, including a re-registration of the same Arc, won.
+    ReplacedRegistration,
+    /// The supplied model belongs to a different provider.
+    ModelProviderMismatch,
+}
+impl fmt::Display for CaptureDispatchError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "request capture failed: {self:?}")
+    }
+}
+impl std::error::Error for CaptureDispatchError {}
+impl fmt::Debug for ProviderRegistration {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("ProviderRegistration([PROCESS-LOCAL])")
+    }
+}
+impl fmt::Debug for CapturedTextDispatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("CapturedTextDispatch([PROCESS-LOCAL])")
+    }
+}
+
 impl ModelsRegistry {
     /// Creates an empty registry and consumes its exclusive model store.
     pub fn new(options: ModelsRegistryOptions) -> Self {
@@ -903,6 +957,87 @@ impl ModelsRegistry {
             .iter()
             .find(|record| &record.id == provider)
             .cloned()
+    }
+
+    /// Observes committed registration identity without invoking provider code.
+    pub fn provider_registration(&self, provider: &ProviderId) -> Option<ProviderRegistration> {
+        let membership = self
+            .inner
+            .membership
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        membership
+            .committed
+            .iter()
+            .find(|record| &record.id == provider)
+            .map(|record| ProviderRegistration {
+                registry: Arc::downgrade(&self.inner),
+                record: Arc::clone(record),
+            })
+    }
+
+    /// Atomically compares and captures a registration; performs no callbacks or dispatch.
+    pub fn capture_text_dispatch(
+        &self,
+        expected: &ProviderRegistration,
+        model: Model,
+    ) -> Result<CapturedTextDispatch, CaptureDispatchError> {
+        if !Weak::ptr_eq(&expected.registry, &Arc::downgrade(&self.inner)) {
+            return Err(CaptureDispatchError::WrongRegistry);
+        }
+        if model.provider != expected.record.id {
+            return Err(CaptureDispatchError::ModelProviderMismatch);
+        }
+        let record = {
+            let membership = self
+                .inner
+                .membership
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            let current = membership
+                .committed
+                .iter()
+                .find(|record| record.id == expected.record.id)
+                .ok_or(CaptureDispatchError::MissingRegistration)?;
+            if !Arc::ptr_eq(current, &expected.record) || current.epoch != expected.record.epoch {
+                return Err(CaptureDispatchError::ReplacedRegistration);
+            }
+            Arc::clone(current)
+        };
+        Ok(CapturedTextDispatch {
+            registry: Arc::clone(&self.inner),
+            record,
+            model,
+            child_cancellation: self.child_cancellation,
+        })
+    }
+
+    /// Consumes captured authority outside caller locks and uses the ordinary request worker.
+    pub fn stream_simple_captured_with_lifecycle(
+        &self,
+        captured: CapturedTextDispatch,
+        context: Context,
+        overrides: ModelsRequestOverrides,
+        options: SimpleStreamOptions,
+        lifecycle: RequestLifecycleOptions,
+    ) -> Result<ObservedAssistantStream, CaptureDispatchError> {
+        if !Arc::ptr_eq(&self.inner, &captured.registry) {
+            return Err(CaptureDispatchError::WrongRegistry);
+        }
+        let (lifecycle, metadata) = RequestLifecycleInvocation::new(lifecycle);
+        let stream = start_dispatch_selected(
+            captured.registry,
+            captured.child_cancellation,
+            captured.model,
+            overrides,
+            DispatchRequest::Simple {
+                context,
+                options,
+                lifecycle: Some(lifecycle),
+            },
+            Some(captured.record),
+        );
+        Ok(ObservedAssistantStream { stream, metadata })
     }
 
     fn mutate<'a>(&'a self, kind: MutationKind) -> BoxFuture<'a, Result<(), ModelsError>> {
@@ -1864,12 +1999,22 @@ fn find_record(inner: &RegistryInner, provider: &ProviderId) -> Option<Arc<Provi
 async fn assemble_request(
     inner: &RegistryInner,
     model: Model,
-    mut overrides: ModelsRequestOverrides,
+    overrides: ModelsRequestOverrides,
     cancellation: &CancellationToken,
 ) -> Result<AssembledRequest, SetupAssemblyError> {
     let Some(record) = find_record(inner, &model.provider) else {
         return Err(SetupAssemblyError::UnknownProvider);
     };
+    assemble_request_from_record(inner, record, model, overrides, cancellation).await
+}
+
+async fn assemble_request_from_record(
+    inner: &RegistryInner,
+    record: Arc<ProviderRecord>,
+    model: Model,
+    mut overrides: ModelsRequestOverrides,
+    cancellation: &CancellationToken,
+) -> Result<AssembledRequest, SetupAssemblyError> {
     let explicit_api_key = overrides.auth.api_key.clone();
     let explicit_env = overrides.auth.env.clone();
     let resolution = resolve_provider_auth(
@@ -1999,6 +2144,17 @@ fn start_dispatch(
     overrides: ModelsRequestOverrides,
     request: DispatchRequest,
 ) -> AssistantStream {
+    start_dispatch_selected(inner, child_cancellation, model, overrides, request, None)
+}
+
+fn start_dispatch_selected(
+    inner: Arc<RegistryInner>,
+    child_cancellation: bool,
+    model: Model,
+    overrides: ModelsRequestOverrides,
+    request: DispatchRequest,
+    captured: Option<Arc<ProviderRecord>>,
+) -> AssistantStream {
     let cancellation = request.cancellation();
     let outer_cancellation = if child_cancellation {
         CancellationToken::new()
@@ -2019,7 +2175,13 @@ fn start_dispatch(
             outer_cancellation.cancel();
             return;
         }
-        let assembled = match assemble_request(&inner, model, overrides, &cancellation).await {
+        let assembly = match captured {
+            Some(record) => {
+                assemble_request_from_record(&inner, record, model, overrides, &cancellation).await
+            }
+            None => assemble_request(&inner, model, overrides, &cancellation).await,
+        };
+        let assembled = match assembly {
             Ok(assembled) => assembled,
             Err(SetupAssemblyError::UnknownProvider) => {
                 let _ = task_producer.fail_setup(StreamSetupFailure::UnknownProvider);

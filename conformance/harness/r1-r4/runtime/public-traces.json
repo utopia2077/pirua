@@ -1,0 +1,13 @@
+{
+  "source": "pi-mono 853a80d26c90a14c1886f0ebb8ffaae133ca2185 harness.md sections 3.6, 3.7, 3.13 and R1-R4",
+  "configured_no_tool_transactions": [
+    ["entry:user", "set:lane.leaf", "set:op.meta", "state:checkpoint:need_assistant", "set:lane.state"],
+    ["state:assistant:ready"],
+    ["state:assistant:effect_pending"],
+    ["entry:assistant", "set:lane.leaf", "usage", "state:checkpoint:may_finish"],
+    ["delete:op.meta", "delete:op.state", "set:lane.lastResult", "set:lane.state"]
+  ],
+  "entry_ids": ["runtime-id-1", "runtime-id-3"],
+  "usage_ids": ["runtime-id-4"],
+  "operation_id": "runtime-id-0"
+}

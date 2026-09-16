@@ -1,5 +1,3 @@
-#[path = "../src/request.rs"]
-mod request;
 mod request_adapter_support;
 
 use pi_agent_schema::{
@@ -10,7 +8,7 @@ use pi_agent_schema::{
 };
 use pi_ai_core::*;
 use pi_harness_runtime::hooks::apply_stream_options_patch;
-use request::*;
+use pi_harness_runtime::request::*;
 use request_adapter_support::*;
 use std::sync::{
     Arc, Mutex,

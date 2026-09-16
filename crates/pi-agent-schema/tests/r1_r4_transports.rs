@@ -22,14 +22,16 @@ fn request() -> HookEffectPlan<&'static str> {
 fn complete_effective_options_preserve_header_recasing_and_all_fields() {
     let plan = request();
     let policy = ProviderHeaderPolicy::from_allowlist(vec!["x-a".into()]);
-    let mut options = AgentHarnessStreamOptions::default();
-    options.headers = Some(
-        RawProviderHeaders::new(BTreeMap::from([("x-a".into(), "new".into())]))
-            .unwrap()
-            .classify(&policy)
-            .unwrap(),
-    );
-    options.timeout_ms = Some(n(42));
+    let options = AgentHarnessStreamOptions {
+        headers: Some(
+            RawProviderHeaders::new(BTreeMap::from([("x-a".into(), "new".into())]))
+                .unwrap()
+                .classify(&policy)
+                .unwrap(),
+        ),
+        timeout_ms: Some(n(42)),
+        ..Default::default()
+    };
     let output = RequestOptionsOutput::new(&plan, options.clone()).unwrap();
     assert_eq!(output.options(), &options);
     assert_eq!(output.key(), &plan.key);

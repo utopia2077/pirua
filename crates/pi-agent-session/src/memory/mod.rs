@@ -357,6 +357,19 @@ impl CheckedStorage for MemoryStorage {
     }
 }
 
+impl RuntimeStorage for MemoryStorage {
+    fn runtime_attachment(&self) -> &RuntimeAttachment {
+        &self.attachment
+    }
+    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+        Box::pin(async move {
+            let inner = self.backing.lock()?;
+            self.ensure_open(&inner)?;
+            Ok(self.attachment.stamp(inner.revision))
+        })
+    }
+}
+
 #[cfg(test)]
 mod readonly_tests {
     use super::*;
@@ -424,18 +437,5 @@ mod readonly_tests {
             after, before,
             "readonly repository must never open a MemoryStorage"
         );
-    }
-}
-
-impl RuntimeStorage for MemoryStorage {
-    fn runtime_attachment(&self) -> &RuntimeAttachment {
-        &self.attachment
-    }
-    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
-        Box::pin(async move {
-            let inner = self.backing.lock()?;
-            self.ensure_open(&inner)?;
-            Ok(self.attachment.stamp(inner.revision))
-        })
     }
 }

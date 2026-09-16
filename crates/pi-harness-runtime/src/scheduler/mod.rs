@@ -5,3 +5,11 @@ mod mutation_line;
 
 pub use admission::{Admission, CommitPermit};
 pub use mutation_line::{Acquire, MutationLine, MutationPermit};
+
+mod supervisor;
+pub use supervisor::{Supervisor, TaskTicket};
+
+mod completion;
+pub use completion::retained;
+
+pub(crate) use completion::catch_task;
