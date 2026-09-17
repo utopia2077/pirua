@@ -211,7 +211,7 @@ async fn run_request_inner(
         ..Default::default()
     };
     let lifecycle = RequestLifecycleOptions { payload };
-    let mut observed = match captured {
+    let observed = match captured {
         Some(captured) => input
             .models
             .stream_simple_captured_with_lifecycle(
@@ -230,12 +230,31 @@ async fn run_request_inner(
             lifecycle,
         ),
     };
+    consume_observed(
+        observed,
+        input.callbacks,
+        input.lane,
+        input.run_id,
+        cancellation,
+        error,
+    )
+    .await
+}
+
+async fn consume_observed(
+    mut observed: pi_ai_core::ObservedAssistantStream,
+    callbacks: Arc<dyn RequestCallbacks>,
+    lane: LaneId,
+    run_id: OperationId,
+    cancellation: pi_ai_core::CancellationToken,
+    error: Arc<Mutex<Option<HarnessRuntimeError>>>,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
     while let Some(event) = observed.stream.next().await {
         let callback_error = error.lock().unwrap_or_else(|e| e.into_inner()).take();
         if let Some(error) = callback_error {
             return Err(error);
         }
-        invoke(|| input.callbacks.stream_event(event)).await?;
+        invoke(|| callbacks.stream_event(event)).await?;
     }
     let result = observed.stream.result().await;
     let callback_error = error.lock().unwrap_or_else(|e| e.into_inner()).take();
@@ -272,13 +291,147 @@ async fn run_request_inner(
     // The owner performs its serialized start check inside this callback. Once
     // started it may finish after operation abort; do not race it with the token.
     invoke(|| {
-        input.callbacks.after_response(AfterResponseEvent {
-            lane: input.lane,
-            run_id: input.run_id,
+        callbacks.after_response(AfterResponseEvent {
+            lane,
+            run_id,
             status,
             headers,
             message,
         })
     })
     .await
+}
+
+/// Captured inputs for one deferred fetch; no prompt or context conversion is needed.
+pub struct DeferredRequestInput {
+    pub models: Arc<ModelsRegistry>,
+    pub model: Model,
+    pub handle: pi_ai_core::DeferredHandle,
+    pub options: AgentHarnessStreamOptions,
+    pub runtime: RequestRuntime,
+    pub lane: LaneId,
+    pub run_id: OperationId,
+    pub callbacks: Arc<dyn RequestCallbacks>,
+}
+
+/// Captured best-effort cancellation inputs. The owner supplies a close-only signal.
+pub struct DeferredCancelInput {
+    pub models: Arc<ModelsRegistry>,
+    pub model: Model,
+    pub handle: pi_ai_core::DeferredHandle,
+    pub options: AgentHarnessStreamOptions,
+    pub runtime: RequestRuntime,
+}
+
+fn deferred_headers(options: &AgentHarnessStreamOptions) -> ModelsRequestOverrides {
+    ModelsRequestOverrides {
+        headers: ProviderHeaders::new(
+            options
+                .headers
+                .as_ref()
+                .map(|headers| {
+                    headers
+                        .as_map()
+                        .iter()
+                        .map(|(name, value)| (name.clone(), Some(value.clone())))
+                        .collect()
+                })
+                .unwrap_or_default(),
+        ),
+        ..Default::default()
+    }
+}
+
+/// Fetch one captured deferred response through the existing payload/response pipeline.
+pub async fn run_deferred_request(
+    input: DeferredRequestInput,
+    captured: pi_ai_core::CapturedTextDispatch,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    if &input.model != captured.model() {
+        return Err(capture_fault());
+    }
+    let cancellation = input.runtime.cancellation.clone();
+    let error = Arc::new(Mutex::new(None));
+    let handlers = catch_unwind(AssertUnwindSafe(|| input.callbacks.has_payload_handlers()))
+        .map_err(|_| callback_panic())?;
+    let payload = handlers.then(|| {
+        Arc::new(PayloadBridge {
+            callbacks: input.callbacks.clone(),
+            lane: input.lane.clone(),
+            run_id: input.run_id.clone(),
+            error: error.clone(),
+        }) as Arc<dyn RequestPayloadTransform>
+    });
+    let overrides = deferred_headers(&input.options);
+    let options = pi_ai_core::DeferredFetchOptions {
+        runtime: input.runtime,
+        wire: pi_ai_core::DeferredFetchOptionsWire {
+            timeout_ms: input.options.timeout_ms,
+            max_retries: input.options.max_retries,
+            max_retry_delay_ms: input.options.max_retry_delay_ms,
+            wait: Some(SafeUnsigned::new(0).expect("zero is safe")),
+        },
+    };
+    let observed = input
+        .models
+        .fetch_deferred_captured_with_lifecycle(
+            captured,
+            input.handle,
+            overrides,
+            options,
+            RequestLifecycleOptions { payload },
+        )
+        .map_err(|_| capture_fault())?;
+    consume_observed(
+        observed,
+        input.callbacks,
+        input.lane,
+        input.run_id,
+        cancellation,
+        error,
+    )
+    .await
+}
+
+fn cancel_provider_panic() -> pi_ai_core::AuthResolutionError {
+    pi_ai_core::AuthResolutionError::Models(ModelsError::new(ModelsErrorCode::Provider))
+}
+
+/// Cancel a captured deferred response without hooks, state mutation or assistant events.
+/// Provider failures, including panic, remain in the inner best-effort error channel.
+pub async fn cancel_deferred_request(
+    input: DeferredCancelInput,
+    captured: pi_ai_core::CapturedTextDispatch,
+) -> Result<Result<(), pi_ai_core::AuthResolutionError>, HarnessRuntimeError> {
+    if &input.model != captured.model() {
+        return Err(capture_fault());
+    }
+    let overrides = deferred_headers(&input.options);
+    let options = pi_ai_core::DeferredCancelOptions {
+        runtime: input.runtime,
+        wire: pi_ai_core::DeferredCancelOptionsWire {
+            timeout_ms: input.options.timeout_ms,
+            max_retries: input.options.max_retries,
+            max_retry_delay_ms: input.options.max_retry_delay_ms,
+        },
+    };
+    let mut future = match catch_unwind(AssertUnwindSafe(|| {
+        input
+            .models
+            .cancel_deferred_captured(captured, input.handle, overrides, options)
+    })) {
+        Ok(result) => result.map_err(|_| capture_fault())?,
+        Err(_) => return Ok(Err(cancel_provider_panic())),
+    };
+    let result = poll_fn(
+        |cx| match catch_unwind(AssertUnwindSafe(|| future.as_mut().poll(cx))) {
+            Ok(poll) => poll,
+            Err(_) => Poll::Ready(Err(cancel_provider_panic())),
+        },
+    )
+    .await;
+    if catch_unwind(AssertUnwindSafe(|| drop(future))).is_err() {
+        return Ok(Err(cancel_provider_panic()));
+    }
+    Ok(result)
 }
