@@ -107,14 +107,33 @@ pub(crate) fn next<C: Clone>(
     facts: &PlanningFacts<C>,
     batch: &ToolBatch,
 ) -> Result<ProcedureAction<C>, PlanError> {
-    let PlanningFacts::Tools {
-        session_id,
-        telemetry_context,
-        declarations,
-        interrupted,
-    } = facts
-    else {
-        return Err(PlanError::MissingInput);
+    let (session_id, telemetry_context, declarations, interrupted, aborted) = match facts {
+        PlanningFacts::Tools {
+            session_id,
+            telemetry_context,
+            declarations,
+            interrupted,
+        } => (
+            session_id,
+            telemetry_context,
+            declarations,
+            interrupted,
+            interrupted,
+        ),
+        PlanningFacts::ToolsCancelled {
+            session_id,
+            telemetry_context,
+            declarations,
+            interrupted,
+            aborted,
+        } => (
+            session_id,
+            telemetry_context,
+            declarations,
+            interrupted,
+            aborted,
+        ),
+        _ => return Err(PlanError::MissingInput),
     };
     let r = run(current)?;
     let Some(first) = batch
@@ -216,7 +235,11 @@ pub(crate) fn next<C: Clone>(
                 &plan,
                 reason,
                 ReconciledValue::Tool {
-                    result: interrupted.clone(),
+                    result: if cancelled(r) && matches!(call, ToolCallState::Planned { .. }) {
+                        aborted.clone()
+                    } else {
+                        interrupted.clone()
+                    },
                     is_error: true,
                     terminate: false,
                 },

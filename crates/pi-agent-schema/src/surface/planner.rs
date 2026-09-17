@@ -5,6 +5,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Duration;
 
+/// Existing deferred-request value used by pure procedure option normalization.
+pub use pi_ai_core::DeferredRequest;
 use pi_ai_core::{DeferredHandle, SafeUnsigned};
 
 use crate::surface::BoxFuture;
@@ -887,6 +889,12 @@ impl ReconciledOutput {
                     && p.key.step_or_task_id.as_str() == p.generation.context.step_id.as_str()
                     && p.key.logical_attempt.get() == p.generation.attempt.get()
             }
+            EffectPlan::Deferred(p) => {
+                p.key.kind == EffectKind::Deferred
+                    && p.key.item_index.is_none()
+                    && p.key.step_or_task_id.as_str() == p.deferred.step_id.as_str()
+                    && p.key.logical_attempt.get() == p.deferred.poll.get()
+            }
             EffectPlan::Tool(p) => {
                 p.key.kind == EffectKind::Tool
                     && p.key.item_index == Some(p.source_index)
@@ -915,6 +923,10 @@ impl ReconciledOutput {
             (
                 EffectPlan::Assistant(_),
                 ReconcileReason::UnknownAtCap | ReconcileReason::CancelledNotStarted,
+                ReconciledValue::Assistant(_)
+            ) | (
+                EffectPlan::Deferred(_),
+                ReconcileReason::CancelledNotStarted,
                 ReconciledValue::Assistant(_)
             ) | (
                 EffectPlan::Tool(_) | EffectPlan::ToolClearance(_),

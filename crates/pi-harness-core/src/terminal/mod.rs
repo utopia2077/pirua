@@ -29,7 +29,11 @@ pub fn operation_result<C>(
                 ..
             })
             | RunPhase::Tools(_) => return Err(PlanError::InvalidCurrent),
-            RunPhase::Deferred(_) | RunPhase::Compaction(_) => return Err(PlanError::LaterSlice),
+            RunPhase::Deferred(DeferredPhase {
+                deferred: Deferred::EffectPending { .. },
+                ..
+            }) => return Err(PlanError::InvalidCurrent),
+            RunPhase::Compaction(_) => return Err(PlanError::LaterSlice),
             _ => {}
         }
         if !r.inbox.writes.is_empty() {
@@ -69,29 +73,28 @@ pub fn operation_result<C>(
                 }),
                 Continuation::NeedAssistant { .. } => return Err(PlanError::InvalidCurrent),
             },
-            RunPhase::FailureDrain(p)
-                if inbox_empty(r) && matches!(p.provenance, FailureProvenance::Response { .. }) =>
-            {
-                match latest {
-                    Some((id, message)) => {
-                        RunOutcome::FailedWithAssistant(Box::new(RunFailedWithAssistant {
-                            kind: Default::default(),
-                            leaf_id: leaf,
-                            error: p.error.clone(),
-                            final_entry_id: id,
-                            final_message: message,
-                        }))
-                    }
-                    None => RunOutcome::FailedWithoutAssistant(RunFailedWithoutAssistant {
+            RunPhase::FailureDrain(p) if inbox_empty(r) => match latest {
+                Some((id, message)) => {
+                    RunOutcome::FailedWithAssistant(Box::new(RunFailedWithAssistant {
                         kind: Default::default(),
                         leaf_id: leaf,
                         error: p.error.clone(),
-                    }),
+                        final_entry_id: id,
+                        final_message: message,
+                    }))
                 }
-            }
+                None => RunOutcome::FailedWithoutAssistant(RunFailedWithoutAssistant {
+                    kind: Default::default(),
+                    leaf_id: leaf,
+                    error: p.error.clone(),
+                }),
+            },
             RunPhase::Deferred(DeferredPhase {
                 deferred:
                     Deferred::Suspended {
+                        source_entry_id, ..
+                    }
+                    | Deferred::EffectPending {
                         source_entry_id, ..
                     },
                 ..

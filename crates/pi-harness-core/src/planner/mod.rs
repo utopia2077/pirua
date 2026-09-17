@@ -68,6 +68,18 @@ pub struct ToolDeclaration {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlanningFacts<C> {
+    Inbox {
+        session_id: SessionId,
+        telemetry_context: C,
+        placements: Vec<PendingPlacement>,
+        projecting: std::collections::BTreeSet<EntryId>,
+    },
+    Deferred {
+        session_id: SessionId,
+        telemetry_context: C,
+        request: Option<Box<BeforeRequestEvent>>,
+        synthetic: Option<Box<SettledAssistantMessage>>,
+    },
     Checkpoint {
         session_id: SessionId,
         telemetry_context: C,
@@ -86,6 +98,13 @@ pub enum PlanningFacts<C> {
         telemetry_context: C,
         synthetic: Option<Box<SettledAssistantMessage>>,
     },
+    ToolsCancelled {
+        session_id: SessionId,
+        telemetry_context: C,
+        declarations: BTreeMap<SafeUnsigned, ToolDeclaration>,
+        interrupted: AgentToolResult,
+        aborted: AgentToolResult,
+    },
     Tools {
         session_id: SessionId,
         telemetry_context: C,
@@ -101,6 +120,10 @@ pub enum PlanningFacts<C> {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettlementFacts {
+    Deferred {
+        overflow: bool,
+        followers: Vec<(SafeUnsigned, EntryId)>,
+    },
     Request {
         response_entry_id: EntryId,
         usage_id: UsageId,
@@ -288,6 +311,7 @@ pub(crate) fn plan_matches<C>(expected: &EffectPlan<C>, actual: &EffectPlan<C>) 
     }
     match (expected, actual) {
         (EffectPlan::Assistant(a), EffectPlan::Assistant(b)) => a.generation == b.generation,
+        (EffectPlan::Deferred(a), EffectPlan::Deferred(b)) => a.deferred == b.deferred,
         (EffectPlan::Tool(a), EffectPlan::Tool(b)) => {
             a.assistant_entry_id == b.assistant_entry_id
                 && a.source_index == b.source_index
@@ -344,12 +368,18 @@ pub fn next_action<C: Clone>(
         return Err(PlanError::InvalidCurrent);
     }
     let r = run(current)?;
+    if crate::inbox::select(current)?.is_some() {
+        return crate::inbox::next(current, facts);
+    }
     if let PlanningFacts::MissingIdentities { missing } = facts {
         let safe = match &r.phase {
             RunPhase::Assistant(AssistantPhase {
                 generation: Generation::Ready { .. },
                 ..
             }) => true,
+            RunPhase::Deferred(p) => inputs.deferred_poll == DeferredPollPermit::One
+                && !inputs.running.values().any(|effect| matches!(effect, EffectPlan::Deferred(live)
+                    if PendingDeferred::try_from(p.deferred.clone()).is_ok_and(|pending| pending == live.deferred))),
             RunPhase::Tools(p) => p
                 .batch
                 .calls
@@ -381,9 +411,6 @@ pub fn next_action<C: Clone>(
                 return Ok(ProcedureAction::Existing(Action::Finish(
                     crate::terminal::operation_result(current, inputs)?,
                 )));
-            }
-            if !inbox_empty(r) && p.skip_inbox_once != Some(true) {
-                return Err(PlanError::LaterSlice);
             }
             match &p.continuation {
                 Continuation::NeedAssistant {
@@ -453,20 +480,15 @@ pub fn next_action<C: Clone>(
         }
         RunPhase::Assistant(p) => crate::generation::next(current, inputs, facts, &p.generation),
         RunPhase::Tools(p) => crate::tool_batch::next(current, inputs, facts, &p.batch),
-        RunPhase::FailureDrain(p) => {
-            if !inbox_empty(r) || matches!(p.provenance, FailureProvenance::Structural { .. }) {
+        RunPhase::FailureDrain(_) => {
+            if !inbox_empty(r) {
                 return Err(PlanError::LaterSlice);
             }
             Ok(ProcedureAction::Existing(Action::Finish(
                 crate::terminal::operation_result(current, inputs)?,
             )))
         }
-        RunPhase::Deferred(p) => match &p.deferred {
-            Deferred::Suspended { .. } => Ok(ProcedureAction::Existing(Action::Suspend(
-                crate::terminal::operation_result(current, inputs)?,
-            ))),
-            Deferred::EffectPending { .. } => Err(PlanError::LaterSlice),
-        },
+        RunPhase::Deferred(_) => crate::deferred::next(current, inputs, facts),
         RunPhase::Compaction(_) => Err(PlanError::LaterSlice),
     }
 }
@@ -526,7 +548,11 @@ pub fn settlement_recipe<C: Clone>(
         }
         EffectPlan::Hook(h) => match &h.event {
             HookEvent::BeforeRequest(_) => {
-                crate::generation::intent(current, commit, facts, output_facts)
+                if matches!(run(current)?.phase, RunPhase::Deferred(_)) {
+                    crate::deferred::intent(current, commit, inputs, facts, output_facts)
+                } else {
+                    crate::generation::intent(current, commit, facts, output_facts)
+                }
             }
             HookEvent::BeforeRunEnd(_) => {
                 crate::terminal::settle_hook(current, commit, inputs, facts, output_facts)
@@ -536,9 +562,11 @@ pub fn settlement_recipe<C: Clone>(
         EffectPlan::Tool(_) | EffectPlan::ToolClearance(_) => {
             crate::tool_batch::settle(current, commit, inputs, facts, output_facts)
         }
-        EffectPlan::Summary(_) | EffectPlan::Deferred(_) | EffectPlan::CancelDeferred(_) => {
-            Err(PlanError::LaterSlice)
+        EffectPlan::Deferred(_) => {
+            crate::deferred::settle(current, commit, inputs, facts, output_facts)
         }
+        EffectPlan::CancelDeferred(_) => Ok(RecipeDecision::NoLongerExpected),
+        EffectPlan::Summary(_) => Err(PlanError::LaterSlice),
     }
 }
 
@@ -574,16 +602,9 @@ pub fn required_facts(current: &CurrentOperation) -> Result<RequiredFacts, PlanE
             _ => RequiredFacts::Generation,
         },
         RunPhase::Tools(_) => RequiredFacts::Tools,
-        RunPhase::FailureDrain(p) if matches!(p.provenance, FailureProvenance::Response { .. }) => {
-            RequiredFacts::Terminal
-        }
-        RunPhase::Deferred(DeferredPhase {
-            deferred: Deferred::Suspended { .. },
-            ..
-        }) => RequiredFacts::DeferredSource,
-        RunPhase::Compaction(_) | RunPhase::FailureDrain(_) | RunPhase::Deferred(_) => {
-            return Err(PlanError::LaterSlice);
-        }
+        RunPhase::FailureDrain(_) => RequiredFacts::Terminal,
+        RunPhase::Deferred(_) => RequiredFacts::DeferredSource,
+        RunPhase::Compaction(_) => return Err(PlanError::LaterSlice),
     })
 }
 

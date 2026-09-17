@@ -30,6 +30,17 @@ pub fn transition_recipe<C: Clone>(
         return Ok(RecipeDecision::NoLongerExpected);
     }
     let mut recipe = recipe(current, facts, &commit.telemetry_context);
+    if let PlanningFacts::Inbox {
+        session_id,
+        placements,
+        ..
+    } = planning
+    {
+        if session_id != &facts.session_id {
+            return Err(PlanError::InvalidInput);
+        }
+        crate::inbox::add_placement(current, placements, &mut recipe)?;
+    }
     if let Some(seq) = commit.expected_configuration_seq {
         recipe.expected.push(condition(
             RegisterNamespace::LaneConfig,
