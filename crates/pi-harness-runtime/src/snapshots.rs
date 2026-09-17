@@ -9,8 +9,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     pub(crate) async fn watch_lane(
         &self,
     ) -> Result<Arc<dyn WatchHandle<LaneSnapshot>>, HarnessRuntimeError> {
+        let result = self.watch_lane_inner().await;
+        self.owner.observed_watch(result)
+    }
+    async fn watch_lane_inner(
+        &self,
+    ) -> Result<Arc<dyn WatchHandle<LaneSnapshot>>, HarnessRuntimeError> {
         let _line = self.lane.line.acquire().await?;
-        let h = self.load().await?;
+        let h = crate::restore::hydrate_lane(
+            self.owner.session.as_ref(),
+            self.lane.name.clone(),
+            &crate::scheduler::Admission::new(),
+        )
+        .await?;
         let Register::LaneLeaf { value: leaf_id, .. } = &h.roots.leaf else {
             return Err(self.owner.fail("invalid snapshot leaf"));
         };
@@ -96,7 +107,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             Some(OperationSnapshot {
                 id: current.operation.operation_id.clone(),
                 kind: kind(current),
-                status: if *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) {
+                status: if matches!(&current.state,OperationState::Run(r) if matches!(r.control,Control::CancelRequested(_)))
+                {
+                    OperationSnapshotStatus::Aborting
+                } else if *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) {
                     OperationSnapshotStatus::Running
                 } else {
                     OperationSnapshotStatus::Suspended

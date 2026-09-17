@@ -138,12 +138,45 @@ impl Trace {
                 )
             }
             RunPhase::Tools(t) => (Phase::Turn(t.batch.turn_id.as_str().into()), None),
+            RunPhase::Deferred(DeferredPhase {
+                deferred: Deferred::EffectPending { step_id, poll, .. },
+                ..
+            }) => (
+                Phase::Turn(format!("{}:poll:{}", step_id.as_str(), poll.get())),
+                Some((step_id.as_str().into(), poll.get())),
+            ),
             RunPhase::FailureDrain(_) => (
                 Phase::Checkpoint("failure_drain".into(), "failure_drain"),
                 None,
             ),
             _ => return,
         };
+        self.sync_phase(
+            current,
+            phase,
+            step,
+            if matches!(run.phase, RunPhase::Deferred(_)) {
+                "deferred"
+            } else {
+                "assistant"
+            },
+        );
+    }
+    pub(crate) fn poll_start(&self, current: &CurrentOperation, step: &str, poll: u64) {
+        self.sync_phase(
+            current,
+            Phase::Turn(format!("{step}:poll:{poll}")),
+            Some((step.into(), poll)),
+            "deferred",
+        );
+    }
+    fn sync_phase(
+        &self,
+        current: &CurrentOperation,
+        phase: Phase,
+        step: Option<(String, u64)>,
+        step_kind: &str,
+    ) {
         // Only the driver updates this state. Detach before observer callbacks or
         // guard destruction; concurrent effects only clone the current context.
         let (root, mut old_phase, mut old_step) = {
@@ -175,7 +208,7 @@ impl Trace {
             && old_step.is_none()
         {
             let mut attrs = correlation(&current.operation.lane, &current.operation.operation_id);
-            attrs.insert("pi.step.kind".into(), string("assistant"));
+            attrs.insert("pi.step.kind".into(), string(step_kind));
             attrs.insert("pi.step.attempt".into(), number(key.1));
             let span = Span::start(
                 old_phase.as_ref().expect("phase").1.clone(),

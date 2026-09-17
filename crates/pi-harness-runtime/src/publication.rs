@@ -45,6 +45,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         recipe: CommitRecipe<Telemetry>,
     ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
+        self.apply_prepared(recipe, None).await
+    }
+    pub(crate) async fn apply_prepared(
+        &self,
+        recipe: CommitRecipe<Telemetry>,
+        prepared: Option<pi_agent_session::storage::PreparedEntries>,
+    ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
         if let Some(revision) = recipe.expected_settings_revision
             && self
                 .owner
@@ -100,18 +107,29 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .iter()
             .find(|c| c.namespace == RegisterNamespace::OperationMeta && c.seq.is_some())
             .and_then(|c| OperationId::new(c.key.clone()).ok());
-        let outcome = self
-            .owner
-            .session
-            .commit_conditional_with_telemetry(
-                ConditionalCommit {
-                    conditions,
-                    transaction: recipe.transaction,
-                },
-                telemetry.as_ref(),
-            )
-            .await
-            .map_err(|_| self.owner.fail("runtime conditional publication failed"))?;
+        let request = ConditionalCommit {
+            conditions,
+            transaction: recipe.transaction,
+        };
+        let outcome = match prepared {
+            Some(prepared) => {
+                self.owner
+                    .session
+                    .commit_prepared_conditional_with_telemetry(
+                        prepared,
+                        request,
+                        telemetry.as_ref(),
+                    )
+                    .await
+            }
+            None => {
+                self.owner
+                    .session
+                    .commit_conditional_with_telemetry(request, telemetry.as_ref())
+                    .await
+            }
+        }
+        .map_err(|_| self.owner.fail("runtime conditional publication failed"))?;
         let ConditionalOutcome::Applied(commit) = outcome else {
             return Ok(None);
         };
@@ -252,6 +270,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             &mut *self.lane.hydrated.lock().unwrap_or_else(|p| p.into_inner()),
             loaded.clone(),
         );
+        if crate::inbox::queue_signature(&old) != crate::inbox::queue_signature(&loaded) {
+            self.queue_event(&loaded)?;
+        }
         drop(old);
         drop(permit);
         Ok(Some(loaded))

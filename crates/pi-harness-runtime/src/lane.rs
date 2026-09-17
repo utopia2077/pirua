@@ -13,30 +13,38 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     }
     fn get_leaf_id(&self) -> BoxFuture<'_, Result<Option<EntryId>, HarnessRuntimeError>> {
         Box::pin(async move {
-            let _line = self.lane.line.acquire().await?;
-            let value = self.load().await?;
-            let Register::LaneLeaf { value, .. } = value.roots.leaf else {
-                return Err(self.owner.fail("invalid lane leaf"));
-            };
-            Ok(value)
+            let result = async {
+                let _line = self.lane.line.acquire().await?;
+                let value = self.load().await?;
+                let Register::LaneLeaf { value, .. } = value.roots.leaf else {
+                    return Err(self.owner.fail("invalid lane leaf"));
+                };
+                Ok(value)
+            }
+            .await;
+            self.owner.observed_unlocked(result)
         })
     }
     fn get_last_result(
         &self,
     ) -> BoxFuture<'_, Result<Option<LaneLastResult>, HarnessRuntimeError>> {
         Box::pin(async move {
-            self.owner.admission.check()?;
-            let result = self
-                .owner
-                .session
-                .get_register(RegisterNamespace::LaneLastResult, self.lane.name.as_str())
-                .await
-                .map_err(|_| self.owner.fail("last result read failed"))?;
-            match result {
-                None => Ok(None),
-                Some(Register::LaneLastResult { value, .. }) => Ok(Some(value)),
-                _ => Err(self.owner.fail("invalid last result kind")),
+            let result = async {
+                self.owner.admission.check()?;
+                let result = self
+                    .owner
+                    .session
+                    .get_register(RegisterNamespace::LaneLastResult, self.lane.name.as_str())
+                    .await
+                    .map_err(|_| self.owner.fail("last result read failed"))?;
+                match result {
+                    None => Ok(None),
+                    Some(Register::LaneLastResult { value, .. }) => Ok(Some(value)),
+                    _ => Err(self.owner.fail("invalid last result kind")),
+                }
             }
+            .await;
+            self.owner.observed_unlocked(result)
         })
     }
     fn prompt(&self, input: PromptInput) -> BoxFuture<'_, RunCall> {
@@ -73,37 +81,22 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Box::pin(self.resume_run())
     }
     fn abort(&self) -> BoxFuture<'_, AbortCall> {
-        Box::pin(async move { Err(self.owner.fail("operation requires a later runtime stage")) })
+        Box::pin(self.abort_run())
     }
     fn steer(&self, message: AgentMessage) -> BoxFuture<'_, QueueCall> {
-        Box::pin(async move {
-            let _ = message;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.queue_input(message, crate::inbox::QueueKind::Steer))
     }
     fn follow_up(&self, message: AgentMessage) -> BoxFuture<'_, QueueCall> {
-        Box::pin(async move {
-            let _ = message;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.queue_input(message, crate::inbox::QueueKind::FollowUp))
     }
     fn next_run(&self, message: AgentMessage) -> BoxFuture<'_, NextRunCall> {
-        Box::pin(async move {
-            let _ = message;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.next_input(message))
     }
     fn cancel_queued(&self, entry_id: EntryId) -> BoxFuture<'_, CancelQueuedCall> {
-        Box::pin(async move {
-            let _ = entry_id;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.cancel_input(entry_id))
     }
     fn record_usage(&self, request: RecordUsageRequest) -> BoxFuture<'_, RecordUsageCall> {
-        Box::pin(async move {
-            let _ = request;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.adjustment(request))
     }
     fn wait_for_idle(&self) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
         Box::pin(self.idle())
@@ -128,19 +121,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     }
     fn get_model(&self) -> BoxFuture<'_, Result<Option<Model>, HarnessRuntimeError>> {
         Box::pin(async move {
-            let _line = self.lane.line.acquire().await?;
-            let h = self.load().await?;
-            let Register::LaneConfig { value, .. } = h.roots.configuration else {
-                return Err(self.owner.fail("invalid lane configuration"));
-            };
+            let config = self.read_configuration().await?;
             Ok(self
                 .owner
                 .models
-                .get_model(&value.model.provider, &value.model.model_id))
+                .get_model(&config.model.provider, &config.model.model_id))
         })
     }
     fn set_model(&self, model: Model) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.update_configuration(move |configuration| {
+        Box::pin(self.update_configuration("model", move |configuration| {
             configuration.model = LaneModel {
                 provider: model.provider.clone(),
                 model_id: model.id.clone(),
@@ -148,40 +137,30 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         }))
     }
     fn get_thinking_level(&self) -> BoxFuture<'_, Result<AgentThinkingLevel, HarnessRuntimeError>> {
-        Box::pin(async move {
-            let _line = self.lane.line.acquire().await?;
-            let h = self.load().await?;
-            let Register::LaneConfig { value, .. } = h.roots.configuration else {
-                return Err(self.owner.fail("invalid lane configuration"));
-            };
-            Ok(value.thinking_level)
-        })
+        Box::pin(async move { Ok(self.read_configuration().await?.thinking_level) })
     }
     fn set_thinking_level(
         &self,
         level: AgentThinkingLevel,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
         Box::pin(
-            self.update_configuration(move |configuration| configuration.thinking_level = level),
+            self.update_configuration("thinkingLevel", move |configuration| {
+                configuration.thinking_level = level
+            }),
         )
     }
     fn get_active_tools(&self) -> BoxFuture<'_, Result<Vec<ToolName>, HarnessRuntimeError>> {
-        Box::pin(async move {
-            let _line = self.lane.line.acquire().await?;
-            let h = self.load().await?;
-            let Register::LaneConfig { value, .. } = h.roots.configuration else {
-                return Err(self.owner.fail("invalid lane configuration"));
-            };
-            Ok(value.active_tool_names)
-        })
+        Box::pin(async move { Ok(self.read_configuration().await?.active_tool_names) })
     }
     fn set_active_tools(
         &self,
         names: Vec<ToolName>,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.update_configuration(move |configuration| {
-            configuration.active_tool_names = names.clone()
-        }))
+        Box::pin(
+            self.update_configuration("activeTools", move |configuration| {
+                configuration.active_tool_names = names.clone()
+            }),
+        )
     }
     fn session(&self) -> Arc<dyn SessionTree> {
         Arc::new(crate::tree::TreeView(self.clone()))
@@ -301,8 +280,21 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeLane<C, S, M>
 {
+    async fn read_configuration(&self) -> Result<LaneConfiguration, HarnessRuntimeError> {
+        let result = async {
+            let _line = self.lane.line.acquire().await?;
+            let h = self.load().await?;
+            let Register::LaneConfig { value, .. } = h.roots.configuration else {
+                return Err(self.owner.fail("invalid lane configuration"));
+            };
+            Ok(value)
+        }
+        .await;
+        self.owner.observed_unlocked(result)
+    }
     async fn update_configuration<F: Fn(&mut LaneConfiguration) + Send + Sync + 'static>(
         &self,
+        property: &'static str,
         update: F,
     ) -> Result<(), HarnessRuntimeError> {
         let lane = self.clone();
@@ -320,7 +312,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     else {
                         return Err(lane.owner.fail("invalid lane configuration"));
                     };
+                    let previous = configuration.clone();
                     update(&mut configuration);
+                    let effective = configuration.clone();
                     let permit = lane.owner.admission.try_admit()?;
                     let result = lane
                         .owner
@@ -348,6 +342,49 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         result,
                         pi_agent_session::storage::ConditionalOutcome::Applied(_)
                     ) {
+                        let event = match property {
+                            "model" => HarnessEvent::ModelConfigUpdate(ModelConfigUpdateEvent {
+                                event_type: Default::default(),
+                                lane: lane.lane.name.clone(),
+                                recovery: None,
+                                property: Default::default(),
+                                value: effective.model,
+                                previous: serde_json::from_value(
+                                    serde_json::to_value(previous.model).map_err(|_| {
+                                        lane.owner.fail("model event encoding failed")
+                                    })?,
+                                )
+                                .map_err(|_| lane.owner.fail("model event encoding failed"))?,
+                            }),
+                            "thinkingLevel" => {
+                                HarnessEvent::ThinkingConfigUpdate(ThinkingConfigUpdateEvent {
+                                    event_type: Default::default(),
+                                    lane: lane.lane.name.clone(),
+                                    recovery: None,
+                                    property: Default::default(),
+                                    value: effective.thinking_level,
+                                    previous: previous.thinking_level,
+                                })
+                            }
+                            _ => HarnessEvent::ActiveToolsConfigUpdate(
+                                ActiveToolsConfigUpdateEvent {
+                                    event_type: Default::default(),
+                                    lane: lane.lane.name.clone(),
+                                    recovery: None,
+                                    property: Default::default(),
+                                    value: effective.active_tool_names,
+                                    previous: previous.active_tool_names,
+                                },
+                            ),
+                        };
+                        lane.owner.events.enqueue(
+                            HarnessEventType::ConfigUpdate,
+                            &lane.lane.name,
+                            event,
+                        );
+                        drop(_line);
+                        drop(_settings);
+                        lane.owner.events.flush();
                         lane.lane.announce();
                         return Ok(());
                     }
@@ -388,7 +425,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self.owner
             .clone()
             .retain(Box::pin(async move {
-                loop {
+                let callback_permit = loop {
                     lane.idle().await.map_err(RunWhenIdleError::Runtime)?;
                     let _line = lane
                         .lane
@@ -396,14 +433,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .acquire()
                         .await
                         .map_err(RunWhenIdleError::Runtime)?;
-                    if lane
+                    let occupied = lane
                         .load()
                         .await
                         .map_err(RunWhenIdleError::Runtime)?
                         .current
-                        .is_some()
-                        || *lane.lane.driving.lock().unwrap_or_else(|p| p.into_inner())
-                    {
+                        .is_some();
+                    let _activity = lane.lane.activity.lock().unwrap_or_else(|p| p.into_inner());
+                    if occupied || *lane.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) {
                         continue;
                     }
                     let reservation =
@@ -412,33 +449,26 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                                 lane.owner.fail("idle reservation identity failed"),
                             )
                         })?;
+                    *lane
+                        .lane
+                        .generation
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner()) = Arc::new(());
                     *lane.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) = true;
                     *lane
                         .lane
                         .reservation
                         .lock()
                         .unwrap_or_else(|p| p.into_inner()) = Some(reservation);
-                    break;
-                }
-                let _reservation = crate::driver::DriveGuard(lane.lane.clone());
-                let mut callback = task.run();
-                let mut closed = Box::pin(lane.owner.admission.seal_signal());
-                std::future::poll_fn(|cx| {
-                    if closed.as_mut().poll(cx).is_ready() {
-                        return std::task::Poll::Ready(Err(RunWhenIdleError::Runtime(
-                            lane.owner
-                                .admission
-                                .check()
-                                .err()
-                                .unwrap_or_else(|| lane.owner.fail("idle callback lost owner")),
-                        )));
-                    }
-                    callback
-                        .as_mut()
-                        .poll(cx)
-                        .map(|result| result.map_err(RunWhenIdleError::Callback))
-                })
-                .await
+                    break lane
+                        .owner
+                        .admission
+                        .try_admit()
+                        .map_err(RunWhenIdleError::Runtime)?;
+                };
+                let _callback_permit = callback_permit;
+                let _reservation = crate::driver::DriveGuard::new(lane.lane.clone());
+                task.run().await.map_err(RunWhenIdleError::Callback)
             }))
             .await
             .map_err(RunWhenIdleError::Runtime)?

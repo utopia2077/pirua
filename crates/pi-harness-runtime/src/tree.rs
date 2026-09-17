@@ -204,6 +204,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         message: AgentMessage,
     ) -> BoxFuture<'_, Result<EntryId, SessionError>> {
         Box::pin(async move {
+            self.0.owner.session.codec().validate_message(&message)?;
             let result = self.mutate(Mutation::Message(message)).await?;
             result.ok_or_else(failure)
         })
@@ -227,7 +228,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         lane.owner
             .clone()
             .retain(Box::pin(async move {
-                let _line = lane.lane.line.acquire().await.map_err(|_| failure())?;
+                let mut line = Some(lane.lane.line.acquire().await.map_err(|_| failure())?);
                 let mut reserved = None;
                 loop {
                     let h = lane.load().await.map_err(|_| failure())?;
@@ -235,14 +236,24 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         return Err(failure());
                     };
                     let mut writes = vec![];
+                    let mut deferred = None;
+                    let mut conditions = vec![
+                        crate::publication::observed(&h.roots.lane_state),
+                        crate::publication::observed(&h.roots.leaf),
+                    ];
                     match &mutation {
                         Mutation::Fact(write) => writes.push(write.clone()),
                         Mutation::Message(_) | Mutation::Custom(_, _) => {
-                            if h.current.is_some() {
-                                let _ = lane
-                                    .owner
-                                    .fail("active tree writes require a later runtime stage");
-                                return Err(failure());
+                            if h.current
+                                .as_ref()
+                                .is_some_and(|c| !matches!(c.state, OperationState::Run(_)))
+                                || h.current.is_none()
+                                    && *lane.lane.driving.lock().unwrap_or_else(|p| p.into_inner())
+                            {
+                                drop(line.take());
+                                lane.wait_for_idle().await.map_err(|_| failure())?;
+                                line = Some(lane.lane.line.acquire().await.map_err(|_| failure())?);
+                                continue;
                             }
                             if reserved.is_none() {
                                 reserved = Some(
@@ -270,11 +281,64 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                                 }
                                 Mutation::Fact(_) => unreachable!(),
                             };
-                            writes.push(Write::Entry(entry));
-                            writes.push(Write::SetRegister(Box::new(RegisterSet::LaneLeaf {
-                                key: lane.lane.name.as_str().into(),
-                                value: Some(id),
-                            })));
+                            if let Some(CurrentOperation {
+                                state: OperationState::Run(mut run),
+                                operation,
+                                ..
+                            }) = h.current.clone()
+                            {
+                                let payload = match &entry {
+                                    NewEntry::Message(e) => {
+                                        crate::inbox::payload(&e.message).map_err(|_| failure())?
+                                    }
+                                    NewEntry::Custom(e) => PendingEntry {
+                                        entry_type: PendingEntryType::Custom,
+                                        custom_type: Some(e.custom_type.clone()),
+                                        payload: e.data.clone(),
+                                    },
+                                    _ => unreachable!(),
+                                };
+                                conditions.push(crate::publication::observed(
+                                    h.roots.operation_state.as_ref().ok_or_else(failure)?,
+                                ));
+                                conditions.push(crate::publication::observed(
+                                    h.roots.operation_meta.as_ref().ok_or_else(failure)?,
+                                ));
+                                conditions.push(RegisterCondition {
+                                    register: RegisterKey {
+                                        namespace: RegisterNamespace::PendingEntry,
+                                        key: id.as_str().into(),
+                                    },
+                                    expected: ExpectedRegister::Absent,
+                                });
+                                run.inbox.writes.push(id.clone());
+                                writes.push(Write::SetRegister(Box::new(
+                                    RegisterSet::PendingEntry {
+                                        key: id.as_str().into(),
+                                        value: payload,
+                                    },
+                                )));
+                                writes.push(Write::SetRegister(Box::new(
+                                    RegisterSet::OperationState {
+                                        key: operation.operation_id.as_str().into(),
+                                        value: Box::new(OperationState::Run(run)),
+                                    },
+                                )));
+                                deferred = Some((
+                                    operation.operation_id,
+                                    if matches!(entry, NewEntry::Custom(_)) {
+                                        EntryType::Custom
+                                    } else {
+                                        EntryType::Message
+                                    },
+                                ));
+                            } else {
+                                writes.push(Write::Entry(entry));
+                                writes.push(Write::SetRegister(Box::new(RegisterSet::LaneLeaf {
+                                    key: lane.lane.name.as_str().into(),
+                                    value: Some(id),
+                                })));
+                            }
                         }
                     }
                     let permit = lane.owner.admission.try_admit().map_err(|_| failure())?;
@@ -283,10 +347,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .session
                         .commit_conditional_with_telemetry(
                             ConditionalCommit {
-                                conditions: vec![
-                                    crate::publication::observed(&h.roots.lane_state),
-                                    crate::publication::observed(&h.roots.leaf),
-                                ],
+                                conditions,
                                 transaction: Transaction { writes },
                             },
                             lane.owner.telemetry.as_ref(),
@@ -299,7 +360,20 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     if matches!(result, ConditionalOutcome::NotApplied) {
                         continue;
                     }
-                    if let Some(id) = &reserved {
+                    if let Some((run_id, entry_type)) = deferred {
+                        lane.owner.events.enqueue(
+                            HarnessEventType::WritePending,
+                            &lane.lane.name,
+                            HarnessEvent::WritePending(WritePendingEvent {
+                                event_type: Default::default(),
+                                lane: lane.lane.name.clone(),
+                                recovery: None,
+                                run_id,
+                                entry_id: reserved.clone().ok_or_else(failure)?,
+                                entry_type,
+                            }),
+                        );
+                    } else if let Some(id) = &reserved {
                         let entry = lane
                             .owner
                             .session
@@ -318,8 +392,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             }),
                         );
                     }
+                    if let Mutation::Fact(write) = &mutation
+                        && let Some(event) = fact_event(write)
+                    {
+                        lane.owner.events.enqueue(
+                            HarnessEventType::FactUpdate,
+                            &lane.lane.name,
+                            event,
+                        );
+                    }
                     drop(permit);
-                    drop(_line);
+                    drop(line.take());
                     lane.owner.events.flush();
                     lane.lane.announce();
                     return Ok(reserved);
@@ -327,5 +410,63 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }))
             .await
             .map_err(|_| failure())?
+    }
+}
+
+fn fact_event(write: &Write) -> Option<HarnessEvent> {
+    match write {
+        Write::SetRegister(r) => match r.as_ref() {
+            RegisterSet::FactName { value, .. } => {
+                Some(HarnessEvent::NameFactUpdate(NameFactUpdateEvent {
+                    event_type: Default::default(),
+                    fact: Default::default(),
+                    name: Some(value.clone()),
+                }))
+            }
+            RegisterSet::FactLabel { key, value } => {
+                Some(HarnessEvent::LabelFactUpdate(LabelFactUpdateEvent {
+                    event_type: Default::default(),
+                    fact: Default::default(),
+                    target_id: EntryId::new(key).ok()?,
+                    label: Some(value.clone()),
+                }))
+            }
+            RegisterSet::FactCustom { key, value } => {
+                Some(HarnessEvent::CustomFactUpdate(CustomFactUpdateEvent {
+                    event_type: Default::default(),
+                    fact: Default::default(),
+                    key: key.clone(),
+                    value: Presence::Value(value.clone()),
+                }))
+            }
+            _ => None,
+        },
+        Write::DeleteRegister(r) => match r.namespace {
+            RegisterNamespace::FactName => {
+                Some(HarnessEvent::NameFactUpdate(NameFactUpdateEvent {
+                    event_type: Default::default(),
+                    fact: Default::default(),
+                    name: None,
+                }))
+            }
+            RegisterNamespace::FactLabel => {
+                Some(HarnessEvent::LabelFactUpdate(LabelFactUpdateEvent {
+                    event_type: Default::default(),
+                    fact: Default::default(),
+                    target_id: EntryId::new(&r.key).ok()?,
+                    label: None,
+                }))
+            }
+            RegisterNamespace::FactCustom => {
+                Some(HarnessEvent::CustomFactUpdate(CustomFactUpdateEvent {
+                    event_type: Default::default(),
+                    fact: Default::default(),
+                    key: r.key.clone(),
+                    value: Presence::Missing,
+                }))
+            }
+            _ => None,
+        },
+        _ => None,
     }
 }

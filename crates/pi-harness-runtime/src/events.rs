@@ -12,6 +12,7 @@ pub(crate) struct EventHub {
     deliveries: Arc<Mutex<Vec<Weak<Delivery>>>>,
     telemetry: crate::owner::Telemetry,
     root_telemetry: crate::owner::Telemetry,
+    fault: Arc<Mutex<Option<FaultEvent>>>,
 }
 struct Delivery {
     host: Arc<dyn TaskSpawner>,
@@ -130,12 +131,14 @@ impl EventHub {
             root_telemetry: telemetry.clone(),
             telemetry,
             deliveries: Arc::new(Mutex::new(Vec::new())),
+            fault: Arc::new(Mutex::new(None)),
         }
     }
     pub(crate) fn with_context(&self, telemetry: crate::owner::Telemetry) -> Self {
         Self {
             host: self.host.clone(),
             deliveries: self.deliveries.clone(),
+            fault: self.fault.clone(),
             root_telemetry: self.root_telemetry.clone(),
             telemetry,
         }
@@ -162,6 +165,24 @@ impl EventHub {
             .push(Arc::downgrade(&delivery));
         delivery
     }
+
+    pub(crate) fn record_fault(&self) {
+        let mut retained = self.fault.lock().unwrap_or_else(|p| p.into_inner());
+        if retained.is_some() {
+            return;
+        }
+        let event = FaultEvent {
+            event_type: Default::default(),
+            code: "HarnessFault".into(),
+            message: "Harness operation failed".into(),
+        };
+        *retained = Some(event.clone());
+        self.enqueue(
+            HarnessEventType::Fault,
+            &LaneId::new("main").expect("static lane"),
+            HarnessEvent::Fault(event),
+        );
+    }
     /// Called within publication ordering. This only buffers; `flush` starts
     /// passive work after the mutation line has been released.
     pub fn enqueue(&self, kind: HarnessEventType, lane: &LaneId, event: HarnessEvent) {
@@ -174,7 +195,12 @@ impl EventHub {
             .collect();
         for delivery in deliveries {
             if delivery.kind.is_some_and(|k| k != kind)
-                || (kind != HarnessEventType::Usage
+                || (!matches!(
+                    kind,
+                    HarnessEventType::Usage
+                        | HarnessEventType::Fault
+                        | HarnessEventType::FactUpdate
+                ) && !matches!(event, HarnessEvent::GlobalConfigUpdate(_))
                     && delivery.lane.as_ref().is_some_and(|l| l != lane))
             {
                 continue;
@@ -210,11 +236,13 @@ impl EventHub {
     }
     /// Caller captures the snapshot and registers this buffer while holding the
     /// same publication line; the hub does not execute a snapshot callback.
-    pub fn watch<T: Clone + Send + Sync + 'static>(
+    pub fn watch<T: FaultSnapshot + Clone + Send + Sync + 'static>(
         &self,
-        snapshot: T,
+        mut snapshot: T,
         lane: Option<LaneId>,
     ) -> Arc<dyn WatchHandle<T>> {
+        let fault = self.fault.lock().unwrap_or_else(|p| p.into_inner());
+        snapshot.set_faulted(fault.is_some());
         Arc::new(Watch {
             snapshot,
             delivery: self.register(None, lane, None),
@@ -265,5 +293,19 @@ impl<T: Clone + Send + Sync + 'static> WatchHandle<T> for Watch<T> {
     }
     fn unsubscribe(&self) {
         self.delivery.stop();
+    }
+}
+
+pub(crate) trait FaultSnapshot {
+    fn set_faulted(&mut self, value: bool);
+}
+impl FaultSnapshot for LaneSnapshot {
+    fn set_faulted(&mut self, value: bool) {
+        self.faulted = value;
+    }
+}
+impl FaultSnapshot for SessionSnapshot {
+    fn set_faulted(&mut self, value: bool) {
+        self.faulted = value;
     }
 }

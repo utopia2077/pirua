@@ -19,7 +19,12 @@ pub(crate) struct RuntimeEffects<C, S: RuntimeStorage, M: SessionMetadataRecord>
     pub trace: crate::telemetry::Trace,
     this: std::sync::Weak<Self>,
     pub running: Mutex<BTreeMap<EffectKey, EffectPlan<Telemetry>>>,
+    pub started_turns: Mutex<BTreeSet<String>>,
     pub cancellation: CancellationToken,
+    pub retired: CancellationToken,
+    pub inbox_preparation: Mutex<Option<crate::checkpoint::InboxPreparation>>,
+    pub poll_permit: std::sync::atomic::AtomicBool,
+    pub cancel_targets: Mutex<BTreeMap<EntryId, crate::poll::CancelTarget>>,
     pub executed_tools: Mutex<BTreeSet<EffectKey>>,
     pub request_bindings: Mutex<BTreeMap<EffectKey, RequestBinding>>,
     pub start_signals: Mutex<BTreeMap<EffectKey, CancellationToken>>,
@@ -40,10 +45,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             bindings: Mutex::new(BTreeMap::new()),
             lane,
             running: Mutex::new(BTreeMap::new()),
+            started_turns: Mutex::new(BTreeSet::new()),
             start_signals: Mutex::new(BTreeMap::new()),
             request_bindings: Mutex::new(BTreeMap::new()),
             executed_tools: Mutex::new(BTreeSet::new()),
             cancellation: CancellationToken::new(),
+            retired: CancellationToken::new(),
+            inbox_preparation: Mutex::new(None),
+            poll_permit: std::sync::atomic::AtomicBool::new(false),
+            cancel_targets: Mutex::new(BTreeMap::new()),
         })
     }
     pub(crate) async fn permission(&self, kind: &str) -> Result<(), HarnessRuntimeError> {
@@ -125,7 +135,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
                 .clone(),
-            deferred_poll: DeferredPollPermit::None,
+            deferred_poll: if self.poll_permit.load(std::sync::atomic::Ordering::Acquire) {
+                DeferredPollPermit::One
+            } else {
+                DeferredPollPermit::None
+            },
             deferred_cancellations: BTreeSet::new(),
             loaded,
             runtime: RuntimeSnapshot {
@@ -275,7 +289,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         messages: self.run_messages(current).await?,
                     },
                 },
-                RequiredFacts::Terminal | RequiredFacts::DeferredSource => PlanningFacts::Terminal,
+                RequiredFacts::Terminal => PlanningFacts::Terminal,
+                RequiredFacts::DeferredSource => {
+                    self.deferred_facts(h, session_id, telemetry_context, now)
+                        .await?
+                }
                 RequiredFacts::Tools => {
                     self.tool_facts(current, session_id, telemetry_context)
                         .await?
@@ -323,6 +341,47 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let Some(current) = &h.current else {
             return Ok(None);
         };
+        if pi_harness_core::inbox::select(current)
+            .map_err(|_| self.lane.owner.fail("inbox selection failed"))?
+            .is_some()
+        {
+            let prepared = self
+                .inbox_preparation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .take();
+            let Some(prepared) = prepared else {
+                return Ok(None);
+            };
+            if current.operation != prepared.current.operation
+                || current.operation_state_seq != prepared.current.operation_state_seq
+                || current.lane_state_seq != prepared.current.lane_state_seq
+            {
+                return Ok(None);
+            }
+            let inputs = self.inputs(&h).await?;
+            let decision = pi_harness_core::transition::transition_recipe(
+                current,
+                &plan,
+                &inputs,
+                &self.lane.facts(&h)?,
+                &prepared.facts,
+            )
+            .map_err(|_| self.lane.owner.fail("inbox recipe rejected"))?;
+            let result = match decision {
+                RecipeDecision::Apply(recipe) => self
+                    .lane
+                    .apply_prepared(*recipe, prepared.entries)
+                    .await?
+                    .and_then(|h| h.current),
+                _ => None,
+            };
+            drop(_line);
+            drop(_settings);
+            self.events().flush();
+            self.lane.lane.announce();
+            return Ok(result);
+        }
         let step = match &plan.next {
             OperationState::Run(run) => match &run.phase {
                 RunPhase::Assistant(AssistantPhase {
@@ -377,6 +436,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             };
+            if current.operation != plan.current.operation
+                || matches!(&plan.plan,EffectPlan::Deferred(p) if pi_harness_core::deferred::plan(current,&plan.plan.key().session_id,&plan.telemetry_context).map_or(true,|expected|expected.deferred!=p.deferred || expected.key!=p.key))
+            {
+                retired_requests.extend(self.retire_effect(plan.plan.key()));
+                return Ok(None);
+            }
             let inputs = self.inputs(&h).await?;
             if matches!(plan.output, SettlementOutput::NotStarted { .. })
                 && (matches!(plan.plan, EffectPlan::Hook(_))
@@ -385,7 +450,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             }
-            let facts = self.settlement_facts(&plan, inputs.now).await?;
+            let facts = self.settlement_facts(&plan, inputs.now, &h).await?;
             let decision =
                 settlement_recipe(current, &plan, &inputs, &self.lane.facts(&h)?, &facts)
                     .map_err(|_| self.lane.owner.fail("settlement recipe rejected"))?;
@@ -399,7 +464,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     consume_deferred_poll: false,
                 }),
                 RecipeDecision::Apply(recipe) => {
-                    let dispatch = recipe.dispatch.clone();
+                    let mut dispatch = recipe.dispatch.clone();
+                    let consume_deferred_poll = pi_harness_core::deferred::consumes_poll(&recipe);
                     let lifecycle = self.lane.precommit_messages(
                         &recipe,
                         &current.operation.operation_id,
@@ -420,8 +486,22 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         // iteration replans it against newer inbox/control roots.
                         continue;
                     };
+                    if consume_deferred_poll {
+                        drop(line.take());
+                        drop(settings.take());
+                        self.poll_permit
+                            .store(false, std::sync::atomic::Ordering::Release);
+                        if let Some(current) = &applied.current {
+                            self.trace.sync(current);
+                            self.turn_start(current);
+                        }
+                        if let Some(EffectPlan::Deferred(plan)) = &mut dispatch {
+                            plan.telemetry_context = self.trace.context();
+                        }
+                    }
                     let assistant = match &plan.output {
-                        SettlementOutput::Assistant { message, .. } => Some(message),
+                        SettlementOutput::Assistant { message, .. }
+                        | SettlementOutput::Deferred { message, .. } => Some(message),
                         SettlementOutput::Reconciled(output) => match output.value() {
                             ReconciledValue::Assistant(message) => Some(message.as_ref()),
                             _ => None,
@@ -455,12 +535,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .unwrap_or_else(|p| p.into_inner())
                         .remove(plan.plan.key());
                     if let Some(candidate) = candidate {
-                        if let Some(EffectPlan::Assistant(assistant)) = &dispatch {
+                        if let Some(effect @ (EffectPlan::Assistant(_) | EffectPlan::Deferred(_))) =
+                            &dispatch
+                        {
                             retired_requests.extend(
                                 self.request_bindings
                                     .lock()
                                     .unwrap_or_else(|p| p.into_inner())
-                                    .insert(assistant.key.clone(), candidate),
+                                    .insert(effect.key().clone(), candidate),
                             );
                         } else {
                             retired_requests.push(candidate);
@@ -471,7 +553,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         current,
                         dispatch,
                         suspend: None,
-                        consume_deferred_poll: false,
+                        consume_deferred_poll,
                     })
                 }
             };
@@ -510,6 +592,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         plan: TerminalCommit<Telemetry>,
     ) -> Result<Option<CurrentOperation>, HarnessRuntimeError> {
+        self.wait_cancellations().await?;
+        if self.retired.is_cancelled() {
+            return Ok(None);
+        }
         self.permission("commit_terminal").await?;
         let _settings = self.lane.owner.settings_line.acquire().await?;
         let _line = self.lane.lane.line.acquire().await?;
@@ -696,7 +782,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         context: Telemetry,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
         Box::pin(async move {
-            self.permission("sleep").await?;
+            if !self.ordinary_permission("sleep").await? {
+                return Ok(());
+            }
             let operation = self
                 .lane
                 .lane
@@ -722,6 +810,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             span.outcome("pi.sleep.outcome", "aborted", true);
             let mut close = Box::pin(self.lane.owner.admission.seal_signal());
             let mut sleep = self.lane.owner.clock.sleep(delay, &self.cancellation);
+            let mut aborted = Box::pin(self.cancellation.cancelled());
             let result = std::future::poll_fn(|cx| {
                 if close.as_mut().poll(cx).is_ready() {
                     return std::task::Poll::Ready(Err(self
@@ -732,14 +821,32 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .err()
                         .unwrap_or_else(|| self.lane.owner.fail("timer lost owner"))));
                 }
-                sleep.as_mut().poll(cx).map(|result| {
-                    result.map_err(|_| self.lane.owner.fail("operation timer cancelled"))
+                if aborted.as_mut().poll(cx).is_ready() {
+                    return std::task::Poll::Ready(Ok(()));
+                }
+                sleep.as_mut().poll(cx).map(|result| match result {
+                    Ok(()) => Ok(()),
+                    Err(_) => {
+                        self.lane.owner.admission.check()?;
+                        if self.cancellation.is_cancelled() {
+                            Ok(())
+                        } else {
+                            Err(self
+                                .lane
+                                .owner
+                                .fail("operation timer cancelled without cancellation"))
+                        }
+                    }
                 })
             })
             .await;
             span.outcome(
                 "pi.sleep.outcome",
-                if result.is_ok() { "elapsed" } else { "aborted" },
+                if result.is_ok() && !self.cancellation.is_cancelled() {
+                    "elapsed"
+                } else {
+                    "aborted"
+                },
                 result.is_err(),
             );
             result
@@ -809,7 +916,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         tool: Option<&pi_ai_core::Tool>,
         telemetry: Telemetry,
     ) -> Result<crate::hooks::HookPipelineOutput, HarnessRuntimeError> {
-        self.permission("hook").await?;
+        if accepted && !matches!(event, HookEvent::BeforeResume(_)) {
+            let _ = self.ordinary_permission("hook").await?;
+        } else {
+            self.permission("hook").await?;
+        }
         if accepted {
             let run_id = match &event {
                 HookEvent::BeforePayload(e) => Some(&e.run_id),
@@ -839,8 +950,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         HookEvent::BeforePayload(_) => HookResult::BeforePayload(None),
                         HookEvent::AfterResponse(_) => HookResult::AfterResponse(None),
                         HookEvent::BeforeTool(_) => HookResult::BeforeTool(None),
-                        HookEvent::AfterTool(_) => HookResult::AfterTool(None),
+                        // This serialized boundary proves the hook never started. Keep the
+                        // raw output, but do not let an earlier run_after=true preserve
+                        // its termination request. Started hooks never take this branch.
+                        HookEvent::AfterTool(_) => HookResult::AfterTool(Some(AfterToolResult {
+                            terminate: Some(false),
+                            ..Default::default()
+                        })),
                         HookEvent::TransformContext(_) => HookResult::TransformContext(None),
+                        HookEvent::BeforeResume(_) => HookResult::BeforeResume,
                         _ => return Err(self.lane.owner.fail("invalid skipped hook family")),
                     };
                     return crate::hooks::HookPipelineOutput::from_result(result.name(), result);
@@ -903,6 +1021,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         commit: &SettlementCommit<Telemetry>,
         now: SafeUnsigned,
+        h: &crate::restore::HydratedLane,
     ) -> Result<SettlementFacts, HarnessRuntimeError> {
         Ok(match &commit.output {
             SettlementOutput::RequestOptions(_) => SettlementFacts::Request {
@@ -911,7 +1030,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 usage_id: UsageId::new(self.lane.owner.ids.next(None))
                     .map_err(|_| self.lane.owner.fail("usage identity failed"))?,
             },
-            SettlementOutput::Assistant { message, .. } => {
+            SettlementOutput::Assistant { message, .. }
+            | SettlementOutput::Deferred { message, .. } => {
                 let raw = message.as_message();
                 let mut followers = Vec::new();
                 for (index, content) in raw.content.iter().enumerate() {
@@ -929,10 +1049,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     EffectPlan::Assistant(plan) => Some(plan.generation.context_window),
                     _ => None,
                 };
-                SettlementFacts::Assistant {
-                    retryable: pi_ai_core::is_retryable_assistant_error(raw),
-                    overflow: pi_ai_core::is_context_overflow(raw, window),
-                    followers,
+                if matches!(commit.plan, EffectPlan::Deferred(_)) {
+                    SettlementFacts::Deferred {
+                        overflow: pi_ai_core::is_context_overflow(raw, None),
+                        followers,
+                    }
+                } else {
+                    SettlementFacts::Assistant {
+                        retryable: pi_ai_core::is_retryable_assistant_error(raw),
+                        overflow: pi_ai_core::is_context_overflow(raw, window),
+                        followers,
+                    }
                 }
             }
             SettlementOutput::Hook(output) => match output.result() {
@@ -1018,6 +1145,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         terminate: false,
                     },
                 },
+                EffectPlan::Deferred(plan) => SettlementFacts::NotStarted {
+                    value: ReconciledValue::Assistant(Box::new(self.synthetic_deferred(
+                        &plan.deferred,
+                        now,
+                        self.deferred_source_api(h, &plan.deferred.source_entry_id)?,
+                    )?)),
+                },
                 EffectPlan::Assistant(plan) => SettlementFacts::NotStarted {
                     value: ReconciledValue::Assistant(Box::new(self.synthetic_generation(
                         &plan.key,
@@ -1049,7 +1183,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         plan: &EffectPlan<Telemetry>,
     ) -> Result<bool, HarnessRuntimeError> {
-        self.permission("effect_start").await?;
+        if !self.ordinary_permission("effect_start").await? {
+            return Ok(false);
+        }
         // Provider model snapshots are host callbacks, so observe them before locks.
         let candidate = if let EffectPlan::Hook(HookEffectPlan {
             event: HookEvent::BeforeRequest(event),
@@ -1110,10 +1246,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             return Ok(false);
         };
         if !matches!(run.control, Control::Running(_)) {
+            drop(_line);
+            drop(_settings);
             self.cancellation.cancel();
             return Ok(false);
         }
         let expected=match (plan,&run.phase) {
+            (EffectPlan::Deferred(plan),RunPhase::Deferred(DeferredPhase{deferred,..}))=>PendingDeferred::try_from(deferred.clone()).is_ok_and(|p|p==plan.deferred),
+            (EffectPlan::Hook(plan),RunPhase::Deferred(DeferredPhase{deferred,..}))=>matches!(plan.event,HookEvent::BeforeRequest(_)) && match deferred {Deferred::Suspended{step_id,poll,..}=>key.step_or_task_id.as_str()==step_id.as_str() && key.logical_attempt.get()==poll.get().saturating_add(1),Deferred::EffectPending{step_id,poll,..}=>key.step_or_task_id.as_str()==step_id.as_str() && key.logical_attempt.get()==poll.get()},
             (EffectPlan::Assistant(plan),RunPhase::Assistant(AssistantPhase {generation,..}))=>PendingGeneration::try_from(generation.clone()).is_ok_and(|pending|pending==plan.generation),
             (EffectPlan::Hook(plan),RunPhase::Assistant(AssistantPhase {generation:Generation::Ready {context,next_attempt},..}))=>matches!(plan.event,HookEvent::BeforeRequest(_))&&key.step_or_task_id.as_str()==context.step_id.as_str()&&key.logical_attempt.get()==next_attempt.get()&&key.kind==EffectKind::Hook,
             (EffectPlan::Hook(plan),RunPhase::Checkpoint(checkpoint))=>matches!(plan.event,HookEvent::BeforeRunEnd(_))&&key.step_or_task_id.as_str()==checkpoint.trigger_entry_id.as_str()&&matches!(checkpoint.continuation,Continuation::MayFinish {..}),
@@ -1204,6 +1344,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }
             }
             EffectPlan::Assistant(plan) => self.request(plan).await,
+            EffectPlan::Deferred(plan) => self.fetch(plan).await,
             EffectPlan::ToolClearance(plan) => self.clearance(plan).await,
             EffectPlan::Tool(plan) => self.execute_tool(plan).await,
             _ => Err(self
@@ -1228,26 +1369,41 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 RunPhase::Assistant(AssistantPhase { generation, .. }) => Some(match generation {
                     Generation::Ready { context, .. }
                     | Generation::EffectPending { context, .. }
-                    | Generation::RetryWait { context, .. } => context.step_id.as_str(),
+                    | Generation::RetryWait { context, .. } => context.step_id.as_str().to_owned(),
                 }),
-                RunPhase::Tools(tools) => Some(tools.batch.turn_id.as_str()),
+                RunPhase::Tools(tools) => Some(tools.batch.turn_id.as_str().to_owned()),
+                RunPhase::Deferred(DeferredPhase {
+                    deferred: Deferred::EffectPending { step_id, poll, .. },
+                    ..
+                }) => Some(format!("{}:poll:{}", step_id.as_str(), poll.get())),
                 _ => None,
             },
             _ => None,
         };
         if let Some(turn) = turn {
-            self.events().enqueue(
-                HarnessEventType::TurnStart,
-                &self.lane.lane.name,
-                HarnessEvent::TurnStart(TurnStartEvent {
-                    event_type: Default::default(),
-                    lane: self.lane.lane.name.clone(),
-                    recovery: self.recovery.then_some(pi_ai_core::LiteralTrue),
-                    run_id: current.operation.operation_id.clone(),
-                    turn_id: turn.into(),
-                }),
-            );
+            self.start_turn(&current.operation.operation_id, turn);
         }
+    }
+    pub(crate) fn start_turn(&self, operation: &OperationId, turn: String) {
+        if !self
+            .started_turns
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(turn.clone())
+        {
+            return;
+        }
+        self.events().enqueue(
+            HarnessEventType::TurnStart,
+            &self.lane.lane.name,
+            HarnessEvent::TurnStart(TurnStartEvent {
+                event_type: Default::default(),
+                lane: self.lane.lane.name.clone(),
+                recovery: self.recovery.then_some(pi_ai_core::LiteralTrue),
+                run_id: operation.clone(),
+                turn_id: turn,
+            }),
+        );
     }
     pub(crate) fn publish_suspension(&self, current: &CurrentOperation, result: &OperationResult) {
         let event = match result {
@@ -1279,7 +1435,6 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         if let Some(event) = event {
             self.events()
                 .enqueue(HarnessEventType::RunSuspend, &self.lane.lane.name, event);
-            self.events().flush();
         }
     }
     async fn after_settlement(
@@ -1327,7 +1482,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }),
             );
         }
-        if matches!(after.phase, RunPhase::Assistant(_) | RunPhase::Tools(_)) {
+        if matches!(
+            after.phase,
+            RunPhase::Assistant(_)
+                | RunPhase::Tools(_)
+                | RunPhase::Deferred(DeferredPhase {
+                    deferred: Deferred::EffectPending { .. },
+                    ..
+                })
+        ) {
             return Ok(());
         }
         let (turn, assistant_id, result_ids) = match &before.phase {
@@ -1340,6 +1503,21 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     },
                 ..
             }) => (context.step_id.clone(), response_entry_id.clone(), vec![]),
+            RunPhase::Deferred(DeferredPhase {
+                deferred:
+                    Deferred::EffectPending {
+                        step_id,
+                        poll,
+                        response_entry_id,
+                        ..
+                    },
+                ..
+            }) => (
+                StepId::new(format!("{}:poll:{}", step_id.as_str(), poll.get()))
+                    .map_err(|_| self.lane.owner.fail("poll turn invalid"))?,
+                response_entry_id.clone(),
+                vec![],
+            ),
             RunPhase::Tools(tools) => (
                 tools.batch.turn_id.clone(),
                 tools.batch.assistant_entry_id.clone(),

@@ -8,18 +8,67 @@ use pi_harness_core::{
     transition::{AcceptanceFacts, acceptance_recipe},
 };
 use std::sync::Arc;
-pub(crate) struct DriveGuard(pub(crate) Arc<LaneControl>);
+pub(crate) struct DriveGuard {
+    lane: Arc<LaneControl>,
+    operation: OperationId,
+    generation: Arc<()>,
+}
+impl DriveGuard {
+    pub(crate) fn new(lane: Arc<LaneControl>) -> Self {
+        let (operation, generation) = {
+            let _activity = lane.activity.lock().unwrap_or_else(|p| p.into_inner());
+            (
+                lane.reservation
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .clone()
+                    .expect("drive reservation"),
+                lane.generation
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .clone(),
+            )
+        };
+        Self {
+            lane,
+            operation,
+            generation,
+        }
+    }
+}
 impl Drop for DriveGuard {
     fn drop(&mut self) {
-        *self.0.driving.lock().unwrap_or_else(|p| p.into_inner()) = false;
-        let old = self
-            .0
-            .reservation
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .take();
-        drop(old);
-        self.0.announce();
+        let removed = {
+            let _activity = self.lane.activity.lock().unwrap_or_else(|p| p.into_inner());
+            if !Arc::ptr_eq(
+                &self.generation,
+                &self
+                    .lane
+                    .generation
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner()),
+            ) {
+                return;
+            }
+            let mut reservation = self
+                .lane
+                .reservation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            if reservation.as_ref() != Some(&self.operation) {
+                return;
+            }
+            let mut active = self.lane.active.lock().unwrap_or_else(|p| p.into_inner());
+            if active.as_ref().is_some_and(|(id, _)| id != &self.operation) {
+                return;
+            }
+            let removed = active.take();
+            reservation.take();
+            *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) = false;
+            removed
+        };
+        drop(removed);
+        self.lane.announce();
     }
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
@@ -53,6 +102,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let h = {
             let _line = self.lane.line.acquire().await?;
             let h = self.load().await?;
+            let _activity = self.lane.activity.lock().unwrap_or_else(|p| p.into_inner());
             if let Some(current) = &h.current {
                 return Ok(Err(RunExpectedError::LaneBusy(LaneBusyError {
                     tag: Default::default(),
@@ -79,6 +129,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     operation_kind: OperationKind::Run,
                 })));
             }
+            *self
+                .lane
+                .generation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner()) = Arc::new(());
             *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) = true;
             *self
                 .lane
@@ -87,7 +142,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner()) = Some(run_id.clone());
             h
         };
-        let _drive = DriveGuard(self.lane.clone());
+        let _drive = DriveGuard::new(self.lane.clone());
+        effects.register_drive(&run_id);
         effects.trace.begin(
             &self.owner.session.metadata().base_metadata().id,
             &self.lane.name,
@@ -458,29 +514,66 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
 
         let lane = self.clone();
         self.owner.clone().retain_runtime(Box::pin(async move {
-            let current={let _line=lane.lane.line.acquire().await?;let h=lane.load().await?;let Some(current)=h.current else {return Ok(Err(ResumeExpectedError::NothingToResume(NothingToResumeError {tag:Default::default(),message:"lane has no open operation".into(),lane:lane.lane.name.clone()})));};
-                if *lane.lane.driving.lock().unwrap_or_else(|p|p.into_inner()) {return Ok(Err(ResumeExpectedError::LaneBusy(LaneBusyError {tag:Default::default(),message:"lane is already driving".into(),lane:lane.lane.name.clone(),operation_id:current.operation.operation_id.clone(),operation_kind:crate::snapshots::kind(&current)})));}
-                *lane.lane.driving.lock().unwrap_or_else(|p|p.into_inner())=true;*lane.lane.reservation.lock().unwrap_or_else(|p|p.into_inner())=Some(current.operation.operation_id.clone());current};
-            let _drive=DriveGuard(lane.lane.clone());
-            if matches!(&current.state,OperationState::Run(run) if matches!(run.phase,RunPhase::Deferred(_))) {return Err(lane.owner.fail("deferred polling requires a later runtime stage"));}
-            let effects=RuntimeEffects::new(lane.clone(),true);
-            effects.trace.begin(&lane.owner.session.metadata().base_metadata().id,&lane.lane.name,&current.operation.operation_id,true);
+            let recovery=lane.lane.restored.load(std::sync::atomic::Ordering::Acquire);
+            let effects=RuntimeEffects::new(lane.clone(),recovery);
+            let registration:Arc<dyn crate::abort::ActiveDrive>=effects.clone();
+            let mut current={let _line=lane.lane.line.acquire().await?;let h=lane.load().await?;let Some(current)=h.current else {return Ok(Err(ResumeExpectedError::NothingToResume(NothingToResumeError {tag:Default::default(),message:"lane has no open operation".into(),lane:lane.lane.name.clone()})));};
+                if !lane.lane.reserve_drive(current.operation.operation_id.clone(),Arc::downgrade(&registration)) {return Ok(Err(ResumeExpectedError::LaneBusy(LaneBusyError {tag:Default::default(),message:"lane is already driving".into(),lane:lane.lane.name.clone(),operation_id:current.operation.operation_id.clone(),operation_kind:crate::snapshots::kind(&current)})));}
+                current};
+            let _drive=DriveGuard::new(lane.lane.clone());
+            if let OperationState::Run(run)=&current.state && matches!(run.control,Control::Running(_)) && let RunPhase::Deferred(p)=&run.phase {
+                let configuration=match &p.deferred {Deferred::Suspended{configuration,..}|Deferred::EffectPending{configuration,..}=>configuration};
+                let missing=lane.missing(configuration);
+                let precheck_line=lane.lane.line.acquire().await?;
+                let latest=lane.load().await?.current;
+                match latest {Some(latest) if latest.operation.operation_id==current.operation.operation_id=>current=latest,_=>{drop(precheck_line);let result=externally_completed(&effects,&current.operation.operation_id).await?;return Ok(Ok(resume_outcome(result,&current.operation.operation_id)?));}}
+                if matches!(&current.state,OperationState::Run(r) if matches!(r.control,Control::Running(_))) && (!missing.models.is_empty()||!missing.tools.is_empty()) {
+                    // Rejection and relinquishing this drive are one lane boundary.
+                    // A later abort must select its own reconciliation drive.
+                    effects.release_drive();
+                    drop(precheck_line);
+                    lane.lane.announce();
+                    return Ok(Err(ResumeExpectedError::MissingIdentities(MissingIdentitiesError{tag:Default::default(),message:"captured identities are missing".into(),lane:lane.lane.name.clone(),tools:missing.tools,models:missing.models})));
+                }
+            }
+            lane.lane.restored.store(false,std::sync::atomic::Ordering::Release);
+            effects.poll_permit.store(true,std::sync::atomic::Ordering::Release);
+            effects.trace.begin(&lane.owner.session.metadata().base_metadata().id,&lane.lane.name,&current.operation.operation_id,recovery);
+            let cancelled=matches!(&current.state,OperationState::Run(r) if matches!(r.control,Control::CancelRequested(_)));
+            if cancelled {let h=lane.load().await?;effects.schedule_cancel(&h).await?;effects.cancellation.cancel();}
             if let OperationIntent::Run(intent)=&current.operation.intent {
                 let entries=lane.owner.session.get_entries(&intent.prompt_entry_ids).await.map_err(|_|lane.owner.fail("resume prompt hydration failed"))?;
                 let prompt=intent.prompt_entry_ids.iter().map(|id|match entries.get(id) {Some(Entry::Message(entry))=>Ok(entry.message.clone()),_=>Err(lane.owner.fail("resume prompt entry missing"))}).collect::<Result<Vec<_>,_>>()?;
                 effects.hook(HookEvent::BeforeResume(BeforeResumeEvent::Run(BeforeResumeRunEvent {lane:lane.lane.name.clone(),run_id:current.operation.operation_id.clone(),kind:Default::default(),prompt,system_prompt_override:intent.system_prompt_override.clone(),resume_data:intent.resume_data.clone().map_or(Presence::Missing,|data|Presence::Value(JsonValue::Object(data)))})),true,None).await?;
             }
-            effects.events().enqueue(HarnessEventType::RunResume,&lane.lane.name,HarnessEvent::RunResume(RunResumeEvent {event_type:Default::default(),lane:lane.lane.name.clone(),recovery:Some(pi_ai_core::LiteralTrue),run_id:current.operation.operation_id.clone()}));effects.events().flush();
+            effects.events().enqueue(HarnessEventType::RunResume,&lane.lane.name,HarnessEvent::RunResume(RunResumeEvent {event_type:Default::default(),lane:lane.lane.name.clone(),recovery:recovery.then_some(pi_ai_core::LiteralTrue),run_id:current.operation.operation_id.clone()}));effects.events().flush();
             effects.turn_start(&current);effects.events().flush();
             let result=drive(effects.clone(),current.operation.operation_id.clone()).await?;effects.trace.finish(&result);
-            let OperationResult::Run(outcome)=result else {return Err(lane.owner.fail("resume requires a later runtime stage"));};
-            let mut value=serde_json::to_value(outcome).map_err(|_|lane.owner.fail("resume output conversion failed"))?;
-            let map=value.as_object_mut().ok_or_else(||lane.owner.fail("resume output shape invalid"))?;
-            map.insert("operation".into(),serde_json::Value::String("run".into()));map.insert("runId".into(),serde_json::Value::String(current.operation.operation_id.as_str().into()));
-            Ok(Ok(serde_json::from_value(value).map_err(|_|lane.owner.fail("resume output conversion failed"))?))
+            Ok(Ok(resume_outcome(result,&current.operation.operation_id)?))
         })).await
     }
 }
+fn resume_outcome(
+    result: OperationResult,
+    operation: &OperationId,
+) -> Result<ResumeOutcome, HarnessRuntimeError> {
+    let OperationResult::Run(outcome) = result else {
+        return Err(crate::restore::fault("resume operation kind unsupported"));
+    };
+    let mut value = serde_json::to_value(outcome)
+        .map_err(|_| crate::restore::fault("resume output conversion failed"))?;
+    let map = value
+        .as_object_mut()
+        .ok_or_else(|| crate::restore::fault("resume output shape invalid"))?;
+    map.insert("operation".into(), serde_json::Value::String("run".into()));
+    map.insert(
+        "runId".into(),
+        serde_json::Value::String(operation.as_str().into()),
+    );
+    serde_json::from_value(value)
+        .map_err(|_| crate::restore::fault("resume output conversion failed"))
+}
+
 struct PendingEffect {
     plan: EffectPlan<Telemetry>,
     done: pi_ai_core::CancellationToken,
@@ -488,9 +581,37 @@ struct PendingEffect {
 }
 async fn start<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>(
     fx: &Arc<RuntimeEffects<C, S, M>>,
-    plan: EffectPlan<Telemetry>,
+    mut plan: EffectPlan<Telemetry>,
     pending: &mut std::collections::BTreeMap<EffectKey, Arc<PendingEffect>>,
 ) -> Result<(), HarnessRuntimeError> {
+    if let EffectPlan::Hook(hook) = &mut plan
+        && matches!(&hook.event,HookEvent::BeforeRequest(e) if e.step==HookRequestStep::Deferred)
+    {
+        let loaded = {
+            let _line = fx.lane.lane.line.acquire().await?;
+            fx.lane.load().await?
+        };
+        if let Some(current) = loaded
+            .current
+            .filter(|c| c.operation.operation_id == hook.key.operation_id)
+        {
+            fx.trace.poll_start(
+                &current,
+                hook.key.step_or_task_id.as_str(),
+                hook.key.logical_attempt.get(),
+            );
+            fx.start_turn(
+                &current.operation.operation_id,
+                format!(
+                    "{}:poll:{}",
+                    hook.key.step_or_task_id.as_str(),
+                    hook.key.logical_attempt.get()
+                ),
+            );
+            hook.telemetry_context = fx.trace.context();
+            fx.events().flush();
+        }
+    }
     let started = pi_ai_core::CancellationToken::new();
     fx.start_signals
         .lock()
@@ -520,7 +641,11 @@ async fn start<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
         .map_err(|_| fx.lane.owner.fail("driver effect task admission failed"))?;
     wait_owned(fx, &started).await
 }
-async fn drive<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>(
+pub(crate) async fn drive<
+    C: Send + Sync + 'static,
+    S: RuntimeStorage + 'static,
+    M: SessionMetadataRecord,
+>(
     fx: Arc<RuntimeEffects<C, S, M>>,
     operation_id: OperationId,
 ) -> Result<OperationResult, HarnessRuntimeError> {
@@ -540,10 +665,20 @@ async fn drive<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
         let current = h.current.clone().expect("matching drive operation");
         fx.trace.sync(&current);
         let inputs = fx.inputs(&h).await?;
-        let facts = fx.planning(&h, None, inputs.now).await?;
         let action = if let Some(key) = immediate_key.take() {
             ProcedureAction::Existing(Action::AwaitEffect(key))
         } else {
+            let facts = if pi_harness_core::inbox::select(&current)
+                .map_err(|_| fx.lane.owner.fail("inbox selection failed"))?
+                .is_some()
+            {
+                let Some(facts) = fx.prepare_inbox(&h).await? else {
+                    continue;
+                };
+                facts
+            } else {
+                fx.planning(&h, None, inputs.now).await?
+            };
             next_action(&current, &inputs, &facts).map_err(|_| {
                 fx.lane
                     .owner
@@ -600,6 +735,9 @@ async fn drive<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
                 let output = output
                     .ok_or_else(|| fx.lane.owner.fail("effect completed without output"))??;
                 let output = match output {
+                    EffectOutput::Deferred { key, message } => {
+                        SettlementOutput::Deferred { key, message }
+                    }
                     EffectOutput::Assistant { key, message } => {
                         SettlementOutput::Assistant { key, message }
                     }
@@ -612,7 +750,19 @@ async fn drive<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
                         let EffectPlan::Tool(plan) = &slot.plan else {
                             return Err(fx.lane.owner.fail("tool output family mismatch"));
                         };
-                        SettlementOutput::Tool(fx.finalize_tool(plan.clone(), output).await?)
+                        let output = fx.finalize_tool(plan.clone(), output).await?;
+                        let latest = {
+                            let _line = fx.lane.lane.line.acquire().await?;
+                            fx.lane.load().await?
+                        };
+                        if latest
+                            .current
+                            .as_ref()
+                            .is_none_or(|current| current.operation.operation_id != operation_id)
+                        {
+                            return externally_completed(&fx, &operation_id).await;
+                        }
+                        SettlementOutput::Tool(output)
                     }
                     EffectOutput::NotStarted { key } => SettlementOutput::NotStarted { key },
                     _ => {
@@ -640,7 +790,29 @@ async fn drive<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
                 continue;
             }
             ProcedureAction::Existing(Action::Suspend(result)) => {
-                fx.publish_suspension(&current, &result);
+                let line = fx.lane.lane.line.acquire().await?;
+                let latest = fx.lane.load().await?;
+                let Some(latest) = latest
+                    .current
+                    .filter(|c| c.operation.operation_id == operation_id)
+                else {
+                    drop(line);
+                    return externally_completed(&fx, &operation_id).await;
+                };
+                if latest.operation_state_seq != current.operation_state_seq
+                    || latest.lane_state_seq != current.lane_state_seq
+                {
+                    drop(line);
+                    continue;
+                }
+                // Publish suspension and relinquish this exact drive under the same
+                // lane boundary. A subsequent abort either owns this drive or starts
+                // a new reconciliation generation; it cannot lose both owners.
+                fx.publish_suspension(&latest, &result);
+                fx.release_drive();
+                drop(line);
+                fx.events().flush();
+                fx.lane.lane.announce();
                 return Ok(result);
             }
             ProcedureAction::Existing(Action::Finish(result)) => {
@@ -742,6 +914,7 @@ async fn externally_completed<
     fx: &RuntimeEffects<C, S, M>,
     operation: &OperationId,
 ) -> Result<OperationResult, HarnessRuntimeError> {
+    fx.retired.cancel();
     fx.cancellation.cancel();
     let result = {
         let _line = fx.lane.lane.line.acquire().await?;
@@ -925,4 +1098,146 @@ async fn read_external_result<
         _ => return Err(fault("external terminal outcome invalid")),
     };
     Ok(OperationResult::Run(Box::new(outcome)))
+}
+
+#[cfg(test)]
+mod activity_tests {
+    use super::*;
+    use std::sync::Mutex;
+    fn lane() -> Arc<LaneControl> {
+        let cases: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/harness/r1-r4/core/states.json"
+        ))
+        .unwrap();
+        let roots = &cases[0]["roots"];
+        let h = crate::restore::HydratedLane {
+            roots: pi_harness_core::CurrentRoots {
+                lane: LaneId::new("main").unwrap(),
+                configuration: serde_json::from_value(roots["configuration"].clone()).unwrap(),
+                lane_state: serde_json::from_value(roots["lane_state"].clone()).unwrap(),
+                leaf: serde_json::from_value(roots["leaf"].clone()).unwrap(),
+                operation_meta: None,
+                operation_state: None,
+            },
+            entries: Default::default(),
+            registers: Default::default(),
+            current: None,
+        };
+        let admission = crate::scheduler::Admission::new();
+        Arc::new(LaneControl {
+            name: LaneId::new("main").unwrap(),
+            changed: Mutex::new(CancellationToken::new()),
+            driving: Mutex::new(true),
+            activity: Mutex::new(()),
+            generation: Mutex::new(Arc::new(())),
+            active: Mutex::new(None),
+            restored: std::sync::atomic::AtomicBool::new(false),
+            reservation: Mutex::new(Some(OperationId::new("old").unwrap())),
+            streaming: Mutex::new(None),
+            running_tools: Mutex::new(Default::default()),
+            line: crate::scheduler::MutationLine::new(admission.clone()),
+            gate: crate::manual_gate::ManualGate::new(admission, DriveMode::Automatic),
+            hydrated: Mutex::new(h),
+        })
+    }
+    use pi_ai_core::CancellationToken;
+    #[test]
+    fn drive_release_cannot_expose_idle_before_its_metadata_is_clear() {
+        let lane = lane();
+        let blocked = lane.active.lock().unwrap();
+        let other = lane.clone();
+        let (started, receive) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            started.send(()).unwrap();
+            drop(DriveGuard::new(other));
+        });
+        receive.recv().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if !*lane.driving.lock().unwrap() || lane.activity.try_lock().is_err() {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "drop did not reach controlled boundary"
+            );
+            std::thread::yield_now();
+        }
+        let still_owned = *lane.driving.lock().unwrap();
+        drop(blocked);
+        worker.join().unwrap();
+        assert!(
+            still_owned,
+            "old guard exposed idle while it could still erase the next registration"
+        );
+    }
+    struct InertDrive;
+    impl crate::abort::ActiveDrive for InertDrive {
+        fn register_cancel(
+            &self,
+            _: &crate::restore::HydratedLane,
+        ) -> Result<(), HarnessRuntimeError> {
+            Ok(())
+        }
+        fn abort(
+            self: Arc<Self>,
+            _: crate::restore::HydratedLane,
+        ) -> BoxFuture<'static, Result<(), HarnessRuntimeError>> {
+            Box::pin(async { Ok(()) })
+        }
+    }
+    #[test]
+    fn reserve_publishes_matching_control_before_exposing_driving() {
+        let lane = lane();
+        *lane.driving.lock().unwrap() = false;
+        *lane.reservation.lock().unwrap() = None;
+        let drive: Arc<dyn crate::abort::ActiveDrive> = Arc::new(InertDrive);
+        let weak = Arc::downgrade(&drive);
+        let blocked = lane.active.lock().unwrap();
+        let target = lane.clone();
+        let worker = std::thread::spawn(move || {
+            target.reserve_drive(OperationId::new("new").unwrap(), weak)
+        });
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        while lane.activity.try_lock().is_ok() {
+            assert!(std::time::Instant::now() < deadline);
+            std::thread::yield_now();
+        }
+        assert!(
+            !*lane.driving.lock().unwrap(),
+            "reservation exposed without matching control"
+        );
+        drop(blocked);
+        assert!(worker.join().unwrap());
+        assert!(*lane.driving.lock().unwrap());
+        assert_eq!(
+            lane.active.lock().unwrap().as_ref().unwrap().0.as_str(),
+            "new"
+        );
+    }
+    #[test]
+    fn obsolete_guard_cannot_clear_a_new_generation() {
+        let lane = lane();
+        let old = DriveGuard::new(lane.clone());
+        *lane.reservation.lock().unwrap() = Some(OperationId::new("new").unwrap());
+        drop(old);
+        assert!(*lane.driving.lock().unwrap());
+        assert_eq!(
+            lane.reservation.lock().unwrap().as_ref().unwrap().as_str(),
+            "new"
+        );
+    }
+
+    #[test]
+    fn obsolete_guard_cannot_clear_a_resumed_generation_of_the_same_operation() {
+        let lane = lane();
+        let old = DriveGuard::new(lane.clone());
+        *lane.generation.lock().unwrap() = Arc::new(());
+        drop(old);
+        assert!(*lane.driving.lock().unwrap());
+        assert_eq!(
+            lane.reservation.lock().unwrap().as_ref().unwrap().as_str(),
+            "old"
+        );
+    }
 }

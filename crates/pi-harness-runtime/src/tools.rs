@@ -95,6 +95,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 },
             });
         }
+        if matches!(&current.state,OperationState::Run(run) if matches!(run.control,Control::CancelRequested(_)))
+        {
+            return Ok(PlanningFacts::ToolsCancelled {
+                session_id,
+                telemetry_context,
+                declarations,
+                interrupted: pi_agent_loop::tool_error("Tool execution was interrupted"),
+                aborted: pi_agent_loop::tool_error("Operation aborted"),
+            });
+        }
         Ok(PlanningFacts::Tools {
             session_id,
             telemetry_context,
@@ -209,6 +219,22 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .map_err(|_| self.lane.owner.fail("tool clearance pairing failed"))?,
         ))
     }
+    async fn tool_is_current(
+        &self,
+        plan: &ToolEffectPlan<Telemetry>,
+    ) -> Result<bool, HarnessRuntimeError> {
+        let _line = self.lane.lane.line.acquire().await?;
+        let h = self.lane.load().await?;
+        Ok(h.current.as_ref().is_some_and(|current| {
+            current.operation.operation_id == plan.key.operation_id
+                && matches!(&current.state, OperationState::Run(run)
+                    if matches!(&run.phase, RunPhase::Tools(tools)
+                        if tools.batch.turn_id.as_str() == plan.key.step_or_task_id.as_str()
+                            && tools.batch.calls.iter().any(|call| matches!(call,
+                                ToolCallState::EffectPending { source_index, .. }
+                                    if *source_index == plan.source_index))))
+        }))
+    }
     async fn prepared(
         &self,
         plan: &ToolEffectPlan<Telemetry>,
@@ -264,6 +290,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .await
             .map_err(|_| self.lane.owner.fail("saved tool arguments read failed"))?;
         let Some(Register::OperationToolArguments { value: args, .. }) = register else {
+            if !self.tool_is_current(plan).await? {
+                return Ok(None);
+            }
             return Err(self.lane.owner.fail("saved tool arguments absent"));
         };
         Ok(Some((
@@ -456,7 +485,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         if output.key != plan.key {
             return Err(self.lane.owner.fail("tool finalization key mismatch"));
         }
-        let Some((prepared, context)) = self.prepared(&plan, false).await? else {
+        // The manual gate may outlive a legitimate terminal transaction, which
+        // removes saved arguments. Recheck authority before touching those facts.
+        let prepared = if self.tool_is_current(&plan).await? {
+            self.prepared(&plan, false).await?
+        } else {
+            None
+        };
+        let Some((prepared, context)) = prepared else {
             return Ok(ToolSettlementOutput {
                 key: plan.key,
                 result: output.result,

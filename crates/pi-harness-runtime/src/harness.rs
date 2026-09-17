@@ -68,7 +68,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .unwrap_or_else(|p| p.into_inner()),
                 tools,
             );
+            drop(_line);
             drop(old);
+            self.main.owner.events.enqueue(
+                HarnessEventType::ConfigUpdate,
+                &self.main.lane.name,
+                HarnessEvent::GlobalConfigUpdate(GlobalConfigUpdateEvent {
+                    event_type: Default::default(),
+                    property: GlobalConfigProperty::Tools,
+                }),
+            );
+            self.main.owner.events.flush();
             Ok(())
         })
     }
@@ -89,7 +99,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         resources: Resources,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.change_settings(move |s| s.resources = resources))
+        Box::pin(
+            self.change_settings(GlobalConfigProperty::Resources, move |s| {
+                s.resources = resources
+            }),
+        )
     }
     fn get_stream_options(
         &self,
@@ -112,12 +126,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
         Box::pin(async move {
             self.main.owner.admission.check()?;
-            self.main.owner.observe(validate_stream_options(
+            self.main.owner.observed_unlocked(validate_stream_options(
                 &options,
                 self.main.owner.session.codec().header_policy(),
             ))?;
-            self.change_settings(move |s| s.stream_options = options)
-                .await
+            self.change_settings(GlobalConfigProperty::StreamOptions, move |s| {
+                s.stream_options = options
+            })
+            .await
         })
     }
     fn get_retry_policy(&self) -> BoxFuture<'_, Result<RetryPolicy, HarnessRuntimeError>> {
@@ -137,7 +153,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         policy: RetryPolicy,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.change_settings(move |s| s.retry = policy))
+        Box::pin(self.change_settings(GlobalConfigProperty::RetryPolicy, move |s| s.retry = policy))
     }
     fn get_compaction_settings(
         &self,
@@ -159,7 +175,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         settings: CompactionSettings,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.change_settings(move |s| s.run.compaction = settings))
+        Box::pin(
+            self.change_settings(GlobalConfigProperty::CompactionSettings, move |s| {
+                s.run.compaction = settings
+            }),
+        )
     }
     fn get_steering_mode(&self) -> BoxFuture<'_, Result<QueueMode, HarnessRuntimeError>> {
         Box::pin(async move {
@@ -175,7 +195,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         })
     }
     fn set_steering_mode(&self, mode: QueueMode) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.change_settings(move |s| s.run.steering_mode = mode))
+        Box::pin(
+            self.change_settings(GlobalConfigProperty::SteeringMode, move |s| {
+                s.run.steering_mode = mode
+            }),
+        )
     }
     fn get_follow_up_mode(&self) -> BoxFuture<'_, Result<QueueMode, HarnessRuntimeError>> {
         Box::pin(async move {
@@ -194,7 +218,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         mode: QueueMode,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
-        Box::pin(self.change_settings(move |s| s.run.follow_up_mode = mode))
+        Box::pin(
+            self.change_settings(GlobalConfigProperty::FollowUpMode, move |s| {
+                s.run.follow_up_mode = mode
+            }),
+        )
     }
     fn watch_session(
         &self,
@@ -216,6 +244,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
 {
     async fn change_settings<F: FnOnce(&mut Settings) + Send>(
         &self,
+        property: GlobalConfigProperty,
         change: F,
     ) -> Result<(), HarnessRuntimeError> {
         let _line = self.main.owner.settings_line.acquire().await?;
@@ -244,9 +273,23 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             next,
         );
         drop(previous);
+        self.main.owner.events.enqueue(
+            HarnessEventType::ConfigUpdate,
+            &self.main.lane.name,
+            HarnessEvent::GlobalConfigUpdate(GlobalConfigUpdateEvent {
+                event_type: Default::default(),
+                property,
+            }),
+        );
+        drop(_line);
+        self.main.owner.events.flush();
         Ok(())
     }
     async fn list_lanes(&self) -> Result<Vec<LaneInfo>, HarnessRuntimeError> {
+        let result = self.list_lanes_inner().await;
+        self.main.owner.observed_unlocked(result)
+    }
+    async fn list_lanes_inner(&self) -> Result<Vec<LaneInfo>, HarnessRuntimeError> {
         let _settings = self.main.owner.settings_line.acquire().await?;
         let lanes: Vec<_> = self
             .main
@@ -287,6 +330,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     async fn session_watch(
         &self,
     ) -> Result<Arc<dyn WatchHandle<SessionSnapshot>>, HarnessRuntimeError> {
+        let result = self.session_watch_inner().await;
+        self.main.owner.observed_watch(result)
+    }
+    async fn session_watch_inner(
+        &self,
+    ) -> Result<Arc<dyn WatchHandle<SessionSnapshot>>, HarnessRuntimeError> {
         let _settings = self.main.owner.settings_line.acquire().await?;
         let controls: Vec<_> = self
             .main
@@ -307,7 +356,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 owner: self.main.owner.clone(),
                 lane: control,
             };
-            let h = lane.load().await?;
+            let h = crate::restore::hydrate_lane(
+                lane.owner.session.as_ref(),
+                lane.lane.name.clone(),
+                &crate::scheduler::Admission::new(),
+            )
+            .await?;
             let Register::LaneLeaf { value: leaf_id, .. } = h.roots.leaf.clone() else {
                 return Err(self.main.owner.fail("invalid snapshot leaf"));
             };
@@ -318,7 +372,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 operation: h.current.as_ref().map(|c| LaneOperationInfo {
                     id: c.operation.operation_id.clone(),
                     kind: crate::snapshots::kind(c),
-                    status: if driving {
+                    status: if matches!(&c.state,OperationState::Run(run) if matches!(run.control,Control::CancelRequested(_))) {OperationSnapshotStatus::Aborting} else if driving {
                         OperationSnapshotStatus::Running
                     } else {
                         OperationSnapshotStatus::Suspended
@@ -495,6 +549,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     name: name.clone(),
                     changed: std::sync::Mutex::new(pi_ai_core::CancellationToken::new()),
                     driving: std::sync::Mutex::new(false),
+                    activity: std::sync::Mutex::new(()),
+                    generation: std::sync::Mutex::new(Arc::new(())),
+                    active: std::sync::Mutex::new(None),
+                    restored: std::sync::atomic::AtomicBool::new(false),
                     reservation: std::sync::Mutex::new(None),
                     streaming: std::sync::Mutex::new(None),
                     running_tools: std::sync::Mutex::new(std::collections::BTreeMap::new()),

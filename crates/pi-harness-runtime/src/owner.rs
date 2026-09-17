@@ -58,6 +58,10 @@ pub(crate) struct LaneControl {
     pub name: LaneId,
     pub changed: Mutex<pi_ai_core::CancellationToken>,
     pub driving: Mutex<bool>,
+    pub activity: Mutex<()>,
+    pub generation: Mutex<Arc<()>>,
+    pub active: Mutex<Option<(OperationId, std::sync::Weak<dyn crate::abort::ActiveDrive>)>>,
+    pub restored: std::sync::atomic::AtomicBool,
     pub reservation: Mutex<Option<OperationId>>,
     pub streaming: Mutex<Option<(EntryId, pi_ai_core::AssistantMessage)>>,
     pub running_tools: Mutex<BTreeMap<EffectKey, RunningToolSnapshot>>,
@@ -92,6 +96,27 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub closed: pi_ai_core::CancellationToken,
 }
 impl<C, S: RuntimeStorage, M: SessionMetadataRecord> Owner<C, S, M> {
+    /// A preadmitted observation may finish through Fault, but an ordinary
+    /// close that shuts down its backend retains the Closed read channel.
+    pub(crate) fn observed_watch<T>(
+        &self,
+        result: Result<T, HarnessRuntimeError>,
+    ) -> Result<T, HarnessRuntimeError> {
+        if result.is_err()
+            && let Err(error @ HarnessRuntimeError::Closed(_)) = self.admission.check()
+        {
+            return self.observed_unlocked(Err(error));
+        }
+        self.observed_unlocked(result)
+    }
+    pub(crate) fn observed_unlocked<T>(
+        &self,
+        result: Result<T, HarnessRuntimeError>,
+    ) -> Result<T, HarnessRuntimeError> {
+        let result = self.observe(result);
+        self.events.flush();
+        result
+    }
     pub fn fail(&self, message: &'static str) -> HarnessRuntimeError {
         self.observe::<()>(Err(fault(message)))
             .expect_err("fault seals owner")
@@ -193,6 +218,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     name: name.clone(),
                     changed: Mutex::new(pi_ai_core::CancellationToken::new()),
                     driving: Mutex::new(false),
+                    activity: Mutex::new(()),
+                    generation: Mutex::new(Arc::new(())),
+                    active: Mutex::new(None),
+                    restored: std::sync::atomic::AtomicBool::new(hydrated.current.is_some()),
                     reservation: Mutex::new(None),
                     streaming: Mutex::new(None),
                     running_tools: Mutex::new(BTreeMap::new()),
@@ -360,6 +389,24 @@ pub(crate) fn suspended(h: &HydratedLane) -> Option<SuspendedOperation> {
 }
 
 impl LaneControl {
+    pub(crate) fn reserve_drive(
+        &self,
+        operation: OperationId,
+        drive: std::sync::Weak<dyn crate::abort::ActiveDrive>,
+    ) -> bool {
+        let _activity = self.activity.lock().unwrap_or_else(|p| p.into_inner());
+        let mut active = self.active.lock().unwrap_or_else(|p| p.into_inner());
+        let mut reservation = self.reservation.lock().unwrap_or_else(|p| p.into_inner());
+        let mut driving = self.driving.lock().unwrap_or_else(|p| p.into_inner());
+        if *driving {
+            return false;
+        }
+        *self.generation.lock().unwrap_or_else(|p| p.into_inner()) = Arc::new(());
+        *active = Some((operation.clone(), drive));
+        *reservation = Some(operation);
+        *driving = true;
+        true
+    }
     pub(crate) fn announce(&self) {
         let previous = std::mem::replace(
             &mut *self.changed.lock().unwrap_or_else(|p| p.into_inner()),
@@ -380,6 +427,7 @@ impl<C, S: RuntimeStorage, M: SessionMetadataRecord> Owner<C, S, M> {
     ) -> Result<T, HarnessRuntimeError> {
         match result {
             Err(HarnessRuntimeError::Fault(fault)) => {
+                self.events.record_fault();
                 self.admission.seal_fault(fault);
                 self.effects.retire();
                 Err(self
@@ -410,7 +458,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 Box::pin(async move {
                     let result = crate::scheduler::catch_task(work).await;
                     ownership.complete();
-                    observer.observe(result)
+                    let result = observer.observe(result);
+                    observer.events.flush();
+                    result
                 }),
             )
             .await;
@@ -436,7 +486,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 Box::pin(async move {
                     let result = crate::scheduler::catch_task(work).await;
                     ownership.complete();
-                    observer.observe(result)
+                    let result = observer.observe(result);
+                    observer.events.flush();
+                    result
                 }),
             )
             .await;

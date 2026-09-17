@@ -314,7 +314,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 fx: self.clone(),
                 telemetry: request_span.clone(),
                 key: plan.key.clone(),
-                generation: plan.generation.clone(),
+                projection: RequestProjection::Assistant(plan.generation.clone()),
             }),
         };
         let message = crate::request::run_captured_request(input, captured).await?;
@@ -338,7 +338,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         {
             let _line = self.lane.lane.line.acquire().await?;
             let h = self.lane.load().await?;
-            if current_request(&h, &plan.key, &plan.generation) {
+            if current_request(
+                &h,
+                &plan.key,
+                &RequestProjection::Assistant(plan.generation.clone()),
+            ) {
                 let old = self
                     .lane
                     .lane
@@ -373,11 +377,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         })
     }
 }
-struct RequestHooks<C, S: RuntimeStorage, M: SessionMetadataRecord> {
-    fx: Arc<RuntimeEffects<C, S, M>>,
-    telemetry: Telemetry,
-    key: EffectKey,
-    generation: PendingGeneration,
+pub(crate) struct RequestHooks<C, S: RuntimeStorage, M: SessionMetadataRecord> {
+    pub fx: Arc<RuntimeEffects<C, S, M>>,
+    pub telemetry: Telemetry,
+    pub key: EffectKey,
+    pub projection: RequestProjection,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     crate::request::RequestCallbacks for RequestHooks<C, S, M>
@@ -445,7 +449,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             self.fx.lane.owner.admission.check()?;
             let _line = self.fx.lane.lane.line.acquire().await?;
             let h = self.fx.lane.load().await?;
-            if !current_request(&h, &self.key, &self.generation) {
+            if !current_request(&h, &self.key, &self.projection) {
                 return Ok(());
             }
             let partial = match &event {
@@ -469,7 +473,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .streaming
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
-                .replace((self.generation.response_entry_id.clone(), *partial.clone()));
+                .replace((self.projection.response_id().clone(), *partial.clone()));
             drop(old);
             self.fx
                 .events()
@@ -493,10 +497,24 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     }
 }
 
-fn current_request(
+pub(crate) enum RequestProjection {
+    Assistant(PendingGeneration),
+    Deferred(PendingDeferred),
+}
+impl RequestProjection {
+    fn response_id(&self) -> &EntryId {
+        match self {
+            Self::Assistant(p) => &p.response_entry_id,
+            Self::Deferred(p) => &p.response_entry_id,
+        }
+    }
+}
+pub(crate) fn current_request(
     h: &crate::restore::HydratedLane,
     key: &EffectKey,
-    generation: &PendingGeneration,
+    projection: &RequestProjection,
 ) -> bool {
-    h.current.as_ref().is_some_and(|current|current.operation.operation_id==key.operation_id&&matches!(&current.state,OperationState::Run(run) if matches!(&run.phase,RunPhase::Assistant(AssistantPhase {generation:current,..}) if PendingGeneration::try_from(current.clone()).is_ok_and(|current|current==*generation))))
+    h.current.as_ref().is_some_and(|current|current.operation.operation_id==key.operation_id && match (&current.state,projection) {
+ (OperationState::Run(run),RequestProjection::Assistant(p))=>matches!(&run.phase,RunPhase::Assistant(AssistantPhase{generation,..}) if PendingGeneration::try_from(generation.clone()).is_ok_and(|current|current==*p)),
+ (OperationState::Run(run),RequestProjection::Deferred(p))=>matches!(&run.phase,RunPhase::Deferred(DeferredPhase{deferred,..}) if PendingDeferred::try_from(deferred.clone()).is_ok_and(|current|current==*p)),_=>false})
 }
