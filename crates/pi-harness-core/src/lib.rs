@@ -16,3 +16,7 @@ pub mod transition;
 pub mod control;
 pub mod deferred;
 pub mod inbox;
+
+pub mod compaction;
+pub mod navigation;
+pub mod structural;

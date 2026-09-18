@@ -49,6 +49,23 @@ pub fn transition_recipe<C: Clone>(
         ))
     }
     recipe.expected_settings_revision = commit.expected_settings_revision;
+    if let PlanningFacts::Threshold(t) = planning
+        && let Some(p) = &t.prepared
+    {
+        crate::compaction::add_preparation(current, p, &mut recipe)?;
+    }
+    if matches!(crate::structural::decision(current),Some(StructuralDecision::Generating{generation,..}) if matches!(generation.as_ref(),SummaryGeneration::Ready{..}))
+    {
+        let mut updated = current.clone();
+        updated.state = commit.next.clone();
+        // Cancellation may instead leave ready for an ordinary checkpoint.
+        if crate::structural::pending(&updated).is_some() {
+            let summary =
+                crate::structural::plan(&updated, &facts.session_id, &commit.telemetry_context)?;
+            recipe.dispatch = Some(EffectPlan::Summary(summary));
+        }
+    }
+
     if let OperationState::Run(r) = &current.state
         && let RunPhase::Tools(p) = &r.phase
         && p.batch

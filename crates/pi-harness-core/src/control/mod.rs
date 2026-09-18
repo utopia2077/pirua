@@ -21,6 +21,44 @@ pub fn abort_recipe<C: Clone>(
     if !owned(current) {
         return Err(PlanError::InvalidCurrent);
     }
+    if !matches!(current.state, OperationState::Run(_)) {
+        if !payloads.is_empty() {
+            return Err(PlanError::InvalidInput);
+        }
+        let result = AbortOutcome {
+            run_id: current.operation.operation_id.clone(),
+            steer: vec![],
+            follow_up: vec![],
+        };
+        if crate::structural::is_cancelled(current) {
+            return Ok(AbortDecision {
+                result,
+                recipe: None,
+            });
+        }
+        let mut state = current.state.clone();
+        let c = Control::CancelRequested(CancelRequestedControl {
+            status: Default::default(),
+            requested_at: now,
+            drained_steer: vec![],
+            drained_follow_up: vec![],
+        });
+        match &mut state {
+            OperationState::Compaction(s) => s.control = c,
+            OperationState::Navigation(NavigationState::Summarized(s)) => s.control = c,
+            OperationState::Navigation(NavigationState::Unsummarized(s)) => s.control = c,
+            _ => return Err(PlanError::InvalidCurrent),
+        }
+        let mut r = recipe(current, facts, context);
+        r.transaction
+            .writes
+            .push(state_write(current, state.clone()));
+        r.next = Some(state);
+        return Ok(AbortDecision {
+            result,
+            recipe: Some(r),
+        });
+    }
     let run = run(current)?;
     let (steer, follow_up) = match &run.control {
         Control::Running(_) => (&run.inbox.steer, &run.inbox.follow_up),

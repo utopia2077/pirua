@@ -21,6 +21,9 @@ pub fn select(current: &CurrentOperation) -> Result<Option<InboxSelection>, Plan
     if !owned(current) {
         return Err(PlanError::InvalidCurrent);
     }
+    if !matches!(current.state, OperationState::Run(_)) {
+        return Ok(None);
+    }
     let r = run(current)?;
     let eligible = if cancelled(r) {
         matches!(

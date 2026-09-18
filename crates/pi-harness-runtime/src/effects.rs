@@ -181,6 +181,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .owner
                     .fail("operation requires a later runtime stage")
             })? {
+                RequiredFacts::Structural => {
+                    return Err(self
+                        .lane
+                        .owner
+                        .fail("structural execution requires a later runtime stage"));
+                }
                 RequiredFacts::Checkpoint => PlanningFacts::Checkpoint {
                     session_id,
                     telemetry_context,
@@ -407,6 +413,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 self.lane.apply(*recipe).await?.and_then(|h| h.current)
             }
             RecipeDecision::NoLongerExpected => None,
+            RecipeDecision::Suspend(_) => {
+                return Err(self.lane.owner.fail("unexpected suspension transition"));
+            }
             RecipeDecision::Terminal(_) => {
                 return Err(self.lane.owner.fail("unexpected terminal transition"));
             }
@@ -455,6 +464,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 settlement_recipe(current, &plan, &inputs, &self.lane.facts(&h)?, &facts)
                     .map_err(|_| self.lane.owner.fail("settlement recipe rejected"))?;
             let result = match decision {
+                RecipeDecision::Suspend(result) => Some(SettlementResult {
+                    current: current.clone(),
+                    terminal: None,
+                    dispatch: None,
+                    suspend: Some(*result),
+                    consume_deferred_poll: false,
+                }),
                 RecipeDecision::NoLongerExpected => None,
                 RecipeDecision::Terminal(terminal) => Some(SettlementResult {
                     terminal: Some(terminal.result),

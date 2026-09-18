@@ -368,8 +368,8 @@ pub(crate) fn settle<C: Clone>(
         if message.stop_reason == StopReason::Aborted {
             return Err(PlanError::InvalidCurrent);
         }
-        if overflow {
-            return Err(PlanError::LaterSlice);
+        if overflow && matches!(message.stop_reason, StopReason::Error | StopReason::Length) {
+            crate::compaction::normalize_overflow(&mut message, None);
         }
         if message.stop_reason == StopReason::Deferred && message.deferred.as_ref() != Some(handle)
         {

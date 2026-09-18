@@ -118,7 +118,7 @@ fn last_result(
     result: &OperationResult,
 ) -> Result<LaneLastResult, PlanError> {
     let OperationResult::Run(outcome) = result else {
-        return Err(PlanError::LaterSlice);
+        return crate::structural::last_result(current, result);
     };
     let op = current.operation.operation_id.clone();
     let leaf = current.leaf_id.clone();
@@ -193,22 +193,50 @@ pub fn terminal_recipe<C: Clone>(
     {
         return Ok(RecipeDecision::NoLongerExpected);
     }
+    if !matches!(current.state, OperationState::Run(_)) {
+        return crate::structural::terminal_recipe(
+            current,
+            commit,
+            facts,
+            cleanup,
+            &crate::structural::Settlement::default(),
+        );
+    }
     let result = operation_result(current, inputs)?;
     if result != commit.result {
         return Ok(RecipeDecision::NoLongerExpected);
     }
-    let last = last_result(current, &result)?;
-    let r = run(current)?;
-    let mut pending: std::collections::BTreeSet<_> = r
-        .inbox
-        .steer
-        .iter()
-        .chain(&r.inbox.follow_up)
-        .chain(&r.inbox.writes)
-        .cloned()
-        .collect();
-    if let Control::CancelRequested(c) = &r.control {
-        pending.extend(c.drained_steer.iter().chain(&c.drained_follow_up).cloned())
+    finish_recipe(
+        current,
+        &result,
+        facts,
+        cleanup,
+        vec![],
+        &commit.telemetry_context,
+    )
+}
+pub(crate) fn finish_recipe<C: Clone>(
+    current: &CurrentOperation,
+    result: &OperationResult,
+    facts: &CommitFacts,
+    cleanup: &TerminalFacts,
+    prefix: Vec<Write>,
+    telemetry: &C,
+) -> Result<RecipeDecision<C>, PlanError> {
+    let last = last_result(current, result)?;
+    let mut pending: std::collections::BTreeSet<_> = match &current.state {
+        OperationState::Run(r) => r
+            .inbox
+            .steer
+            .iter()
+            .chain(&r.inbox.follow_up)
+            .chain(&r.inbox.writes)
+            .cloned()
+            .collect(),
+        _ => Default::default(),
+    };
+    if let Control::CancelRequested(c) = crate::structural::control(&current.state) {
+        pending.extend(c.drained_steer.iter().chain(&c.drained_follow_up).cloned());
     }
     if pending
         .iter()
@@ -216,10 +244,22 @@ pub fn terminal_recipe<C: Clone>(
     {
         return Err(PlanError::InvalidCurrent);
     }
-    let prefix = format!("{}:", current.operation.operation_id.as_str());
+    let register_prefix = format!("{}:", current.operation.operation_id.as_str());
     let mut seen = std::collections::BTreeSet::new();
     let mut pending_seen = std::collections::BTreeSet::new();
-    let mut recipe = recipe(current, facts, &commit.telemetry_context);
+    let mut recipe = recipe(current, facts, telemetry);
+    for write in &prefix {
+        match write {
+            Write::Entry(e) => recipe.publication.push(Publication::Entry(match e {
+                NewEntry::Compaction(e) => e.id.clone(),
+                NewEntry::BranchSummary(e) => e.id.clone(),
+                _ => return Err(PlanError::InvalidInput),
+            })),
+            Write::Usage(u) => recipe.publication.push(Publication::Usage(u.id.clone())),
+            _ => {}
+        }
+    }
+    recipe.transaction.writes = prefix;
     recipe.transaction.writes.push(delete(
         RegisterNamespace::OperationMeta,
         current.operation.operation_id.as_str().into(),
@@ -234,7 +274,7 @@ pub fn terminal_recipe<C: Clone>(
         }
         match register.namespace {
             RegisterNamespace::OperationToolArguments | RegisterNamespace::OperationPreparation
-                if register.key.starts_with(&prefix) => {}
+                if register.key.starts_with(&register_prefix) => {}
             RegisterNamespace::PendingEntry => {
                 let id = EntryId::new(register.key.clone()).map_err(|_| PlanError::InvalidInput)?;
                 if !pending.contains(&id) {
@@ -269,7 +309,7 @@ pub fn terminal_recipe<C: Clone>(
     recipe.result = Some(result.clone());
     recipe
         .publication
-        .push(Publication::Terminal(Box::new(result)));
+        .push(Publication::Terminal(Box::new(result.clone())));
     Ok(RecipeDecision::Apply(Box::new(recipe)))
 }
 pub(crate) fn settle_hook<C: Clone>(

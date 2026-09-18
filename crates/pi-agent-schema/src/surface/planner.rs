@@ -400,6 +400,38 @@ pub enum SummaryAttemptOutcome {
     Failure(crate::OperationError),
 }
 
+/// Checked process-local suspension of one exact live summary attempt.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SummarySuspendedOutput {
+    key: EffectKey,
+    missing: crate::MissingIdentities,
+}
+impl SummarySuspendedOutput {
+    /// Bind nonempty missing identities to a structurally matching outer plan.
+    pub fn new<C>(plan: &SummaryEffectPlan<C>, missing: crate::MissingIdentities) -> Option<Self> {
+        if (missing.tools.is_empty() && missing.models.is_empty())
+            || plan.key.kind != EffectKind::Summary
+            || plan.key.step_or_task_id.as_str() != plan.generation.context.task_id.as_str()
+            || plan.key.logical_attempt.get() != plan.generation.attempt.get()
+            || plan.key.item_index.is_some()
+        {
+            return None;
+        }
+        Some(Self {
+            key: plan.key.clone(),
+            missing,
+        })
+    }
+    /// Original outer effect identity.
+    pub fn key(&self) -> &EffectKey {
+        &self.key
+    }
+    /// Unavailable identities, without an invented provider failure.
+    pub fn missing(&self) -> &crate::MissingIdentities {
+        &self.missing
+    }
+}
+
 /// Raw tool output before source-ordered `after_tool` finalization.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ToolRawOutput {
@@ -426,6 +458,8 @@ pub enum EffectOutput {
         key: EffectKey,
         message: SettledAssistantMessage,
     },
+    /// Safely dispatchable summary suspended without a durable write.
+    SummarySuspended(SummarySuspendedOutput),
     /// Structural attempt outcome.
     Summary {
         key: EffectKey,
@@ -473,6 +507,8 @@ pub enum SettlementOutput {
         key: EffectKey,
         message: SettledAssistantMessage,
     },
+    /// Safely dispatchable summary suspended without a durable write.
+    SummarySuspended(SummarySuspendedOutput),
     /// Structural attempt outcome.
     Summary {
         key: EffectKey,

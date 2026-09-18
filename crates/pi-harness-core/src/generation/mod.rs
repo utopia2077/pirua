@@ -334,14 +334,21 @@ pub(crate) fn settle<C: Clone>(
         }
         _ => return Ok(RecipeDecision::NoLongerExpected),
     };
-    let SettlementFacts::Assistant {
-        retryable,
-        overflow,
-        followers,
-    } = extra
-    else {
-        return Err(PlanError::MissingInput);
+    let (retryable, overflow, followers, overflow_preparation) = match extra {
+        SettlementFacts::Assistant {
+            retryable,
+            overflow,
+            followers,
+        } => (retryable, overflow, followers, None),
+        SettlementFacts::Overflow(o) => (
+            &o.retryable,
+            &o.matching_error,
+            &o.followers,
+            o.prepared.as_ref(),
+        ),
+        _ => return Err(PlanError::MissingInput),
     };
+    let mut publish_preparation = None;
     if synthetic
         && (message.provider != p.generation.context.configuration.model.provider
             || message.model != p.generation.context.configuration.model.model_id
@@ -367,11 +374,20 @@ pub(crate) fn settle<C: Clone>(
         )
     } else if message.stop_reason == StopReason::Aborted {
         return Err(PlanError::InvalidCurrent);
-    } else if *overflow
-        || (message.stop_reason == StopReason::Length
-            && message.usage.output.get() < p.generation.intended_output_limit.get())
-    {
-        return Err(PlanError::LaterSlice);
+    } else if crate::compaction::is_overflow(
+        &message,
+        p.generation.intended_output_limit,
+        *overflow,
+    ) {
+        crate::compaction::normalize_overflow(
+            &mut message,
+            Some(p.generation.intended_output_limit),
+        );
+        next.phase =
+            crate::compaction::overflow_phase(current, &p.generation, &id, overflow_preparation)?;
+        if matches!(next.phase, RunPhase::Compaction(_)) {
+            publish_preparation = overflow_preparation;
+        }
     } else if message.stop_reason == StopReason::Deferred {
         if message.deferred.is_none() {
             return Err(PlanError::InvalidInput);
@@ -500,6 +516,9 @@ pub(crate) fn settle<C: Clone>(
         adjustment: false,
         details: Presence::Missing,
     }));
+    if let Some(prepared) = publish_preparation {
+        crate::compaction::add_preparation(current, prepared, &mut result)?;
+    }
     let state = OperationState::Run(Box::new(next));
     result
         .transaction

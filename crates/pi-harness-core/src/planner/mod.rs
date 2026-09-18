@@ -51,6 +51,7 @@ pub struct CommitRecipe<C> {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum RecipeDecision<C> {
+    Suspend(Box<OperationResult>),
     NoLongerExpected,
     Apply(Box<CommitRecipe<C>>),
     Terminal(Box<TerminalCommit<C>>),
@@ -68,6 +69,8 @@ pub struct ToolDeclaration {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum PlanningFacts<C> {
+    Threshold(crate::compaction::Threshold<C>),
+    Structural(crate::structural::Planning<C>),
     Inbox {
         session_id: SessionId,
         telemetry_context: C,
@@ -120,6 +123,8 @@ pub enum PlanningFacts<C> {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub enum SettlementFacts {
+    Overflow(crate::compaction::Overflow),
+    Structural(crate::structural::Settlement),
     Deferred {
         overflow: bool,
         followers: Vec<(SafeUnsigned, EntryId)>,
@@ -310,6 +315,10 @@ pub(crate) fn plan_matches<C>(expected: &EffectPlan<C>, actual: &EffectPlan<C>) 
         return false;
     }
     match (expected, actual) {
+        (EffectPlan::Summary(a), EffectPlan::Summary(b)) => {
+            a.generation.context == b.generation.context
+                && a.generation.attempt == b.generation.attempt
+        }
         (EffectPlan::Assistant(a), EffectPlan::Assistant(b)) => a.generation == b.generation,
         (EffectPlan::Deferred(a), EffectPlan::Deferred(b)) => a.deferred == b.deferred,
         (EffectPlan::Tool(a), EffectPlan::Tool(b)) => {
@@ -367,7 +376,15 @@ pub fn next_action<C: Clone>(
     if !owned(current) {
         return Err(PlanError::InvalidCurrent);
     }
+    if crate::structural::decision(current).is_some()
+        || matches!(current.state, OperationState::Navigation(_))
+    {
+        return crate::structural::next(current, inputs, facts);
+    }
     let r = run(current)?;
+    if let PlanningFacts::Threshold(facts) = facts {
+        return crate::compaction::threshold_action(current, facts);
+    }
     if crate::inbox::select(current)?.is_some() {
         return crate::inbox::next(current, facts);
     }
@@ -507,6 +524,12 @@ pub fn settlement_recipe<C: Clone>(
     {
         return Ok(RecipeDecision::NoLongerExpected);
     }
+    if crate::structural::decision(current).is_some() {
+        let SettlementFacts::Structural(extra) = output_facts else {
+            return Err(PlanError::MissingInput);
+        };
+        return crate::structural::settle(current, commit, inputs, facts, extra);
+    }
     if let SettlementOutput::NotStarted { key: output_key } = &commit.output {
         if output_key != commit.plan.key() || !cancelled(run(current)?) {
             return Ok(RecipeDecision::NoLongerExpected);
@@ -573,6 +596,7 @@ pub fn settlement_recipe<C: Clone>(
 /// Finite phase inventory for runtime fact materialization. Later slices are explicit.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RequiredFacts {
+    Structural,
     Checkpoint,
     BeforeRequest,
     Generation,
@@ -582,6 +606,11 @@ pub enum RequiredFacts {
     DeferredSource,
 }
 pub fn required_facts(current: &CurrentOperation) -> Result<RequiredFacts, PlanError> {
+    if crate::structural::decision(current).is_some()
+        || matches!(current.state, OperationState::Navigation(_))
+    {
+        return Ok(RequiredFacts::Structural);
+    }
     let r = run(current)?;
     Ok(match &r.phase {
         RunPhase::Checkpoint(p) => {

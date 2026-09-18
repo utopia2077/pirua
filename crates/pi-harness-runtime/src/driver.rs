@@ -735,6 +735,9 @@ pub(crate) async fn drive<
                 let output = output
                     .ok_or_else(|| fx.lane.owner.fail("effect completed without output"))??;
                 let output = match output {
+                    EffectOutput::SummarySuspended(output) => {
+                        SettlementOutput::SummarySuspended(output)
+                    }
                     EffectOutput::Deferred { key, message } => {
                         SettlementOutput::Deferred { key, message }
                     }
