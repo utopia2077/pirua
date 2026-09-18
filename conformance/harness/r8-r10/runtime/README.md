@@ -27,8 +27,11 @@ These tests do not invoke a private planner as a substitute for the runtime.
 - `runtime_r8_r10_cas`: a queued nextRun changes the lane sequence while the
   nested intent gate is parked; the same captured request completes with one
   provider call under a single permitted attempt.
+- `runtime_r8_r10_navigation_line`: an invalid unsummarized target read holds
+  the lane mutation line without a provisional drive; a competing prompt waits
+  and then accepts after the no-write navigation rejection.
 
-Twenty-one functions contain 33 bounded top-level loop scenarios. Sequential actions
+Twenty-two functions contain 34 bounded top-level loop scenarios. Sequential actions
 within one scenario are not counted as separate histories. Independent public model,
 control and SQLite composition targets remain separately owned conformance evidence.
 

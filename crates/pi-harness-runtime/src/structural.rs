@@ -132,6 +132,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         intent: OperationIntent,
     ) -> Result<Result<(OperationId, OperationResult), StructuralRejection>, HarnessRuntimeError>
     {
+        if let OperationIntent::Navigation(n) = &intent
+            && !n.summarize
+        {
+            return self.accept_unsummarized_navigation(n.clone()).await;
+        }
         let kind = match intent {
             OperationIntent::Compaction(_) => OperationKind::Compaction,
             OperationIntent::Navigation(_) => OperationKind::Navigation,
@@ -368,6 +373,206 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             fx.trace.finish(&result);
             return Ok(Ok((id, result)));
         }
+    }
+    async fn accept_unsummarized_navigation(
+        &self,
+        intent: NavigationIntent,
+    ) -> Result<Result<(OperationId, OperationResult), StructuralRejection>, HarnessRuntimeError>
+    {
+        let id = OperationId::new(self.owner.ids.next(None))
+            .map_err(|_| self.owner.fail("navigation identity invalid"))?;
+        let task = TaskId::new(self.owner.ids.next(None))
+            .map_err(|_| self.owner.fail("navigation task invalid"))?;
+        let fx = RuntimeEffects::new(self.clone(), false);
+        *fx.operation_kind.lock().unwrap_or_else(|p| p.into_inner()) = OperationKind::Navigation;
+        let control: Arc<dyn crate::abort::ActiveDrive> = fx.clone();
+        loop {
+            // Model resolution may invoke a provider callback; capture it before
+            // entering the line that protects target validation and acceptance.
+            let detached = {
+                let _line = self.lane.line.acquire().await?;
+                let detached = self.load().await?;
+                if let Some(busy) = self.navigation_busy(&detached) {
+                    return Ok(Err(busy));
+                }
+                detached
+            };
+            let configuration = match &detached.roots.configuration {
+                Register::LaneConfig { value, .. } => value.clone(),
+                _ => return Err(self.owner.fail("navigation config invalid")),
+            };
+            let missing = self.missing(&configuration);
+            let settings_line = self.owner.settings_line.acquire().await?;
+            let line = self.lane.line.acquire().await?;
+            let observed = self.load().await?;
+            if observed.roots.configuration != detached.roots.configuration {
+                continue;
+            }
+            if let Some(busy) = self.navigation_busy(&observed) {
+                return Ok(Err(busy));
+            }
+            let source = match &observed.roots.leaf {
+                Register::LaneLeaf { value, .. } => value.clone(),
+                _ => return Err(self.owner.fail("navigation source invalid")),
+            };
+            if !missing.models.is_empty() || !missing.tools.is_empty() {
+                let latest = self.load().await?;
+                if latest.roots.configuration != observed.roots.configuration
+                    || latest.roots.leaf != observed.roots.leaf
+                    || latest.current != observed.current
+                {
+                    continue;
+                }
+                return Ok(Err(StructuralRejection::Missing(MissingIdentitiesError {
+                    tag: Default::default(),
+                    message: "configured identities are missing".into(),
+                    lane: self.lane.name.clone(),
+                    tools: missing.tools,
+                    models: missing.models,
+                })));
+            }
+            // The target read and validation remain on this same lane line. No
+            // process-local drive exists until a valid acceptance can publish.
+            let target = if let Some(target) = &intent.target_id {
+                self.owner
+                    .session
+                    .get_entries(std::slice::from_ref(target))
+                    .await
+                    .map_err(|_| self.owner.fail("navigation target read failed"))?
+                    .get(target)
+                    .cloned()
+            } else {
+                None
+            };
+            if let Err(e) = pi_harness_core::navigation::validate(&source, &intent, target.as_ref())
+            {
+                let latest = self.load().await?;
+                if latest.roots.leaf != observed.roots.leaf
+                    || latest.roots.configuration != observed.roots.configuration
+                    || latest.current != observed.current
+                {
+                    continue;
+                }
+                return Ok(Err(match e {
+                    pi_harness_core::navigation::AdmissionError::InvalidNavigation => {
+                        StructuralRejection::Invalid
+                    }
+                    pi_harness_core::navigation::AdmissionError::UnknownTarget => {
+                        StructuralRejection::Unknown(
+                            intent
+                                .target_id
+                                .clone()
+                                .ok_or_else(|| self.owner.fail("unknown root target"))?,
+                        )
+                    }
+                }));
+            }
+            let latest = self.load().await?;
+            let settings = self
+                .owner
+                .settings
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clone();
+            if latest.roots.leaf != observed.roots.leaf
+                || latest.roots.configuration != observed.roots.configuration
+                || latest.current != observed.current
+            {
+                continue;
+            }
+            let Register::LaneState {
+                value: lane_state,
+                seq: lane_seq,
+                ..
+            } = latest.roots.lane_state
+            else {
+                return Err(self.owner.fail("navigation lane state invalid"));
+            };
+            let operation = Operation {
+                operation_id: id.clone(),
+                lane: self.lane.name.clone(),
+                source_leaf_id: source.clone(),
+                started_at: SafeUnsigned::new(self.owner.clock.now_unix_ms())
+                    .map_err(|_| self.owner.fail("navigation clock range"))?,
+                intent: OperationIntent::Navigation(intent.clone()),
+            };
+            let facts = pi_harness_core::structural::Acceptance {
+                operation: operation.clone(),
+                lane_state,
+                lane_seq,
+                leaf_seq: Some(register_seq(&latest.roots.leaf)),
+                source_leaf: source,
+                configuration_seq: register_seq(&latest.roots.configuration),
+                settings_revision: settings.revision,
+                identities_present: true,
+                task_id: task.clone(),
+                preparation: None,
+                target,
+                telemetry_context: self.owner.telemetry.clone(),
+            };
+            let recipe = pi_harness_core::structural::acceptance_recipe(&facts)
+                .map_err(|_| self.owner.fail("navigation acceptance rejected"))?
+                .ok_or_else(|| self.owner.fail("navigation acceptance unexpectedly empty"))?;
+            if self.apply(recipe).await?.is_none() {
+                continue;
+            }
+            // Acceptance and drive registration share this lane line. No
+            // provisional owner exists for a rejected or refused navigation.
+            if !self
+                .lane
+                .reserve_drive(id.clone(), Arc::downgrade(&control))
+            {
+                return Err(self.owner.fail("accepted navigation lost drive control"));
+            }
+            let guard = DriveGuard::new(self.lane.clone());
+            *fx.original_operation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner()) = Some(operation);
+            drop(line);
+            drop(settings_line);
+            self.owner.events.flush();
+            self.lane.announce();
+            fx.trace.begin_kind(
+                &self.owner.session.metadata().base_metadata().id,
+                &self.lane.name,
+                &id,
+                false,
+                OperationKind::Navigation,
+            );
+            let result = crate::driver::drive(fx.clone(), id.clone()).await?;
+            fx.trace.finish(&result);
+            drop(guard);
+            return Ok(Ok((id, result)));
+        }
+    }
+    fn navigation_busy(
+        &self,
+        observed: &crate::restore::HydratedLane,
+    ) -> Option<StructuralRejection> {
+        if let Some(c) = &observed.current {
+            return Some(StructuralRejection::Busy(LaneBusyError {
+                tag: Default::default(),
+                message: "lane has an operation".into(),
+                lane: self.lane.name.clone(),
+                operation_id: c.operation.operation_id.clone(),
+                operation_kind: crate::snapshots::kind(c),
+            }));
+        }
+        let provisional = self
+            .lane
+            .reservation
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        provisional.map(|provisional| {
+            StructuralRejection::Busy(LaneBusyError {
+                tag: Default::default(),
+                message: "lane admission reserved".into(),
+                lane: self.lane.name.clone(),
+                operation_id: provisional,
+                operation_kind: self.reserved_kind(),
+            })
+        })
     }
 }
 enum StructuralRejection {
