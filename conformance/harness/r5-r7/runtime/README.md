@@ -26,7 +26,7 @@ They do not call pure planners as substitutes for public execution.
 | `runtime_r5_r7_boundaries` | 9 | both before-run capture orders; expected errors and no writes; six failure-drain write kinds; cancelled custom callback count zero; original/effective request options; missing-identity admission; idle callback close; both configuration capture orders; both cancel/consume orders |
 | `runtime_r5_r7_projection` | 4 | actual seq/time with other-lane publication and setter reentry; exact checked write order; physical reopen after consumed one-item prefix; pending payload CAS loss; close during held projector |
 | `runtime_r5_r7_deferred` | 5 | physical unknown-poll reopen with fresh reserved IDs; seven handle mismatch axes plus error/length/aborted; ready tools in automatic/manual mode with real span parents; response hook and newest source cancellation; poll hook step parent |
-| `runtime_r5_r7_handoff` | 4 | abort during suspension planning; source API without registry; external terminal during identity precheck; same-operation resume from suspension listener |
+| `runtime_r5_r7_handoff` | 6 | abort during suspension planning; source API without registry; external terminal during identity precheck; same-operation resume from suspension listener; both missing-identity rejection/abort handoff orders |
 | `runtime_r5_r7_observation` | 4 | immutable snapshots and fault-first preadmitted watch; typed facts/config events; close-first lane and session watches |
 | private driver activity tests | 4 | blocked old cleanup, old-operation cleanup, same-operation generation cleanup, atomic control publication |
 
