@@ -37,3 +37,6 @@ mod abort;
 mod checkpoint;
 mod inbox;
 mod poll;
+
+/// Pure projected structural preparation and summary content helpers.
+pub mod summary_content;

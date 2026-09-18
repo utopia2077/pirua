@@ -137,7 +137,7 @@ impl RequestPayloadTransform for PayloadBridge {
 pub async fn run_request(
     input: RequestInput,
 ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
-    run_request_inner(input, None).await
+    run_request_inner(input, None, None).await
 }
 
 /// Owner-only route: captured registration survives listener reentry and delayed spawn.
@@ -148,12 +148,13 @@ pub(crate) async fn run_captured_request(
     if &input.model != captured.model() {
         return Err(capture_fault());
     }
-    run_request_inner(input, Some(captured)).await
+    run_request_inner(input, Some(captured), None).await
 }
 
 async fn run_request_inner(
     input: RequestInput,
     captured: Option<pi_ai_core::CapturedTextDispatch>,
+    summary: Option<SummaryRequestSettings>,
 ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
     let cancellation = input.runtime.cancellation.clone();
     let error = Arc::new(Mutex::new(None));
@@ -188,6 +189,13 @@ async fn run_request_inner(
         AgentThinkingLevel::ExtraHigh => Some(ThinkingLevel::ExtraHigh),
         AgentThinkingLevel::Max => Some(ThinkingLevel::Max),
     };
+    let (summary_cap, summary_budgets) = match &summary {
+        Some(settings) => {
+            let (cap, budgets) = summary_wire_budget(&input, settings)?;
+            (Some(cap), budgets)
+        }
+        None => (None, None),
+    };
     let options = SimpleStreamOptions {
         runtime: input.runtime,
         wire: SimpleStreamOptionsWire {
@@ -198,11 +206,20 @@ async fn run_request_inner(
                 max_retry_delay_ms: input.options.max_retry_delay_ms,
                 metadata: input.options.metadata,
                 cache_retention: input.options.cache_retention,
-                session_id: Some(input.session_id.as_str().to_owned()),
+                session_id: Some(summary.as_ref().map_or_else(
+                    || input.session_id.as_str().to_owned(),
+                    |s| s.routing_key.clone(),
+                )),
+                max_tokens: summary_cap,
                 ..Default::default()
             },
             reasoning,
-            deferred: input.options.deferred,
+            thinking_budgets: summary_budgets,
+            deferred: if summary.is_some() {
+                Some(pi_ai_core::DeferredRequest::Enabled(false))
+            } else {
+                input.options.deferred
+            },
             ..Default::default()
         },
     };
@@ -434,4 +451,197 @@ pub async fn cancel_deferred_request(
         return Ok(Err(cancel_provider_panic()));
     }
     Ok(result)
+}
+
+/// Process-local summary request settings; never changes the captured model identity.
+pub struct SummaryRequestSettings {
+    /// Dedicated provider routing identity for this nested request.
+    pub routing_key: String,
+    /// Original desired output budget, before scalar-context wire compensation.
+    pub max_tokens: SafeUnsigned,
+    /// Logical complete prompt units before cut-created surrogate removal. When
+    /// present, binds exactly one text User message and the supplied system prompt.
+    pub logical_prompt_utf16_units: Option<SafeUnsigned>,
+}
+
+fn summary_wire_budget(
+    input: &RequestInput,
+    settings: &SummaryRequestSettings,
+) -> Result<(SafeUnsigned, Option<pi_ai_core::ThinkingBudgets>), HarnessRuntimeError> {
+    let Some(logical) = settings.logical_prompt_utf16_units else {
+        return Ok((settings.max_tokens, None));
+    };
+    let [pi_ai_core::Message::User(user)] = input.context.messages.as_slice() else {
+        return Err(conversion_fault());
+    };
+    let text = match &user.content {
+        pi_ai_core::UserContent::Text(text) => text,
+        pi_ai_core::UserContent::Blocks(blocks) => {
+            let [pi_ai_core::InputContent::Text(text)] = blocks.as_slice() else {
+                return Err(conversion_fault());
+            };
+            &text.text
+        }
+    };
+    let clean_units = u64::try_from(text.encode_utf16().count()).map_err(|_| conversion_fault())?;
+    if logical.get() < clean_units {
+        return Err(conversion_fault());
+    }
+    // No normalization means the original selected provider path already sees
+    // exactly the original estimate; preserve its ordinary options untouched.
+    if logical.get() == clean_units {
+        return Ok((settings.max_tokens, None));
+    }
+    let system_tokens = input
+        .context
+        .system_prompt
+        .as_deref()
+        .map(pi_ai_core::estimate_text_tokens)
+        .transpose()
+        .map_err(|_| conversion_fault())?
+        .map_or(0, SafeUnsigned::get);
+    let tokens = logical
+        .get()
+        .div_ceil(4)
+        .checked_add(system_tokens)
+        .filter(|n| *n <= SafeUnsigned::MAX.get())
+        .ok_or_else(conversion_fault)?;
+    let clamp = |cap: u64| {
+        if input.model.context_window.get() == 0 {
+            cap.max(1)
+        } else {
+            cap.min(
+                input
+                    .model
+                    .context_window
+                    .get()
+                    .saturating_sub(tokens)
+                    .saturating_sub(4096)
+                    .max(1),
+            )
+        }
+    };
+    let compat = match input.model.typed_compat() {
+        Ok(compat) => compat,
+        // Let the actual captured provider retain its existing invalid-compat
+        // error channel; this scalar correction must not invent a default mode.
+        Err(_) => return Ok((settings.max_tokens, None)),
+    };
+    let adaptive = matches!(compat, Some(pi_ai_core::TypedModelCompat::AnthropicMessages(ref compat)) if compat.force_adaptive_thinking == Some(true));
+    let initial = clamp(settings.max_tokens.get());
+    if input.model.api.as_str() != pi_ai_core::ApiId::ANTHROPIC_MESSAGES
+        || input.thinking == AgentThinkingLevel::Off
+        || adaptive
+    {
+        return Ok((
+            SafeUnsigned::new(initial).map_err(|_| conversion_fault())?,
+            None,
+        ));
+    }
+    // Exact pinned simple-options + non-adaptive Anthropic order: clamp,
+    // thinking expansion/model ceiling, second clamp, effective answer-room budget.
+    let budget = match input.thinking {
+        AgentThinkingLevel::Minimal => 1024,
+        AgentThinkingLevel::Low => 2048,
+        AgentThinkingLevel::Medium => 8192,
+        AgentThinkingLevel::High | AgentThinkingLevel::ExtraHigh | AgentThinkingLevel::Max => 16384,
+        AgentThinkingLevel::Off => unreachable!("off returned above"),
+    };
+    let adjusted_cap = (initial + budget).min(input.model.max_tokens.get());
+    let adjusted_budget = if adjusted_cap <= budget {
+        budget.min(adjusted_cap.saturating_sub(1024))
+    } else {
+        budget
+    };
+    let final_cap = clamp(adjusted_cap);
+    let effective = adjusted_budget.min(final_cap.saturating_sub(1024));
+    let mut budgets = pi_ai_core::ThinkingBudgets::default();
+    let value = Some(SafeUnsigned::new(effective).map_err(|_| conversion_fault())?);
+    match input.thinking {
+        AgentThinkingLevel::Minimal => budgets.minimal = value,
+        AgentThinkingLevel::Low => budgets.low = value,
+        AgentThinkingLevel::Medium => budgets.medium = value,
+        AgentThinkingLevel::High | AgentThinkingLevel::ExtraHigh | AgentThinkingLevel::Max => {
+            budgets.high = value
+        }
+        AgentThinkingLevel::Off => unreachable!("off returned above"),
+    }
+    Ok((
+        SafeUnsigned::new(final_cap - effective).map_err(|_| conversion_fault())?,
+        Some(budgets),
+    ))
+}
+
+/// Seed isolation before the owner's before_request hook; its allowed patches win.
+pub fn seed_summary_options(mut options: AgentHarnessStreamOptions) -> AgentHarnessStreamOptions {
+    options.cache_retention = Some(pi_ai_core::CacheRetention::None);
+    options
+}
+
+struct SummaryCallbacks(Arc<dyn RequestCallbacks>);
+impl RequestCallbacks for SummaryCallbacks {
+    fn has_payload_handlers(&self) -> bool {
+        self.0.has_payload_handlers()
+    }
+    fn before_payload(
+        &self,
+        event: BeforePayloadEvent,
+    ) -> BoxFuture<'_, Result<Option<JsonValue>, HarnessRuntimeError>> {
+        self.0.before_payload(event)
+    }
+    fn after_response(
+        &self,
+        event: AfterResponseEvent,
+    ) -> BoxFuture<'_, Result<SettledAssistantMessage, HarnessRuntimeError>> {
+        self.0.after_response(event)
+    }
+    fn stream_event(
+        &self,
+        _event: AssistantMessageEvent,
+    ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
+        Box::pin(async { Ok(()) })
+    }
+}
+
+// Registry workers own producer handles. Dropping a panicked worker settles the
+// same stream through its existing setup-error path; no second request is made.
+struct SummarySpawner(Arc<dyn pi_ai_core::TaskSpawner>);
+impl pi_ai_core::TaskSpawner for SummarySpawner {
+    fn spawn(&self, task: BoxFuture<'static, ()>) -> Result<(), pi_ai_core::SpawnError> {
+        self.0.spawn(Box::pin(async move {
+            let mut task = Some(task);
+            poll_fn(|cx| {
+                match catch_unwind(AssertUnwindSafe(|| {
+                    task.as_mut().expect("live task").as_mut().poll(cx)
+                })) {
+                    Ok(Poll::Pending) => Poll::Pending,
+                    Ok(Poll::Ready(())) | Err(_) => {
+                        drop(task.take());
+                        Poll::Ready(())
+                    }
+                }
+            })
+            .await;
+        }))
+    }
+}
+
+/// Executes one owner-admitted nested summary request, with no retries or public
+/// assistant stream publication. The owner supplies the summary context/system prompt,
+/// post-hook effective options, distinct routing key and captured registration.
+pub async fn run_summary_request(
+    mut input: RequestInput,
+    captured: pi_ai_core::CapturedTextDispatch,
+    settings: SummaryRequestSettings,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    if &input.model != captured.model() || settings.routing_key.is_empty() {
+        return Err(capture_fault());
+    }
+    if !input.model.reasoning {
+        input.thinking = AgentThinkingLevel::Off;
+    }
+    input.runtime.spawner = Arc::new(SummarySpawner(input.runtime.spawner));
+    input.context.tools = None;
+    input.callbacks = Arc::new(SummaryCallbacks(input.callbacks));
+    run_request_inner(input, Some(captured), Some(settings)).await
 }
