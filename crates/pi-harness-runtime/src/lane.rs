@@ -61,21 +61,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Box::pin(self.template_run(name, args))
     }
     fn compact(&self, options: CompactOptions) -> BoxFuture<'_, CompactionCall> {
-        Box::pin(async move {
-            let _ = options;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.compact_call(options))
     }
     fn navigate_tree(
         &self,
         target_id: Option<EntryId>,
         options: NavigateOptions,
     ) -> BoxFuture<'_, NavigationCall> {
-        Box::pin(async move {
-            let _ = target_id;
-            let _ = options;
-            Err(self.owner.fail("operation requires a later runtime stage"))
-        })
+        Box::pin(self.navigation_call(target_id, options))
     }
     fn resume(&self) -> BoxFuture<'_, ResumeCall> {
         Box::pin(self.resume_run())

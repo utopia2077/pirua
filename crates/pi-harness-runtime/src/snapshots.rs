@@ -104,11 +104,25 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     });
                 }
             }
+            if let Some(StructuralDecision::Generating { generation, .. }) =
+                pi_harness_core::structural::decision(current)
+                && let SummaryGeneration::RetryWait {
+                    context,
+                    next_attempt,
+                    not_before,
+                    ..
+                } = generation.as_ref()
+            {
+                retry = Some(RetryInfo {
+                    attempt: *next_attempt,
+                    max_attempts: context.retry_policy.max_attempts,
+                    next_attempt_at: *not_before,
+                });
+            }
             Some(OperationSnapshot {
                 id: current.operation.operation_id.clone(),
                 kind: kind(current),
-                status: if matches!(&current.state,OperationState::Run(r) if matches!(r.control,Control::CancelRequested(_)))
-                {
+                status: if pi_harness_core::structural::is_cancelled(current) {
                     OperationSnapshotStatus::Aborting
                 } else if *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) {
                     OperationSnapshotStatus::Running
@@ -119,7 +133,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 suspended: if *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) {
                     None
                 } else {
-                    crate::owner::suspended(&h)
+                    self.suspended_snapshot(&h)
                 },
                 streaming_message: self
                     .lane

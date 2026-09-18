@@ -178,6 +178,12 @@ fn actual_pending_handle_equality_checks_every_axis_and_error_never_retries() {
         let adapter = DeferredAdapter::install(&s);
         adapter.begin();
         let mut response = adapter.response(reason);
+        // R9 classifies below-limit Length as overflow; retain a genuine limit control.
+        if reason == StopReason::Length {
+            response.usage.output = adapter.simple.model.max_tokens;
+            response.usage.total_tokens =
+                n(response.usage.input.get() + response.usage.output.get());
+        }
         if reason == StopReason::Error {
             response.error_message = Some("429 rate limit exceeded".into());
         }

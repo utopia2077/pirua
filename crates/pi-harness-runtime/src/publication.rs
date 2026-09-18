@@ -63,6 +63,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         {
             return Ok(None);
         }
+        let previous = self
+            .lane
+            .hydrated
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .current
+            .clone();
         let permit = self.owner.admission.try_admit()?;
         let telemetry = recipe.telemetry_context.clone();
         let events = self.owner.events.with_context(telemetry.clone());
@@ -133,6 +140,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let ConditionalOutcome::Applied(commit) = outcome else {
             return Ok(None);
         };
+        if accepted_operation.is_some()
+            || recipe
+                .publication
+                .iter()
+                .any(|p| matches!(p, Publication::Terminal(_)))
+        {
+            self.owner
+                .suspensions
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(&self.lane.name);
+        }
         let loaded = hydrate_lane(
             self.owner.session.as_ref(),
             self.lane.name.clone(),
@@ -140,7 +159,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         )
         .await
         .map_err(|_| self.owner.fail("runtime committed state hydration failed"))?;
-        if let Some(run_id) = &accepted_operation {
+        if let Some(current) = loaded.current.as_ref() {
+            self.structural_started(previous.as_ref(), current, telemetry.clone());
+        }
+        if let Some(run_id) = &accepted_operation
+            && loaded
+                .current
+                .as_ref()
+                .is_some_and(|c| matches!(c.operation.intent, OperationIntent::Run(_)))
+        {
             events.enqueue(
                 HarnessEventType::RunStart,
                 &self.lane.name,
@@ -258,11 +285,24 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     let operation_id = operation_id
                         .clone()
                         .ok_or_else(|| self.owner.fail("terminal publication owner missing"))?;
-                    events.enqueue(
-                        HarnessEventType::RunEnd,
-                        &self.lane.name,
-                        run_end(self.lane.name.clone(), operation_id, *result)?,
-                    );
+                    if matches!(*result, OperationResult::Run(_)) {
+                        events.enqueue(
+                            HarnessEventType::RunEnd,
+                            &self.lane.name,
+                            run_end(self.lane.name.clone(), operation_id, *result)?,
+                        );
+                    } else {
+                        let current = previous
+                            .as_ref()
+                            .ok_or_else(|| self.owner.fail("structural terminal owner missing"))?;
+                        let (kind, event) = crate::structural::end_event(
+                            &current.operation,
+                            crate::structural::reason(current),
+                            *result,
+                            false,
+                        )?;
+                        events.enqueue(kind, &self.lane.name, event);
+                    }
                 }
             }
         }

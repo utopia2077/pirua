@@ -4,7 +4,7 @@ use pi_agent_schema::*;
 use pi_agent_session::{backend_support::register_seq, storage::RuntimeStorage};
 use pi_ai_core::{JsonValue, Message, Presence, SafeUnsigned, UserContent, UserMessage};
 use pi_harness_core::{
-    planner::{ProcedureAction, next_action},
+    planner::{PlanningFacts, ProcedureAction, next_action},
     transition::{AcceptanceFacts, acceptance_recipe},
 };
 use std::sync::Arc;
@@ -126,7 +126,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     message: "lane acceptance is reserved".into(),
                     lane: self.lane.name.clone(),
                     operation_id,
-                    operation_kind: OperationKind::Run,
+                    operation_kind: self.reserved_kind(),
                 })));
             }
             *self
@@ -519,6 +519,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let registration:Arc<dyn crate::abort::ActiveDrive>=effects.clone();
             let mut current={let _line=lane.lane.line.acquire().await?;let h=lane.load().await?;let Some(current)=h.current else {return Ok(Err(ResumeExpectedError::NothingToResume(NothingToResumeError {tag:Default::default(),message:"lane has no open operation".into(),lane:lane.lane.name.clone()})));};
                 if !lane.lane.reserve_drive(current.operation.operation_id.clone(),Arc::downgrade(&registration)) {return Ok(Err(ResumeExpectedError::LaneBusy(LaneBusyError {tag:Default::default(),message:"lane is already driving".into(),lane:lane.lane.name.clone(),operation_id:current.operation.operation_id.clone(),operation_kind:crate::snapshots::kind(&current)})));}
+                *effects.operation_kind.lock().unwrap_or_else(|p|p.into_inner())=crate::snapshots::kind(&current);
+                *effects.original_operation.lock().unwrap_or_else(|p|p.into_inner())=Some(current.operation.clone());
                 current};
             let _drive=DriveGuard::new(lane.lane.clone());
             if let OperationState::Run(run)=&current.state && matches!(run.control,Control::Running(_)) && let RunPhase::Deferred(p)=&run.phase {
@@ -536,17 +538,29 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     return Ok(Err(ResumeExpectedError::MissingIdentities(MissingIdentitiesError{tag:Default::default(),message:"captured identities are missing".into(),lane:lane.lane.name.clone(),tools:missing.tools,models:missing.models})));
                 }
             }
+            while let Some(configuration)=lane.resume_configuration(&current){
+                let missing=lane.missing(&configuration);let line=lane.lane.line.acquire().await?;
+                let latest=lane.load().await?.current;
+                match latest{Some(latest) if latest.operation.operation_id==current.operation.operation_id=>current=latest,_=>{drop(line);let result=externally_completed(&effects,&current.operation.operation_id).await?;return Ok(Ok(resume_outcome(result,&current.operation.operation_id)?));}}
+                if lane.resume_configuration(&current).as_ref()!=Some(&configuration){drop(line);continue}
+                if !missing.models.is_empty()||!missing.tools.is_empty(){effects.release_drive();drop(line);lane.lane.announce();return Ok(Err(ResumeExpectedError::MissingIdentities(MissingIdentitiesError{tag:Default::default(),message:"captured identities are missing".into(),lane:lane.lane.name.clone(),tools:missing.tools,models:missing.models})))}
+                break
+            }
+            lane.owner.suspensions.lock().unwrap_or_else(|p|p.into_inner()).remove(&lane.lane.name);
             lane.lane.restored.store(false,std::sync::atomic::Ordering::Release);
             effects.poll_permit.store(true,std::sync::atomic::Ordering::Release);
-            effects.trace.begin(&lane.owner.session.metadata().base_metadata().id,&lane.lane.name,&current.operation.operation_id,recovery);
-            let cancelled=matches!(&current.state,OperationState::Run(r) if matches!(r.control,Control::CancelRequested(_)));
+            effects.trace.begin_kind(&lane.owner.session.metadata().base_metadata().id,&lane.lane.name,&current.operation.operation_id,recovery,crate::snapshots::kind(&current));
+            let cancelled=pi_harness_core::structural::is_cancelled(&current);
             if cancelled {let h=lane.load().await?;effects.schedule_cancel(&h).await?;effects.cancellation.cancel();}
             if let OperationIntent::Run(intent)=&current.operation.intent {
                 let entries=lane.owner.session.get_entries(&intent.prompt_entry_ids).await.map_err(|_|lane.owner.fail("resume prompt hydration failed"))?;
                 let prompt=intent.prompt_entry_ids.iter().map(|id|match entries.get(id) {Some(Entry::Message(entry))=>Ok(entry.message.clone()),_=>Err(lane.owner.fail("resume prompt entry missing"))}).collect::<Result<Vec<_>,_>>()?;
                 effects.hook(HookEvent::BeforeResume(BeforeResumeEvent::Run(BeforeResumeRunEvent {lane:lane.lane.name.clone(),run_id:current.operation.operation_id.clone(),kind:Default::default(),prompt,system_prompt_override:intent.system_prompt_override.clone(),resume_data:intent.resume_data.clone().map_or(Presence::Missing,|data|Presence::Value(JsonValue::Object(data)))})),true,None).await?;
             }
+            if let OperationIntent::Compaction(intent)=&current.operation.intent{effects.hook(HookEvent::BeforeResume(BeforeResumeEvent::Compaction(BeforeResumeCompactionEvent{lane:lane.lane.name.clone(),run_id:current.operation.operation_id.clone(),kind:Default::default(),source_leaf_id:current.operation.source_leaf_id.clone(),custom_instructions:intent.custom_instructions.clone(),resume_data:Presence::Missing})),true,None).await?;}
+            if let OperationIntent::Navigation(intent)=&current.operation.intent{effects.hook(HookEvent::BeforeResume(BeforeResumeEvent::Navigation(BeforeResumeNavigationEvent{lane:lane.lane.name.clone(),run_id:current.operation.operation_id.clone(),kind:Default::default(),source_leaf_id:current.operation.source_leaf_id.clone(),target_id:intent.target_id.clone(),summarize:intent.summarize,label:intent.label.clone(),custom_instructions:intent.custom_instructions.clone(),resume_data:Presence::Missing})),true,None).await?;}
             effects.events().enqueue(HarnessEventType::RunResume,&lane.lane.name,HarnessEvent::RunResume(RunResumeEvent {event_type:Default::default(),lane:lane.lane.name.clone(),recovery:recovery.then_some(pi_ai_core::LiteralTrue),run_id:current.operation.operation_id.clone()}));effects.events().flush();
+            effects.resume_structure(&current);
             effects.turn_start(&current);effects.events().flush();
             let result=drive(effects.clone(),current.operation.operation_id.clone()).await?;effects.trace.finish(&result);
             Ok(Ok(resume_outcome(result,&current.operation.operation_id)?))
@@ -557,15 +571,16 @@ fn resume_outcome(
     result: OperationResult,
     operation: &OperationId,
 ) -> Result<ResumeOutcome, HarnessRuntimeError> {
-    let OperationResult::Run(outcome) = result else {
-        return Err(crate::restore::fault("resume operation kind unsupported"));
+    let (kind, value) = match result {
+        OperationResult::Run(outcome) => ("run", serde_json::to_value(outcome)),
+        OperationResult::Compaction(outcome) => ("compaction", serde_json::to_value(outcome)),
+        OperationResult::Navigation(outcome) => ("navigation", serde_json::to_value(outcome)),
     };
-    let mut value = serde_json::to_value(outcome)
-        .map_err(|_| crate::restore::fault("resume output conversion failed"))?;
+    let mut value = value.map_err(|_| crate::restore::fault("resume output conversion failed"))?;
     let map = value
         .as_object_mut()
         .ok_or_else(|| crate::restore::fault("resume output shape invalid"))?;
-    map.insert("operation".into(), serde_json::Value::String("run".into()));
+    map.insert("operation".into(), serde_json::Value::String(kind.into()));
     map.insert(
         "runId".into(),
         serde_json::Value::String(operation.as_str().into()),
@@ -665,10 +680,25 @@ pub(crate) async fn drive<
         let current = h.current.clone().expect("matching drive operation");
         fx.trace.sync(&current);
         let inputs = fx.inputs(&h).await?;
-        let action = if let Some(key) = immediate_key.take() {
+        let terminal_source = fx
+            .terminal_candidate
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .as_ref()
+            .map(|c| c.source.clone());
+        let action = if let Some(source) = terminal_source {
+            ProcedureAction::Reconcile(Box::new(source))
+        } else if let Some(key) = immediate_key.take() {
             ProcedureAction::Existing(Action::AwaitEffect(key))
         } else {
-            let facts = if pi_harness_core::inbox::select(&current)
+            let structural_missing = crate::structural::dispatch_configuration(&current)
+                .map(|c| fx.lane.missing(c))
+                .filter(|m| !m.models.is_empty() || !m.tools.is_empty());
+            let facts = if let Some(missing) = structural_missing {
+                PlanningFacts::MissingIdentities { missing }
+            } else if let Some(facts) = fx.threshold_facts(&h).await? {
+                facts
+            } else if pi_harness_core::inbox::select(&current)
                 .map_err(|_| fx.lane.owner.fail("inbox selection failed"))?
                 .is_some()
             {
@@ -695,6 +725,15 @@ pub(crate) async fn drive<
                     expected_settings_revision: plan.expected_settings_revision,
                 })
                 .await?;
+                let dispatch = fx
+                    .applied_dispatch
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .take();
+                if let Some(dispatch) = dispatch {
+                    immediate_key = Some(dispatch.key().clone());
+                    start(&fx, dispatch, &mut pending).await?;
+                }
                 continue;
             }
             ProcedureAction::Existing(Action::Dispatch(plan)) => {
@@ -706,7 +745,7 @@ pub(crate) async fn drive<
                 }
                 if matches!(
                     plan.effect,
-                    EffectPlan::Hook(_) | EffectPlan::ToolClearance(_)
+                    EffectPlan::Hook(_) | EffectPlan::ToolClearance(_) | EffectPlan::Summary(_)
                 ) {
                     immediate_key = Some(plan.effect.key().clone());
                 }
@@ -735,6 +774,9 @@ pub(crate) async fn drive<
                 let output = output
                     .ok_or_else(|| fx.lane.owner.fail("effect completed without output"))??;
                 let output = match output {
+                    EffectOutput::Summary { key, outcome } => {
+                        SettlementOutput::Summary { key, outcome }
+                    }
                     EffectOutput::SummarySuspended(output) => {
                         SettlementOutput::SummarySuspended(output)
                     }
@@ -768,11 +810,11 @@ pub(crate) async fn drive<
                         SettlementOutput::Tool(output)
                     }
                     EffectOutput::NotStarted { key } => SettlementOutput::NotStarted { key },
-                    _ => {
+                    EffectOutput::CancelDeferred { .. } => {
                         return Err(fx
                             .lane
                             .owner
-                            .fail("effect output requires a later runtime stage"));
+                            .fail("cancel output must use its dedicated owner"));
                     }
                 };
                 SettlementCommit {
@@ -828,7 +870,12 @@ pub(crate) async fn drive<
                     .await?
                     .is_some()
                 {
-                    return Ok(result);
+                    return Ok(fx
+                        .terminal_result
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .take()
+                        .unwrap_or(result));
                 }
                 continue;
             }
@@ -845,7 +892,12 @@ pub(crate) async fn drive<
                     .await?
                     .is_some()
                 {
-                    return Ok(terminal);
+                    return Ok(fx
+                        .terminal_result
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .take()
+                        .unwrap_or(terminal));
                 }
             } else if let Some(plan) = result.dispatch {
                 start(&fx, plan, &mut pending).await?;
@@ -930,7 +982,12 @@ async fn externally_completed<
                 .read_stamp()
                 .await
                 .map_err(|_| fx.lane.owner.fail("external terminal stamp read failed"))?;
-            let result = read_external_result(&fx.lane, operation).await;
+            let original = fx
+                .original_operation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clone();
+            let result = read_external_result(&fx.lane, operation, original.as_ref()).await;
             let after = fx
                 .lane
                 .owner
@@ -951,11 +1008,31 @@ async fn externally_completed<
         .unwrap_or_else(|p| p.into_inner())
         .take();
     drop(old);
-    fx.events().enqueue(
-        HarnessEventType::RunEnd,
-        &fx.lane.lane.name,
-        crate::publication::run_end(fx.lane.lane.name.clone(), operation.clone(), result.clone())?,
-    );
+    if matches!(result, OperationResult::Run(_)) {
+        fx.events().enqueue(
+            HarnessEventType::RunEnd,
+            &fx.lane.lane.name,
+            crate::publication::run_end(
+                fx.lane.lane.name.clone(),
+                operation.clone(),
+                result.clone(),
+            )?,
+        );
+    } else {
+        let original = fx
+            .original_operation
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone()
+            .ok_or_else(|| fx.lane.owner.fail("external structural original missing"))?;
+        let (kind, event) = crate::structural::end_event(
+            &original,
+            CompactionEventReason::Manual,
+            result.clone(),
+            fx.recovery,
+        )?;
+        fx.events().enqueue(kind, &fx.lane.lane.name, event);
+    }
     fx.events().flush();
     Ok(result)
 }
@@ -967,6 +1044,7 @@ async fn read_external_result<
 >(
     lane: &RuntimeLane<C, S, M>,
     operation: &OperationId,
+    original: Option<&Operation>,
 ) -> Result<OperationResult, HarnessRuntimeError> {
     use crate::restore::fault;
     let session = &lane.owner.session;
@@ -990,6 +1068,11 @@ async fn read_external_result<
     else {
         return Err(fault("external terminal result missing"));
     };
+    if let Some(original) = original
+        && !matches!(original.intent, OperationIntent::Run(_))
+    {
+        return lane.structural_external(original, value).await;
+    }
     let (id, leaf, final_id, kind, error) = match value {
         LaneLastResult::RunCompletedAssistant(v) => (
             v.operation_id,

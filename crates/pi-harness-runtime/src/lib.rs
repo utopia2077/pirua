@@ -40,3 +40,8 @@ mod poll;
 
 /// Pure projected structural preparation and summary content helpers.
 pub mod summary_content;
+
+mod compaction;
+mod preparation;
+mod structural;
+mod summary;

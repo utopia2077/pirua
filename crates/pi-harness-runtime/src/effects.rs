@@ -15,9 +15,16 @@ use std::{
 
 pub(crate) struct RuntimeEffects<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub lane: RuntimeLane<C, S, M>,
+    pub operation_kind: Mutex<OperationKind>,
+    pub original_operation: Mutex<Option<Operation>>,
+    pub applied_dispatch: Mutex<Option<EffectPlan<Telemetry>>>,
+    pub terminal_candidate: Mutex<Option<crate::structural::TerminalCandidate>>,
+    pub terminal_result: Mutex<Option<OperationResult>>,
+    pub threshold_candidate: Mutex<Option<crate::compaction::ThresholdCandidate>>,
+    pub summary_binding: Mutex<Option<crate::summary::SummaryBinding>>,
     pub recovery: bool,
     pub trace: crate::telemetry::Trace,
-    this: std::sync::Weak<Self>,
+    pub(crate) this: std::sync::Weak<Self>,
     pub running: Mutex<BTreeMap<EffectKey, EffectPlan<Telemetry>>>,
     pub started_turns: Mutex<BTreeSet<String>>,
     pub cancellation: CancellationToken,
@@ -38,6 +45,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     pub fn new(lane: RuntimeLane<C, S, M>, recovery: bool) -> Arc<Self> {
         Arc::new_cyclic(|this| Self {
             trace: crate::telemetry::Trace::new(lane.owner.telemetry.clone()),
+            operation_kind: Mutex::new(OperationKind::Run),
+            original_operation: Mutex::new(None),
+            applied_dispatch: Mutex::new(None),
+            terminal_candidate: Mutex::new(None),
+            terminal_result: Mutex::new(None),
+            threshold_candidate: Mutex::new(None),
+            summary_binding: Mutex::new(None),
             recovery,
             this: this.clone(),
             context_line: crate::scheduler::MutationLine::new(lane.owner.admission.clone()),
@@ -182,10 +196,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .fail("operation requires a later runtime stage")
             })? {
                 RequiredFacts::Structural => {
-                    return Err(self
-                        .lane
-                        .owner
-                        .fail("structural execution requires a later runtime stage"));
+                    PlanningFacts::Structural(pi_harness_core::structural::Planning {
+                        session_id,
+                        telemetry_context,
+                        result_entry_id: None,
+                    })
                 }
                 RequiredFacts::Checkpoint => PlanningFacts::Checkpoint {
                     session_id,
@@ -347,6 +362,67 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let Some(current) = &h.current else {
             return Ok(None);
         };
+        if let Some(result) = self.nested_transition(&h, &plan).await? {
+            drop(_line);
+            drop(_settings);
+            self.events().flush();
+            self.lane.lane.announce();
+            return Ok(result);
+        }
+        let threshold = self
+            .threshold_candidate
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
+        if let Some(candidate) = threshold {
+            if candidate.observed.current != h.current
+                || candidate.observed.roots.configuration != h.roots.configuration
+                || candidate.observed.roots.leaf != h.roots.leaf
+                || candidate.revision
+                    != self
+                        .lane
+                        .owner
+                        .settings
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .revision
+            {
+                return Ok(None);
+            }
+            let inputs = self.inputs(&h).await?;
+            let decision = pi_harness_core::transition::transition_recipe(
+                current,
+                &plan,
+                &inputs,
+                &self.lane.facts(&h)?,
+                &candidate.facts,
+            )
+            .map_err(|_| self.lane.owner.fail("threshold transition rejected"))?;
+            let result = if let RecipeDecision::Apply(recipe) = decision {
+                let token = self
+                    .lane
+                    .owner
+                    .session
+                    .prepare_entries(candidate.stamp, vec![])
+                    .await
+                    .map_err(|_| self.lane.owner.fail("threshold preparation stamp failed"))?;
+                if let Some(token) = token {
+                    self.lane
+                        .apply_prepared(*recipe, Some(token))
+                        .await?
+                        .and_then(|h| h.current)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            drop(_line);
+            drop(_settings);
+            self.events().flush();
+            self.lane.lane.announce();
+            return Ok(result);
+        }
         if pi_harness_core::inbox::select(current)
             .map_err(|_| self.lane.owner.fail("inbox selection failed"))?
             .is_some()
@@ -410,7 +486,22 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         .map_err(|_| self.lane.owner.fail("transition recipe rejected"))?;
         let result = match decision {
             RecipeDecision::Apply(recipe) => {
-                self.lane.apply(*recipe).await?.and_then(|h| h.current)
+                let dispatch = recipe.dispatch.clone();
+                let applied = self.lane.apply(*recipe).await?;
+                if let Some(current) = applied.as_ref().and_then(|h| h.current.as_ref())
+                    && dispatch.is_some()
+                {
+                    self.trace.sync(current);
+                    let mut dispatch = dispatch;
+                    if let Some(EffectPlan::Summary(plan)) = &mut dispatch {
+                        plan.telemetry_context = self.trace.context();
+                    }
+                    *self
+                        .applied_dispatch
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner()) = dispatch;
+                }
+                applied.and_then(|h| h.current)
             }
             RecipeDecision::NoLongerExpected => None,
             RecipeDecision::Suspend(_) => {
@@ -420,6 +511,28 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 return Err(self.lane.owner.fail("unexpected terminal transition"));
             }
         };
+        if result
+            .as_ref()
+            .is_some_and(|next| pi_harness_core::structural::decision(next).is_none())
+            && pi_harness_core::structural::decision(current).is_some()
+            && pi_harness_core::structural::is_cancelled(current)
+        {
+            let outcome =
+                OperationResult::Compaction(CompactionOutcome::Aborted(CompactionAborted {
+                    kind: Default::default(),
+                    leaf_id: current
+                        .leaf_id
+                        .clone()
+                        .ok_or_else(|| self.lane.owner.fail("cancelled compaction leaf absent"))?,
+                }));
+            let (kind, event) = crate::structural::end_event(
+                &current.operation,
+                crate::structural::reason(current),
+                outcome,
+                self.recovery,
+            )?;
+            self.events().enqueue(kind, &self.lane.lane.name, event);
+        }
         if let Some(next) = &result
             && matches!(&current.state,OperationState::Run(run) if matches!(run.phase,RunPhase::Checkpoint(_)))
         {
@@ -435,8 +548,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         plan: SettlementCommit<Telemetry>,
     ) -> Result<Option<SettlementResult<Telemetry>>, HarnessRuntimeError> {
+        if pi_harness_core::structural::decision(&plan.current).is_some() {
+            return self.structural_settlement(plan).await;
+        }
         self.permission("commit_settlement").await?;
         loop {
+            let overflow = self.overflow_facts(&plan).await?;
             let mut retired_requests = Vec::new();
             let mut settings = Some(self.lane.owner.settings_line.acquire().await?);
             let mut line = Some(self.lane.lane.line.acquire().await?);
@@ -459,7 +576,26 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             }
-            let facts = self.settlement_facts(&plan, inputs.now, &h).await?;
+            if let Some(candidate) = &overflow
+                && (candidate.observed.current != h.current
+                    || candidate.observed.roots.configuration != h.roots.configuration
+                    || candidate.observed.roots.leaf != h.roots.leaf
+                    || candidate.revision
+                        != self
+                            .lane
+                            .owner
+                            .settings
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .revision)
+            {
+                continue;
+            }
+            let facts = if let Some(candidate) = &overflow {
+                candidate.facts.clone()
+            } else {
+                self.settlement_facts(&plan, inputs.now, &h).await?
+            };
             let decision =
                 settlement_recipe(current, &plan, &inputs, &self.lane.facts(&h)?, &facts)
                     .map_err(|_| self.lane.owner.fail("settlement recipe rejected"))?;
@@ -497,7 +633,38 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         settings = Some(self.lane.owner.settings_line.acquire().await?);
                         line = Some(self.lane.lane.line.acquire().await?);
                     }
-                    let Some(applied) = self.lane.apply(*recipe).await? else {
+                    let prepared = if let Some(candidate) = &overflow {
+                        let slots = recipe
+                            .transaction
+                            .writes
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(write_index, w)| {
+                                if let Write::Entry(entry) = w {
+                                    Some(pi_agent_session::storage::PreparedEntrySlot {
+                                        write_index,
+                                        entry: entry.clone(),
+                                    })
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+                        let token = self
+                            .lane
+                            .owner
+                            .session
+                            .prepare_entries(candidate.stamp.clone(), slots)
+                            .await
+                            .map_err(|_| {
+                                self.lane.owner.fail("overflow entry preparation failed")
+                            })?;
+                        let Some(token) = token else { continue };
+                        Some(token)
+                    } else {
+                        None
+                    };
+                    let Some(applied) = self.lane.apply_prepared(*recipe, prepared).await? else {
                         // Keep the actual output/binding on CAS loss. The next
                         // iteration replans it against newer inbox/control roots.
                         continue;
@@ -582,7 +749,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             return Ok(result);
         }
     }
-    fn retire_effect(&self, key: &EffectKey) -> Option<RequestBinding> {
+    pub(crate) fn retire_effect(&self, key: &EffectKey) -> Option<RequestBinding> {
         let old = self
             .running
             .lock()
@@ -671,17 +838,48 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 });
             }
         }
-        let decision = pi_harness_core::terminal::terminal_recipe(
-            current,
-            &plan,
-            &inputs,
-            &self.lane.facts(&h)?,
-            &pi_harness_core::terminal::TerminalFacts { registers },
-        )
+        let mut candidate = self
+            .terminal_candidate
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
+        let decision = if let Some(c) = candidate.as_ref() {
+            pi_harness_core::structural::terminal_recipe(
+                current,
+                &TerminalCommit {
+                    current: c.current.clone(),
+                    result: c.result.clone(),
+                    telemetry_context: plan.telemetry_context.clone(),
+                },
+                &self.lane.facts(&h)?,
+                &pi_harness_core::terminal::TerminalFacts { registers },
+                &c.extra,
+            )
+        } else {
+            pi_harness_core::terminal::terminal_recipe(
+                current,
+                &plan,
+                &inputs,
+                &self.lane.facts(&h)?,
+                &pi_harness_core::terminal::TerminalFacts { registers },
+            )
+        }
         .map_err(|_| self.lane.owner.fail("terminal recipe rejected"))?;
         let result = match decision {
             RecipeDecision::Apply(recipe) => {
-                if self.lane.apply(*recipe).await?.is_some() {
+                let prepared = candidate.as_mut().and_then(|c| c.prepared.take());
+                if self.lane.apply_prepared(*recipe, prepared).await?.is_some() {
+                    let result = candidate
+                        .as_ref()
+                        .map_or_else(|| plan.result.clone(), |c| c.result.clone());
+                    *self
+                        .terminal_result
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner()) = Some(result);
+                    if let Some(c) = candidate.take() {
+                        self.summary_settled(current, None, &c.source.output);
+                        self.retire_effect(c.source.plan.key());
+                    }
                     Some(current.clone())
                 } else {
                     None
@@ -690,6 +888,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             RecipeDecision::NoLongerExpected => None,
             _ => return Err(self.lane.owner.fail("invalid terminal recipe")),
         };
+        if let Some(candidate) = candidate {
+            *self
+                .terminal_candidate
+                .lock()
+                .unwrap_or_else(|p| p.into_inner()) = Some(candidate);
+        }
         drop(_line);
         drop(_settings);
         self.events().flush();
@@ -772,24 +976,28 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     }
     fn run_summary_request(
         &self,
-        _plan: SummaryRequestPlan<Telemetry>,
+        plan: SummaryRequestPlan<Telemetry>,
     ) -> BoxFuture<'_, Result<SummaryRequestOutput, HarnessRuntimeError>> {
+        let this = self.this.upgrade().expect("live Effects owner");
         Box::pin(async move {
-            Err(self
-                .lane
+            this.lane
                 .owner
-                .fail("summary requests require a later runtime stage"))
+                .clone()
+                .retain_effect(Box::pin(async move { this.nested_request(plan).await }))
+                .await?
         })
     }
     fn settle_summary_request(
         &self,
-        _plan: SummaryRequestSettlement<Telemetry>,
+        plan: SummaryRequestSettlement<Telemetry>,
     ) -> BoxFuture<'_, Result<Option<CurrentOperation>, HarnessRuntimeError>> {
+        let this = self.this.upgrade().expect("live Effects owner");
         Box::pin(async move {
-            Err(self
-                .lane
+            this.lane
                 .owner
-                .fail("summary settlement requires a later runtime stage"))
+                .clone()
+                .retain_runtime(Box::pin(async move { this.nested_settlement(plan).await }))
+                .await
         })
     }
     fn sleep(
@@ -939,6 +1147,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         }
         if accepted {
             let run_id = match &event {
+                HookEvent::BeforeRequest(e) => Some(&e.run_id),
                 HookEvent::BeforePayload(e) => Some(&e.run_id),
                 HookEvent::AfterResponse(e) => Some(&e.run_id),
                 HookEvent::BeforeTool(e) => Some(&e.run_id),
@@ -956,13 +1165,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .current
                     .as_ref()
                     .filter(|current| &current.operation.operation_id == run_id);
-                let cancelled = current.is_some_and(|current| matches!(&current.state,OperationState::Run(run) if !matches!(run.control,Control::Running(_))));
+                let cancelled = current.is_some_and(pi_harness_core::structural::is_cancelled);
                 if current.is_none() || cancelled {
                     // Cancellation can invoke stream fallback callbacks: release
                     // the mutation line before cancelling only this old drive.
                     drop(_line);
                     self.cancellation.cancel();
                     let result = match event {
+                        HookEvent::BeforeRequest(_) => HookResult::BeforeRequest(None),
                         HookEvent::BeforePayload(_) => HookResult::BeforePayload(None),
                         HookEvent::AfterResponse(_) => HookResult::AfterResponse(None),
                         HookEvent::BeforeTool(_) => HookResult::BeforeTool(None),
@@ -1061,19 +1271,28 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         ));
                     }
                 }
-                let window = match &commit.plan {
-                    EffectPlan::Assistant(plan) => Some(plan.generation.context_window),
-                    _ => None,
-                };
                 if matches!(commit.plan, EffectPlan::Deferred(_)) {
                     SettlementFacts::Deferred {
-                        overflow: pi_ai_core::is_context_overflow(raw, None),
+                        overflow: {
+                            let budget = self
+                                .request_bindings
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .get(commit.plan.key())
+                                .map(|b| b.model.max_tokens);
+                            (raw.stop_reason == pi_ai_core::StopReason::Error
+                                && pi_ai_core::is_context_overflow(raw, None))
+                                || budget.is_some_and(|limit| {
+                                    raw.stop_reason == pi_ai_core::StopReason::Length
+                                        && raw.usage.output < limit
+                                })
+                        },
                         followers,
                     }
                 } else {
                     SettlementFacts::Assistant {
                         retryable: pi_ai_core::is_retryable_assistant_error(raw),
-                        overflow: pi_ai_core::is_context_overflow(raw, window),
+                        overflow: false,
                         followers,
                     }
                 }
@@ -1248,7 +1467,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let _settings = self.lane.owner.settings_line.acquire().await?;
         let _line = self.lane.lane.line.acquire().await?;
         let h = self.lane.load().await?;
-        let Some(current) = h.current else {
+        let Some(current) = h.current.as_ref() else {
             return Ok(false);
         };
         let key = plan.key();
@@ -1258,24 +1477,39 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         {
             return Ok(false);
         }
-        let OperationState::Run(run) = &current.state else {
-            return Ok(false);
-        };
-        if !matches!(run.control, Control::Running(_)) {
+        if pi_harness_core::structural::is_cancelled(current) {
             drop(_line);
             drop(_settings);
             self.cancellation.cancel();
             return Ok(false);
         }
-        let expected=match (plan,&run.phase) {
+        let expected = if pi_harness_core::structural::decision(current).is_some() {
+            match plan {
+                EffectPlan::Summary(p) => {
+                    pi_harness_core::structural::matches(current, p, &key.session_id)
+                }
+                EffectPlan::Hook(p) => {
+                    let inputs = self.inputs(&h).await?;
+                    pi_harness_core::structural::decision_event(current, &inputs)
+                        .is_ok_and(|event| event == p.event)
+                        && pi_harness_core::structural::task(current)
+                            .is_ok_and(|task| task.as_str() == key.step_or_task_id.as_str())
+                }
+                _ => false,
+            }
+        } else if let OperationState::Run(run) = &current.state {
+            match (plan,&run.phase) {
             (EffectPlan::Deferred(plan),RunPhase::Deferred(DeferredPhase{deferred,..}))=>PendingDeferred::try_from(deferred.clone()).is_ok_and(|p|p==plan.deferred),
             (EffectPlan::Hook(plan),RunPhase::Deferred(DeferredPhase{deferred,..}))=>matches!(plan.event,HookEvent::BeforeRequest(_)) && match deferred {Deferred::Suspended{step_id,poll,..}=>key.step_or_task_id.as_str()==step_id.as_str() && key.logical_attempt.get()==poll.get().saturating_add(1),Deferred::EffectPending{step_id,poll,..}=>key.step_or_task_id.as_str()==step_id.as_str() && key.logical_attempt.get()==poll.get()},
             (EffectPlan::Assistant(plan),RunPhase::Assistant(AssistantPhase {generation,..}))=>PendingGeneration::try_from(generation.clone()).is_ok_and(|pending|pending==plan.generation),
             (EffectPlan::Hook(plan),RunPhase::Assistant(AssistantPhase {generation:Generation::Ready {context,next_attempt},..}))=>matches!(plan.event,HookEvent::BeforeRequest(_))&&key.step_or_task_id.as_str()==context.step_id.as_str()&&key.logical_attempt.get()==next_attempt.get()&&key.kind==EffectKind::Hook,
             (EffectPlan::Hook(plan),RunPhase::Checkpoint(checkpoint))=>matches!(plan.event,HookEvent::BeforeRunEnd(_))&&key.step_or_task_id.as_str()==checkpoint.trigger_entry_id.as_str()&&matches!(checkpoint.continuation,Continuation::MayFinish {..}),
-            (EffectPlan::Tool(plan),RunPhase::Tools(tools))=>plan.assistant_entry_id==tools.batch.assistant_entry_id&&key.step_or_task_id.as_str()==tools.batch.turn_id.as_str()&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::EffectPending {source_index,..} if *source_index==plan.source_index))&&plan.args_key==pi_harness_core::tool_batch::args_key(&current,&tools.batch,plan.source_index),
+            (EffectPlan::Tool(plan),RunPhase::Tools(tools))=>plan.assistant_entry_id==tools.batch.assistant_entry_id&&key.step_or_task_id.as_str()==tools.batch.turn_id.as_str()&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::EffectPending {source_index,..} if *source_index==plan.source_index))&&plan.args_key==pi_harness_core::tool_batch::args_key(current,&tools.batch,plan.source_index),
             (EffectPlan::ToolClearance(plan),RunPhase::Tools(tools))=>plan.assistant_entry_id==tools.batch.assistant_entry_id&&plan.turn_id==tools.batch.turn_id&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::Planned {source_index,result_entry_id} if *source_index==plan.source_index&&*result_entry_id==plan.result_entry_id)),
             _=>false,
+        }
+        } else {
+            false
         };
         if !expected {
             return Ok(false);
@@ -1363,10 +1597,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             EffectPlan::Deferred(plan) => self.fetch(plan).await,
             EffectPlan::ToolClearance(plan) => self.clearance(plan).await,
             EffectPlan::Tool(plan) => self.execute_tool(plan).await,
-            _ => Err(self
+            EffectPlan::Summary(plan) => {
+                self.summary_retry_started(&plan);
+                self.events().flush();
+                self.summary(plan).await
+            }
+            EffectPlan::CancelDeferred(_) => Err(self
                 .lane
                 .owner
-                .fail("effect requires a later runtime stage")),
+                .fail("cancel request must use its dedicated owner")),
         }
     }
 }
@@ -1422,6 +1661,34 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         );
     }
     pub(crate) fn publish_suspension(&self, current: &CurrentOperation, result: &OperationResult) {
+        let missing = match result {
+            OperationResult::Run(outcome) => match outcome.as_ref() {
+                RunOutcome::MissingIdentities(o) => Some(o.missing.clone()),
+                _ => None,
+            },
+            OperationResult::Compaction(CompactionOutcome::MissingIdentities(o)) => {
+                Some(o.missing.clone())
+            }
+            OperationResult::Navigation(NavigationOutcome::MissingIdentities(o)) => {
+                Some(o.missing.clone())
+            }
+            _ => None,
+        };
+        if let Some(missing) = missing {
+            self.lane
+                .owner
+                .suspensions
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .insert(
+                    self.lane.lane.name.clone(),
+                    SuspensionObservation {
+                        operation_id: current.operation.operation_id.clone(),
+                        summary: pi_harness_core::structural::pending(current),
+                        missing,
+                    },
+                );
+        }
         let event = match result {
             OperationResult::Run(outcome) => match outcome.as_ref() {
                 RunOutcome::Deferred(outcome) => {

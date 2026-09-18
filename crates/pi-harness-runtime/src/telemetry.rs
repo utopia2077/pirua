@@ -51,6 +51,7 @@ impl Span {
 enum Phase {
     Checkpoint(String, &'static str),
     Turn(String),
+    Structural(String, &'static str),
 }
 struct State {
     run: Option<Arc<Span>>,
@@ -79,9 +80,26 @@ impl Trace {
         id: &OperationId,
         recovery: bool,
     ) {
+        self.begin_kind(session, lane, id, recovery, OperationKind::Run);
+    }
+    pub(crate) fn begin_kind(
+        &self,
+        session: &SessionId,
+        lane: &LaneId,
+        id: &OperationId,
+        recovery: bool,
+        kind: OperationKind,
+    ) {
         let mut attrs = correlation(lane, id);
         attrs.insert("pi.session.id".into(), string(session.as_str()));
-        attrs.insert("pi.operation.kind".into(), string("run"));
+        attrs.insert(
+            "pi.operation.kind".into(),
+            string(match kind {
+                OperationKind::Run => "run",
+                OperationKind::Compaction => "compaction",
+                OperationKind::Navigation => "navigation",
+            }),
+        );
         attrs.insert(
             "pi.operation.recovery".into(),
             AttributeValue::Boolean(recovery),
@@ -106,6 +124,33 @@ impl Trace {
             .unwrap_or_else(|| self.root.clone())
     }
     pub(crate) fn sync(&self, current: &CurrentOperation) {
+        if let Some(decision) = pi_harness_core::structural::decision(current) {
+            let (task, step) = match decision {
+                StructuralDecision::Deciding { task_id } => (task_id, None),
+                StructuralDecision::Generating {
+                    task_id,
+                    generation,
+                } => {
+                    let attempt = match generation.as_ref() {
+                        SummaryGeneration::EffectPending { attempt, .. } => Some(attempt.get()),
+                        _ => None,
+                    };
+                    (task_id, attempt.map(|a| (task_id.as_str().into(), a)))
+                }
+            };
+            let kind = if matches!(current.operation.intent, OperationIntent::Navigation(_)) {
+                "branch_summary"
+            } else {
+                "compaction"
+            };
+            self.sync_phase(
+                current,
+                Phase::Structural(task.as_str().into(), kind),
+                step,
+                kind,
+            );
+            return;
+        }
         let OperationState::Run(run) = &current.state else {
             return;
         };
@@ -197,6 +242,11 @@ impl Trace {
                     attrs.insert("pi.checkpoint.kind".into(), string(*kind));
                     "pi.harness.checkpoint"
                 }
+                Phase::Structural(task, kind) => {
+                    attrs.insert("pi.task.id".into(), string(task));
+                    attrs.insert("pi.step.kind".into(), string(*kind));
+                    "pi.harness.structural"
+                }
                 Phase::Turn(turn) => {
                     attrs.insert("pi.turn.id".into(), string(turn));
                     "pi.harness.turn"
@@ -239,18 +289,32 @@ impl Trace {
         }
     }
     pub(crate) fn finish(&self, result: &OperationResult) {
-        let OperationResult::Run(outcome) = result else {
-            return;
-        };
-        let value = match outcome.as_ref() {
-            RunOutcome::CompletedWithAssistant(_) | RunOutcome::CompletedWithoutAssistant(_) => {
-                "completed"
-            }
-            RunOutcome::AbortedWithAssistant(_) | RunOutcome::AbortedWithoutAssistant(_) => {
-                "aborted"
-            }
-            RunOutcome::FailedWithAssistant(_) | RunOutcome::FailedWithoutAssistant(_) => "failed",
-            _ => "suspended",
+        let value = match result {
+            OperationResult::Compaction(o) => match o {
+                CompactionOutcome::Completed(_) => "completed",
+                CompactionOutcome::Declined(_) => "declined",
+                CompactionOutcome::Aborted(_) => "aborted",
+                CompactionOutcome::Failed(_) => "failed",
+                _ => "suspended",
+            },
+            OperationResult::Navigation(o) => match o {
+                NavigationOutcome::Completed(_) => "completed",
+                NavigationOutcome::Declined(_) => "declined",
+                NavigationOutcome::Aborted(_) => "aborted",
+                NavigationOutcome::Failed(_) => "failed",
+                _ => "suspended",
+            },
+            OperationResult::Run(outcome) => match outcome.as_ref() {
+                RunOutcome::CompletedWithAssistant(_)
+                | RunOutcome::CompletedWithoutAssistant(_) => "completed",
+                RunOutcome::AbortedWithAssistant(_) | RunOutcome::AbortedWithoutAssistant(_) => {
+                    "aborted"
+                }
+                RunOutcome::FailedWithAssistant(_) | RunOutcome::FailedWithoutAssistant(_) => {
+                    "failed"
+                }
+                _ => "suspended",
+            },
         };
         let (run, phase) = {
             let s = self.state.lock().unwrap_or_else(|p| p.into_inner());

@@ -5,6 +5,9 @@ use pi_agent_session::storage::RuntimeStorage;
 use pi_ai_core::SafeUnsigned;
 use std::{sync::Arc, task::Poll};
 pub(crate) trait ActiveDrive: Send + Sync {
+    fn kind(&self) -> OperationKind {
+        OperationKind::Run
+    }
     fn register_cancel(&self, h: &HydratedLane) -> Result<(), HarnessRuntimeError>;
     fn abort(
         self: Arc<Self>,
@@ -14,6 +17,12 @@ pub(crate) trait ActiveDrive: Send + Sync {
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord> ActiveDrive
     for RuntimeEffects<C, S, M>
 {
+    fn kind(&self) -> OperationKind {
+        *self
+            .operation_kind
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+    }
     fn register_cancel(&self, h: &HydratedLane) -> Result<(), HarnessRuntimeError> {
         self.register_cancel_target(h)
     }
@@ -180,25 +189,24 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             },
                         )));
                     };
-                    let OperationState::Run(run) = &current.state else {
-                        return Err(lane
-                            .owner
-                            .fail("structural abort requires later runtime stage"));
-                    };
-                    let ids = match &run.control {
-                        Control::Running(_) => run
-                            .inbox
-                            .steer
-                            .iter()
-                            .chain(&run.inbox.follow_up)
-                            .cloned()
-                            .collect::<Vec<_>>(),
-                        Control::CancelRequested(c) => c
-                            .drained_steer
-                            .iter()
-                            .chain(&c.drained_follow_up)
-                            .cloned()
-                            .collect(),
+                    let ids = if let OperationState::Run(run) = &current.state {
+                        match &run.control {
+                            Control::Running(_) => run
+                                .inbox
+                                .steer
+                                .iter()
+                                .chain(&run.inbox.follow_up)
+                                .cloned()
+                                .collect::<Vec<_>>(),
+                            Control::CancelRequested(c) => c
+                                .drained_steer
+                                .iter()
+                                .chain(&c.drained_follow_up)
+                                .cloned()
+                                .collect(),
+                        }
+                    } else {
+                        vec![]
                     };
                     let now = SafeUnsigned::new(lane.owner.clock.now_unix_ms())
                         .map_err(|_| lane.owner.fail("abort clock range failure"))?;
@@ -247,23 +255,30 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                                 .restored
                                 .swap(false, std::sync::atomic::Ordering::AcqRel),
                         );
+                        *fx.operation_kind.lock().unwrap_or_else(|p| p.into_inner()) =
+                            crate::snapshots::kind(current);
+                        *fx.original_operation
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner()) = Some(current.operation.clone());
                         fx.register_drive(&operation);
                         Some(fx)
                     } else {
                         None
                     };
-                    lane.owner.events.enqueue(
-                        HarnessEventType::RunAbort,
-                        &lane.lane.name,
-                        HarnessEvent::RunAbort(RunAbortEvent {
-                            event_type: Default::default(),
-                            lane: lane.lane.name.clone(),
-                            recovery: None,
-                            run_id: operation.clone(),
-                            steer: decision.result.steer.clone(),
-                            follow_up: decision.result.follow_up.clone(),
-                        }),
-                    );
+                    if matches!(current.operation.intent, OperationIntent::Run(_)) {
+                        lane.owner.events.enqueue(
+                            HarnessEventType::RunAbort,
+                            &lane.lane.name,
+                            HarnessEvent::RunAbort(RunAbortEvent {
+                                event_type: Default::default(),
+                                lane: lane.lane.name.clone(),
+                                recovery: None,
+                                run_id: operation.clone(),
+                                steer: decision.result.steer.clone(),
+                                follow_up: decision.result.follow_up.clone(),
+                            }),
+                        );
+                    }
                     drop(activity);
                     let active = active
                         .unwrap_or_else(|| background.as_ref().expect("background drive").clone());
@@ -275,11 +290,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         let host = owner.host.clone();
                         host.spawn(Box::pin(async move {
                             let _guard = crate::driver::DriveGuard::new(fx.lane.lane.clone());
-                            fx.trace.begin(
+                            fx.trace.begin_kind(
                                 &owner.session.metadata().base_metadata().id,
                                 &fx.lane.lane.name,
                                 &operation,
                                 fx.recovery,
+                                *fx.operation_kind.lock().unwrap_or_else(|p| p.into_inner()),
                             );
                             let result = crate::driver::drive(fx.clone(), operation).await;
                             match result {

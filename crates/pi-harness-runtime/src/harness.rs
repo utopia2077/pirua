@@ -372,7 +372,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 operation: h.current.as_ref().map(|c| LaneOperationInfo {
                     id: c.operation.operation_id.clone(),
                     kind: crate::snapshots::kind(c),
-                    status: if matches!(&c.state,OperationState::Run(run) if matches!(run.control,Control::CancelRequested(_))) {OperationSnapshotStatus::Aborting} else if driving {
+                    status: if pi_harness_core::structural::is_cancelled(c) {
+                        OperationSnapshotStatus::Aborting
+                    } else if driving {
                         OperationSnapshotStatus::Running
                     } else {
                         OperationSnapshotStatus::Suspended
@@ -381,7 +383,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 suspended: if driving {
                     None
                 } else {
-                    crate::owner::suspended(&h)
+                    lane.suspended_snapshot(&h)
                 },
             });
         }

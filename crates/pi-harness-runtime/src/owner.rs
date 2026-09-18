@@ -69,6 +69,11 @@ pub(crate) struct LaneControl {
     pub gate: ManualGate,
     pub hydrated: Mutex<HydratedLane>,
 }
+pub(crate) struct SuspensionObservation {
+    pub operation_id: OperationId,
+    pub summary: Option<PendingSummaryGeneration>,
+    pub missing: MissingIdentities,
+}
 pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub session: Arc<RuntimeSession<S, M>>,
     pub models: Arc<ModelsRegistry>,
@@ -89,6 +94,7 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub settings: Mutex<Settings>,
     pub tools: Mutex<Vec<AgentHarnessToolHandle<C>>>,
     pub lanes: Mutex<BTreeMap<LaneId, Arc<LaneControl>>>,
+    pub suspensions: Mutex<BTreeMap<LaneId, SuspensionObservation>>,
     pub lease: Mutex<Option<RuntimeLease>>,
     pub seed: LaneConfiguration,
     pub drive_mode: DriveMode,
@@ -284,6 +290,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             seed,
             tools: Mutex::new(options.tools),
             lanes: Mutex::new(lanes),
+            suspensions: Mutex::new(BTreeMap::new()),
             lease: Mutex::new(Some(lease)),
         });
         Ok(AgentHarnessCreate {
@@ -362,6 +369,10 @@ pub(crate) fn suspended(h: &HydratedLane) -> Option<SuspendedOperation> {
             }
             _ => None,
         },
+        _ if pi_harness_core::structural::is_cancelled(current) => Some(AbortingSnapshot {
+            steer: vec![],
+            follow_up: vec![],
+        }),
         _ => None,
     };
     Some(SuspendedOperation {
@@ -550,4 +561,24 @@ pub(crate) fn validate_stream_options(
     raw.into_durable(policy)
         .map(|_| ())
         .map_err(|_| fault("stream options violate the Session header policy"))
+}
+
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    RuntimeLane<C, S, M>
+{
+    pub(crate) fn suspended_snapshot(&self, h: &HydratedLane) -> Option<SuspendedOperation> {
+        let mut snapshot = suspended(h)?;
+        if let Some(observation) = self
+            .owner
+            .suspensions
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&self.lane.name)
+            && observation.operation_id == snapshot.operation_id
+        {
+            snapshot.reason = SuspendedOperationReason::MissingIdentities;
+            snapshot.missing = observation.missing.clone();
+        }
+        Some(snapshot)
+    }
 }
