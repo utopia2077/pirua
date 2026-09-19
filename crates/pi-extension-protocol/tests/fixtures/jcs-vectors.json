@@ -1,0 +1,250 @@
+[
+  {
+    "id": "rfc_primitive",
+    "mode": "jcs",
+    "expect": "ok",
+    "input": "{\"numbers\":[333333333.33333329,1E30,4.50,2e-3,1e-27],\"string\":\"\\u20ac$\\u000F\\u000aA'\\u0042\\u0022\\u005c\\\\\\\"\\/\",\"literals\":[null,true,false]}"
+  },
+  {
+    "id": "rfc_sort",
+    "mode": "jcs",
+    "expect": "ok",
+    "input": "{\"\\u20ac\":\"Euro Sign\",\"\\r\":\"Carriage Return\",\"\\ufb33\":\"Hebrew Letter Dalet With Dagesh\",\"1\":\"One\",\"\\ud83d\\ude00\":\"Emoji: Grinning Face\",\"\\u0080\":\"Control\",\"\\u00f6\":\"Latin Small Letter O With Diaeresis\"}",
+    "expected": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}"
+  },
+  {
+    "id": "utf16_counterexample",
+    "mode": "jcs",
+    "expect": "ok",
+    "input": "{\"\\ue000\":1,\"\\ud800\\udc00\":2}",
+    "expected": "{\"𐀀\":2,\"\":1}"
+  },
+  {
+    "id": "nested_arrays_controls",
+    "mode": "jcs",
+    "expect": "ok",
+    "input": "{\"z\":[{\"b\":2,\"a\":1},[\"\\u000f\\n\",true,null]],\"a\":{\"\\u00f6\":1,\"x\":-0}}",
+    "expected": "{\"a\":{\"x\":0,\"ö\":1},\"z\":[{\"a\":1,\"b\":2},[\"\\u000f\\n\",true,null]]}"
+  },
+  {
+    "id": "number_thresholds",
+    "mode": "jcs",
+    "expect": "ok",
+    "input": "{\"n\":[1e-6,1e-7,1e20,1e21,-0,333333333.33333329,1e30,4.50]}",
+    "expected": "{\"n\":[0.000001,1e-7,100000000000000000000,1e+21,0,333333333.3333333,1e+30,4.5]}"
+  },
+  {
+    "id": "duplicate_top",
+    "mode": "jcs",
+    "expect": "reject",
+    "input": "{\"a\":1,\"a\":2}"
+  },
+  {
+    "id": "duplicate_nested",
+    "mode": "jcs",
+    "expect": "reject",
+    "input": "{\"outer\":{\"x\":1,\"x\":2}}"
+  },
+  {
+    "id": "duplicate_escaped",
+    "mode": "jcs",
+    "expect": "reject",
+    "input": "{\"a\":1,\"\\u0061\":2}"
+  },
+  {
+    "id": "nonfinite_exponent",
+    "mode": "jcs",
+    "expect": "reject",
+    "input": "{\"n\":1e9999}"
+  },
+  {
+    "id": "lone_surrogate",
+    "mode": "jcs",
+    "expect": "reject",
+    "input": "{\"s\":\"\\ud800\"}"
+  },
+  {
+    "id": "schema_object_local_ref",
+    "mode": "schema",
+    "expect": "ok",
+    "input": "{\"type\":\"object\",\"properties\":{\"\\ue000\":{\"type\":\"string\"},\"\\ud800\\udc00\":{\"$ref\":\"#/$defs/I\"}},\"required\":[\"\\ud800\\udc00\"],\"$defs\":{\"I\":{\"type\":\"integer\",\"minimum\":-0,\"maximum\":12}}}"
+  },
+  {
+    "id": "schema_array_number",
+    "mode": "schema",
+    "expect": "ok",
+    "input": "{\"type\":\"array\",\"items\":{\"type\":\"number\",\"minimum\":-0.5,\"maximum\":1e-6}}"
+  },
+  {
+    "id": "schema_remote_ref",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"$ref\":\"https://example.invalid/schema\"}"
+  },
+  {
+    "id": "schema_unknown_ref",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"$ref\":\"#/$defs/Missing\"}"
+  },
+  {
+    "id": "schema_unknown_keyword",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"string\",\"pattern\":\"^a\"}"
+  },
+  {
+    "id": "schema_nested_duplicate",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\",\"type\":\"number\"}}}"
+  },
+  {
+    "id": "schema_unsafe_integer",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"number\",\"maximum\":9007199254740992}"
+  },
+  {
+    "id": "schema_nonfinite",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"number\",\"maximum\":1e9999}"
+  },
+  {
+    "id": "schema_required_duplicate",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"object\",\"properties\":{\"a\":{\"type\":\"string\"}},\"required\":[\"a\",\"a\"]}"
+  },
+  {
+    "id": "schema_required_undeclared",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"object\",\"required\":[\"a\"]}"
+  },
+  {
+    "id": "schema_inverted_bounds",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"type\":\"integer\",\"minimum\":3,\"maximum\":2}"
+  },
+  {
+    "id": "schema_chained_ref",
+    "mode": "schema",
+    "expect": "reject",
+    "input": "{\"$defs\":{\"A\":{\"$ref\":\"#/$defs/B\"},\"B\":{\"type\":\"string\"}},\"$ref\":\"#/$defs/A\"}"
+  },
+  {
+    "id": "rfc_b_zero",
+    "mode": "number_bits",
+    "bits": "0000000000000000",
+    "expect": "ok",
+    "expected": "0"
+  },
+  {
+    "id": "rfc_b_minus_zero",
+    "mode": "number_bits",
+    "bits": "8000000000000000",
+    "expect": "ok",
+    "expected": "0"
+  },
+  {
+    "id": "rfc_b_minimum_positive",
+    "mode": "number_bits",
+    "bits": "0000000000000001",
+    "expect": "ok",
+    "expected": "5e-324"
+  },
+  {
+    "id": "rfc_b_minimum_negative",
+    "mode": "number_bits",
+    "bits": "8000000000000001",
+    "expect": "ok",
+    "expected": "-5e-324"
+  },
+  {
+    "id": "rfc_b_maximum_positive",
+    "mode": "number_bits",
+    "bits": "7fefffffffffffff",
+    "expect": "ok",
+    "expected": "1.7976931348623157e+308"
+  },
+  {
+    "id": "rfc_b_maximum_negative",
+    "mode": "number_bits",
+    "bits": "ffefffffffffffff",
+    "expect": "ok",
+    "expected": "-1.7976931348623157e+308"
+  },
+  {
+    "id": "rfc_b_two_power_53",
+    "mode": "number_bits",
+    "bits": "4340000000000000",
+    "expect": "ok",
+    "expected": "9007199254740992"
+  },
+  {
+    "id": "rfc_b_two_power_68",
+    "mode": "number_bits",
+    "bits": "4430000000000000",
+    "expect": "ok",
+    "expected": "295147905179352830000"
+  },
+  {
+    "id": "rfc_b_near_1e23_low",
+    "mode": "number_bits",
+    "bits": "44b52d02c7e14af5",
+    "expect": "ok",
+    "expected": "9.999999999999997e+22"
+  },
+  {
+    "id": "rfc_b_near_1e23",
+    "mode": "number_bits",
+    "bits": "44b52d02c7e14af6",
+    "expect": "ok",
+    "expected": "1e+23"
+  },
+  {
+    "id": "rfc_b_near_1e23_high",
+    "mode": "number_bits",
+    "bits": "44b52d02c7e14af7",
+    "expect": "ok",
+    "expected": "1.0000000000000001e+23"
+  },
+  {
+    "id": "rfc_b_near_1e21_low",
+    "mode": "number_bits",
+    "bits": "444b1ae4d6e2ef4f",
+    "expect": "ok",
+    "expected": "999999999999999900000"
+  },
+  {
+    "id": "rfc_b_one_e21",
+    "mode": "number_bits",
+    "bits": "444b1ae4d6e2ef50",
+    "expect": "ok",
+    "expected": "1e+21"
+  },
+  {
+    "id": "rfc_b_near_1e_minus_6_low",
+    "mode": "number_bits",
+    "bits": "3eb0c6f7a0b5ed8c",
+    "expect": "ok",
+    "expected": "9.999999999999997e-7"
+  },
+  {
+    "id": "rfc_b_one_e_minus_6",
+    "mode": "number_bits",
+    "bits": "3eb0c6f7a0b5ed8d",
+    "expect": "ok",
+    "expected": "0.000001"
+  },
+  {
+    "id": "rfc_b_round_even",
+    "mode": "number_bits",
+    "bits": "43143ff3c1cb0959",
+    "expect": "ok",
+    "expected": "1424953923781206.2"
+  }
+]

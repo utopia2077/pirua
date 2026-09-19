@@ -1263,6 +1263,12 @@ dependencies = [
 [[package]]
 name = "pi-extension-protocol"
 version = "0.0.0"
+dependencies = [
+ "ring",
+ "ryu-js",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "pi-harness-core"
