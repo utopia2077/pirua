@@ -1,0 +1,12 @@
+[package]
+name = "pi-extension-protocol-codegen-check"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.98.0"
+publish = false
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+prost-build = "=0.14.4"
