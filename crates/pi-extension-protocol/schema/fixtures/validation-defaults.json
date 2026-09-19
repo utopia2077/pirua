@@ -1,0 +1,140 @@
+{
+  "rules": [
+    {
+      "absent": "invalid frame",
+      "field": "Envelope.frame",
+      "invalid": "unknown closed arm -> unsupported_variant; unknown optional non-discriminant ignored"
+    },
+    {
+      "absent": "invalid handshake",
+      "field": "Hello.protocol / Manifest.protocol",
+      "invalid": "major/range mismatch fails atomic activation"
+    },
+    {
+      "absent": "malformed manifest; reject whole activation regardless required",
+      "field": "CapabilityDeclaration.supported_descriptor_digests",
+      "invalid": "duplicate/gapped/missing advertised minor or non-32-byte digest rejects whole activation regardless required"
+    },
+    {
+      "absent": "tool capability without sets is malformed; non-tool with sets is malformed",
+      "field": "CapabilityDeclaration.tool_schema_sets",
+      "invalid": "duplicate/gapped/missing advertised tool minor, projection ID or non-32-byte digest rejects whole activation regardless required; tool_name must equal capability name"
+    },
+    {
+      "absent": "not applicable",
+      "field": "structurally complete selected descriptor/dynamic digest or host-ceiling mismatch",
+      "invalid": "required capability denies whole activation; optional capability omitted from grant"
+    },
+    {
+      "absent": "UNSPECIFIED=0 rejects whole activation as invalid_required_semantic_value",
+      "field": "CapabilityDeclaration.replay / execution for tool.v1",
+      "invalid": "unknown numeric rejects whole activation as unsupported_variant; known replay IDEMPOTENT_HANDLER or execution UNARY/PASSIVE rejects whole activation as profile_inapplicable_variant; only replay SAFE/NEVER and execution STREAMING are profile-valid; known NEVER versus approved SAFE reaches required-denial/optional-omission"
+    },
+    {
+      "absent": "invalid selected reference",
+      "field": "CapabilityRef.schema_digest_sha256",
+      "invalid": "must equal selected minor descriptor digest, not dynamic schema digest"
+    },
+    {
+      "absent": "invalid request",
+      "field": "Request.request_id",
+      "invalid": "zero/duplicate/live collision rejected"
+    },
+    {
+      "absent": "no parent for root request",
+      "field": "Request.parent_request_id",
+      "invalid": "missing/terminal/forged/cyclic parent -> invalid_parent"
+    },
+    {
+      "absent": "invalid request",
+      "field": "Request.capability_ref",
+      "invalid": "principal/generation/grant mismatch starts no work"
+    },
+    {
+      "absent": "per-method; required for effect dispatch",
+      "field": "Request.effect_key",
+      "invalid": "wrong durable key starts/settles no effect"
+    },
+    {
+      "absent": "finite method default",
+      "field": "Request.deadline_after_ms",
+      "invalid": "checked monotonic minimum with method/connection/parent"
+    },
+    {
+      "absent": 0,
+      "field": "Request.initial_stream_credit_bytes",
+      "invalid": "over per-invocation maximum -> credit_violation"
+    },
+    {
+      "absent": "unsupported_method",
+      "field": "Request.method",
+      "invalid": "must match descriptor MethodOptions for selected profile minor"
+    },
+    {
+      "absent": "method-role dependent",
+      "field": "Request.payload / Response.result / StreamItem.payload / StreamEnd.result",
+      "invalid": "decode only descriptor-selected DTO; no generic SDK object"
+    },
+    {
+      "absent": 0,
+      "field": "StreamItem.sequence",
+      "invalid": "first is 0 then contiguous; gap/duplicate closes malformed generation"
+    },
+    {
+      "absent": "no progress",
+      "field": "StreamItem credit",
+      "invalid": "charge exact serialized Envelope body bytes; prefix excluded"
+    },
+    {
+      "absent": 0,
+      "field": "Credit.additional_bytes",
+      "invalid": "checked u64 addition/max, overflow closes malformed generation"
+    },
+    {
+      "absent": "invalid terminal",
+      "field": "Response/StreamEnd terminal",
+      "invalid": "exactly one result or error; first validated terminal retained until durable settlement/no-longer-expected"
+    },
+    {
+      "absent": "UNSPECIFIED is invalid when semantic value required",
+      "field": "ErrorCode/ReplayContract/ExecutionMode/CancelReason/GoAwayReason/MethodDirection/MethodMode",
+      "invalid": "unknown numeric -> unsupported_variant, never alias zero"
+    },
+    {
+      "absent": "not selected",
+      "field": "WireValue.integer_value",
+      "invalid": "outside +/-9007199254740991 rejected before schema dispatch"
+    },
+    {
+      "absent": "not selected",
+      "field": "WireValue.float_value",
+      "invalid": "NaN/Infinity rejected"
+    },
+    {
+      "absent": "not selected",
+      "field": "WireValue.map_value",
+      "invalid": "duplicate keys/depth/elements/byte limits rejected"
+    },
+    {
+      "absent": "unknown progress percentage",
+      "field": "ToolProgress.percent_complete",
+      "invalid": "selected 1.0 sender omits field 2; selected 1.1 present value must be 0..100"
+    },
+    {
+      "absent": "invalid tool invocation",
+      "field": "InvokeToolRequest.tool_call_id",
+      "invalid": "validated source call identity distinct from request_id and item_index"
+    },
+    {
+      "absent": "invalid provider invocation",
+      "field": "InvokeProviderRequest.auth_mode",
+      "invalid": "exactly none; no credential fields"
+    },
+    {
+      "absent": "skip optional result; mandatory for present result",
+      "field": "InvokeHookResult.output",
+      "invalid": "before_resume uses BeforeResumeUnitResult; before_tool block object is inside validated output"
+    }
+  ],
+  "status": "advisory behavioral table; protobuf parser alone enforces none of these"
+}

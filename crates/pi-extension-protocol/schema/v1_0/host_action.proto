@@ -1,0 +1,66 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+message SnapshotGetRequest { string lane = 1; string visibility = 2; }
+message SnapshotGetResult {
+  SchemaBoundValue filtered_snapshot = 1; // host.filtered_snapshot.v1
+}
+message ResourceGetRequest {
+  string scope = 1;
+  string id = 2;
+  optional string version = 3;
+}
+message ResourceGetResult {
+  SchemaBoundValue snapshot = 1; // host.resource_snapshot.v1
+}
+message QueueSteerRequest {
+  string lane = 1;
+  SchemaBoundValue item = 2; // host.queue_item.v1
+}
+message QueueFollowUpRequest {
+  string lane = 1;
+  SchemaBoundValue item = 2; // host.queue_item.v1
+}
+message QueueNextRunRequest {
+  string lane = 1;
+  SchemaBoundValue item = 2; // host.queue_item.v1
+}
+message QueueResult { string item_id = 1; bool accepted = 2; }
+message OperationAbortRequest {
+  string lane = 1;
+  string operation_id = 2;
+}
+message OperationAbortResult { bool aborted = 1; }
+service HostActionProfile {
+  rpc SnapshotGet(SnapshotGetRequest) returns (SnapshotGetResult) {
+    option (wire_method) = "snapshot.get";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc ResourceGet(ResourceGetRequest) returns (ResourceGetResult) {
+    option (wire_method) = "resource.get";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc QueueSteer(QueueSteerRequest) returns (QueueResult) {
+    option (wire_method) = "queue.steer";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc QueueFollowUp(QueueFollowUpRequest) returns (QueueResult) {
+    option (wire_method) = "queue.follow_up";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc QueueNextRun(QueueNextRunRequest) returns (QueueResult) {
+    option (wire_method) = "queue.next_run";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc OperationAbort(OperationAbortRequest) returns (OperationAbortResult) {
+    option (wire_method) = "operation.abort";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+}

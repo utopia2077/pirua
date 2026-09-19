@@ -1,0 +1,44 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+message SubscribeRequest { string scope = 1; }
+message SubscriptionSnapshot {
+  string subscription_id = 1;
+  uint64 snapshot_revision = 2;
+  uint64 next_event_sequence = 3;
+  SchemaBoundValue filtered_snapshot = 4; // event.filtered_snapshot.v1
+}
+message EventNotification {
+  string subscription_id = 1;
+  uint64 sequence = 2;
+  SchemaBoundValue event = 3; // event.filtered_event.v1
+}
+message EventGap {
+  string subscription_id = 1;
+  uint64 first_dropped = 2;
+  uint64 last_dropped = 3;
+}
+message EventSinkItem {
+  oneof item {
+    SubscriptionSnapshot snapshot = 1;
+    EventNotification event = 2;
+    EventGap gap = 3;
+  }
+}
+message SubscribeEnd {}
+message ResyncRequest { string subscription_id = 1; }
+message ResyncResult { SubscriptionSnapshot snapshot = 1; }
+service EventSinkProfile {
+  rpc Subscribe(SubscribeRequest) returns (SubscribeEnd) {
+    option (wire_method) = "event.subscribe";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_STREAM;
+    option (wire_stream_item_type) = ".pi.extension.v1.EventSinkItem";
+  }
+  rpc Resync(ResyncRequest) returns (ResyncResult) {
+    option (wire_method) = "event.resync";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+}

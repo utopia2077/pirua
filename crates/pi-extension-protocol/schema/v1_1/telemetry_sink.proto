@@ -1,0 +1,27 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+message TelemetryEmitBatchRequest {
+  uint32 schema_version = 1;
+  uint64 sequence = 2;
+  repeated SchemaBoundValue records = 3; // telemetry.record.v1
+}
+message TelemetryEmitBatchResult {
+  uint64 accepted = 1;
+  uint64 dropped = 2;
+}
+message TelemetryFlushRequest { uint64 through_sequence = 1; }
+message TelemetryFlushResult { uint64 flushed_through = 1; }
+service TelemetrySinkProfile {
+  rpc EmitBatch(TelemetryEmitBatchRequest) returns (TelemetryEmitBatchResult) {
+    option (wire_method) = "telemetry.emit_batch";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc Flush(TelemetryFlushRequest) returns (TelemetryFlushResult) {
+    option (wire_method) = "telemetry.flush";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+}

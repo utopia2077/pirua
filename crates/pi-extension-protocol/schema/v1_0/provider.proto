@@ -1,0 +1,27 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+message InvokeProviderRequest {
+  string model_id = 1;
+  SchemaBoundValue context = 2; // provider.context.v1
+  SchemaBoundValue options = 3; // provider.options.v1
+  SchemaBoundValue tools = 4; // provider.tools.v1
+  string auth_mode = 5; // valid v1 value is exactly "none"
+  SchemaBoundValue model = 6; // provider.model.v1, bounded normalized selected model
+}
+message ProviderStreamEvent {
+  SchemaBoundValue event = 1; // provider.assistant_event.v1
+}
+message InvokeProviderResult {
+  SchemaBoundValue assistant_message = 1; // provider.assistant_message.v1
+  SchemaBoundValue usage = 2; // provider.usage.v1
+}
+service ProviderProfile {
+  rpc Invoke(InvokeProviderRequest) returns (InvokeProviderResult) {
+    option (wire_method) = "provider.invoke";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_STREAM;
+    option (wire_stream_item_type) = ".pi.extension.v1.ProviderStreamEvent";
+  }
+}

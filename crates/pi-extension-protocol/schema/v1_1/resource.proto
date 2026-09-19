@@ -1,0 +1,51 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+message ResourceListRequest {
+  string scope = 1;
+  optional string known_revision = 2;
+}
+message ResourceManifest {
+  string id = 1;
+  string version = 2;
+  string kind = 3;
+  bytes digest_sha256 = 4;
+  SchemaBoundValue metadata = 5; // resource.metadata:<kind>
+}
+message ResourceListResult {
+  string revision = 1;
+  repeated ResourceManifest resources = 2;
+}
+message ResourceReadRequest {
+  string id = 1;
+  string version = 2;
+  bytes expected_digest_sha256 = 3;
+}
+message ResourceReadResult {
+  bytes digest_sha256 = 1;
+  oneof value {
+    string text = 2;
+    bytes raw_bytes = 3;
+    SchemaBoundValue portable = 4; // resource.value:<kind>
+  }
+}
+message ResourceChanged { string scope = 1; }
+message ResourceChangedAck {}
+service ResourceProfile {
+  rpc List(ResourceListRequest) returns (ResourceListResult) {
+    option (wire_method) = "resource.list";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc Read(ResourceReadRequest) returns (ResourceReadResult) {
+    option (wire_method) = "resource.read";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc Changed(ResourceChanged) returns (ResourceChangedAck) {
+    option (wire_method) = "resource.changed";
+    option (wire_direction) = EXTENSION_TO_CORE;
+    option (wire_mode) = METHOD_UNARY;
+  }
+}

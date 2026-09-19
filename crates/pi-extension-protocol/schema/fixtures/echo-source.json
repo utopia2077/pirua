@@ -1,0 +1,88 @@
+{
+  "negative": [
+    {
+      "expect": "reject",
+      "id": "tool_args_unknown_key",
+      "projection": "tool.arguments:echo",
+      "reason": "unknown field",
+      "value": {
+        "shell": "echo secret",
+        "text": "ping"
+      }
+    },
+    {
+      "expect": "reject",
+      "id": "tool_result_unknown_block",
+      "projection": "tool.result:echo",
+      "reason": "closed content discriminator",
+      "value": {
+        "content": [
+          {
+            "text": "x",
+            "type": "video"
+          }
+        ],
+        "details": {}
+      }
+    },
+    {
+      "expect": "reject",
+      "id": "tool_result_missing_details",
+      "projection": "tool.result:echo",
+      "reason": "required source field omitted",
+      "value": {
+        "content": []
+      }
+    },
+    {
+      "expect": "reject",
+      "id": "tool_result_null_usage",
+      "projection": "tool.result:echo",
+      "reason": "optional value is absent, never null",
+      "value": {
+        "content": [],
+        "details": {},
+        "usage": null
+      }
+    }
+  ],
+  "positive": [
+    {
+      "expect": "accept",
+      "id": "tool_args_valid",
+      "projection": "tool.arguments:echo",
+      "value": {
+        "text": "ping"
+      }
+    },
+    {
+      "expect": "accept_transient",
+      "id": "tool_progress_valid",
+      "projection": "tool.progress:echo",
+      "value": {
+        "content": [
+          {
+            "text": "working",
+            "type": "text"
+          }
+        ],
+        "details": {}
+      }
+    },
+    {
+      "expect": "accept_first_terminal",
+      "id": "tool_result_valid",
+      "projection": "tool.result:echo",
+      "value": {
+        "content": [
+          {
+            "text": "pong",
+            "type": "text"
+          }
+        ],
+        "details": {}
+      }
+    }
+  ],
+  "source": "projections808/candidate/fixtures.json"
+}

@@ -1,0 +1,576 @@
+{
+  "authority": "host-established immutable process-local capability ceiling",
+  "entries": [
+    {
+      "agentTool": {
+        "description": "Return the supplied text as a text tool result.",
+        "executionMode": "sequential",
+        "label": "Echo",
+        "name": "echo",
+        "parameters": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        "replay": "safe"
+      },
+      "authenticated_extension_id": "peer-a",
+      "selected_minor_profile_digests": {
+        "1.0": "a995f8db0e619aeba78b054bc6bfbdcd9e3c8987e4e6535b6eb7d3585e60b8d3",
+        "1.1": "1616abb00ef9a2089194e834fa5dc2de722cd4b56082adbbec992fca42f77d33"
+      },
+      "selected_minor_schema_sets": {
+        "1.0": {
+          "arguments": {
+            "projection_id": "tool.arguments:echo",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            },
+            "schema_digest_sha256": "54669b5e6a1bfebb4d15788d41b5cd5fb8e51fc2d982eb2383a42262c748c90a",
+            "source_file_sha256": "f88ba50f39fc37f11ef79ec5a9cafbbf33211f8849541bcd44be92fdf125ad35"
+          },
+          "progress": {
+            "projection_id": "tool.progress:echo",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "addedToolNames": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "content": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "const": "text"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "details": {
+                  "additionalProperties": false,
+                  "maxProperties": 0,
+                  "type": "object"
+                },
+                "terminate": {
+                  "type": "boolean"
+                },
+                "usage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite1h": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cost": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cacheRead": {
+                          "type": "number"
+                        },
+                        "cacheWrite": {
+                          "type": "number"
+                        },
+                        "input": {
+                          "type": "number"
+                        },
+                        "output": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "input",
+                        "output",
+                        "cacheRead",
+                        "cacheWrite",
+                        "total"
+                      ],
+                      "type": "object"
+                    },
+                    "input": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "output": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "reasoning": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "totalTokens": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite",
+                    "totalTokens",
+                    "cost"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "content",
+                "details"
+              ],
+              "type": "object"
+            },
+            "schema_digest_sha256": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335",
+            "source_file_sha256": "eadce8fbab351f8208a46c5b6ce1e87d35bbf6349de9d0fa9ef10561a2835f40"
+          },
+          "raw_result": {
+            "projection_id": "tool.result:echo",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "addedToolNames": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "content": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "const": "text"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "details": {
+                  "additionalProperties": false,
+                  "maxProperties": 0,
+                  "type": "object"
+                },
+                "terminate": {
+                  "type": "boolean"
+                },
+                "usage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite1h": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cost": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cacheRead": {
+                          "type": "number"
+                        },
+                        "cacheWrite": {
+                          "type": "number"
+                        },
+                        "input": {
+                          "type": "number"
+                        },
+                        "output": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "input",
+                        "output",
+                        "cacheRead",
+                        "cacheWrite",
+                        "total"
+                      ],
+                      "type": "object"
+                    },
+                    "input": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "output": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "reasoning": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "totalTokens": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite",
+                    "totalTokens",
+                    "cost"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "content",
+                "details"
+              ],
+              "type": "object"
+            },
+            "schema_digest_sha256": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335",
+            "source_file_sha256": "eadce8fbab351f8208a46c5b6ce1e87d35bbf6349de9d0fa9ef10561a2835f40"
+          }
+        },
+        "1.1": {
+          "arguments": {
+            "projection_id": "tool.arguments:echo",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "type": "object"
+            },
+            "schema_digest_sha256": "54669b5e6a1bfebb4d15788d41b5cd5fb8e51fc2d982eb2383a42262c748c90a",
+            "source_file_sha256": "f88ba50f39fc37f11ef79ec5a9cafbbf33211f8849541bcd44be92fdf125ad35"
+          },
+          "progress": {
+            "projection_id": "tool.progress:echo",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "addedToolNames": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "content": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "const": "text"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "details": {
+                  "additionalProperties": false,
+                  "maxProperties": 0,
+                  "type": "object"
+                },
+                "terminate": {
+                  "type": "boolean"
+                },
+                "usage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite1h": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cost": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cacheRead": {
+                          "type": "number"
+                        },
+                        "cacheWrite": {
+                          "type": "number"
+                        },
+                        "input": {
+                          "type": "number"
+                        },
+                        "output": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "input",
+                        "output",
+                        "cacheRead",
+                        "cacheWrite",
+                        "total"
+                      ],
+                      "type": "object"
+                    },
+                    "input": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "output": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "reasoning": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "totalTokens": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite",
+                    "totalTokens",
+                    "cost"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "content",
+                "details"
+              ],
+              "type": "object"
+            },
+            "schema_digest_sha256": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335",
+            "source_file_sha256": "eadce8fbab351f8208a46c5b6ce1e87d35bbf6349de9d0fa9ef10561a2835f40"
+          },
+          "raw_result": {
+            "projection_id": "tool.result:echo",
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "addedToolNames": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "content": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "const": "text"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "text"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "details": {
+                  "additionalProperties": false,
+                  "maxProperties": 0,
+                  "type": "object"
+                },
+                "terminate": {
+                  "type": "boolean"
+                },
+                "usage": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "cacheRead": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cacheWrite1h": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "cost": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "cacheRead": {
+                          "type": "number"
+                        },
+                        "cacheWrite": {
+                          "type": "number"
+                        },
+                        "input": {
+                          "type": "number"
+                        },
+                        "output": {
+                          "type": "number"
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "input",
+                        "output",
+                        "cacheRead",
+                        "cacheWrite",
+                        "total"
+                      ],
+                      "type": "object"
+                    },
+                    "input": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "output": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "reasoning": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "totalTokens": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "input",
+                    "output",
+                    "cacheRead",
+                    "cacheWrite",
+                    "totalTokens",
+                    "cost"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "content",
+                "details"
+              ],
+              "type": "object"
+            },
+            "schema_digest_sha256": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335",
+            "source_file_sha256": "eadce8fbab351f8208a46c5b6ce1e87d35bbf6349de9d0fa9ef10561a2835f40"
+          }
+        }
+      },
+      "tool_name": "echo"
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "effect_key": {
+    "effect_kind": "tool",
+    "item_index": 0,
+    "lane": "main",
+    "logical_attempt": 1,
+    "operation_id": "op",
+    "session_id": "session",
+    "step_or_task_id": "step"
+  },
+  "first_terminal_frame_hex": "7e4a7c081112780a760a10746f6f6c2e726573756c743a6563686f1220a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea003351a40423e0a310a07636f6e74656e7412263a240a2242200a0e0a047465787412062a04706f6e670a0e0a047479706512062a04746578740a090a0764657461696c73",
+  "live_binding": {
+    "authenticated_extension_id": "peer-a",
+    "capability": "tool/echo",
+    "connection_generation": 7,
+    "invocation_id": 17
+  },
+  "status": "expected state trace, not executed against Rust runtime",
+  "steps": [
+    {
+      "action": "receive first validated StreamEnd on G7",
+      "retains": "exact binding + complete raw result",
+      "state": "terminal_received"
+    },
+    {
+      "action": "settlement CAS conflicts",
+      "retains": "same binding + first output; no redispatch",
+      "state": "terminal_received"
+    },
+    {
+      "action": "G8 activates; G7 drains or disconnects",
+      "retains": "first output remains eligible; generation age/loss alone is not stale",
+      "state": "terminal_received"
+    },
+    {
+      "action": "retry settlement with current durable state awaiting exact EffectKey",
+      "effect": "one durable settlement",
+      "state": "retired"
+    },
+    {
+      "action": "second terminal or late progress on G7",
+      "effect": "stale; no mutation",
+      "state": "retired"
+    }
+  ]
+}

@@ -1,0 +1,243 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "google/protobuf/descriptor.proto";
+
+// DRAFT. The endpoint receives identity, generation, ceilings and limits from its host.
+enum MethodDirection {
+  METHOD_DIRECTION_UNSPECIFIED = 0;
+  CORE_TO_EXTENSION = 1;
+  EXTENSION_TO_CORE = 2;
+}
+enum MethodMode {
+  METHOD_MODE_UNSPECIFIED = 0;
+  METHOD_UNARY = 1;
+  METHOD_STREAM = 2;
+}
+extend google.protobuf.MethodOptions {
+  string wire_method = 51001;
+  MethodDirection wire_direction = 51002;
+  MethodMode wire_mode = 51003;
+  string wire_stream_item_type = 51004;
+}
+message Version { uint32 major = 1; uint32 minor = 2; }
+message VersionRange { uint32 major = 1; uint32 min_minor = 2; uint32 max_minor = 3; }
+message ProfileRange {
+  string name = 1;
+  uint32 major = 2;
+  uint32 min_minor = 3;
+  uint32 max_minor = 4;
+}
+message ProfileVersion { string name = 1; uint32 major = 2; uint32 minor = 3; }
+message PermissionRequest { string name = 1; string scope = 2; bool required = 3; }
+message PermissionGrant { string name = 1; string scope = 2; }
+enum ReplayContract {
+  REPLAY_CONTRACT_UNSPECIFIED = 0;
+  REPLAY_SAFE = 1;
+  REPLAY_NEVER = 2;
+  REPLAY_IDEMPOTENT_HANDLER = 3;
+}
+enum ExecutionMode {
+  EXECUTION_MODE_UNSPECIFIED = 0;
+  EXECUTION_UNARY = 1;
+  EXECUTION_STREAMING = 2;
+  EXECUTION_PASSIVE = 3;
+}
+message DynamicProjectionDigest {
+  string projection_id = 1;
+  bytes schema_digest_sha256 = 2;
+}
+message ToolSchemaSet {
+  string tool_name = 1;
+  uint32 minor = 2;
+  DynamicProjectionDigest arguments = 3;
+  DynamicProjectionDigest progress = 4;
+  DynamicProjectionDigest raw_result = 5;
+}
+message CapabilityDeclaration {
+  string kind = 1;
+  string name = 2;
+  ProfileRange profile = 3;
+  string handler_id = 4;
+  reserved 5; // 804's one-digest-for-a-range draft is not valid here.
+  ReplayContract replay = 6;
+  ExecutionMode execution = 7;
+  bool required = 8;
+  repeated SupportedProfileDigest supported_descriptor_digests = 9;
+  optional string display_label = 10; // 1.1: absent means no display label
+  repeated ToolSchemaSet tool_schema_sets = 11;
+}
+message SupportedProfileDigest {
+  uint32 minor = 1;
+  bytes descriptor_digest_sha256 = 2;
+}
+message CapabilityRef {
+  string authenticated_extension_id = 1;
+  string kind = 2;
+  string name = 3;
+  ProfileVersion profile = 4;
+  bytes schema_digest_sha256 = 5; // exactly the selected profile minor
+  optional string handler_id = 6;
+}
+message ProtocolLimits {
+  uint64 pre_handshake_frame_bytes = 1;
+  uint64 frame_bytes = 2;
+  uint64 aggregate_decoded_bytes = 3;
+  uint32 value_depth = 4;
+  uint64 value_elements = 5;
+  uint64 string_bytes = 6;
+  uint64 bytes_length = 7;
+  uint32 in_flight_requests = 8;
+  uint64 blocking_queue_bytes = 9;
+  uint64 progress_queue_bytes = 10;
+  uint64 passive_queue_bytes = 11;
+  uint64 telemetry_queue_bytes = 12;
+  uint32 nesting_depth = 13;
+  uint32 requests_per_second = 14;
+  uint64 handshake_ms = 15;
+  uint64 cancellation_grace_ms = 16;
+  uint64 max_stream_credit_bytes = 17;
+}
+message Hello {
+  VersionRange protocol = 1;
+  repeated ProfileRange supported_profiles = 2;
+}
+message HelloAck {
+  Version selected_protocol = 1;
+}
+message EventSubscriptionRequest { string scope = 1; }
+message Manifest {
+  string declared_extension_id = 1;
+  string extension_version = 2;
+  VersionRange protocol = 3;
+  repeated CapabilityDeclaration capabilities = 4;
+  repeated PermissionRequest permissions = 5;
+  repeated EventSubscriptionRequest subscriptions = 6;
+}
+message CapabilityGrant {
+  string authenticated_extension_id = 1;
+  Version selected_protocol = 2;
+  repeated CapabilityRef selected_capabilities = 3;
+  repeated PermissionGrant permissions = 4;
+  ProtocolLimits limits = 5;
+  uint64 connection_generation = 6;
+}
+message Ready {}
+
+message EffectKey {
+  string session_id = 1;
+  string lane = 2;
+  string operation_id = 3;
+  string effect_kind = 4;
+  string step_or_task_id = 5;
+  uint64 logical_attempt = 6;
+  optional uint64 item_index = 7;
+}
+message NullValue {}
+message WireList { repeated WireValue items = 1; }
+message WireMapEntry { string key = 1; WireValue value = 2; }
+message WireMap { repeated WireMapEntry entries = 1; }
+message WireValue {
+  oneof value {
+    NullValue null_value = 1;
+    bool bool_value = 2;
+    sint64 integer_value = 3;
+    double float_value = 4;
+    string text_value = 5;
+    bytes bytes_value = 6;
+    WireList list_value = 7;
+    WireMap map_value = 8;
+  }
+}
+// projection_id resolves to one checked-in DTO projection. Digest is 32 bytes.
+message SchemaBoundValue {
+  string projection_id = 1;
+  bytes schema_digest_sha256 = 2;
+  WireValue value = 3;
+}
+
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  UNSUPPORTED_VARIANT = 1;
+  UNSUPPORTED_METHOD = 2;
+  REQUIRED_CAPABILITY_DENIED = 3;
+  UNSUPPORTED_SCHEMA = 4;
+  CREDIT_VIOLATION = 5;
+  PEER_LOST = 6;
+  OVERLOADED = 7;
+  INVALID_PARENT = 8;
+  WOULD_DEADLOCK = 9;
+  FORBIDDEN = 10;
+  NOT_FOUND = 11;
+  VERSION_MISMATCH = 12;
+  DIGEST_MISMATCH = 13;
+  HANDLER_ERROR = 14;
+  BROKER_UNAVAILABLE = 15;
+  SECRET_BROKER_UNAPPROVED = 16;
+  INVALID_REQUEST = 17;
+  DEADLINE_EXCEEDED = 18;
+  CANCELLED = 19;
+  STALE_BINDING = 20;
+}
+message TypedError { ErrorCode code = 1; string safe_message = 2; }
+message Request {
+  uint64 request_id = 1;
+  optional uint64 parent_request_id = 2;
+  CapabilityRef capability_ref = 3;
+  optional EffectKey effect_key = 4;
+  string method = 5;
+  optional uint64 deadline_after_ms = 6;
+  optional uint64 initial_stream_credit_bytes = 7;
+  bytes payload = 8;
+}
+message Response {
+  uint64 request_id = 1;
+  oneof terminal {
+    bytes result = 2;
+    TypedError error = 3;
+  }
+}
+message StreamItem {
+  uint64 request_id = 1;
+  uint64 sequence = 2;
+  bytes payload = 3;
+}
+message StreamEnd {
+  uint64 request_id = 1;
+  oneof terminal {
+    bytes result = 2;
+    TypedError error = 3;
+  }
+}
+enum CancelReason {
+  CANCEL_REASON_UNSPECIFIED = 0;
+  CANCEL_USER = 1;
+  CANCEL_PARENT = 2;
+  CANCEL_DEADLINE = 3;
+  CANCEL_DRAIN = 4;
+}
+message Cancel { uint64 request_id = 1; CancelReason reason = 2; }
+message Credit { uint64 request_id = 1; uint64 additional_bytes = 2; }
+enum GoAwayReason {
+  GO_AWAY_REASON_UNSPECIFIED = 0;
+  GO_AWAY_DRAIN = 1;
+  GO_AWAY_MALFORMED = 2;
+  GO_AWAY_LIMIT = 3;
+  GO_AWAY_CLOSE = 4;
+}
+message GoAway { GoAwayReason reason = 1; bool retryable = 2; }
+message Envelope {
+  oneof frame {
+    Hello hello = 1;
+    HelloAck hello_ack = 2;
+    Manifest manifest = 3;
+    CapabilityGrant grant = 4;
+    Ready ready = 5;
+    Request request = 6;
+    Response response = 7;
+    StreamItem stream_item = 8;
+    StreamEnd stream_end = 9;
+    Cancel cancel = 10;
+    Credit credit = 11;
+    GoAway go_away = 12;
+  }
+}

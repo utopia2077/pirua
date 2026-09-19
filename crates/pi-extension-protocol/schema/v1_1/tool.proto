@@ -1,0 +1,24 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+message InvokeToolRequest {
+  string tool_id = 1;
+  SchemaBoundValue arguments = 2; // tool.arguments:<tool_id>, dynamic JSON schema digest
+  string tool_call_id = 3; // required semantic source call ID; distinct from request_id/item_index
+}
+message ToolProgress {
+  SchemaBoundValue event = 1; // tool.progress:<tool_id>
+  optional uint32 percent_complete = 2; // 1.1: absent means unknown, present 0..100
+}
+message InvokeToolResult {
+  SchemaBoundValue raw_result = 1; // tool.result:<tool_id>
+}
+service ToolProfile {
+  rpc Invoke(InvokeToolRequest) returns (InvokeToolResult) {
+    option (wire_method) = "tool.invoke";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_STREAM;
+    option (wire_stream_item_type) = ".pi.extension.v1.ToolProgress";
+  }
+}

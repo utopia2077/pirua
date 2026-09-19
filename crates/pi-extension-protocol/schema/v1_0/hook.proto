@@ -1,0 +1,71 @@
+syntax = "proto3";
+package pi.extension.v1;
+import "common.proto";
+
+// Method string is one of the eleven accepted hook names, and determines
+// the exact input/output projection IDs and aggregation semantics.
+message InvokeHookRequest {
+  string handler_id = 1;
+  SchemaBoundValue input = 2;
+}
+message InvokeHookResult {
+  SchemaBoundValue output = 1;
+}
+message BeforeResumeUnitResult {}
+service HookProfile {
+  rpc BeforeRun(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_run";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforeResume(InvokeHookRequest) returns (BeforeResumeUnitResult) {
+    option (wire_method) = "before_resume";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforeRunEnd(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_run_end";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc TransformContext(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "transform_context";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforeRequest(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_request";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforePayload(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_payload";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc AfterResponse(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "after_response";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforeTool(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_tool";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc AfterTool(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "after_tool";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforeCompaction(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_compaction";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+  rpc BeforeNavigation(InvokeHookRequest) returns (InvokeHookResult) {
+    option (wire_method) = "before_navigation";
+    option (wire_direction) = CORE_TO_EXTENSION;
+    option (wire_mode) = METHOD_UNARY;
+  }
+}

@@ -1,0 +1,398 @@
+{
+  "1.0": {
+    "event-sink.v1": {
+      "event.resync": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "ResyncRequest",
+        "terminal": "ResyncResult"
+      },
+      "event.subscribe": {
+        "direction": "extension_to_core",
+        "item": "EventSinkItem",
+        "mode": "stream",
+        "request": "SubscribeRequest",
+        "terminal": "SubscribeEnd"
+      }
+    },
+    "hook.v1": {
+      "after_response": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "after_tool": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_compaction": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_navigation": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_payload": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_request": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_resume": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "BeforeResumeUnitResult"
+      },
+      "before_run": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_run_end": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_tool": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "transform_context": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      }
+    },
+    "host-action.v1": {
+      "operation.abort": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "OperationAbortRequest",
+        "terminal": "OperationAbortResult"
+      },
+      "queue.follow_up": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "QueueFollowUpRequest",
+        "terminal": "QueueResult"
+      },
+      "queue.next_run": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "QueueNextRunRequest",
+        "terminal": "QueueResult"
+      },
+      "queue.steer": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "QueueSteerRequest",
+        "terminal": "QueueResult"
+      },
+      "resource.get": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceGetRequest",
+        "terminal": "ResourceGetResult"
+      },
+      "snapshot.get": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "SnapshotGetRequest",
+        "terminal": "SnapshotGetResult"
+      }
+    },
+    "provider.v1": {
+      "provider.invoke": {
+        "direction": "core_to_extension",
+        "item": "ProviderStreamEvent",
+        "mode": "stream",
+        "request": "InvokeProviderRequest",
+        "terminal": "InvokeProviderResult"
+      }
+    },
+    "resource.v1": {
+      "resource.changed": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceChanged",
+        "terminal": "ResourceChangedAck"
+      },
+      "resource.list": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceListRequest",
+        "terminal": "ResourceListResult"
+      },
+      "resource.read": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceReadRequest",
+        "terminal": "ResourceReadResult"
+      }
+    },
+    "telemetry-sink.v1": {
+      "telemetry.emit_batch": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "TelemetryEmitBatchRequest",
+        "terminal": "TelemetryEmitBatchResult"
+      },
+      "telemetry.flush": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "TelemetryFlushRequest",
+        "terminal": "TelemetryFlushResult"
+      }
+    },
+    "tool.v1": {
+      "tool.invoke": {
+        "direction": "core_to_extension",
+        "item": "ToolProgress",
+        "mode": "stream",
+        "request": "InvokeToolRequest",
+        "terminal": "InvokeToolResult"
+      }
+    }
+  },
+  "1.1": {
+    "event-sink.v1": {
+      "event.resync": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "ResyncRequest",
+        "terminal": "ResyncResult"
+      },
+      "event.subscribe": {
+        "direction": "extension_to_core",
+        "item": "EventSinkItem",
+        "mode": "stream",
+        "request": "SubscribeRequest",
+        "terminal": "SubscribeEnd"
+      }
+    },
+    "hook.v1": {
+      "after_response": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "after_tool": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_compaction": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_navigation": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_payload": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_request": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_resume": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "BeforeResumeUnitResult"
+      },
+      "before_run": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_run_end": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "before_tool": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      },
+      "transform_context": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "InvokeHookRequest",
+        "terminal": "InvokeHookResult"
+      }
+    },
+    "host-action.v1": {
+      "operation.abort": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "OperationAbortRequest",
+        "terminal": "OperationAbortResult"
+      },
+      "queue.follow_up": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "QueueFollowUpRequest",
+        "terminal": "QueueResult"
+      },
+      "queue.next_run": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "QueueNextRunRequest",
+        "terminal": "QueueResult"
+      },
+      "queue.steer": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "QueueSteerRequest",
+        "terminal": "QueueResult"
+      },
+      "resource.get": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceGetRequest",
+        "terminal": "ResourceGetResult"
+      },
+      "snapshot.get": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "SnapshotGetRequest",
+        "terminal": "SnapshotGetResult"
+      }
+    },
+    "provider.v1": {
+      "provider.invoke": {
+        "direction": "core_to_extension",
+        "item": "ProviderStreamEvent",
+        "mode": "stream",
+        "request": "InvokeProviderRequest",
+        "terminal": "InvokeProviderResult"
+      }
+    },
+    "resource.v1": {
+      "resource.changed": {
+        "direction": "extension_to_core",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceChanged",
+        "terminal": "ResourceChangedAck"
+      },
+      "resource.list": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceListRequest",
+        "terminal": "ResourceListResult"
+      },
+      "resource.read": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "ResourceReadRequest",
+        "terminal": "ResourceReadResult"
+      }
+    },
+    "telemetry-sink.v1": {
+      "telemetry.emit_batch": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "TelemetryEmitBatchRequest",
+        "terminal": "TelemetryEmitBatchResult"
+      },
+      "telemetry.flush": {
+        "direction": "core_to_extension",
+        "item": null,
+        "mode": "unary",
+        "request": "TelemetryFlushRequest",
+        "terminal": "TelemetryFlushResult"
+      }
+    },
+    "tool.v1": {
+      "tool.invoke": {
+        "direction": "core_to_extension",
+        "item": "ToolProgress",
+        "mode": "stream",
+        "request": "InvokeToolRequest",
+        "terminal": "InvokeToolResult"
+      }
+    }
+  }
+}
