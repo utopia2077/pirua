@@ -209,6 +209,7 @@ impl Error for ProviderAuthError {}
 pub struct ProviderAuth {
     api_key: Option<Arc<dyn ApiKeyAuth>>,
     oauth: Option<Arc<dyn OAuthAuth>>,
+    no_auth: bool,
 }
 
 impl ProviderAuth {
@@ -220,8 +221,27 @@ impl ProviderAuth {
         if api_key.is_none() && oauth.is_none() {
             Err(ProviderAuthError::NoCapabilities)
         } else {
-            Ok(Self { api_key, oauth })
+            Ok(Self {
+                api_key,
+                oauth,
+                no_auth: false,
+            })
         }
+    }
+
+    /// Explicit process-local capability for a provider that needs no credentials.
+    /// This does not add a serializable authentication type.
+    pub const fn no_auth() -> Self {
+        Self {
+            api_key: None,
+            oauth: None,
+            no_auth: true,
+        }
+    }
+
+    /// Returns whether this provider explicitly opted into credential-free requests.
+    pub const fn is_no_auth(&self) -> bool {
+        self.no_auth
     }
 
     /// Returns the optional API-key capability.
@@ -632,6 +652,17 @@ pub fn resolve_provider_auth<'a>(
     Box::pin(async move {
         if cancellation.is_cancelled() {
             return Err(AuthResolutionError::Cancelled);
+        }
+        if auth.is_no_auth() {
+            if overrides.api_key.is_some()
+                || overrides.env.is_some()
+                || overrides.min_oauth_validity_ms.is_some()
+            {
+                return Err(AuthResolutionError::Models(ModelsError::new(
+                    ModelsErrorCode::Auth,
+                )));
+            }
+            return Ok(None);
         }
         let AuthResolutionOverrides {
             api_key: explicit_api_key,

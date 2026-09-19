@@ -1301,7 +1301,8 @@ impl ModelsRegistry {
         })
     }
 
-    /// Checks authentication availability without refreshing OAuth.
+    /// Checks credential availability without refreshing OAuth. An explicit
+    /// no-auth provider returns `None` here while its models remain available.
     pub fn check_auth<'a>(
         &'a self,
         provider: &'a ProviderId,
@@ -1317,6 +1318,9 @@ impl ModelsRegistry {
             let Some(record) = record else {
                 return Ok(None);
             };
+            if record.provider.auth().is_no_auth() {
+                return Ok(None);
+            }
             let credential = read_auth_credential(&inner, &record.id, &cancellation).await?;
             check_provider_auth(&inner, &record, credential.as_ref(), &cancellation).await
         })
@@ -1396,9 +1400,27 @@ impl ModelsRegistry {
         cancellation: &'a CancellationToken,
     ) -> BoxFuture<'a, Result<Option<AuthResult>, AuthResolutionError>> {
         Box::pin(async move {
-            let result = self
-                .get_auth(&model.provider, overrides, cancellation)
-                .await?;
+            if cancellation.is_cancelled() {
+                return Err(AuthResolutionError::Cancelled);
+            }
+            let Some(record) = self.provider_record(&model.provider) else {
+                return Ok(None);
+            };
+            if record.provider.auth().is_no_auth() && model.headers.is_some() {
+                return Err(AuthResolutionError::Models(ModelsError::new(
+                    ModelsErrorCode::Auth,
+                )));
+            }
+            let result = resolve_provider_auth(
+                &record.id,
+                record.provider.auth(),
+                self.inner.options.credentials.as_ref(),
+                self.inner.options.auth_context.as_ref(),
+                self.inner.options.clock.as_ref(),
+                overrides,
+                cancellation,
+            )
+            .await?;
             let Some(mut result) = result else {
                 return Ok(None);
             };
@@ -1848,6 +1870,13 @@ async fn available_provider(
     record: Arc<ProviderRecord>,
     cancellation: CancellationToken,
 ) -> Result<Vec<Model>, AuthResolutionError> {
+    if record.provider.auth().is_no_auth() {
+        if cancellation.is_cancelled() {
+            return Err(AuthResolutionError::Cancelled);
+        }
+        let models = models_for_record(&record).map_err(AuthResolutionError::Models)?;
+        return Ok(record.provider.filter_models(&models, None));
+    }
     let credential = read_auth_credential(&inner, &record.id, &cancellation).await?;
     let auth = check_provider_auth(&inner, &record, credential.as_ref(), &cancellation).await?;
     if auth.is_none() {
@@ -2089,6 +2118,39 @@ async fn assemble_request_from_record(
     mut overrides: ModelsRequestOverrides,
     cancellation: &CancellationToken,
 ) -> Result<AssembledRequest, SetupAssemblyError> {
+    if record.provider.auth().is_no_auth() {
+        if cancellation.is_cancelled() {
+            return Err(SetupAssemblyError::Authentication(
+                AuthResolutionError::Cancelled,
+            ));
+        }
+        if overrides.auth.api_key.is_some()
+            || overrides.auth.env.is_some()
+            || overrides.auth.min_oauth_validity_ms.is_some()
+            || model.headers.is_some()
+            || !overrides.headers.as_map().is_empty()
+        {
+            return Err(SetupAssemblyError::Authentication(
+                AuthResolutionError::Models(ModelsError::new(ModelsErrorCode::Auth)),
+            ));
+        }
+        let endpoint = match &model.base_url {
+            ModelBaseUrl::Public(base_url) => {
+                RequestEndpoint::new_resolved(base_url.as_str().to_owned())
+                    .map_err(|_| SetupAssemblyError::Endpoint)?
+            }
+            ModelBaseUrl::RuntimeResolved => overrides
+                .runtime_endpoint
+                .take()
+                .ok_or(SetupAssemblyError::Endpoint)?,
+        };
+        return Ok(AssembledRequest {
+            record,
+            model,
+            endpoint,
+            auth: ResolvedAuth::default(),
+        });
+    }
     let explicit_api_key = overrides.auth.api_key.clone();
     let explicit_env = overrides.auth.env.clone();
     let resolution = resolve_provider_auth(
