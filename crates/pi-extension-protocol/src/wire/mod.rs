@@ -11,3 +11,5 @@ pub mod v1_0 {
 pub mod v1_1 {
     include!("generated/v1_1.rs");
 }
+
+pub mod framing;
