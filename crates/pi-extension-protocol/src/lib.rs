@@ -3,4 +3,5 @@
 pub mod activation;
 pub mod endpoint;
 pub mod jcs;
+pub mod tool_live;
 pub mod wire;
