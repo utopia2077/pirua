@@ -1,5 +1,7 @@
 //! Concrete Harness runtime components. Full driver and Effects composition are separate.
 
+#[cfg(feature = "extensions")]
+pub mod extensions;
 pub mod hooks;
 pub mod manual_gate;
 pub mod scheduler;
