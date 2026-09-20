@@ -763,6 +763,8 @@ pub enum HarnessRuntimeError {
     Closed(crate::HarnessClosed),
     /// Admitted storage/invariant/trusted-application failure.
     Fault(crate::HarnessFault),
+    /// An accepted extension invocation lost its peer before a valid terminal.
+    PeerLost,
 }
 
 impl std::fmt::Debug for HarnessRuntimeError {
@@ -770,6 +772,7 @@ impl std::fmt::Debug for HarnessRuntimeError {
         let category = match self {
             Self::Closed(_) => "closed",
             Self::Fault(_) => "fault",
+            Self::PeerLost => "peer_lost",
         };
         formatter
             .debug_struct("HarnessRuntimeError")
@@ -783,6 +786,7 @@ impl std::fmt::Display for HarnessRuntimeError {
         match self {
             Self::Closed(error) => error.fmt(formatter),
             Self::Fault(error) => error.fmt(formatter),
+            Self::PeerLost => formatter.write_str("extension peer lost"),
         }
     }
 }
@@ -792,6 +796,7 @@ impl std::error::Error for HarnessRuntimeError {
         match self {
             Self::Closed(error) => Some(error),
             Self::Fault(error) => Some(error),
+            Self::PeerLost => None,
         }
     }
 }

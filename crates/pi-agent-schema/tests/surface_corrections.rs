@@ -745,3 +745,20 @@ fn broad_optional_omission_presence_null_matrix_is_symmetric() {
         assert_eq!(serde_json::to_value(decoded).expect("encodes"), value);
     }
 }
+
+#[test]
+fn peer_lost_runtime_error_is_unit_and_content_free() {
+    let marker = "SECRET_SENTINEL";
+    let error = HarnessRuntimeError::PeerLost;
+    assert!(matches!(error, HarnessRuntimeError::PeerLost));
+    assert_eq!(error.to_string(), "extension peer lost");
+    let debug = format!("{error:?}");
+    assert!(debug.contains("peer_lost"));
+    assert!(!debug.contains(marker));
+    assert!(!error.to_string().contains(marker));
+    assert!(std::error::Error::source(&error).is_none());
+
+    let closed = HarnessRuntimeError::Closed(HarnessClosed);
+    assert_eq!(closed.to_string(), "harness closed");
+    assert!(std::error::Error::source(&closed).is_some());
+}
