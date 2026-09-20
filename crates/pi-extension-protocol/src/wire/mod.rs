@@ -13,3 +13,4 @@ pub mod v1_1 {
 }
 
 pub mod framing;
+pub mod value;
