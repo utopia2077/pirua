@@ -14,3 +14,14 @@ activation behavior are incomplete and are not grantable or accepted yet.
 The host catalog fixture models one echo tool; it is not a production permission
 source. Passing these checks does not execute a live endpoint or prove durable
 settlement.
+
+The positive echo progress and result frames encode `details` as a present empty
+map and pass selected schema-bound value admission for both minors. The progress
+Envelope body is 137 bytes, so the byte-credit edge is 136/137; the complete
+terminal body is 131 bytes and consumes zero credit. The older 132/126 frames
+are retained only as `MissingValue` negative fixtures in the Rust tests.
+
+The raw request is a synthetic wire vector with `EffectKey.logical_attempt = 1`.
+It exercises encoding and selected argument admission, not an actual
+`ToolEffectPlan`. A real tool-plan integration witness must use the plan's
+`logical_attempt = 0` and prove its live/durable binding separately.

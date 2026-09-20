@@ -30,6 +30,40 @@ fn sha256_hex(bytes: &[u8]) -> String {
         .collect()
 }
 
+fn assert_present_empty_details_v1_0(bound: &v1_0::SchemaBoundValue) {
+    let Some(v1_0::wire_value::Value::MapValue(root)) =
+        bound.value.as_ref().and_then(|value| value.value.as_ref())
+    else {
+        panic!("expected root wire map");
+    };
+    let details = root
+        .entries
+        .iter()
+        .find(|entry| entry.key == "details")
+        .unwrap();
+    assert!(matches!(
+        details.value.as_ref().and_then(|value| value.value.as_ref()),
+        Some(v1_0::wire_value::Value::MapValue(map)) if map.entries.is_empty()
+    ));
+}
+
+fn assert_present_empty_details_v1_1(bound: &v1_1::SchemaBoundValue) {
+    let Some(v1_1::wire_value::Value::MapValue(root)) =
+        bound.value.as_ref().and_then(|value| value.value.as_ref())
+    else {
+        panic!("expected root wire map");
+    };
+    let details = root
+        .entries
+        .iter()
+        .find(|entry| entry.key == "details")
+        .unwrap();
+    assert!(matches!(
+        details.value.as_ref().and_then(|value| value.value.as_ref()),
+        Some(v1_1::wire_value::Value::MapValue(map)) if map.entries.is_empty()
+    ));
+}
+
 #[test]
 fn checked_envelope_bodies_round_trip_and_decode_inner_tool_dtos() {
     let vectors = fixture();
@@ -61,7 +95,9 @@ fn checked_envelope_bodies_round_trip_and_decode_inner_tool_dtos() {
             ("progress", v1_0::envelope::Frame::StreamItem(item)) => {
                 assert_eq!(item.request_id, 17);
                 let inner = v1_0::ToolProgress::decode(item.payload.as_slice()).unwrap();
-                assert_eq!(inner.event.unwrap().projection_id, "tool.progress:echo");
+                let event = inner.event.unwrap();
+                assert_eq!(event.projection_id, "tool.progress:echo");
+                assert_present_empty_details_v1_0(&event);
             }
             ("terminal", v1_0::envelope::Frame::StreamEnd(end)) => {
                 assert_eq!(end.request_id, 17);
@@ -69,7 +105,9 @@ fn checked_envelope_bodies_round_trip_and_decode_inner_tool_dtos() {
                     panic!("expected complete result")
                 };
                 let inner = v1_0::InvokeToolResult::decode(payload.as_slice()).unwrap();
-                assert_eq!(inner.raw_result.unwrap().projection_id, "tool.result:echo");
+                let result = inner.raw_result.unwrap();
+                assert_eq!(result.projection_id, "tool.result:echo");
+                assert_present_empty_details_v1_0(&result);
             }
             _ => panic!("unexpected {kind} envelope role"),
         }
@@ -88,6 +126,7 @@ fn selected_minor_preserves_optional_zero_and_distinguishes_absence() {
     };
     let progress = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
     assert_eq!(progress.percent_complete, Some(0));
+    assert_present_empty_details_v1_1(progress.event.as_ref().unwrap());
     assert_eq!(
         progress.encode_to_vec(),
         unhex(

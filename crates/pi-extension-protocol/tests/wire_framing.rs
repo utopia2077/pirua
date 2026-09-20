@@ -103,7 +103,7 @@ fn bytewise_chunks_and_concatenated_frames_preserve_each_body_length() {
         );
     }
     bytewise.finish().unwrap();
-    assert_eq!(lengths, [2, 219, 132, 126]);
+    assert_eq!(lengths, [2, 219, 137, 131]);
 
     let mut together = FrameReader::<v1_0::Envelope>::new(limit(219));
     let decoded = read_all(&mut together, &joined).unwrap();
@@ -243,25 +243,27 @@ fn truncated_prefix_body_and_invalid_envelope_close_reader() {
 }
 
 #[test]
-fn progress_credit_charge_is_132_envelope_body_bytes_excluding_two_prefix_bytes() {
+fn progress_credit_charge_is_137_envelope_body_bytes_excluding_two_prefix_bytes() {
     let vectors = vectors();
     let progress = raw_frame("progress");
     assert_eq!(
         &progress[..2],
         unhex(vectors["progress"]["prefix_hex"].as_str().unwrap())
     );
-    assert_eq!(progress.len(), 134);
-    assert_eq!(vectors["credit_edge"]["charged_envelope_body_bytes"], 132);
+    assert_eq!(progress.len(), 139);
+    assert_eq!(vectors["credit_edge"]["charged_envelope_body_bytes"], 137);
+    assert_eq!(vectors["credit_edge"]["credit_below"], 136);
+    assert_eq!(vectors["credit_edge"]["credit_exact"], 137);
     assert_eq!(vectors["credit_edge"]["prefix_bytes_excluded"], 2);
 
-    let mut reader = FrameReader::<v1_0::Envelope>::new(limit(132));
+    let mut reader = FrameReader::<v1_0::Envelope>::new(limit(137));
     let frame = read_all(&mut reader, &progress).unwrap().pop().unwrap();
-    assert_eq!(frame.body_len, 132);
+    assert_eq!(frame.body_len, 137);
     let v1_0::envelope::Frame::StreamItem(_) = frame.envelope.frame.unwrap() else {
         panic!("expected progress item");
     };
     let terminal = read_all(&mut reader, &raw_frame("terminal")).unwrap();
-    assert_eq!(terminal[0].body_len, 126);
+    assert_eq!(terminal[0].body_len, 131);
     assert!(matches!(
         terminal[0].envelope.frame,
         Some(v1_0::envelope::Frame::StreamEnd(_))
@@ -272,12 +274,12 @@ fn progress_credit_charge_is_132_envelope_body_bytes_excluding_two_prefix_bytes(
 fn selected_v1_1_envelope_uses_the_same_physical_boundary() {
     let vector = &vectors()["selected_minor_1_0_forbids_1_1_tool_progress"]["enveloped_progress"];
     let bytes = unhex(vector["frame_hex"].as_str().unwrap());
-    let mut reader = FrameReader::<v1_1::Envelope>::new(limit(134));
+    let mut reader = FrameReader::<v1_1::Envelope>::new(limit(139));
     let frame = reader.read_one(&bytes).unwrap();
     assert_eq!(frame.consumed, bytes.len());
     let frame = frame.frame.unwrap();
-    assert_eq!(frame.body_len, 134);
-    assert_eq!(encode(&frame.envelope, limit(134)).unwrap().bytes, bytes);
+    assert_eq!(frame.body_len, 139);
+    assert_eq!(encode(&frame.envelope, limit(139)).unwrap().bytes, bytes);
     reader.finish().unwrap();
 }
 

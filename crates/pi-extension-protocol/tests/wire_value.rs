@@ -1,9 +1,216 @@
 use pi_extension_protocol::jcs::{self, admit_schema};
 use pi_extension_protocol::wire::{v1_0, v1_1, value};
+use prost::Message;
+use serde_json::Value;
 
 const ARGUMENTS: &str = include_str!("fixtures/tool.arguments_echo.schema.json");
 const PROGRESS: &str = include_str!("fixtures/tool.progress_echo.schema.json");
 const RESULT: &str = include_str!("fixtures/tool.result_echo.schema.json");
+
+fn unhex(hex: &str) -> Vec<u8> {
+    let (pairs, remainder) = hex.as_bytes().as_chunks::<2>();
+    assert!(remainder.is_empty());
+    pairs
+        .iter()
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect()
+}
+
+fn raw_bound_v1_0(kind: &str, body: &[u8]) -> v1_0::SchemaBoundValue {
+    let envelope = v1_0::Envelope::decode(body).unwrap();
+    match (kind, envelope.frame.unwrap()) {
+        ("request", v1_0::envelope::Frame::Request(frame)) => {
+            v1_0::InvokeToolRequest::decode(frame.payload.as_slice())
+                .unwrap()
+                .arguments
+                .unwrap()
+        }
+        ("progress", v1_0::envelope::Frame::StreamItem(frame)) => {
+            v1_0::ToolProgress::decode(frame.payload.as_slice())
+                .unwrap()
+                .event
+                .unwrap()
+        }
+        ("terminal", v1_0::envelope::Frame::StreamEnd(frame)) => {
+            let v1_0::stream_end::Terminal::Result(payload) = frame.terminal.unwrap() else {
+                panic!("expected result terminal");
+            };
+            v1_0::InvokeToolResult::decode(payload.as_slice())
+                .unwrap()
+                .raw_result
+                .unwrap()
+        }
+        _ => panic!("unexpected raw vector role: {kind}"),
+    }
+}
+
+fn raw_bound_v1_1(kind: &str, body: &[u8]) -> v1_1::SchemaBoundValue {
+    let envelope = v1_1::Envelope::decode(body).unwrap();
+    match (kind, envelope.frame.unwrap()) {
+        ("request", v1_1::envelope::Frame::Request(frame)) => {
+            v1_1::InvokeToolRequest::decode(frame.payload.as_slice())
+                .unwrap()
+                .arguments
+                .unwrap()
+        }
+        ("progress", v1_1::envelope::Frame::StreamItem(frame)) => {
+            v1_1::ToolProgress::decode(frame.payload.as_slice())
+                .unwrap()
+                .event
+                .unwrap()
+        }
+        ("terminal", v1_1::envelope::Frame::StreamEnd(frame)) => {
+            let v1_1::stream_end::Terminal::Result(payload) = frame.terminal.unwrap() else {
+                panic!("expected result terminal");
+            };
+            v1_1::InvokeToolResult::decode(payload.as_slice())
+                .unwrap()
+                .raw_result
+                .unwrap()
+        }
+        _ => panic!("unexpected raw vector role: {kind}"),
+    }
+}
+
+#[test]
+fn canonical_raw_echo_values_pass_selected_schema_admission_in_both_minors() {
+    let raw: Value =
+        serde_json::from_str(include_str!("../schema/fixtures/raw-vectors.json")).unwrap();
+    let catalog: Value =
+        serde_json::from_str(include_str!("../schema/fixtures/host-catalog.json")).unwrap();
+    let expected = [
+        ("request", "arguments", r#"{"text":"ping"}"#),
+        (
+            "progress",
+            "progress",
+            r#"{"content":[{"text":"working","type":"text"}],"details":{}}"#,
+        ),
+        (
+            "terminal",
+            "raw_result",
+            r#"{"content":[{"text":"pong","type":"text"}],"details":{}}"#,
+        ),
+    ];
+    for (minor, is_v1_1) in [("1.0", false), ("1.1", true)] {
+        let selected = &catalog["entries"][0]["selected_minor_schema_sets"][minor];
+        for (kind, slot, expected_json) in expected {
+            let vector = &raw[kind];
+            let body = unhex(vector["body_hex"].as_str().unwrap());
+            assert_eq!(body.len(), vector["body_bytes"].as_u64().unwrap() as usize);
+            let approved = &selected[slot];
+            let schema = admit_schema(
+                &serde_json::to_vec(&approved["schema"]).unwrap(),
+                jcs::Limits::default(),
+            )
+            .unwrap();
+            let id = approved["projection_id"].as_str().unwrap();
+            let digest = unhex(approved["schema_digest_sha256"].as_str().unwrap());
+            assert_eq!(schema.canonical().sha256().as_slice(), digest);
+            let projection = value::Projection {
+                id,
+                digest_sha256: schema.canonical().sha256(),
+                schema: &schema,
+            };
+            let admitted = if is_v1_1 {
+                let bound = raw_bound_v1_1(kind, &body);
+                value::admit_schema_bound_v1_1(
+                    &bound,
+                    &projection,
+                    value::Limits::default(),
+                    jcs::Limits::default(),
+                )
+            } else {
+                let bound = raw_bound_v1_0(kind, &body);
+                value::admit_schema_bound_v1_0(
+                    &bound,
+                    &projection,
+                    value::Limits::default(),
+                    jcs::Limits::default(),
+                )
+            };
+            assert_eq!(
+                admitted.unwrap(),
+                expected_json.as_bytes(),
+                "{minor} {kind} must match approved echo projection"
+            );
+        }
+    }
+
+    let selected = &catalog["entries"][0]["selected_minor_schema_sets"]["1.1"]["progress"];
+    let vector = &raw["selected_minor_1_0_forbids_1_1_tool_progress"]["enveloped_progress"];
+    let body = unhex(vector["body_hex"].as_str().unwrap());
+    assert_eq!(body.len(), 139);
+    let schema = admit_schema(
+        &serde_json::to_vec(&selected["schema"]).unwrap(),
+        jcs::Limits::default(),
+    )
+    .unwrap();
+    let projection = value::Projection {
+        id: selected["projection_id"].as_str().unwrap(),
+        digest_sha256: schema.canonical().sha256(),
+        schema: &schema,
+    };
+    assert_eq!(
+        value::admit_schema_bound_v1_1(
+            &raw_bound_v1_1("progress", &body),
+            &projection,
+            value::Limits::default(),
+            jcs::Limits::default(),
+        )
+        .unwrap(),
+        br#"{"content":[{"text":"working","type":"text"}],"details":{}}"#
+    );
+}
+
+#[test]
+fn historical_raw_progress_and_terminal_reject_missing_details_value() {
+    let legacy: Value =
+        serde_json::from_str(include_str!("fixtures/raw-echo-legacy-invalid.json")).unwrap();
+    let catalog: Value =
+        serde_json::from_str(include_str!("../schema/fixtures/host-catalog.json")).unwrap();
+    for (minor, is_v1_1) in [("1.0", false), ("1.1", true)] {
+        let selected = &catalog["entries"][0]["selected_minor_schema_sets"][minor];
+        for (source, kind, slot, expected_len) in [
+            ("progress", "progress", "progress", 132),
+            ("terminal", "terminal", "raw_result", 126),
+            ("selected_minor_progress", "progress", "progress", 134),
+        ] {
+            let vector = &legacy[source];
+            let body = unhex(vector["body_hex"].as_str().unwrap());
+            assert_eq!(body.len(), expected_len);
+            assert_eq!(vector["body_bytes"], expected_len);
+            let approved = &selected[slot];
+            let schema = admit_schema(
+                &serde_json::to_vec(&approved["schema"]).unwrap(),
+                jcs::Limits::default(),
+            )
+            .unwrap();
+            let projection = value::Projection {
+                id: approved["projection_id"].as_str().unwrap(),
+                digest_sha256: schema.canonical().sha256(),
+                schema: &schema,
+            };
+            let result = if is_v1_1 {
+                let bound = raw_bound_v1_1(kind, &body);
+                value::admit_schema_bound_v1_1(
+                    &bound,
+                    &projection,
+                    value::Limits::default(),
+                    jcs::Limits::default(),
+                )
+            } else {
+                let bound = raw_bound_v1_0(kind, &body);
+                value::admit_schema_bound_v1_0(
+                    &bound,
+                    &projection,
+                    value::Limits::default(),
+                    jcs::Limits::default(),
+                )
+            };
+            assert_eq!(result, Err(value::Error::MissingValue), "{minor} {source}");
+        }
+    }
+}
 
 fn wire(arm: v1_0::wire_value::Value) -> v1_0::WireValue {
     v1_0::WireValue { value: Some(arm) }

@@ -96,7 +96,7 @@
   },
   "method_table_sha256": "16fdbf9e41ce44cce081bdce53e1eaa4ec8204c01b7d8d6cd6c14c733ab0f1fe",
   "negotiation_vectors_sha256": "f0b23843be00c365383b5cf64986bb80a281ae2e85880069fb48ec2b16e65110",
-  "raw_vectors_sha256": "ef59e11f02c9452efab686d314f322c0ac6a01044b693c8f3492162ffdc93da8",
-  "terminal_retention_sha256": "d9f130a1cd6e2bf43ddb98d7fdf5e8a84d4696f6ec08aceb373776e60f858529",
+  "raw_vectors_sha256": "e994bde42a1fab362bb113ac0db3acc8ae07fec259bf98323528540be36d2f21",
+  "terminal_retention_sha256": "59f7937fb333c9ea4e9edf78afdf8d00d550b8773859739f4438033c1ac35102",
   "validation_defaults_sha256": "9836d81873300f7dfe171c711b0b5a1f1e1d0b2507083f9246e55e9697db546f"
 }

@@ -176,9 +176,11 @@ def set_wire(target, value):
     elif isinstance(value, str):
         target.text_value = value
     elif isinstance(value, list):
+        target.list_value.SetInParent()
         for child in value:
             set_wire(target.list_value.items.add(), child)
     elif isinstance(value, dict):
+        target.map_value.SetInParent()
         for key, child in sorted(value.items()):
             entry = target.map_value.entries.add()
             entry.key = key
@@ -191,6 +193,21 @@ def class_from(pool, name):
     return message_factory.GetMessageClass(
         pool.FindMessageTypeByName("pi.extension.v1." + name)
     )
+
+
+def assert_empty_container_presence():
+    for minor in ("1.0", "1.1"):
+        WireValue = class_from(read_set("tool", minor)[2], "WireValue")
+        for source, arm, encoded in (
+            ({}, "map_value", "4200"),
+            ([], "list_value", "3a00"),
+        ):
+            value = WireValue()
+            set_wire(value, source)
+            assert value.WhichOneof("value") == arm, (minor, arm)
+            raw = value.SerializeToString(deterministic=True)
+            assert raw.hex() == encoded, (minor, arm)
+            assert WireValue.FromString(raw).WhichOneof("value") == arm, (minor, arm)
 
 
 def encode_echo():
@@ -538,6 +555,7 @@ def main(write):
     else:
         assert method_path.read_bytes() == method_bytes, "method table differs from descriptor authority"
 
+    assert_empty_container_presence()
     raw, dynamic = encode_echo()
     raw_path = ROOT / "fixtures" / "raw-vectors.json"
     raw_bytes = (json.dumps(raw, indent=2, sort_keys=True) + "\n").encode()
