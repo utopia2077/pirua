@@ -205,6 +205,26 @@ fn frame_old(frame: v1_0::envelope::Frame) -> ActiveFrame {
 fn valid_progress(core: u32) -> ActiveFrame {
     active_frame(&raw_frame("progress"), core)
 }
+fn edited_progress_new(edit: impl FnOnce(&mut v1_1::StreamItem)) -> ActiveFrame {
+    let SelectedEnvelope::V1_1(envelope) = valid_progress(1).envelope else {
+        unreachable!()
+    };
+    let Some(v1_1::envelope::Frame::StreamItem(mut item)) = envelope.frame else {
+        unreachable!()
+    };
+    edit(&mut item);
+    frame_new(v1_1::envelope::Frame::StreamItem(item))
+}
+fn edited_progress_old(edit: impl FnOnce(&mut v1_0::StreamItem)) -> ActiveFrame {
+    let SelectedEnvelope::V1_0(envelope) = valid_progress(0).envelope else {
+        unreachable!()
+    };
+    let Some(v1_0::envelope::Frame::StreamItem(mut item)) = envelope.frame else {
+        unreachable!()
+    };
+    edit(&mut item);
+    frame_old(v1_0::envelope::Frame::StreamItem(item))
+}
 fn valid_terminal(core: u32) -> ActiveFrame {
     active_frame(&raw_frame("terminal"), core)
 }
@@ -217,6 +237,22 @@ fn started(core: u32, tool: u32, credit: Option<u64>) -> ToolInvocation {
     )
     .unwrap()
     .0
+}
+
+fn assert_cancelled_malformed(
+    core: u32,
+    tool: u32,
+    credit: u64,
+    frame: &ActiveFrame,
+    expected: LiveError,
+) {
+    let mut live = started(core, tool, Some(credit));
+    live.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+    assert_eq!(live.receive(7, frame, 201).err(), Some(expected));
+    assert_eq!(live.phase(), LivePhase::PeerLost);
+    assert_eq!(live.credit(), credit);
+    assert_eq!(live.next_sequence(), 0);
+    assert!(live.receipt().is_none());
 }
 
 #[test]
@@ -862,7 +898,7 @@ fn control_frames_expire_at_host_monotonic_deadline() {
 }
 
 #[test]
-fn cancel_makes_later_progress_stale_but_keeps_first_terminal() {
+fn cancel_validates_and_debits_later_progress_but_keeps_first_terminal() {
     let progress = valid_progress(1);
     assert_eq!(progress.body_len, 137);
     let terminal = valid_terminal(1);
@@ -873,10 +909,10 @@ fn cancel_makes_later_progress_stale_but_keeps_first_terminal() {
     assert_eq!(live.next_sequence(), 0);
     assert!(matches!(
         live.receive(7, &progress, 201),
-        Ok(ReceiveOutcome::Stale)
+        Ok(ReceiveOutcome::IgnoredCancelledProgress)
     ));
-    assert_eq!(live.credit(), 137);
-    assert_eq!(live.next_sequence(), 0);
+    assert_eq!(live.credit(), 0);
+    assert_eq!(live.next_sequence(), 1);
     assert_eq!(live.phase(), LivePhase::CancelRequested);
     assert!(live.receipt().is_none());
     assert!(matches!(
@@ -884,6 +920,10 @@ fn cancel_makes_later_progress_stale_but_keeps_first_terminal() {
         Ok(ReceiveOutcome::TerminalReceived)
     ));
     assert_eq!(live.receipt().unwrap().kind(), TerminalKind::Result);
+    assert!(matches!(
+        live.receive(7, &progress, 203),
+        Ok(ReceiveOutcome::Stale)
+    ));
 
     let mut prior = started(1, 1, Some(256));
     assert!(matches!(
@@ -892,17 +932,201 @@ fn cancel_makes_later_progress_stale_but_keeps_first_terminal() {
     ));
     assert_eq!(prior.credit(), 119);
     assert_eq!(prior.next_sequence(), 1);
+    prior.grant_credit(137, 199).unwrap();
+    assert_eq!(prior.credit(), 256);
     prior.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+    let next = edited_progress_new(|item| item.sequence = 1);
     assert!(matches!(
-        prior.receive(7, &progress, 201),
-        Ok(ReceiveOutcome::Stale)
+        prior.receive(7, &next, 201),
+        Ok(ReceiveOutcome::IgnoredCancelledProgress)
     ));
-    assert_eq!(prior.credit(), 119);
-    assert_eq!(prior.next_sequence(), 1);
+    assert_eq!(prior.credit(), 256 - next.body_len as u64);
+    assert_eq!(prior.next_sequence(), 2);
     assert!(matches!(
         prior.receive(7, &terminal, 202),
         Ok(ReceiveOutcome::TerminalReceived)
     ));
+}
+
+#[test]
+fn cancelled_progress_uses_original_credit_and_retains_zero_credit_terminal_in_both_minors() {
+    for (core, tool) in [(0, 0), (1, 0), (1, 1)] {
+        let progress = valid_progress(core);
+        assert_eq!(progress.body_len, 137);
+        let mut live = started(core, tool, Some(137));
+        live.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+        assert_eq!(live.grant_credit(1, 201).err(), Some(LiveError::Stale));
+        assert!(matches!(
+            live.receive(7, &progress, 201),
+            Ok(ReceiveOutcome::IgnoredCancelledProgress)
+        ));
+        assert_eq!(live.credit(), 0);
+        assert_eq!(live.next_sequence(), 1);
+        assert_eq!(live.phase(), LivePhase::CancelRequested);
+        assert!(live.receipt().is_none());
+        assert!(matches!(
+            live.receive(7, &valid_terminal(core), 202),
+            Ok(ReceiveOutcome::TerminalReceived)
+        ));
+        assert_eq!(live.phase(), LivePhase::TerminalReceived);
+        assert_eq!(live.receipt().unwrap().kind(), TerminalKind::Result);
+        assert_eq!(live.credit(), 0);
+    }
+}
+
+#[test]
+fn cancelled_progress_rejects_overcredit_wrong_request_gap_and_duplicate() {
+    for (core, tool) in [(0, 0), (1, 1)] {
+        let frame = valid_progress(core);
+        assert_cancelled_malformed(core, tool, 136, &frame, LiveError::CreditViolation);
+        let wrong_request = if core == 0 {
+            edited_progress_old(|item| item.request_id = 18)
+        } else {
+            edited_progress_new(|item| item.request_id = 18)
+        };
+        assert_cancelled_malformed(core, tool, 256, &wrong_request, LiveError::WrongRequestId);
+        let gap = if core == 0 {
+            edited_progress_old(|item| item.sequence = 1)
+        } else {
+            edited_progress_new(|item| item.sequence = 1)
+        };
+        assert_cancelled_malformed(core, tool, 256, &gap, LiveError::InvalidSequence);
+
+        let mut duplicate = started(core, tool, Some(256));
+        duplicate
+            .cancel(v1_1::CancelReason::CancelUser, 200)
+            .unwrap();
+        assert!(matches!(
+            duplicate.receive(7, &frame, 201),
+            Ok(ReceiveOutcome::IgnoredCancelledProgress)
+        ));
+        assert_eq!(duplicate.credit(), 119);
+        assert_eq!(duplicate.next_sequence(), 1);
+        assert_eq!(
+            duplicate.receive(7, &frame, 202).err(),
+            Some(LiveError::InvalidSequence)
+        );
+        assert_eq!(duplicate.phase(), LivePhase::PeerLost);
+        assert!(duplicate.receipt().is_none());
+    }
+}
+
+#[test]
+fn cancelled_progress_checks_selected_projection_instance_and_minor() {
+    let old_missing_details = active_frame(&legacy_invalid_frame("progress"), 0);
+    assert_cancelled_malformed(
+        0,
+        0,
+        256,
+        &old_missing_details,
+        LiveError::Value(value::Error::MissingValue),
+    );
+    let missing_details = edited_progress_new(|item| {
+        let mut progress = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        let value = progress.event.as_mut().unwrap().value.as_mut().unwrap();
+        let Some(v1_1::wire_value::Value::MapValue(map)) = value.value.as_mut() else {
+            unreachable!()
+        };
+        map.entries
+            .iter_mut()
+            .find(|entry| entry.key == "details")
+            .unwrap()
+            .value = None;
+        item.payload = progress.encode_to_vec();
+    });
+    assert_eq!(missing_details.body_len, 132);
+    assert_cancelled_malformed(
+        1,
+        1,
+        256,
+        &missing_details,
+        LiveError::Value(value::Error::MissingValue),
+    );
+
+    let old_wrong_projection = edited_progress_old(|item| {
+        let mut progress = v1_0::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        progress.event.as_mut().unwrap().projection_id = "tool.result:echo".into();
+        item.payload = progress.encode_to_vec();
+    });
+    assert_cancelled_malformed(
+        0,
+        0,
+        256,
+        &old_wrong_projection,
+        LiveError::Value(value::Error::ProjectionMismatch),
+    );
+
+    let wrong_projection = edited_progress_new(|item| {
+        let mut progress = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        progress.event.as_mut().unwrap().projection_id = "tool.result:echo".into();
+        item.payload = progress.encode_to_vec();
+    });
+    assert_cancelled_malformed(
+        1,
+        1,
+        256,
+        &wrong_projection,
+        LiveError::Value(value::Error::ProjectionMismatch),
+    );
+
+    let wrong_instance = edited_progress_new(|item| {
+        let mut progress = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        let value = progress.event.as_mut().unwrap().value.as_mut().unwrap();
+        let Some(v1_1::wire_value::Value::MapValue(map)) = value.value.as_mut() else {
+            unreachable!()
+        };
+        let details = map
+            .entries
+            .iter_mut()
+            .find(|entry| entry.key == "details")
+            .unwrap();
+        details.value.as_mut().unwrap().value =
+            Some(v1_1::wire_value::Value::TextValue("bad".into()));
+        item.payload = progress.encode_to_vec();
+    });
+    let mut live = started(1, 1, Some(256));
+    live.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+    assert!(matches!(
+        live.receive(7, &wrong_instance, 201),
+        Err(LiveError::Value(value::Error::Schema(_)))
+    ));
+    assert_eq!(live.phase(), LivePhase::PeerLost);
+    assert_eq!(live.credit(), 256);
+    assert_eq!(live.next_sequence(), 0);
+    assert!(live.receipt().is_none());
+
+    let future_field = edited_progress_new(|item| {
+        let mut progress = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        progress.percent_complete = Some(0);
+        item.payload = progress.encode_to_vec();
+    });
+    assert_eq!(future_field.body_len, 139);
+    assert_cancelled_malformed(1, 0, 256, &future_field, LiveError::UnsupportedVariant);
+}
+
+#[test]
+fn cancelled_progress_preserves_generation_and_exact_deadline_precedence() {
+    for (core, tool) in [(0, 0), (1, 1)] {
+        let progress = valid_progress(core);
+        let mut live = started(core, tool, Some(137));
+        live.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+        assert_eq!(
+            live.receive(8, &progress, 500).err(),
+            Some(LiveError::WrongGeneration)
+        );
+        assert_eq!(live.phase(), LivePhase::CancelRequested);
+        assert_eq!(live.credit(), 137);
+        assert_eq!(live.next_sequence(), 0);
+        assert!(live.receipt().is_none());
+        assert_eq!(
+            live.receive(7, &progress, 500).err(),
+            Some(LiveError::PeerLost)
+        );
+        assert_eq!(live.phase(), LivePhase::PeerLost);
+        assert_eq!(live.credit(), 137);
+        assert_eq!(live.next_sequence(), 0);
+        assert!(live.receipt().is_none());
+    }
 }
 
 #[test]

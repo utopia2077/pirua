@@ -221,6 +221,8 @@ impl ValidatedProgress {
 
 pub enum ReceiveOutcome {
     Progress(ValidatedProgress),
+    /// The item was validated and charged after local cancellation; no payload is delivered.
+    IgnoredCancelledProgress,
     TerminalReceived,
     Stale,
 }
@@ -535,9 +537,6 @@ impl ToolInvocation {
                 sequence,
                 payload,
             } => {
-                if self.phase == LivePhase::CancelRequested {
-                    return Ok(ReceiveOutcome::Stale);
-                }
                 if request_id != self.binding.request_id() {
                     return self.malformed(LiveError::WrongRequestId);
                 }
@@ -559,7 +558,11 @@ impl ToolInvocation {
                     Some(next) => next,
                     None => return self.malformed(LiveError::InvalidSequence),
                 };
-                Ok(ReceiveOutcome::Progress(progress))
+                if self.phase == LivePhase::CancelRequested {
+                    Ok(ReceiveOutcome::IgnoredCancelledProgress)
+                } else {
+                    Ok(ReceiveOutcome::Progress(progress))
+                }
             }
             Inbound::End {
                 request_id,
