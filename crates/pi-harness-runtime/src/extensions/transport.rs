@@ -105,9 +105,9 @@ pub struct ConnectionPump {
     closed: bool,
 }
 
-/// Dropping a polled `next_active` future may interrupt a partial host write or
-/// a read whose cancellation behavior is unknown. Close before the pump can be
-/// reused; only a completed return disarms this guard.
+/// Dropping a polled pump future may interrupt a partial host write or a read
+/// whose cancellation behavior is unknown. Close before the pump can be reused;
+/// only a completed return disarms this guard.
 struct InFlight<'a> {
     pump: &'a mut ConnectionPump,
     armed: bool,
@@ -160,6 +160,38 @@ impl ConnectionPump {
         }
     }
 
+    /// Complete the handshake and return an owned selected grant at Ready,
+    /// before waiting for active peer bytes. The caller can dispatch with this
+    /// grant while `next_active` holds a mutable read borrow. A repeated call
+    /// on an active connection does no I/O. Any coalesced active tail remains
+    /// buffered for `next_active`.
+    pub async fn drive_until_ready(&mut self) -> Result<ActiveGrant, PumpError> {
+        if self.closed {
+            return Err(PumpError::Closed);
+        }
+        if self.endpoint.phase() == EndpointPhase::Active {
+            return Ok(self
+                .endpoint
+                .active_grant()
+                .expect("active endpoint retains its grant")
+                .clone());
+        }
+        let mut in_flight = InFlight {
+            pump: self,
+            armed: true,
+        };
+        let result = in_flight.pump.drive_next_active(true).await.map(|_| {
+            in_flight
+                .pump
+                .endpoint
+                .active_grant()
+                .expect("Ready exposes the selected grant")
+                .clone()
+        });
+        in_flight.armed = false;
+        result
+    }
+
     /// Drive Hello, Manifest and Ready, then return one active frame with its
     /// exact transmitted Envelope body length. Clean active EOF returns None.
     pub async fn next_active(&mut self) -> Result<Option<ActiveFrame>, PumpError> {
@@ -170,12 +202,15 @@ impl ConnectionPump {
             pump: self,
             armed: true,
         };
-        let result = in_flight.pump.drive_next_active().await;
+        let result = in_flight.pump.drive_next_active(false).await;
         in_flight.armed = false;
         result
     }
 
-    async fn drive_next_active(&mut self) -> Result<Option<ActiveFrame>, PumpError> {
+    async fn drive_next_active(
+        &mut self,
+        return_on_ready: bool,
+    ) -> Result<Option<ActiveFrame>, PumpError> {
         loop {
             if self.endpoint.phase() != EndpointPhase::Active
                 && self.clock.now_ms() >= self.handshake_deadline_ms
@@ -228,6 +263,7 @@ impl ConnectionPump {
                         return self.fail(error);
                     }
                 }
+                Some(EndpointEvent::Ready) if return_on_ready => return Ok(None),
                 Some(EndpointEvent::Ready) | None => {}
                 Some(EndpointEvent::Active(frame)) => return Ok(Some(*frame)),
             }

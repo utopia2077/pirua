@@ -343,7 +343,7 @@ pub enum ActivationPhase {
     Rejected,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GrantedTool {
     reference: v1_1::CapabilityRef,
     descriptor: AgentTool,
@@ -362,7 +362,7 @@ impl GrantedTool {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ActiveGrant {
     wire: v1_1::CapabilityGrant,
     tools: Vec<GrantedTool>,

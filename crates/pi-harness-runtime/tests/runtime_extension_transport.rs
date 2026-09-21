@@ -8,14 +8,19 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Wake, Waker};
 
-use pi_ai_core::BoxFuture;
-use pi_extension_protocol::activation::HostAuthority;
+use pi_ai_core::{BoxFuture, JsonObject};
+use pi_extension_protocol::activation::{
+    AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolReplay, ToolSchemaInputs,
+};
 use pi_extension_protocol::endpoint::{EndpointPhase, SelectedEnvelope};
+use pi_extension_protocol::jcs::Limits as JsonLimits;
+use pi_extension_protocol::tool_live::{Start, ToolInvocation};
 use pi_extension_protocol::wire::framing::{EncodedFrame, FrameReader};
 use pi_extension_protocol::wire::v1_1;
 use pi_harness_runtime::extensions::transport::{
     ChannelError, ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, PumpError,
 };
+use pi_harness_runtime::extensions::value::encode_arguments;
 
 const RAW: &str = include_str!("../../pi-extension-protocol/schema/fixtures/raw-vectors.json");
 
@@ -269,6 +274,53 @@ fn pump(channel: Arc<FakeChannel>, clock: Arc<FakeClock>, chunk: usize) -> Conne
     .unwrap()
 }
 
+fn tool_pump(channel: Arc<FakeChannel>, clock: Arc<FakeClock>) -> ConnectionPump {
+    let catalog: serde_json::Value = serde_json::from_str(include_str!(
+        "../../pi-extension-protocol/schema/fixtures/host-catalog.json"
+    ))
+    .unwrap();
+    let entry = &catalog["entries"][0];
+    let agent = &entry["agentTool"];
+    let descriptor = AgentTool {
+        name: "echo".into(),
+        label: agent["label"].as_str().unwrap().into(),
+        description: agent["description"].as_str().unwrap().into(),
+        parameters: agent["parameters"].clone(),
+        execution_mode: AgentToolMode::Sequential,
+        replay: ToolReplay::Safe,
+    };
+    let inputs = [0, 1]
+        .into_iter()
+        .map(|minor| {
+            let set = &entry["selected_minor_schema_sets"][format!("1.{minor}")];
+            ToolSchemaInputs {
+                minor,
+                arguments: serde_json::to_vec(&set["arguments"]["schema"]).unwrap(),
+                progress: serde_json::to_vec(&set["progress"]["schema"]).unwrap(),
+                raw_result: serde_json::to_vec(&set["raw_result"]["schema"]).unwrap(),
+            }
+        })
+        .collect();
+    let tool =
+        ApprovedTool::new("peer-a".into(), descriptor, inputs, JsonLimits::default()).unwrap();
+    let mut host_limits = limits();
+    host_limits.pre_handshake_frame_bytes = 4096;
+    host_limits.frame_bytes = 8192;
+    host_limits.aggregate_decoded_bytes = 8192;
+    let host =
+        HostAuthority::new("peer-a".into(), 7, 1, 1, host_limits, vec![tool], vec![]).unwrap();
+    ConnectionPump::new(
+        host,
+        channel,
+        clock,
+        PumpConfig {
+            max_read_chunk: NonZeroUsize::new(8192).unwrap(),
+            write_timeout_ms: NonZeroU64::new(10).unwrap(),
+        },
+    )
+    .unwrap()
+}
+
 fn varint(mut value: usize) -> Vec<u8> {
     let mut bytes = Vec::new();
     loop {
@@ -308,6 +360,23 @@ fn manifest() -> Vec<u8> {
         3,
         &[field(1, b"metadata"), field(2, b"0.1"), field(3, &version)].concat(),
     )
+}
+
+fn tool_manifest() -> Vec<u8> {
+    let vectors: serde_json::Value = serde_json::from_str(include_str!(
+        "../../pi-extension-protocol/schema/fixtures/activation-vectors.json"
+    ))
+    .unwrap();
+    let hex = vectors["cases"]["valid_1_1"]["manifest_pb_hex"]
+        .as_str()
+        .unwrap();
+    let (pairs, tail) = hex.as_bytes().as_chunks::<2>();
+    assert!(tail.is_empty());
+    let body: Vec<u8> = pairs
+        .iter()
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect();
+    frame(3, &body)
 }
 
 fn ready_frame() -> Vec<u8> {
@@ -387,6 +456,130 @@ fn active_coalesced_frames_are_returned_one_at_a_time() {
     assert_eq!(ready(pump.next_active()).unwrap().unwrap().body_len, 219);
     assert_eq!(ready(pump.next_active()).unwrap().unwrap().body_len, 219);
     assert_eq!(sent_arms(&channel), ["ack", "grant"]);
+}
+
+#[test]
+fn quiet_peer_ready_is_observable_before_an_active_frame() {
+    let channel = Arc::new(FakeChannel::default());
+    let clock = Arc::new(FakeClock::new(100));
+    let mut pump = pump(channel.clone(), clock, 512);
+    channel.push(ReadAction::Bytes(hello()));
+    channel.push(ReadAction::Bytes(manifest()));
+    channel.push(ReadAction::Bytes(ready_frame()));
+    let wake = Arc::new(CountWake::default());
+    let mut future = Box::pin(pump.drive_until_ready());
+    let owned = match poll_once(future.as_mut(), &wake) {
+        Poll::Ready(Ok(grant)) => grant,
+        _ => panic!("Ready must return before active input"),
+    };
+    drop(future);
+    assert_eq!(pump.phase(), EndpointPhase::Active);
+    assert!(pump.active_grant().is_some());
+    assert_eq!(owned.wire().connection_generation, 7);
+    assert_eq!(sent_arms(&channel), ["ack", "grant"]);
+    assert!(!channel.is_closed());
+    // A second call must not wait for another peer byte or consume an active frame.
+    let repeated = ready(pump.drive_until_ready()).unwrap();
+    assert_eq!(repeated.wire().connection_generation, 7);
+    channel.push(ReadAction::Bytes(raw_request()));
+    assert_eq!(ready(pump.next_active()).unwrap().unwrap().body_len, 219);
+}
+
+#[test]
+fn ready_boundary_preserves_coalesced_active_tail_for_next_active() {
+    let channel = Arc::new(FakeChannel::default());
+    let clock = Arc::new(FakeClock::new(100));
+    let mut pump = pump(channel.clone(), clock, 512);
+    let request = raw_request();
+    channel.push(ReadAction::Bytes(hello()));
+    channel.push(ReadAction::Bytes(manifest()));
+    channel.push(ReadAction::Bytes(
+        [ready_frame(), request.clone(), request].concat(),
+    ));
+    let owned = ready(pump.drive_until_ready()).unwrap();
+    assert_eq!(pump.phase(), EndpointPhase::Active);
+    assert!(pump.active_grant().is_some());
+    assert_eq!(owned.wire().connection_generation, 7);
+    assert_eq!(sent_arms(&channel), ["ack", "grant"]);
+    assert_eq!(ready(pump.next_active()).unwrap().unwrap().body_len, 219);
+    assert_eq!(ready(pump.next_active()).unwrap().unwrap().body_len, 219);
+    assert!(!channel.is_closed());
+}
+
+#[test]
+fn owned_ready_grant_can_start_a_tool_while_active_read_is_pending() {
+    let channel = Arc::new(FakeChannel::default());
+    let clock = Arc::new(FakeClock::new(100));
+    let mut pump = tool_pump(channel.clone(), clock);
+    channel.push(ReadAction::Bytes(hello()));
+    channel.push(ReadAction::Bytes(tool_manifest()));
+    channel.push(ReadAction::Bytes(ready_frame()));
+    let owned = ready(pump.drive_until_ready()).unwrap();
+    assert_eq!(owned.wire().connection_generation, 7);
+    assert_eq!(owned.tools().len(), 1);
+    assert_eq!(channel.writes().len(), 2);
+
+    let wake = Arc::new(CountWake::default());
+    let mut pending_read = Box::pin(pump.next_active());
+    assert!(poll_once(pending_read.as_mut(), &wake).is_pending());
+    let saved: JsonObject = serde_json::from_str(r#"{"text":"ping"}"#).unwrap();
+    let arguments = encode_arguments(&saved, &owned, "echo").unwrap();
+    let (invocation, outbound) = ToolInvocation::start(
+        &owned,
+        "echo",
+        Start {
+            effect_key: v1_1::EffectKey {
+                session_id: "session".into(),
+                lane: "main".into(),
+                operation_id: "op".into(),
+                effect_kind: "tool".into(),
+                step_or_task_id: "step".into(),
+                logical_attempt: 0,
+                item_index: Some(0),
+            },
+            source_call_id: "call-1".into(),
+            request_id: 17,
+            active_generation: 7,
+            arguments,
+            now_ms: 200,
+            requested_deadline_after_ms: Some(700),
+            method_limit_ms: 1000,
+            connection_remaining_ms: 500,
+            parent_remaining_ms: Some(300),
+            initial_credit_bytes: Some(137),
+        },
+    )
+    .unwrap();
+    assert_eq!(invocation.binding().request_id(), 17);
+    assert!(outbound.body_len > 0);
+
+    channel.push(ReadAction::Bytes(raw_request()));
+    let active = match poll_once(pending_read.as_mut(), &wake) {
+        Poll::Ready(Ok(Some(frame))) => frame,
+        _ => panic!("pending active read did not resume"),
+    };
+    assert_eq!(active.body_len, 219);
+    drop(pending_read);
+    assert!(!channel.is_closed());
+}
+
+#[test]
+fn dropping_pending_ready_driver_closes_before_reuse() {
+    let channel = Arc::new(FakeChannel::default());
+    channel.mode(WriteMode::Stall);
+    channel.push(ReadAction::Bytes(hello()));
+    let clock = Arc::new(FakeClock::new(100));
+    let mut pump = pump(channel.clone(), clock, 512);
+    let wake = Arc::new(CountWake::default());
+    let mut future = Box::pin(pump.drive_until_ready());
+    assert!(poll_once(future.as_mut(), &wake).is_pending());
+    drop(future);
+    assert_eq!(pump.phase(), EndpointPhase::Closed);
+    assert!(channel.is_closed());
+    assert_eq!(
+        ready(pump.drive_until_ready()).err(),
+        Some(PumpError::Closed)
+    );
 }
 
 #[test]
