@@ -408,6 +408,67 @@ fn domain_rejection_precedes_progress_mutation_and_terminal_retention() {
 }
 
 #[test]
+fn host_domain_fault_returns_without_poisoning_or_charging_the_invocation() {
+    for (core, tool) in [(0, 0), (1, 1)] {
+        let progress = valid_progress(core);
+        let credit = progress.body_len as u64;
+        let mut live = started(core, tool, Some(credit));
+        let mut calls = 0;
+        let error = live.receive_checked(7, &progress, 201, |check| {
+            calls += 1;
+            assert_eq!(check.kind(), DomainKind::Progress);
+            DomainDecision::HostFault
+        });
+        assert_eq!(error.err(), Some(LiveError::HostDomainFault));
+        assert_eq!(calls, 1);
+        assert_eq!(live.phase(), LivePhase::Open);
+        assert_eq!(live.credit(), credit);
+        assert_eq!(live.next_sequence(), 0);
+        assert!(live.receipt().is_none());
+        assert!(matches!(
+            live.receive_checked(7, &progress, 202, |_| DomainDecision::Accept),
+            Ok(ReceiveOutcome::Progress(_))
+        ));
+
+        let terminal = valid_terminal(core);
+        let mut result_live = started(core, tool, None);
+        let error = result_live.receive_checked(7, &terminal, 201, |check| {
+            assert_eq!(check.kind(), DomainKind::Result);
+            DomainDecision::HostFault
+        });
+        assert_eq!(error.err(), Some(LiveError::HostDomainFault));
+        assert_eq!(result_live.phase(), LivePhase::Open);
+        assert!(result_live.receipt().is_none());
+        assert!(matches!(
+            result_live.receive_checked(7, &terminal, 202, |_| DomainDecision::Accept),
+            Ok(ReceiveOutcome::TerminalReceived)
+        ));
+
+        let mut cancelled = started(core, tool, Some(credit));
+        cancelled
+            .cancel(v1_1::CancelReason::CancelUser, 200)
+            .unwrap();
+        assert_eq!(
+            cancelled
+                .receive_checked(7, &progress, 201, |_| DomainDecision::HostFault)
+                .err(),
+            Some(LiveError::HostDomainFault)
+        );
+        assert_eq!(cancelled.phase(), LivePhase::CancelRequested);
+        assert_eq!(cancelled.credit(), credit);
+        assert_eq!(cancelled.next_sequence(), 0);
+        assert!(matches!(
+            cancelled.receive_checked(7, &progress, 202, |_| DomainDecision::Accept),
+            Ok(ReceiveOutcome::IgnoredCancelledProgress)
+        ));
+    }
+    assert_eq!(
+        LiveError::HostDomainFault.to_string(),
+        "host tool domain validator failed"
+    );
+}
+
+#[test]
 fn selected_usage_domain_check_distinguishes_integer_and_integral_float_in_both_minors() {
     for (core, tool) in [(0, 0), (1, 1)] {
         for kind in [DomainKind::Progress, DomainKind::Result] {

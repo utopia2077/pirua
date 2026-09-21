@@ -3,6 +3,8 @@
 //! Callers obtain `ActiveGrant` only after Ready. They supply the current host
 //! generation and the planned durable key; peer frames cannot mint either. A
 //! `LiveError` from peer input means the caller must close that generation.
+//! `HostDomainFault` instead comes only from a trusted domain callback and must
+//! be reported as a host fault, without blaming the peer or mutating this call.
 //! This module does not authorize durable settlement or own an in-flight queue.
 
 use std::fmt;
@@ -33,6 +35,8 @@ pub enum LiveError {
     InvalidSequence,
     InvalidProgress,
     InvalidTerminal,
+    /// A trusted domain validator failed locally; this is not malformed peer input.
+    HostDomainFault,
     UnsupportedVariant,
     Limit,
     PeerLost,
@@ -56,6 +60,7 @@ impl fmt::Display for LiveError {
             Self::InvalidSequence => "stream sequence violation",
             Self::InvalidProgress => "invalid tool progress",
             Self::InvalidTerminal => "invalid tool terminal",
+            Self::HostDomainFault => "host tool domain validator failed",
             Self::UnsupportedVariant => "unsupported closed variant",
             Self::Limit => "tool value or frame limit exceeded",
             Self::PeerLost => "peer lost before terminal",
@@ -239,6 +244,8 @@ pub enum DomainKind {
 pub enum DomainDecision {
     Accept,
     PeerValueMismatch,
+    /// A trusted binding/validator failure that leaves invocation state unchanged.
+    HostFault,
 }
 
 /// Schema-admitted bounded JSON with its exact selected host binding.
@@ -623,16 +630,19 @@ impl ToolInvocation {
                     Err(error) => return self.malformed(error),
                 };
                 let projection = self.projections.progress();
-                if domain(DomainCheck {
+                match domain(DomainCheck {
                     kind: DomainKind::Progress,
                     json: progress.json(),
                     binding: &self.binding,
                     profile_minor: self.tool_minor,
                     projection_id: projection.id(),
                     schema_digest_sha256: projection.digest(),
-                }) == DomainDecision::PeerValueMismatch
-                {
-                    return self.malformed(LiveError::InvalidProgress);
+                }) {
+                    DomainDecision::Accept => {}
+                    DomainDecision::PeerValueMismatch => {
+                        return self.malformed(LiveError::InvalidProgress);
+                    }
+                    DomainDecision::HostFault => return Err(LiveError::HostDomainFault),
                 }
                 self.credit -= frame.body_len as u64;
                 self.next_sequence = match self.next_sequence.checked_add(1) {
@@ -658,16 +668,19 @@ impl ToolInvocation {
                 };
                 if let TerminalOutput::Result(ref json) = output {
                     let projection = self.projections.raw_result();
-                    if domain(DomainCheck {
+                    match domain(DomainCheck {
                         kind: DomainKind::Result,
                         json,
                         binding: &self.binding,
                         profile_minor: self.tool_minor,
                         projection_id: projection.id(),
                         schema_digest_sha256: projection.digest(),
-                    }) == DomainDecision::PeerValueMismatch
-                    {
-                        return self.malformed(LiveError::InvalidTerminal);
+                    }) {
+                        DomainDecision::Accept => {}
+                        DomainDecision::PeerValueMismatch => {
+                            return self.malformed(LiveError::InvalidTerminal);
+                        }
+                        DomainDecision::HostFault => return Err(LiveError::HostDomainFault),
                     }
                 }
                 self.receipt = Some(TerminalReceipt {
