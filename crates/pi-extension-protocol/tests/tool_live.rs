@@ -6,8 +6,8 @@ use pi_extension_protocol::activation::{
 use pi_extension_protocol::endpoint::{ActiveFrame, SelectedEnvelope};
 use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::tool_live::{
-    LiveError, LivePhase, ReceiveOutcome, RetireReason, SelectedArguments, Start, TerminalKind,
-    ToolInvocation,
+    DomainDecision, DomainKind, LiveError, LivePhase, ReceiveOutcome, RetireReason,
+    SelectedArguments, Start, TerminalKind, ToolInvocation,
 };
 use pi_extension_protocol::wire::framing::{self, FrameReader};
 use pi_extension_protocol::wire::value;
@@ -77,7 +77,12 @@ fn limits() -> v1_1::ProtocolLimits {
         max_stream_credit_bytes: 256,
     }
 }
-fn active(generation: u64, core_minor: u32, tool_minor: u32) -> Activation {
+fn active_with_credit(
+    generation: u64,
+    core_minor: u32,
+    tool_minor: u32,
+    max_credit: u64,
+) -> Activation {
     let catalog: Value = serde_json::from_str(CATALOG).unwrap();
     let entry = &catalog["entries"][0];
     let agent = &entry["agentTool"];
@@ -103,12 +108,14 @@ fn active(generation: u64, core_minor: u32, tool_minor: u32) -> Activation {
         .collect();
     let tool =
         ApprovedTool::new("peer-a".into(), descriptor, inputs, JsonLimits::default()).unwrap();
+    let mut host_limits = limits();
+    host_limits.max_stream_credit_bytes = max_credit;
     let host = HostAuthority::new(
         "peer-a".into(),
         generation,
         core_minor,
         tool_minor,
-        limits(),
+        host_limits,
         vec![tool],
         vec![],
     )
@@ -139,6 +146,9 @@ fn active(generation: u64, core_minor: u32, tool_minor: u32) -> Activation {
     activation.receive_manifest(&raw, 102).unwrap();
     activation.receive_ready(&[], 103).unwrap();
     activation
+}
+fn active(generation: u64, core_minor: u32, tool_minor: u32) -> Activation {
+    active_with_credit(generation, core_minor, tool_minor, 256)
 }
 fn arguments(tool_minor: u32) -> SelectedArguments {
     let (_, inner) = raw_request();
@@ -229,7 +239,15 @@ fn valid_terminal(core: u32) -> ActiveFrame {
     active_frame(&raw_frame("terminal"), core)
 }
 fn started(core: u32, tool: u32, credit: Option<u64>) -> ToolInvocation {
-    let a = active(7, core, tool);
+    started_with_credit(core, tool, credit, 256)
+}
+fn started_with_credit(
+    core: u32,
+    tool: u32,
+    credit: Option<u64>,
+    max_credit: u64,
+) -> ToolInvocation {
+    let a = active_with_credit(7, core, tool, max_credit);
     ToolInvocation::start(
         a.active_grant().unwrap(),
         "echo",
@@ -237,6 +255,110 @@ fn started(core: u32, tool: u32, credit: Option<u64>) -> ToolInvocation {
     )
     .unwrap()
     .0
+}
+
+fn wire_integer(value: i64) -> v1_1::WireValue {
+    v1_1::WireValue {
+        value: Some(v1_1::wire_value::Value::IntegerValue(value)),
+    }
+}
+fn wire_map(entries: Vec<(&str, v1_1::WireValue)>) -> v1_1::WireValue {
+    v1_1::WireValue {
+        value: Some(v1_1::wire_value::Value::MapValue(v1_1::WireMap {
+            entries: entries
+                .into_iter()
+                .map(|(key, value)| v1_1::WireMapEntry {
+                    key: key.into(),
+                    value: Some(value),
+                })
+                .collect(),
+        })),
+    }
+}
+fn usage_frame(core: u32, tool: u32, kind: DomainKind, float_input: bool) -> ActiveFrame {
+    let catalog: Value = serde_json::from_str(CATALOG).unwrap();
+    let slot = match kind {
+        DomainKind::Progress => "progress",
+        DomainKind::Result => "raw_result",
+    };
+    let projection =
+        &catalog["entries"][0]["selected_minor_schema_sets"][format!("1.{tool}")][slot];
+    let id = projection["projection_id"].as_str().unwrap();
+    assert_eq!(
+        id,
+        match kind {
+            DomainKind::Progress => "tool.progress:echo",
+            DomainKind::Result => "tool.result:echo",
+        }
+    );
+    let digest = unhex(projection["schema_digest_sha256"].as_str().unwrap());
+    let input = if float_input {
+        v1_1::WireValue {
+            value: Some(v1_1::wire_value::Value::FloatValue(1.0)),
+        }
+    } else {
+        wire_integer(1)
+    };
+    let cost = wire_map(vec![
+        ("input", wire_integer(0)),
+        ("output", wire_integer(0)),
+        ("cacheRead", wire_integer(0)),
+        ("cacheWrite", wire_integer(0)),
+        ("total", wire_integer(0)),
+    ]);
+    let usage = wire_map(vec![
+        ("input", input),
+        ("output", wire_integer(0)),
+        ("cacheRead", wire_integer(0)),
+        ("cacheWrite", wire_integer(0)),
+        ("totalTokens", wire_integer(0)),
+        ("cost", cost),
+    ]);
+    let root = wire_map(vec![
+        (
+            "content",
+            v1_1::WireValue {
+                value: Some(v1_1::wire_value::Value::ListValue(v1_1::WireList {
+                    items: vec![],
+                })),
+            },
+        ),
+        ("details", wire_map(vec![])),
+        ("usage", usage),
+    ]);
+    let bound = v1_1::SchemaBoundValue {
+        projection_id: id.into(),
+        schema_digest_sha256: digest,
+        value: Some(root),
+    };
+    let envelope = match kind {
+        DomainKind::Progress => v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
+            request_id: 17,
+            sequence: 0,
+            payload: v1_1::ToolProgress {
+                event: Some(bound),
+                percent_complete: None,
+            }
+            .encode_to_vec(),
+        }),
+        DomainKind::Result => v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+            request_id: 17,
+            terminal: Some(v1_1::stream_end::Terminal::Result(
+                v1_1::InvokeToolResult {
+                    raw_result: Some(bound),
+                }
+                .encode_to_vec(),
+            )),
+        }),
+    };
+    let encoded = framing::encode(
+        &v1_1::Envelope {
+            frame: Some(envelope),
+        },
+        nz(8192),
+    )
+    .unwrap();
+    active_frame(&encoded.bytes, core)
 }
 
 fn assert_cancelled_malformed(
@@ -253,6 +375,342 @@ fn assert_cancelled_malformed(
     assert_eq!(live.credit(), credit);
     assert_eq!(live.next_sequence(), 0);
     assert!(live.receipt().is_none());
+}
+
+#[test]
+fn domain_rejection_precedes_progress_mutation_and_terminal_retention() {
+    let progress = valid_progress(1);
+    let mut live = started(1, 1, Some(137));
+    let mut calls = 0;
+    let outcome = live.receive_checked(7, &progress, 201, |check| {
+        calls += 1;
+        assert_eq!(check.kind(), DomainKind::Progress);
+        DomainDecision::PeerValueMismatch
+    });
+    assert_eq!(outcome.err(), Some(LiveError::InvalidProgress));
+    assert_eq!(calls, 1);
+    assert_eq!(live.credit(), 137);
+    assert_eq!(live.next_sequence(), 0);
+    assert!(live.receipt().is_none());
+
+    let terminal = valid_terminal(1);
+    let mut result_live = started(1, 1, None);
+    let mut result_calls = 0;
+    let outcome = result_live.receive_checked(7, &terminal, 201, |check| {
+        result_calls += 1;
+        assert_eq!(check.kind(), DomainKind::Result);
+        DomainDecision::PeerValueMismatch
+    });
+    assert_eq!(outcome.err(), Some(LiveError::InvalidTerminal));
+    assert_eq!(result_calls, 1);
+    assert_eq!(result_live.phase(), LivePhase::PeerLost);
+    assert!(result_live.receipt().is_none());
+}
+
+#[test]
+fn selected_usage_domain_check_distinguishes_integer_and_integral_float_in_both_minors() {
+    for (core, tool) in [(0, 0), (1, 1)] {
+        for kind in [DomainKind::Progress, DomainKind::Result] {
+            let float_frame = usage_frame(core, tool, kind, true);
+            let integer_frame = usage_frame(core, tool, kind, false);
+            let credit = if kind == DomainKind::Progress {
+                Some(float_frame.body_len as u64)
+            } else {
+                None
+            };
+            let mut rejected = started_with_credit(core, tool, credit, 512);
+            let mut calls = 0;
+            let result = rejected.receive_checked(7, &float_frame, 201, |check| {
+                calls += 1;
+                assert_eq!(check.kind(), kind);
+                assert_eq!(check.profile_minor(), tool);
+                assert_eq!(check.binding().generation(), 7);
+                assert_eq!(
+                    check.binding().capability_ref().authenticated_extension_id,
+                    "peer-a"
+                );
+                assert_eq!(check.binding().capability_ref().name, "echo");
+                let expected = if kind == DomainKind::Progress {
+                    "tool.progress:echo"
+                } else {
+                    "tool.result:echo"
+                };
+                assert_eq!(check.projection_id(), expected);
+                let catalog: Value = serde_json::from_str(CATALOG).unwrap();
+                let slot = if kind == DomainKind::Progress {
+                    "progress"
+                } else {
+                    "raw_result"
+                };
+                let expected_digest = unhex(
+                    catalog["entries"][0]["selected_minor_schema_sets"][format!("1.{tool}")][slot]
+                        ["schema_digest_sha256"]
+                        .as_str()
+                        .unwrap(),
+                );
+                assert_eq!(check.schema_digest_sha256().as_slice(), expected_digest);
+                let value: Value = serde_json::from_slice(check.json()).unwrap();
+                assert_eq!(value["usage"]["input"], 1.0);
+                assert!(value["usage"]["input"].as_u64().is_none());
+                DomainDecision::PeerValueMismatch
+            });
+            assert_eq!(calls, 1);
+            assert_eq!(
+                result.err(),
+                Some(if kind == DomainKind::Progress {
+                    LiveError::InvalidProgress
+                } else {
+                    LiveError::InvalidTerminal
+                })
+            );
+            assert_eq!(rejected.phase(), LivePhase::PeerLost);
+            assert!(rejected.receipt().is_none());
+            if kind == DomainKind::Progress {
+                assert_eq!(rejected.credit(), float_frame.body_len as u64);
+                assert_eq!(rejected.next_sequence(), 0);
+            } else {
+                let mut protocol_only = started_with_credit(core, tool, None, 512);
+                assert!(matches!(
+                    protocol_only.receive(7, &float_frame, 201),
+                    Ok(ReceiveOutcome::TerminalReceived)
+                ));
+                assert!(protocol_only.receipt().is_some());
+            }
+
+            let credit = if kind == DomainKind::Progress {
+                Some(integer_frame.body_len as u64)
+            } else {
+                None
+            };
+            let mut accepted = started_with_credit(core, tool, credit, 512);
+            let mut accepted_calls = 0;
+            let result = accepted.receive_checked(7, &integer_frame, 201, |check| {
+                accepted_calls += 1;
+                let value: Value = serde_json::from_slice(check.json()).unwrap();
+                assert_eq!(value["usage"]["input"].as_u64(), Some(1));
+                DomainDecision::Accept
+            });
+            assert_eq!(accepted_calls, 1);
+            if kind == DomainKind::Progress {
+                assert!(matches!(result, Ok(ReceiveOutcome::Progress(_))));
+                assert_eq!(accepted.credit(), 0);
+                assert_eq!(accepted.next_sequence(), 1);
+                assert!(accepted.receipt().is_none());
+            } else {
+                assert!(matches!(result, Ok(ReceiveOutcome::TerminalReceived)));
+                let json = accepted.receipt().unwrap().result_json().unwrap();
+                let value: Value = serde_json::from_slice(json).unwrap();
+                assert_eq!(value["usage"]["input"].as_u64(), Some(1));
+                assert!(matches!(
+                    accepted.receive_checked(7, &integer_frame, 202, |_| {
+                        accepted_calls += 1;
+                        DomainDecision::Accept
+                    }),
+                    Ok(ReceiveOutcome::Stale)
+                ));
+                assert_eq!(accepted_calls, 1);
+            }
+        }
+    }
+}
+
+#[test]
+fn domain_callback_is_skipped_before_selected_schema_and_for_typed_error() {
+    let progress = valid_progress(1);
+    let mut wrong_generation = started(1, 1, Some(137));
+    let mut calls = 0;
+    assert_eq!(
+        wrong_generation
+            .receive_checked(8, &progress, 201, |_| {
+                calls += 1;
+                DomainDecision::Accept
+            })
+            .err(),
+        Some(LiveError::WrongGeneration)
+    );
+    assert_eq!(calls, 0);
+    let mut expired = started(1, 1, Some(137));
+    assert_eq!(
+        expired
+            .receive_checked(7, &progress, 501, |_| {
+                calls += 1;
+                DomainDecision::Accept
+            })
+            .err(),
+        Some(LiveError::PeerLost)
+    );
+    assert_eq!(calls, 0);
+    let mut wrong_request = started(1, 1, Some(256));
+    let frame = edited_progress_new(|item| item.request_id = 18);
+    assert_eq!(
+        wrong_request
+            .receive_checked(7, &frame, 201, |_| {
+                calls += 1;
+                DomainDecision::Accept
+            })
+            .err(),
+        Some(LiveError::WrongRequestId)
+    );
+    assert_eq!(calls, 0);
+    let mut gap = started(1, 1, Some(256));
+    let frame = edited_progress_new(|item| item.sequence = 1);
+    assert_eq!(
+        gap.receive_checked(7, &frame, 201, |_| {
+            calls += 1;
+            DomainDecision::Accept
+        })
+        .err(),
+        Some(LiveError::InvalidSequence)
+    );
+    assert_eq!(calls, 0);
+    let mut no_credit = started(1, 1, None);
+    assert_eq!(
+        no_credit
+            .receive_checked(7, &progress, 201, |_| {
+                calls += 1;
+                DomainDecision::Accept
+            })
+            .err(),
+        Some(LiveError::CreditViolation)
+    );
+    assert_eq!(calls, 0);
+    let mut invalid_schema = started(1, 1, Some(256));
+    let frame = edited_progress_new(|item| {
+        let mut payload = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        payload.event.as_mut().unwrap().projection_id = "tool.result:echo".into();
+        item.payload = payload.encode_to_vec();
+    });
+    assert!(matches!(
+        invalid_schema.receive_checked(7, &frame, 201, |_| {
+            calls += 1;
+            DomainDecision::Accept
+        }),
+        Err(LiveError::Value(value::Error::ProjectionMismatch))
+    ));
+    assert_eq!(calls, 0);
+    let error = frame_new(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+        request_id: 17,
+        terminal: Some(v1_1::stream_end::Terminal::Error(v1_1::TypedError {
+            code: v1_1::ErrorCode::HandlerError as i32,
+            safe_message: "SECRET_SENTINEL".into(),
+        })),
+    }));
+    let mut typed = started(1, 1, None);
+    assert!(matches!(
+        typed.receive_checked(7, &error, 201, |_| {
+            calls += 1;
+            DomainDecision::PeerValueMismatch
+        }),
+        Ok(ReceiveOutcome::TerminalReceived)
+    ));
+    assert_eq!(calls, 0);
+    assert_eq!(
+        typed.receipt().unwrap().error(),
+        Some((v1_1::ErrorCode::HandlerError, "remote tool error"))
+    );
+    assert!(matches!(
+        typed.receive_checked(7, &error, 202, |_| {
+            calls += 1;
+            DomainDecision::PeerValueMismatch
+        }),
+        Ok(ReceiveOutcome::Stale)
+    ));
+    assert_eq!(calls, 0);
+    let mut wrong_arm = started(1, 1, None);
+    let credit_frame = frame_new(v1_1::envelope::Frame::Credit(v1_1::Credit {
+        request_id: 17,
+        additional_bytes: 1,
+    }));
+    assert_eq!(
+        wrong_arm
+            .receive_checked(7, &credit_frame, 201, |_| {
+                calls += 1;
+                DomainDecision::Accept
+            })
+            .err(),
+        Some(LiveError::InvalidTerminal)
+    );
+    assert_eq!(calls, 0);
+    let mut wrong_minor = started(1, 1, Some(137));
+    assert_eq!(
+        wrong_minor
+            .receive_checked(7, &valid_progress(0), 201, |_| {
+                calls += 1;
+                DomainDecision::Accept
+            })
+            .err(),
+        Some(LiveError::WrongVersion)
+    );
+    assert_eq!(calls, 0);
+}
+
+#[test]
+fn cancelled_progress_still_gets_domain_check_before_debit() {
+    let float = usage_frame(1, 1, DomainKind::Progress, true);
+    let mut rejected = started_with_credit(1, 1, Some(float.body_len as u64), 512);
+    rejected
+        .cancel(v1_1::CancelReason::CancelUser, 200)
+        .unwrap();
+    let mut calls = 0;
+    assert_eq!(
+        rejected
+            .receive_checked(7, &float, 201, |check| {
+                calls += 1;
+                assert_eq!(check.kind(), DomainKind::Progress);
+                DomainDecision::PeerValueMismatch
+            })
+            .err(),
+        Some(LiveError::InvalidProgress)
+    );
+    assert_eq!(calls, 1);
+    assert_eq!(rejected.credit(), float.body_len as u64);
+    assert_eq!(rejected.next_sequence(), 0);
+    assert!(rejected.receipt().is_none());
+    let integer = usage_frame(1, 1, DomainKind::Progress, false);
+    let mut accepted = started_with_credit(1, 1, Some(integer.body_len as u64), 512);
+    accepted
+        .cancel(v1_1::CancelReason::CancelUser, 200)
+        .unwrap();
+    assert!(matches!(
+        accepted.receive_checked(7, &integer, 201, |_| DomainDecision::Accept),
+        Ok(ReceiveOutcome::IgnoredCancelledProgress)
+    ));
+    assert_eq!(accepted.credit(), 0);
+    assert_eq!(accepted.next_sequence(), 1);
+}
+
+#[test]
+fn local_validator_panic_leaves_invocation_unmodified_for_host_fault_handling() {
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+
+    let progress = valid_progress(1);
+    let mut live = started(1, 1, Some(137));
+    let outcome = catch_unwind(AssertUnwindSafe(|| {
+        let _ = live.receive_checked(7, &progress, 201, |_| panic!("local validator failure"));
+    }));
+    assert!(outcome.is_err());
+    assert_eq!(live.phase(), LivePhase::Open);
+    assert_eq!(live.credit(), 137);
+    assert_eq!(live.next_sequence(), 0);
+    assert!(live.receipt().is_none());
+    assert!(matches!(
+        live.receive(7, &progress, 202),
+        Ok(ReceiveOutcome::Progress(_))
+    ));
+
+    let terminal = valid_terminal(1);
+    let mut result_live = started(1, 1, None);
+    let outcome = catch_unwind(AssertUnwindSafe(|| {
+        let _ =
+            result_live.receive_checked(7, &terminal, 201, |_| panic!("local validator failure"));
+    }));
+    assert!(outcome.is_err());
+    assert_eq!(result_live.phase(), LivePhase::Open);
+    assert!(result_live.receipt().is_none());
+    assert!(matches!(
+        result_live.receive(7, &terminal, 202),
+        Ok(ReceiveOutcome::TerminalReceived)
+    ));
 }
 
 #[test]

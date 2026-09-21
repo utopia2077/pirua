@@ -227,6 +227,51 @@ pub enum ReceiveOutcome {
     Stale,
 }
 
+/// The selected host projection being checked for Rust domain construction.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DomainKind {
+    Progress,
+    Result,
+}
+
+/// A synchronous host verdict. It contains no peer value or diagnostic text.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DomainDecision {
+    Accept,
+    PeerValueMismatch,
+}
+
+/// Schema-admitted bounded JSON with its exact selected host binding.
+pub struct DomainCheck<'a> {
+    kind: DomainKind,
+    json: &'a [u8],
+    binding: &'a InvocationBinding,
+    profile_minor: u32,
+    projection_id: &'a str,
+    schema_digest_sha256: [u8; 32],
+}
+
+impl DomainCheck<'_> {
+    pub fn kind(&self) -> DomainKind {
+        self.kind
+    }
+    pub fn json(&self) -> &[u8] {
+        self.json
+    }
+    pub fn binding(&self) -> &InvocationBinding {
+        self.binding
+    }
+    pub fn profile_minor(&self) -> u32 {
+        self.profile_minor
+    }
+    pub fn projection_id(&self) -> &str {
+        self.projection_id
+    }
+    pub fn schema_digest_sha256(&self) -> [u8; 32] {
+        self.schema_digest_sha256
+    }
+}
+
 struct Limits {
     frame: NonZeroUsize,
     value: value::Limits,
@@ -464,13 +509,37 @@ impl ToolInvocation {
         self.receipt.as_ref()
     }
 
-    /// A local endpoint generation is supplied separately from the peer frame.
+    /// Protocol-schema-only admission with an allow-all domain check. A
+    /// `tool.v1` runtime route that settles `AgentToolResult` must instead use
+    /// `receive_checked` with its host-bound typed decoder: portable `integer`
+    /// can admit a float-arm `1.0` that Rust `SafeUnsigned` cannot construct.
+    /// The host generation is supplied separately from the peer frame.
     pub fn receive(
         &mut self,
         generation: u64,
         frame: &ActiveFrame,
         now_ms: u64,
     ) -> Result<ReceiveOutcome> {
+        self.receive_checked(generation, frame, now_ms, |_| DomainDecision::Accept)
+    }
+
+    /// Calls the host's pure domain construction check after selected schema
+    /// admission, before progress accounting or first-result retention.
+    /// The callback must do no I/O or durable mutation. It returns mismatch
+    /// only for a peer value it cannot construct. A local callback panic
+    /// unwinds before state mutation; the host must catch it as its own Fault.
+    /// A peer-value mismatch closes this invocation with a fixed category and
+    /// no exposed output.
+    pub fn receive_checked<F>(
+        &mut self,
+        generation: u64,
+        frame: &ActiveFrame,
+        now_ms: u64,
+        mut domain: F,
+    ) -> Result<ReceiveOutcome>
+    where
+        F: FnMut(DomainCheck<'_>) -> DomainDecision,
+    {
         if generation != self.binding.generation() {
             return Err(LiveError::WrongGeneration);
         }
@@ -553,6 +622,18 @@ impl ToolInvocation {
                     Ok(progress) => progress,
                     Err(error) => return self.malformed(error),
                 };
+                let projection = self.projections.progress();
+                if domain(DomainCheck {
+                    kind: DomainKind::Progress,
+                    json: progress.json(),
+                    binding: &self.binding,
+                    profile_minor: self.tool_minor,
+                    projection_id: projection.id(),
+                    schema_digest_sha256: projection.digest(),
+                }) == DomainDecision::PeerValueMismatch
+                {
+                    return self.malformed(LiveError::InvalidProgress);
+                }
                 self.credit -= frame.body_len as u64;
                 self.next_sequence = match self.next_sequence.checked_add(1) {
                     Some(next) => next,
@@ -575,6 +656,20 @@ impl ToolInvocation {
                     Ok(output) => output,
                     Err(error) => return self.malformed(error),
                 };
+                if let TerminalOutput::Result(ref json) = output {
+                    let projection = self.projections.raw_result();
+                    if domain(DomainCheck {
+                        kind: DomainKind::Result,
+                        json,
+                        binding: &self.binding,
+                        profile_minor: self.tool_minor,
+                        projection_id: projection.id(),
+                        schema_digest_sha256: projection.digest(),
+                    }) == DomainDecision::PeerValueMismatch
+                    {
+                        return self.malformed(LiveError::InvalidTerminal);
+                    }
+                }
                 self.receipt = Some(TerminalReceipt {
                     binding: self.binding.clone(),
                     output,
