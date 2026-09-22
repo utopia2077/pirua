@@ -530,3 +530,259 @@ fn cancelled_progress_is_typed_checked_before_suppression() {
         assert!(invalid.receipt().is_none());
     }
 }
+
+fn peer_error_frame(minor: u32) -> ActiveFrame {
+    let cap = NonZeroUsize::new(8192).unwrap();
+    if minor == 0 {
+        let envelope = v1_0::Envelope {
+            frame: Some(v1_0::envelope::Frame::StreamEnd(v1_0::StreamEnd {
+                request_id: 17,
+                terminal: Some(v1_0::stream_end::Terminal::Error(v1_0::TypedError {
+                    code: 14,
+                    safe_message: SECRET.into(),
+                })),
+            })),
+        };
+        let body_len = framing::encode(&envelope, cap).unwrap().body_len;
+        ActiveFrame {
+            envelope: SelectedEnvelope::V1_0(envelope),
+            body_len,
+        }
+    } else {
+        let envelope = v1_1::Envelope {
+            frame: Some(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+                request_id: 17,
+                terminal: Some(v1_1::stream_end::Terminal::Error(v1_1::TypedError {
+                    code: 14,
+                    safe_message: SECRET.into(),
+                })),
+            })),
+        };
+        let body_len = framing::encode(&envelope, cap).unwrap().body_len;
+        ActiveFrame {
+            envelope: SelectedEnvelope::V1_1(envelope),
+            body_len,
+        }
+    }
+}
+
+#[test]
+fn final_echo_clock_fences_typed_progress_and_result_in_both_minors() {
+    use std::cell::Cell;
+
+    for minor in [0, 1] {
+        let activation = active(minor, false);
+        let grant = activation.active_grant().unwrap();
+        for progress in [true, false] {
+            let selected = frame(minor, progress, false, 17);
+            let mut expired = start(grant, 17);
+            let domain = EchoDomainBinding::new(grant, &expired).unwrap();
+            let calls = Cell::new(0);
+            let error = domain
+                .receive_checked_with_final_time(&mut expired, 7, &selected, 499, None, || {
+                    calls.set(calls.get() + 1);
+                    500
+                })
+                .err()
+                .unwrap();
+            assert!(matches!(error, DomainReceiveError::PeerLost));
+            assert_eq!(calls.get(), 1);
+            assert_eq!(expired.phase(), LivePhase::PeerLost);
+            assert_eq!(expired.credit(), 4096);
+            assert_eq!(expired.next_sequence(), 0);
+            assert!(expired.receipt().is_none());
+
+            let mut accepted = start(grant, 17);
+            let domain = EchoDomainBinding::new(grant, &accepted).unwrap();
+            let output = domain
+                .receive_checked_with_final_time(&mut accepted, 7, &selected, 499, None, || 499)
+                .unwrap();
+            assert_eq!(output.value.unwrap().usage.unwrap().input.get(), 1);
+            if progress {
+                assert!(matches!(output.outcome, ReceiveOutcome::Progress(_)));
+                assert_eq!(accepted.next_sequence(), 1);
+                assert!(accepted.credit() < 4096);
+                assert!(accepted.receipt().is_none());
+            } else {
+                assert!(matches!(output.outcome, ReceiveOutcome::TerminalReceived));
+                assert_eq!(accepted.receipt().unwrap().received_ms(), 499);
+                assert_eq!(accepted.receipt().unwrap().kind(), TerminalKind::Result);
+            }
+        }
+    }
+}
+
+#[test]
+fn final_echo_clock_checks_peer_error_without_rust_result_construction() {
+    use std::cell::Cell;
+
+    for minor in [0, 1] {
+        let activation = active(minor, false);
+        let grant = activation.active_grant().unwrap();
+        let selected = peer_error_frame(minor);
+        let mut expired = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &expired).unwrap();
+        let calls = Cell::new(0);
+        let error = domain
+            .receive_checked_with_final_time(&mut expired, 7, &selected, 499, Some(500), || {
+                calls.set(calls.get() + 1);
+                500
+            })
+            .err()
+            .unwrap();
+        assert!(matches!(error, DomainReceiveError::PeerLost));
+        assert_eq!(calls.get(), 1);
+        assert!(expired.receipt().is_none());
+
+        let mut accepted = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &accepted).unwrap();
+        let output = domain
+            .receive_checked_with_final_time(&mut accepted, 7, &selected, 499, Some(500), || 499)
+            .unwrap();
+        assert!(matches!(output.outcome, ReceiveOutcome::TerminalReceived));
+        assert!(output.value.is_none());
+        let receipt = accepted.receipt().unwrap();
+        assert_eq!(receipt.kind(), TerminalKind::Error);
+        assert_eq!(receipt.received_ms(), 499);
+        assert!(!receipt.error().unwrap().1.contains(SECRET));
+    }
+}
+
+#[test]
+fn cancelled_echo_progress_charges_only_before_final_grace_cutoff() {
+    for minor in [0, 1] {
+        let activation = active(minor, false);
+        let grant = activation.active_grant().unwrap();
+        let selected = frame(minor, true, false, 17);
+        let mut accepted = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &accepted).unwrap();
+        accepted
+            .cancel(v1_1::CancelReason::CancelUser, 201)
+            .unwrap();
+        let output = domain
+            .receive_checked_with_final_time(&mut accepted, 7, &selected, 249, Some(250), || 249)
+            .unwrap();
+        assert!(matches!(
+            output.outcome,
+            ReceiveOutcome::IgnoredCancelledProgress
+        ));
+        assert!(output.value.is_none());
+        assert_eq!(accepted.next_sequence(), 1);
+        assert_eq!(accepted.credit(), 4096 - selected.body_len as u64);
+
+        let mut expired = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &expired).unwrap();
+        expired.cancel(v1_1::CancelReason::CancelUser, 201).unwrap();
+        let error = domain
+            .receive_checked_with_final_time(&mut expired, 7, &selected, 249, Some(250), || 250)
+            .err()
+            .unwrap();
+        assert!(matches!(error, DomainReceiveError::PeerLost));
+        assert_eq!(expired.next_sequence(), 0);
+        assert_eq!(expired.credit(), 4096);
+        assert!(expired.receipt().is_none());
+    }
+}
+
+#[test]
+fn final_echo_clock_preserves_host_and_peer_error_categories() {
+    for minor in [0, 1] {
+        let activation = active(minor, false);
+        let grant = activation.active_grant().unwrap();
+        let source = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &source).unwrap();
+        let mut wrong = start(grant, 18);
+        let error = domain
+            .receive_checked_with_final_time(
+                &mut wrong,
+                7,
+                &frame(minor, false, false, 18),
+                499,
+                None,
+                || panic!("wrong binding must not call final clock"),
+            )
+            .err()
+            .unwrap();
+        assert!(matches!(
+            error,
+            DomainReceiveError::Host(DomainHostError::Binding)
+        ));
+        assert_eq!(wrong.phase(), LivePhase::Open);
+        assert!(wrong.receipt().is_none());
+
+        let mut mismatch = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &mismatch).unwrap();
+        let error = domain
+            .receive_checked_with_final_time(
+                &mut mismatch,
+                7,
+                &frame(minor, false, true, 17),
+                499,
+                None,
+                || panic!("peer mismatch must not call final clock"),
+            )
+            .err()
+            .unwrap();
+        assert!(matches!(
+            error,
+            DomainReceiveError::Protocol(LiveError::InvalidTerminal)
+        ));
+        assert_eq!(mismatch.phase(), LivePhase::PeerLost);
+        assert!(mismatch.receipt().is_none());
+
+        let source = active_with_decoded_limit(minor, false, 8192);
+        let tight = active_with_decoded_limit(minor, false, 64);
+        let source_grant = source.active_grant().unwrap();
+        let tight_grant = tight.active_grant().unwrap();
+        let mut fault = start(source_grant, 17);
+        let domain = EchoDomainBinding::new(tight_grant, &fault).unwrap();
+        let error = domain
+            .receive_checked_with_final_time(
+                &mut fault,
+                7,
+                &frame(minor, false, false, 17),
+                499,
+                None,
+                || panic!("host fault must not call final clock"),
+            )
+            .err()
+            .unwrap();
+        assert!(matches!(
+            error,
+            DomainReceiveError::Host(DomainHostError::Binding)
+        ));
+        assert_eq!(fault.phase(), LivePhase::Open);
+        assert_eq!(fault.credit(), 4096);
+        assert_eq!(fault.next_sequence(), 0);
+        assert!(fault.receipt().is_none());
+    }
+}
+
+#[test]
+fn fixed_time_echo_receive_keeps_legacy_loss_projection() {
+    for minor in [0, 1] {
+        let activation = active(minor, false);
+        let grant = activation.active_grant().unwrap();
+        let selected = frame(minor, false, false, 17);
+        let mut expired = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &expired).unwrap();
+        let error = domain
+            .receive_checked(&mut expired, 7, &selected, 500)
+            .err()
+            .unwrap();
+        assert!(matches!(
+            error,
+            DomainReceiveError::Protocol(LiveError::PeerLost)
+        ));
+        assert_eq!(expired.phase(), LivePhase::PeerLost);
+        assert!(expired.receipt().is_none());
+
+        let mut accepted = start(grant, 17);
+        let domain = EchoDomainBinding::new(grant, &accepted).unwrap();
+        let output = domain
+            .receive_checked(&mut accepted, 7, &selected, 499)
+            .unwrap();
+        assert!(matches!(output.outcome, ReceiveOutcome::TerminalReceived));
+        assert_eq!(accepted.receipt().unwrap().received_ms(), 499);
+    }
+}

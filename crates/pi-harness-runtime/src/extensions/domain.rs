@@ -46,6 +46,8 @@ impl std::error::Error for DomainHostError {}
 #[derive(Debug)]
 pub enum DomainReceiveError {
     Host(DomainHostError),
+    /// A bound invocation expired before a progress or terminal transition.
+    PeerLost,
     Protocol(LiveError),
 }
 
@@ -53,6 +55,7 @@ impl fmt::Display for DomainReceiveError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Host(error) => error.fmt(formatter),
+            Self::PeerLost => formatter.write_str("peer lost before terminal"),
             Self::Protocol(error) => error.fmt(formatter),
         }
     }
@@ -142,13 +145,44 @@ impl EchoDomainBinding {
         frame: &ActiveFrame,
         now_ms: u64,
     ) -> Result<CheckedEchoFrame, DomainReceiveError> {
+        self.receive_checked_with_final_time(invocation, generation, frame, now_ms, None, || now_ms)
+            .map_err(|error| match error {
+                DomainReceiveError::PeerLost => DomainReceiveError::Protocol(LiveError::PeerLost),
+                other => other,
+            })
+    }
+
+    /// Admit a typed echo value, then sample trusted monotonic time at the
+    /// protocol's progress or first-terminal state transition.
+    ///
+    /// The caller serializes this synchronous call with its timer and local
+    /// cancellation path. A trusted additional cutoff may represent the
+    /// cancellation-grace deadline; neither callback performs I/O or Session
+    /// access. Unlike the fixed-time compatibility method, preterminal loss is
+    /// exposed separately from malformed peer input.
+    pub fn receive_checked_with_final_time<N>(
+        &self,
+        invocation: &mut ToolInvocation,
+        generation: u64,
+        frame: &ActiveFrame,
+        ingress_now_ms: u64,
+        additional_deadline_ms: Option<u64>,
+        final_now_ms: N,
+    ) -> Result<CheckedEchoFrame, DomainReceiveError>
+    where
+        N: FnMut() -> u64,
+    {
         if !self.binding.same_live_identity(invocation.binding()) {
             return Err(DomainReceiveError::Host(DomainHostError::Binding));
         }
         let mut typed = None;
         let mut host_error = None;
-        let result = invocation.receive_checked(generation, frame, now_ms, |check| {
-            match self.construct(check) {
+        let result = invocation.receive_checked_with_final_time(
+            generation,
+            frame,
+            ingress_now_ms,
+            additional_deadline_ms,
+            |check| match self.construct(check) {
                 Ok(value) => {
                     typed = value;
                     DomainDecision::Accept
@@ -158,8 +192,9 @@ impl EchoDomainBinding {
                     host_error = Some(error);
                     DomainDecision::HostFault
                 }
-            }
-        });
+            },
+            final_now_ms,
+        );
         let outcome = match result {
             Ok(outcome) => outcome,
             Err(LiveError::HostDomainFault) => {
@@ -167,6 +202,7 @@ impl EchoDomainBinding {
                     host_error.unwrap_or(DomainHostError::Binding),
                 ));
             }
+            Err(LiveError::PeerLost) => return Err(DomainReceiveError::PeerLost),
             Err(error) => return Err(DomainReceiveError::Protocol(error)),
         };
         if matches!(outcome, ReceiveOutcome::IgnoredCancelledProgress) {
