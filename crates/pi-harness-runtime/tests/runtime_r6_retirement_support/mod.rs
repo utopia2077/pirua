@@ -1,6 +1,7 @@
 //! Test-only deterministic application callbacks; all runtime/storage paths are real.
 use crate::runtime_r1_r4_support::{Setup, Summary, assistant, n};
 use pi_agent_schema::*;
+use pi_agent_session::{memory::MemoryStorage, storage::*};
 use pi_ai_core::{
     AssistantContent, CancellationToken, JsonObject, JsonValue, Presence, StopReason, TextContent,
     ToolCall, ToolCallId, ToolName, Usage,
@@ -86,10 +87,11 @@ pub struct Tool {
     descriptor: AgentTool,
     pub started: AtomicUsize,
     pub raw_done: AtomicUsize,
+    pub release: std::sync::Mutex<Option<CancellationToken>>,
 }
 impl Tool {
     pub fn new() -> Arc<Self> {
-        Arc::new(Self{descriptor:AgentTool{name:ToolName::new("retire-tool").unwrap(),label:"retire".into(),description:"deterministic tool".into(),parameters:serde_json::from_value(serde_json::json!({"type":"object","properties":{},"additionalProperties":false})).unwrap(),constrained_sampling:None,execution_mode:None,replay:Some(ToolReplay::Safe)},started:AtomicUsize::new(0),raw_done:AtomicUsize::new(0)})
+        Arc::new(Self{descriptor:AgentTool{name:ToolName::new("retire-tool").unwrap(),label:"retire".into(),description:"deterministic tool".into(),parameters:serde_json::from_value(serde_json::json!({"type":"object","properties":{},"additionalProperties":false})).unwrap(),constrained_sampling:None,execution_mode:None,replay:Some(ToolReplay::Safe)},started:AtomicUsize::new(0),raw_done:AtomicUsize::new(0),release:std::sync::Mutex::new(None)})
     }
 }
 pub fn raw_result() -> AgentToolResult {
@@ -127,7 +129,11 @@ impl AgentHarnessTool<()> for Tool {
         _: &'a (),
     ) -> BoxFuture<'a, Result<AgentToolResult, ToolExecutionError>> {
         self.started.fetch_add(1, Ordering::SeqCst);
+        let release = self.release.lock().unwrap().clone();
         Box::pin(async move {
+            if let Some(release) = release {
+                release.cancelled().await;
+            }
             self.raw_done.fetch_add(1, Ordering::SeqCst);
             Ok(raw_result())
         })
@@ -268,4 +274,128 @@ pub fn external_terminal(s: &Setup) -> (OperationId, EntryId, LaneLastResult) {
         .drive(s.session.commit(Transaction { writes }))
         .expect("legitimate full external terminal must pass actual Session validation");
     (operation, result_id, terminal)
+}
+
+/// Parks the second post-raw read stamp after observing its value. Hydration
+/// has then captured one complete old state, while a raw Session writer can
+/// publish a valid terminal before the runtime consumes that observation.
+pub struct AfterRawStamp {
+    inner: Arc<MemoryStorage>,
+    tool: Arc<Tool>,
+    post_raw_stamps: AtomicUsize,
+    pub entered: CancellationToken,
+    pub release: CancellationToken,
+}
+impl AfterRawStamp {
+    pub fn new(inner: Arc<MemoryStorage>, tool: Arc<Tool>) -> Self {
+        Self {
+            inner,
+            tool,
+            post_raw_stamps: AtomicUsize::new(0),
+            entered: CancellationToken::new(),
+            release: CancellationToken::new(),
+        }
+    }
+}
+impl Storage for AfterRawStamp {
+    fn commit(
+        &self,
+        transaction: Transaction,
+    ) -> BoxFuture<'_, Result<CommitResult, StorageError>> {
+        self.inner.commit(transaction)
+    }
+    fn get_entries<'a>(
+        &'a self,
+        ids: &'a [EntryId],
+    ) -> BoxFuture<'a, Result<EntryMap, StorageError>> {
+        self.inner.get_entries(ids)
+    }
+    fn get_register<'a>(
+        &'a self,
+        namespace: RegisterNamespace,
+        key: &'a str,
+    ) -> BoxFuture<'a, Result<Option<Register>, StorageError>> {
+        self.inner.get_register(namespace, key)
+    }
+    fn list_registers<'a>(
+        &'a self,
+        namespace: RegisterNamespace,
+        prefix: Option<&'a str>,
+    ) -> BoxFuture<'a, Result<Vec<Register>, StorageError>> {
+        self.inner.list_registers(namespace, prefix)
+    }
+    fn scan_branch(&self, query: BranchScan) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+        self.inner.scan_branch(query)
+    }
+    fn scan_branch_structure(
+        &self,
+        query: BranchScan,
+    ) -> BoxFuture<'_, Result<Vec<EntryStructure>, StorageError>> {
+        self.inner.scan_branch_structure(query)
+    }
+    fn scan_entries(&self, query: EntryScan) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+        self.inner.scan_entries(query)
+    }
+    fn scan_usage(&self, query: UsageScan) -> BoxFuture<'_, Result<Vec<UsageRow>, StorageError>> {
+        self.inner.scan_usage(query)
+    }
+    fn stats(&self) -> BoxFuture<'_, Result<SessionStats, StorageError>> {
+        self.inner.stats()
+    }
+    fn close(&self) -> BoxFuture<'_, Result<(), StorageError>> {
+        self.inner.close()
+    }
+}
+impl AtomicStorage for AfterRawStamp {
+    fn commit_conditional(
+        &self,
+        request: ConditionalCommit,
+    ) -> BoxFuture<'_, Result<ConditionalOutcome, StorageError>> {
+        self.inner.commit_conditional(request)
+    }
+    fn snapshot(&self) -> BoxFuture<'_, Result<StorageSnapshot, StorageError>> {
+        self.inner.snapshot()
+    }
+}
+impl CheckedStorage for AfterRawStamp {
+    fn commit_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        request: ConditionalCommit,
+        validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        self.inner.commit_checked(request, validator)
+    }
+}
+impl RuntimeStorage for AfterRawStamp {
+    fn runtime_attachment(&self) -> &RuntimeAttachment {
+        self.inner.runtime_attachment()
+    }
+    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+        Box::pin(async move {
+            let stamp = self.inner.read_stamp().await?;
+            if self.tool.raw_done.load(Ordering::SeqCst) == 1
+                && self.post_raw_stamps.fetch_add(1, Ordering::SeqCst) == 1
+            {
+                self.entered.cancel();
+                self.release.cancelled().await;
+            }
+            Ok(stamp)
+        })
+    }
+    fn prepare_entries(
+        &self,
+        stamp: ReadStamp,
+        slots: Vec<PreparedEntrySlot>,
+    ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+        self.inner.prepare_entries(stamp, slots)
+    }
+    fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        prepared: PreparedEntries,
+        request: ConditionalCommit,
+        validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        self.inner
+            .commit_prepared_checked(prepared, request, validator)
+    }
 }

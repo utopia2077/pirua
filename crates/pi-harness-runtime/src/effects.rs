@@ -1504,7 +1504,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             (EffectPlan::Assistant(plan),RunPhase::Assistant(AssistantPhase {generation,..}))=>PendingGeneration::try_from(generation.clone()).is_ok_and(|pending|pending==plan.generation),
             (EffectPlan::Hook(plan),RunPhase::Assistant(AssistantPhase {generation:Generation::Ready {context,next_attempt},..}))=>matches!(plan.event,HookEvent::BeforeRequest(_))&&key.step_or_task_id.as_str()==context.step_id.as_str()&&key.logical_attempt.get()==next_attempt.get()&&key.kind==EffectKind::Hook,
             (EffectPlan::Hook(plan),RunPhase::Checkpoint(checkpoint))=>matches!(plan.event,HookEvent::BeforeRunEnd(_))&&key.step_or_task_id.as_str()==checkpoint.trigger_entry_id.as_str()&&matches!(checkpoint.continuation,Continuation::MayFinish {..}),
-            (EffectPlan::Tool(plan),RunPhase::Tools(tools))=>plan.assistant_entry_id==tools.batch.assistant_entry_id&&key.step_or_task_id.as_str()==tools.batch.turn_id.as_str()&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::EffectPending {source_index,..} if *source_index==plan.source_index))&&plan.args_key==pi_harness_core::tool_batch::args_key(current,&tools.batch,plan.source_index),
+            (EffectPlan::Tool(plan),RunPhase::Tools(_))=>pi_harness_core::tool_batch::expects_effect(current,&key.session_id,plan),
             (EffectPlan::ToolClearance(plan),RunPhase::Tools(tools))=>plan.assistant_entry_id==tools.batch.assistant_entry_id&&plan.turn_id==tools.batch.turn_id&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::Planned {source_index,result_entry_id} if *source_index==plan.source_index&&*result_entry_id==plan.result_entry_id)),
             _=>false,
         }

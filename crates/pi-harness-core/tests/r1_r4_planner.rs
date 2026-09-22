@@ -365,6 +365,101 @@ fn tool_clearance_saves_complete_args_and_source_order_controls_results() {
         RecipeDecision::NoLongerExpected
     );
 }
+
+#[test]
+fn current_tool_effect_requires_the_whole_derived_identity() {
+    let (mut current, mut inputs, facts) = fixture("run.tools.planned");
+    let planning = tool_planning(&facts, false);
+    let recipe = clear_one(&current, &inputs, &facts, &planning);
+    let EffectPlan::Tool(plan) = recipe.dispatch.clone().unwrap() else {
+        panic!()
+    };
+    publish(&mut current, &mut inputs, &recipe);
+    let expected = |plan: &ToolEffectPlan<&'static str>| {
+        pi_harness_core::tool_batch::expects_effect(&current, &facts.session_id, plan)
+    };
+    assert!(expected(&plan));
+
+    let mut forged = plan.clone();
+    forged.key.session_id = SessionId::new("other-session").unwrap();
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.lane = LaneId::new("other-lane").unwrap();
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.operation_id = OperationId::new("other-operation").unwrap();
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.kind = EffectKind::Hook;
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.step_or_task_id = EffectStepId::new("other-turn").unwrap();
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.logical_attempt = n(1);
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.item_index = None;
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.key.item_index = Some(n(3));
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.assistant_entry_id = EntryId::new("other-assistant").unwrap();
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.args_key = "other-args".into();
+    assert!(!expected(&forged));
+    let mut forged = plan.clone();
+    forged.source_index = n(3);
+    assert!(!expected(&forged));
+
+    let mut stale = current.clone();
+    let OperationState::Run(run) = &mut stale.state else {
+        panic!()
+    };
+    let RunPhase::Tools(tools) = &mut run.phase else {
+        panic!()
+    };
+    tools.batch.turn_id = StepId::new("later-turn").unwrap();
+    assert!(!pi_harness_core::tool_batch::expects_effect(
+        &stale,
+        &facts.session_id,
+        &plan,
+    ));
+    let OperationState::Run(run) = &mut stale.state else {
+        panic!()
+    };
+    let RunPhase::Tools(tools) = &mut run.phase else {
+        panic!()
+    };
+    tools.batch.turn_id = StepId::new(plan.key.step_or_task_id.as_str()).unwrap();
+    tools.batch.assistant_entry_id = EntryId::new("later-assistant").unwrap();
+    assert!(!pi_harness_core::tool_batch::expects_effect(
+        &stale,
+        &facts.session_id,
+        &plan,
+    ));
+
+    let OperationState::Run(run) = &mut current.state else {
+        panic!()
+    };
+    let RunPhase::Tools(tools) = &mut run.phase else {
+        panic!()
+    };
+    let result_entry_id = pi_harness_core::tool_batch::source(&tools.batch.calls[0])
+        .1
+        .clone();
+    tools.batch.calls[0] = ToolCallState::Planned {
+        source_index: plan.source_index,
+        result_entry_id,
+    };
+    assert!(!pi_harness_core::tool_batch::expects_effect(
+        &current,
+        &facts.session_id,
+        &plan,
+    ));
+}
 #[test]
 fn acceptance_rejects_empty_and_places_pending_atomically_preserving_uncaptured() {
     let (current, _, _) = fixture("run.checkpoint");

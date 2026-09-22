@@ -3,8 +3,10 @@ mod runtime_r1_r4_support;
 mod runtime_r6_retirement_support;
 use pi_agent_schema::*;
 use pi_agent_session::storage::AtomicStorage;
+use pi_agent_session::{codec::SessionCodec, session::RuntimeSession};
 use pi_ai_core::{CancellationToken, Presence};
-use runtime_r1_r4_support::{Setup, poll};
+use pi_harness_runtime::owner::RuntimeFactory;
+use runtime_r1_r4_support::{Setup, Summary, poll};
 use runtime_r6_retirement_support::*;
 use std::{
     sync::{Arc, atomic::Ordering},
@@ -123,6 +125,152 @@ fn actual_public_fault_retires_pending_custom_projector_and_accepted_prompt() {
     assert!(
         matches!(completion, Some(Err(HarnessRuntimeError::Fault(_)))),
         "accepted prompt must reject Fault without projector cooperation"
+    );
+}
+
+#[test]
+fn external_terminal_after_tool_hydration_stamp_keeps_original_result() {
+    let s = Setup::new();
+    let tool = Tool::new();
+    let after = Arc::new(AfterToolCount::default());
+    let storage = Arc::new(AfterRawStamp::new(s.store.clone(), tool.clone()));
+    let session = Arc::new(
+        s.pump
+            .drive(RuntimeSession::new(
+                storage.clone(),
+                s.session.metadata(),
+                Arc::new(
+                    SessionCodec::new(
+                        SessionCodecOptions::default(),
+                        ProviderHeaderPolicy::default(),
+                    )
+                    .unwrap(),
+                ),
+                s.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    *s.faux.responses.lock().unwrap() = vec![tool_response(&s)].into();
+    let mut options = s.options_for::<(), _>(session, DriveMode::Automatic);
+    options.tools = vec![tool.clone()];
+    options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]);
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
+    let factory = RuntimeFactory::new(
+        s.time.clone(),
+        s.pump.clone(),
+        s.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let c = s.pump.drive(factory.create(options)).unwrap();
+    s.pump
+        .drive(
+            c.harness
+                .set_active_tools(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]),
+        )
+        .unwrap();
+    let _hook = c.harness.hooks().after_tool(None, after.clone()).unwrap();
+    let mut accepted = Box::pin(c.harness.prompt(prompt()));
+    assert!(poll(accepted.as_mut()).is_pending());
+    for _ in 0..512 {
+        s.pump.tick();
+        if storage.entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        storage.entered.is_cancelled(),
+        "post-raw hydration stamp must park"
+    );
+    assert_eq!(tool.started.load(Ordering::SeqCst), 1);
+    assert_eq!(tool.raw_done.load(Ordering::SeqCst), 1);
+    assert_eq!(after.0.load(Ordering::SeqCst), 0);
+    let (operation, result_id, last) = external_terminal(&s);
+    let terminal = s.pump.drive(s.store.snapshot()).unwrap();
+    storage.release.cancel();
+    let completion = s.pump.drive(accepted);
+    assert!(
+        matches!(&completion, Ok(Ok(RunSuccess { run_id, outcome: RunOutcome::AbortedWithAssistant(_), .. })) if run_id == &operation),
+        "valid external terminal must resolve the original run: {completion:?}"
+    );
+    assert_eq!(s.pump.drive(s.store.snapshot()).unwrap(), terminal);
+    assert!(
+        s.pump
+            .drive(s.session.get_entries(std::slice::from_ref(&result_id)))
+            .unwrap()
+            .contains_key(&result_id)
+    );
+    assert_eq!(after.0.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        s.pump.drive(c.harness.get_last_result()).unwrap(),
+        Some(last)
+    );
+}
+
+#[test]
+fn stable_changed_saved_tool_arguments_fault_before_raw_settlement() {
+    let s = Setup::new();
+    let tool = Tool::new();
+    let release = CancellationToken::new();
+    *tool.release.lock().unwrap() = Some(release.clone());
+    *s.faux.responses.lock().unwrap() = vec![tool_response(&s)].into();
+    let mut options = s.options::<()>(DriveMode::Automatic);
+    options.tools = vec![tool.clone()];
+    options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]);
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
+    let c = s.pump.drive(factory(&s).create(options)).unwrap();
+    s.pump
+        .drive(
+            c.harness
+                .set_active_tools(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]),
+        )
+        .unwrap();
+    let mut accepted = Box::pin(c.harness.prompt(prompt()));
+    assert!(poll(accepted.as_mut()).is_pending());
+    for _ in 0..512 {
+        s.pump.tick();
+        if tool.started.load(Ordering::SeqCst) == 1 {
+            break;
+        }
+    }
+    assert_eq!(tool.started.load(Ordering::SeqCst), 1);
+    assert_eq!(tool.raw_done.load(Ordering::SeqCst), 0);
+    let mut args = s
+        .pump
+        .drive(
+            s.session
+                .list_registers(RegisterNamespace::OperationToolArguments, None),
+        )
+        .unwrap();
+    assert_eq!(args.len(), 1);
+    let Register::OperationToolArguments { key, .. } = args.pop().unwrap() else {
+        panic!()
+    };
+    let changed =
+        pi_ai_core::JsonObject::new([("changed".into(), pi_ai_core::JsonValue::Bool(true))].into());
+    s.pump
+        .drive(s.session.commit(Transaction {
+            writes: vec![Write::SetRegister(Box::new(
+                RegisterSet::OperationToolArguments {
+                    key,
+                    value: changed,
+                },
+            ))],
+        }))
+        .expect("stable argument replacement is a valid Session write");
+    let before = s.pump.drive(s.store.snapshot()).unwrap();
+    release.cancel();
+    let completion = s.pump.drive(accepted);
+    assert!(
+        matches!(completion, Err(HarnessRuntimeError::Fault(_))),
+        "{completion:?}"
+    );
+    assert_eq!(tool.raw_done.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        s.pump.drive(s.store.snapshot()).unwrap(),
+        before,
+        "no raw tool result or usage may settle"
     );
 }
 

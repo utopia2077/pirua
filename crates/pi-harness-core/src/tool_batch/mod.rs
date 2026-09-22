@@ -30,6 +30,38 @@ pub fn args_key(current: &CurrentOperation, batch: &ToolBatch, index: SafeUnsign
         index.get()
     )
 }
+
+/// Whether the current tool batch still expects this complete planned effect.
+/// The session identity is supplied by the owner because it is not stored in
+/// `CurrentOperation`.
+pub fn expects_effect<C>(
+    current: &CurrentOperation,
+    session: &SessionId,
+    plan: &ToolEffectPlan<C>,
+) -> bool {
+    let OperationState::Run(run) = &current.state else {
+        return false;
+    };
+    let RunPhase::Tools(tools) = &run.phase else {
+        return false;
+    };
+    let batch = &tools.batch;
+    batch.assistant_entry_id == plan.assistant_entry_id
+        && batch.calls.iter().any(|call| {
+            matches!(call, ToolCallState::EffectPending { source_index, .. }
+                if *source_index == plan.source_index)
+        })
+        && key(
+            current,
+            session,
+            EffectKind::Tool,
+            batch.turn_id.as_str(),
+            0,
+            Some(plan.source_index),
+        )
+        .is_ok_and(|expected| expected == plan.key)
+        && args_key(current, batch, plan.source_index) == plan.args_key
+}
 pub(crate) fn assistant<'a, C>(
     inputs: &'a PlannerInputs<C>,
     id: &EntryId,

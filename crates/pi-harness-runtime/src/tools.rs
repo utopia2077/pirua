@@ -8,6 +8,12 @@ use pi_agent_session::storage::RuntimeStorage;
 use pi_ai_core::{JsonObject, Presence, SafeUnsigned};
 use pi_harness_core::planner::{PlanningFacts, ToolDeclaration};
 use std::{collections::BTreeMap, sync::Arc};
+
+fn saved_arguments_match(register: Option<&Register>, key: &str, args: &JsonObject) -> bool {
+    matches!(register, Some(Register::OperationToolArguments { key: saved_key, value, .. })
+        if saved_key == key && value == args)
+}
+
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeEffects<C, S, M>
 {
@@ -226,13 +232,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let _line = self.lane.lane.line.acquire().await?;
         let h = self.lane.load().await?;
         Ok(h.current.as_ref().is_some_and(|current| {
-            current.operation.operation_id == plan.key.operation_id
-                && matches!(&current.state, OperationState::Run(run)
-                    if matches!(&run.phase, RunPhase::Tools(tools)
-                        if tools.batch.turn_id.as_str() == plan.key.step_or_task_id.as_str()
-                            && tools.batch.calls.iter().any(|call| matches!(call,
-                                ToolCallState::EffectPending { source_index, .. }
-                                    if *source_index == plan.source_index))))
+            pi_harness_core::tool_batch::expects_effect(
+                current,
+                &self.lane.owner.session.metadata().base_metadata().id,
+                plan,
+            )
         }))
     }
     async fn prepared(
@@ -289,12 +293,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .get_register(RegisterNamespace::OperationToolArguments, &plan.args_key)
             .await
             .map_err(|_| self.lane.owner.fail("saved tool arguments read failed"))?;
-        let Some(Register::OperationToolArguments { value: args, .. }) = register else {
+        let Some(Register::OperationToolArguments {
+            key, value: args, ..
+        }) = register
+        else {
             if !self.tool_is_current(plan).await? {
                 return Ok(None);
             }
             return Err(self.lane.owner.fail("saved tool arguments absent"));
         };
+        if key != plan.args_key {
+            return Err(self.lane.owner.fail("saved tool arguments key mismatch"));
+        }
         Ok(Some((
             PreparedToolCall {
                 tool_call: call,
@@ -319,7 +329,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let _settings = self.lane.owner.settings_line.acquire().await?;
             let _line = self.lane.lane.line.acquire().await?;
             let h = self.lane.load().await?;
-            let expected=h.current.as_ref().is_some_and(|current|current.operation.operation_id==plan.key.operation_id&&matches!(&current.state,OperationState::Run(run) if matches!(run.control,Control::Running(_))&&matches!(&run.phase,RunPhase::Tools(tools) if tools.batch.turn_id.as_str()==plan.key.step_or_task_id.as_str()&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::EffectPending {source_index,..} if *source_index==plan.source_index)))));
+            let expected=h.current.as_ref().is_some_and(|current| {
+                pi_harness_core::tool_batch::expects_effect(
+                    current,
+                    &self.lane.owner.session.metadata().base_metadata().id,
+                    &plan,
+                ) && matches!(&current.state, OperationState::Run(run) if matches!(run.control, Control::Running(_)))
+            });
             if !expected {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
@@ -369,8 +385,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .get_register(RegisterNamespace::OperationToolArguments, &plan.args_key)
                 .await
                 .map_err(|_| self.lane.owner.fail("tool start arguments read failed"))?;
-            if !matches!(register,Some(Register::OperationToolArguments {value,..}) if value==prepared.args)
-            {
+            if !saved_arguments_match(register.as_ref(), &plan.args_key, &prepared.args) {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
             let turn = StepId::new(plan.key.step_or_task_id.as_str())
@@ -452,7 +467,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         );
         let events = ToolEvents {
             fx: self.clone(),
-            key: plan.key.clone(),
+            plan: plan.clone(),
+            args: prepared.args.clone(),
             telemetry: span.clone(),
         };
         let output = pi_agent_loop::execute_tool_call(
@@ -470,6 +486,32 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             )]),
             output.is_error,
         );
+        // The tool may have yielded while another writer finalized the
+        // operation or changed its saved effective arguments. Use the register
+        // from this same stamped hydration: a separate read could observe an
+        // external terminal's args deletion after the pending-state sample.
+        let _line = self.lane.lane.line.acquire().await?;
+        let h = self.lane.load().await?;
+        let expected = h.current.as_ref().is_some_and(|current| {
+            pi_harness_core::tool_batch::expects_effect(
+                current,
+                &self.lane.owner.session.metadata().base_metadata().id,
+                &plan,
+            )
+        });
+        if !expected {
+            return Ok(EffectOutput::NotStarted { key: plan.key });
+        }
+        let register = h.registers.get(&(
+            RegisterNamespace::OperationToolArguments,
+            plan.args_key.clone(),
+        ));
+        if !saved_arguments_match(register, &plan.args_key, &prepared.args) {
+            return Err(self
+                .lane
+                .owner
+                .fail("saved tool arguments changed during execution"));
+        }
         Ok(EffectOutput::ToolRaw(ToolRawOutput {
             key: plan.key,
             result: output.result,
@@ -687,7 +729,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
 struct ToolEvents<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     fx: Arc<RuntimeEffects<C, S, M>>,
     telemetry: Telemetry,
-    key: EffectKey,
+    plan: ToolEffectPlan<Telemetry>,
+    args: JsonObject,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord> AgentEventSink
     for ToolEvents<C, S, M>
@@ -704,8 +747,21 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             {
                 let line = self.fx.lane.lane.line.acquire().await?;
                 let h = self.fx.lane.load().await?;
-                let expected=h.current.as_ref().is_some_and(|current|current.operation.operation_id==self.key.operation_id&&matches!(&current.state,OperationState::Run(run) if matches!(&run.phase,RunPhase::Tools(tools) if tools.batch.turn_id.as_str()==self.key.step_or_task_id.as_str()&&tools.batch.calls.iter().any(|call|matches!(call,ToolCallState::EffectPending {source_index,..} if Some(*source_index)==self.key.item_index)))));
+                let expected = h.current.as_ref().is_some_and(|current| {
+                    pi_harness_core::tool_batch::expects_effect(
+                        current,
+                        &self.fx.lane.owner.session.metadata().base_metadata().id,
+                        &self.plan,
+                    )
+                });
                 if !expected {
+                    return Ok(());
+                }
+                let register = h.registers.get(&(
+                    RegisterNamespace::OperationToolArguments,
+                    self.plan.args_key.clone(),
+                ));
+                if !saved_arguments_match(register, &self.plan.args_key, &self.args) {
                     return Ok(());
                 }
                 let previous = {
@@ -716,7 +772,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .running_tools
                         .lock()
                         .unwrap_or_else(|p| p.into_inner());
-                    tools.get_mut(&self.key).and_then(|snapshot| {
+                    tools.get_mut(&self.plan.key).and_then(|snapshot| {
                         snapshot.partial_result.replace(partial_result.clone())
                     })
                 };
@@ -726,13 +782,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .with_context(self.telemetry.clone())
                     .enqueue(
                         HarnessEventType::ToolUpdate,
-                        &self.key.lane,
+                        &self.plan.key.lane,
                         HarnessEvent::ToolUpdate(ToolUpdateEvent {
                             event_type: Default::default(),
-                            lane: self.key.lane.clone(),
+                            lane: self.plan.key.lane.clone(),
                             recovery: None,
-                            run_id: self.key.operation_id.clone(),
-                            turn_id: self.key.step_or_task_id.as_str().into(),
+                            run_id: self.plan.key.operation_id.clone(),
+                            turn_id: self.plan.key.step_or_task_id.as_str().into(),
                             tool_call_id,
                             tool_name,
                             partial_result,
@@ -743,5 +799,32 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             Ok(())
         })
+    }
+}
+
+#[cfg(test)]
+mod exact_plan_tests {
+    use super::*;
+
+    #[test]
+    fn saved_arguments_require_register_key_and_value_identity() {
+        let args = JsonObject::default();
+        let register = Register::OperationToolArguments {
+            key: "expected".into(),
+            value: args.clone(),
+            seq: SafeUnsigned::new(1).unwrap(),
+        };
+        assert!(saved_arguments_match(Some(&register), "expected", &args));
+        assert!(!saved_arguments_match(Some(&register), "other", &args));
+        let different = JsonObject::new(BTreeMap::from([(
+            "changed".into(),
+            pi_ai_core::JsonValue::Bool(true),
+        )]));
+        assert!(!saved_arguments_match(
+            Some(&register),
+            "expected",
+            &different
+        ));
+        assert!(!saved_arguments_match(None, "expected", &args));
     }
 }
