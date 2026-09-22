@@ -211,6 +211,11 @@ struct OwnerInner {
 pub struct SingleToolOwner(Arc<OwnerInner>);
 
 impl SingleToolOwner {
+    /// Process-local identity check for a harness's one owner-wide live slot.
+    pub(crate) fn same_owner(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+
     pub fn new(host: Arc<dyn TaskSpawner>, limits: OwnerLimits) -> Self {
         Self(Arc::new(OwnerInner {
             state: Mutex::new(OwnerState {
@@ -832,6 +837,27 @@ pub struct ReadyToolRoute {
 impl ReadyToolRoute {
     pub fn grant(&self) -> &ActiveGrant {
         &self.route.grant
+    }
+
+    pub(crate) fn owner(&self) -> &SingleToolOwner {
+        &self.owner
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.route.generation
+    }
+
+    pub(crate) fn is_current(&self) -> bool {
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        state
+            .active
+            .as_ref()
+            .is_some_and(|active| Arc::ptr_eq(active, &self.route))
+            && self.route.status() == RouteStatus::Active
+    }
+
+    pub(crate) fn has_echo_domain_projections(&self) -> bool {
+        EchoDomainBinding::check_ready_echo_projections(self.grant()).is_ok()
     }
 
     /// Admit one exact planned echo call; this source unit grants zero progress credit.

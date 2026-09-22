@@ -16,8 +16,236 @@ use pi_ai_core::{Clock, ModelsRegistry, SafeUnsigned, TaskSpawner};
 use pi_telemetry::TelemetryContext;
 use std::{
     collections::BTreeMap,
+    ops::Deref,
     sync::{Arc, Mutex},
 };
+
+#[cfg(feature = "extensions")]
+use crate::extensions::tool_driver::{ReadyToolRoute, SingleToolOwner};
+
+#[cfg(feature = "extensions")]
+fn matches_ready_echo<C>(handle: &AgentHarnessToolHandle<C>, route: &ReadyToolRoute) -> bool {
+    use pi_extension_protocol::activation::{AgentToolMode, ToolReplay};
+
+    let [granted] = route.grant().tools() else {
+        return false;
+    };
+    let selected = granted.descriptor();
+    let local = handle.descriptor();
+    let mode = match selected.execution_mode {
+        AgentToolMode::Sequential => ToolExecutionMode::Sequential,
+        AgentToolMode::Parallel => ToolExecutionMode::Parallel,
+    };
+    let replay = match selected.replay {
+        ToolReplay::Safe => pi_agent_schema::ToolReplay::Safe,
+        ToolReplay::Never => pi_agent_schema::ToolReplay::Never,
+    };
+    selected.name == "echo"
+        && local.name.as_str() == selected.name
+        && local.label == selected.label
+        && local.description == selected.description
+        && local.constrained_sampling.is_none()
+        && local.execution_mode == Some(mode)
+        && local.replay == Some(replay)
+        && serde_json::to_value(&local.parameters).ok().as_ref() == Some(&selected.parameters)
+}
+
+/// One process-local view of native handles and the selected Ready echo route.
+/// Mutations of this value are serialized by the owner settings line.
+pub(crate) struct ToolRegistry<C> {
+    handles: Vec<AgentHarnessToolHandle<C>>,
+    #[cfg(feature = "extensions")]
+    echo: Option<RegisteredEcho<C>>,
+    #[cfg(feature = "extensions")]
+    echo_owner: Option<SingleToolOwner>,
+    #[cfg(feature = "extensions")]
+    next_epoch: u64,
+}
+
+/// Displaced host-owned objects must be released after both registry and
+/// settings-line guards. Their destructors may synchronously call back in.
+pub(crate) struct ReplacedTools<C> {
+    handles: Vec<AgentHarnessToolHandle<C>>,
+    #[cfg(feature = "extensions")]
+    echo: Option<RegisteredEcho<C>>,
+}
+
+impl<C> ReplacedTools<C> {
+    pub(crate) fn release(self) {
+        drop(self.handles);
+        #[cfg(feature = "extensions")]
+        drop(self.echo);
+    }
+}
+
+impl<C> ToolRegistry<C> {
+    fn new(handles: Vec<AgentHarnessToolHandle<C>>) -> Self {
+        Self {
+            handles,
+            #[cfg(feature = "extensions")]
+            echo: None,
+            #[cfg(feature = "extensions")]
+            echo_owner: None,
+            #[cfg(feature = "extensions")]
+            next_epoch: 1,
+        }
+    }
+
+    /// Under settings_line, drain a removed route before publishing new handles.
+    pub(crate) fn replace_handles(
+        &mut self,
+        handles: Vec<AgentHarnessToolHandle<C>>,
+    ) -> ReplacedTools<C> {
+        #[cfg(feature = "extensions")]
+        let retired_echo = if let Some(registered) = self.echo.as_ref()
+            && (handles
+                .iter()
+                .filter(|handle| handle.descriptor().name.as_str() == "echo")
+                .count()
+                != 1
+                || !handles
+                    .iter()
+                    .any(|handle| Arc::ptr_eq(handle, &registered.handle)))
+        {
+            let retired = self.echo.take();
+            if let Some(registered) = &retired {
+                registered.route.stop_new_calls();
+            }
+            retired
+        } else {
+            None
+        };
+        ReplacedTools {
+            handles: std::mem::replace(&mut self.handles, handles),
+            #[cfg(feature = "extensions")]
+            echo: retired_echo,
+        }
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) fn register_echo(
+        &mut self,
+        handle: &AgentHarnessToolHandle<C>,
+        route: &Arc<ReadyToolRoute>,
+    ) -> Result<ReplacedTools<C>, crate::extensions::tool_driver::DriverError> {
+        use crate::extensions::tool_driver::DriverError;
+
+        if !matches_ready_echo(handle, route)
+            || !route.has_echo_domain_projections()
+            || !route.is_current()
+            || self
+                .echo
+                .as_ref()
+                .is_some_and(|registered| Arc::ptr_eq(&registered.route, route))
+            || self
+                .echo_owner
+                .as_ref()
+                .is_some_and(|owner| !owner.same_owner(route.owner()))
+        {
+            return Err(DriverError::InvalidHost);
+        }
+        let next_epoch = self
+            .next_epoch
+            .checked_add(1)
+            .ok_or(DriverError::Overloaded)?;
+        let retired_echo = self.echo.take();
+        if let Some(previous) = &retired_echo {
+            previous.route.stop_new_calls();
+        }
+        let mut handles = Vec::with_capacity(self.handles.len() + 1);
+        let mut inserted = false;
+        for current in &self.handles {
+            if current.descriptor().name.as_str() == "echo" {
+                if !inserted {
+                    handles.push(handle.clone());
+                    inserted = true;
+                }
+            } else {
+                handles.push(current.clone());
+            }
+        }
+        if !inserted {
+            handles.push(handle.clone());
+        }
+        self.echo_owner.get_or_insert_with(|| route.owner().clone());
+        self.echo = Some(RegisteredEcho {
+            handle: handle.clone(),
+            generation: route.generation(),
+            epoch: self.next_epoch,
+            route: route.clone(),
+        });
+        self.next_epoch = next_epoch;
+        Ok(ReplacedTools {
+            handles: std::mem::replace(&mut self.handles, handles),
+            echo: retired_echo,
+        })
+    }
+
+    #[cfg(feature = "extensions")]
+    #[expect(
+        dead_code,
+        reason = "consumed by the later exact-key execution wrapper"
+    )]
+    pub(crate) fn echo_snapshot(
+        &self,
+        handle: &AgentHarnessToolHandle<C>,
+    ) -> Option<EchoRouteSnapshot<C>> {
+        let registered = self.echo.as_ref()?;
+        Arc::ptr_eq(handle, &registered.handle).then(|| EchoRouteSnapshot {
+            handle: registered.handle.clone(),
+            route: registered.route.clone(),
+            generation: registered.generation,
+            epoch: registered.epoch,
+        })
+    }
+
+    #[cfg(feature = "extensions")]
+    #[expect(
+        dead_code,
+        reason = "consumed by the later exact-key execution wrapper"
+    )]
+    pub(crate) fn echo_is_current(&self, snapshot: &EchoRouteSnapshot<C>) -> bool {
+        self.echo.as_ref().is_some_and(|current| {
+            current.epoch == snapshot.epoch
+                && current.generation == snapshot.generation
+                && Arc::ptr_eq(&current.handle, &snapshot.handle)
+                && Arc::ptr_eq(&current.route, &snapshot.route)
+        })
+    }
+}
+
+impl<C> Deref for ToolRegistry<C> {
+    type Target = Vec<AgentHarnessToolHandle<C>>;
+    fn deref(&self) -> &Self::Target {
+        &self.handles
+    }
+}
+
+#[cfg(feature = "extensions")]
+#[expect(
+    dead_code,
+    reason = "registration epoch is consumed through the later claim snapshot"
+)]
+struct RegisteredEcho<C> {
+    handle: AgentHarnessToolHandle<C>,
+    route: Arc<ReadyToolRoute>,
+    generation: u64,
+    epoch: u64,
+}
+
+/// Candidate only: the later execution wrapper must recheck this under
+/// settings_line and claim in the driver before releasing that line.
+#[cfg(feature = "extensions")]
+#[expect(
+    dead_code,
+    reason = "consumed by the later exact-key execution wrapper"
+)]
+pub(crate) struct EchoRouteSnapshot<C> {
+    pub(crate) handle: AgentHarnessToolHandle<C>,
+    pub(crate) route: Arc<ReadyToolRoute>,
+    pub(crate) generation: u64,
+    pub(crate) epoch: u64,
+}
 
 pub type Telemetry = Arc<dyn TelemetryContext>;
 pub struct RuntimeFactory<C, S: RuntimeStorage, M: SessionMetadataRecord = SessionMetadata> {
@@ -92,7 +320,7 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub admission: Admission,
     pub settings_line: MutationLine,
     pub settings: Mutex<Settings>,
-    pub tools: Mutex<Vec<AgentHarnessToolHandle<C>>>,
+    pub tools: Mutex<ToolRegistry<C>>,
     pub lanes: Mutex<BTreeMap<LaneId, Arc<LaneControl>>>,
     pub suspensions: Mutex<BTreeMap<LaneId, SuspensionObservation>>,
     pub lease: Mutex<Option<RuntimeLease>>,
@@ -288,7 +516,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             close_started: std::sync::atomic::AtomicBool::new(false),
             closed: pi_ai_core::CancellationToken::new(),
             seed,
-            tools: Mutex::new(options.tools),
+            tools: Mutex::new(ToolRegistry::new(options.tools)),
             lanes: Mutex::new(lanes),
             suspensions: Mutex::new(BTreeMap::new()),
             lease: Mutex::new(Some(lease)),

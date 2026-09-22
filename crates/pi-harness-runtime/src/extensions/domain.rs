@@ -79,6 +79,29 @@ pub struct EchoDomainBinding {
 }
 
 impl EchoDomainBinding {
+    /// Grant-only echo projection pin. Registration calls this before making
+    /// the handle visible; invocation binding repeats it before dispatch.
+    pub(crate) fn check_ready_echo_projections(grant: &ActiveGrant) -> Result<(), DomainHostError> {
+        let tool = grant
+            .tools()
+            .iter()
+            .find(|tool| tool.descriptor().name == ECHO)
+            .ok_or(DomainHostError::Binding)?;
+        let projections = tool.projections();
+        let progress = projections.progress();
+        let result = projections.raw_result();
+        if progress.id() != PROGRESS_ID
+            || result.id() != RESULT_ID
+            || progress.digest() != ECHO_DOMAIN_DIGEST
+            || result.digest() != ECHO_DOMAIN_DIGEST
+            || progress.digest() != progress.schema().canonical().sha256()
+            || result.digest() != result.schema().canonical().sha256()
+        {
+            return Err(DomainHostError::Projection);
+        }
+        Ok(())
+    }
+
     /// Bind before dispatch. A host catalog with a different echo domain is not
     /// suitable for this adapter even if activation approved its wire schema.
     pub fn new(grant: &ActiveGrant, invocation: &ToolInvocation) -> Result<Self, DomainHostError> {
@@ -108,18 +131,7 @@ impl EchoDomainBinding {
         {
             return Err(DomainHostError::Binding);
         }
-        let projections = tool.projections();
-        let progress = projections.progress();
-        let result = projections.raw_result();
-        if progress.id() != PROGRESS_ID
-            || result.id() != RESULT_ID
-            || progress.digest() != ECHO_DOMAIN_DIGEST
-            || result.digest() != ECHO_DOMAIN_DIGEST
-            || progress.digest() != progress.schema().canonical().sha256()
-            || result.digest() != result.schema().canonical().sha256()
-        {
-            return Err(DomainHostError::Projection);
-        }
+        Self::check_ready_echo_projections(grant)?;
         let frame =
             usize::try_from(host_limits.frame_bytes).map_err(|_| DomainHostError::Binding)?;
         let decoded = usize::try_from(host_limits.aggregate_decoded_bytes)

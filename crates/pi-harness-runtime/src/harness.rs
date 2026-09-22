@@ -1,8 +1,53 @@
 //! Harness-wide settings and public lane ownership.
+#[cfg(feature = "extensions")]
+use crate::extensions::tool_driver::{DriverError, ReadyToolRoute};
 use crate::owner::*;
 use pi_agent_schema::*;
 use pi_agent_session::storage::RuntimeStorage;
 use std::sync::Arc;
+
+#[cfg(feature = "extensions")]
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    RuntimeHarness<C, S, M>
+{
+    /// Installs the one host-approved Ready echo route after concrete owner
+    /// creation. A later execution wrapper must claim under this settings line.
+    pub async fn register_ready_echo_tool(
+        &self,
+        handle: AgentHarnessToolHandle<C>,
+        route: Arc<ReadyToolRoute>,
+    ) -> Result<Result<(), DriverError>, HarnessRuntimeError> {
+        let line = self.main.owner.settings_line.acquire().await?;
+        let result = self
+            .main
+            .owner
+            .tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .register_echo(&handle, &route);
+        match result {
+            Ok(old) => {
+                self.main.owner.events.enqueue(
+                    HarnessEventType::ConfigUpdate,
+                    &self.main.lane.name,
+                    HarnessEvent::GlobalConfigUpdate(GlobalConfigUpdateEvent {
+                        event_type: Default::default(),
+                        property: GlobalConfigProperty::Tools,
+                    }),
+                );
+                drop(line);
+                old.release();
+                self.main.owner.events.flush();
+                Ok(Ok(()))
+            }
+            Err(error) => {
+                drop(line);
+                Ok(Err(error))
+            }
+        }
+    }
+}
+
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     AgentHarness<C> for RuntimeHarness<C, S, M>
 {
@@ -59,17 +104,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
         Box::pin(async move {
             let _line = self.main.owner.settings_line.acquire().await?;
-            let old = std::mem::replace(
-                &mut *self
-                    .main
-                    .owner
-                    .tools
-                    .lock()
-                    .unwrap_or_else(|p| p.into_inner()),
-                tools,
-            );
-            drop(_line);
-            drop(old);
+            let old = self
+                .main
+                .owner
+                .tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .replace_handles(tools);
             self.main.owner.events.enqueue(
                 HarnessEventType::ConfigUpdate,
                 &self.main.lane.name,
@@ -78,6 +119,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     property: GlobalConfigProperty::Tools,
                 }),
             );
+            drop(_line);
+            old.release();
             self.main.owner.events.flush();
             Ok(())
         })

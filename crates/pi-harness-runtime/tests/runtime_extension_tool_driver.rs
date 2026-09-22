@@ -1,5 +1,7 @@
 #![cfg(feature = "extensions")]
 
+mod runtime_r1_r4_support;
+
 use std::collections::VecDeque;
 use std::future::{Future, poll_fn};
 use std::num::{NonZeroU64, NonZeroUsize};
@@ -16,6 +18,7 @@ use pi_extension_protocol::activation::{
     AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolReplay, ToolSchemaInputs,
 };
 use pi_extension_protocol::descriptor::canonical_profile_digest;
+use pi_extension_protocol::jcs;
 use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::wire::framing::{self, EncodedFrame, FrameReader};
 use pi_extension_protocol::wire::{v1_0, v1_1};
@@ -26,6 +29,8 @@ use pi_harness_runtime::extensions::tool_driver::{
 use pi_harness_runtime::extensions::transport::{
     ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig,
 };
+use pi_harness_runtime::owner::RuntimeFactory;
+use runtime_r1_r4_support::{Setup, Summary};
 use serde_json::Value;
 
 const CATALOG: &str = include_str!("../../pi-extension-protocol/schema/fixtures/host-catalog.json");
@@ -86,6 +91,43 @@ fn manifest() -> Vec<u8> {
             .as_str()
             .unwrap()),
     )
+}
+
+fn manifest_with_altered_progress() -> Vec<u8> {
+    let catalog: Value = serde_json::from_str(CATALOG).unwrap();
+    let entry = &catalog["entries"][0];
+    let mut altered = entry["selected_minor_schema_sets"]["1.0"]["progress"]["schema"].clone();
+    altered["maxProperties"] = serde_json::json!(16);
+    let original = hex(
+        entry["selected_minor_schema_sets"]["1.0"]["progress"]["schema_digest_sha256"]
+            .as_str()
+            .unwrap(),
+    );
+    let replacement = jcs::admit_schema(
+        &serde_json::to_vec(&altered).unwrap(),
+        jcs::Limits::default(),
+    )
+    .unwrap()
+    .canonical()
+    .sha256();
+    let vectors: Value = serde_json::from_str(VECTORS).unwrap();
+    let mut manifest = hex(vectors["cases"]["valid_1_1"]["manifest_pb_hex"]
+        .as_str()
+        .unwrap());
+    let mut replaced = 0;
+    for offset in 0..=manifest.len() - 32 {
+        if manifest[offset..offset + 32] == original
+            && manifest[..offset]
+                .windows(b"tool.progress:echo".len())
+                .rposition(|window| window == b"tool.progress:echo")
+                .is_some_and(|position| offset - position < 60)
+        {
+            manifest[offset..offset + 32].copy_from_slice(&replacement);
+            replaced += 1;
+        }
+    }
+    assert_eq!(replaced, 2);
+    frame(3, &manifest)
 }
 fn manifest_1_0() -> Vec<u8> {
     let vectors: Value = serde_json::from_str(VECTORS).unwrap();
@@ -471,8 +513,15 @@ fn host(generation: u64) -> HostAuthority {
     host_minor(generation, 1)
 }
 fn host_minor(generation: u64, minor: u32) -> HostAuthority {
+    host_minor_with_progress(generation, minor, false)
+}
+fn host_minor_with_progress(generation: u64, minor: u32, alter_progress: bool) -> HostAuthority {
     let catalog: Value = serde_json::from_str(CATALOG).unwrap();
     let entry = &catalog["entries"][0];
+    let mut altered = entry["selected_minor_schema_sets"]["1.0"]["progress"]["schema"].clone();
+    if alter_progress {
+        altered["maxProperties"] = serde_json::json!(16);
+    }
     let descriptor = AgentTool {
         name: "echo".into(),
         label: entry["agentTool"]["label"].as_str().unwrap().into(),
@@ -488,7 +537,12 @@ fn host_minor(generation: u64, minor: u32) -> HostAuthority {
             ToolSchemaInputs {
                 minor,
                 arguments: serde_json::to_vec(&set["arguments"]["schema"]).unwrap(),
-                progress: serde_json::to_vec(&set["progress"]["schema"]).unwrap(),
+                progress: serde_json::to_vec(if alter_progress {
+                    &altered
+                } else {
+                    &set["progress"]["schema"]
+                })
+                .unwrap(),
                 raw_result: serde_json::to_vec(&set["raw_result"]["schema"]).unwrap(),
             }
         })
@@ -570,6 +624,161 @@ fn setup(
         ))
         .unwrap();
     (channel, clock, route)
+}
+
+fn setup_altered_progress(
+    owner: &SingleToolOwner,
+    spawner: &FakeSpawner,
+    generation: u64,
+) -> pi_harness_runtime::extensions::tool_driver::ReadyToolRoute {
+    let channel = Arc::new(FakeChannel::new());
+    let clock = Arc::new(FakeClock::new(200));
+    channel.push(hello());
+    channel.push(manifest_with_altered_progress());
+    channel.push(ready_frame());
+    spawner
+        .drive(owner.connect(
+            host_minor_with_progress(generation, 1, true),
+            channel,
+            clock,
+            PumpConfig {
+                max_read_chunk: nz(8192),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        ))
+        .unwrap()
+}
+
+struct RouteDropProbeChannel {
+    inner: FakeChannel,
+    entered: std::sync::mpsc::Sender<()>,
+    release: Mutex<std::sync::mpsc::Receiver<()>>,
+}
+
+impl Drop for RouteDropProbeChannel {
+    fn drop(&mut self) {
+        let _ = self.entered.send(());
+        let _ = self
+            .release
+            .lock()
+            .unwrap()
+            .recv_timeout(std::time::Duration::from_secs(5));
+    }
+}
+
+impl OrderedByteChannel for RouteDropProbeChannel {
+    fn read_chunk(
+        &self,
+        max: NonZeroUsize,
+    ) -> BoxFuture<'_, Result<Option<Vec<u8>>, ChannelError>> {
+        self.inner.read_chunk(max)
+    }
+
+    fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
+        self.inner.write_frame(frame)
+    }
+
+    fn close(&self) {
+        self.inner.close();
+    }
+}
+
+#[test]
+fn retired_route_host_drop_does_not_hold_tools_registry() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+    use std::time::Duration;
+
+    for replace_with_g2 in [false, true] {
+        let runtime = Setup::new();
+        let factory = RuntimeFactory::new(
+            runtime.time.clone(),
+            runtime.pump.clone(),
+            runtime.ids.clone(),
+            Arc::new(()),
+            Arc::new(Summary),
+        );
+        let harness = runtime
+            .pump
+            .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+            .unwrap()
+            .harness;
+        let spawner = Arc::new(FakeSpawner::default());
+        let driver_owner = owner(spawner.clone());
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+        let (release_tx, release_rx) = std::sync::mpsc::channel();
+        let channel = Arc::new(RouteDropProbeChannel {
+            inner: FakeChannel::new(),
+            entered: entered_tx,
+            release: Mutex::new(release_rx),
+        });
+        let clock = Arc::new(FakeClock::new(200));
+        channel.inner.push(hello());
+        channel.inner.push(manifest());
+        channel.inner.push(ready_frame());
+        let g1 = Arc::new(
+            spawner
+                .drive(driver_owner.connect(
+                    host(7),
+                    channel.clone(),
+                    clock.clone(),
+                    PumpConfig {
+                        max_read_chunk: nz(8192),
+                        write_timeout_ms: NonZeroU64::new(10).unwrap(),
+                    },
+                ))
+                .unwrap(),
+        );
+        let echo = registry_echo(&g1);
+        runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone()))
+            .unwrap()
+            .unwrap();
+        g1.close();
+        drop(g1);
+        drop(channel);
+        drop(clock);
+        spawner.tick();
+
+        let g2 = replace_with_g2.then(|| Arc::new(setup(&driver_owner, &spawner, 8, 210).2));
+        let mutation_harness = harness.clone();
+        let mutation_pump = runtime.pump.clone();
+        let mutation = std::thread::spawn(move || {
+            if let Some(g2) = g2 {
+                mutation_pump
+                    .drive(mutation_harness.register_ready_echo_tool(echo, g2))
+                    .unwrap()
+                    .unwrap();
+            } else {
+                mutation_pump
+                    .drive(mutation_harness.set_tools(vec![]))
+                    .unwrap();
+            }
+        });
+        entered_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("retired route channel reached Drop");
+        let (started_tx, started_rx) = std::sync::mpsc::channel();
+        let (got_tx, got_rx) = std::sync::mpsc::channel();
+        let read_harness = harness.clone();
+        let read_pump = runtime.pump.clone();
+        let getter = std::thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            let result = read_pump.drive(read_harness.get_tools());
+            got_tx.send(()).unwrap();
+            result
+        });
+        started_rx.recv_timeout(Duration::from_secs(2)).unwrap();
+        let read_completed = got_rx.recv_timeout(Duration::from_millis(100)).is_ok();
+        release_tx.send(()).unwrap();
+        mutation.join().unwrap();
+        getter.join().unwrap().unwrap();
+        assert!(
+            read_completed,
+            "get_tools must complete while retired G1 channel Drop is paused; G2={replace_with_g2}"
+        );
+        runtime.pump.drive(harness.close()).unwrap();
+    }
 }
 fn setup_minor(
     owner: &SingleToolOwner,
@@ -706,6 +915,376 @@ fn timing() -> CallTiming {
 }
 fn saved() -> JsonObject {
     serde_json::from_str(r#"{"text":"ping"}"#).unwrap()
+}
+
+struct RegistryTool {
+    descriptor: pi_agent_schema::AgentTool,
+    drop_pause: Option<Arc<WritePause>>,
+}
+
+impl Drop for RegistryTool {
+    fn drop(&mut self) {
+        if let Some(pause) = &self.drop_pause {
+            pause.entered.wait();
+            pause.release.wait();
+        }
+    }
+}
+
+impl pi_agent_schema::AgentHarnessTool<()> for RegistryTool {
+    fn descriptor(&self) -> &pi_agent_schema::AgentTool {
+        &self.descriptor
+    }
+
+    fn prepare_arguments(
+        &self,
+        arguments: pi_ai_core::JsonValue,
+    ) -> Result<JsonObject, pi_agent_schema::ToolExecutionError> {
+        let pi_ai_core::JsonValue::Object(arguments) = arguments else {
+            panic!("registry fixture expects object arguments")
+        };
+        Ok(arguments)
+    }
+
+    fn execute<'a>(
+        &'a self,
+        _: pi_ai_core::ToolCallId,
+        _: JsonObject,
+        _: &'a dyn pi_agent_schema::Cancellation,
+        _: &'a dyn pi_agent_schema::ToolProgressSink,
+        _: &'a (),
+    ) -> pi_agent_schema::BoxFuture<
+        'a,
+        Result<pi_agent_schema::AgentToolResult, pi_agent_schema::ToolExecutionError>,
+    > {
+        Box::pin(async { panic!("registry test does not execute native tools") })
+    }
+}
+
+fn registry_tool(name: &str) -> pi_agent_schema::AgentHarnessToolHandle<()> {
+    registry_tool_with_pause(name, None)
+}
+
+fn registry_tool_with_pause(
+    name: &str,
+    drop_pause: Option<Arc<WritePause>>,
+) -> pi_agent_schema::AgentHarnessToolHandle<()> {
+    Arc::new(RegistryTool {
+        descriptor: pi_agent_schema::AgentTool {
+            name: pi_ai_core::ToolName::new(name).unwrap(),
+            label: name.into(),
+            description: name.into(),
+            parameters: serde_json::from_value(serde_json::json!({"type":"object"})).unwrap(),
+            constrained_sampling: None,
+            execution_mode: None,
+            replay: None,
+        },
+        drop_pause,
+    })
+}
+
+fn registry_echo(
+    route: &pi_harness_runtime::extensions::tool_driver::ReadyToolRoute,
+) -> pi_agent_schema::AgentHarnessToolHandle<()> {
+    let granted = route.grant().tools()[0].descriptor();
+    Arc::new(RegistryTool {
+        descriptor: pi_agent_schema::AgentTool {
+            name: pi_ai_core::ToolName::new(&granted.name).unwrap(),
+            label: granted.label.clone(),
+            description: granted.description.clone(),
+            parameters: serde_json::from_value(granted.parameters.clone()).unwrap(),
+            constrained_sampling: None,
+            execution_mode: Some(match granted.execution_mode {
+                AgentToolMode::Sequential => pi_agent_schema::ToolExecutionMode::Sequential,
+                AgentToolMode::Parallel => pi_agent_schema::ToolExecutionMode::Parallel,
+            }),
+            replay: Some(match granted.replay {
+                ToolReplay::Safe => pi_agent_schema::ToolReplay::Safe,
+                ToolReplay::Never => pi_agent_schema::ToolReplay::Never,
+            }),
+        },
+        drop_pause: None,
+    })
+}
+
+struct RegistryEventLog(Mutex<Vec<pi_agent_schema::HarnessEvent>>);
+
+impl pi_agent_schema::EventListener for RegistryEventLog {
+    fn on_event(
+        &self,
+        event: pi_agent_schema::HarnessEvent,
+    ) -> pi_agent_schema::BoxFuture<'_, Result<(), pi_agent_schema::HandlerError>> {
+        Box::pin(async move {
+            self.0.lock().unwrap().push(event);
+            Ok(())
+        })
+    }
+}
+
+#[test]
+fn runtime_tools_events_follow_settings_publication_order() {
+    use pi_agent_schema::{AgentHarness, AgentLane, DriveMode};
+
+    let runtime = Setup::new();
+    let pause = Arc::new(WritePause::new());
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options(DriveMode::Automatic);
+    options.tools = vec![registry_tool_with_pause("echo", Some(pause.clone()))];
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    let watch = runtime.pump.drive(harness.watch()).unwrap();
+    let events = Arc::new(RegistryEventLog(Mutex::new(Vec::new())));
+    watch.start(events.clone());
+
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (_, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    let thread_harness = harness.clone();
+    let thread_pump = runtime.pump.clone();
+    let registration = std::thread::spawn(move || {
+        thread_pump.drive(thread_harness.register_ready_echo_tool(echo, route))
+    });
+    pause.entered.wait();
+    runtime.pump.drive(harness.set_tools(vec![])).unwrap();
+    let before_release = events
+        .0
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|event| matches!(event, pi_agent_schema::HarnessEvent::GlobalConfigUpdate(_)))
+        .count();
+    pause.release.wait();
+    registration.join().unwrap().unwrap().unwrap();
+    assert_eq!(
+        before_release, 2,
+        "both ordered events must precede the paused flush"
+    );
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn runtime_g2_registration_preserves_existing_echo_position() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+
+    let runtime = Setup::new();
+    let native = registry_tool("native");
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options(DriveMode::Automatic);
+    options.tools = vec![native.clone()];
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (_, _, g1) = setup(&driver_owner, &spawner, 7, 200);
+    let g1 = Arc::new(g1);
+    let echo = registry_echo(&g1);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_tools(vec![echo.clone(), native.clone()]))
+        .unwrap();
+
+    let (_, _, g2) = setup(&driver_owner, &spawner, 8, 210);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), Arc::new(g2)))
+        .unwrap()
+        .unwrap();
+    let handles = runtime.pump.drive(harness.get_tools()).unwrap();
+    assert_eq!(handles.len(), 2);
+    assert!(Arc::ptr_eq(&handles[0], &echo));
+    assert!(Arc::ptr_eq(&handles[1], &native));
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn runtime_rejects_ready_echo_with_altered_progress_projection() {
+    use pi_agent_schema::{AgentHarness, AgentLane, DriveMode};
+
+    let runtime = Setup::new();
+    let native = registry_tool("native");
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options(DriveMode::Automatic);
+    options.tools = vec![native.clone()];
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    let watch = runtime.pump.drive(harness.watch()).unwrap();
+    let events = Arc::new(RegistryEventLog(Mutex::new(Vec::new())));
+    watch.start(events.clone());
+
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let route = Arc::new(setup_altered_progress(&driver_owner, &spawner, 7));
+    let echo = registry_echo(&route);
+    assert_eq!(
+        runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(echo, route))
+            .unwrap()
+            .err(),
+        Some(DriverError::InvalidHost)
+    );
+    let tools = runtime.pump.drive(harness.get_tools()).unwrap();
+    assert_eq!(tools.len(), 1);
+    assert!(Arc::ptr_eq(&tools[0], &native));
+    assert!(events.0.lock().unwrap().is_empty());
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+
+    let setup_runtime = Setup::new();
+    let native = registry_tool("native");
+    let factory = RuntimeFactory::new(
+        setup_runtime.time.clone(),
+        setup_runtime.pump.clone(),
+        setup_runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = setup_runtime.options(DriveMode::Automatic);
+    options.tools = vec![native.clone()];
+    let harness = setup_runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (_, _, g1) = setup(&driver_owner, &spawner, 7, 200);
+    let g1 = Arc::new(g1);
+    let echo = registry_echo(&g1);
+    assert_eq!(
+        setup_runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(native.clone(), g1.clone()))
+            .unwrap()
+            .err(),
+        Some(DriverError::InvalidHost)
+    );
+    assert_eq!(
+        setup_runtime.pump.drive(harness.get_tools()).unwrap().len(),
+        1
+    );
+    assert_eq!(
+        setup_runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(registry_tool("echo"), g1.clone()))
+            .unwrap()
+            .err(),
+        Some(DriverError::InvalidHost),
+        "a same-name handle with different schema/replay is not the grant"
+    );
+
+    setup_runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone()))
+        .unwrap()
+        .unwrap();
+    let tools = setup_runtime.pump.drive(harness.get_tools()).unwrap();
+    assert_eq!(tools.len(), 2);
+    assert!(Arc::ptr_eq(&tools[0], &native));
+    assert!(Arc::ptr_eq(&tools[1], &echo));
+    assert_eq!(
+        setup_runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone()))
+            .unwrap()
+            .err(),
+        Some(DriverError::InvalidHost),
+        "re-registering the same route cannot drain it and publish it again"
+    );
+    setup_runtime
+        .pump
+        .drive(harness.set_tools(vec![native.clone(), echo.clone()]))
+        .unwrap();
+    let first = g1.start_planned(&plan(), &saved(), "g1", timing()).unwrap();
+
+    let other_owner = owner(spawner.clone());
+    let (_, _, alien) = setup(&other_owner, &spawner, 1, 200);
+    assert_eq!(
+        setup_runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(echo.clone(), Arc::new(alien)))
+            .unwrap()
+            .err(),
+        Some(DriverError::InvalidHost)
+    );
+    assert!(Arc::ptr_eq(
+        &setup_runtime.pump.drive(harness.get_tools()).unwrap()[1],
+        &echo
+    ));
+
+    setup_runtime
+        .pump
+        .drive(harness.set_tools(vec![native.clone()]))
+        .unwrap();
+    assert_eq!(
+        g1.start_planned(&plan(), &saved(), "late-g1", timing())
+            .err(),
+        Some(DriverError::Closed)
+    );
+    setup_runtime
+        .pump
+        .drive(harness.set_tools(vec![native.clone(), echo.clone()]))
+        .unwrap();
+    assert_eq!(
+        g1.start_planned(&plan(), &saved(), "readded-g1", timing())
+            .err(),
+        Some(DriverError::Closed)
+    );
+
+    let (_, _, g2) = setup(&driver_owner, &spawner, 8, 210);
+    let g2 = Arc::new(g2);
+    setup_runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), g2.clone()))
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        g2.start_planned(&plan(), &saved(), "g2", timing()).err(),
+        Some(DriverError::Overloaded),
+        "the already claimed G1 slot still counts against the same owner"
+    );
+    assert!(driver_owner.retained_binding().is_some());
+    drop(first);
+    setup_runtime.pump.drive(harness.close()).unwrap();
 }
 
 #[test]
