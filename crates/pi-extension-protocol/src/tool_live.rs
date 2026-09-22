@@ -507,6 +507,10 @@ impl ToolInvocation {
     pub fn deadline_ms(&self) -> u64 {
         self.deadline_ms
     }
+    pub fn effective_deadline_ms(&self) -> u64 {
+        self.drain_deadline_ms
+            .map_or(self.deadline_ms, |drain| self.deadline_ms.min(drain))
+    }
     pub fn credit(&self) -> u64 {
         self.credit
     }
@@ -777,8 +781,8 @@ impl ToolInvocation {
     }
 
     /// The call to this method wins local arrival order against a later terminal.
-    pub fn cancel(&mut self, reason: v1_1::CancelReason, now_ms: u64) -> Result<EncodedFrame> {
-        if self.expire(now_ms) || self.phase == LivePhase::PeerLost {
+    pub fn prepare_cancel(&self, reason: v1_1::CancelReason, now_ms: u64) -> Result<EncodedFrame> {
+        if now_ms >= self.effective_deadline_ms() || self.phase == LivePhase::PeerLost {
             return Err(LiveError::PeerLost);
         }
         if self.phase != LivePhase::Open {
@@ -808,7 +812,22 @@ impl ToolInvocation {
                 self.limits.frame,
             )?
         };
+        Ok(encoded)
+    }
+
+    /// Commit only after the ordered writer has reserved the prepared frame.
+    /// The caller serializes this with first-terminal receipt and expiry.
+    pub fn commit_prepared_cancel(&mut self) {
+        debug_assert_eq!(self.phase, LivePhase::Open);
         self.phase = LivePhase::CancelRequested;
+    }
+
+    pub fn cancel(&mut self, reason: v1_1::CancelReason, now_ms: u64) -> Result<EncodedFrame> {
+        if self.expire(now_ms) {
+            return Err(LiveError::PeerLost);
+        }
+        let encoded = self.prepare_cancel(reason, now_ms)?;
+        self.commit_prepared_cancel();
         Ok(encoded)
     }
 

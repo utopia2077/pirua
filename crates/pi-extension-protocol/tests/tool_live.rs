@@ -1184,6 +1184,66 @@ fn exact_preterminal_fence_is_stale_without_creating_a_receipt() {
 }
 
 #[test]
+fn prepared_cancel_preserves_open_until_ordered_reservation_commits() {
+    for core_minor in [0, 1] {
+        for reason in [
+            v1_1::CancelReason::CancelUser,
+            v1_1::CancelReason::CancelParent,
+            v1_1::CancelReason::CancelDeadline,
+            v1_1::CancelReason::CancelDrain,
+        ] {
+            let mut live = started(core_minor, core_minor, None);
+            let frame = live.prepare_cancel(reason, 200).unwrap();
+            assert_eq!(live.phase(), LivePhase::Open);
+            if core_minor == 0 {
+                let mut reader = FrameReader::<v1_0::Envelope>::new(nz(8192));
+                let envelope = reader
+                    .read_one(&frame.bytes)
+                    .unwrap()
+                    .frame
+                    .unwrap()
+                    .envelope;
+                let Some(v1_0::envelope::Frame::Cancel(cancel)) = envelope.frame else {
+                    panic!("missing Cancel")
+                };
+                assert_eq!(cancel.reason, reason as i32);
+                assert_eq!(cancel.request_id, live.binding().request_id());
+            } else {
+                let mut reader = FrameReader::<v1_1::Envelope>::new(nz(8192));
+                let envelope = reader
+                    .read_one(&frame.bytes)
+                    .unwrap()
+                    .frame
+                    .unwrap()
+                    .envelope;
+                let Some(v1_1::envelope::Frame::Cancel(cancel)) = envelope.frame else {
+                    panic!("missing Cancel")
+                };
+                assert_eq!(cancel.reason, reason as i32);
+                assert_eq!(cancel.request_id, live.binding().request_id());
+            }
+            live.commit_prepared_cancel();
+            assert_eq!(live.phase(), LivePhase::CancelRequested);
+            assert_eq!(
+                live.prepare_cancel(reason, 201).err(),
+                Some(LiveError::Stale)
+            );
+        }
+    }
+    let live = started(1, 1, None);
+    assert_eq!(
+        live.prepare_cancel(v1_1::CancelReason::Unspecified, 200)
+            .err(),
+        Some(LiveError::UnsupportedVariant)
+    );
+    assert_eq!(
+        live.prepare_cancel(v1_1::CancelReason::CancelUser, live.effective_deadline_ms())
+            .err(),
+        Some(LiveError::PeerLost)
+    );
+}
+
+#[test]
 fn malformed_terminal_or_wrong_request_never_mints_receipt() {
     let invalid = legacy_invalid_frame("terminal");
     let mut frozen_invalid = started(1, 1, None);

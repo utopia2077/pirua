@@ -20,7 +20,8 @@ use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::wire::framing::{self, EncodedFrame, FrameReader};
 use pi_extension_protocol::wire::{v1_0, v1_1};
 use pi_harness_runtime::extensions::tool_driver::{
-    CallOutcome, CallTiming, DriverError, OwnerLimits, SingleToolOwner, TypedTerminal,
+    CallOutcome, CallTiming, DriverError, LocalAbortCause, OwnerLimits, SingleToolOwner,
+    TypedTerminal,
 };
 use pi_harness_runtime::extensions::transport::{
     ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig,
@@ -246,6 +247,26 @@ fn selected_terminal(minor: u32, peer_error: bool) -> Vec<u8> {
         )
         .unwrap()
         .bytes
+    }
+}
+
+fn cancel_reason(bytes: &[u8], minor: u32) -> i32 {
+    if minor == 0 {
+        let mut reader = FrameReader::<v1_0::Envelope>::new(nz(8192));
+        let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+        let Some(v1_0::envelope::Frame::Cancel(cancel)) = envelope.frame else {
+            panic!("expected Cancel")
+        };
+        assert_eq!(cancel.request_id, 1);
+        cancel.reason
+    } else {
+        let mut reader = FrameReader::<v1_1::Envelope>::new(nz(8192));
+        let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+        let Some(v1_1::envelope::Frame::Cancel(cancel)) = envelope.frame else {
+            panic!("expected Cancel")
+        };
+        assert_eq!(cancel.request_id, 1);
+        cancel.reason
     }
 }
 
@@ -685,6 +706,620 @@ fn timing() -> CallTiming {
 }
 fn saved() -> JsonObject {
     serde_json::from_str(r#"{"text":"ping"}"#).unwrap()
+}
+
+#[test]
+fn queued_local_abort_suppresses_request_with_and_without_prior_denial() {
+    for denial in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        if denial {
+            g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+            spawner.tick_at(1);
+        }
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap();
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap();
+        assert!(matches!(
+            spawner.drive(handle.outcome()),
+            Ok(CallOutcome::UnadmittedLocalAbort)
+        ));
+        assert_eq!(
+            spawner.drive(handle.first_terminal()).err(),
+            Some(DriverError::UnadmittedLocalAbort)
+        );
+        assert!(owner.retained_binding().is_none());
+        if denial {
+            clock.set(599);
+        }
+        spawner.tick();
+        assert_eq!(g1.writes().len(), if denial { 3 } else { 2 });
+        assert!(g1.closed.load(Ordering::SeqCst));
+        let (_, _, g2) = setup(&owner, &spawner, 8, 210);
+        assert!(g2.start_planned(&plan(), &saved(), "b2", timing()).is_ok());
+    }
+}
+
+#[test]
+fn admitted_and_written_request_send_one_cause_correct_cancel() {
+    for minor in [0, 1] {
+        for (cause, expected) in [
+            (LocalAbortCause::User, v1_1::CancelReason::CancelUser),
+            (LocalAbortCause::Parent, v1_1::CancelReason::CancelParent),
+            (
+                LocalAbortCause::Deadline,
+                v1_1::CancelReason::CancelDeadline,
+            ),
+            (LocalAbortCause::Drain, v1_1::CancelReason::CancelDrain),
+        ] {
+            for admitted_only in [false, true] {
+                let spawner = Arc::new(FakeSpawner::default());
+                let owner = owner_with_write_timeout(spawner.clone(), 400);
+                let (g1, _, route) = setup_minor(&owner, &spawner, 7, 200, minor);
+                if admitted_only {
+                    g1.stall.store(true, Ordering::SeqCst);
+                }
+                let handle = route
+                    .start_planned(&plan(), &saved(), "b1", timing())
+                    .unwrap();
+                spawner.tick_at(0); // A, either pending or written W.
+                owner.abort_local(handle.binding(), cause).unwrap();
+                owner.abort_local(handle.binding(), cause).unwrap();
+                if admitted_only {
+                    g1.stall.store(false, Ordering::SeqCst);
+                }
+                spawner.tick_at(0);
+                assert_eq!(g1.writes().len(), 4, "handshake, Q, and one C");
+                assert_eq!(cancel_reason(&g1.writes()[3], minor), expected as i32);
+                assert!(owner.retained_binding().is_some());
+            }
+        }
+    }
+}
+
+#[test]
+fn cancel_and_denial_keep_both_fifo_reservations_and_original_deadlines() {
+    for cancel_first in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        g1.stall.store(true, Ordering::SeqCst);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick_at(0); // A is pending, so later control jobs wait behind it.
+        if cancel_first {
+            owner
+                .abort_local(handle.binding(), LocalAbortCause::Parent)
+                .unwrap();
+        }
+        g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+        spawner.tick_at(1);
+        if !cancel_first {
+            owner
+                .abort_local(handle.binding(), LocalAbortCause::Parent)
+                .unwrap();
+        }
+        clock.set(299);
+        g1.stall.store(false, Ordering::SeqCst);
+        spawner.tick_at(0);
+        let writes = g1.writes();
+        assert_eq!(writes.len(), if cancel_first { 5 } else { 4 });
+        if cancel_first {
+            assert_eq!(
+                cancel_reason(&writes[3], 1),
+                v1_1::CancelReason::CancelParent as i32
+            );
+            assert_eq!(
+                denial_code(&writes[4], 1),
+                v1_1::ErrorCode::Forbidden as i32
+            );
+        } else {
+            assert_eq!(
+                denial_code(&writes[3], 1),
+                v1_1::ErrorCode::Forbidden as i32
+            );
+        }
+        assert!(g1.closed.load(Ordering::SeqCst));
+    }
+}
+
+#[test]
+fn exact_fence_drops_queued_cancel_but_preserves_admitted_cancel_before_denial() {
+    for admitted_cancel in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick_at(0); // W
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap();
+        if admitted_cancel {
+            g1.stall.store(true, Ordering::SeqCst);
+            spawner.tick_at(0); // C is admitted but write remains pending.
+        }
+        g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+        spawner.tick_at(1); // D reserved after C.
+        owner.fence_no_longer_expected(handle.binding()).unwrap();
+        assert!(matches!(
+            spawner.drive(handle.outcome()),
+            Ok(CallOutcome::NoLongerExpected)
+        ));
+        let (_, _, g2) = setup(&owner, &spawner, 8, 210);
+        assert!(g2.start_planned(&plan(), &saved(), "b2", timing()).is_ok());
+        clock.set(599);
+        g1.stall.store(false, Ordering::SeqCst);
+        spawner.tick_at(0);
+        let writes = g1.writes();
+        assert_eq!(writes.len(), if admitted_cancel { 5 } else { 4 });
+        if admitted_cancel {
+            assert_eq!(
+                cancel_reason(&writes[3], 1),
+                v1_1::CancelReason::CancelUser as i32
+            );
+            assert_eq!(
+                denial_code(&writes[4], 1),
+                v1_1::ErrorCode::Forbidden as i32
+            );
+        } else {
+            assert_eq!(
+                denial_code(&writes[3], 1),
+                v1_1::ErrorCode::Forbidden as i32
+            );
+        }
+        assert!(g1.closed.load(Ordering::SeqCst));
+        assert!(owner.retained_binding().is_some(), "G2 owns the slot");
+    }
+}
+
+#[test]
+fn first_terminal_and_local_cancel_serialize_on_the_owner_line() {
+    for terminal_first in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner(spawner.clone());
+        let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick_at(0); // W
+        if terminal_first {
+            g1.push(raw("terminal", 1));
+            spawner.tick_at(1);
+            assert_eq!(
+                owner.abort_local(handle.binding(), LocalAbortCause::User),
+                Err(DriverError::WrongBinding)
+            );
+            assert_eq!(g1.writes().len(), 3);
+        } else {
+            owner
+                .abort_local(handle.binding(), LocalAbortCause::User)
+                .unwrap();
+            g1.push(raw("terminal", 1));
+            spawner.tick_at(1); // T may precede the physical C write.
+            spawner.tick_at(0);
+            assert_eq!(g1.writes().len(), 4);
+            assert_eq!(
+                cancel_reason(&g1.writes()[3], 1),
+                v1_1::CancelReason::CancelUser as i32
+            );
+        }
+        assert!(matches!(
+            spawner.drive(handle.outcome()),
+            Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+        ));
+        owner
+            .retire(
+                handle.binding(),
+                pi_extension_protocol::tool_live::RetireReason::Committed,
+            )
+            .unwrap();
+    }
+}
+
+#[test]
+fn grace_cutoff_wakes_independently_and_final_terminal_time_is_exclusive() {
+    for at_cutoff in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick_at(0); // W
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::Parent)
+            .unwrap();
+        clock.set(if at_cutoff { 300 } else { 299 });
+        if at_cutoff {
+            // A stalled C and silent reader cannot delay the independent grace timer.
+            g1.stall.store(true, Ordering::SeqCst);
+            assert_eq!(
+                spawner.drive(handle.outcome()).err(),
+                Some(DriverError::PeerLost)
+            );
+            assert!(g1.closed.load(Ordering::SeqCst));
+        } else {
+            g1.push(raw("terminal", 1));
+            assert!(matches!(
+                spawner.drive(handle.outcome()),
+                Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+            ));
+            clock.set(300);
+            spawner.tick();
+            assert!(owner.retained_binding().is_some());
+            owner
+                .retire(
+                    handle.binding(),
+                    pi_extension_protocol::tool_live::RetireReason::Committed,
+                )
+                .unwrap();
+        }
+    }
+}
+
+#[test]
+fn near_u64_max_grace_caps_at_earlier_effective_deadline() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 10);
+    let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+    let now = u64::MAX - 80;
+    clock.set(now);
+    let handle = route
+        .start_planned(
+            &plan(),
+            &saved(),
+            "b1",
+            CallTiming {
+                requested_after_ms: Some(30),
+                method_limit_ms: 30,
+                connection_remaining_ms: 30,
+                parent_remaining_ms: None,
+            },
+        )
+        .unwrap(); // effective deadline is MAX-50; each write deadline is representable.
+    spawner.tick_at(0); // W
+    assert_eq!(
+        owner.abort_local(handle.binding(), LocalAbortCause::User),
+        Ok(())
+    );
+    spawner.tick_at(0); // C keeps its original finite write attempt.
+    assert_eq!(g1.writes().len(), 4);
+    assert_eq!(
+        cancel_reason(&g1.writes()[3], 1),
+        v1_1::CancelReason::CancelUser as i32
+    );
+    clock.set(u64::MAX - 51);
+    g1.push(raw("terminal", 1));
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+    ));
+}
+
+#[test]
+fn terminal_entering_before_grace_but_finishing_at_cutoff_is_not_retained() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    spawner.tick_at(0);
+    owner
+        .abort_local(handle.binding(), LocalAbortCause::User)
+        .unwrap();
+    clock.jump_after_reads(1, 299, 300);
+    g1.push(raw("terminal", 1));
+    spawner.tick_at(1);
+    assert_eq!(
+        spawner.drive(handle.outcome()).err(),
+        Some(DriverError::PeerLost)
+    );
+    assert_eq!(
+        owner.retire(
+            handle.binding(),
+            pi_extension_protocol::tool_live::RetireReason::Committed
+        ),
+        Err(DriverError::WrongBinding)
+    );
+}
+
+#[test]
+fn grace_loss_preserves_earlier_denial_for_reader_and_timer_orders() {
+    for reader_first in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick_at(0); // W
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap(); // C queued
+        g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+        spawner.tick_at(1); // D reserved behind C; original deadline 600.
+        if reader_first {
+            clock.jump_after_reads(1, 299, 300);
+            g1.push(raw("terminal", 1));
+            spawner.tick_at(1); // final receipt sample reaches grace cutoff.
+        } else {
+            clock.set(300);
+            spawner.tick_at(3); // independent cancellation timer wins.
+        }
+        assert_eq!(
+            spawner.drive(handle.outcome()).err(),
+            Some(DriverError::PeerLost)
+        );
+        owner.acknowledge_peer_lost(handle.binding()).unwrap();
+        assert!(!g1.closed.load(Ordering::SeqCst), "D remains reserved");
+        clock.set(599);
+        spawner.tick_at(0);
+        let writes = g1.writes();
+        assert_eq!(writes.len(), 4, "handshake, Q, and original D; no late C");
+        assert_eq!(
+            denial_code(&writes[3], 1),
+            v1_1::ErrorCode::Forbidden as i32
+        );
+        assert!(g1.closed.load(Ordering::SeqCst));
+    }
+}
+
+#[test]
+fn graceful_drain_retains_queued_or_admitted_cancel_after_first_terminal() {
+    for peer_drain in [false, true] {
+        for admitted_cancel in [false, true] {
+            let spawner = Arc::new(FakeSpawner::default());
+            let owner = owner_with_write_timeout(spawner.clone(), 400);
+            let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+            let handle = route
+                .start_planned(&plan(), &saved(), "b1", timing())
+                .unwrap();
+            spawner.tick_at(0); // W
+            if peer_drain {
+                let drain = v1_1::Envelope {
+                    frame: Some(v1_1::envelope::Frame::GoAway(v1_1::GoAway {
+                        reason: v1_1::GoAwayReason::GoAwayDrain as i32,
+                        retryable: false,
+                    })),
+                };
+                g1.push(framing::encode(&drain, nz(8192)).unwrap().bytes);
+                spawner.tick_at(1);
+            } else {
+                route.stop_new_calls();
+            }
+            owner
+                .abort_local(handle.binding(), LocalAbortCause::User)
+                .unwrap();
+            if admitted_cancel {
+                g1.stall.store(true, Ordering::SeqCst);
+                spawner.tick_at(0); // C claimed, write pending.
+            }
+            g1.push(raw("terminal", 1));
+            spawner.tick_at(1);
+            assert!(matches!(
+                spawner.drive(handle.outcome()),
+                Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+            ));
+            assert!(!g1.closed.load(Ordering::SeqCst), "graceful drain keeps C");
+            clock.set(599); // T was retained before grace; C keeps its original write deadline 600.
+            g1.stall.store(false, Ordering::SeqCst);
+            spawner.tick_at(0);
+            assert_eq!(g1.writes().len(), 4, "earlier C uses its FIFO reservation");
+            assert_eq!(
+                cancel_reason(&g1.writes()[3], 1),
+                v1_1::CancelReason::CancelUser as i32
+            );
+            assert!(
+                g1.closed.load(Ordering::SeqCst),
+                "drained route closes after C"
+            );
+            owner
+                .retire(
+                    handle.binding(),
+                    pi_extension_protocol::tool_live::RetireReason::Committed,
+                )
+                .unwrap();
+        }
+    }
+}
+
+#[test]
+fn checked_terminal_retirement_preserves_prior_queued_cancel_only() {
+    for drain in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick_at(0); // W
+        if drain {
+            route.stop_new_calls();
+        }
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap(); // C queued
+        g1.push(raw("terminal", 1));
+        spawner.tick_at(1);
+        assert!(matches!(
+            spawner.drive(handle.outcome()),
+            Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+        ));
+        owner
+            .retire(
+                handle.binding(),
+                pi_extension_protocol::tool_live::RetireReason::Committed,
+            )
+            .unwrap();
+        if !drain {
+            assert_eq!(
+                route.start_planned(&plan(), &saved(), "b2", timing()).err(),
+                Some(DriverError::Overloaded)
+            );
+        }
+        clock.set(599);
+        spawner.tick_at(0);
+        assert_eq!(
+            g1.writes().len(),
+            4,
+            "checked T retirement cannot erase earlier C"
+        );
+        assert_eq!(
+            cancel_reason(&g1.writes()[3], 1),
+            v1_1::CancelReason::CancelUser as i32
+        );
+        assert_eq!(g1.closed.load(Ordering::SeqCst), drain);
+        if !drain {
+            assert!(
+                route
+                    .start_planned(&plan(), &saved(), "b2", timing())
+                    .is_ok()
+            );
+        }
+    }
+}
+
+#[test]
+fn g2_replacement_preserves_g1_retired_cancel_through_original_deadline() {
+    for retire_before_connect in [false, true] {
+        for admitted_cancel in [false, true] {
+            let spawner = Arc::new(FakeSpawner::default());
+            let owner = owner_with_write_timeout(spawner.clone(), 400);
+            let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+            let handle = route
+                .start_planned(&plan(), &saved(), "b1", timing())
+                .unwrap();
+            spawner.tick_at(0); // W
+            owner
+                .abort_local(handle.binding(), LocalAbortCause::User)
+                .unwrap();
+            if admitted_cancel {
+                g1.stall.store(true, Ordering::SeqCst);
+                spawner.tick_at(0); // C is writer-admitted but incomplete.
+            }
+            g1.push(raw("terminal", 1));
+            spawner.tick_at(1);
+            assert!(matches!(
+                spawner.drive(handle.outcome()),
+                Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+            ));
+            if retire_before_connect {
+                owner
+                    .retire(
+                        handle.binding(),
+                        pi_extension_protocol::tool_live::RetireReason::Committed,
+                    )
+                    .unwrap();
+            }
+            let (g2, _, next_route) = setup(&owner, &spawner, 8, 210);
+            if !retire_before_connect {
+                assert_eq!(
+                    next_route
+                        .start_planned(&plan(), &saved(), "b2", timing())
+                        .err(),
+                    Some(DriverError::Overloaded)
+                );
+                owner
+                    .retire(
+                        handle.binding(),
+                        pi_extension_protocol::tool_live::RetireReason::Committed,
+                    )
+                    .unwrap();
+            }
+            let next = next_route
+                .start_planned(&plan(), &saved(), "b2", timing())
+                .unwrap();
+            assert!(
+                !g1.closed.load(Ordering::SeqCst),
+                "replacement must drain prior C"
+            );
+            clock.set(599);
+            g1.stall.store(false, Ordering::SeqCst);
+            spawner.tick_at(0);
+            assert_eq!(g1.writes().len(), 4, "G1 C keeps its original FIFO attempt");
+            assert_eq!(
+                cancel_reason(&g1.writes()[3], 1),
+                v1_1::CancelReason::CancelUser as i32
+            );
+            assert!(g1.closed.load(Ordering::SeqCst));
+            assert!(!g2.closed.load(Ordering::SeqCst));
+            assert!(
+                owner
+                    .retained_binding()
+                    .unwrap()
+                    .same_live_identity(next.binding())
+            );
+        }
+    }
+}
+
+#[test]
+fn admitted_cancel_timeout_preempts_later_original_denial() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    spawner.tick_at(0);
+    g1.stall.store(true, Ordering::SeqCst);
+    owner
+        .abort_local(handle.binding(), LocalAbortCause::User)
+        .unwrap();
+    spawner.tick_at(0); // C admitted before D but incomplete.
+    g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick_at(1);
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    clock.set(600); // C and D original control deadlines were both 600.
+    spawner.tick_at(0);
+    assert_eq!(g1.writes().len(), 3, "failed C preempts the reserved D");
+    assert!(g1.closed.load(Ordering::SeqCst));
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+}
+
+#[test]
+fn local_abort_without_denial_releases_g1_slot_and_late_terminal_cannot_bind_g2() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    owner
+        .abort_local(handle.binding(), LocalAbortCause::User)
+        .unwrap();
+    let (g2, _, next_route) = setup(&owner, &spawner, 8, 210);
+    let next = next_route
+        .start_planned(&plan(), &saved(), "b2", timing())
+        .unwrap();
+    g1.push(raw("terminal", 1));
+    spawner.tick();
+    assert!(g1.closed.load(Ordering::SeqCst));
+    assert!(!g2.closed.load(Ordering::SeqCst));
+    assert!(
+        owner
+            .retained_binding()
+            .unwrap()
+            .same_live_identity(next.binding())
+    );
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::UnadmittedLocalAbort)
+    ));
 }
 
 #[test]

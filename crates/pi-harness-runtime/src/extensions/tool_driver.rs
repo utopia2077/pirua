@@ -42,6 +42,7 @@ pub enum DriverError {
     Closed,
     WrongBinding,
     NoLongerExpected,
+    UnadmittedLocalAbort,
 }
 
 impl fmt::Display for DriverError {
@@ -56,6 +57,7 @@ impl fmt::Display for DriverError {
             Self::Closed => "extension tool route closed",
             Self::WrongBinding => "extension tool binding mismatch",
             Self::NoLongerExpected => "extension tool effect no longer expected",
+            Self::UnadmittedLocalAbort => "extension tool locally aborted before admission",
         })
     }
 }
@@ -80,6 +82,7 @@ pub enum TypedTerminal {
 pub enum CallOutcome {
     Terminal(TypedTerminal),
     NoLongerExpected,
+    UnadmittedLocalAbort,
 }
 
 #[derive(Clone)]
@@ -87,6 +90,7 @@ enum CompletionValue {
     Terminal(TypedTerminal),
     Failed(DriverError),
     NoLongerExpected,
+    UnadmittedLocalAbort,
 }
 
 struct Completion {
@@ -133,6 +137,7 @@ impl CallHandle {
             CompletionValue::Terminal(terminal) => Ok(CallOutcome::Terminal(terminal.clone())),
             CompletionValue::Failed(error) => Err(*error),
             CompletionValue::NoLongerExpected => Ok(CallOutcome::NoLongerExpected),
+            CompletionValue::UnadmittedLocalAbort => Ok(CallOutcome::UnadmittedLocalAbort),
         }
     }
 
@@ -142,6 +147,29 @@ impl CallHandle {
         match self.outcome().await? {
             CallOutcome::Terminal(terminal) => Ok(terminal),
             CallOutcome::NoLongerExpected => Err(DriverError::NoLongerExpected),
+            CallOutcome::UnadmittedLocalAbort => Err(DriverError::UnadmittedLocalAbort),
+        }
+    }
+}
+
+/// The checked caller's current local control cause. This operation does not
+/// inspect Session state; the caller must first prove its full EffectPending key
+/// is still expected and this cause is current for that exact binding.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LocalAbortCause {
+    User,
+    Parent,
+    Deadline,
+    Drain,
+}
+
+impl LocalAbortCause {
+    fn wire_reason(self) -> v1_1::CancelReason {
+        match self {
+            Self::User => v1_1::CancelReason::CancelUser,
+            Self::Parent => v1_1::CancelReason::CancelParent,
+            Self::Deadline => v1_1::CancelReason::CancelDeadline,
+            Self::Drain => v1_1::CancelReason::CancelDrain,
         }
     }
 }
@@ -162,12 +190,14 @@ struct LiveSlot {
     send_confirmed: bool,
     provisional_frame: Option<ActiveFrame>,
     local_fault: bool,
+    cancel_deadline_ms: Option<u64>,
 }
 
 struct OwnerState {
     active: Option<Arc<Route>>,
     live: Option<LiveSlot>,
     highest_generation: u64,
+    last_local_abort: Option<InvocationBinding>,
 }
 
 struct OwnerInner {
@@ -187,6 +217,7 @@ impl SingleToolOwner {
                 active: None,
                 live: None,
                 highest_generation: 0,
+                last_local_abort: None,
             }),
             host,
             limits,
@@ -222,7 +253,21 @@ impl SingleToolOwner {
             usize::try_from(selected_limits.frame_bytes).map_err(|_| DriverError::InvalidHost)?;
         let blocking_cap = usize::try_from(selected_limits.blocking_queue_bytes)
             .map_err(|_| DriverError::InvalidHost)?;
-        if generation == 0 || selected.major != 1 || selected.minor > 1 || frame_cap == 0 {
+        // Q, one full C and one fixed D have independent finite buckets. The
+        // checked sum is the route's maximum outstanding outbound reservation.
+        let bounded_outbound = frame_cap
+            .checked_mul(2)
+            .and_then(|control| {
+                control.checked_add(blocking_cap.min(self.0.limits.outbound_bytes.get()))
+            })
+            .is_some();
+        if generation == 0
+            || selected.major != 1
+            || selected.minor > 1
+            || frame_cap == 0
+            || selected_limits.cancellation_grace_ms == 0
+            || !bounded_outbound
+        {
             return Err(DriverError::InvalidHost);
         }
         // This route owns only one host-approved echo capability and one live
@@ -257,6 +302,7 @@ impl SingleToolOwner {
             frame_cap,
             normal_cap: blocking_cap.min(self.0.limits.outbound_bytes.get()),
             control_cap: frame_cap,
+            cancel_cap: frame_cap,
             timeout_ms: self.0.limits.write_timeout_ms.get(),
             writes: Mutex::new(WriteState::default()),
         });
@@ -275,7 +321,19 @@ impl SingleToolOwner {
                             LivePhase::Open | LivePhase::CancelRequested
                         )
                 });
-                if old_live {
+                let retained_cancel = state.live.as_ref().is_some_and(|slot| {
+                    Arc::ptr_eq(&slot.route, old)
+                        && slot.invocation.phase() == LivePhase::TerminalReceived
+                        && old.has_cancel_pending()
+                });
+                // A completed T may release the owner slot before its earlier
+                // C reaches the writer. Replacement preserves that exact
+                // bounded control token (and any previously reserved D).
+                if old_live
+                    || retained_cancel
+                    || old.has_retired_cancel_pending()
+                    || old.has_denial_pending()
+                {
                     old.mark_draining();
                 }
             }
@@ -371,6 +429,10 @@ impl SingleToolOwner {
         slot.invocation
             .retire(binding, reason)
             .map_err(|_| DriverError::WrongBinding)?;
+        if slot.cancel_deadline_ms.is_some() {
+            slot.route
+                .mark_retired_cancel_if_pending(binding.request_id());
+        }
         state.live = None;
         Ok(())
     }
@@ -411,6 +473,107 @@ impl SingleToolOwner {
         }
         // Wake outside the owner line: arbitrary wakers may reenter the owner.
         completion.finish(CompletionValue::NoLongerExpected);
+        Ok(())
+    }
+
+    /// Called only after a checked current Session boundary proves the same
+    /// full durable EffectPending key and this local control cause are current.
+    /// It does not mutate durable state or classify key absence.
+    pub fn abort_local(
+        &self,
+        binding: &InvocationBinding,
+        cause: LocalAbortCause,
+    ) -> Result<(), DriverError> {
+        let (route, completion, close, wake, grace_deadline) = {
+            let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            let Some(slot) = state.live.as_mut() else {
+                return if state
+                    .last_local_abort
+                    .as_ref()
+                    .is_some_and(|prior| prior.same_live_identity(binding))
+                {
+                    Ok(())
+                } else {
+                    Err(DriverError::WrongBinding)
+                };
+            };
+            if !slot.invocation.binding().same_live_identity(binding) || slot.local_fault {
+                return Err(DriverError::WrongBinding);
+            }
+            if slot.invocation.phase() == LivePhase::CancelRequested {
+                return Ok(());
+            }
+            if slot.invocation.phase() != LivePhase::Open {
+                return Err(DriverError::WrongBinding);
+            }
+            let route = slot.route.clone();
+            let completion = slot.completion.clone();
+            if !slot.send_started {
+                let close = route.prepare_fenced_route(binding.request_id());
+                state.last_local_abort = Some(binding.clone());
+                state.live = None;
+                if !matches!(close, FenceRouteDecision::PreserveDenial)
+                    && state
+                        .active
+                        .as_ref()
+                        .is_some_and(|active| Arc::ptr_eq(active, &route))
+                {
+                    state.active = None;
+                }
+                (route, completion, Some(close), None, None)
+            } else {
+                let now = route.clock.now_ms();
+                let grace = route
+                    .grant
+                    .wire()
+                    .limits
+                    .as_ref()
+                    .expect("selected limits")
+                    .cancellation_grace_ms;
+                let effective = slot.invocation.effective_deadline_ms();
+                // Cap the relative grace before addition: the earlier finite
+                // invocation/drain deadline can still be representable when
+                // now + the full negotiated grace would overflow.
+                let cutoff = now
+                    .checked_add(grace.min(effective.saturating_sub(now)))
+                    .ok_or(DriverError::Deadline)?;
+                let frame = slot
+                    .invocation
+                    .prepare_cancel(cause.wire_reason(), now)
+                    .map_err(|_| DriverError::Deadline)?;
+                let (wake, _) = route.enqueue(frame, WriteKind::Cancel(binding.request_id()))?;
+                slot.invocation.commit_prepared_cancel();
+                slot.cancel_deadline_ms = Some(cutoff);
+                state.last_local_abort = Some(binding.clone());
+                (route, completion, None, wake, Some(cutoff))
+            }
+        };
+        let unadmitted = close.is_some();
+        if let Some(FenceRouteDecision::Close(waker)) = close {
+            route.finish_prepared_close(waker);
+        }
+        if unadmitted {
+            completion.finish(CompletionValue::UnadmittedLocalAbort);
+        }
+        if let Some(waker) = wake {
+            waker.wake();
+        }
+        if let Some(deadline) = grace_deadline {
+            let owner = self.clone();
+            let timer_route = route.clone();
+            let timer_binding = binding.clone();
+            if route
+                .supervisor
+                .submit(Box::pin(async move {
+                    timer_route.clock.sleep_until(deadline).await;
+                    owner.expire(&timer_route, &timer_binding);
+                }))
+                .is_err()
+            {
+                self.close_route(&route, DriverError::HostFault);
+                return Err(DriverError::HostFault);
+            }
+        }
         Ok(())
     }
 
@@ -485,7 +648,10 @@ impl SingleToolOwner {
                         slot.invocation.phase(),
                         LivePhase::Open | LivePhase::CancelRequested
                     )
-                    && route.clock.now_ms() >= slot.invocation.deadline_ms()
+                    && route.clock.now_ms()
+                        >= slot
+                            .cancel_deadline_ms
+                            .unwrap_or(slot.invocation.effective_deadline_ms())
                 {
                     slot.invocation.peer_lost();
                     slot.provisional_frame = None;
@@ -524,6 +690,35 @@ impl SingleToolOwner {
         {
             slot.send_started = true;
             route.mark_request_admitted(request_id);
+            return true;
+        }
+        false
+    }
+
+    fn admit_ordered_cancel(
+        &self,
+        route: &Arc<Route>,
+        request_id: u64,
+        write_deadline: u64,
+    ) -> bool {
+        let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        if route.status() == RouteStatus::Closed {
+            return false;
+        }
+        let cutoff = match state.live.as_ref().filter(|slot| {
+            Arc::ptr_eq(&slot.route, route) && slot.invocation.binding().request_id() == request_id
+        }) {
+            Some(slot) if slot.invocation.phase() == LivePhase::CancelRequested => Some(
+                slot.cancel_deadline_ms
+                    .unwrap_or(slot.invocation.effective_deadline_ms()),
+            ),
+            Some(slot) if slot.invocation.phase() == LivePhase::TerminalReceived => None,
+            _ if route.retired_cancel_pending(request_id) => None,
+            _ => return false,
+        };
+        let now = route.clock.now_ms();
+        if now < write_deadline && cutoff.is_none_or(|deadline| now < deadline) {
+            route.mark_cancel_admitted(request_id);
             return true;
         }
         false
@@ -568,7 +763,11 @@ impl SingleToolOwner {
                 return Ok(self.after_lost_request_write(route));
             }
             let now = route.clock.now_ms();
-            if now >= slot.invocation.deadline_ms() {
+            if now
+                >= slot
+                    .cancel_deadline_ms
+                    .unwrap_or(slot.invocation.effective_deadline_ms())
+            {
                 slot.invocation.peer_lost();
                 slot.provisional_frame = None;
                 Some(Ok((
@@ -592,11 +791,36 @@ impl SingleToolOwner {
     }
 
     fn after_lost_request_write(&self, route: &Route) -> ReaderAction {
-        if route.status() != RouteStatus::Closed && route.has_denial_pending() {
+        if route.status() != RouteStatus::Closed && route.has_control_pending() {
             ReaderAction::Continue
         } else {
             ReaderAction::Stop
         }
+    }
+
+    fn close_drained_after_cancel(&self, route: &Arc<Route>) -> bool {
+        if route.status() != RouteStatus::Draining {
+            return false;
+        }
+        let terminal_or_released = {
+            let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            !state.live.as_ref().is_some_and(|slot| {
+                Arc::ptr_eq(&slot.route, route)
+                    && slot.invocation.phase() != LivePhase::TerminalReceived
+            })
+        };
+        if !terminal_or_released || !route.close_unless_denial_pending() {
+            return false;
+        }
+        let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        if state
+            .active
+            .as_ref()
+            .is_some_and(|active| Arc::ptr_eq(active, route))
+        {
+            state.active = None;
+        }
+        true
     }
 }
 
@@ -631,7 +855,7 @@ impl ReadyToolRoute {
         {
             return Err(DriverError::Closed);
         }
-        if state.live.is_some() || self.route.normal_cap == 0 {
+        if state.live.is_some() || self.route.normal_cap == 0 || self.route.has_cancel_pending() {
             return Err(DriverError::Overloaded);
         }
         if self.route.frame_cap > self.owner.0.limits.receipt_bytes.get() {
@@ -676,6 +900,7 @@ impl ReadyToolRoute {
             send_confirmed: false,
             provisional_frame: None,
             local_fault: false,
+            cancel_deadline_ms: None,
         });
         drop(state);
 
@@ -775,6 +1000,7 @@ struct Route {
     frame_cap: usize,
     normal_cap: usize,
     control_cap: usize,
+    cancel_cap: usize,
     timeout_ms: u64,
     writes: Mutex<WriteState>,
 }
@@ -803,7 +1029,9 @@ impl Route {
             writes.jobs.clear();
             writes.normal_bytes = 0;
             writes.control_bytes = 0;
+            writes.cancel_bytes = 0;
             writes.popped_unadmitted = None;
+            writes.retired_cancel_id = None;
             wake
         };
         if let Some(waker) = wake {
@@ -828,7 +1056,9 @@ impl Route {
             writes.jobs.clear();
             writes.normal_bytes = 0;
             writes.control_bytes = 0;
+            writes.cancel_bytes = 0;
             writes.popped_unadmitted = None;
+            writes.retired_cancel_id = None;
             wake
         };
         self.channel.close();
@@ -846,6 +1076,7 @@ impl Route {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
         self.mark_draining();
         Self::discard_unadmitted_request_locked(&mut writes, request_id);
+        Self::discard_unadmitted_cancel_locked(&mut writes, request_id);
         writes.denial_fenced = true;
         if self.status() != RouteStatus::Closed && writes.control_bytes != 0 {
             return FenceRouteDecision::PreserveDenial;
@@ -857,7 +1088,9 @@ impl Route {
         writes.jobs.clear();
         writes.normal_bytes = 0;
         writes.control_bytes = 0;
+        writes.cancel_bytes = 0;
         writes.popped_unadmitted = None;
+        writes.retired_cancel_id = None;
         FenceRouteDecision::Close(waker)
     }
 
@@ -877,7 +1110,7 @@ impl Route {
             return Err(DriverError::Closed);
         }
         let bytes = frame.bytes.len();
-        let control = matches!(kind, WriteKind::Denial);
+        let denial = matches!(kind, WriteKind::Denial);
         let deadline = self
             .clock
             .now_ms()
@@ -886,21 +1119,19 @@ impl Route {
         let wake = {
             let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
             if self.status() == RouteStatus::Closed
-                || (control && writes.denial_fenced)
-                || (!control && self.status() != RouteStatus::Active)
+                || (denial && writes.denial_fenced)
+                || (matches!(kind, WriteKind::Request(_)) && self.status() != RouteStatus::Active)
             {
                 return Err(DriverError::Closed);
             }
-            let (reserved, cap) = if control {
-                (&mut writes.control_bytes, self.control_cap)
-            } else {
-                (&mut writes.normal_bytes, self.normal_cap)
-            };
-            if reserved.checked_add(bytes).is_none_or(|next| next > cap) {
-                return Err(DriverError::Overloaded);
-            }
-            *reserved += bytes;
-            if control {
+            writes.reserve(
+                kind,
+                bytes,
+                self.normal_cap,
+                self.control_cap,
+                self.cancel_cap,
+            )?;
+            if denial {
                 self.mark_draining();
             }
             writes.jobs.push_back(WriteJob {
@@ -927,7 +1158,7 @@ impl Route {
             let job = writes.jobs.remove(index).expect("queued request index");
             writes.normal_bytes -= job.frame.bytes.len();
         }
-        if let Some((id, size)) = writes.popped_unadmitted
+        if let Some((WriteKind::Request(id), size)) = writes.popped_unadmitted
             && id == request_id
         {
             writes.normal_bytes -= size;
@@ -935,11 +1166,41 @@ impl Route {
         }
     }
 
+    fn discard_unadmitted_cancel_locked(writes: &mut WriteState, request_id: u64) {
+        if let Some(index) = writes
+            .jobs
+            .iter()
+            .position(|job| matches!(job.kind, WriteKind::Cancel(id) if id == request_id))
+        {
+            let job = writes.jobs.remove(index).expect("queued cancel index");
+            writes.cancel_bytes -= job.frame.bytes.len();
+        }
+        if let Some((WriteKind::Cancel(id), size)) = writes.popped_unadmitted
+            && id == request_id
+        {
+            writes.cancel_bytes -= size;
+            writes.popped_unadmitted = None;
+        }
+        if writes.cancel_bytes == 0 && writes.retired_cancel_id == Some(request_id) {
+            writes.retired_cancel_id = None;
+        }
+    }
+
     fn mark_request_admitted(&self, request_id: u64) {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
         if writes
             .popped_unadmitted
-            .is_some_and(|(id, _)| id == request_id)
+            .is_some_and(|(kind, _)| matches!(kind, WriteKind::Request(id) if id == request_id))
+        {
+            writes.popped_unadmitted = None;
+        }
+    }
+
+    fn mark_cancel_admitted(&self, request_id: u64) {
+        let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        if writes
+            .popped_unadmitted
+            .is_some_and(|(kind, _)| matches!(kind, WriteKind::Cancel(id) if id == request_id))
         {
             writes.popped_unadmitted = None;
         }
@@ -947,12 +1208,15 @@ impl Route {
 
     fn release_write(&self, kind: WriteKind, size: usize) {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
-        let reserved = if matches!(kind, WriteKind::Denial) {
-            &mut writes.control_bytes
-        } else {
-            &mut writes.normal_bytes
+        let reserved = match kind {
+            WriteKind::Denial => &mut writes.control_bytes,
+            WriteKind::Cancel(_) => &mut writes.cancel_bytes,
+            WriteKind::Request(_) => &mut writes.normal_bytes,
         };
         *reserved = reserved.saturating_sub(size);
+        if matches!(kind, WriteKind::Cancel(_)) && writes.cancel_bytes == 0 {
+            writes.retired_cancel_id = None;
+        }
     }
 
     fn has_denial_pending(&self) -> bool {
@@ -962,11 +1226,42 @@ impl Route {
             .control_bytes
             != 0
     }
+
+    fn has_control_pending(&self) -> bool {
+        let writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        writes.control_bytes != 0 || writes.cancel_bytes != 0
+    }
+
+    fn has_cancel_pending(&self) -> bool {
+        self.writes
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .cancel_bytes
+            != 0
+    }
+
+    fn mark_retired_cancel_if_pending(&self, request_id: u64) {
+        let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        if writes.cancel_bytes != 0 {
+            writes.retired_cancel_id = Some(request_id);
+        }
+    }
+
+    fn retired_cancel_pending(&self, request_id: u64) -> bool {
+        let writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        writes.cancel_bytes != 0 && writes.retired_cancel_id == Some(request_id)
+    }
+
+    fn has_retired_cancel_pending(&self) -> bool {
+        let writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        writes.cancel_bytes != 0 && writes.retired_cancel_id.is_some()
+    }
 }
 
 #[derive(Clone, Copy)]
 enum WriteKind {
     Request(u64),
+    Cancel(u64),
     Denial,
 }
 struct WriteJob {
@@ -979,9 +1274,33 @@ struct WriteState {
     jobs: VecDeque<WriteJob>,
     normal_bytes: usize,
     control_bytes: usize,
-    popped_unadmitted: Option<(u64, usize)>,
+    cancel_bytes: usize,
+    retired_cancel_id: Option<u64>,
+    popped_unadmitted: Option<(WriteKind, usize)>,
     denial_fenced: bool,
     waker: Option<Waker>,
+}
+
+impl WriteState {
+    fn reserve(
+        &mut self,
+        kind: WriteKind,
+        bytes: usize,
+        normal_cap: usize,
+        denial_cap: usize,
+        cancel_cap: usize,
+    ) -> Result<(), DriverError> {
+        let (reserved, cap) = match kind {
+            WriteKind::Request(_) => (&mut self.normal_bytes, normal_cap),
+            WriteKind::Denial => (&mut self.control_bytes, denial_cap),
+            WriteKind::Cancel(_) => (&mut self.cancel_bytes, cancel_cap),
+        };
+        *reserved = reserved
+            .checked_add(bytes)
+            .filter(|next| *next <= cap)
+            .ok_or(DriverError::Overloaded)?;
+        Ok(())
+    }
 }
 
 async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
@@ -992,8 +1311,8 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 return Poll::Ready(None);
             }
             if let Some(job) = writes.jobs.pop_front() {
-                if let WriteKind::Request(id) = job.kind {
-                    writes.popped_unadmitted = Some((id, job.frame.bytes.len()));
+                if matches!(job.kind, WriteKind::Request(_) | WriteKind::Cancel(_)) {
+                    writes.popped_unadmitted = Some((job.kind, job.frame.bytes.len()));
                 }
                 return Poll::Ready(Some(job));
             }
@@ -1007,6 +1326,20 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
         {
             owner.expire_request_id(&route, id);
             route.discard_unadmitted_request(id);
+            if route.status() == RouteStatus::Closed {
+                break;
+            }
+            if route.has_denial_pending() {
+                continue;
+            }
+            owner.close_route(&route, DriverError::PeerLost);
+            break;
+        }
+        if let WriteKind::Cancel(id) = job.kind
+            && !owner.admit_ordered_cancel(&route, id, job.deadline)
+        {
+            owner.expire_request_id(&route, id);
+            route.release_write(job.kind, job.frame.bytes.len());
             if route.status() == RouteStatus::Closed {
                 break;
             }
@@ -1032,7 +1365,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
         })
         .await
             && route.clock.now_ms() < job.deadline;
-        let control = matches!(job.kind, WriteKind::Denial);
+        let denial = matches!(job.kind, WriteKind::Denial);
         route.release_write(job.kind, size);
         if !completed {
             owner.close_route(&route, DriverError::PeerLost);
@@ -1048,8 +1381,11 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 }
             }
         }
-        if control {
+        if denial {
             owner.close_route(&route, DriverError::PeerLost);
+            break;
+        }
+        if matches!(job.kind, WriteKind::Cancel(_)) && owner.close_drained_after_cancel(&route) {
             break;
         }
     }
@@ -1143,7 +1479,7 @@ fn check_live_frame(
         route.generation,
         frame,
         now,
-        None,
+        slot.cancel_deadline_ms,
         || route.clock.now_ms(),
     ) {
         Ok(checked) => match checked.outcome {
@@ -1256,7 +1592,11 @@ impl SingleToolOwner {
                     if slot.invocation.phase() == LivePhase::PeerLost {
                         return Ok(Some((None, false)));
                     }
-                    if now >= slot.invocation.deadline_ms() {
+                    if now
+                        >= slot
+                            .cancel_deadline_ms
+                            .unwrap_or(slot.invocation.effective_deadline_ms())
+                    {
                         slot.invocation.peer_lost();
                         slot.provisional_frame = None;
                         return Ok(Some((
@@ -1307,7 +1647,7 @@ impl SingleToolOwner {
                                     LivePhase::Open | LivePhase::CancelRequested
                                 )
                         });
-                    if pending || route.has_denial_pending() {
+                    if pending || route.has_control_pending() {
                         Ok(ReaderAction::Continue)
                     } else {
                         self.close_route(route, DriverError::PeerLost);
@@ -1391,7 +1731,7 @@ impl SingleToolOwner {
             completion.finish(value);
         }
         if (close && !peer_lost_with_denial)
-            || (route.status() == RouteStatus::Draining && !route.has_denial_pending())
+            || (route.status() == RouteStatus::Draining && !route.has_control_pending())
         {
             self.close_route(route, DriverError::PeerLost);
             Ok(ReaderAction::Stop)
@@ -1512,5 +1852,57 @@ fn denial_frame(
             max,
         )
         .map_err(|_| DriverError::InvalidHost)
+    }
+}
+
+#[cfg(test)]
+mod local_cancel_queue_tests {
+    use super::*;
+
+    #[test]
+    fn popped_unadmitted_request_releases_only_its_exact_reservation() {
+        for denial_bytes in [0, 3] {
+            let mut writes = WriteState {
+                normal_bytes: 7,
+                control_bytes: denial_bytes,
+                popped_unadmitted: Some((WriteKind::Request(41), 7)),
+                ..WriteState::default()
+            };
+            Route::discard_unadmitted_request_locked(&mut writes, 42);
+            assert_eq!(writes.normal_bytes, 7);
+            Route::discard_unadmitted_request_locked(&mut writes, 41);
+            assert_eq!(writes.normal_bytes, 0);
+            assert_eq!(writes.control_bytes, denial_bytes);
+            assert!(writes.popped_unadmitted.is_none());
+        }
+    }
+
+    #[test]
+    fn popped_unadmitted_cancel_releases_only_cancel_bytes() {
+        let mut writes = WriteState {
+            cancel_bytes: 5,
+            control_bytes: 3,
+            popped_unadmitted: Some((WriteKind::Cancel(41), 5)),
+            ..WriteState::default()
+        };
+        Route::discard_unadmitted_cancel_locked(&mut writes, 41);
+        assert_eq!((writes.cancel_bytes, writes.control_bytes), (0, 3));
+        assert!(writes.popped_unadmitted.is_none());
+    }
+
+    #[test]
+    fn cancel_and_denial_each_keep_a_full_independent_control_reservation() {
+        let mut writes = WriteState::default();
+        writes.reserve(WriteKind::Cancel(41), 3, 1, 3, 3).unwrap();
+        writes.reserve(WriteKind::Denial, 3, 1, 3, 3).unwrap();
+        assert_eq!((writes.cancel_bytes, writes.control_bytes), (3, 3));
+        assert_eq!(
+            writes.reserve(WriteKind::Cancel(41), 1, 1, 3, 3),
+            Err(DriverError::Overloaded)
+        );
+        assert_eq!(
+            writes.reserve(WriteKind::Denial, 1, 1, 3, 3),
+            Err(DriverError::Overloaded)
+        );
     }
 }
