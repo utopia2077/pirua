@@ -9,9 +9,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use prost::Message;
-use ring::digest::{SHA256, digest};
 use serde_json::Value;
 
+use crate::descriptor::canonical_profile_digest;
 use crate::jcs::{self, Limits as JsonLimits, PortableSchema};
 use crate::wire::{v1_0, v1_1};
 
@@ -143,7 +143,7 @@ impl ApprovedTool {
         }
         let mut minors = BTreeMap::new();
         for input in schema_inputs {
-            let Some(profile_digest) = profile_digest(input.minor) else {
+            let Some(profile_digest) = canonical_profile_digest(PROFILE, 1, input.minor) else {
                 return Err(ActivationError::new("host_descriptor_invalid"));
             };
             let arguments =
@@ -193,26 +193,6 @@ fn projection(tool: &str, part: &str, source: &[u8], limits: JsonLimits) -> Resu
         digest: schema.canonical().sha256(),
         schema,
     })
-}
-
-fn profile_digest(minor: u32) -> Option<[u8; 32]> {
-    let descriptor: &[u8] = match minor {
-        0 => include_bytes!("../schema/descriptors/tool-1.0.pb"),
-        1 => include_bytes!("../schema/descriptors/tool-1.1.pb"),
-        _ => return None,
-    };
-    let mut bytes = Vec::with_capacity(PROFILE.len() + 8 + descriptor.len());
-    bytes.extend_from_slice(PROFILE.as_bytes());
-    bytes.push(0);
-    bytes.extend_from_slice(format!("1.{minor}").as_bytes());
-    bytes.push(0);
-    bytes.extend_from_slice(descriptor);
-    Some(
-        digest(&SHA256, &bytes)
-            .as_ref()
-            .try_into()
-            .expect("SHA-256 length"),
-    )
 }
 
 /// Host-supplied ceiling. Its private fields cannot be widened by a peer.

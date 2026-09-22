@@ -916,3 +916,41 @@ fn nonformula_future_profile_omits_optional_and_denies_required() {
         "required_capability_denied"
     );
 }
+#[test]
+fn bundled_profile_digest_lookup_matches_selected_tool_vectors() {
+    use pi_extension_protocol::descriptor::canonical_profile_digest;
+
+    for (minor, expected) in [
+        (
+            0,
+            "a995f8db0e619aeba78b054bc6bfbdcd9e3c8987e4e6535b6eb7d3585e60b8d3",
+        ),
+        (
+            1,
+            "1616abb00ef9a2089194e834fa5dc2de722cd4b56082adbbec992fca42f77d33",
+        ),
+    ] {
+        assert_eq!(
+            canonical_profile_digest("tool.v1", 1, minor)
+                .unwrap()
+                .to_vec(),
+            decode_hex(expected)
+        );
+        for profile in [
+            "hook.v1",
+            "provider.v1",
+            "event-sink.v1",
+            "resource.v1",
+            "host-action.v1",
+            "telemetry-sink.v1",
+        ] {
+            assert!(
+                canonical_profile_digest(profile, 1, minor).is_some(),
+                "{profile}/{minor}"
+            );
+        }
+    }
+    assert!(canonical_profile_digest("tool.v1", 1, 999).is_none());
+    assert!(canonical_profile_digest("host-action.v1", 2, 0).is_none());
+    assert!(canonical_profile_digest("future.v1", 1, 0).is_none());
+}

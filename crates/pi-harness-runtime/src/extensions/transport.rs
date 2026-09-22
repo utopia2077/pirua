@@ -43,7 +43,11 @@ pub trait OrderedByteChannel: Send + Sync {
 }
 
 /// Host-supplied receiver-local monotonic milliseconds and wakeable timer.
-/// `sleep_until` must not complete before `deadline_ms` and must wake when due.
+/// `now_ms` must finish promptly in bounded time: it must not block on I/O or
+/// another callback, reenter the owner/route line, or perform peer/channel I/O.
+/// `sleep_until` must not complete before `deadline_ms` and must wake when due,
+/// independently of a pending channel write. A host unable to meet these
+/// conditions cannot activate the first tool route.
 pub trait MonotonicClock: Send + Sync {
     fn now_ms(&self) -> u64;
 

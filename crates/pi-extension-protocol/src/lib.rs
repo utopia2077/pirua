@@ -1,6 +1,7 @@
 //! Private extension-protocol crate for the Rust harness workspace.
 
 pub mod activation;
+pub mod descriptor;
 pub mod endpoint;
 pub mod jcs;
 pub mod tool_live;
