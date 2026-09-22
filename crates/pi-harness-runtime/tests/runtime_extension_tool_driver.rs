@@ -6,7 +6,7 @@ use std::num::{NonZeroU64, NonZeroUsize};
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Barrier, Mutex};
-use std::task::{Context, Poll, Waker};
+use std::task::{Context, Poll, Wake, Waker};
 
 use pi_agent_schema::{
     EffectKey, EffectKind, EffectStepId, EntryId, LaneId, OperationId, SessionId, ToolEffectPlan,
@@ -20,7 +20,7 @@ use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::wire::framing::{self, EncodedFrame, FrameReader};
 use pi_extension_protocol::wire::{v1_0, v1_1};
 use pi_harness_runtime::extensions::tool_driver::{
-    CallTiming, DriverError, OwnerLimits, SingleToolOwner, TypedTerminal,
+    CallOutcome, CallTiming, DriverError, OwnerLimits, SingleToolOwner, TypedTerminal,
 };
 use pi_harness_runtime::extensions::transport::{
     ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig,
@@ -685,6 +685,362 @@ fn timing() -> CallTiming {
 }
 fn saved() -> JsonObject {
     serde_json::from_str(r#"{"text":"ping"}"#).unwrap()
+}
+
+#[test]
+fn exact_fence_drops_queued_request_wakes_no_write_and_frees_g2_slot() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    assert_eq!(g1.writes().len(), 2);
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+    assert_eq!(
+        spawner.drive(handle.first_terminal()).err(),
+        Some(DriverError::NoLongerExpected)
+    );
+    assert_eq!(
+        owner.fence_no_longer_expected(handle.binding()).err(),
+        Some(DriverError::WrongBinding)
+    );
+    spawner.tick();
+    assert_eq!(g1.writes().len(), 2, "queued Request bytes were removed");
+    assert!(g1.closed.load(Ordering::SeqCst));
+    assert!(owner.retained_binding().is_none());
+    let (_, _, g2) = setup(&owner, &spawner, 8, 210);
+    let second = g2.start_planned(&plan(), &saved(), "b2", timing()).unwrap();
+    assert_eq!(
+        owner.fence_no_longer_expected(handle.binding()).err(),
+        Some(DriverError::WrongBinding)
+    );
+    assert!(
+        owner
+            .retained_binding()
+            .unwrap()
+            .same_live_identity(second.binding())
+    );
+}
+
+#[test]
+fn no_write_waker_may_reenter_owner_after_exact_slot_release() {
+    struct ReenterOwner {
+        owner: SingleToolOwner,
+        woke: AtomicBool,
+    }
+    impl Wake for ReenterOwner {
+        fn wake(self: Arc<Self>) {
+            self.wake_by_ref();
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            assert!(self.owner.retained_binding().is_none());
+            self.woke.store(true, Ordering::SeqCst);
+        }
+    }
+
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (_, _, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    let reenter = Arc::new(ReenterOwner {
+        owner: owner.clone(),
+        woke: AtomicBool::new(false),
+    });
+    let waker = Waker::from(reenter.clone());
+    let mut outcome = Box::pin(handle.outcome());
+    assert!(
+        outcome
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    assert!(reenter.woke.load(Ordering::SeqCst));
+    assert!(matches!(
+        spawner.drive(outcome),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+}
+
+#[test]
+fn peer_request_in_no_write_waker_cannot_reserve_a_post_fence_denial() {
+    struct InjectPeerRequest {
+        owner: SingleToolOwner,
+        spawner: Arc<FakeSpawner>,
+        channel: Arc<FakeChannel>,
+        frame: Mutex<Option<Vec<u8>>>,
+    }
+    impl Wake for InjectPeerRequest {
+        fn wake(self: Arc<Self>) {
+            self.wake_by_ref();
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            assert!(self.owner.retained_binding().is_none());
+            if let Some(frame) = self.frame.lock().unwrap().take() {
+                self.channel.push(frame);
+                self.spawner.tick_at(1);
+            }
+        }
+    }
+
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap(); // Q is still queued; no D is reserved.
+    let wake = Arc::new(InjectPeerRequest {
+        owner: owner.clone(),
+        spawner: spawner.clone(),
+        channel: g1.clone(),
+        frame: Mutex::new(Some(selected_peer_request(&route, 17, "tool.invoke"))),
+    });
+    let waker = Waker::from(wake.clone());
+    let mut outcome = Box::pin(handle.outcome());
+    assert!(
+        outcome
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    assert!(
+        wake.frame.lock().unwrap().is_none(),
+        "waker injected the peer Request"
+    );
+    assert!(matches!(
+        spawner.drive(outcome),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+    spawner.tick();
+    assert_eq!(g1.writes().len(), 2, "a post-fence D must never be sent");
+    assert!(g1.closed.load(Ordering::SeqCst));
+}
+
+#[test]
+fn exact_fence_preserves_reserved_denial_after_dropping_queued_request() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick_at(1); // D is reserved while Q is still unadmitted.
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+    assert!(!g1.closed.load(Ordering::SeqCst));
+    clock.set(599);
+    spawner.tick();
+    assert_eq!(g1.writes().len(), 3, "D must survive, Q must not write");
+    assert!(g1.closed.load(Ordering::SeqCst));
+}
+
+#[test]
+fn fence_without_denial_closes_an_admitted_incomplete_request() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+    g1.stall.store(true, Ordering::SeqCst);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    spawner.tick(); // Writer admitted A, but has written no Request bytes.
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    assert!(g1.closed.load(Ordering::SeqCst));
+    assert_eq!(g1.writes().len(), 2);
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+    let (_, _, g2) = setup(&owner, &spawner, 8, 210);
+    assert!(g2.start_planned(&plan(), &saved(), "b2", timing()).is_ok());
+}
+
+#[test]
+fn admitted_request_drains_before_original_deadline_while_g2_uses_freed_slot() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+    g1.stall.store(true, Ordering::SeqCst);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    spawner.tick(); // A has occurred but write_frame remains pending.
+    g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick_at(1);
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+    let (_, _, g2) = setup(&owner, &spawner, 8, 210);
+    assert!(
+        g2.start_planned(&plan(), &saved(), "b2", timing()).is_ok(),
+        "B1 must release the owner slot before G1 drains"
+    );
+    clock.set(599);
+    g1.stall.store(false, Ordering::SeqCst);
+    spawner.tick();
+    assert_eq!(g1.writes().len(), 4, "admitted A then original D");
+    assert!(g1.closed.load(Ordering::SeqCst));
+    assert!(owner.retained_binding().is_some(), "G2 owns the one slot");
+}
+
+#[test]
+fn fenced_admitted_request_and_denial_keep_their_original_deadlines() {
+    for request_timed_out in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+        g1.stall.store(true, Ordering::SeqCst);
+        let handle = route
+            .start_planned(&plan(), &saved(), "b1", timing())
+            .unwrap();
+        spawner.tick();
+        g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+        spawner.tick_at(1);
+        owner.fence_no_longer_expected(handle.binding()).unwrap();
+        if request_timed_out {
+            clock.set(600);
+        } else {
+            // Request completes below 600, but D's original deadline is also
+            // 600 when it next reaches the FIFO head.
+            clock.jump_after_reads(1, 599, 600);
+        }
+        g1.stall.store(false, Ordering::SeqCst);
+        spawner.tick();
+        assert_eq!(g1.writes().len(), if request_timed_out { 2 } else { 3 });
+        assert!(g1.closed.load(Ordering::SeqCst));
+        assert!(matches!(
+            spawner.drive(handle.outcome()),
+            Ok(CallOutcome::NoLongerExpected)
+        ));
+    }
+}
+
+#[test]
+fn fence_rejects_wrong_binding_and_retained_terminal_uses_checked_retire() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    let other_spawner = Arc::new(FakeSpawner::default());
+    let other_owner = owner_with_write_timeout(other_spawner.clone(), 10);
+    let (_, _, other_route) = setup(&other_owner, &other_spawner, 9, 200);
+    let other = other_route
+        .start_planned(&plan(), &saved(), "other", timing())
+        .unwrap();
+    assert_eq!(
+        owner.fence_no_longer_expected(other.binding()).err(),
+        Some(DriverError::WrongBinding)
+    );
+    assert!(owner.retained_binding().is_some());
+    spawner.tick();
+    g1.push(raw("terminal", 1));
+    assert!(matches!(
+        spawner.drive(handle.first_terminal()),
+        Ok(TypedTerminal::Result(_))
+    ));
+    assert_eq!(
+        owner.fence_no_longer_expected(handle.binding()).err(),
+        Some(DriverError::WrongBinding)
+    );
+    assert!(owner.retained_binding().is_some());
+    owner
+        .retire(
+            handle.binding(),
+            pi_extension_protocol::tool_live::RetireReason::NoLongerExpected,
+        )
+        .unwrap();
+    assert!(owner.retained_binding().is_none());
+}
+
+#[test]
+fn final_time_receipt_wins_a_concurrent_exact_fence_on_the_owner_line() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (g1, clock, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    spawner.tick();
+    let pause = Arc::new(WritePause::new());
+    // Pump ingress and owner ingress take two samples. Hold the third, final
+    // receipt sample while the receiver owns the same line as the fence.
+    clock.pause_after_reads(2, pause.clone());
+    g1.push(raw("terminal", 1));
+    std::thread::scope(|scope| {
+        let reader_spawner = spawner.clone();
+        let reader = scope.spawn(move || reader_spawner.tick_at(1));
+        pause.entered.wait();
+        let started = Arc::new(Barrier::new(2));
+        let fence_started = started.clone();
+        let fence_owner = owner.clone();
+        let binding = handle.binding().clone();
+        let fence = scope.spawn(move || {
+            fence_started.wait();
+            fence_owner.fence_no_longer_expected(&binding)
+        });
+        started.wait();
+        pause.release.wait();
+        reader.join().unwrap();
+        assert_eq!(fence.join().unwrap(), Err(DriverError::WrongBinding));
+    });
+    assert!(matches!(
+        spawner.drive(handle.first_terminal()),
+        Ok(TypedTerminal::Result(_))
+    ));
+    owner
+        .retire(
+            handle.binding(),
+            pi_extension_protocol::tool_live::RetireReason::NoLongerExpected,
+        )
+        .unwrap();
+}
+
+#[test]
+fn late_g1_terminal_after_fence_closes_only_g1_and_cannot_touch_g2() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1, _, route) = setup(&owner, &spawner, 7, 200);
+    let handle = route
+        .start_planned(&plan(), &saved(), "b1", timing())
+        .unwrap();
+    spawner.tick(); // W
+    g1.stall.store(true, Ordering::SeqCst);
+    g1.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick_at(1); // reserve D before fence
+    owner.fence_no_longer_expected(handle.binding()).unwrap();
+    let (g2_channel, _, g2) = setup(&owner, &spawner, 8, 210);
+    let second = g2.start_planned(&plan(), &saved(), "b2", timing()).unwrap();
+    g1.push(raw("terminal", 1));
+    spawner.tick_at(1);
+    assert!(g1.closed.load(Ordering::SeqCst));
+    assert!(!g2_channel.closed.load(Ordering::SeqCst));
+    assert!(
+        owner
+            .retained_binding()
+            .unwrap()
+            .same_live_identity(second.binding())
+    );
+    assert!(matches!(
+        spawner.drive(handle.outcome()),
+        Ok(CallOutcome::NoLongerExpected)
+    ));
+    assert_eq!(g1.writes().len(), 3, "stale terminal preempts unfinished D");
 }
 
 #[test]

@@ -41,6 +41,7 @@ pub enum DriverError {
     Deadline,
     Closed,
     WrongBinding,
+    NoLongerExpected,
 }
 
 impl fmt::Display for DriverError {
@@ -54,6 +55,7 @@ impl fmt::Display for DriverError {
             Self::Deadline => "extension tool deadline exceeded",
             Self::Closed => "extension tool route closed",
             Self::WrongBinding => "extension tool binding mismatch",
+            Self::NoLongerExpected => "extension tool effect no longer expected",
         })
     }
 }
@@ -72,10 +74,19 @@ pub enum TypedTerminal {
     PeerError(v1_1::ErrorCode),
 }
 
+/// Process-local call disposition. The no-write case has no peer terminal or
+/// tool error and must be checked before publishing a ToolRaw value.
+#[derive(Clone)]
+pub enum CallOutcome {
+    Terminal(TypedTerminal),
+    NoLongerExpected,
+}
+
 #[derive(Clone)]
 enum CompletionValue {
     Terminal(TypedTerminal),
     Failed(DriverError),
+    NoLongerExpected,
 }
 
 struct Completion {
@@ -109,7 +120,7 @@ impl CallHandle {
     pub fn binding(&self) -> &InvocationBinding {
         &self.binding
     }
-    pub async fn first_terminal(&self) -> Result<TypedTerminal, DriverError> {
+    pub async fn outcome(&self) -> Result<CallOutcome, DriverError> {
         self.completion.changed.cancelled().await;
         match self
             .completion
@@ -119,8 +130,18 @@ impl CallHandle {
             .as_ref()
             .expect("signalled completion")
         {
-            CompletionValue::Terminal(terminal) => Ok(terminal.clone()),
+            CompletionValue::Terminal(terminal) => Ok(CallOutcome::Terminal(terminal.clone())),
             CompletionValue::Failed(error) => Err(*error),
+            CompletionValue::NoLongerExpected => Ok(CallOutcome::NoLongerExpected),
+        }
+    }
+
+    /// Compatibility access for callers that require a terminal. The exact
+    /// no-write disposition remains separately available through `outcome`.
+    pub async fn first_terminal(&self) -> Result<TypedTerminal, DriverError> {
+        match self.outcome().await? {
+            CallOutcome::Terminal(terminal) => Ok(terminal),
+            CallOutcome::NoLongerExpected => Err(DriverError::NoLongerExpected),
         }
     }
 }
@@ -354,6 +375,45 @@ impl SingleToolOwner {
         Ok(())
     }
 
+    /// Caller invokes only after checked current Session state proves the
+    /// full durable effect key is definitively no longer expected. A retained
+    /// first terminal instead uses `retire(..., NoLongerExpected)`.
+    pub fn fence_no_longer_expected(&self, binding: &InvocationBinding) -> Result<(), DriverError> {
+        let (route, completion, close) = {
+            let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            let slot = state.live.as_mut().ok_or(DriverError::WrongBinding)?;
+            if slot.local_fault {
+                return Err(DriverError::WrongBinding);
+            }
+            slot.invocation
+                .fence_no_longer_expected(binding)
+                .map_err(|_| DriverError::WrongBinding)?;
+            let route = slot.route.clone();
+            // The owner and queue lines jointly decide which denial existed
+            // before the fence. Neither line performs channel I/O or wakes.
+            let close = route.prepare_fenced_route(binding.request_id());
+            let completion = slot.completion.clone();
+            state.live = None;
+            if !matches!(close, FenceRouteDecision::PreserveDenial)
+                && state
+                    .active
+                    .as_ref()
+                    .is_some_and(|active| Arc::ptr_eq(active, &route))
+            {
+                state.active = None;
+            }
+            (route, completion, close)
+        };
+        // Finish physical close before an arbitrary completion waker can poll
+        // an admitted but incomplete write on a generation without D.
+        if let FenceRouteDecision::Close(waker) = close {
+            route.finish_prepared_close(waker);
+        }
+        // Wake outside the owner line: arbitrary wakers may reenter the owner.
+        completion.finish(CompletionValue::NoLongerExpected);
+        Ok(())
+    }
+
     fn close_route(&self, route: &Arc<Route>, reason: DriverError) {
         let completion = {
             let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
@@ -432,7 +492,7 @@ impl SingleToolOwner {
                     // The owner line fences a writer that has not yet admitted
                     // this request. An already admitted popped job remains
                     // irrevocable and is bounded by its original write deadline.
-                    route.discard_queued_request(binding.request_id());
+                    route.discard_unadmitted_request(binding.request_id());
                     Some((slot.completion.clone(), route.has_denial_pending()))
                 } else {
                     None
@@ -463,6 +523,7 @@ impl SingleToolOwner {
             && route.clock.now_ms() < slot.invocation.deadline_ms()
         {
             slot.send_started = true;
+            route.mark_request_admitted(request_id);
             return true;
         }
         false
@@ -697,6 +758,12 @@ enum RouteStatus {
     Closed,
 }
 
+enum FenceRouteDecision {
+    PreserveDenial,
+    Close(Option<Waker>),
+    AlreadyClosed,
+}
+
 struct Route {
     generation: u64,
     grant: Arc<ActiveGrant>,
@@ -736,6 +803,7 @@ impl Route {
             writes.jobs.clear();
             writes.normal_bytes = 0;
             writes.control_bytes = 0;
+            writes.popped_unadmitted = None;
             wake
         };
         if let Some(waker) = wake {
@@ -760,6 +828,7 @@ impl Route {
             writes.jobs.clear();
             writes.normal_bytes = 0;
             writes.control_bytes = 0;
+            writes.popped_unadmitted = None;
             wake
         };
         self.channel.close();
@@ -768,6 +837,36 @@ impl Route {
         }
         self.supervisor.retire();
         true
+    }
+
+    // Called with the owner line held. This queue-lock decision is the exact
+    // fence linearization: an earlier D survives, and a later D is rejected.
+    // Channel close and arbitrary wakers must run after both locks are gone.
+    fn prepare_fenced_route(&self, request_id: u64) -> FenceRouteDecision {
+        let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        self.mark_draining();
+        Self::discard_unadmitted_request_locked(&mut writes, request_id);
+        writes.denial_fenced = true;
+        if self.status() != RouteStatus::Closed && writes.control_bytes != 0 {
+            return FenceRouteDecision::PreserveDenial;
+        }
+        if self.status.swap(2, Ordering::SeqCst) == 2 {
+            return FenceRouteDecision::AlreadyClosed;
+        }
+        let waker = writes.waker.take();
+        writes.jobs.clear();
+        writes.normal_bytes = 0;
+        writes.control_bytes = 0;
+        writes.popped_unadmitted = None;
+        FenceRouteDecision::Close(waker)
+    }
+
+    fn finish_prepared_close(&self, waker: Option<Waker>) {
+        self.channel.close();
+        if let Some(waker) = waker {
+            waker.wake();
+        }
+        self.supervisor.retire();
     }
     fn enqueue(
         &self,
@@ -787,6 +886,7 @@ impl Route {
         let wake = {
             let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
             if self.status() == RouteStatus::Closed
+                || (control && writes.denial_fenced)
                 || (!control && self.status() != RouteStatus::Active)
             {
                 return Err(DriverError::Closed);
@@ -813,8 +913,12 @@ impl Route {
         Ok((wake, deadline))
     }
 
-    fn discard_queued_request(&self, request_id: u64) {
+    fn discard_unadmitted_request(&self, request_id: u64) {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        Self::discard_unadmitted_request_locked(&mut writes, request_id);
+    }
+
+    fn discard_unadmitted_request_locked(writes: &mut WriteState, request_id: u64) {
         if let Some(index) = writes
             .jobs
             .iter()
@@ -822,6 +926,22 @@ impl Route {
         {
             let job = writes.jobs.remove(index).expect("queued request index");
             writes.normal_bytes -= job.frame.bytes.len();
+        }
+        if let Some((id, size)) = writes.popped_unadmitted
+            && id == request_id
+        {
+            writes.normal_bytes -= size;
+            writes.popped_unadmitted = None;
+        }
+    }
+
+    fn mark_request_admitted(&self, request_id: u64) {
+        let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
+        if writes
+            .popped_unadmitted
+            .is_some_and(|(id, _)| id == request_id)
+        {
+            writes.popped_unadmitted = None;
         }
     }
 
@@ -859,6 +979,8 @@ struct WriteState {
     jobs: VecDeque<WriteJob>,
     normal_bytes: usize,
     control_bytes: usize,
+    popped_unadmitted: Option<(u64, usize)>,
+    denial_fenced: bool,
     waker: Option<Waker>,
 }
 
@@ -870,6 +992,9 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 return Poll::Ready(None);
             }
             if let Some(job) = writes.jobs.pop_front() {
+                if let WriteKind::Request(id) = job.kind {
+                    writes.popped_unadmitted = Some((id, job.frame.bytes.len()));
+                }
                 return Poll::Ready(Some(job));
             }
             writes.waker = Some(cx.waker().clone());
@@ -881,7 +1006,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             && !owner.admit_ordered_request(&route, id)
         {
             owner.expire_request_id(&route, id);
-            route.release_write(job.kind, job.frame.bytes.len());
+            route.discard_unadmitted_request(id);
             if route.status() == RouteStatus::Closed {
                 break;
             }
@@ -1055,13 +1180,16 @@ fn check_live_frame(
             }
             ReceiveOutcome::Stale => Ok((None, true)),
         },
-        Err(DomainReceiveError::Host(_)) => Ok((
-            Some((
-                slot.completion.clone(),
-                CompletionValue::Failed(DriverError::HostFault),
-            )),
-            true,
-        )),
+        Err(DomainReceiveError::Host(_)) => {
+            slot.local_fault = true;
+            Ok((
+                Some((
+                    slot.completion.clone(),
+                    CompletionValue::Failed(DriverError::HostFault),
+                )),
+                true,
+            ))
+        }
         Err(DomainReceiveError::PeerLost)
         | Err(DomainReceiveError::Protocol(LiveError::PeerLost)) => {
             slot.provisional_frame = None;

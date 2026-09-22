@@ -1133,6 +1133,57 @@ fn wrong_generation_and_key_do_not_replace_old_live_receipt() {
 }
 
 #[test]
+fn exact_preterminal_fence_is_stale_without_creating_a_receipt() {
+    for cancelled in [false, true] {
+        let mut live = started(1, 1, None);
+        let binding = live.binding().clone();
+        if cancelled {
+            live.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+        }
+        let other = started(1, 1, None).binding().clone();
+        assert_eq!(
+            live.fence_no_longer_expected(&other).unwrap_err(),
+            LiveError::WrongBinding
+        );
+        assert_eq!(
+            live.phase(),
+            if cancelled {
+                LivePhase::CancelRequested
+            } else {
+                LivePhase::Open
+            }
+        );
+        live.fence_no_longer_expected(&binding).unwrap();
+        assert_eq!(live.phase(), LivePhase::Fenced);
+        assert!(live.receipt().is_none());
+        assert!(!live.expire(999));
+        assert!(matches!(
+            live.receive(7, &valid_terminal(1), 201),
+            Ok(ReceiveOutcome::Stale)
+        ));
+        assert_eq!(
+            live.fence_no_longer_expected(&binding).unwrap_err(),
+            LiveError::Stale
+        );
+    }
+
+    let mut retained = started(1, 1, None);
+    let binding = retained.binding().clone();
+    assert!(matches!(
+        retained.receive(7, &valid_terminal(1), 201),
+        Ok(ReceiveOutcome::TerminalReceived)
+    ));
+    assert_eq!(
+        retained.fence_no_longer_expected(&binding).unwrap_err(),
+        LiveError::Stale
+    );
+    assert!(retained.receipt().is_some());
+    retained
+        .retire(&binding, RetireReason::NoLongerExpected)
+        .unwrap();
+}
+
+#[test]
 fn malformed_terminal_or_wrong_request_never_mints_receipt() {
     let invalid = legacy_invalid_frame("terminal");
     let mut frozen_invalid = started(1, 1, None);

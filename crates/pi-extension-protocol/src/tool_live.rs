@@ -156,6 +156,7 @@ pub enum LivePhase {
     CancelRequested,
     TerminalReceived,
     PeerLost,
+    Fenced,
     Retired,
 }
 
@@ -578,7 +579,10 @@ impl ToolInvocation {
         if generation != self.binding.generation() {
             return Err(LiveError::WrongGeneration);
         }
-        if matches!(self.phase, LivePhase::TerminalReceived | LivePhase::Retired) {
+        if matches!(
+            self.phase,
+            LivePhase::TerminalReceived | LivePhase::Retired | LivePhase::Fenced
+        ) {
             return Ok(ReceiveOutcome::Stale);
         }
         if self.phase == LivePhase::PeerLost {
@@ -819,7 +823,10 @@ impl ToolInvocation {
     pub fn expire(&mut self, now_ms: u64) -> bool {
         if matches!(
             self.phase,
-            LivePhase::TerminalReceived | LivePhase::Retired | LivePhase::PeerLost
+            LivePhase::TerminalReceived
+                | LivePhase::Retired
+                | LivePhase::PeerLost
+                | LivePhase::Fenced
         ) {
             return false;
         }
@@ -852,6 +859,21 @@ impl ToolInvocation {
         if matches!(self.phase, LivePhase::Open | LivePhase::CancelRequested) {
             self.phase = LivePhase::PeerLost;
         }
+    }
+
+    /// Fence a preterminal binding after the caller has checked that its full
+    /// durable effect key is definitively no longer expected. No receipt is
+    /// created, and a retained first terminal must use checked retirement.
+    pub fn fence_no_longer_expected(&mut self, binding: &InvocationBinding) -> Result<()> {
+        if !self.binding.same_live_identity(binding) {
+            return Err(LiveError::WrongBinding);
+        }
+        if !matches!(self.phase, LivePhase::Open | LivePhase::CancelRequested) {
+            return Err(LiveError::Stale);
+        }
+        self.receipt = None;
+        self.phase = LivePhase::Fenced;
+        Ok(())
     }
 
     /// Runtime calls this only after durable commit or no-longer-expected proof.
