@@ -518,8 +518,9 @@ impl ToolInvocation {
 
     /// Protocol-schema-only admission with an allow-all domain check. A
     /// `tool.v1` runtime route that settles `AgentToolResult` must instead use
-    /// `receive_checked` with its host-bound typed decoder: portable `integer`
-    /// can admit a float-arm `1.0` that Rust `SafeUnsigned` cannot construct.
+    /// `receive_checked_with_final_time` with its host-bound typed decoder and
+    /// receiver-local final clock: portable `integer` can admit a float-arm
+    /// `1.0` that Rust `SafeUnsigned` cannot construct.
     /// The host generation is supplied separately from the peer frame.
     pub fn receive(
         &mut self,
@@ -536,16 +537,43 @@ impl ToolInvocation {
     /// only for a peer value it cannot construct. A local callback panic
     /// unwinds before state mutation; the host must catch it as its own Fault.
     /// A peer-value mismatch closes this invocation with a fixed category and
-    /// no exposed output.
+    /// no exposed output. This compatibility path holds `now_ms` fixed through
+    /// validation; a runtime with a live monotonic deadline uses
+    /// `receive_checked_with_final_time`.
     pub fn receive_checked<F>(
         &mut self,
         generation: u64,
         frame: &ActiveFrame,
         now_ms: u64,
-        mut domain: F,
+        domain: F,
     ) -> Result<ReceiveOutcome>
     where
         F: FnMut(DomainCheck<'_>) -> DomainDecision,
+    {
+        self.receive_checked_with_final_time(generation, frame, now_ms, None, domain, || now_ms)
+    }
+
+    /// Rechecks receiver-local monotonic time after selected schema and host
+    /// domain admission, at the progress or first-terminal state transition.
+    ///
+    /// `additional_deadline_ms` is a trusted absolute cutoff such as a local
+    /// cancellation grace deadline. The host supplies the same nondecreasing
+    /// clock used for ingress and its timer; both callbacks are synchronous and
+    /// must not perform I/O, Session access, or reenter this invocation. The
+    /// owner must serialize this call with its expiry and cancellation paths.
+    /// Existing fixed-time callers may continue to use `receive_checked`.
+    pub fn receive_checked_with_final_time<F, N>(
+        &mut self,
+        generation: u64,
+        frame: &ActiveFrame,
+        ingress_now_ms: u64,
+        additional_deadline_ms: Option<u64>,
+        mut domain: F,
+        mut final_now_ms: N,
+    ) -> Result<ReceiveOutcome>
+    where
+        F: FnMut(DomainCheck<'_>) -> DomainDecision,
+        N: FnMut() -> u64,
     {
         if generation != self.binding.generation() {
             return Err(LiveError::WrongGeneration);
@@ -556,7 +584,7 @@ impl ToolInvocation {
         if self.phase == LivePhase::PeerLost {
             return Err(LiveError::PeerLost);
         }
-        if self.expire(now_ms) {
+        if self.expire_with_additional(ingress_now_ms, additional_deadline_ms) {
             return Err(LiveError::PeerLost);
         }
         if frame.body_len == 0 || frame.body_len > self.limits.frame.get() {
@@ -644,11 +672,16 @@ impl ToolInvocation {
                     }
                     DomainDecision::HostFault => return Err(LiveError::HostDomainFault),
                 }
-                self.credit -= frame.body_len as u64;
-                self.next_sequence = match self.next_sequence.checked_add(1) {
+                let next_sequence = match self.next_sequence.checked_add(1) {
                     Some(next) => next,
                     None => return self.malformed(LiveError::InvalidSequence),
                 };
+                let final_ms = final_now_ms();
+                if self.expire_with_additional(final_ms, additional_deadline_ms) {
+                    return Err(LiveError::PeerLost);
+                }
+                self.credit -= frame.body_len as u64;
+                self.next_sequence = next_sequence;
                 if self.phase == LivePhase::CancelRequested {
                     Ok(ReceiveOutcome::IgnoredCancelledProgress)
                 } else {
@@ -683,10 +716,15 @@ impl ToolInvocation {
                         DomainDecision::HostFault => return Err(LiveError::HostDomainFault),
                     }
                 }
+                let binding = self.binding.clone();
+                let final_ms = final_now_ms();
+                if self.expire_with_additional(final_ms, additional_deadline_ms) {
+                    return Err(LiveError::PeerLost);
+                }
                 self.receipt = Some(TerminalReceipt {
-                    binding: self.binding.clone(),
+                    binding,
                     output,
-                    received_ms: now_ms,
+                    received_ms: final_ms,
                 });
                 self.phase = LivePhase::TerminalReceived;
                 Ok(ReceiveOutcome::TerminalReceived)
@@ -791,6 +829,19 @@ impl ToolInvocation {
                 .is_some_and(|deadline| now_ms >= deadline)
         {
             self.phase = LivePhase::PeerLost;
+            return true;
+        }
+        false
+    }
+
+    fn expire_with_additional(&mut self, now_ms: u64, additional_deadline_ms: Option<u64>) -> bool {
+        if self.expire(now_ms) {
+            return true;
+        }
+        if additional_deadline_ms.is_some_and(|deadline| now_ms >= deadline)
+            && matches!(self.phase, LivePhase::Open | LivePhase::CancelRequested)
+        {
+            self.peer_lost();
             return true;
         }
         false

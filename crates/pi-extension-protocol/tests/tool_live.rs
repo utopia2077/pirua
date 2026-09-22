@@ -1493,6 +1493,424 @@ fn cancelled_progress_uses_original_credit_and_retains_zero_credit_terminal_in_b
     }
 }
 
+fn typed_error_frame(core: u32) -> ActiveFrame {
+    if core == 0 {
+        frame_old(v1_0::envelope::Frame::StreamEnd(v1_0::StreamEnd {
+            request_id: 17,
+            terminal: Some(v1_0::stream_end::Terminal::Error(v1_0::TypedError {
+                code: v1_0::ErrorCode::HandlerError as i32,
+                safe_message: "untrusted peer text".into(),
+            })),
+        }))
+    } else {
+        frame_new(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+            request_id: 17,
+            terminal: Some(v1_1::stream_end::Terminal::Error(v1_1::TypedError {
+                code: v1_1::ErrorCode::HandlerError as i32,
+                safe_message: "untrusted peer text".into(),
+            })),
+        }))
+    }
+}
+
+#[test]
+fn final_clock_after_domain_blocks_progress_and_result_at_deadline() {
+    use std::cell::{Cell, RefCell};
+
+    for (core, tool) in [(0, 0), (1, 1)] {
+        for kind in [DomainKind::Progress, DomainKind::Result] {
+            let frame = match kind {
+                DomainKind::Progress => valid_progress(core),
+                DomainKind::Result => valid_terminal(core),
+            };
+            let credit = (kind == DomainKind::Progress).then_some(frame.body_len as u64);
+            let mut live = started(core, tool, credit);
+            let clock = Cell::new(499);
+            let order = RefCell::new(Vec::new());
+            let result = live.receive_checked_with_final_time(
+                7,
+                &frame,
+                499,
+                None,
+                |check| {
+                    assert_eq!(check.kind(), kind);
+                    order.borrow_mut().push("domain");
+                    clock.set(500);
+                    DomainDecision::Accept
+                },
+                || {
+                    order.borrow_mut().push("clock");
+                    clock.get()
+                },
+            );
+            assert_eq!(result.err(), Some(LiveError::PeerLost));
+            assert_eq!(*order.borrow(), ["domain", "clock"]);
+            assert_eq!(live.phase(), LivePhase::PeerLost);
+            assert_eq!(live.credit(), credit.unwrap_or(0));
+            assert_eq!(live.next_sequence(), 0);
+            assert!(live.receipt().is_none());
+
+            let mut accepted = started(core, tool, credit);
+            let result = accepted.receive_checked_with_final_time(
+                7,
+                &frame,
+                499,
+                None,
+                |_| DomainDecision::Accept,
+                || 499,
+            );
+            match kind {
+                DomainKind::Progress => {
+                    assert!(matches!(result, Ok(ReceiveOutcome::Progress(_))));
+                    assert_eq!(accepted.credit(), 0);
+                    assert_eq!(accepted.next_sequence(), 1);
+                }
+                DomainKind::Result => {
+                    assert!(matches!(result, Ok(ReceiveOutcome::TerminalReceived)));
+                    assert_eq!(accepted.receipt().unwrap().received_ms(), 499);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn typed_peer_error_uses_final_clock_without_domain_callback() {
+    use std::cell::Cell;
+
+    for (core, tool) in [(0, 0), (1, 1)] {
+        let frame = typed_error_frame(core);
+        let calls = Cell::new(0);
+        let mut expired = started(core, tool, None);
+        assert_eq!(
+            expired
+                .receive_checked_with_final_time(
+                    7,
+                    &frame,
+                    499,
+                    None,
+                    |_| {
+                        calls.set(calls.get() + 1);
+                        DomainDecision::Accept
+                    },
+                    || 500,
+                )
+                .err(),
+            Some(LiveError::PeerLost)
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(expired.phase(), LivePhase::PeerLost);
+        assert!(expired.receipt().is_none());
+
+        let mut accepted = started(core, tool, None);
+        assert!(matches!(
+            accepted.receive_checked_with_final_time(
+                7,
+                &frame,
+                499,
+                None,
+                |_| panic!("typed error needs no domain construction"),
+                || 499,
+            ),
+            Ok(ReceiveOutcome::TerminalReceived)
+        ));
+        assert_eq!(accepted.receipt().unwrap().received_ms(), 499);
+        assert_eq!(
+            accepted.receipt().unwrap().error(),
+            Some((v1_1::ErrorCode::HandlerError, "remote tool error"))
+        );
+        assert!(matches!(
+            accepted.receive_checked_with_final_time(
+                7,
+                &frame,
+                500,
+                None,
+                |_| panic!("stale terminal needs no domain construction"),
+                || panic!("stale terminal needs no final clock"),
+            ),
+            Ok(ReceiveOutcome::Stale)
+        ));
+        assert_eq!(accepted.receipt().unwrap().received_ms(), 499);
+    }
+}
+
+#[test]
+fn cancellation_grace_final_cutoff_precedes_credit_or_terminal_mutation() {
+    for (core, tool) in [(0, 0), (1, 1)] {
+        let progress = valid_progress(core);
+        let credit = progress.body_len as u64;
+        let mut accepted = started(core, tool, Some(credit));
+        accepted
+            .cancel(v1_1::CancelReason::CancelUser, 200)
+            .unwrap();
+        assert!(matches!(
+            accepted.receive_checked_with_final_time(
+                7,
+                &progress,
+                249,
+                Some(250),
+                |_| DomainDecision::Accept,
+                || 249,
+            ),
+            Ok(ReceiveOutcome::IgnoredCancelledProgress)
+        ));
+        assert_eq!(accepted.credit(), 0);
+        assert_eq!(accepted.next_sequence(), 1);
+        assert_eq!(accepted.phase(), LivePhase::CancelRequested);
+
+        let mut expired = started(core, tool, Some(credit));
+        expired.cancel(v1_1::CancelReason::CancelUser, 200).unwrap();
+        assert_eq!(
+            expired
+                .receive_checked_with_final_time(
+                    7,
+                    &progress,
+                    249,
+                    Some(250),
+                    |_| DomainDecision::Accept,
+                    || 250,
+                )
+                .err(),
+            Some(LiveError::PeerLost)
+        );
+        assert_eq!(expired.phase(), LivePhase::PeerLost);
+        assert_eq!(expired.credit(), credit);
+        assert_eq!(expired.next_sequence(), 0);
+
+        let mut draining = started(core, tool, Some(credit));
+        draining.begin_drain(250);
+        assert_eq!(
+            draining
+                .receive_checked_with_final_time(
+                    7,
+                    &progress,
+                    249,
+                    None,
+                    |_| DomainDecision::Accept,
+                    || 250,
+                )
+                .err(),
+            Some(LiveError::PeerLost)
+        );
+        assert_eq!(draining.credit(), credit);
+        assert_eq!(draining.next_sequence(), 0);
+
+        let mut ingress_expired = started(core, tool, Some(credit));
+        ingress_expired
+            .cancel(v1_1::CancelReason::CancelUser, 200)
+            .unwrap();
+        assert_eq!(
+            ingress_expired
+                .receive_checked_with_final_time(
+                    7,
+                    &progress,
+                    250,
+                    Some(250),
+                    |_| panic!("expired input must skip domain"),
+                    || panic!("expired input must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::PeerLost)
+        );
+        assert_eq!(ingress_expired.credit(), credit);
+        assert_eq!(ingress_expired.next_sequence(), 0);
+
+        let terminal = valid_terminal(core);
+        let mut terminal_accepted = started(core, tool, None);
+        terminal_accepted
+            .cancel(v1_1::CancelReason::CancelUser, 200)
+            .unwrap();
+        assert!(matches!(
+            terminal_accepted.receive_checked_with_final_time(
+                7,
+                &terminal,
+                249,
+                Some(250),
+                |_| DomainDecision::Accept,
+                || 249,
+            ),
+            Ok(ReceiveOutcome::TerminalReceived)
+        ));
+        assert_eq!(terminal_accepted.receipt().unwrap().received_ms(), 249);
+        assert!(!terminal_accepted.expire(250));
+        let mut terminal_expired = started(core, tool, None);
+        terminal_expired
+            .cancel(v1_1::CancelReason::CancelUser, 200)
+            .unwrap();
+        assert_eq!(
+            terminal_expired
+                .receive_checked_with_final_time(
+                    7,
+                    &terminal,
+                    249,
+                    Some(250),
+                    |_| DomainDecision::Accept,
+                    || 250,
+                )
+                .err(),
+            Some(LiveError::PeerLost)
+        );
+        assert!(terminal_expired.receipt().is_none());
+    }
+}
+
+#[test]
+fn final_clock_skips_rejected_input_and_preserves_domain_error_classes() {
+    for (core, tool) in [(0, 0), (1, 1)] {
+        let progress = valid_progress(core);
+        let credit = progress.body_len as u64;
+        let mut wrong_generation = started(core, tool, Some(credit));
+        assert_eq!(
+            wrong_generation
+                .receive_checked_with_final_time(
+                    8,
+                    &progress,
+                    499,
+                    None,
+                    |_| panic!("wrong generation must skip domain"),
+                    || panic!("wrong generation must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::WrongGeneration)
+        );
+        let mut no_credit = started(core, tool, None);
+        assert_eq!(
+            no_credit
+                .receive_checked_with_final_time(
+                    7,
+                    &progress,
+                    499,
+                    None,
+                    |_| panic!("credit failure must skip domain"),
+                    || panic!("credit failure must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::CreditViolation)
+        );
+        let wrong_request_frame = if core == 0 {
+            edited_progress_old(|item| item.request_id = 18)
+        } else {
+            edited_progress_new(|item| item.request_id = 18)
+        };
+        let mut wrong_request = started(core, tool, Some(credit));
+        assert_eq!(
+            wrong_request
+                .receive_checked_with_final_time(
+                    7,
+                    &wrong_request_frame,
+                    499,
+                    None,
+                    |_| panic!("wrong request must skip domain"),
+                    || panic!("wrong request must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::WrongRequestId)
+        );
+        let gap_frame = if core == 0 {
+            edited_progress_old(|item| item.sequence = 1)
+        } else {
+            edited_progress_new(|item| item.sequence = 1)
+        };
+        let mut gap = started(core, tool, Some(credit));
+        assert_eq!(
+            gap.receive_checked_with_final_time(
+                7,
+                &gap_frame,
+                499,
+                None,
+                |_| panic!("sequence gap must skip domain"),
+                || panic!("sequence gap must skip final clock"),
+            )
+            .err(),
+            Some(LiveError::InvalidSequence)
+        );
+        let wrong_arm = if core == 0 {
+            frame_old(v1_0::envelope::Frame::Credit(v1_0::Credit {
+                request_id: 17,
+                additional_bytes: 1,
+            }))
+        } else {
+            frame_new(v1_1::envelope::Frame::Credit(v1_1::Credit {
+                request_id: 17,
+                additional_bytes: 1,
+            }))
+        };
+        let mut invalid_arm = started(core, tool, Some(credit));
+        assert_eq!(
+            invalid_arm
+                .receive_checked_with_final_time(
+                    7,
+                    &wrong_arm,
+                    499,
+                    None,
+                    |_| panic!("wrong arm must skip domain"),
+                    || panic!("wrong arm must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::InvalidTerminal)
+        );
+        let invalid_schema_frame = if core == 0 {
+            edited_progress_old(|item| {
+                let mut payload = v1_0::ToolProgress::decode(item.payload.as_slice()).unwrap();
+                payload.event.as_mut().unwrap().projection_id = "tool.result:echo".into();
+                item.payload = payload.encode_to_vec();
+            })
+        } else {
+            edited_progress_new(|item| {
+                let mut payload = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+                payload.event.as_mut().unwrap().projection_id = "tool.result:echo".into();
+                item.payload = payload.encode_to_vec();
+            })
+        };
+        let mut invalid_schema = started(core, tool, Some(credit));
+        assert!(matches!(
+            invalid_schema.receive_checked_with_final_time(
+                7,
+                &invalid_schema_frame,
+                499,
+                None,
+                |_| panic!("invalid schema must skip domain"),
+                || panic!("invalid schema must skip final clock"),
+            ),
+            Err(LiveError::Value(value::Error::ProjectionMismatch))
+        ));
+        let mut host_fault = started(core, tool, Some(credit));
+        assert_eq!(
+            host_fault
+                .receive_checked_with_final_time(
+                    7,
+                    &progress,
+                    499,
+                    None,
+                    |_| DomainDecision::HostFault,
+                    || panic!("host fault must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::HostDomainFault)
+        );
+        assert_eq!(host_fault.phase(), LivePhase::Open);
+        assert_eq!(host_fault.credit(), credit);
+        assert_eq!(host_fault.next_sequence(), 0);
+        let mut peer_mismatch = started(core, tool, Some(credit));
+        assert_eq!(
+            peer_mismatch
+                .receive_checked_with_final_time(
+                    7,
+                    &progress,
+                    499,
+                    None,
+                    |_| DomainDecision::PeerValueMismatch,
+                    || panic!("peer mismatch must skip final clock"),
+                )
+                .err(),
+            Some(LiveError::InvalidProgress)
+        );
+        assert_eq!(peer_mismatch.phase(), LivePhase::PeerLost);
+        assert_eq!(peer_mismatch.credit(), credit);
+        assert_eq!(peer_mismatch.next_sequence(), 0);
+    }
+}
+
 #[test]
 fn cancelled_progress_rejects_overcredit_wrong_request_gap_and_duplicate() {
     for (core, tool) in [(0, 0), (1, 1)] {
