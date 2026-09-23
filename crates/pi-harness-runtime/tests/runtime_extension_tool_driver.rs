@@ -348,23 +348,38 @@ impl FakeChannel {
     fn writes(&self) -> Vec<Vec<u8>> {
         self.writes.lock().unwrap().clone()
     }
-}
-impl OrderedByteChannel for FakeChannel {
-    fn read_chunk(
-        &self,
-        max: NonZeroUsize,
-    ) -> BoxFuture<'_, Result<Option<Vec<u8>>, ChannelError>> {
-        Box::pin(poll_fn(move |_| {
+
+    fn read_future<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> impl Future<Output = Result<Option<usize>, ChannelError>> + Send + 'a {
+        poll_fn(move |_| {
             if self.closed.load(Ordering::SeqCst) {
                 return Poll::Ready(Err(ChannelError::Closed));
             }
             match self.reads.lock().unwrap().pop_front() {
-                Some(Some(bytes)) if bytes.len() <= max.get() => Poll::Ready(Ok(Some(bytes))),
+                Some(Some(bytes)) if bytes.len() <= buffer.len() => {
+                    buffer[..bytes.len()].copy_from_slice(&bytes);
+                    Poll::Ready(Ok(Some(bytes.len())))
+                }
                 Some(Some(_)) => Poll::Ready(Err(ChannelError::Failed)),
                 Some(None) => Poll::Ready(Ok(None)),
                 None => Poll::Pending,
             }
-        }))
+        })
+    }
+}
+impl OrderedByteChannel for FakeChannel {
+    fn max_read_scratch_bytes(&self) -> usize {
+        let mut empty = [];
+        std::mem::size_of_val(&self.read_future(&mut empty))
+    }
+
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+        Box::pin(self.read_future(buffer))
     }
     fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
         Box::pin(poll_fn(move |_| {
@@ -689,11 +704,15 @@ impl Drop for RouteDropProbeChannel {
 }
 
 impl OrderedByteChannel for RouteDropProbeChannel {
-    fn read_chunk(
-        &self,
-        max: NonZeroUsize,
-    ) -> BoxFuture<'_, Result<Option<Vec<u8>>, ChannelError>> {
-        self.inner.read_chunk(max)
+    fn max_read_scratch_bytes(&self) -> usize {
+        self.inner.max_read_scratch_bytes()
+    }
+
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+        self.inner.read_chunk(buffer)
     }
 
     fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
@@ -703,6 +722,16 @@ impl OrderedByteChannel for RouteDropProbeChannel {
     fn close(&self) {
         self.inner.close();
     }
+}
+
+#[test]
+fn fake_read_declaration_covers_its_boxed_future_payload() {
+    let channel = FakeChannel::new();
+    let mut empty = [];
+    let future = channel.read_chunk(&mut empty);
+    let future_bytes = std::mem::size_of_val(future.as_ref().get_ref());
+    assert!(future_bytes > 0);
+    assert!(channel.max_read_scratch_bytes() >= future_bytes);
 }
 
 #[test]

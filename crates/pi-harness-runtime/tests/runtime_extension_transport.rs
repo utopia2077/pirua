@@ -94,9 +94,18 @@ impl Default for ChannelState {
 struct FakeChannel {
     state: Mutex<ChannelState>,
     closes: AtomicUsize,
+    read_buffer_len: AtomicUsize,
+    extra_declared_read_scratch_bytes: usize,
 }
 
 impl FakeChannel {
+    fn with_extra_declared_read_scratch_bytes(extra: usize) -> Self {
+        Self {
+            extra_declared_read_scratch_bytes: extra,
+            ..Self::default()
+        }
+    }
+
     fn push(&self, action: ReadAction) {
         let waker = {
             let mut state = self.state.lock().unwrap();
@@ -130,20 +139,24 @@ impl FakeChannel {
     fn partial_write_len(&self) -> usize {
         self.state.lock().unwrap().partial_write_bytes.len()
     }
-}
 
-impl OrderedByteChannel for FakeChannel {
-    fn read_chunk(
-        &self,
-        _max_bytes: NonZeroUsize,
-    ) -> BoxFuture<'_, Result<Option<Vec<u8>>, ChannelError>> {
-        Box::pin(poll_fn(move |cx| {
+    fn read_future<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> impl Future<Output = Result<Option<usize>, ChannelError>> + Send + 'a {
+        poll_fn(move |cx| {
+            self.read_buffer_len.store(buffer.len(), Ordering::SeqCst);
             let mut state = self.state.lock().unwrap();
             if state.closed {
                 return Poll::Ready(Err(ChannelError::Closed));
             }
             match state.reads.pop_front() {
-                Some(ReadAction::Bytes(bytes)) => Poll::Ready(Ok(Some(bytes))),
+                Some(ReadAction::Bytes(bytes)) => {
+                    if bytes.len() <= buffer.len() {
+                        buffer[..bytes.len()].copy_from_slice(&bytes);
+                    }
+                    Poll::Ready(Ok(Some(bytes.len())))
+                }
                 Some(ReadAction::Eof) => Poll::Ready(Ok(None)),
                 Some(ReadAction::Failed) => Poll::Ready(Err(ChannelError::Failed)),
                 None => {
@@ -151,7 +164,22 @@ impl OrderedByteChannel for FakeChannel {
                     Poll::Pending
                 }
             }
-        }))
+        })
+    }
+}
+
+impl OrderedByteChannel for FakeChannel {
+    fn max_read_scratch_bytes(&self) -> usize {
+        let mut empty = [];
+        let future_bytes = std::mem::size_of_val(&self.read_future(&mut empty));
+        future_bytes.saturating_add(self.extra_declared_read_scratch_bytes)
+    }
+
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+        Box::pin(self.read_future(buffer))
     }
 
     fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
@@ -622,7 +650,60 @@ fn bad_chunks_read_failure_and_malformed_prefix_close_without_output() {
         assert!(channel.is_closed());
         assert!(channel.writes().is_empty());
         assert!(pump.active_grant().is_none());
+        assert_eq!(channel.read_buffer_len.load(Ordering::SeqCst), chunk);
     }
+}
+
+#[test]
+fn fake_read_declaration_covers_its_boxed_future_payload() {
+    let channel = FakeChannel::default();
+    let mut empty = [];
+    let future = channel.read_chunk(&mut empty);
+    let future_bytes = std::mem::size_of_val(future.as_ref().get_ref());
+    assert!(future_bytes > 0);
+    assert!(channel.max_read_scratch_bytes() >= future_bytes);
+}
+
+#[test]
+fn pending_read_borrows_only_declared_capacity_and_counts_host_scratch() {
+    let channel = Arc::new(FakeChannel::default());
+    let mut empty = [];
+    let future = channel.read_chunk(&mut empty);
+    let future_bytes = std::mem::size_of_val(future.as_ref().get_ref());
+    drop(future);
+    let mut pump = pump(channel.clone(), Arc::new(FakeClock::new(100)), 64);
+    assert_eq!(channel.max_read_scratch_bytes(), future_bytes);
+    assert_eq!(
+        pump.read_storage_bound_bytes(),
+        pump.read_buffer_capacity_bytes() + future_bytes
+    );
+    assert!(pump.read_buffer_capacity_bytes() >= 64);
+
+    let wake = Arc::new(CountWake::default());
+    let mut future = Box::pin(pump.next_active());
+    assert!(poll_once(future.as_mut(), &wake).is_pending());
+    assert_eq!(channel.read_buffer_len.load(Ordering::SeqCst), 64);
+    assert_eq!(channel.max_read_scratch_bytes(), future_bytes);
+    drop(future);
+    assert!(channel.is_closed());
+}
+
+#[test]
+fn read_capacity_and_declared_host_scratch_must_fit_together() {
+    let channel = Arc::new(FakeChannel::with_extra_declared_read_scratch_bytes(
+        usize::MAX,
+    ));
+    let host = HostAuthority::new("peer-a".into(), 7, 1, 1, limits(), vec![], vec![]).unwrap();
+    let result = ConnectionPump::new(
+        host,
+        channel,
+        Arc::new(FakeClock::new(100)),
+        PumpConfig {
+            max_read_chunk: NonZeroUsize::new(1).unwrap(),
+            write_timeout_ms: NonZeroU64::new(10).unwrap(),
+        },
+    );
+    assert!(matches!(result, Err(PumpError::ReadBufferUnavailable)));
 }
 
 #[test]

@@ -26,16 +26,31 @@ pub enum ChannelError {
 
 /// One host-owned ordered duplex byte channel for one connection generation.
 ///
-/// Exactly one reader calls `read_chunk`. It returns a nonempty chunk no larger
-/// than `max_bytes`, EOF, or a fixed error. `write_frame` completes the entire
-/// frame in FIFO order or fails; an implementation must never interleave frame
-/// bytes or buffer an unbounded number of writes. Closing is idempotent and
-/// wakes pending reads and writes. A host may close its own channel externally.
+/// Exactly one reader calls `read_chunk` with a pump-owned buffer. It writes a
+/// nonempty prefix and returns its length, EOF, or a fixed error. It may retain
+/// the borrowed buffer while pending, but must not retain it after completion or
+/// cancellation. The returned length must not exceed the supplied slice.
+/// `max_read_scratch_bytes` is the trusted host's stable, finite peak of
+/// additional live capacity owned by one pending read, including future state
+/// and copies. A host-side receive queue needs its own finite admission bound.
+/// The charged metric is retained buffer capacity plus host-requested allocation
+/// payload bytes; allocator rounding and metadata require separate accounting.
+/// The pump exposes the checked sum of that declaration and its buffer capacity.
+/// The declaration and construction/polling of the read future must return
+/// promptly without blocking I/O or reentering the owner/route line; a timer
+/// cannot preempt a synchronous host callback.
+///
+/// `write_frame` completes the entire frame in FIFO order or fails; an
+/// implementation must never interleave frame bytes or buffer an unbounded
+/// number of writes. Closing is idempotent and wakes pending reads and writes.
+/// A host may close its own channel externally.
 pub trait OrderedByteChannel: Send + Sync {
-    fn read_chunk(
-        &self,
-        max_bytes: NonZeroUsize,
-    ) -> BoxFuture<'_, Result<Option<Vec<u8>>, ChannelError>>;
+    fn max_read_scratch_bytes(&self) -> usize;
+
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>>;
 
     fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>>;
 
@@ -68,6 +83,7 @@ pub enum PumpError {
     ReadFailed,
     WriteFailed,
     BadReadChunk,
+    ReadBufferUnavailable,
     HandshakeTimeout,
     HandshakeEof,
     WriteTimeout,
@@ -83,6 +99,7 @@ impl fmt::Display for PumpError {
             Self::ReadFailed => "extension channel read failed",
             Self::WriteFailed => "extension channel write failed",
             Self::BadReadChunk => "extension channel returned an invalid chunk",
+            Self::ReadBufferUnavailable => "extension read buffer limit cannot be reserved",
             Self::HandshakeTimeout => "extension handshake timed out",
             Self::HandshakeEof => "extension handshake ended before Ready",
             Self::WriteTimeout => "extension frame write timed out",
@@ -105,7 +122,9 @@ pub struct ConnectionPump {
     config: PumpConfig,
     handshake_deadline_ms: u64,
     buffered: Vec<u8>,
+    filled: usize,
     offset: usize,
+    read_storage_bound_bytes: usize,
     closed: bool,
 }
 
@@ -132,6 +151,21 @@ impl ConnectionPump {
         clock: Arc<dyn MonotonicClock>,
         config: PumpConfig,
     ) -> Result<Self, PumpError> {
+        let read_scratch_bytes = channel.max_read_scratch_bytes();
+        config
+            .max_read_chunk
+            .get()
+            .checked_add(read_scratch_bytes)
+            .ok_or(PumpError::ReadBufferUnavailable)?;
+        let mut buffered = Vec::new();
+        buffered
+            .try_reserve_exact(config.max_read_chunk.get())
+            .map_err(|_| PumpError::ReadBufferUnavailable)?;
+        buffered.resize(config.max_read_chunk.get(), 0);
+        let read_storage_bound_bytes = buffered
+            .capacity()
+            .checked_add(read_scratch_bytes)
+            .ok_or(PumpError::ReadBufferUnavailable)?;
         let started_ms = clock.now_ms();
         let handshake_deadline_ms = started_ms
             .checked_add(host.limits().handshake_ms)
@@ -142,8 +176,10 @@ impl ConnectionPump {
             clock,
             config,
             handshake_deadline_ms,
-            buffered: Vec::new(),
+            buffered,
+            filled: 0,
             offset: 0,
+            read_storage_bound_bytes,
             closed: false,
         })
     }
@@ -154,6 +190,18 @@ impl ConnectionPump {
         } else {
             self.endpoint.phase()
         }
+    }
+
+    /// Caller-owned read capacity plus the trusted host's declared read-call
+    /// scratch. This excludes decoder, writer, and host receive-queue storage.
+    pub fn read_storage_bound_bytes(&self) -> usize {
+        self.read_storage_bound_bytes
+    }
+
+    /// Actual retained buffer capacity, which may exceed the slice length
+    /// offered to the host on each read.
+    pub fn read_buffer_capacity_bytes(&self) -> usize {
+        self.buffered.capacity()
     }
 
     pub fn active_grant(&self) -> Option<&ActiveGrant> {
@@ -221,14 +269,14 @@ impl ConnectionPump {
             {
                 return self.fail(PumpError::HandshakeTimeout);
             }
-            if self.offset == self.buffered.len() {
-                self.buffered.clear();
+            if self.offset == self.filled {
+                self.filled = 0;
                 self.offset = 0;
-                let chunk = match self.read_chunk().await {
-                    Ok(chunk) => chunk,
+                let filled = match self.read_chunk().await {
+                    Ok(filled) => filled,
                     Err(error) => return self.fail(error),
                 };
-                let Some(chunk) = chunk else {
+                let Some(filled) = filled else {
                     let active = self.endpoint.phase() == EndpointPhase::Active;
                     let finished = self.endpoint.finish();
                     self.close();
@@ -238,10 +286,10 @@ impl ConnectionPump {
                         Ok(()) => Err(PumpError::HandshakeEof),
                     };
                 };
-                if chunk.is_empty() || chunk.len() > self.config.max_read_chunk.get() {
+                if filled == 0 || filled > self.buffered.len() {
                     return self.fail(PumpError::BadReadChunk);
                 }
-                self.buffered = chunk;
+                self.filled = filled;
             }
             let now_ms = self.clock.now_ms();
             if self.endpoint.phase() != EndpointPhase::Active
@@ -251,7 +299,7 @@ impl ConnectionPump {
             }
             let step = match self
                 .endpoint
-                .read_one(&self.buffered[self.offset..], now_ms)
+                .read_one(&self.buffered[self.offset..self.filled], now_ms)
             {
                 Ok(step) if step.consumed > 0 => step,
                 Ok(_) => return self.fail(PumpError::MalformedInput),
@@ -278,7 +326,7 @@ impl ConnectionPump {
         if !self.closed {
             self.closed = true;
             self.channel.close();
-            self.buffered.clear();
+            self.filled = 0;
             self.offset = 0;
         }
     }
@@ -288,8 +336,8 @@ impl ConnectionPump {
         Err(error)
     }
 
-    async fn read_chunk(&self) -> Result<Option<Vec<u8>>, PumpError> {
-        let mut read = self.channel.read_chunk(self.config.max_read_chunk);
+    async fn read_chunk(&mut self) -> Result<Option<usize>, PumpError> {
+        let mut read = self.channel.read_chunk(&mut self.buffered);
         if self.endpoint.phase() == EndpointPhase::Active {
             return read.await.map_err(read_error);
         }
