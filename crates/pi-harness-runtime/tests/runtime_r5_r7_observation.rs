@@ -3,7 +3,63 @@ mod runtime_r5_r7_support;
 use pi_agent_schema::*;
 use runtime_r1_r4_support::*;
 use runtime_r5_r7_support::*;
-use std::sync::{Arc, Mutex, atomic::Ordering};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
+use std::task::Poll;
+
+struct PausedConfigListener {
+    release: AtomicBool,
+    received: Mutex<Vec<HarnessEvent>>,
+}
+impl EventListener for PausedConfigListener {
+    fn on_event(&self, event: HarnessEvent) -> BoxFuture<'_, Result<(), HandlerError>> {
+        Box::pin(async move {
+            std::future::poll_fn(|_| {
+                if self.release.load(Ordering::SeqCst) {
+                    Poll::Ready(())
+                } else {
+                    Poll::Pending
+                }
+            })
+            .await;
+            self.received.lock().unwrap().push(event);
+            Ok(())
+        })
+    }
+}
+
+#[test]
+fn dropping_watch_closes_a_delivery_held_by_a_pending_listener() {
+    let s = Setup::new();
+    let c = s
+        .pump
+        .drive(factory(&s).create(s.options(DriveMode::Automatic)))
+        .unwrap();
+    let listener = Arc::new(PausedConfigListener {
+        release: AtomicBool::new(false),
+        received: Mutex::new(Vec::new()),
+    });
+    let watch = s.pump.drive(c.harness.watch()).unwrap();
+    watch.start(listener.clone());
+    s.pump
+        .drive(c.harness.set_thinking_level(AgentThinkingLevel::High))
+        .unwrap();
+    drop(watch);
+    s.pump
+        .drive(c.harness.set_thinking_level(AgentThinkingLevel::Off))
+        .unwrap();
+    listener.release.store(true, Ordering::SeqCst);
+    for _ in 0..8 {
+        s.pump.tick();
+    }
+    let received = listener.received.lock().unwrap();
+    assert_eq!(received.len(), 1);
+    assert!(
+        matches!(&received[0], HarnessEvent::ThinkingConfigUpdate(event) if event.value == AgentThinkingLevel::High)
+    );
+}
 fn rejected_options() -> AgentHarnessStreamOptions {
     AgentHarnessStreamOptions {
         headers: Some(
