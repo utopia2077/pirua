@@ -282,19 +282,34 @@ pub fn external_terminal(s: &Setup) -> (OperationId, EntryId, LaneLastResult) {
 pub struct AfterRawStamp {
     inner: Arc<MemoryStorage>,
     tool: Arc<Tool>,
+    park_post_raw: bool,
     post_raw_stamps: AtomicUsize,
     pub entered: CancellationToken,
     pub release: CancellationToken,
+    pub settle_armed: AtomicBool,
+    pub settle_entered: CancellationToken,
+    pub settle_release: CancellationToken,
+    pub settle_not_applied: AtomicUsize,
 }
 impl AfterRawStamp {
     pub fn new(inner: Arc<MemoryStorage>, tool: Arc<Tool>) -> Self {
         Self {
             inner,
             tool,
+            park_post_raw: true,
             post_raw_stamps: AtomicUsize::new(0),
             entered: CancellationToken::new(),
             release: CancellationToken::new(),
+            settle_armed: AtomicBool::new(false),
+            settle_entered: CancellationToken::new(),
+            settle_release: CancellationToken::new(),
+            settle_not_applied: AtomicUsize::new(0),
         }
+    }
+    pub fn for_checked_settlement(inner: Arc<MemoryStorage>, tool: Arc<Tool>) -> Self {
+        let mut storage = Self::new(inner, tool);
+        storage.park_post_raw = false;
+        storage
     }
 }
 impl Storage for AfterRawStamp {
@@ -363,7 +378,17 @@ impl CheckedStorage for AfterRawStamp {
         request: ConditionalCommit,
         validator: &'a V,
     ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
-        self.inner.commit_checked(request, validator)
+        Box::pin(async move {
+            if self.settle_armed.swap(false, Ordering::SeqCst) {
+                self.settle_entered.cancel();
+                self.settle_release.cancelled().await;
+            }
+            let outcome = self.inner.commit_checked(request, validator).await?;
+            if matches!(outcome, ConditionalOutcome::NotApplied) {
+                self.settle_not_applied.fetch_add(1, Ordering::SeqCst);
+            }
+            Ok(outcome)
+        })
     }
 }
 impl RuntimeStorage for AfterRawStamp {
@@ -373,7 +398,8 @@ impl RuntimeStorage for AfterRawStamp {
     fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
         Box::pin(async move {
             let stamp = self.inner.read_stamp().await?;
-            if self.tool.raw_done.load(Ordering::SeqCst) == 1
+            if self.park_post_raw
+                && self.tool.raw_done.load(Ordering::SeqCst) == 1
                 && self.post_raw_stamps.fetch_add(1, Ordering::SeqCst) == 1
             {
                 self.entered.cancel();
@@ -395,7 +421,19 @@ impl RuntimeStorage for AfterRawStamp {
         request: ConditionalCommit,
         validator: &'a V,
     ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
-        self.inner
-            .commit_prepared_checked(prepared, request, validator)
+        Box::pin(async move {
+            if self.settle_armed.swap(false, Ordering::SeqCst) {
+                self.settle_entered.cancel();
+                self.settle_release.cancelled().await;
+            }
+            let outcome = self
+                .inner
+                .commit_prepared_checked(prepared, request, validator)
+                .await?;
+            if matches!(outcome, ConditionalOutcome::NotApplied) {
+                self.settle_not_applied.fetch_add(1, Ordering::SeqCst);
+            }
+            Ok(outcome)
+        })
     }
 }

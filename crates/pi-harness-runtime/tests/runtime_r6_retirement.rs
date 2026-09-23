@@ -274,6 +274,324 @@ fn stable_changed_saved_tool_arguments_fault_before_raw_settlement() {
     );
 }
 
+fn replace_saved_args(s: &Setup, value: pi_ai_core::JsonObject) {
+    let mut args = s
+        .pump
+        .drive(
+            s.session
+                .list_registers(RegisterNamespace::OperationToolArguments, None),
+        )
+        .unwrap();
+    assert_eq!(args.len(), 1);
+    let Register::OperationToolArguments { key, .. } = args.pop().unwrap() else {
+        panic!()
+    };
+    s.pump
+        .drive(s.session.commit(Transaction {
+            writes: vec![Write::SetRegister(Box::new(
+                RegisterSet::OperationToolArguments { key, value },
+            ))],
+        }))
+        .expect("same-key saved argument rewrite is valid");
+}
+
+fn changed_args_after_raw_before_finalize(restore_original: bool) {
+    let s = Setup::new();
+    let tool = Tool::new();
+    let after = Arc::new(AfterToolCount::default());
+    *s.faux.responses.lock().unwrap() = vec![tool_response(&s)].into();
+    let mut options = s.options::<()>(DriveMode::Manual);
+    options.tools = vec![tool.clone()];
+    options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]);
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
+    let c = s.pump.drive(factory(&s).create(options)).unwrap();
+    s.pump
+        .drive(
+            c.harness
+                .set_active_tools(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]),
+        )
+        .unwrap();
+    let _hook = c.harness.hooks().after_tool(None, after.clone()).unwrap();
+    let mut accepted = Box::pin(c.harness.prompt(prompt()));
+    assert!(poll(accepted.as_mut()).is_pending());
+    let mut parked = false;
+    for _ in 0..512 {
+        s.pump.tick();
+        if tool.raw_done.load(Ordering::SeqCst) == 1
+            && s.pump
+                .drive(c.harness.peek_action())
+                .unwrap()
+                .is_some_and(|a| a.kind == "finalize_tool")
+        {
+            parked = true;
+            break;
+        }
+        s.pump.drive(c.harness.execute_action()).unwrap();
+    }
+    assert!(parked, "actual raw output must reach the finalize gate");
+    let args = s
+        .pump
+        .drive(
+            s.session
+                .list_registers(RegisterNamespace::OperationToolArguments, None),
+        )
+        .unwrap();
+    let Register::OperationToolArguments {
+        value: original, ..
+    } = &args[0]
+    else {
+        panic!()
+    };
+    let original = original.clone();
+    replace_saved_args(
+        &s,
+        pi_ai_core::JsonObject::new([("changed".into(), pi_ai_core::JsonValue::Bool(true))].into()),
+    );
+    if restore_original {
+        replace_saved_args(&s, original);
+    }
+    let before = s.pump.drive(s.store.snapshot()).unwrap();
+    s.pump.drive(c.harness.execute_action()).unwrap();
+    let mut completion = None;
+    for _ in 0..512 {
+        s.pump.tick();
+        if let Poll::Ready(result) = poll(accepted.as_mut()) {
+            completion = Some(result);
+            break;
+        }
+        let _ = s.pump.drive(c.harness.execute_action());
+    }
+    let completion = completion.expect("accepted prompt must finish");
+    assert!(
+        matches!(completion, Err(HarnessRuntimeError::Fault(_))),
+        "{completion:?}"
+    );
+    assert_eq!(after.0.load(Ordering::SeqCst), 0);
+    assert_eq!(s.pump.drive(s.store.snapshot()).unwrap(), before);
+    assert_eq!(tool.started.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn changed_saved_args_at_finalize_fault_before_hook_or_settlement() {
+    changed_args_after_raw_before_finalize(false);
+}
+
+#[test]
+fn rewritten_original_args_at_finalize_fault_on_sequence() {
+    changed_args_after_raw_before_finalize(true);
+}
+
+#[test]
+fn changed_saved_args_at_settlement_fault_after_hook_without_durable_result() {
+    let s = Setup::new();
+    let tool = Tool::new();
+    let after = Arc::new(AfterToolCount::default());
+    *s.faux.responses.lock().unwrap() = vec![tool_response(&s)].into();
+    let mut options = s.options::<()>(DriveMode::Manual);
+    options.tools = vec![tool.clone()];
+    options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]);
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
+    let c = s.pump.drive(factory(&s).create(options)).unwrap();
+    s.pump
+        .drive(
+            c.harness
+                .set_active_tools(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]),
+        )
+        .unwrap();
+    let _hook = c.harness.hooks().after_tool(None, after.clone()).unwrap();
+    let mut accepted = Box::pin(c.harness.prompt(prompt()));
+    assert!(poll(accepted.as_mut()).is_pending());
+    let mut parked = false;
+    for _ in 0..512 {
+        s.pump.tick();
+        if tool.raw_done.load(Ordering::SeqCst) == 1
+            && after.0.load(Ordering::SeqCst) == 1
+            && s.pump
+                .drive(c.harness.peek_action())
+                .unwrap()
+                .is_some_and(|a| a.kind == "commit_settlement")
+        {
+            parked = true;
+            break;
+        }
+        s.pump.drive(c.harness.execute_action()).unwrap();
+    }
+    assert!(parked, "finalized output must reach the settlement gate");
+    replace_saved_args(
+        &s,
+        pi_ai_core::JsonObject::new([("changed".into(), pi_ai_core::JsonValue::Bool(true))].into()),
+    );
+    let before = s.pump.drive(s.store.snapshot()).unwrap();
+    s.pump.drive(c.harness.execute_action()).unwrap();
+    let completion = s.pump.drive(accepted);
+    assert!(
+        matches!(completion, Err(HarnessRuntimeError::Fault(_))),
+        "{completion:?}"
+    );
+    assert_eq!(after.0.load(Ordering::SeqCst), 1);
+    assert_eq!(s.pump.drive(s.store.snapshot()).unwrap(), before);
+    assert_eq!(tool.started.load(Ordering::SeqCst), 1);
+}
+
+fn checked_settlement_refusal(change_args: bool) {
+    let s = Setup::new();
+    let tool = Tool::new();
+    let after = Arc::new(AfterToolCount::default());
+    let storage = Arc::new(AfterRawStamp::for_checked_settlement(
+        s.store.clone(),
+        tool.clone(),
+    ));
+    let session = Arc::new(
+        s.pump
+            .drive(RuntimeSession::new(
+                storage.clone(),
+                s.session.metadata(),
+                Arc::new(
+                    SessionCodec::new(
+                        SessionCodecOptions::default(),
+                        ProviderHeaderPolicy::default(),
+                    )
+                    .unwrap(),
+                ),
+                s.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    *s.faux.responses.lock().unwrap() = vec![tool_response(&s)].into();
+    let mut options = s.options_for::<(), _>(session, DriveMode::Manual);
+    options.tools = vec![tool.clone()];
+    options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]);
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
+    let factory = RuntimeFactory::new(
+        s.time.clone(),
+        s.pump.clone(),
+        s.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let c = s.pump.drive(factory.create(options)).unwrap();
+    s.pump
+        .drive(
+            c.harness
+                .set_active_tools(vec![pi_ai_core::ToolName::new("retire-tool").unwrap()]),
+        )
+        .unwrap();
+    let _hook = c.harness.hooks().after_tool(None, after.clone()).unwrap();
+    let mut accepted = Box::pin(c.harness.prompt(prompt()));
+    assert!(poll(accepted.as_mut()).is_pending());
+    let mut parked = false;
+    for _ in 0..512 {
+        s.pump.tick();
+        if tool.raw_done.load(Ordering::SeqCst) == 1
+            && after.0.load(Ordering::SeqCst) == 1
+            && s.pump
+                .drive(c.harness.peek_action())
+                .unwrap()
+                .is_some_and(|a| a.kind == "commit_settlement")
+        {
+            parked = true;
+            break;
+        }
+        s.pump.drive(c.harness.execute_action()).unwrap();
+    }
+    assert!(parked, "finalized output must reach the settlement gate");
+    storage.settle_armed.store(true, Ordering::SeqCst);
+    s.pump.drive(c.harness.execute_action()).unwrap();
+    for _ in 0..512 {
+        s.pump.tick();
+        if storage.settle_entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        storage.settle_entered.is_cancelled(),
+        "checked apply must park"
+    );
+    if change_args {
+        replace_saved_args(
+            &s,
+            pi_ai_core::JsonObject::new(
+                [("changed".into(), pi_ai_core::JsonValue::Bool(true))].into(),
+            ),
+        );
+    } else {
+        let Some(Register::LaneState { value: lane, .. }) = s
+            .pump
+            .drive(s.session.get_register(RegisterNamespace::LaneState, "main"))
+            .unwrap()
+        else {
+            panic!()
+        };
+        let operation = lane.current_operation_id.expect("pending operation");
+        let Some(Register::OperationState { key, value, .. }) = s
+            .pump
+            .drive(
+                s.session
+                    .get_register(RegisterNamespace::OperationState, operation.as_str()),
+            )
+            .unwrap()
+        else {
+            panic!()
+        };
+        s.pump
+            .drive(s.session.commit(Transaction {
+                writes: vec![Write::SetRegister(Box::new(RegisterSet::OperationState {
+                    key,
+                    value,
+                }))],
+            }))
+            .expect("same-value pending state write is valid");
+    }
+    let before = s.pump.drive(s.store.snapshot()).unwrap();
+    storage.settle_release.cancel();
+    let mut completion = None;
+    for _ in 0..512 {
+        s.pump.tick();
+        if let Poll::Ready(result) = poll(accepted.as_mut()) {
+            completion = Some(result);
+            break;
+        }
+        let _ = s.pump.drive(c.harness.execute_action());
+    }
+    let completion = completion.expect("accepted prompt must finish");
+    assert_eq!(storage.settle_not_applied.load(Ordering::SeqCst), 1);
+    assert_eq!(after.0.load(Ordering::SeqCst), 1);
+    assert_eq!(tool.started.load(Ordering::SeqCst), 1);
+    if change_args {
+        assert!(
+            matches!(completion, Err(HarnessRuntimeError::Fault(_))),
+            "{completion:?}"
+        );
+        assert_eq!(s.pump.drive(s.store.snapshot()).unwrap(), before);
+    } else {
+        assert!(
+            matches!(completion, Ok(Ok(RunSuccess { .. }))),
+            "{completion:?}"
+        );
+        assert!(s.pump.drive(s.store.snapshot()).unwrap().usage.len() > before.usage.len());
+        assert!(
+            s.pump
+                .drive(
+                    s.session
+                        .list_registers(RegisterNamespace::OperationToolArguments, None)
+                )
+                .unwrap()
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+fn checked_settlement_refusal_rechecks_captured_args_before_retry() {
+    checked_settlement_refusal(true);
+}
+
+#[test]
+fn checked_settlement_refusal_reuses_captured_output_when_args_stay_current() {
+    checked_settlement_refusal(false);
+}
+
 #[test]
 fn external_terminal_after_raw_tool_before_finalize_resolves_original_result() {
     let s = Setup::new();

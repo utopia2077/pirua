@@ -2,6 +2,7 @@
 use crate::{
     effects::{RuntimeEffects, TokenCancellation},
     owner::Telemetry,
+    restore::HydratedLane,
 };
 use pi_agent_schema::*;
 use pi_agent_session::storage::RuntimeStorage;
@@ -9,9 +10,52 @@ use pi_ai_core::{JsonObject, Presence, SafeUnsigned};
 use pi_harness_core::planner::{PlanningFacts, ToolDeclaration};
 use std::{collections::BTreeMap, sync::Arc};
 
+#[cfg(test)]
 fn saved_arguments_match(register: Option<&Register>, key: &str, args: &JsonObject) -> bool {
     matches!(register, Some(Register::OperationToolArguments { key: saved_key, value, .. })
         if saved_key == key && value == args)
+}
+
+#[derive(Clone)]
+pub(crate) struct CapturedArguments {
+    pub key: String,
+    pub value: JsonObject,
+    pub seq: SafeUnsigned,
+}
+
+pub(crate) struct CapturedToolCall<C> {
+    pub arguments: CapturedArguments,
+    pub prepared: Option<(AgentToolCall, AgentHarnessToolHandle<C>, Arc<C>)>,
+}
+
+fn hydrated_arguments(h: &HydratedLane, key: &str) -> Option<CapturedArguments> {
+    let Register::OperationToolArguments {
+        key: saved_key,
+        value,
+        seq,
+    } = h
+        .registers
+        .get(&(RegisterNamespace::OperationToolArguments, key.to_owned()))?
+    else {
+        return None;
+    };
+    (saved_key == key).then(|| CapturedArguments {
+        key: key.to_owned(),
+        value: value.clone(),
+        seq: *seq,
+    })
+}
+
+pub(crate) fn captured_arguments_match(h: &HydratedLane, captured: &CapturedArguments) -> bool {
+    h.registers
+        .get(&(
+            RegisterNamespace::OperationToolArguments,
+            captured.key.clone(),
+        ))
+        .is_some_and(|register| {
+            matches!(register, Register::OperationToolArguments { key, value, seq }
+                if key == &captured.key && value == &captured.value && seq == &captured.seq)
+        })
 }
 
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
@@ -314,18 +358,54 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             context,
         )))
     }
+    async fn missing_binding_output(
+        &self,
+        plan: ToolEffectPlan<Telemetry>,
+    ) -> Result<EffectOutput, HarnessRuntimeError> {
+        // A previously captured normal binding may still validate the in-band
+        // missing-binding result. Its arguments are reconstructed from the
+        // coherent capture below, never from this candidate read.
+        let synthetic_prepared = self.prepared(&plan, false).await?;
+        let _line = self.lane.lane.line.acquire().await?;
+        let h = self.lane.load().await?;
+        if !h.current.as_ref().is_some_and(|current| {
+            pi_harness_core::tool_batch::expects_effect(
+                current,
+                &self.lane.owner.session.metadata().base_metadata().id,
+                &plan,
+            )
+        }) {
+            return Ok(EffectOutput::NotStarted { key: plan.key });
+        }
+        let arguments = hydrated_arguments(&h, &plan.args_key)
+            .ok_or_else(|| self.lane.owner.fail("saved tool arguments absent"))?;
+        let old = self
+            .captured_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .insert(
+                plan.key.clone(),
+                CapturedToolCall {
+                    arguments,
+                    prepared: synthetic_prepared
+                        .map(|(prepared, context)| (prepared.tool_call, prepared.binding, context)),
+                },
+            );
+        drop(old);
+        Ok(EffectOutput::ToolRaw(ToolRawOutput {
+            key: plan.key,
+            result: pi_agent_loop::tool_error("Tool binding is missing or replaced"),
+            is_error: true,
+        }))
+    }
     pub(crate) async fn execute_tool(
         self: &Arc<Self>,
         plan: ToolEffectPlan<Telemetry>,
     ) -> Result<EffectOutput, HarnessRuntimeError> {
         let Some((prepared, context)) = self.prepared(&plan, true).await? else {
-            return Ok(EffectOutput::ToolRaw(ToolRawOutput {
-                key: plan.key,
-                result: pi_agent_loop::tool_error("Tool binding is missing or replaced"),
-                is_error: true,
-            }));
+            return self.missing_binding_output(plan).await;
         };
-        let replay = {
+        let (replay, captured_arguments) = {
             let _settings = self.lane.owner.settings_line.acquire().await?;
             let _line = self.lane.lane.line.acquire().await?;
             let h = self.lane.load().await?;
@@ -372,22 +452,52 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .iter()
                 .any(|binding| Arc::ptr_eq(binding, &prepared.binding))
             {
+                let arguments = hydrated_arguments(&h, &plan.args_key)
+                    .ok_or_else(|| self.lane.owner.fail("saved tool arguments absent"))?;
+                let old = self
+                    .captured_tools
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .insert(
+                        plan.key.clone(),
+                        CapturedToolCall {
+                            arguments,
+                            prepared: Some((
+                                prepared.tool_call.clone(),
+                                prepared.binding.clone(),
+                                context.clone(),
+                            )),
+                        },
+                    );
+                drop(old);
                 return Ok(EffectOutput::ToolRaw(ToolRawOutput {
                     key: plan.key,
                     result: pi_agent_loop::tool_error("Tool binding is missing or replaced"),
                     is_error: true,
                 }));
             }
-            let register = self
-                .lane
-                .owner
-                .session
-                .get_register(RegisterNamespace::OperationToolArguments, &plan.args_key)
-                .await
-                .map_err(|_| self.lane.owner.fail("tool start arguments read failed"))?;
-            if !saved_arguments_match(register.as_ref(), &plan.args_key, &prepared.args) {
+            let Some(arguments) = hydrated_arguments(&h, &plan.args_key) else {
+                return Err(self.lane.owner.fail("saved tool arguments absent"));
+            };
+            if arguments.value != prepared.args {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
+            let old = self
+                .captured_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .insert(
+                    plan.key.clone(),
+                    CapturedToolCall {
+                        arguments: arguments.clone(),
+                        prepared: Some((
+                            prepared.tool_call.clone(),
+                            prepared.binding.clone(),
+                            context.clone(),
+                        )),
+                    },
+                );
+            drop(old);
             let turn = StepId::new(plan.key.step_or_task_id.as_str())
                 .map_err(|_| self.lane.owner.fail("tool turn identity invalid"))?;
             let old = self
@@ -428,7 +538,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     args: pi_ai_core::JsonValue::Object(prepared.args.clone()),
                 }),
             );
-            replay
+            (replay, arguments)
         };
         self.events().flush();
         let validator = ResultValidator {
@@ -468,7 +578,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let events = ToolEvents {
             fx: self.clone(),
             plan: plan.clone(),
-            args: prepared.args.clone(),
+            arguments: captured_arguments,
             telemetry: span.clone(),
         };
         let output = pi_agent_loop::execute_tool_call(
@@ -502,11 +612,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         if !expected {
             return Ok(EffectOutput::NotStarted { key: plan.key });
         }
-        let register = h.registers.get(&(
-            RegisterNamespace::OperationToolArguments,
-            plan.args_key.clone(),
-        ));
-        if !saved_arguments_match(register, &plan.args_key, &prepared.args) {
+        let captured = self
+            .captured_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .map(|capture| capture.arguments.clone())
+            .ok_or_else(|| self.lane.owner.fail("tool execution capture absent"))?;
+        if !captured_arguments_match(&h, &captured) {
             return Err(self
                 .lane
                 .owner
@@ -529,18 +642,57 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         }
         // The manual gate may outlive a legitimate terminal transaction, which
         // removes saved arguments. Recheck authority before touching those facts.
-        let prepared = if self.tool_is_current(&plan).await? {
-            self.prepared(&plan, false).await?
-        } else {
-            None
-        };
-        let Some((prepared, context)) = prepared else {
+        let _line = self.lane.lane.line.acquire().await?;
+        let h = self.lane.load().await?;
+        let expected = h.current.as_ref().is_some_and(|current| {
+            pi_harness_core::tool_batch::expects_effect(
+                current,
+                &self.lane.owner.session.metadata().base_metadata().id,
+                &plan,
+            )
+        });
+        if !expected {
             return Ok(ToolSettlementOutput {
                 key: plan.key,
                 result: output.result,
                 is_error: output.is_error,
                 terminate: false,
             });
+        }
+        let (arguments, captured_prepared) = {
+            let captures = self
+                .captured_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            let captured = captures
+                .get(&plan.key)
+                .ok_or_else(|| self.lane.owner.fail("tool execution capture absent"))?;
+            (
+                captured.arguments.clone(),
+                captured.prepared.as_ref().map(|(call, binding, context)| {
+                    (call.clone(), binding.clone(), context.clone())
+                }),
+            )
+        };
+        if !captured_arguments_match(&h, &arguments) {
+            return Err(self
+                .lane
+                .owner
+                .fail("saved tool arguments changed before finalization"));
+        }
+        drop(_line);
+        let Some((call, binding, context)) = captured_prepared else {
+            return Ok(ToolSettlementOutput {
+                key: plan.key,
+                result: output.result,
+                is_error: output.is_error,
+                terminate: false,
+            });
+        };
+        let prepared = PreparedToolCall {
+            tool_call: call,
+            args: arguments.value,
+            binding,
         };
         let hooks = ToolHooks {
             fx: self.clone(),
@@ -730,7 +882,7 @@ struct ToolEvents<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     fx: Arc<RuntimeEffects<C, S, M>>,
     telemetry: Telemetry,
     plan: ToolEffectPlan<Telemetry>,
-    args: JsonObject,
+    arguments: CapturedArguments,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord> AgentEventSink
     for ToolEvents<C, S, M>
@@ -757,11 +909,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 if !expected {
                     return Ok(());
                 }
-                let register = h.registers.get(&(
-                    RegisterNamespace::OperationToolArguments,
-                    self.plan.args_key.clone(),
-                ));
-                if !saved_arguments_match(register, &self.plan.args_key, &self.args) {
+                if !captured_arguments_match(&h, &self.arguments) {
                     return Ok(());
                 }
                 let previous = {

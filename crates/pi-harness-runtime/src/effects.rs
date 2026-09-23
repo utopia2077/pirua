@@ -1,5 +1,6 @@
 //! Concrete effect interpreter; procedures receive detached facts and this catalog.
 use crate::owner::*;
+use crate::tools::{CapturedToolCall, captured_arguments_match};
 use pi_agent_schema::*;
 use pi_agent_session::{
     backend_support::{register_key, register_seq},
@@ -33,6 +34,7 @@ pub(crate) struct RuntimeEffects<C, S: RuntimeStorage, M: SessionMetadataRecord>
     pub poll_permit: std::sync::atomic::AtomicBool,
     pub cancel_targets: Mutex<BTreeMap<EntryId, crate::poll::CancelTarget>>,
     pub executed_tools: Mutex<BTreeSet<EffectKey>>,
+    pub captured_tools: Mutex<BTreeMap<EffectKey, CapturedToolCall<C>>>,
     pub request_bindings: Mutex<BTreeMap<EffectKey, RequestBinding>>,
     pub start_signals: Mutex<BTreeMap<EffectKey, CancellationToken>>,
     pub context_line: crate::scheduler::MutationLine,
@@ -63,6 +65,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             start_signals: Mutex::new(BTreeMap::new()),
             request_bindings: Mutex::new(BTreeMap::new()),
             executed_tools: Mutex::new(BTreeSet::new()),
+            captured_tools: Mutex::new(BTreeMap::new()),
             cancellation: CancellationToken::new(),
             retired: CancellationToken::new(),
             inbox_preparation: Mutex::new(None),
@@ -120,6 +123,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             && let RunPhase::Tools(tools) = &run.phase
         {
             for call in &tools.batch.calls {
+                // Hydration already captured each pending call's arguments with
+                // the operation state. A later raw read could replace that
+                // sequence after the execution-capture check but before the
+                // checked settlement recipe is built.
+                if matches!(call, ToolCallState::EffectPending { .. }) {
+                    continue;
+                }
                 let index = match call {
                     ToolCallState::Planned { source_index, .. }
                     | ToolCallState::EffectPending { source_index, .. }
@@ -568,6 +578,30 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             }
+            if let (EffectPlan::Tool(tool), SettlementOutput::Tool(_)) = (&plan.plan, &plan.output)
+            {
+                if !pi_harness_core::tool_batch::expects_effect(
+                    current,
+                    &self.lane.owner.session.metadata().base_metadata().id,
+                    tool,
+                ) {
+                    retired_requests.extend(self.retire_effect(plan.plan.key()));
+                    return Ok(None);
+                }
+                let captured = self
+                    .captured_tools
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&tool.key)
+                    .map(|capture| capture.arguments.clone())
+                    .ok_or_else(|| self.lane.owner.fail("tool execution capture absent"))?;
+                if !captured_arguments_match(&h, &captured) {
+                    return Err(self
+                        .lane
+                        .owner
+                        .fail("saved tool arguments changed before settlement"));
+                }
+            }
             let inputs = self.inputs(&h).await?;
             if matches!(plan.output, SettlementOutput::NotStarted { .. })
                 && (matches!(plan.plan, EffectPlan::Hook(_))
@@ -750,6 +784,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         }
     }
     pub(crate) fn retire_effect(&self, key: &EffectKey) -> Option<RequestBinding> {
+        let old = self
+            .captured_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(key);
+        drop(old);
         let old = self
             .running
             .lock()
