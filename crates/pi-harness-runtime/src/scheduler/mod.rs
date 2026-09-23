@@ -4,7 +4,7 @@ mod admission;
 mod mutation_line;
 
 pub use admission::{Admission, CommitPermit};
-pub use mutation_line::{Acquire, MutationLine, MutationPermit};
+pub use mutation_line::{Acquire, MutationLine, MutationPermit, PairAcquire, PairPermit};
 
 mod supervisor;
 pub use supervisor::{Supervisor, TaskTicket};

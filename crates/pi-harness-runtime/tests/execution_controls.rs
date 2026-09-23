@@ -49,6 +49,15 @@ impl Wake for CountWake {
     }
 }
 
+struct PanicBeforeTicketsWake(Arc<CountWake>);
+
+impl Wake for PanicBeforeTicketsWake {
+    fn wake(self: Arc<Self>) {
+        assert_eq!(self.0.0.load(Ordering::SeqCst), 0);
+        panic_any("signal wake before ticket notifications");
+    }
+}
+
 #[test]
 fn admission_close_first_and_line_only_invoke_no_storage() {
     let admission = Admission::new();
@@ -448,6 +457,314 @@ fn shared_seal_wakes_independent_lines_and_gate() {
 }
 
 #[test]
+fn seal_retires_queued_acquisition_before_panicking_zero_commit_drain() {
+    let admission = Admission::new();
+    let line = MutationLine::new(admission.clone());
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission.clone());
+    let held = ready(poll(Box::pin(line.acquire()).as_mut())).unwrap();
+    let settings_held = ready(poll(Box::pin(settings.acquire()).as_mut())).unwrap();
+    let calls = Arc::new(CountWake::default());
+    let drain_waker = Waker::from(Arc::new(PanicBeforeTicketsWake(calls.clone())));
+    let mut drain = Box::pin(admission.drained());
+    assert!(
+        drain
+            .as_mut()
+            .poll(&mut Context::from_waker(&drain_waker))
+            .is_pending()
+    );
+    let waker = Waker::from(calls.clone());
+    let mut queued = Box::pin(line.acquire());
+    assert!(
+        queued
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    assert!(
+        pair.as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    assert!(catch_unwind(AssertUnwindSafe(|| admission.seal_close())).is_err());
+    assert_eq!(calls.0.load(Ordering::SeqCst), 2);
+    closed(ready(poll(queued.as_mut())));
+    closed(ready(poll(pair.as_mut())));
+    assert!(poll(drain.as_mut()).is_ready());
+    drop(held);
+    drop(settings_held);
+}
+
+#[test]
+fn seal_retires_queued_acquisition_before_panicking_earlier_sealed_waker() {
+    let admission = Admission::new();
+    let commit = admission.try_admit().unwrap();
+    let gate = ManualGate::new(admission.clone(), DriveMode::Manual);
+    let calls = Arc::new(CountWake::default());
+    let first_waker = Waker::from(Arc::new(PanicBeforeTicketsWake(calls.clone())));
+    let mut first = Box::pin(gate.park(action("seal-first")));
+    assert!(
+        first
+            .as_mut()
+            .poll(&mut Context::from_waker(&first_waker))
+            .is_pending()
+    );
+    let line = MutationLine::new(admission.clone());
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission.clone());
+    let held = ready(poll(Box::pin(line.acquire()).as_mut())).unwrap();
+    let settings_held = ready(poll(Box::pin(settings.acquire()).as_mut())).unwrap();
+    let waker = Waker::from(calls.clone());
+    let mut queued = Box::pin(line.acquire());
+    assert!(
+        queued
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    assert!(
+        pair.as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    assert!(catch_unwind(AssertUnwindSafe(|| admission.seal_close())).is_err());
+    assert_eq!(calls.0.load(Ordering::SeqCst), 2);
+    closed(ready(poll(queued.as_mut())));
+    closed(ready(poll(pair.as_mut())));
+    drop(commit);
+    drop(held);
+    drop(settings_held);
+    assert!(poll(Box::pin(admission.drained()).as_mut()).is_ready());
+}
+
+#[test]
+fn pair_waits_for_settings_then_respects_earlier_lane_and_later_settings_work() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission);
+    let settings_held = ready(poll(Box::pin(settings.acquire()).as_mut())).unwrap();
+    let lane_held = ready(poll(Box::pin(lane.acquire()).as_mut())).unwrap();
+    let mut earlier_lane = Box::pin(lane.acquire());
+    assert!(poll(earlier_lane.as_mut()).is_pending());
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    assert!(poll(pair.as_mut()).is_pending());
+    let mut later_settings = Box::pin(settings.acquire());
+    assert!(poll(later_settings.as_mut()).is_pending());
+    drop(lane_held);
+    let earlier = ready(poll(earlier_lane.as_mut())).unwrap();
+    assert!(poll(pair.as_mut()).is_pending());
+    drop(settings_held);
+    assert!(poll(pair.as_mut()).is_pending());
+    assert!(poll(later_settings.as_mut()).is_pending());
+    drop(earlier);
+    let both = ready(poll(pair.as_mut())).unwrap();
+    assert!(poll(later_settings.as_mut()).is_pending());
+    drop(both);
+    drop(ready(poll(later_settings.as_mut())).unwrap());
+    drop(ready(poll(Box::pin(lane.acquire()).as_mut())).unwrap());
+}
+
+#[test]
+fn pair_keeps_fifo_position_and_latest_waker_across_polls() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission);
+    let held = ready(poll(Box::pin(settings.acquire()).as_mut())).unwrap();
+    let old = Arc::new(CountWake::default());
+    let latest = Arc::new(CountWake::default());
+    let old_waker = Waker::from(old.clone());
+    let latest_waker = Waker::from(latest.clone());
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    for waker in [&old_waker, &latest_waker, &old_waker, &latest_waker] {
+        assert!(
+            pair.as_mut()
+                .poll(&mut Context::from_waker(waker))
+                .is_pending()
+        );
+    }
+    let mut later = Box::pin(settings.acquire());
+    assert!(poll(later.as_mut()).is_pending());
+    drop(held);
+    assert_eq!(old.0.load(Ordering::SeqCst), 0);
+    assert_eq!(latest.0.load(Ordering::SeqCst), 1);
+    let both = ready(poll(pair.as_mut())).unwrap();
+    assert!(poll(later.as_mut()).is_pending());
+    drop(both);
+    drop(ready(poll(later.as_mut())).unwrap());
+}
+
+#[test]
+fn cancelling_reserved_pair_advances_both_queues() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission);
+    let lane_held = ready(poll(Box::pin(lane.acquire()).as_mut())).unwrap();
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    assert!(poll(pair.as_mut()).is_pending());
+    let mut settings_next = Box::pin(settings.acquire());
+    let mut lane_next = Box::pin(lane.acquire());
+    assert!(poll(settings_next.as_mut()).is_pending());
+    assert!(poll(lane_next.as_mut()).is_pending());
+    drop(pair);
+    let settings_permit = ready(poll(settings_next.as_mut())).unwrap();
+    drop(lane_held);
+    let lane_permit = ready(poll(lane_next.as_mut())).unwrap();
+    drop(settings_permit);
+    drop(lane_permit);
+}
+
+struct PanicDropWake(Arc<AtomicUsize>);
+
+#[allow(clippy::manual_noop_waker)]
+impl Wake for PanicDropWake {
+    fn wake(self: Arc<Self>) {}
+}
+
+impl Drop for PanicDropWake {
+    fn drop(&mut self) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        panic_any("waker drop panicked");
+    }
+}
+
+#[test]
+fn ordinary_grant_retains_caller_waker_until_after_line_release() {
+    let line = MutationLine::new(Admission::new());
+    let drops = Arc::new(AtomicUsize::new(0));
+    let waker = Waker::from(Arc::new(PanicDropWake(drops.clone())));
+    let mut acquire = Box::pin(line.acquire());
+    let permit = ready(acquire.as_mut().poll(&mut Context::from_waker(&waker))).unwrap();
+    drop(waker);
+    assert_eq!(drops.load(Ordering::SeqCst), 0);
+    assert!(catch_unwind(AssertUnwindSafe(|| drop(permit))).is_err());
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+    drop(ready(poll(Box::pin(line.acquire()).as_mut())).unwrap());
+}
+
+#[test]
+fn pair_removal_attempts_successor_wake_after_panicking_waker_drop() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission);
+    let lane_held = ready(poll(Box::pin(lane.acquire()).as_mut())).unwrap();
+    let drops = Arc::new(AtomicUsize::new(0));
+    let waker = Waker::from(Arc::new(PanicDropWake(drops.clone())));
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    assert!(
+        pair.as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    drop(waker);
+    let calls = Arc::new(CountWake::default());
+    let successor_waker = Waker::from(calls.clone());
+    let mut successor = Box::pin(settings.acquire());
+    assert!(
+        successor
+            .as_mut()
+            .poll(&mut Context::from_waker(&successor_waker))
+            .is_pending()
+    );
+    assert!(catch_unwind(AssertUnwindSafe(|| drop(pair))).is_err());
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
+    assert_eq!(calls.0.load(Ordering::SeqCst), 1);
+    drop(ready(poll(successor.as_mut())).unwrap());
+    drop(lane_held);
+}
+
+#[test]
+fn pair_release_attempts_both_successors_after_panicking_wake() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission);
+    let both = ready(poll(Box::pin(settings.acquire_pair(&lane)).as_mut())).unwrap();
+    let panic_calls = Arc::new(AtomicUsize::new(0));
+    let panic_waker = Waker::from(Arc::new(MaybePanicWake {
+        calls: panic_calls.clone(),
+        panic_message: Some("settings wake panicked"),
+    }));
+    let lane_calls = Arc::new(CountWake::default());
+    let lane_waker = Waker::from(lane_calls.clone());
+    let mut settings_next = Box::pin(settings.acquire());
+    let mut lane_next = Box::pin(lane.acquire());
+    assert!(
+        settings_next
+            .as_mut()
+            .poll(&mut Context::from_waker(&panic_waker))
+            .is_pending()
+    );
+    assert!(
+        lane_next
+            .as_mut()
+            .poll(&mut Context::from_waker(&lane_waker))
+            .is_pending()
+    );
+    assert!(catch_unwind(AssertUnwindSafe(|| drop(both))).is_err());
+    assert_eq!(panic_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(lane_calls.0.load(Ordering::SeqCst), 1);
+    drop(ready(poll(settings_next.as_mut())).unwrap());
+    drop(ready(poll(lane_next.as_mut())).unwrap());
+}
+
+struct ProbePairDrop {
+    settings: MutationLine,
+    lane: MutationLine,
+    probes: Arc<AtomicUsize>,
+}
+
+#[allow(clippy::manual_noop_waker)]
+impl Wake for ProbePairDrop {
+    fn wake(self: Arc<Self>) {}
+}
+
+impl Drop for ProbePairDrop {
+    fn drop(&mut self) {
+        let mut acquire = Box::pin(self.settings.acquire_pair(&self.lane));
+        let permit = ready(poll(acquire.as_mut())).expect("both lines must be free at Waker Drop");
+        self.probes.fetch_add(1, Ordering::SeqCst);
+        drop(permit);
+    }
+}
+
+#[test]
+fn pair_grant_defers_caller_waker_drop_until_both_lines_are_free() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission);
+    let probes = Arc::new(AtomicUsize::new(0));
+    let waker = Waker::from(Arc::new(ProbePairDrop {
+        settings: settings.clone(),
+        lane: lane.clone(),
+        probes: probes.clone(),
+    }));
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    let permit = ready(pair.as_mut().poll(&mut Context::from_waker(&waker))).unwrap();
+    drop(waker);
+    assert_eq!(probes.load(Ordering::SeqCst), 0);
+    drop(permit);
+    assert_eq!(probes.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn retired_pair_observes_fault_promoted_after_close() {
+    let admission = Admission::new();
+    let settings = MutationLine::new(admission.clone());
+    let lane = MutationLine::new(admission.clone());
+    let held = ready(poll(Box::pin(settings.acquire()).as_mut())).unwrap();
+    let mut pair = Box::pin(settings.acquire_pair(&lane));
+    assert!(poll(pair.as_mut()).is_pending());
+    admission.seal_close();
+    admission.seal_fault(fault("promoted"));
+    assert!(
+        matches!(ready(poll(pair.as_mut())), Err(HarnessRuntimeError::Fault(ref fault)) if fault.to_string() == "promoted")
+    );
+    drop(held);
+    assert!(poll(Box::pin(admission.drained()).as_mut()).is_ready());
+}
+
+#[test]
 fn manual_park_peek_release_and_nested_parent_have_zero_early_effects() {
     fn run(mode: DriveMode) -> Vec<String> {
         let gate = ManualGate::new(Admission::new(), mode);
@@ -641,6 +958,50 @@ fn cross_thread_handoff_allows_poll_and_cancel_during_wake_callback() {
     leave.wait();
     worker.join().unwrap();
     drop(permit);
+}
+
+#[test]
+fn pair_claimed_wake_allows_cancel_or_seal_during_callback() {
+    for seal in [false, true] {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission.clone());
+        let held = ready(poll(Box::pin(settings.acquire()).as_mut())).unwrap();
+        let entered = Arc::new(Barrier::new(2));
+        let leave = Arc::new(Barrier::new(2));
+        let waker = Waker::from(Arc::new(BarrierWake {
+            entered: entered.clone(),
+            leave: leave.clone(),
+        }));
+        let mut pair = Box::pin(settings.acquire_pair(&lane));
+        assert!(
+            pair.as_mut()
+                .poll(&mut Context::from_waker(&waker))
+                .is_pending()
+        );
+        let calls = Arc::new(CountWake::default());
+        let successor_waker = Waker::from(calls.clone());
+        let mut successor = Box::pin(settings.acquire());
+        assert!(
+            successor
+                .as_mut()
+                .poll(&mut Context::from_waker(&successor_waker))
+                .is_pending()
+        );
+        let worker = std::thread::spawn(move || drop(held));
+        entered.wait();
+        if seal {
+            admission.seal_close();
+            closed(ready(poll(pair.as_mut())));
+            closed(ready(poll(successor.as_mut())));
+        } else {
+            drop(pair);
+            drop(ready(poll(successor.as_mut())).unwrap());
+        }
+        assert_eq!(calls.0.load(Ordering::SeqCst), 1);
+        leave.wait();
+        worker.join().unwrap();
+    }
 }
 
 #[test]
