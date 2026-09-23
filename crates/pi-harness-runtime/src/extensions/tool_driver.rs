@@ -8,7 +8,7 @@ use std::fmt;
 use std::future::poll_fn;
 use std::num::{NonZeroU64, NonZeroUsize};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::task::{Poll, Waker};
 
 use pi_agent_schema::ToolEffectPlan;
@@ -181,6 +181,22 @@ pub struct CallTiming {
     pub parent_remaining_ms: Option<u64>,
 }
 
+/// Host policy fixed to one Ready echo generation. The cutoff uses that
+/// route's monotonic clock, not Unix time or a duration sampled at preflight.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EchoRouteTiming {
+    pub method_limit_ms: NonZeroU64,
+    pub connection_deadline_ms: u64,
+}
+
+enum StartTiming {
+    Raw(CallTiming),
+    Absolute {
+        requested_deadline_ms: Option<u64>,
+        parent_deadline_ms: Option<u64>,
+    },
+}
+
 struct LiveSlot {
     invocation: ToolInvocation,
     domain: EchoDomainBinding,
@@ -309,6 +325,7 @@ impl SingleToolOwner {
             control_cap: frame_cap,
             cancel_cap: frame_cap,
             timeout_ms: self.0.limits.write_timeout_ms.get(),
+            timing: OnceLock::new(),
             writes: Mutex::new(WriteState::default()),
         });
         let prior = {
@@ -860,6 +877,32 @@ impl ReadyToolRoute {
         EchoDomainBinding::check_ready_echo_projections(self.grant()).is_ok()
     }
 
+    /// Sample before the harness takes settings_line or its registry mutex.
+    /// A clock callback may inspect harness state; admission checks expiry
+    /// again at the synchronous claim using its own sample.
+    pub(crate) fn check_timing(&self, timing: EchoRouteTiming) -> Result<(), DriverError> {
+        (self.route.clock.now_ms() < timing.connection_deadline_ms)
+            .then_some(())
+            .ok_or(DriverError::InvalidHost)
+    }
+
+    /// Called once by the harness registration while holding settings_line.
+    pub(crate) fn bind_timing(&self, timing: EchoRouteTiming) -> Result<(), DriverError> {
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        if !state
+            .active
+            .as_ref()
+            .is_some_and(|active| Arc::ptr_eq(active, &self.route))
+            || self.route.status() != RouteStatus::Active
+        {
+            return Err(DriverError::InvalidHost);
+        }
+        self.route
+            .timing
+            .set(timing)
+            .map_err(|_| DriverError::InvalidHost)
+    }
+
     /// Admit one exact planned echo call; this source unit grants zero progress credit.
     pub fn start_planned<C>(
         &self,
@@ -868,10 +911,41 @@ impl ReadyToolRoute {
         source_call_id: &str,
         timing: CallTiming,
     ) -> Result<CallHandle, DriverError> {
+        self.start_planned_inner(plan, saved, source_call_id, StartTiming::Raw(timing))
+    }
+
+    /// Claim using the policy bound at registration and invocation-scoped
+    /// absolute cutoffs expressed in this route's monotonic clock domain.
+    /// The first top-level echo passes None for both optional cutoffs.
+    pub fn start_planned_with_bounds<C>(
+        &self,
+        plan: &ToolEffectPlan<C>,
+        saved: &JsonObject,
+        source_call_id: &str,
+        requested_deadline_ms: Option<u64>,
+        parent_deadline_ms: Option<u64>,
+    ) -> Result<CallHandle, DriverError> {
+        self.start_planned_inner(
+            plan,
+            saved,
+            source_call_id,
+            StartTiming::Absolute {
+                requested_deadline_ms,
+                parent_deadline_ms,
+            },
+        )
+    }
+
+    fn start_planned_inner<C>(
+        &self,
+        plan: &ToolEffectPlan<C>,
+        saved: &JsonObject,
+        source_call_id: &str,
+        timing: StartTiming,
+    ) -> Result<CallHandle, DriverError> {
         let key = encode_tool_effect_key(plan).map_err(|_| DriverError::InvalidHost)?;
         let arguments = encode_arguments(saved, &self.route.grant, "echo")
             .map_err(|_| DriverError::InvalidHost)?;
-        let now = self.route.clock.now_ms();
         let mut state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
         if !state
             .active
@@ -887,13 +961,37 @@ impl ReadyToolRoute {
         if self.route.frame_cap > self.owner.0.limits.receipt_bytes.get() {
             return Err(DriverError::Overloaded);
         }
-        let id = self
-            .route
-            .next_id
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |next| {
-                (next > 0 && next < u64::MAX).then_some(next + 1)
-            })
-            .map_err(|_| DriverError::Overloaded)?;
+        // One sample under the owner admission lock sets every remaining bound
+        // and the invocation's own deadline. No preflight duration can extend
+        // an absolute caller, parent, or connection cutoff.
+        let now = self.route.clock.now_ms();
+        let timing = match timing {
+            StartTiming::Raw(timing) => timing,
+            StartTiming::Absolute {
+                requested_deadline_ms,
+                parent_deadline_ms,
+            } => {
+                let policy = self.route.timing.get().ok_or(DriverError::InvalidHost)?;
+                let remaining = |deadline: u64| {
+                    deadline
+                        .checked_sub(now)
+                        .filter(|remaining| *remaining > 0)
+                        .ok_or(DriverError::Deadline)
+                };
+                CallTiming {
+                    requested_after_ms: requested_deadline_ms.map(remaining).transpose()?,
+                    method_limit_ms: policy.method_limit_ms.get(),
+                    connection_remaining_ms: remaining(policy.connection_deadline_ms)?,
+                    parent_remaining_ms: parent_deadline_ms.map(remaining).transpose()?,
+                }
+            }
+        };
+        // The owner lock serializes candidate IDs. Commit this ID only after
+        // the complete Request has reached the queue with a live binding.
+        let id = self.route.next_id.load(Ordering::SeqCst);
+        if id == 0 || id == u64::MAX {
+            return Err(DriverError::Overloaded);
+        }
         let (invocation, frame) = ToolInvocation::start(
             &self.route.grant,
             "echo",
@@ -972,6 +1070,9 @@ impl ReadyToolRoute {
         // Keep the slot lock through enqueue so the writer cannot publish the
         // request before the exact binding is in the owner ledger.
         let queued = self.route.enqueue(frame, WriteKind::Request(id));
+        if queued.is_ok() {
+            self.route.next_id.store(id + 1, Ordering::SeqCst);
+        }
         drop(state);
         let (wake, _) = match queued {
             Ok(queued) => queued,
@@ -1028,6 +1129,7 @@ struct Route {
     control_cap: usize,
     cancel_cap: usize,
     timeout_ms: u64,
+    timing: OnceLock<EchoRouteTiming>,
     writes: Mutex<WriteState>,
 }
 

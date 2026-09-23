@@ -23,8 +23,8 @@ use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::wire::framing::{self, EncodedFrame, FrameReader};
 use pi_extension_protocol::wire::{v1_0, v1_1};
 use pi_harness_runtime::extensions::tool_driver::{
-    CallOutcome, CallTiming, DriverError, LocalAbortCause, OwnerLimits, SingleToolOwner,
-    TypedTerminal,
+    CallOutcome, CallTiming, DriverError, EchoRouteTiming, LocalAbortCause, OwnerLimits,
+    SingleToolOwner, TypedTerminal,
 };
 use pi_harness_runtime::extensions::transport::{
     ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig,
@@ -387,6 +387,7 @@ struct FakeClock {
     now: AtomicU64,
     jump: Mutex<Option<ClockJump>>,
     pause_now: Mutex<Option<(u32, Arc<WritePause>)>>,
+    on_read: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 struct ClockJump {
     skip_reads: u32,
@@ -399,6 +400,7 @@ impl FakeClock {
             now: AtomicU64::new(now),
             jump: Mutex::new(None),
             pause_now: Mutex::new(None),
+            on_read: Mutex::new(None),
         }
     }
     fn set(&self, now: u64) {
@@ -417,9 +419,16 @@ impl FakeClock {
     fn pause_after_reads(&self, skip_reads: u32, pause: Arc<WritePause>) {
         *self.pause_now.lock().unwrap() = Some((skip_reads, pause));
     }
+    fn on_next_read(&self, callback: impl FnOnce() + Send + 'static) {
+        *self.on_read.lock().unwrap() = Some(Box::new(callback));
+    }
 }
 impl MonotonicClock for FakeClock {
     fn now_ms(&self) -> u64 {
+        let callback = self.on_read.lock().unwrap().take();
+        if let Some(callback) = callback {
+            callback();
+        }
         let pause = {
             let mut gate = self.pause_now.lock().unwrap();
             match gate.as_mut() {
@@ -731,7 +740,7 @@ fn retired_route_host_drop_does_not_hold_tools_registry() {
         let echo = registry_echo(&g1);
         runtime
             .pump
-            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone()))
+            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone(), route_timing()))
             .unwrap()
             .unwrap();
         g1.close();
@@ -746,7 +755,7 @@ fn retired_route_host_drop_does_not_hold_tools_registry() {
         let mutation = std::thread::spawn(move || {
             if let Some(g2) = g2 {
                 mutation_pump
-                    .drive(mutation_harness.register_ready_echo_tool(echo, g2))
+                    .drive(mutation_harness.register_ready_echo_tool(echo, g2, route_timing()))
                     .unwrap()
                     .unwrap();
             } else {
@@ -913,6 +922,26 @@ fn timing() -> CallTiming {
         parent_remaining_ms: Some(300),
     }
 }
+fn route_timing() -> EchoRouteTiming {
+    EchoRouteTiming {
+        method_limit_ms: NonZeroU64::new(1000).unwrap(),
+        connection_deadline_ms: 10_000,
+    }
+}
+fn route_timing_at(deadline: u64) -> EchoRouteTiming {
+    EchoRouteTiming {
+        connection_deadline_ms: deadline,
+        ..route_timing()
+    }
+}
+fn written_request(bytes: &[u8]) -> v1_1::Request {
+    let mut reader = FrameReader::<v1_1::Envelope>::new(nz(8192));
+    let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+    let Some(v1_1::envelope::Frame::Request(request)) = envelope.frame else {
+        panic!("expected outbound Request")
+    };
+    request
+}
 fn saved() -> JsonObject {
     serde_json::from_str(r#"{"text":"ping"}"#).unwrap()
 }
@@ -1053,7 +1082,7 @@ fn runtime_tools_events_follow_settings_publication_order() {
     let thread_harness = harness.clone();
     let thread_pump = runtime.pump.clone();
     let registration = std::thread::spawn(move || {
-        thread_pump.drive(thread_harness.register_ready_echo_tool(echo, route))
+        thread_pump.drive(thread_harness.register_ready_echo_tool(echo, route, route_timing()))
     });
     pause.entered.wait();
     runtime.pump.drive(harness.set_tools(vec![])).unwrap();
@@ -1100,7 +1129,7 @@ fn runtime_g2_registration_preserves_existing_echo_position() {
     let echo = registry_echo(&g1);
     runtime
         .pump
-        .drive(harness.register_ready_echo_tool(echo.clone(), g1))
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1, route_timing()))
         .unwrap()
         .unwrap();
     runtime
@@ -1111,7 +1140,7 @@ fn runtime_g2_registration_preserves_existing_echo_position() {
     let (_, _, g2) = setup(&driver_owner, &spawner, 8, 210);
     runtime
         .pump
-        .drive(harness.register_ready_echo_tool(echo.clone(), Arc::new(g2)))
+        .drive(harness.register_ready_echo_tool(echo.clone(), Arc::new(g2), route_timing()))
         .unwrap()
         .unwrap();
     let handles = runtime.pump.drive(harness.get_tools()).unwrap();
@@ -1152,7 +1181,7 @@ fn runtime_rejects_ready_echo_with_altered_progress_projection() {
     assert_eq!(
         runtime
             .pump
-            .drive(harness.register_ready_echo_tool(echo, route))
+            .drive(harness.register_ready_echo_tool(echo, route, route_timing()))
             .unwrap()
             .err(),
         Some(DriverError::InvalidHost)
@@ -1193,7 +1222,7 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
     assert_eq!(
         setup_runtime
             .pump
-            .drive(harness.register_ready_echo_tool(native.clone(), g1.clone()))
+            .drive(harness.register_ready_echo_tool(native.clone(), g1.clone(), route_timing()))
             .unwrap()
             .err(),
         Some(DriverError::InvalidHost)
@@ -1205,7 +1234,11 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
     assert_eq!(
         setup_runtime
             .pump
-            .drive(harness.register_ready_echo_tool(registry_tool("echo"), g1.clone()))
+            .drive(harness.register_ready_echo_tool(
+                registry_tool("echo"),
+                g1.clone(),
+                route_timing()
+            ))
             .unwrap()
             .err(),
         Some(DriverError::InvalidHost),
@@ -1214,7 +1247,7 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
 
     setup_runtime
         .pump
-        .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone()))
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone(), route_timing()))
         .unwrap()
         .unwrap();
     let tools = setup_runtime.pump.drive(harness.get_tools()).unwrap();
@@ -1224,7 +1257,7 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
     assert_eq!(
         setup_runtime
             .pump
-            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone()))
+            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone(), route_timing()))
             .unwrap()
             .err(),
         Some(DriverError::InvalidHost),
@@ -1241,7 +1274,7 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
     assert_eq!(
         setup_runtime
             .pump
-            .drive(harness.register_ready_echo_tool(echo.clone(), Arc::new(alien)))
+            .drive(harness.register_ready_echo_tool(echo.clone(), Arc::new(alien), route_timing()))
             .unwrap()
             .err(),
         Some(DriverError::InvalidHost)
@@ -1274,7 +1307,7 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
     let g2 = Arc::new(g2);
     setup_runtime
         .pump
-        .drive(harness.register_ready_echo_tool(echo.clone(), g2.clone()))
+        .drive(harness.register_ready_echo_tool(echo.clone(), g2.clone(), route_timing()))
         .unwrap()
         .unwrap();
     assert_eq!(
@@ -1285,6 +1318,335 @@ fn runtime_ready_echo_registration_drains_removed_route_and_keeps_owner_cap() {
     assert!(driver_owner.retained_binding().is_some());
     drop(first);
     setup_runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn registered_bounds_use_claim_time_and_keep_g1_deadline_across_g2() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+    use pi_extension_protocol::tool_live::RetireReason;
+
+    let runtime = Setup::new();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (g1_channel, g1_clock, g1) = setup(&owner, &spawner, 7, 100);
+    let g1 = Arc::new(g1);
+    let echo = registry_echo(&g1);
+
+    assert_eq!(
+        runtime
+            .pump
+            .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone(), route_timing_at(100)))
+            .unwrap()
+            .err(),
+        Some(DriverError::InvalidHost),
+        "registration cannot bind an expired connection cutoff"
+    );
+    assert!(runtime.pump.drive(harness.get_tools()).unwrap().is_empty());
+    assert_eq!(
+        g1.start_planned_with_bounds(&plan(), &saved(), "unregistered", None, None)
+            .err(),
+        Some(DriverError::InvalidHost)
+    );
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1.clone(), route_timing_at(240)))
+        .unwrap()
+        .unwrap();
+
+    g1_clock.set(200);
+    assert_eq!(
+        g1.start_planned_with_bounds(&plan(), &saved(), "expired-caller", Some(200), None)
+            .err(),
+        Some(DriverError::Deadline)
+    );
+    assert!(owner.retained_binding().is_none());
+    assert_eq!(g1_channel.writes().len(), 2);
+    // The wrapper may have preflighted at 200. The only relevant sample is
+    // the one made by the direct owner claim after this delay.
+    g1_clock.set(225);
+    let first = g1
+        .start_planned_with_bounds(&plan(), &saved(), "g1", None, None)
+        .unwrap();
+    assert_eq!(first.binding().request_id(), 1, "rejection burns no ID");
+    spawner.tick();
+    assert_eq!(
+        written_request(&g1_channel.writes()[2]).deadline_after_ms,
+        Some(15)
+    );
+    g1_clock.set(239);
+    g1_channel.push(raw("terminal", 1));
+    assert!(matches!(
+        spawner.drive(first.first_terminal()),
+        Ok(TypedTerminal::Result(_))
+    ));
+    assert!(owner.retained_binding().is_some());
+
+    let (g2_channel, g2_clock, g2) = setup(&owner, &spawner, 8, 250);
+    let g2 = Arc::new(g2);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, g2.clone(), route_timing_at(350)))
+        .unwrap()
+        .unwrap();
+    assert!(
+        owner.retained_binding().is_some(),
+        "G1 terminal survives G2 Ready"
+    );
+    assert_eq!(
+        g2.start_planned_with_bounds(&plan(), &saved(), "too-soon", None, None)
+            .err(),
+        Some(DriverError::Overloaded)
+    );
+    owner
+        .retire(first.binding(), RetireReason::Committed)
+        .unwrap();
+    g2_clock.set(300);
+    let second = g2
+        .start_planned_with_bounds(&plan(), &saved(), "g2", None, None)
+        .unwrap();
+    spawner.tick();
+    assert_eq!(
+        written_request(&g2_channel.writes()[2]).deadline_after_ms,
+        Some(50)
+    );
+    assert_eq!(second.binding().request_id(), 1);
+    g2.close();
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn ready_100_claim_200_writes_40_ms_request() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+
+    let runtime = Setup::new();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (channel, clock, route) = setup(&owner, &spawner, 7, 100);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, route.clone(), route_timing_at(240)))
+        .unwrap()
+        .unwrap();
+    clock.set(200);
+    let call = route
+        .start_planned_with_bounds(&plan(), &saved(), "at-200", None, None)
+        .unwrap();
+    assert_eq!(call.binding().request_id(), 1);
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 3);
+    assert_eq!(
+        written_request(&channel.writes()[2]).deadline_after_ms,
+        Some(40)
+    );
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn absolute_bounds_select_parent_minimum_and_expire() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+
+    let runtime = Setup::new();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (channel, clock, route) = setup(&owner, &spawner, 7, 100);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, route.clone(), route_timing_at(240)))
+        .unwrap()
+        .unwrap();
+    clock.set(200);
+    let first = route
+        .start_planned_with_bounds(&plan(), &saved(), "bounded", Some(230), Some(220))
+        .unwrap();
+    spawner.tick();
+    assert_eq!(
+        written_request(&channel.writes()[2]).deadline_after_ms,
+        Some(20)
+    );
+    clock.set(220);
+    spawner.tick();
+    assert!(matches!(
+        spawner.drive(first.outcome()),
+        Err(DriverError::PeerLost)
+    ));
+    owner.acknowledge_peer_lost(first.binding()).unwrap();
+    assert!(owner.retained_binding().is_none());
+    assert_eq!(channel.writes().len(), 3);
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn connection_cutoff_rejects_claim_without_binding_or_request() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+
+    let runtime = Setup::new();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (channel, clock, route) = setup(&owner, &spawner, 7, 100);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, route.clone(), route_timing_at(240)))
+        .unwrap()
+        .unwrap();
+    clock.set(240);
+    assert_eq!(
+        route
+            .start_planned_with_bounds(&plan(), &saved(), "at-cutoff", None, None)
+            .err(),
+        Some(DriverError::Deadline)
+    );
+    assert!(owner.retained_binding().is_none());
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 2);
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn registration_clock_callback_can_read_harness_tools() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+    use std::time::Duration;
+
+    let runtime = Setup::new();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (_, clock, route) = setup(&owner, &spawner, 7, 100);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    let callback_harness = harness.clone();
+    let callback_pump = runtime.pump.clone();
+    clock.on_next_read(move || {
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            done_tx
+                .send(
+                    callback_pump
+                        .drive(callback_harness.get_tools())
+                        .unwrap()
+                        .len(),
+                )
+                .unwrap();
+        });
+        assert_eq!(
+            done_rx.recv_timeout(Duration::from_secs(2)).unwrap(),
+            0,
+            "the route clock must run outside the tools registry mutex"
+        );
+    });
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, route, route_timing_at(240)))
+        .unwrap()
+        .unwrap();
+    assert_eq!(runtime.pump.drive(harness.get_tools()).unwrap().len(), 1);
+    runtime.pump.drive(harness.close()).unwrap();
+}
+
+#[test]
+fn absolute_bounds_near_u64_max_reject_write_overflow_without_retention() {
+    use pi_agent_schema::{AgentHarness, DriveMode};
+
+    let runtime = Setup::new();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    // Handshake needs its own representable timeout; move the route clock
+    // near the limit only after Ready so this isolates invocation arithmetic.
+    let (channel, clock, route) = setup(&owner, &spawner, 7, 200);
+    clock.set(u64::MAX - 20);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, route.clone(), route_timing_at(u64::MAX)))
+        .unwrap()
+        .unwrap();
+    clock.set(u64::MAX - 5);
+    assert_eq!(
+        route
+            .start_planned_with_bounds(&plan(), &saved(), "overflow", None, None)
+            .err(),
+        Some(DriverError::Deadline)
+    );
+    assert!(owner.retained_binding().is_none());
+    assert_eq!(channel.writes().len(), 2);
+    runtime.pump.drive(harness.close()).unwrap();
 }
 
 #[test]

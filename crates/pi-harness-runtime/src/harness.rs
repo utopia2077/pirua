@@ -1,6 +1,6 @@
 //! Harness-wide settings and public lane ownership.
 #[cfg(feature = "extensions")]
-use crate::extensions::tool_driver::{DriverError, ReadyToolRoute};
+use crate::extensions::tool_driver::{DriverError, EchoRouteTiming, ReadyToolRoute};
 use crate::owner::*;
 use pi_agent_schema::*;
 use pi_agent_session::storage::RuntimeStorage;
@@ -16,7 +16,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         handle: AgentHarnessToolHandle<C>,
         route: Arc<ReadyToolRoute>,
+        timing: EchoRouteTiming,
     ) -> Result<Result<(), DriverError>, HarnessRuntimeError> {
+        if let Err(error) = route.check_timing(timing) {
+            return Ok(Err(error));
+        }
         let line = self.main.owner.settings_line.acquire().await?;
         let result = self
             .main
@@ -24,7 +28,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .tools
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .register_echo(&handle, &route);
+            .register_echo(&handle, &route, timing);
         match result {
             Ok(old) => {
                 self.main.owner.events.enqueue(

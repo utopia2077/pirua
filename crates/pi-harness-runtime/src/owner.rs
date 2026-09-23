@@ -21,7 +21,7 @@ use std::{
 };
 
 #[cfg(feature = "extensions")]
-use crate::extensions::tool_driver::{ReadyToolRoute, SingleToolOwner};
+use crate::extensions::tool_driver::{EchoRouteTiming, ReadyToolRoute, SingleToolOwner};
 
 #[cfg(feature = "extensions")]
 fn matches_ready_echo<C>(handle: &AgentHarnessToolHandle<C>, route: &ReadyToolRoute) -> bool {
@@ -127,6 +127,7 @@ impl<C> ToolRegistry<C> {
         &mut self,
         handle: &AgentHarnessToolHandle<C>,
         route: &Arc<ReadyToolRoute>,
+        timing: EchoRouteTiming,
     ) -> Result<ReplacedTools<C>, crate::extensions::tool_driver::DriverError> {
         use crate::extensions::tool_driver::DriverError;
 
@@ -148,6 +149,7 @@ impl<C> ToolRegistry<C> {
             .next_epoch
             .checked_add(1)
             .ok_or(DriverError::Overloaded)?;
+        route.bind_timing(timing)?;
         let retired_echo = self.echo.take();
         if let Some(previous) = &retired_echo {
             previous.route.stop_new_calls();
@@ -173,6 +175,7 @@ impl<C> ToolRegistry<C> {
             generation: route.generation(),
             epoch: self.next_epoch,
             route: route.clone(),
+            timing,
         });
         self.next_epoch = next_epoch;
         Ok(ReplacedTools {
@@ -196,6 +199,7 @@ impl<C> ToolRegistry<C> {
             route: registered.route.clone(),
             generation: registered.generation,
             epoch: registered.epoch,
+            timing: registered.timing,
         })
     }
 
@@ -210,6 +214,7 @@ impl<C> ToolRegistry<C> {
                 && current.generation == snapshot.generation
                 && Arc::ptr_eq(&current.handle, &snapshot.handle)
                 && Arc::ptr_eq(&current.route, &snapshot.route)
+                && current.timing == snapshot.timing
         })
     }
 }
@@ -231,6 +236,7 @@ struct RegisteredEcho<C> {
     route: Arc<ReadyToolRoute>,
     generation: u64,
     epoch: u64,
+    timing: EchoRouteTiming,
 }
 
 /// Candidate only: the later execution wrapper must recheck this under
@@ -245,6 +251,7 @@ pub(crate) struct EchoRouteSnapshot<C> {
     pub(crate) route: Arc<ReadyToolRoute>,
     pub(crate) generation: u64,
     pub(crate) epoch: u64,
+    pub(crate) timing: EchoRouteTiming,
 }
 
 pub type Telemetry = Arc<dyn TelemetryContext>;
