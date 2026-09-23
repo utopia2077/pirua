@@ -6,6 +6,7 @@ use pi_harness_runtime::{
 };
 use std::{
     future::Future,
+    panic::{AssertUnwindSafe, catch_unwind, panic_any},
     pin::Pin,
     sync::{
         Arc, Barrier, Mutex,
@@ -164,6 +165,258 @@ fn fifo_first_poll_drop_head_middle_and_notified_head() {
     drop(next);
     drop(ready(poll(newcomer.as_mut())).unwrap());
     drop(ready(poll(Box::pin(line.acquire()).as_mut())).unwrap());
+}
+
+struct ReenterOtherLine {
+    other: MutationLine,
+    calls: Arc<AtomicUsize>,
+    acquired: Arc<AtomicUsize>,
+}
+
+impl Wake for ReenterOtherLine {
+    fn wake(self: Arc<Self>) {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let mut acquire = Box::pin(self.other.acquire());
+        if let Poll::Ready(Ok(permit)) = poll(acquire.as_mut()) {
+            self.acquired.fetch_add(1, Ordering::SeqCst);
+            drop(permit);
+        }
+    }
+}
+
+#[test]
+fn paired_line_release_frees_both_before_synchronous_wake() {
+    for wake_on_left in [false, true] {
+        for reverse_order in [false, true] {
+            let admission = Admission::new();
+            let left = MutationLine::new(admission.clone());
+            let right = MutationLine::new(admission);
+            let left_held = ready(poll(Box::pin(left.acquire()).as_mut())).unwrap();
+            let right_held = ready(poll(Box::pin(right.acquire()).as_mut())).unwrap();
+            let calls = Arc::new(AtomicUsize::new(0));
+            let acquired = Arc::new(AtomicUsize::new(0));
+            let (queued_line, other_line) = if wake_on_left {
+                (&left, &right)
+            } else {
+                (&right, &left)
+            };
+            let waker = Waker::from(Arc::new(ReenterOtherLine {
+                other: other_line.clone(),
+                calls: calls.clone(),
+                acquired: acquired.clone(),
+            }));
+            let mut queued = Box::pin(queued_line.acquire());
+            assert!(
+                queued
+                    .as_mut()
+                    .poll(&mut Context::from_waker(&waker))
+                    .is_pending()
+            );
+
+            if reverse_order {
+                pi_harness_runtime::scheduler::MutationPermit::release_pair(right_held, left_held);
+            } else {
+                pi_harness_runtime::scheduler::MutationPermit::release_pair(left_held, right_held);
+            }
+            assert_eq!(
+                calls.load(Ordering::SeqCst),
+                1,
+                "{wake_on_left} {reverse_order}"
+            );
+            assert_eq!(
+                acquired.load(Ordering::SeqCst),
+                1,
+                "{wake_on_left} {reverse_order}"
+            );
+            drop(ready(poll(queued.as_mut())).unwrap());
+        }
+    }
+}
+
+struct MaybePanicWake {
+    calls: Arc<AtomicUsize>,
+    panic_message: Option<&'static str>,
+}
+
+impl Wake for MaybePanicWake {
+    fn wake(self: Arc<Self>) {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        if let Some(message) = self.panic_message {
+            panic_any(message);
+        }
+    }
+}
+
+#[test]
+fn paired_line_release_attempts_both_wakes_and_propagates_a_panic() {
+    for second_panics in [false, true] {
+        let admission = Admission::new();
+        let left = MutationLine::new(admission.clone());
+        let right = MutationLine::new(admission);
+        let left_held = ready(poll(Box::pin(left.acquire()).as_mut())).unwrap();
+        let right_held = ready(poll(Box::pin(right.acquire()).as_mut())).unwrap();
+        let first_calls = Arc::new(AtomicUsize::new(0));
+        let second_calls = Arc::new(AtomicUsize::new(0));
+        let first_waker = Waker::from(Arc::new(MaybePanicWake {
+            calls: first_calls.clone(),
+            panic_message: Some("first wake panicked"),
+        }));
+        let second_waker = Waker::from(Arc::new(MaybePanicWake {
+            calls: second_calls.clone(),
+            panic_message: second_panics.then_some("second wake panicked"),
+        }));
+        let mut left_head = Box::pin(left.acquire());
+        let mut right_head = Box::pin(right.acquire());
+        assert!(
+            left_head
+                .as_mut()
+                .poll(&mut Context::from_waker(&first_waker))
+                .is_pending()
+        );
+        assert!(
+            right_head
+                .as_mut()
+                .poll(&mut Context::from_waker(&second_waker))
+                .is_pending()
+        );
+
+        let panic = catch_unwind(AssertUnwindSafe(|| {
+            pi_harness_runtime::scheduler::MutationPermit::release_pair(left_held, right_held);
+        }))
+        .expect_err("the first wake must still propagate its panic");
+        assert_eq!(
+            panic.downcast_ref::<&'static str>(),
+            Some(&"first wake panicked")
+        );
+        assert_eq!(first_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(second_calls.load(Ordering::SeqCst), 1);
+        drop(ready(poll(left_head.as_mut())).unwrap());
+        drop(ready(poll(right_head.as_mut())).unwrap());
+    }
+}
+
+struct PanicOnDrop(Arc<AtomicUsize>);
+
+impl Drop for PanicOnDrop {
+    fn drop(&mut self) {
+        self.0.fetch_add(1, Ordering::SeqCst);
+        panic_any("second panic payload dropped");
+    }
+}
+
+struct PayloadDropWake {
+    calls: Arc<AtomicUsize>,
+    payload_drops: Arc<AtomicUsize>,
+}
+
+impl Wake for PayloadDropWake {
+    fn wake(self: Arc<Self>) {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        panic_any(PanicOnDrop(self.payload_drops.clone()));
+    }
+}
+
+#[test]
+fn paired_line_release_cleans_second_panic_payload_after_both_wakes() {
+    let admission = Admission::new();
+    let left = MutationLine::new(admission.clone());
+    let right = MutationLine::new(admission);
+    let left_held = ready(poll(Box::pin(left.acquire()).as_mut())).unwrap();
+    let right_held = ready(poll(Box::pin(right.acquire()).as_mut())).unwrap();
+    let first_calls = Arc::new(AtomicUsize::new(0));
+    let second_calls = Arc::new(AtomicUsize::new(0));
+    let payload_drops = Arc::new(AtomicUsize::new(0));
+    let first_waker = Waker::from(Arc::new(MaybePanicWake {
+        calls: first_calls.clone(),
+        panic_message: Some("first wake panicked"),
+    }));
+    let second_waker = Waker::from(Arc::new(PayloadDropWake {
+        calls: second_calls.clone(),
+        payload_drops: payload_drops.clone(),
+    }));
+    let mut left_head = Box::pin(left.acquire());
+    let mut right_head = Box::pin(right.acquire());
+    assert!(
+        left_head
+            .as_mut()
+            .poll(&mut Context::from_waker(&first_waker))
+            .is_pending()
+    );
+    assert!(
+        right_head
+            .as_mut()
+            .poll(&mut Context::from_waker(&second_waker))
+            .is_pending()
+    );
+
+    let panic = catch_unwind(AssertUnwindSafe(|| {
+        pi_harness_runtime::scheduler::MutationPermit::release_pair(left_held, right_held);
+    }))
+    .expect_err("a wake panic must propagate after both attempts");
+    let message = panic.downcast_ref::<&'static str>().unwrap();
+    assert!(matches!(
+        *message,
+        "first wake panicked" | "second panic payload dropped"
+    ));
+    assert_eq!(first_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(second_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(payload_drops.load(Ordering::SeqCst), 1);
+    drop(ready(poll(left_head.as_mut())).unwrap());
+    drop(ready(poll(right_head.as_mut())).unwrap());
+}
+
+#[test]
+fn paired_line_release_preserves_fifo_and_cancellation_handoff() {
+    let admission = Admission::new();
+    let left = MutationLine::new(admission.clone());
+    let right = MutationLine::new(admission);
+    let left_held = ready(poll(Box::pin(left.acquire()).as_mut())).unwrap();
+    let right_held = ready(poll(Box::pin(right.acquire()).as_mut())).unwrap();
+    let left_head_wakes = Arc::new(CountWake::default());
+    let left_tail_wakes = Arc::new(CountWake::default());
+    let right_head_wakes = Arc::new(CountWake::default());
+    let left_head_waker = Waker::from(left_head_wakes.clone());
+    let left_tail_waker = Waker::from(left_tail_wakes.clone());
+    let right_head_waker = Waker::from(right_head_wakes.clone());
+    let mut left_head = Box::pin(left.acquire());
+    let mut left_middle = Box::pin(left.acquire());
+    let mut left_tail = Box::pin(left.acquire());
+    let mut right_head = Box::pin(right.acquire());
+    assert!(
+        left_head
+            .as_mut()
+            .poll(&mut Context::from_waker(&left_head_waker))
+            .is_pending()
+    );
+    assert!(poll(left_middle.as_mut()).is_pending());
+    assert!(
+        left_tail
+            .as_mut()
+            .poll(&mut Context::from_waker(&left_tail_waker))
+            .is_pending()
+    );
+    assert!(
+        right_head
+            .as_mut()
+            .poll(&mut Context::from_waker(&right_head_waker))
+            .is_pending()
+    );
+    drop(left_middle);
+
+    pi_harness_runtime::scheduler::MutationPermit::release_pair(left_held, right_held);
+    assert_eq!(left_head_wakes.0.load(Ordering::SeqCst), 1);
+    assert_eq!(left_tail_wakes.0.load(Ordering::SeqCst), 0);
+    assert_eq!(right_head_wakes.0.load(Ordering::SeqCst), 1);
+    let mut left_newcomer = Box::pin(left.acquire());
+    assert!(poll(left_newcomer.as_mut()).is_pending());
+    drop(left_head); // The notified head cancels without consuming its place.
+    assert_eq!(left_tail_wakes.0.load(Ordering::SeqCst), 1);
+    assert!(poll(left_newcomer.as_mut()).is_pending());
+    let left_next = ready(poll(left_tail.as_mut())).unwrap();
+    assert!(poll(left_newcomer.as_mut()).is_pending());
+    drop(left_next);
+    drop(ready(poll(left_newcomer.as_mut())).unwrap());
+    drop(ready(poll(right_head.as_mut())).unwrap());
 }
 
 #[test]
