@@ -472,13 +472,26 @@ struct FakeSpawner {
     tasks: Mutex<Vec<BoxFuture<'static, ()>>>,
     reject: AtomicBool,
     poll_reader_during_next_spawn: AtomicBool,
+    poll_next_spawn_inline: AtomicBool,
+    poll_then_reject_next_spawn: AtomicBool,
 }
 impl TaskSpawner for FakeSpawner {
-    fn spawn(&self, future: BoxFuture<'static, ()>) -> Result<(), SpawnError> {
+    fn spawn(&self, mut future: BoxFuture<'static, ()>) -> Result<(), SpawnError> {
         if self.reject.load(Ordering::SeqCst) {
             return Err(SpawnError::new());
         }
-        self.tasks.lock().unwrap().push(future);
+        if self
+            .poll_then_reject_next_spawn
+            .swap(false, Ordering::SeqCst)
+        {
+            let _ = poll(future.as_mut());
+            return Err(SpawnError::new());
+        }
+        if !self.poll_next_spawn_inline.swap(false, Ordering::SeqCst)
+            || poll(future.as_mut()).is_pending()
+        {
+            self.tasks.lock().unwrap().push(future);
+        }
         if self
             .poll_reader_during_next_spawn
             .swap(false, Ordering::SeqCst)
@@ -1376,9 +1389,11 @@ fn registered_bounds_use_claim_time_and_keep_g1_deadline_across_g2() {
     // The wrapper may have preflighted at 200. The only relevant sample is
     // the one made by the direct owner claim after this delay.
     g1_clock.set(225);
-    let first = g1
-        .start_planned_with_bounds(&plan(), &saved(), "g1", None, None)
+    let prepared = g1
+        .prepare_planned_with_bounds(&plan(), &saved(), "g1", None, None)
         .unwrap();
+    g1_clock.set(230);
+    let first = prepared.activate().unwrap();
     assert_eq!(first.binding().request_id(), 1, "rejection burns no ID");
     spawner.tick();
     assert_eq!(
@@ -3884,7 +3899,7 @@ fn late_terminal_after_timer_loss_does_not_discard_reserved_denial() {
 }
 
 #[test]
-fn unpublished_start_preserves_denial_reserved_during_inline_timer_spawn() {
+fn claimed_request_precedes_denial_reserved_during_inline_timer_spawn() {
     let spawner = Arc::new(FakeSpawner::default());
     let owner = owner_with_write_timeout(spawner.clone(), 400);
     let (channel, _, route) = setup(&owner, &spawner, 7, 200);
@@ -3892,31 +3907,23 @@ fn unpublished_start_preserves_denial_reserved_during_inline_timer_spawn() {
     spawner
         .poll_reader_during_next_spawn
         .store(true, Ordering::SeqCst);
-    assert_eq!(
-        route
-            .start_planned(&plan(), &saved(), "call-1", timing())
-            .err(),
-        Some(DriverError::Closed),
-        "a no-send claim has no published binding"
-    );
-    assert!(owner.retained_binding().is_none());
+    let handle = route
+        .start_planned(&plan(), &saved(), "call-1", timing())
+        .unwrap();
+    assert!(owner.retained_binding().is_some());
     assert!(!channel.closed.load(Ordering::SeqCst));
     assert_eq!(channel.writes().len(), 2);
-    spawner.tick_at(2);
-    assert_eq!(
-        spawner.tasks.lock().unwrap().len(),
-        3,
-        "unpublished timer retired"
-    );
     for _ in 0..5 {
         spawner.tick();
     }
-    assert_eq!(channel.writes().len(), 3, "one denial, no InvokeTool frame");
+    assert_eq!(channel.writes().len(), 4, "claimed Q precedes later D");
+    assert_eq!(written_request(&channel.writes()[2]).request_id, 1);
     assert!(channel.closed.load(Ordering::SeqCst));
-    for _ in 0..5 {
-        spawner.tick();
-    }
-    assert_eq!(channel.writes().len(), 3, "no phantom write after cleanup");
+    assert_eq!(
+        spawner.drive(handle.first_terminal()).err(),
+        Some(DriverError::PeerLost)
+    );
+    owner.acknowledge_peer_lost(handle.binding()).unwrap();
 
     let (next_channel, _, next_route) = setup(&owner, &spawner, 8, 210);
     let handle = next_route
@@ -3929,6 +3936,260 @@ fn unpublished_start_preserves_denial_reserved_during_inline_timer_spawn() {
         spawner.drive(handle.first_terminal()),
         Ok(TypedTerminal::Result(_))
     ));
+}
+
+#[test]
+fn prepared_inactive_head_keeps_fifo_through_g2_handoff() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (g1_channel, _, g1) = setup(&owner, &spawner, 7, 200);
+    let prepared = g1
+        .prepare_planned(&plan(), &saved(), "g1", timing())
+        .unwrap();
+    assert_eq!(prepared.binding().generation(), 7);
+    spawner.tick();
+    assert_eq!(g1_channel.writes().len(), 2, "inactive Q cannot be popped");
+    g1_channel.push(selected_peer_request(&g1, 17, "tool.invoke"));
+    spawner.tick();
+    assert_eq!(g1_channel.writes().len(), 2, "later D cannot overtake Q");
+
+    let (_, _, g2) = setup(&owner, &spawner, 8, 210);
+    assert_eq!(
+        g2.start_planned(&plan(), &saved(), "g2", timing()).err(),
+        Some(DriverError::Overloaded)
+    );
+    let handle = prepared.activate().unwrap();
+    assert_eq!(handle.binding().request_id(), 1);
+    spawner.tick();
+    assert_eq!(g1_channel.writes().len(), 4, "G1 Q remains ahead of D");
+    assert_eq!(written_request(&g1_channel.writes()[2]).request_id, 1);
+    assert!(g1_channel.closed.load(Ordering::SeqCst));
+}
+
+#[test]
+fn inline_expiry_removes_inactive_q_and_wakes_later_denial() {
+    struct CountWake(AtomicU64);
+    impl Wake for CountWake {
+        fn wake(self: Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (channel, clock, route) = setup(&owner, &spawner, 7, 200);
+    let counted = Arc::new(CountWake(AtomicU64::new(0)));
+    let waker = Waker::from(counted.clone());
+    let mut writer = spawner.tasks.lock().unwrap().remove(0);
+    assert!(
+        writer
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    spawner.tasks.lock().unwrap().insert(0, writer);
+    let tasks_before = spawner.tasks.lock().unwrap().len();
+    let prepared = route
+        .prepare_planned(&plan(), &saved(), "call", timing())
+        .unwrap();
+    assert_eq!(spawner.tasks.lock().unwrap().len(), tasks_before);
+    assert_eq!(
+        counted.0.load(Ordering::SeqCst),
+        0,
+        "prepare never wakes writer"
+    );
+    channel.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick_at(1);
+    let mut writer = spawner.tasks.lock().unwrap().remove(0);
+    assert!(
+        writer
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending()
+    );
+    spawner.tasks.lock().unwrap().insert(0, writer);
+    let before = counted.0.load(Ordering::SeqCst);
+    assert_eq!(channel.writes().len(), 2);
+
+    clock.set(500);
+    spawner.poll_next_spawn_inline.store(true, Ordering::SeqCst);
+    let handle = prepared.activate().unwrap();
+    assert_eq!(
+        spawner.drive(handle.first_terminal()).err(),
+        Some(DriverError::PeerLost)
+    );
+    assert!(
+        counted.0.load(Ordering::SeqCst) > before,
+        "D writer was woken"
+    );
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 3, "only D reaches the channel");
+}
+
+#[test]
+fn rejected_timer_removes_prepared_q_with_and_without_denial() {
+    for with_denial in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner_with_write_timeout(spawner.clone(), 400);
+        let (channel, _, route) = setup(&owner, &spawner, 7, 200);
+        let prepared = route
+            .prepare_planned(&plan(), &saved(), "call", timing())
+            .unwrap();
+        if with_denial {
+            channel.push(selected_peer_request(&route, 17, "tool.invoke"));
+            spawner.tick();
+            assert_eq!(channel.writes().len(), 2);
+        }
+        let (next_channel, _, next_route) = setup(&owner, &spawner, 8, 210);
+        spawner.reject.store(true, Ordering::SeqCst);
+        assert!(matches!(prepared.activate(), Err(DriverError::HostFault)));
+        spawner.reject.store(false, Ordering::SeqCst);
+        assert!(owner.retained_binding().is_none());
+        assert_eq!(channel.writes().len(), 2, "no rejected Q bytes");
+        if with_denial {
+            assert!(!channel.closed.load(Ordering::SeqCst));
+            spawner.tick();
+            assert_eq!(channel.writes().len(), 3, "reserved D survives");
+        } else {
+            assert!(channel.closed.load(Ordering::SeqCst));
+        }
+        let next = next_route
+            .start_planned(&plan(), &saved(), "g2", timing())
+            .unwrap();
+        assert_eq!(next.binding().request_id(), 1);
+        spawner.tick();
+        assert_eq!(next_channel.writes().len(), 3, "G2 remains usable");
+    }
+}
+
+#[test]
+fn inline_expiry_wins_even_when_timer_spawner_reports_rejection() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (channel, clock, route) = setup(&owner, &spawner, 7, 200);
+    let prepared = route
+        .prepare_planned(&plan(), &saved(), "call", timing())
+        .unwrap();
+    channel.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick();
+    clock.set(500);
+    spawner
+        .poll_then_reject_next_spawn
+        .store(true, Ordering::SeqCst);
+    let handle = prepared
+        .activate()
+        .expect("earlier expiry owns the outcome");
+    assert_eq!(
+        spawner.drive(handle.first_terminal()).err(),
+        Some(DriverError::PeerLost)
+    );
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 3, "D survives without Q bytes");
+}
+
+#[test]
+fn dropping_prepared_token_releases_inactive_q_and_denial() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner_with_write_timeout(spawner.clone(), 400);
+    let (channel, _, route) = setup(&owner, &spawner, 7, 200);
+    let prepared = route
+        .prepare_planned(&plan(), &saved(), "call", timing())
+        .unwrap();
+    channel.push(selected_peer_request(&route, 17, "tool.invoke"));
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 2);
+    drop(prepared);
+    assert!(owner.retained_binding().is_none());
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 3, "D proceeds after abandoned Q");
+}
+
+#[test]
+fn phase_gap_abort_and_exact_fence_keep_private_no_write_outcomes() {
+    for fence in [false, true] {
+        let spawner = Arc::new(FakeSpawner::default());
+        let owner = owner(spawner.clone());
+        let (channel, _, route) = setup(&owner, &spawner, 7, 200);
+        let prepared = route
+            .prepare_planned(&plan(), &saved(), "call", timing())
+            .unwrap();
+        if fence {
+            owner.fence_no_longer_expected(prepared.binding()).unwrap();
+        } else {
+            owner
+                .abort_local(prepared.binding(), LocalAbortCause::User)
+                .unwrap();
+        }
+        let handle = prepared.activate().unwrap();
+        let outcome = spawner.drive(handle.outcome());
+        assert!(
+            matches!(outcome, Ok(CallOutcome::NoLongerExpected) if fence)
+                || matches!(outcome, Ok(CallOutcome::UnadmittedLocalAbort) if !fence)
+        );
+        assert_eq!(channel.writes().len(), 2);
+    }
+}
+
+#[test]
+fn failed_prepare_does_not_reserve_request_or_advance_id() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&owner, &spawner, 7, 200);
+    let invalid: JsonObject = serde_json::from_str(r#"{"text":42}"#).unwrap();
+    assert_eq!(
+        route
+            .prepare_planned(&plan(), &invalid, "bad", timing())
+            .err(),
+        Some(DriverError::InvalidHost)
+    );
+    let mut bad_timing = timing();
+    bad_timing.method_limit_ms = 0;
+    assert!(
+        route
+            .prepare_planned(&plan(), &saved(), "bad", bad_timing)
+            .is_err()
+    );
+    assert!(owner.retained_binding().is_none());
+    spawner.tick();
+    assert_eq!(channel.writes().len(), 2);
+    let prepared = route
+        .prepare_planned(&plan(), &saved(), "good", timing())
+        .unwrap();
+    assert_eq!(prepared.binding().request_id(), 1);
+    drop(prepared);
+}
+
+#[test]
+fn queue_capacity_failure_before_claim_keeps_first_id_available() {
+    let spawner = Arc::new(FakeSpawner::default());
+    let owner = SingleToolOwner::new(
+        spawner.clone(),
+        OwnerLimits {
+            outbound_bytes: nz(512),
+            receipt_bytes: nz(8192),
+            write_timeout_ms: NonZeroU64::new(10).unwrap(),
+        },
+    );
+    let (channel, _, route) = setup(&owner, &spawner, 7, 200);
+    let large: JsonObject = serde_json::from_value(serde_json::json!({
+        "text": "x".repeat(1000)
+    }))
+    .unwrap();
+    assert_eq!(
+        route
+            .prepare_planned(&plan(), &large, "large", timing())
+            .err(),
+        Some(DriverError::Overloaded)
+    );
+    assert!(owner.retained_binding().is_none());
+    assert_eq!(channel.writes().len(), 2);
+    let prepared = route
+        .prepare_planned(&plan(), &saved(), "small", timing())
+        .unwrap();
+    assert_eq!(prepared.binding().request_id(), 1);
+    drop(prepared);
 }
 
 #[test]

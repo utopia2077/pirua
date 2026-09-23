@@ -120,6 +120,113 @@ pub struct CallHandle {
     completion: Arc<Completion>,
 }
 
+/// A committed, exact FIFO claim. The caller must release both Harness lines
+/// before activation or drop: either operation may invoke host task or waker
+/// code. After the lines are released, dropping the token rolls back its
+/// inactive Request and wakes a reserved denial behind it.
+#[must_use = "release Harness permits, then activate or drop the prepared call"]
+pub struct PreparedCall {
+    owner: SingleToolOwner,
+    route: Arc<Route>,
+    handle: Option<CallHandle>,
+    invocation_deadline: u64,
+    write_deadline: u64,
+}
+
+impl PreparedCall {
+    pub fn binding(&self) -> &InvocationBinding {
+        self.handle
+            .as_ref()
+            .expect("unconsumed prepared call")
+            .binding()
+    }
+
+    pub fn activate(mut self) -> Result<CallHandle, DriverError> {
+        let timer_owner = self.owner.clone();
+        let timer_route = self.route.clone();
+        let timer_binding = self.binding().clone();
+        let invocation_deadline = self.invocation_deadline;
+        let timer_cancel = CancellationToken::new();
+        let timer_stop = timer_cancel.clone();
+        if self
+            .route
+            .supervisor
+            .submit(Box::pin(async move {
+                let mut sleep = timer_route.clock.sleep_until(invocation_deadline);
+                let mut cancelled = Box::pin(timer_stop.cancelled());
+                let due = poll_fn(|cx| {
+                    if cancelled.as_mut().poll(cx).is_ready() {
+                        return Poll::Ready(false);
+                    }
+                    sleep.as_mut().poll(cx).map(|()| true)
+                })
+                .await;
+                if due {
+                    timer_owner.expire(&timer_route, &timer_binding);
+                }
+            }))
+            .is_err()
+        {
+            timer_cancel.cancel();
+            if self.owner.reject_prepared(
+                &self.route,
+                self.binding(),
+                CompletionValue::Failed(DriverError::HostFault),
+            ) {
+                self.handle = None;
+                return Err(DriverError::HostFault);
+            }
+            // An inline poll or concurrent fence already resolved this exact
+            // binding. Preserve its earlier disposition.
+            return Ok(self.handle.take().expect("prepared call"));
+        }
+        let wake = {
+            let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            if state.live.as_ref().is_some_and(|slot| {
+                Arc::ptr_eq(&slot.route, &self.route)
+                    && slot.invocation.binding().same_live_identity(self.binding())
+                    && matches!(
+                        slot.invocation.phase(),
+                        LivePhase::Open | LivePhase::CancelRequested
+                    )
+            }) && self.route.status() != RouteStatus::Closed
+            {
+                let mut writes = self.route.writes.lock().unwrap_or_else(|p| p.into_inner());
+                let job = writes.jobs.iter_mut().find(|job| {
+                    matches!(job.kind, WriteKind::Request(id) if id == self.binding().request_id())
+                });
+                if let Some(job) =
+                    job.filter(|job| job.deadline == self.write_deadline && !job.active)
+                {
+                    job.active = true;
+                    writes.waker.take()
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        };
+        let handle = self.handle.take().expect("prepared call");
+        if let Some(waker) = wake {
+            waker.wake();
+        }
+        Ok(handle)
+    }
+}
+
+impl Drop for PreparedCall {
+    fn drop(&mut self) {
+        if let Some(handle) = self.handle.take() {
+            self.owner.reject_prepared(
+                &self.route,
+                &handle.binding,
+                CompletionValue::UnadmittedLocalAbort,
+            );
+        }
+    }
+}
+
 impl CallHandle {
     pub fn binding(&self) -> &InvocationBinding {
         &self.binding
@@ -478,7 +585,7 @@ impl SingleToolOwner {
             let close = route.prepare_fenced_route(binding.request_id());
             let completion = slot.completion.clone();
             state.live = None;
-            if !matches!(close, FenceRouteDecision::PreserveDenial)
+            if !matches!(close, FenceRouteDecision::PreserveDenial(_))
                 && state
                     .active
                     .as_ref()
@@ -490,9 +597,7 @@ impl SingleToolOwner {
         };
         // Finish physical close before an arbitrary completion waker can poll
         // an admitted but incomplete write on a generation without D.
-        if let FenceRouteDecision::Close(waker) = close {
-            route.finish_prepared_close(waker);
-        }
+        route.finish_fence_decision(close);
         // Wake outside the owner line: arbitrary wakers may reenter the owner.
         completion.finish(CompletionValue::NoLongerExpected);
         Ok(())
@@ -534,7 +639,7 @@ impl SingleToolOwner {
                 let close = route.prepare_fenced_route(binding.request_id());
                 state.last_local_abort = Some(binding.clone());
                 state.live = None;
-                if !matches!(close, FenceRouteDecision::PreserveDenial)
+                if !matches!(close, FenceRouteDecision::PreserveDenial(_))
                     && state
                         .active
                         .as_ref()
@@ -571,8 +676,8 @@ impl SingleToolOwner {
             }
         };
         let unadmitted = close.is_some();
-        if let Some(FenceRouteDecision::Close(waker)) = close {
-            route.finish_prepared_close(waker);
+        if let Some(close) = close {
+            route.finish_fence_decision(close);
         }
         if unadmitted {
             completion.finish(CompletionValue::UnadmittedLocalAbort);
@@ -634,36 +739,52 @@ impl SingleToolOwner {
         route.close();
     }
 
-    fn abort_unpublished(&self, route: &Arc<Route>, binding: &InvocationBinding) {
-        {
+    /// A rejected timer may roll back only its still unpublished exact claim.
+    /// The queue decision also preserves a denial already reserved behind Q.
+    fn reject_prepared(
+        &self,
+        route: &Arc<Route>,
+        binding: &InvocationBinding,
+        outcome: CompletionValue,
+    ) -> bool {
+        let (completion, decision) = {
             let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
-            if state.live.as_ref().is_some_and(|slot| {
+            let Some(slot) = state.live.as_ref().filter(|slot| {
                 Arc::ptr_eq(&slot.route, route)
                     && slot.invocation.binding().same_live_identity(binding)
                     && !slot.send_started
-            }) {
-                state.live = None;
+                    && matches!(
+                        slot.invocation.phase(),
+                        LivePhase::Open | LivePhase::CancelRequested
+                    )
+            }) else {
+                return false;
+            };
+            if !route.has_inactive_request(binding.request_id()) {
+                return false;
             }
-            // Keep later claims off this route while the control queue decides
-            // atomically whether a peer denial was already reserved.
-            route.mark_draining();
-        }
-        if route.close_unless_denial_pending() {
-            let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
-            if state
-                .active
-                .as_ref()
-                .is_some_and(|active| Arc::ptr_eq(active, route))
+            let completion = slot.completion.clone();
+            let decision = route.prepare_fenced_route(binding.request_id());
+            state.live = None;
+            if !matches!(decision, FenceRouteDecision::PreserveDenial(_))
+                && state
+                    .active
+                    .as_ref()
+                    .is_some_and(|active| Arc::ptr_eq(active, route))
             {
                 state.active = None;
             }
-        }
+            (completion, decision)
+        };
+        route.finish_fence_decision(decision);
+        completion.finish(outcome);
+        true
     }
 
     fn expire(&self, route: &Arc<Route>, binding: &InvocationBinding) {
         let outcome = {
             let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
-            state.live.as_mut().and_then(|slot| {
+            let outcome = state.live.as_mut().and_then(|slot| {
                 if Arc::ptr_eq(&slot.route, route)
                     && slot.invocation.binding().same_live_identity(binding)
                     && matches!(
@@ -677,25 +798,38 @@ impl SingleToolOwner {
                 {
                     slot.invocation.peer_lost();
                     slot.provisional_frame = None;
-                    // The owner line fences a writer that has not yet admitted
-                    // this request. An already admitted popped job remains
-                    // irrevocable and is bounded by its original write deadline.
-                    route.discard_unadmitted_request(binding.request_id());
-                    Some((slot.completion.clone(), route.has_denial_pending()))
+                    // Decide Q removal and whether an earlier D survives in
+                    // one owner→queue admission order. An admitted Q remains
+                    // irrevocable through its original write deadline.
+                    let decision = route.prepare_fenced_route(binding.request_id());
+                    Some((slot.completion.clone(), decision))
                 } else {
                     None
                 }
-            })
-        };
-        if let Some((completion, denial_pending)) = outcome {
-            completion.finish(CompletionValue::Failed(DriverError::PeerLost));
-            if !denial_pending {
-                self.close_route(route, DriverError::PeerLost);
+            });
+            if outcome.as_ref().is_some_and(|(_, decision)| {
+                !matches!(decision, FenceRouteDecision::PreserveDenial(_))
+            }) && state
+                .active
+                .as_ref()
+                .is_some_and(|active| Arc::ptr_eq(active, route))
+            {
+                state.active = None;
             }
+            outcome
+        };
+        if let Some((completion, decision)) = outcome {
+            completion.finish(CompletionValue::Failed(DriverError::PeerLost));
+            route.finish_fence_decision(decision);
         }
     }
 
-    fn admit_ordered_request(&self, route: &Arc<Route>, request_id: u64) -> bool {
+    fn admit_ordered_request(
+        &self,
+        route: &Arc<Route>,
+        request_id: u64,
+        write_deadline: u64,
+    ) -> bool {
         let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
         // The final monotonic sample and claim share the expiry owner line.
         // No await or queue operation may occur between them. Once claimed,
@@ -708,11 +842,13 @@ impl SingleToolOwner {
                 LivePhase::Open | LivePhase::CancelRequested
             )
             && route.status() != RouteStatus::Closed
-            && route.clock.now_ms() < slot.invocation.deadline_ms()
         {
-            slot.send_started = true;
-            route.mark_request_admitted(request_id);
-            return true;
+            let now = route.clock.now_ms();
+            if now < slot.invocation.deadline_ms() && now < write_deadline {
+                slot.send_started = true;
+                route.mark_request_admitted(request_id);
+                return true;
+            }
         }
         false
     }
@@ -911,7 +1047,20 @@ impl ReadyToolRoute {
         source_call_id: &str,
         timing: CallTiming,
     ) -> Result<CallHandle, DriverError> {
-        self.start_planned_inner(plan, saved, source_call_id, StartTiming::Raw(timing))
+        self.prepare_planned_inner(plan, saved, source_call_id, StartTiming::Raw(timing))?
+            .activate()
+    }
+
+    /// Direct-caller counterpart to `prepare_planned_with_bounds` using the
+    /// legacy relative timing input. Activation still follows permit release.
+    pub fn prepare_planned<C>(
+        &self,
+        plan: &ToolEffectPlan<C>,
+        saved: &JsonObject,
+        source_call_id: &str,
+        timing: CallTiming,
+    ) -> Result<PreparedCall, DriverError> {
+        self.prepare_planned_inner(plan, saved, source_call_id, StartTiming::Raw(timing))
     }
 
     /// Claim using the policy bound at registration and invocation-scoped
@@ -925,7 +1074,27 @@ impl ReadyToolRoute {
         requested_deadline_ms: Option<u64>,
         parent_deadline_ms: Option<u64>,
     ) -> Result<CallHandle, DriverError> {
-        self.start_planned_inner(
+        self.prepare_planned_with_bounds(
+            plan,
+            saved,
+            source_call_id,
+            requested_deadline_ms,
+            parent_deadline_ms,
+        )?
+        .activate()
+    }
+
+    /// Commit the exact call and its inactive Request under the caller's
+    /// checked Harness lines. No host task or waker is invoked in this phase.
+    pub fn prepare_planned_with_bounds<C>(
+        &self,
+        plan: &ToolEffectPlan<C>,
+        saved: &JsonObject,
+        source_call_id: &str,
+        requested_deadline_ms: Option<u64>,
+        parent_deadline_ms: Option<u64>,
+    ) -> Result<PreparedCall, DriverError> {
+        self.prepare_planned_inner(
             plan,
             saved,
             source_call_id,
@@ -936,13 +1105,13 @@ impl ReadyToolRoute {
         )
     }
 
-    fn start_planned_inner<C>(
+    fn prepare_planned_inner<C>(
         &self,
         plan: &ToolEffectPlan<C>,
         saved: &JsonObject,
         source_call_id: &str,
         timing: StartTiming,
-    ) -> Result<CallHandle, DriverError> {
+    ) -> Result<PreparedCall, DriverError> {
         let key = encode_tool_effect_key(plan).map_err(|_| DriverError::InvalidHost)?;
         let arguments = encode_arguments(saved, &self.route.grant, "echo")
             .map_err(|_| DriverError::InvalidHost)?;
@@ -1014,80 +1183,57 @@ impl ReadyToolRoute {
             .map_err(|_| DriverError::HostFault)?;
         let binding = invocation.binding().clone();
         let deadline = invocation.deadline_ms();
+        let write_deadline = now
+            .checked_add(self.route.timeout_ms)
+            .ok_or(DriverError::Deadline)?;
         let completion = Arc::new(Completion::new());
-        state.live = Some(LiveSlot {
-            invocation,
-            domain,
-            route: self.route.clone(),
-            completion: completion.clone(),
-            send_started: false,
-            send_confirmed: false,
-            provisional_frame: None,
-            local_fault: false,
-            cancel_deadline_ms: None,
-        });
-        drop(state);
-
-        let timer_owner = self.owner.clone();
-        let timer_route = self.route.clone();
-        let timer_binding = binding.clone();
-        let timer_cancel = CancellationToken::new();
-        let timer_stop = timer_cancel.clone();
-        if self
-            .route
-            .supervisor
-            .submit(Box::pin(async move {
-                let mut sleep = timer_route.clock.sleep_until(deadline);
-                let mut cancelled = Box::pin(timer_stop.cancelled());
-                let due = poll_fn(|cx| {
-                    if cancelled.as_mut().poll(cx).is_ready() {
-                        return Poll::Ready(false);
-                    }
-                    sleep.as_mut().poll(cx).map(|()| true)
-                })
-                .await;
-                if due {
-                    timer_owner.expire(&timer_route, &timer_binding);
-                }
-            }))
-            .is_err()
+        // This is the claim commit: queue reservation, live slot and ID move
+        // together under owner then queue. A peer denial that reserved first
+        // has already moved this route out of Active.
         {
-            timer_cancel.cancel();
-            self.owner.abort_unpublished(&self.route, &binding);
-            return Err(DriverError::HostFault);
-        }
-        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
-        let still_live = state.live.as_ref().is_some_and(|slot| {
-            slot.invocation.binding().same_live_identity(&binding)
-                && slot.invocation.phase() == LivePhase::Open
-        });
-        if !still_live || self.route.status() != RouteStatus::Active {
-            drop(state);
-            timer_cancel.cancel();
-            self.owner.abort_unpublished(&self.route, &binding);
-            return Err(DriverError::Closed);
-        }
-        // Keep the slot lock through enqueue so the writer cannot publish the
-        // request before the exact binding is in the owner ledger.
-        let queued = self.route.enqueue(frame, WriteKind::Request(id));
-        if queued.is_ok() {
+            let mut writes = self.route.writes.lock().unwrap_or_else(|p| p.into_inner());
+            if self.route.status() != RouteStatus::Active {
+                return Err(DriverError::Closed);
+            }
+            writes
+                .jobs
+                .try_reserve(1)
+                .map_err(|_| DriverError::Overloaded)?;
+            writes.reserve(
+                WriteKind::Request(id),
+                frame.bytes.len(),
+                self.route.normal_cap,
+                self.route.control_cap,
+                self.route.cancel_cap,
+            )?;
+            writes.jobs.push_back(WriteJob {
+                frame,
+                kind: WriteKind::Request(id),
+                deadline: write_deadline,
+                active: false,
+            });
+            state.live = Some(LiveSlot {
+                invocation,
+                domain,
+                route: self.route.clone(),
+                completion: completion.clone(),
+                send_started: false,
+                send_confirmed: false,
+                provisional_frame: None,
+                local_fault: false,
+                cancel_deadline_ms: None,
+            });
             self.route.next_id.store(id + 1, Ordering::SeqCst);
         }
-        drop(state);
-        let (wake, _) = match queued {
-            Ok(queued) => queued,
-            Err(error) => {
-                timer_cancel.cancel();
-                self.owner.abort_unpublished(&self.route, &binding);
-                return Err(error);
-            }
-        };
-        if let Some(waker) = wake {
-            waker.wake();
-        }
-        Ok(CallHandle {
-            binding,
-            completion,
+        Ok(PreparedCall {
+            owner: self.owner.clone(),
+            route: self.route.clone(),
+            handle: Some(CallHandle {
+                binding,
+                completion,
+            }),
+            invocation_deadline: deadline,
+            write_deadline,
         })
     }
 
@@ -1111,7 +1257,7 @@ enum RouteStatus {
 }
 
 enum FenceRouteDecision {
-    PreserveDenial,
+    PreserveDenial(Option<Waker>),
     Close(Option<Waker>),
     AlreadyClosed,
 }
@@ -1203,11 +1349,15 @@ impl Route {
     fn prepare_fenced_route(&self, request_id: u64) -> FenceRouteDecision {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
         self.mark_draining();
-        Self::discard_unadmitted_request_locked(&mut writes, request_id);
+        let removed_head = Self::discard_unadmitted_request_locked(&mut writes, request_id);
         Self::discard_unadmitted_cancel_locked(&mut writes, request_id);
         writes.denial_fenced = true;
         if self.status() != RouteStatus::Closed && writes.control_bytes != 0 {
-            return FenceRouteDecision::PreserveDenial;
+            return FenceRouteDecision::PreserveDenial(if removed_head {
+                writes.waker.take()
+            } else {
+                None
+            });
         }
         if self.status.swap(2, Ordering::SeqCst) == 2 {
             return FenceRouteDecision::AlreadyClosed;
@@ -1228,6 +1378,18 @@ impl Route {
             waker.wake();
         }
         self.supervisor.retire();
+    }
+
+    fn finish_fence_decision(&self, decision: FenceRouteDecision) {
+        match decision {
+            FenceRouteDecision::PreserveDenial(waker) => {
+                if let Some(waker) = waker {
+                    waker.wake();
+                }
+            }
+            FenceRouteDecision::Close(waker) => self.finish_prepared_close(waker),
+            FenceRouteDecision::AlreadyClosed => {}
+        }
     }
     fn enqueue(
         &self,
@@ -1266,18 +1428,36 @@ impl Route {
                 frame,
                 kind,
                 deadline,
+                active: true,
             });
             writes.waker.take()
         };
         Ok((wake, deadline))
     }
 
-    fn discard_unadmitted_request(&self, request_id: u64) {
+    fn discard_unadmitted_request(&self, request_id: u64) -> Option<Waker> {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
-        Self::discard_unadmitted_request_locked(&mut writes, request_id);
+        if Self::discard_unadmitted_request_locked(&mut writes, request_id)
+            && !writes.jobs.is_empty()
+        {
+            writes.waker.take()
+        } else {
+            None
+        }
     }
 
-    fn discard_unadmitted_request_locked(writes: &mut WriteState, request_id: u64) {
+    fn has_inactive_request(&self, request_id: u64) -> bool {
+        self.writes
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .jobs
+            .iter()
+            .any(|job| {
+                matches!(job.kind, WriteKind::Request(id) if id == request_id) && !job.active
+            })
+    }
+
+    fn discard_unadmitted_request_locked(writes: &mut WriteState, request_id: u64) -> bool {
         if let Some(index) = writes
             .jobs
             .iter()
@@ -1285,6 +1465,7 @@ impl Route {
         {
             let job = writes.jobs.remove(index).expect("queued request index");
             writes.normal_bytes -= job.frame.bytes.len();
+            return index == 0;
         }
         if let Some((WriteKind::Request(id), size)) = writes.popped_unadmitted
             && id == request_id
@@ -1292,6 +1473,7 @@ impl Route {
             writes.normal_bytes -= size;
             writes.popped_unadmitted = None;
         }
+        false
     }
 
     fn discard_unadmitted_cancel_locked(writes: &mut WriteState, request_id: u64) {
@@ -1396,6 +1578,7 @@ struct WriteJob {
     frame: EncodedFrame,
     kind: WriteKind,
     deadline: u64,
+    active: bool,
 }
 #[derive(Default)]
 struct WriteState {
@@ -1438,22 +1621,32 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             if route.status() == RouteStatus::Closed {
                 return Poll::Ready(None);
             }
+            if writes.jobs.front().is_some_and(|job| !job.active) {
+                let prior = writes.waker.replace(cx.waker().clone());
+                drop(writes);
+                drop(prior);
+                return Poll::Pending;
+            }
             if let Some(job) = writes.jobs.pop_front() {
                 if matches!(job.kind, WriteKind::Request(_) | WriteKind::Cancel(_)) {
                     writes.popped_unadmitted = Some((job.kind, job.frame.bytes.len()));
                 }
                 return Poll::Ready(Some(job));
             }
-            writes.waker = Some(cx.waker().clone());
+            let prior = writes.waker.replace(cx.waker().clone());
+            drop(writes);
+            drop(prior);
             Poll::Pending
         })
         .await;
         let Some(job) = job else { break };
         if let WriteKind::Request(id) = job.kind
-            && !owner.admit_ordered_request(&route, id)
+            && !owner.admit_ordered_request(&route, id, job.deadline)
         {
             owner.expire_request_id(&route, id);
-            route.discard_unadmitted_request(id);
+            if let Some(waker) = route.discard_unadmitted_request(id) {
+                waker.wake();
+            }
             if route.status() == RouteStatus::Closed {
                 break;
             }
@@ -1760,22 +1953,22 @@ impl SingleToolOwner {
             }
             Incoming::GoAway(raw) => match v1_1::GoAwayReason::try_from(raw) {
                 Ok(v1_1::GoAwayReason::GoAwayDrain) => {
-                    route.mark_draining();
-                    let pending = self
-                        .0
-                        .state
-                        .lock()
-                        .unwrap_or_else(|p| p.into_inner())
-                        .live
-                        .as_ref()
-                        .is_some_and(|slot| {
-                            Arc::ptr_eq(&slot.route, route)
-                                && matches!(
-                                    slot.invocation.phase(),
-                                    LivePhase::Open | LivePhase::CancelRequested
-                                )
-                        });
-                    if pending || route.has_control_pending() {
+                    let (pending, control_pending) = {
+                        let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+                        let writes = route.writes.lock().unwrap_or_else(|p| p.into_inner());
+                        route.mark_draining();
+                        (
+                            state.live.as_ref().is_some_and(|slot| {
+                                Arc::ptr_eq(&slot.route, route)
+                                    && matches!(
+                                        slot.invocation.phase(),
+                                        LivePhase::Open | LivePhase::CancelRequested
+                                    )
+                            }),
+                            writes.control_bytes != 0 || writes.cancel_bytes != 0,
+                        )
+                    };
+                    if pending || control_pending {
                         Ok(ReaderAction::Continue)
                     } else {
                         self.close_route(route, DriverError::PeerLost);
