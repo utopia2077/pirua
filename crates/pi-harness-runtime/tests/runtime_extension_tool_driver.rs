@@ -4,6 +4,8 @@ mod runtime_r1_r4_support;
 #[path = "runtime_r6_retirement_support/mod.rs"]
 #[allow(dead_code)]
 mod runtime_r6_retirement_support;
+#[path = "runtime_sqlite_tool_support/mod.rs"]
+mod runtime_sqlite_tool_support;
 
 use std::collections::VecDeque;
 use std::future::{Future, poll_fn};
@@ -2755,6 +2757,454 @@ fn checked_refusal_memory_route(change_args: bool, retire_binding: bool, fault_a
 #[test]
 fn actual_memory_checked_refusal_retries_one_retained_echo_receipt() {
     checked_refusal_memory_route(false, false, false);
+}
+
+#[test]
+fn actual_sqlite_zero_credit_route_retries_real_revision_refusal_and_reopens() {
+    use pi_agent_schema::{
+        AgentMessage, Entry, NewCustomEntry, NewEntry, OperationState, ProviderHeaderPolicy,
+        RegisterNamespace, RegisterSet, RunPhase, SessionCodecOptions, Storage, ToolCallState,
+        Transaction, Write,
+    };
+    use pi_agent_session::storage::{
+        ConditionalCommit, ConditionalOutcome, PreparedEntrySlot, PublicationValidator,
+        RuntimeStorage,
+    };
+    use pi_agent_sqlite::{SqliteOptions, SqliteStorage};
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use pi_extension_protocol::tool_live::LivePhase;
+    use prost::Message as _;
+    use runtime_r1_r4_support::assistant;
+    use runtime_r6_retirement_support::AfterToolCount;
+    use runtime_sqlite_tool_support::{CheckedSqlite, File};
+
+    let runtime = Setup::new();
+    let file = File::new();
+    let codec = Arc::new(
+        SessionCodec::new(
+            SessionCodecOptions::default(),
+            ProviderHeaderPolicy::from_allowlist(["x-public".into()]),
+        )
+        .unwrap(),
+    );
+    let probe = Arc::new(CommitLineProbe::default());
+    let clock = Arc::new(CommitStorageClock {
+        time: runtime.time.clone(),
+        probe: probe.clone(),
+        fail: AtomicBool::new(false),
+        calls: AtomicU64::new(0),
+        stale_commit: Mutex::new(None),
+        stale_seen: AtomicBool::new(false),
+    });
+    let telemetry = Arc::new(CommitTelemetry::new(probe.clone(), clock.clone()));
+    let sqlite = SqliteStorage::create(
+        &file.0,
+        runtime.session.metadata(),
+        codec.clone(),
+        clock.clone(),
+        SqliteOptions::default(),
+    )
+    .unwrap();
+    let checked = Arc::new(CheckedSqlite::new(sqlite.clone(), {
+        let clock = clock.clone();
+        Arc::new(move || clock.calls.load(Ordering::SeqCst))
+    }));
+    let session = Arc::new(
+        runtime
+            .pump
+            .drive(RuntimeSession::new(
+                checked.clone(),
+                runtime.session.metadata(),
+                codec.clone(),
+                runtime.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    runtime
+        .pump
+        .drive(session.commit(Transaction {
+            writes: vec![
+                Write::SetRegister(Box::new(RegisterSet::LaneLeaf {
+                    key: "main".into(),
+                    value: None,
+                })),
+                Write::SetRegister(Box::new(RegisterSet::LaneState {
+                    key: "main".into(),
+                    value: pi_agent_schema::LaneState {
+                        current_operation_id: None,
+                        pending_next_run: vec![],
+                    },
+                })),
+            ],
+        }))
+        .unwrap();
+    let mut tool_response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    tool_response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![
+        tool_response,
+        assistant(&runtime.faux.model, StopReason::Stop),
+    ]
+    .into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options_for::<(), _>(session.clone(), DriveMode::Automatic);
+    options.tool_execution = pi_agent_schema::ToolExecutionMode::Sequential;
+    options.telemetry_context = telemetry.clone();
+    let harness = runtime
+        .pump
+        .drive(factory.create_first_attachment(options))
+        .unwrap_or_else(|error| panic!("first attachment: {error}"))
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let after = Arc::new(AfterToolCount::default());
+    let _after_subscription = harness.hooks().after_tool(None, after.clone()).unwrap();
+    let ends = Arc::new(RegistryEventLog(Mutex::new(vec![])));
+    let _end_subscription = harness.events().on(HarnessEventType::ToolEnd, ends.clone());
+
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let request = request.expect("one outbound Ready Request");
+    assert_eq!(request.method, "tool.invoke");
+    assert_eq!(request.initial_stream_credit_bytes, Some(0));
+    assert_eq!(channel.writes().len(), 3);
+    let pending = runtime.pump.drive(sqlite.snapshot()).unwrap();
+    let Some(Register::LaneState { value: lane, .. }) = runtime
+        .pump
+        .drive(session.get_register(RegisterNamespace::LaneState, "main"))
+        .unwrap()
+    else {
+        panic!("pending lane")
+    };
+    let operation = lane.current_operation_id.expect("pending operation");
+    let Some(Register::OperationState {
+        key: state_key,
+        value: state,
+        ..
+    }) = runtime
+        .pump
+        .drive(session.get_register(RegisterNamespace::OperationState, operation.as_str()))
+        .unwrap()
+    else {
+        panic!("pending state")
+    };
+    let OperationState::Run(run) = state.as_ref() else {
+        panic!("run state")
+    };
+    let RunPhase::Tools(tools) = &run.phase else {
+        panic!("tool phase")
+    };
+    assert!(matches!(
+        &tools.batch.calls[0],
+        ToolCallState::EffectPending { .. }
+    ));
+    let args_key = format!("{}:{}:0", operation.as_str(), tools.batch.turn_id.as_str());
+    let args: Vec<_> = pending
+        .registers
+        .iter()
+        .filter(|register| matches!(register, Register::OperationToolArguments { .. }))
+        .collect();
+    assert_eq!(args.len(), 1);
+    assert!(
+        matches!(args[0], Register::OperationToolArguments { key, value, seq }
+        if key == &args_key && value == &saved() && seq.get() > 0)
+    );
+    assert_eq!(
+        request.effect_key,
+        Some(v1_1::EffectKey {
+            session_id: "runtime-session".into(),
+            lane: "main".into(),
+            operation_id: operation.as_str().into(),
+            effect_kind: "tool".into(),
+            step_or_task_id: tools.batch.turn_id.as_str().into(),
+            logical_attempt: 0,
+            item_index: Some(0),
+        })
+    );
+    let invocation = v1_1::InvokeToolRequest::decode(request.payload.as_slice()).unwrap();
+    assert_eq!(invocation.tool_call_id, "echo-call");
+    assert_eq!(invocation.tool_id, "echo");
+    let Some(v1_1::wire_value::Value::MapValue(arguments)) = invocation
+        .arguments
+        .and_then(|bound| bound.value)
+        .and_then(|value| value.value)
+    else {
+        panic!("selected arguments")
+    };
+    assert!(arguments.entries.iter().any(|entry| entry.key == "text"
+        && matches!(&entry.value, Some(v1_1::WireValue {
+            value: Some(v1_1::wire_value::Value::TextValue(value))
+        }) if value == "ping")));
+
+    let clock_settings = Arc::new(AtomicBool::new(true));
+    probe.set({
+        let harness = harness.clone();
+        let echo = echo.clone();
+        let clock_settings = clock_settings.clone();
+        let checked = checked.clone();
+        Arc::new(move |stage| {
+            if stage == "storage_clock" && !checked.preparing_result.load(Ordering::SeqCst) {
+                return true;
+            }
+            let mut lane = Box::pin(harness.get_leaf_id());
+            let lane_free = matches!(poll(lane.as_mut()), Poll::Ready(Ok(_)));
+            let settings_free =
+                if stage == "storage_clock" && clock_settings.swap(false, Ordering::SeqCst) {
+                    let mut settings = Box::pin(harness.set_tools(vec![echo.clone()]));
+                    matches!(poll(settings.as_mut()), Poll::Ready(Ok(())))
+                } else {
+                    true
+                };
+            lane_free && settings_free
+        })
+    });
+    let prior_writes = telemetry.writes().len();
+    probe.active.store(true, Ordering::SeqCst);
+    channel.push(raw_terminal_with_usage(request.request_id));
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if checked.first_entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        checked.first_entered.is_cancelled(),
+        "first prepared CAS parked"
+    );
+    let binding = driver_owner.retained_binding().expect("exact B1 retained");
+    assert_eq!(
+        driver_owner.binding_phase(&binding),
+        Ok(LivePhase::TerminalReceived)
+    );
+    assert_eq!(after.0.load(Ordering::SeqCst), 1);
+    assert_eq!(telemetry.writes().len(), prior_writes);
+    assert_eq!(runtime.pump.drive(sqlite.snapshot()).unwrap(), pending);
+    let stamp_before = runtime.pump.drive(sqlite.read_stamp()).unwrap();
+    runtime
+        .pump
+        .drive(session.commit(Transaction {
+            writes: vec![Write::SetRegister(Box::new(RegisterSet::OperationState {
+                key: state_key,
+                value: state,
+            }))],
+        }))
+        .unwrap();
+    let stamp_after = runtime.pump.drive(sqlite.read_stamp()).unwrap();
+    assert_ne!(
+        stamp_before, stamp_after,
+        "real Session write advances SQLite revision"
+    );
+    let before_refusal = runtime.pump.drive(sqlite.snapshot()).unwrap();
+    checked.first_release.cancel();
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if checked.second_entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        checked.second_entered.is_cancelled(),
+        "retained terminal reaches second prepared CAS"
+    );
+    assert_eq!(checked.attempts.load(Ordering::SeqCst), 2);
+    assert_eq!(checked.refused.load(Ordering::SeqCst), 1);
+    assert_eq!(checked.applied.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        telemetry.writes().len(),
+        prior_writes,
+        "refusal earns no write receipt"
+    );
+    assert_eq!(
+        runtime.pump.drive(sqlite.snapshot()).unwrap(),
+        before_refusal
+    );
+    assert_eq!(
+        driver_owner.binding_phase(&binding),
+        Ok(LivePhase::TerminalReceived)
+    );
+    assert_eq!(after.0.load(Ordering::SeqCst), 1);
+    runtime.time.0.store(19, Ordering::SeqCst);
+    let frozen_timestamp = checked.second_timestamp.lock().unwrap().unwrap();
+    checked.second_release.cancel();
+    let mut completed = None;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if let Poll::Ready(result) = poll(prompt.as_mut()) {
+            completed = Some(result);
+            break;
+        }
+    }
+    completed.expect("SQLite route completes").unwrap().unwrap();
+    assert_eq!(checked.applied.load(Ordering::SeqCst), 1);
+    assert_eq!(checked.clock_calls_during_commit.load(Ordering::SeqCst), 0);
+    assert!(
+        !clock_settings.load(Ordering::SeqCst),
+        "clock callback probed settings line"
+    );
+    assert!(
+        !probe.failed.load(Ordering::SeqCst),
+        "both lines free: {:?}",
+        probe.failed_stages.lock().unwrap()
+    );
+    assert!(probe.stages.lock().unwrap().contains(&"storage_clock"));
+    let writes = telemetry.writes();
+    let result_write = &writes[prior_writes];
+    assert_eq!(result_write.status, Some(pi_telemetry::SpanStatus::Ok));
+    assert_eq!(result_write.finishes, 1);
+    assert_eq!(result_write.drops, 1);
+    assert!(result_write.parent.is_some());
+    assert!(
+        matches!(result_write.attributes.get("pi.session.item_kinds"),
+        Some(pi_telemetry::AttributeValue::Strings(kinds))
+            if kinds.contains(&"entry".to_owned()) && kinds.contains(&"usage".to_owned()))
+    );
+    assert_eq!(channel.writes().len(), 3, "one B1 Request after handshake");
+    assert_eq!(after.0.load(Ordering::SeqCst), 1);
+    assert_eq!(ends.0.lock().unwrap().len(), 1);
+    assert!(
+        driver_owner.retained_binding().is_none(),
+        "B1 retired after commit"
+    );
+    let final_snapshot = runtime.pump.drive(sqlite.snapshot()).unwrap();
+    assert_eq!(
+        final_snapshot
+            .entries
+            .iter()
+            .filter(|entry| matches!(entry, Entry::Message(message)
+                if matches!(&message.message,
+                    AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_)))))
+            .count(),
+        1,
+        "exactly one ToolResult is durable"
+    );
+    let results: Vec<_> = final_snapshot
+        .entries
+        .iter()
+        .filter_map(|entry| match entry {
+            Entry::Message(message)
+                if matches!(&message.message,
+            AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result))
+                if result.tool_call_id.as_str() == "echo-call" && !result.is_error) =>
+            {
+                Some(message)
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].timestamp, frozen_timestamp);
+    let linked: Vec<_> = final_snapshot
+        .usage
+        .iter()
+        .filter(|row| row.entry_id.as_ref() == Some(&results[0].id))
+        .collect();
+    assert_eq!(linked.len(), 1);
+    assert_eq!(linked[0].usage.input.get(), 5);
+    assert!(
+        !final_snapshot
+            .registers
+            .iter()
+            .any(|register| matches!(register, Register::OperationToolArguments { .. }))
+    );
+    let result_id = results[0].id.clone();
+    let usage_id = linked[0].id.clone();
+    let old_stamp = runtime.pump.drive(sqlite.read_stamp()).unwrap();
+    let stale_entry = NewEntry::Custom(NewCustomEntry {
+        id: EntryId::new("stale-sqlite-route-probe").unwrap(),
+        parent_id: None,
+        entry_type: pi_agent_schema::CustomEntryType::Custom,
+        custom_type: pi_agent_schema::CustomType::new("probe").unwrap(),
+        data: pi_ai_core::Presence::Missing,
+    });
+    let stale_request = ConditionalCommit {
+        conditions: vec![],
+        transaction: Transaction {
+            writes: vec![Write::Entry(stale_entry.clone())],
+        },
+    };
+    let stale_prepared = runtime
+        .pump
+        .drive(sqlite.prepare_entries(
+            old_stamp.clone(),
+            vec![PreparedEntrySlot {
+                write_index: 0,
+                entry: stale_entry,
+            }],
+        ))
+        .unwrap()
+        .unwrap();
+    runtime.pump.drive(harness.close()).unwrap();
+    runtime.pump.drive(session.close()).unwrap();
+    let reopened = SqliteStorage::open(&file.0, codec, clock, SqliteOptions::default()).unwrap();
+    assert_ne!(
+        old_stamp,
+        runtime.pump.drive(reopened.read_stamp()).unwrap()
+    );
+    struct Accept;
+    impl PublicationValidator for Accept {
+        type Error = ();
+        fn validate(&self, _: &pi_agent_session::storage::StorageSnapshot) -> Result<(), ()> {
+            Ok(())
+        }
+    }
+    assert_eq!(
+        runtime
+            .pump
+            .drive(reopened.commit_prepared_checked(stale_prepared, stale_request, &Accept,))
+            .unwrap(),
+        ConditionalOutcome::NotApplied
+    );
+    let durable = runtime.pump.drive(reopened.snapshot()).unwrap();
+    assert_eq!(durable, final_snapshot);
+    assert!(durable.entries.iter().any(|entry| matches!(entry,
+        Entry::Message(message) if message.id == result_id && message.timestamp == frozen_timestamp)));
+    assert!(
+        durable
+            .usage
+            .iter()
+            .any(|row| row.id == usage_id && row.entry_id.as_ref() == Some(&result_id))
+    );
+    runtime.pump.drive(reopened.close()).unwrap();
 }
 
 #[test]

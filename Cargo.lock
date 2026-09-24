@@ -1307,6 +1307,7 @@ dependencies = [
  "pi-agent-loop",
  "pi-agent-schema",
  "pi-agent-session",
+ "pi-agent-sqlite",
  "pi-ai-core",
  "pi-extension-protocol",
  "pi-harness-core",
