@@ -523,6 +523,17 @@ impl SingleToolOwner {
             .map(|slot| slot.invocation.binding().clone())
     }
 
+    /// Inspect only the exact opaque live binding; a later generation is not
+    /// evidence about this invocation.
+    pub fn binding_phase(&self, binding: &InvocationBinding) -> Result<LivePhase, DriverError> {
+        let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let slot = state.live.as_ref().ok_or(DriverError::WrongBinding)?;
+        if !slot.invocation.binding().same_live_identity(binding) {
+            return Err(DriverError::WrongBinding);
+        }
+        Ok(slot.invocation.phase())
+    }
+
     /// Caller invokes only after exact no-write cleanup of a preterminal loss.
     pub fn acknowledge_peer_lost(&self, binding: &InvocationBinding) -> Result<(), DriverError> {
         let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());

@@ -23,3 +23,6 @@ pi-harness-core.workspace = true
 pi-telemetry.workspace = true
 ryu-js.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+prost.workspace = true

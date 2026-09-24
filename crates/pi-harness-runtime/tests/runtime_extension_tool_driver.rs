@@ -1,6 +1,9 @@
 #![cfg(feature = "extensions")]
 
 mod runtime_r1_r4_support;
+#[path = "runtime_r6_retirement_support/mod.rs"]
+#[allow(dead_code)]
+mod runtime_r6_retirement_support;
 
 use std::collections::VecDeque;
 use std::future::{Future, poll_fn};
@@ -11,8 +14,12 @@ use std::sync::{Arc, Barrier, Mutex};
 use std::task::{Context, Poll, Wake, Waker};
 
 use pi_agent_schema::{
-    EffectKey, EffectKind, EffectStepId, EntryId, LaneId, OperationId, SessionId, ToolEffectPlan,
+    AgentHarness, AgentLane, DriveMode, EffectKey, EffectKind, EffectStepId, EntryId,
+    HarnessEventType, LaneId, OperationId, PromptInput, Register, Session, SessionId,
+    ToolEffectPlan,
 };
+use pi_agent_session::storage::AtomicStorage;
+use pi_agent_session::{codec::SessionCodec, session::RuntimeSession};
 use pi_ai_core::{BoxFuture, JsonObject, SafeUnsigned, SpawnError, TaskSpawner};
 use pi_extension_protocol::activation::{
     AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolReplay, ToolSchemaInputs,
@@ -150,6 +157,184 @@ fn raw(name: &str, request_id: u8) -> Vec<u8> {
     assert_eq!(bytes[6], 17);
     bytes[6] = request_id;
     bytes
+}
+
+fn raw_terminal_with_usage(request_id: u64) -> Vec<u8> {
+    use prost::Message as _;
+    use v1_1::wire_value::Value;
+    let mut reader = FrameReader::<v1_1::Envelope>::new(nz(8192));
+    let mut envelope = reader
+        .read_one(&raw("terminal", request_id as u8))
+        .unwrap()
+        .frame
+        .unwrap()
+        .envelope;
+    let Some(v1_1::envelope::Frame::StreamEnd(end)) = envelope.frame.as_mut() else {
+        panic!("terminal fixture is not StreamEnd")
+    };
+    let Some(v1_1::stream_end::Terminal::Result(bytes)) = end.terminal.as_mut() else {
+        panic!("terminal fixture has no result")
+    };
+    let mut result = v1_1::InvokeToolResult::decode(bytes.as_slice()).unwrap();
+    let bound = result.raw_result.as_mut().expect("schema-bound raw result");
+    let Some(v1_1::WireValue {
+        value: Some(Value::MapValue(map)),
+    }) = bound.value.as_mut()
+    else {
+        panic!("terminal result is not a map")
+    };
+    let integer = |key: &str, number| v1_1::WireMapEntry {
+        key: key.into(),
+        value: Some(v1_1::WireValue {
+            value: Some(Value::IntegerValue(number)),
+        }),
+    };
+    let cost = v1_1::WireMap {
+        entries: ["cacheRead", "cacheWrite", "input", "output", "total"]
+            .into_iter()
+            .map(|name| integer(name, 0))
+            .collect(),
+    };
+    let usage = v1_1::WireMap {
+        entries: vec![
+            integer("cacheRead", 0),
+            integer("cacheWrite", 0),
+            v1_1::WireMapEntry {
+                key: "cost".into(),
+                value: Some(v1_1::WireValue {
+                    value: Some(Value::MapValue(cost)),
+                }),
+            },
+            integer("input", 5),
+            integer("output", 0),
+            integer("totalTokens", 5),
+        ],
+    };
+    map.entries.push(v1_1::WireMapEntry {
+        key: "usage".into(),
+        value: Some(v1_1::WireValue {
+            value: Some(Value::MapValue(usage)),
+        }),
+    });
+    *bytes = result.encode_to_vec();
+    framing::encode(&envelope, nz(8192)).unwrap().bytes
+}
+
+fn externally_abort_pending_echo(runtime: &Setup) {
+    use pi_agent_schema::*;
+    let Some(Register::LaneState { mut value, .. }) = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .get_register(RegisterNamespace::LaneState, "main"),
+        )
+        .unwrap()
+    else {
+        panic!("pending lane")
+    };
+    let operation = value
+        .current_operation_id
+        .take()
+        .expect("pending operation");
+    let Some(Register::OperationState { value: state, .. }) = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .get_register(RegisterNamespace::OperationState, operation.as_str()),
+        )
+        .unwrap()
+    else {
+        panic!("pending state")
+    };
+    let OperationState::Run(run) = state.as_ref() else {
+        panic!("run state")
+    };
+    let RunPhase::Tools(phase) = &run.phase else {
+        panic!("tool phase")
+    };
+    let assistant = phase.batch.assistant_entry_id.clone();
+    let leaf = runtime.pump.drive(runtime.session.get_leaf_id()).unwrap();
+    let terminal = LaneLastResult::RunAborted(RunAbortedLastResult {
+        operation_id: operation.clone(),
+        kind: Default::default(),
+        leaf_id: leaf,
+        final_assistant_entry_id: Some(assistant),
+        outcome: Default::default(),
+    });
+    let mut writes = vec![
+        Write::DeleteRegister(RegisterDelete {
+            namespace: RegisterNamespace::OperationState,
+            key: operation.as_str().into(),
+        }),
+        Write::DeleteRegister(RegisterDelete {
+            namespace: RegisterNamespace::OperationMeta,
+            key: operation.as_str().into(),
+        }),
+        Write::SetRegister(Box::new(RegisterSet::LaneLastResult {
+            key: "main".into(),
+            value: terminal,
+        })),
+        Write::SetRegister(Box::new(RegisterSet::LaneState {
+            key: "main".into(),
+            value,
+        })),
+    ];
+    for namespace in [
+        RegisterNamespace::OperationToolArguments,
+        RegisterNamespace::OperationPreparation,
+    ] {
+        let prefix = format!("{}:", operation.as_str());
+        for register in runtime
+            .pump
+            .drive(runtime.session.list_registers(namespace, Some(&prefix)))
+            .unwrap()
+        {
+            let key = match register {
+                Register::OperationToolArguments { key, .. }
+                | Register::OperationPreparation { key, .. } => key,
+                _ => unreachable!(),
+            };
+            writes.push(Write::DeleteRegister(RegisterDelete { namespace, key }));
+        }
+    }
+    runtime
+        .pump
+        .drive(runtime.session.commit(Transaction { writes }))
+        .unwrap();
+}
+
+fn assert_one_synthetic_interrupted_result(snapshot: &pi_agent_session::storage::StorageSnapshot) {
+    let results: Vec<_> = snapshot
+        .entries
+        .iter()
+        .filter_map(|entry| match entry {
+            pi_agent_schema::Entry::Message(message) => match &message.message {
+                pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result)) => {
+                    Some((message.id.clone(), result.as_ref()))
+                }
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    assert_eq!(results.len(), 1, "one reserved core reconciliation result");
+    let (id, result) = &results[0];
+    assert!(result.is_error);
+    assert!(result.usage.is_none());
+    assert!(matches!(&result.content[..],
+        [pi_ai_core::InputContent::Text(text)] if text.text == "Tool execution was interrupted"));
+    assert!(
+        !snapshot
+            .usage
+            .iter()
+            .any(|row| row.entry_id.as_ref() == Some(id))
+    );
+    assert!(!snapshot.registers.iter().any(|register| matches!(
+        register,
+        pi_agent_schema::Register::OperationToolArguments { .. }
+    )));
 }
 
 fn selected_peer_request(
@@ -988,9 +1173,221 @@ fn saved() -> JsonObject {
     serde_json::from_str(r#"{"text":"ping"}"#).unwrap()
 }
 
+type CommitLineCallback = Arc<dyn Fn(&'static str) -> bool + Send + Sync>;
+type CommitCloseSlot = Arc<
+    Mutex<Option<pi_ai_core::BoxFuture<'static, Result<(), pi_agent_schema::HarnessRuntimeError>>>>,
+>;
+
+struct CommitDrainWake {
+    pump: Arc<runtime_r1_r4_support::Pump>,
+    close: CommitCloseSlot,
+    probe: Arc<CommitLineProbe>,
+    outcome: Mutex<Option<Result<(), pi_agent_schema::HarnessRuntimeError>>>,
+    fired: AtomicBool,
+    receipt_before_drain: AtomicBool,
+}
+impl Wake for CommitDrainWake {
+    fn wake(self: Arc<Self>) {
+        self.fired.store(true, Ordering::SeqCst);
+        self.receipt_before_drain.store(
+            self.probe.first_write_done.load(Ordering::SeqCst),
+            Ordering::SeqCst,
+        );
+        self.pump.tick();
+        let mut close = self.close.lock().unwrap();
+        if let Some(close) = close.as_mut()
+            && let Poll::Ready(result) = poll(close.as_mut())
+        {
+            *self.outcome.lock().unwrap() = Some(result);
+        }
+    }
+}
+
+#[derive(Default)]
+struct CommitLineProbe {
+    callback: Mutex<Option<CommitLineCallback>>,
+    stages: Mutex<Vec<&'static str>>,
+    failed_stages: Mutex<Vec<&'static str>>,
+    active: AtomicBool,
+    first_write_done: AtomicBool,
+    failed: AtomicBool,
+}
+impl CommitLineProbe {
+    fn set(&self, callback: CommitLineCallback) {
+        *self.callback.lock().unwrap() = Some(callback);
+    }
+    fn check(&self, stage: &'static str) {
+        if !self.active.load(Ordering::SeqCst) {
+            return;
+        }
+        let callback = self.callback.lock().unwrap().clone();
+        if let Some(callback) = callback {
+            if !callback(stage) {
+                self.failed.store(true, Ordering::SeqCst);
+                self.failed_stages.lock().unwrap().push(stage);
+            }
+            self.stages.lock().unwrap().push(stage);
+        }
+    }
+}
+
+struct CommitStorageClock {
+    time: Arc<runtime_r1_r4_support::Time>,
+    probe: Arc<CommitLineProbe>,
+    fail: AtomicBool,
+    calls: AtomicU64,
+    stale_commit: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    stale_seen: AtomicBool,
+}
+impl pi_agent_session::memory::StorageClock for CommitStorageClock {
+    fn now(&self) -> Result<SafeUnsigned, pi_agent_schema::StorageError> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        self.probe.check("storage_clock");
+        let stale_commit = self.stale_commit.lock().unwrap().take();
+        if let Some(commit) = stale_commit {
+            commit();
+            self.stale_seen.store(true, Ordering::SeqCst);
+        }
+        if self.fail.load(Ordering::SeqCst) {
+            return Err(pi_agent_schema::StorageError::Io(
+                pi_agent_schema::ErrorContext::new("injected stable storage clock failure")
+                    .unwrap(),
+            ));
+        }
+        Ok(SafeUnsigned::new(self.time.0.load(Ordering::SeqCst)).unwrap())
+    }
+}
+
+#[derive(Clone)]
+struct CommitTelemetry {
+    records: Arc<Mutex<Vec<CommitSpanRecord>>>,
+    probe: Arc<CommitLineProbe>,
+    clock: Arc<CommitStorageClock>,
+    first_write_clock_calls: Arc<AtomicU64>,
+    panic_write_start: Arc<AtomicBool>,
+}
+#[derive(Clone)]
+struct CommitSpanRecord {
+    name: String,
+    parent: Option<usize>,
+    attributes: pi_telemetry::SpanAttributes,
+    status: Option<pi_telemetry::SpanStatus>,
+    finishes: usize,
+    drops: usize,
+}
+impl CommitTelemetry {
+    fn new(probe: Arc<CommitLineProbe>, clock: Arc<CommitStorageClock>) -> Self {
+        Self {
+            records: Arc::new(Mutex::new(Vec::new())),
+            probe,
+            clock,
+            first_write_clock_calls: Arc::new(AtomicU64::new(u64::MAX)),
+            panic_write_start: Arc::new(AtomicBool::new(false)),
+        }
+    }
+    fn start(
+        &self,
+        parent: Option<usize>,
+        options: pi_telemetry::SpanOptions,
+    ) -> pi_telemetry::SpanGuard {
+        let write = options.name == "pi.session.write" && self.probe.active.load(Ordering::SeqCst);
+        if write {
+            let _ = self.first_write_clock_calls.compare_exchange(
+                u64::MAX,
+                self.clock.calls.load(Ordering::SeqCst),
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            );
+            self.probe.check("start_span");
+            if self.panic_write_start.swap(false, Ordering::SeqCst) {
+                panic!("injected write observer panic");
+            }
+        }
+        let id = {
+            let mut records = self.records.lock().unwrap();
+            let id = records.len();
+            records.push(CommitSpanRecord {
+                name: options.name,
+                parent,
+                attributes: options.attributes,
+                status: None,
+                finishes: 0,
+                drops: 0,
+            });
+            id
+        };
+        pi_telemetry::SpanGuard::new(CommitSpan {
+            owner: self.clone(),
+            id,
+            write,
+        })
+    }
+    fn writes(&self) -> Vec<CommitSpanRecord> {
+        self.records
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|r| r.name == "pi.session.write")
+            .cloned()
+            .collect()
+    }
+}
+impl pi_telemetry::TelemetryContext for CommitTelemetry {
+    fn start_span(&self, options: pi_telemetry::SpanOptions) -> pi_telemetry::SpanGuard {
+        self.start(None, options)
+    }
+}
+struct CommitSpan {
+    owner: CommitTelemetry,
+    id: usize,
+    write: bool,
+}
+impl pi_telemetry::TelemetrySpan for CommitSpan {
+    fn start_child(&self, options: pi_telemetry::SpanOptions) -> pi_telemetry::SpanGuard {
+        self.owner.start(Some(self.id), options)
+    }
+    fn add_event(&self, _: &str, attributes: &pi_telemetry::SpanAttributes) {
+        self.set_attributes(attributes);
+    }
+    fn set_attributes(&self, attributes: &pi_telemetry::SpanAttributes) {
+        if self.write {
+            self.owner.probe.check("attributes");
+        }
+        self.owner.records.lock().unwrap()[self.id]
+            .attributes
+            .extend(attributes.clone());
+    }
+    fn set_status(&self, status: pi_telemetry::SpanStatus) {
+        if self.write {
+            self.owner.probe.check("status");
+        }
+        self.owner.records.lock().unwrap()[self.id].status = Some(status);
+    }
+    fn finish(&self) {
+        if self.write {
+            self.owner.probe.check("finish");
+        }
+        self.owner.records.lock().unwrap()[self.id].finishes += 1;
+    }
+}
+impl Drop for CommitSpan {
+    fn drop(&mut self) {
+        if self.write {
+            self.owner.probe.check("drop");
+            self.owner
+                .probe
+                .first_write_done
+                .store(true, Ordering::SeqCst);
+            self.owner.probe.active.store(false, Ordering::SeqCst);
+        }
+        self.owner.records.lock().unwrap()[self.id].drops += 1;
+    }
+}
+
 struct RegistryTool {
     descriptor: pi_agent_schema::AgentTool,
     drop_pause: Option<Arc<WritePause>>,
+    descriptor_probe: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 
 impl Drop for RegistryTool {
@@ -1004,6 +1401,9 @@ impl Drop for RegistryTool {
 
 impl pi_agent_schema::AgentHarnessTool<()> for RegistryTool {
     fn descriptor(&self) -> &pi_agent_schema::AgentTool {
+        if let Some(probe) = &self.descriptor_probe {
+            probe();
+        }
         &self.descriptor
     }
 
@@ -1051,11 +1451,19 @@ fn registry_tool_with_pause(
             replay: None,
         },
         drop_pause,
+        descriptor_probe: None,
     })
 }
 
 fn registry_echo(
     route: &pi_harness_runtime::extensions::tool_driver::ReadyToolRoute,
+) -> pi_agent_schema::AgentHarnessToolHandle<()> {
+    registry_echo_with_probe(route, None)
+}
+
+fn registry_echo_with_probe(
+    route: &pi_harness_runtime::extensions::tool_driver::ReadyToolRoute,
+    descriptor_probe: Option<Arc<dyn Fn() + Send + Sync>>,
 ) -> pi_agent_schema::AgentHarnessToolHandle<()> {
     let granted = route.grant().tools()[0].descriptor();
     Arc::new(RegistryTool {
@@ -1075,10 +1483,2310 @@ fn registry_echo(
             }),
         },
         drop_pause: None,
+        descriptor_probe,
     })
 }
 
+#[test]
+fn actual_memory_session_claims_ready_echo_after_durable_args_and_settles_terminal() {
+    use pi_agent_schema::{OperationState, RegisterNamespace, RunPhase, ToolCallState};
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use prost::Message as _;
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut tool_response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    tool_response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![
+        tool_response,
+        assistant(&runtime.faux.model, StopReason::Stop),
+    ]
+    .into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let descriptor_armed = Arc::new(AtomicBool::new(false));
+    let descriptor_all_lane_free = Arc::new(AtomicBool::new(true));
+    let descriptor_calls = Arc::new(AtomicU64::new(0));
+    let probe_harness = harness.clone();
+    let probe = {
+        let armed = descriptor_armed.clone();
+        let all_lane_free = descriptor_all_lane_free.clone();
+        let calls = descriptor_calls.clone();
+        Arc::new(move || {
+            if armed.load(Ordering::SeqCst) {
+                calls.fetch_add(1, Ordering::SeqCst);
+                let mut reenter = Box::pin(probe_harness.get_leaf_id());
+                all_lane_free.fetch_and(
+                    matches!(poll(reenter.as_mut()), Poll::Ready(Ok(_))),
+                    Ordering::SeqCst,
+                );
+            }
+        })
+    };
+    let echo = registry_echo_with_probe(&route, Some(probe));
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let request = request.expect("Ready echo Request must be written");
+    assert_eq!(request.method, "tool.invoke");
+    assert_eq!(request.initial_stream_credit_bytes, Some(0));
+    let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    assert!(snapshot.registers.iter().any(|register| matches!(register,
+        Register::OperationToolArguments { value, .. } if value == &saved())));
+    let Some(Register::LaneState { value: lane, .. }) = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .get_register(RegisterNamespace::LaneState, "main"),
+        )
+        .unwrap()
+    else {
+        panic!("pending lane")
+    };
+    let operation = lane.current_operation_id.expect("pending operation");
+    let Some(Register::OperationState { value: state, .. }) = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .get_register(RegisterNamespace::OperationState, operation.as_str()),
+        )
+        .unwrap()
+    else {
+        panic!("pending state")
+    };
+    let OperationState::Run(run) = state.as_ref() else {
+        panic!("run")
+    };
+    let RunPhase::Tools(tools) = &run.phase else {
+        panic!("tools")
+    };
+    assert!(matches!(
+        &tools.batch.calls[0],
+        ToolCallState::EffectPending { .. }
+    ));
+    assert_eq!(
+        request.effect_key,
+        Some(v1_1::EffectKey {
+            session_id: "runtime-session".into(),
+            lane: "main".into(),
+            operation_id: operation.as_str().into(),
+            effect_kind: "tool".into(),
+            step_or_task_id: tools.batch.turn_id.as_str().into(),
+            logical_attempt: 0,
+            item_index: Some(0),
+        })
+    );
+    assert!(snapshot.registers.iter().any(|register| matches!(register,
+        Register::OperationToolArguments { key, value, .. }
+            if key == &format!("{}:{}:0", operation.as_str(), tools.batch.turn_id.as_str())
+                && value == &saved())));
+    let invocation = v1_1::InvokeToolRequest::decode(request.payload.as_slice()).unwrap();
+    assert_eq!(invocation.tool_call_id, "echo-call");
+    assert_eq!(invocation.tool_id, "echo");
+    let Some(v1_1::wire_value::Value::MapValue(arguments)) = invocation
+        .arguments
+        .and_then(|bound| bound.value)
+        .and_then(|value| value.value)
+    else {
+        panic!("selected wire arguments")
+    };
+    assert!(arguments.entries.iter().any(|entry| entry.key == "text"
+        && matches!(&entry.value,
+            Some(v1_1::WireValue { value: Some(v1_1::wire_value::Value::TextValue(value)) })
+                if value == "ping")));
+
+    descriptor_armed.store(true, Ordering::SeqCst);
+    channel.push(raw_terminal_with_usage(request.request_id));
+    let mut completed = None;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if let Poll::Ready(result) = poll(prompt.as_mut()) {
+            completed = Some(result);
+            break;
+        }
+    }
+    completed
+        .expect("terminal must finish the Memory run")
+        .unwrap()
+        .unwrap();
+    assert!(descriptor_calls.load(Ordering::SeqCst) > 0);
+    assert!(
+        descriptor_all_lane_free.load(Ordering::SeqCst),
+        "application descriptor getter must run after routed pair release"
+    );
+    let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    let result_entry = snapshot
+        .entries
+        .iter()
+        .find_map(|entry| match entry {
+            pi_agent_schema::Entry::Message(message)
+                if matches!(&message.message,
+            pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result))
+                if result.tool_call_id.as_str() == "echo-call" && !result.is_error) =>
+            {
+                Some(message)
+            }
+            _ => None,
+        })
+        .expect("one peer ToolResult");
+    let linked: Vec<_> = snapshot
+        .usage
+        .iter()
+        .filter(|row| row.entry_id.as_ref() == Some(&result_entry.id))
+        .collect();
+    assert_eq!(linked.len(), 1);
+    assert_eq!(linked[0].usage.input.get(), 5);
+    assert!(
+        !snapshot
+            .registers
+            .iter()
+            .any(|register| matches!(register, Register::OperationToolArguments { .. }))
+    );
+}
+
+fn commit_observer_memory_route(
+    fail_clock: bool,
+    stale_first: bool,
+    panic_observer: bool,
+    fault_cleanup: bool,
+) {
+    use pi_agent_schema::{
+        HarnessRuntimeError, RegisterNamespace, RegisterSet, Transaction, Write,
+    };
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let probe = Arc::new(CommitLineProbe::default());
+    let clock_slot: Arc<Mutex<Option<Arc<CommitStorageClock>>>> = Arc::new(Mutex::new(None));
+    let runtime = Setup::with_storage_clock({
+        let probe = probe.clone();
+        let slot = clock_slot.clone();
+        move |time| {
+            let clock = Arc::new(CommitStorageClock {
+                time,
+                probe,
+                fail: AtomicBool::new(false),
+                calls: AtomicU64::new(0),
+                stale_commit: Mutex::new(None),
+                stale_seen: AtomicBool::new(false),
+            });
+            *slot.lock().unwrap() = Some(clock.clone());
+            clock
+        }
+    });
+    let clock = clock_slot.lock().unwrap().take().unwrap();
+    let telemetry = Arc::new(CommitTelemetry::new(probe.clone(), clock.clone()));
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options::<()>(DriveMode::Automatic);
+    options.telemetry_context = telemetry.clone();
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let clock_settings = Arc::new(AtomicBool::new(!stale_first));
+    let close_slot: CommitCloseSlot = Arc::new(Mutex::new(None));
+    let drain_wake = Arc::new(CommitDrainWake {
+        pump: runtime.pump.clone(),
+        close: close_slot.clone(),
+        probe: probe.clone(),
+        outcome: Mutex::new(None),
+        fired: AtomicBool::new(false),
+        receipt_before_drain: AtomicBool::new(false),
+    });
+    probe.set({
+        let harness = harness.clone();
+        let echo = echo.clone();
+        let clock_settings = clock_settings.clone();
+        let close_slot = close_slot.clone();
+        let drain_wake = drain_wake.clone();
+        let driver_owner = driver_owner.clone();
+        let store = runtime.store.clone();
+        Arc::new(move |stage| {
+            if fault_cleanup && stage != "start_span" && stage != "storage_clock" {
+                return true; // Close is sealed; the earlier callback probed both free lines.
+            }
+            let mut lane = Box::pin(harness.get_leaf_id());
+            let lane_free = matches!(poll(lane.as_mut()), Poll::Ready(Ok(_)));
+            let check_settings = match stage {
+                "storage_clock" => clock_settings.swap(false, Ordering::SeqCst),
+                _ => true,
+            };
+            let settings_free = if check_settings {
+                let mut settings = Box::pin(harness.set_tools(vec![echo.clone()]));
+                matches!(poll(settings.as_mut()), Poll::Ready(Ok(())))
+            } else {
+                true
+            };
+            if (panic_observer || fault_cleanup) && stage == "start_span" {
+                if fault_cleanup {
+                    use pi_extension_protocol::tool_live::{LivePhase, RetireReason};
+                    let snapshot = drain_wake.pump.drive(store.snapshot()).unwrap();
+                    assert!(snapshot.entries.iter().any(|entry| matches!(entry,
+                        pi_agent_schema::Entry::Message(message) if matches!(&message.message,
+                            pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))))));
+                    let binding = driver_owner.retained_binding().expect("retained exact B1");
+                    assert_eq!(
+                        driver_owner.binding_phase(&binding),
+                        Ok(LivePhase::TerminalReceived)
+                    );
+                    driver_owner
+                        .retire(&binding, RetireReason::NoLongerExpected)
+                        .unwrap();
+                }
+                let owned = harness.clone();
+                let mut close: pi_ai_core::BoxFuture<'static, Result<(), HarnessRuntimeError>> =
+                    Box::pin(async move { owned.close().await });
+                assert!(
+                    poll(close.as_mut()).is_pending(),
+                    "Close waits for admitted commit"
+                );
+                *close_slot.lock().unwrap() = Some(close);
+                if fault_cleanup {
+                    let waker = Waker::from(drain_wake.clone());
+                    drain_wake.pump.tick_latest_with_waker(&waker);
+                    assert!(!drain_wake.fired.load(Ordering::SeqCst));
+                }
+            }
+            lane_free && settings_free
+        })
+    });
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let request = request.expect("echo Request");
+    if stale_first {
+        let Some(Register::LaneState { value: lane, .. }) = runtime
+            .pump
+            .drive(
+                runtime
+                    .session
+                    .get_register(RegisterNamespace::LaneState, "main"),
+            )
+            .unwrap()
+        else {
+            panic!("pending lane")
+        };
+        let operation = lane.current_operation_id.expect("pending operation");
+        let Some(Register::OperationState { key, value, .. }) = runtime
+            .pump
+            .drive(
+                runtime
+                    .session
+                    .get_register(RegisterNamespace::OperationState, operation.as_str()),
+            )
+            .unwrap()
+        else {
+            panic!("pending operation state")
+        };
+        let session = runtime.session.clone();
+        let pump = runtime.pump.clone();
+        *clock.stale_commit.lock().unwrap() = Some(Box::new(move || {
+            pump.drive(session.commit(Transaction {
+                writes: vec![Write::SetRegister(Box::new(RegisterSet::OperationState {
+                    key,
+                    value,
+                }))],
+            }))
+            .unwrap();
+        }));
+    }
+    let before = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    let baseline_writes = telemetry.writes().len();
+    let baseline_clock = clock.calls.load(Ordering::SeqCst);
+    probe.active.store(true, Ordering::SeqCst);
+    clock.fail.store(fail_clock, Ordering::SeqCst);
+    telemetry
+        .panic_write_start
+        .store(panic_observer, Ordering::SeqCst);
+    channel.push(raw_terminal_with_usage(request.request_id));
+    let mut completion = None;
+    let mut panicked = false;
+    for _ in 0..2000 {
+        let step = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            runtime.pump.tick();
+            spawner.tick();
+            poll(prompt.as_mut())
+        }));
+        match step {
+            Err(_) => {
+                panicked = true;
+                break;
+            }
+            Ok(Poll::Ready(value)) => {
+                completion = Some(value);
+                break;
+            }
+            Ok(Poll::Pending) => {}
+        }
+    }
+    if panic_observer {
+        assert!(
+            panicked || matches!(completion, Some(Err(_))),
+            "injected write observer panic reaches the task boundary"
+        );
+        assert!(!telemetry.panic_write_start.load(Ordering::SeqCst));
+        let mut close = close_slot
+            .lock()
+            .unwrap()
+            .take()
+            .expect("Close began in observer");
+        let mut closed = None;
+        for _ in 0..2000 {
+            if let Poll::Ready(result) = poll(close.as_mut()) {
+                closed = Some(result);
+                break;
+            }
+            runtime.pump.tick();
+        }
+        assert!(matches!(
+            closed.expect("Close drain wakes after observer panic"),
+            Err(HarnessRuntimeError::Fault(_))
+        ));
+        assert!(!probe.failed.load(Ordering::SeqCst));
+        assert_eq!(channel.writes().len(), 3, "no second B1 Request");
+        return;
+    }
+    if fault_cleanup {
+        assert!(matches!(
+            completion,
+            Some(Err(HarnessRuntimeError::Fault(_)))
+        ));
+        assert!(drain_wake.fired.load(Ordering::SeqCst));
+        assert!(drain_wake.receipt_before_drain.load(Ordering::SeqCst));
+        assert!(matches!(
+            drain_wake.outcome.lock().unwrap().take(),
+            Some(Err(HarnessRuntimeError::Fault(_)))
+        ));
+        assert!(!probe.failed.load(Ordering::SeqCst));
+        assert_eq!(channel.writes().len(), 3, "no second B1 Request");
+        assert_eq!(
+            telemetry.first_write_clock_calls.load(Ordering::SeqCst) - baseline_clock,
+            2
+        );
+        return;
+    }
+    let completion = completion.expect("terminal settlement finishes");
+    assert!(
+        !probe.failed.load(Ordering::SeqCst),
+        "clock/telemetry callback saw held settings or lane at {:?}",
+        *probe.failed_stages.lock().unwrap()
+    );
+    let stages = probe.stages.lock().unwrap().clone();
+    assert!(stages.contains(&"storage_clock"));
+    assert!(stages.contains(&"start_span"));
+    assert!(stages.contains(&"status"));
+    assert!(stages.contains(&"finish"));
+    assert!(stages.contains(&"drop"));
+    assert!(probe.first_write_done.load(Ordering::SeqCst));
+    assert_eq!(
+        telemetry.first_write_clock_calls.load(Ordering::SeqCst) - baseline_clock,
+        if fail_clock {
+            1
+        } else if stale_first {
+            3 // first preparation, independent Session write, retried preparation
+        } else {
+            2 // first preparation, then registry-change retry
+        },
+        "only outside-pair preparation may sample the Memory storage clock",
+    );
+    assert_eq!(clock.stale_seen.load(Ordering::SeqCst), stale_first);
+    assert!(clock.calls.load(Ordering::SeqCst) > baseline_clock);
+    let writes = telemetry.writes();
+    let new_writes = &writes[baseline_writes..];
+    let write = new_writes
+        .first()
+        .expect("one ToolResult write observation");
+    assert!(
+        write.parent.is_some(),
+        "write span keeps the original Harness parent"
+    );
+    assert_eq!(write.finishes, 1);
+    assert_eq!(write.drops, 1);
+    assert!(matches!(
+        write.attributes.get("pi.session.item_count"),
+        Some(pi_telemetry::AttributeValue::Number(_))
+    ));
+    assert!(matches!(
+        write.attributes.get("pi.session.item_kinds"),
+        Some(pi_telemetry::AttributeValue::Strings(_))
+    ));
+    if fail_clock {
+        assert!(matches!(completion, Err(HarnessRuntimeError::Fault(_))));
+        assert_eq!(
+            new_writes.len(),
+            1,
+            "stable clock error emits one failed write span"
+        );
+        assert!(matches!(
+            write.status,
+            Some(pi_telemetry::SpanStatus::Error { error: None })
+        ));
+        assert!(!write.attributes.contains_key("first_seq"));
+        assert_eq!(
+            runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+            before,
+            "clock failure writes nothing"
+        );
+        assert_eq!(channel.writes().len(), 3, "no second B1 Request");
+    } else {
+        completion.unwrap().unwrap();
+        assert_eq!(channel.writes().len(), 3, "no second B1 Request");
+        assert_eq!(write.status, Some(pi_telemetry::SpanStatus::Ok));
+        assert!(write.attributes.contains_key("first_seq"));
+        assert!(runtime.pump.drive(runtime.store.snapshot()).unwrap().entries.iter().any(|entry|
+            matches!(entry, pi_agent_schema::Entry::Message(message)
+                if matches!(&message.message, pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))))));
+        assert!(
+            runtime
+                .pump
+                .drive(
+                    runtime
+                        .session
+                        .list_registers(RegisterNamespace::OperationToolArguments, None)
+                )
+                .unwrap()
+                .is_empty()
+        );
+    }
+}
+
+#[test]
+fn actual_memory_prepared_clock_and_write_observer_reenter_after_pair_release() {
+    commit_observer_memory_route(false, false, false, false);
+}
+
+#[test]
+fn actual_memory_stable_preparation_clock_failure_has_one_error_span() {
+    commit_observer_memory_route(true, false, false, false);
+}
+
+#[test]
+fn actual_memory_stale_preparation_replans_without_span_or_b1_redispatch() {
+    commit_observer_memory_route(false, true, false, false);
+}
+
+#[test]
+fn actual_memory_observer_panic_releases_last_commit_for_close_drain() {
+    commit_observer_memory_route(false, false, true, false);
+}
+
+#[test]
+fn actual_memory_cleanup_fault_precedes_last_commit_close_drain() {
+    commit_observer_memory_route(false, false, false, true);
+}
+
+#[test]
+fn actual_memory_peer_loss_preserves_safe_pending_key_until_g2_resume() {
+    use pi_agent_schema::HarnessRuntimeError;
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (g1_channel, _, g1) = setup(&driver_owner, &spawner, 7, 200);
+    let g1 = Arc::new(g1);
+    let echo = registry_echo(&g1);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut g1_request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = g1_channel.writes().get(2) {
+            g1_request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let g1_request = g1_request.expect("G1 Request");
+    let pending = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    assert!(pending.registers.iter().any(|register| matches!(register,
+        Register::OperationToolArguments { value, .. } if value == &saved())));
+    g1_channel.eof();
+    let mut lost = None;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            lost = Some(value);
+            break;
+        }
+    }
+    assert!(matches!(
+        lost.expect("G1 loss must return"),
+        Err(HarnessRuntimeError::PeerLost)
+    ));
+    let after_loss = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    assert!(
+        after_loss
+            .registers
+            .iter()
+            .any(|register| matches!(register,
+        Register::OperationToolArguments { value, .. } if value == &saved()))
+    );
+    assert!(!after_loss.entries.iter().any(|entry| matches!(entry,
+        pi_agent_schema::Entry::Message(message) if matches!(&message.message,
+            pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))))));
+    assert!(matches!(
+        runtime.pump.drive(harness.resume()),
+        Err(HarnessRuntimeError::PeerLost)
+    ));
+    assert_eq!(g1_channel.writes().len(), 3);
+
+    let (g2_channel, _, g2) = setup(&driver_owner, &spawner, 8, 210);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, Arc::new(g2), route_timing()))
+        .unwrap()
+        .unwrap();
+    let mut resume = Box::pin(harness.resume());
+    let mut g2_request = None;
+    for _ in 0..1000 {
+        let _ = poll(resume.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = g2_channel.writes().get(2) {
+            g2_request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let g2_request = g2_request.expect("G2 Request");
+    assert_eq!(g1_request.effect_key, g2_request.effect_key);
+    assert_eq!(g2_request.request_id, 1);
+    g2_channel.push(raw("terminal", g2_request.request_id as u8));
+    let mut completed = None;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if let Poll::Ready(value) = poll(resume.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+    }
+    completed
+        .expect("G2 terminal must settle")
+        .unwrap()
+        .unwrap();
+    let final_state = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    assert_eq!(
+        final_state
+            .entries
+            .iter()
+            .filter(|entry| matches!(entry,
+        pi_agent_schema::Entry::Message(message) if matches!(&message.message,
+            pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_)))))
+            .count(),
+        1
+    );
+    assert!(
+        !final_state
+            .registers
+            .iter()
+            .any(|register| matches!(register, Register::OperationToolArguments { .. }))
+    );
+}
+
+#[test]
+fn actual_memory_preclaim_changed_arguments_fault_before_request() {
+    preclaim_arguments_race(true);
+}
+
+#[test]
+fn actual_memory_preclaim_same_arguments_new_seq_fault_before_request() {
+    preclaim_arguments_race(false);
+}
+
+fn preclaim_arguments_race(replace_value: bool) {
+    use pi_agent_schema::{
+        HarnessRuntimeError, ProviderHeaderPolicy, RegisterNamespace, RegisterSet,
+        SessionCodecOptions, Transaction, Write,
+    };
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+    use runtime_r6_retirement_support::{AfterRawStamp, Tool};
+
+    let runtime = Setup::new();
+    let storage = Arc::new(AfterRawStamp::for_checked_settlement(
+        runtime.store.clone(),
+        Tool::new(),
+    ));
+    let session = Arc::new(
+        runtime
+            .pump
+            .drive(RuntimeSession::new(
+                storage.clone(),
+                runtime.session.metadata(),
+                Arc::new(
+                    SessionCodec::new(
+                        SessionCodecOptions::default(),
+                        ProviderHeaderPolicy::default(),
+                    )
+                    .unwrap(),
+                ),
+                runtime.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options_for::<(), _>(session, DriveMode::Manual)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let pause_armed = Arc::new(AtomicBool::new(false));
+    let settings_entered = Arc::new(AtomicBool::new(false));
+    let settings_release = Arc::new(AtomicBool::new(false));
+    let probe = {
+        let armed = pause_armed.clone();
+        let entered = settings_entered.clone();
+        let release = settings_release.clone();
+        Arc::new(move || {
+            if armed.swap(false, Ordering::SeqCst) {
+                entered.store(true, Ordering::SeqCst);
+                while !release.load(Ordering::SeqCst) {
+                    std::thread::yield_now();
+                }
+            }
+        })
+    };
+    let echo = registry_echo_with_probe(&route, Some(probe));
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let after = Arc::new(runtime_r6_retirement_support::AfterToolCount::default());
+    let _after_subscription = harness.hooks().after_tool(None, after.clone()).unwrap();
+    let ends = Arc::new(RegistryEventLog(Mutex::new(vec![])));
+    let _end_subscription = harness.events().on(HarnessEventType::ToolEnd, ends.clone());
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut parked = false;
+    for _ in 0..2000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if runtime
+            .pump
+            .drive(harness.peek_action())
+            .unwrap()
+            .is_some_and(|a| a.kind == "effect_start")
+            && runtime
+                .pump
+                .drive(
+                    runtime
+                        .session
+                        .list_registers(RegisterNamespace::OperationToolArguments, None),
+                )
+                .unwrap()
+                .len()
+                == 1
+        {
+            parked = true;
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(parked, "durable K with saved A reached effect-start gate");
+    storage.args_read_target.store(2, Ordering::SeqCst);
+    runtime.pump.drive(harness.execute_action()).unwrap();
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if storage.args_read_entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        storage.args_read_entered.is_cancelled(),
+        "prepared read of A parked"
+    );
+    pause_armed.store(true, Ordering::SeqCst);
+    let holder = {
+        let harness = harness.clone();
+        let echo = echo.clone();
+        std::thread::spawn(move || {
+            let mut future = Box::pin(harness.set_tools(vec![echo]));
+            for _ in 0..100_000 {
+                if let Poll::Ready(result) = poll(future.as_mut()) {
+                    return result;
+                }
+                std::thread::yield_now();
+            }
+            panic!("settings holder did not complete")
+        })
+    };
+    for _ in 0..100_000 {
+        if settings_entered.load(Ordering::SeqCst) {
+            break;
+        }
+        std::thread::yield_now();
+    }
+    if !settings_entered.load(Ordering::SeqCst) {
+        storage.args_read_release.cancel();
+        settings_release.store(true, Ordering::SeqCst);
+        let _ = holder.join();
+        panic!("settings holder did not acquire before precheck");
+    }
+    storage.args_read_release.cancel();
+    let (tick_done, tick_result) = std::sync::mpsc::channel();
+    let pump = runtime.pump.clone();
+    let remote = spawner.clone();
+    let tick_worker = std::thread::spawn(move || {
+        for _ in 0..20 {
+            pump.tick();
+            remote.tick();
+        }
+        let _ = tick_done.send(());
+    });
+    if tick_result
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .is_err()
+    {
+        settings_release.store(true, Ordering::SeqCst);
+        let _ = holder.join();
+        let _ = tick_worker.join();
+        panic!("effect task could not queue the pair behind settings");
+    }
+    tick_worker.join().unwrap();
+    let mut args = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .list_registers(RegisterNamespace::OperationToolArguments, None),
+        )
+        .unwrap();
+    let Register::OperationToolArguments { key, .. } = args.pop().expect("saved A") else {
+        panic!("saved argument register")
+    };
+    runtime
+        .pump
+        .drive(runtime.session.commit(Transaction {
+            writes: vec![Write::SetRegister(Box::new(
+                RegisterSet::OperationToolArguments {
+                    key,
+                    value: if replace_value {
+                        serde_json::from_str(r#"{"text":"changed"}"#).unwrap()
+                    } else {
+                        saved()
+                    },
+                },
+            ))],
+        }))
+        .unwrap();
+    let before = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    settings_release.store(true, Ordering::SeqCst);
+    holder.join().unwrap().unwrap();
+    let mut completion = None;
+    for _ in 0..2000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(result) = poll(prompt.as_mut()) {
+            completion = Some(result);
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert_eq!(
+        channel.writes().len(),
+        2,
+        "no Request after saved arguments or sequence changes"
+    );
+    assert!(matches!(
+        completion,
+        Some(Err(HarnessRuntimeError::Fault(_)))
+    ));
+    assert_eq!(
+        runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+        before,
+        "fault makes no new durable write"
+    );
+    assert_eq!(after.0.load(Ordering::SeqCst), 0, "no after_tool");
+    assert!(ends.0.lock().unwrap().is_empty(), "no ToolEnd");
+}
+
+fn checked_refusal_memory_route(change_args: bool, retire_binding: bool, fault_after_commit: bool) {
+    use pi_agent_schema::{
+        ProviderHeaderPolicy, RegisterNamespace, RegisterSet, SessionCodecOptions, Transaction,
+        Write,
+    };
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+    use runtime_r6_retirement_support::{AfterRawStamp, Tool};
+
+    let runtime = Setup::new();
+    let observation_probe = Arc::new(CommitLineProbe::default());
+    let observation_clock = Arc::new(CommitStorageClock {
+        time: runtime.time.clone(),
+        probe: observation_probe.clone(),
+        fail: AtomicBool::new(false),
+        calls: AtomicU64::new(0),
+        stale_commit: Mutex::new(None),
+        stale_seen: AtomicBool::new(false),
+    });
+    let telemetry = Arc::new(CommitTelemetry::new(
+        observation_probe.clone(),
+        observation_clock,
+    ));
+    let storage = Arc::new(AfterRawStamp::for_checked_settlement(
+        runtime.store.clone(),
+        Tool::new(),
+    ));
+    let session = Arc::new(
+        runtime
+            .pump
+            .drive(RuntimeSession::new(
+                storage.clone(),
+                runtime.session.metadata(),
+                Arc::new(
+                    SessionCodec::new(
+                        SessionCodecOptions::default(),
+                        ProviderHeaderPolicy::default(),
+                    )
+                    .unwrap(),
+                ),
+                runtime.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options_for::<(), _>(session, DriveMode::Automatic);
+    options.telemetry_context = telemetry.clone();
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let request = request.expect("one Ready Request");
+    let before_write_observations = telemetry.writes().len();
+    observation_probe.active.store(true, Ordering::SeqCst);
+    storage.settle_armed.store(true, Ordering::SeqCst);
+    channel.push(raw_terminal_with_usage(request.request_id));
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if storage.settle_entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        storage.settle_entered.is_cancelled(),
+        "checked ToolResult publication parked"
+    );
+    let Some(Register::LaneState { value: lane, .. }) = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .get_register(RegisterNamespace::LaneState, "main"),
+        )
+        .unwrap()
+    else {
+        panic!("pending lane")
+    };
+    let operation = lane.current_operation_id.expect("pending operation");
+    let Some(Register::OperationState { key, value, .. }) = runtime
+        .pump
+        .drive(
+            runtime
+                .session
+                .get_register(RegisterNamespace::OperationState, operation.as_str()),
+        )
+        .unwrap()
+    else {
+        panic!("pending tool state")
+    };
+    let write = if change_args {
+        let mut args = runtime
+            .pump
+            .drive(
+                runtime
+                    .session
+                    .list_registers(RegisterNamespace::OperationToolArguments, None),
+            )
+            .unwrap();
+        let Register::OperationToolArguments { key, .. } = args.pop().expect("saved args") else {
+            panic!("saved args register")
+        };
+        Write::SetRegister(Box::new(RegisterSet::OperationToolArguments {
+            key,
+            value: serde_json::from_str(r#"{"text":"changed"}"#).unwrap(),
+        }))
+    } else {
+        Write::SetRegister(Box::new(RegisterSet::OperationState { key, value }))
+    };
+    runtime
+        .pump
+        .drive(runtime.session.commit(Transaction {
+            writes: vec![write],
+        }))
+        .unwrap();
+    let before_retry = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    if retire_binding {
+        use pi_extension_protocol::tool_live::{LivePhase, RetireReason};
+        let binding = driver_owner
+            .retained_binding()
+            .expect("retained B1 before CAS refusal");
+        assert_eq!(
+            driver_owner.binding_phase(&binding),
+            Ok(LivePhase::TerminalReceived)
+        );
+        driver_owner
+            .retire(&binding, RetireReason::NoLongerExpected)
+            .unwrap();
+    }
+    storage
+        .fail_next_post_commit_stamp
+        .store(fault_after_commit, Ordering::SeqCst);
+    storage.settle_release.cancel();
+    let mut completed = None;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+    }
+    let completion = completed.expect("CAS retry must finish");
+    assert_eq!(storage.settle_not_applied.load(Ordering::SeqCst), 1);
+    assert_eq!(channel.writes().len(), 3, "no second external execute");
+    if change_args {
+        assert!(matches!(
+            completion,
+            Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+        ));
+        assert_eq!(
+            runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+            before_retry,
+            "A's retained receipt cannot settle under B's args/seq"
+        );
+        return;
+    }
+    if retire_binding {
+        assert!(matches!(
+            completion,
+            Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+        ));
+        assert_eq!(
+            runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+            before_retry,
+            "CAS retry must reject a receipt whose exact B1 has left the owner ledger"
+        );
+        return;
+    }
+    if fault_after_commit {
+        assert!(storage.post_commit_fault_seen.load(Ordering::SeqCst));
+        let observations = telemetry.writes();
+        let earned = &observations[before_write_observations..];
+        assert_eq!(
+            earned.len(),
+            1,
+            "committed write emits exactly one receipt despite hydration Fault"
+        );
+        assert!(earned[0].parent.is_some());
+        assert_eq!(earned[0].status, Some(pi_telemetry::SpanStatus::Ok));
+        assert_eq!(earned[0].finishes, 1);
+        assert_eq!(earned[0].drops, 1);
+        assert!(matches!(
+            completion,
+            Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+        ));
+        let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+        assert_eq!(
+            snapshot
+                .entries
+                .iter()
+                .filter(|entry| matches!(entry,
+            pi_agent_schema::Entry::Message(message) if matches!(&message.message,
+                pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_)))))
+                .count(),
+            1,
+            "the committed result remains durable after hydration faults outward"
+        );
+        return;
+    }
+    completion.unwrap().unwrap();
+    let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    let result_id = snapshot
+        .entries
+        .iter()
+        .find_map(|entry| match entry {
+            pi_agent_schema::Entry::Message(message)
+                if matches!(
+                    &message.message,
+                    pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))
+                ) =>
+            {
+                Some(message.id.clone())
+            }
+            _ => None,
+        })
+        .expect("one ToolResult");
+    assert_eq!(
+        snapshot
+            .entries
+            .iter()
+            .filter(|entry| matches!(entry,
+        pi_agent_schema::Entry::Message(message) if matches!(&message.message,
+            pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_)))))
+            .count(),
+        1
+    );
+    assert_eq!(
+        snapshot
+            .usage
+            .iter()
+            .filter(|row| row.entry_id.as_ref() == Some(&result_id))
+            .count(),
+        1
+    );
+    assert!(
+        !snapshot
+            .registers
+            .iter()
+            .any(|register| matches!(register, Register::OperationToolArguments { .. }))
+    );
+}
+
+#[test]
+fn actual_memory_checked_refusal_retries_one_retained_echo_receipt() {
+    checked_refusal_memory_route(false, false, false);
+}
+
+#[test]
+fn actual_memory_checked_refusal_rejects_changed_saved_args() {
+    checked_refusal_memory_route(true, false, false);
+}
+
+#[test]
+fn actual_memory_checked_refusal_rejects_retired_b1_on_retry() {
+    checked_refusal_memory_route(false, true, false);
+}
+
+#[test]
+fn actual_memory_post_commit_hydration_fault_seals_after_pair_release() {
+    checked_refusal_memory_route(false, false, true);
+}
+
+#[test]
+fn actual_memory_unadmitted_abort_reconciles_once_without_wire_q_or_c() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let after = Arc::new(runtime_r6_retirement_support::AfterToolCount::default());
+    let _after_subscription = harness.hooks().after_tool(None, after.clone()).unwrap();
+    let ends = Arc::new(RegistryEventLog(Mutex::new(vec![])));
+    let _end_subscription = harness.events().on(HarnessEventType::ToolEnd, ends.clone());
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        if driver_owner.retained_binding().is_some() {
+            break;
+        }
+    }
+    assert!(
+        driver_owner.retained_binding().is_some(),
+        "G1 must be claimed"
+    );
+    assert_eq!(channel.writes().len(), 2, "writer has not admitted Q");
+    runtime.pump.drive(harness.abort()).unwrap().unwrap();
+    let mut completed = None;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+    }
+    assert!(completed.is_some(), "cancelled core must reconcile");
+    assert_eq!(
+        channel.writes().len(),
+        2,
+        "unadmitted abort writes neither Q nor C"
+    );
+    assert!(driver_owner.retained_binding().is_none());
+    let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    assert_one_synthetic_interrupted_result(&snapshot);
+    assert_eq!(
+        after.0.load(Ordering::SeqCst),
+        0,
+        "no after_tool for private abort"
+    );
+    assert!(
+        ends.0.lock().unwrap().is_empty(),
+        "no ToolEnd for private abort"
+    );
+}
+
+#[test]
+fn actual_memory_abort_at_effect_start_skips_wrapper_then_reconciles_once() {
+    use pi_agent_schema::RegisterNamespace;
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Manual)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let after = Arc::new(runtime_r6_retirement_support::AfterToolCount::default());
+    let _after_subscription = harness.hooks().after_tool(None, after.clone()).unwrap();
+    let ends = Arc::new(RegistryEventLog(Mutex::new(vec![])));
+    let _end_subscription = harness.events().on(HarnessEventType::ToolEnd, ends.clone());
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut parked = false;
+    for _ in 0..2000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if runtime
+            .pump
+            .drive(harness.peek_action())
+            .unwrap()
+            .is_some_and(|action| action.kind == "effect_start")
+            && runtime
+                .pump
+                .drive(
+                    runtime
+                        .session
+                        .list_registers(RegisterNamespace::OperationToolArguments, None),
+                )
+                .unwrap()
+                .len()
+                == 1
+        {
+            parked = true;
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(
+        parked,
+        "durably pending echo parked before loop cancellation gate"
+    );
+    assert!(driver_owner.retained_binding().is_none());
+    runtime.pump.drive(harness.abort()).unwrap().unwrap();
+    let mut completed = None;
+    let mut checked_reservation = false;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+        if !checked_reservation
+            && runtime
+                .pump
+                .drive(harness.peek_action())
+                .unwrap()
+                .is_some_and(|action| action.kind == "commit_settlement")
+        {
+            assert!(matches!(
+                runtime.pump.drive(harness.resume()).unwrap(),
+                Err(pi_agent_schema::ResumeExpectedError::LaneBusy(_))
+            ));
+            checked_reservation = true;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(completed.is_some());
+    assert!(
+        checked_reservation,
+        "canceled-core iteration retains drive reservation"
+    );
+    assert_eq!(channel.writes().len(), 2, "skipped wrapper sends no Q or C");
+    let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    assert_one_synthetic_interrupted_result(&snapshot);
+    assert_eq!(
+        after.0.load(Ordering::SeqCst),
+        0,
+        "no after_tool for private abort"
+    );
+    assert!(
+        ends.0.lock().unwrap().is_empty(),
+        "no ToolEnd for private abort"
+    );
+}
+
+#[test]
+fn actual_memory_admitted_abort_keeps_real_terminal_path() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let request = request.expect("Q admitted before local abort");
+    runtime.pump.drive(harness.abort()).unwrap().unwrap();
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if channel.writes().len() >= 4 {
+            break;
+        }
+    }
+    assert_eq!(channel.writes().len(), 4, "admitted Q keeps ordered C");
+    assert!(driver_owner.retained_binding().is_some());
+    channel.push(raw("terminal", request.request_id as u8));
+    let mut completed = None;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+    }
+    assert!(completed.is_some(), "validated terminal settles after C");
+    let snapshot = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    let result = snapshot
+        .entries
+        .iter()
+        .find_map(|entry| match entry {
+            pi_agent_schema::Entry::Message(message) => match &message.message {
+                pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result)) => {
+                    Some(result)
+                }
+                _ => None,
+            },
+            _ => None,
+        })
+        .expect("one terminal-derived result");
+    assert!(
+        !result.is_error,
+        "started/admitted call cannot become synthetic abort"
+    );
+    assert!(driver_owner.retained_binding().is_none());
+}
+
+#[test]
+fn actual_memory_key_loss_after_unadmitted_release_writes_nothing() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Manual)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (g1_channel, _, g1) = setup(&driver_owner, &spawner, 7, 200);
+    let g1 = Arc::new(g1);
+    let echo = registry_echo(&g1);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), g1, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    for _ in 0..2000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        if driver_owner.retained_binding().is_some() {
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(driver_owner.retained_binding().is_some());
+    assert_eq!(g1_channel.writes().len(), 2);
+    runtime.pump.drive(harness.abort()).unwrap().unwrap();
+    let mut parked = false;
+    for _ in 0..2000 {
+        runtime.pump.tick();
+        if driver_owner.retained_binding().is_none()
+            && runtime
+                .pump
+                .drive(harness.peek_action())
+                .unwrap()
+                .is_some_and(|action| action.kind == "commit_settlement")
+        {
+            parked = true;
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(parked, "B1 released before cancelled core apply");
+    assert_eq!(g1_channel.writes().len(), 2);
+    externally_abort_pending_echo(&runtime);
+    let external = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    let (g2_channel, _, g2) = setup(&driver_owner, &spawner, 8, 210);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, Arc::new(g2), route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime.pump.drive(harness.execute_action()).unwrap();
+    let mut completed = None;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+    }
+    assert!(
+        completed.is_some(),
+        "external result must win cancelled CAS"
+    );
+    assert_eq!(
+        runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+        external,
+        "released B1 cannot cause a synthetic result after key loss"
+    );
+    assert_eq!(g2_channel.writes().len(), 2, "G2 is untouched");
+    assert!(driver_owner.retained_binding().is_none());
+}
+
+#[test]
+fn actual_memory_external_completion_fences_open_g1_without_result() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if channel.writes().len() == 3 {
+            break;
+        }
+    }
+    assert_eq!(channel.writes().len(), 3, "G1 Request admitted");
+    externally_abort_pending_echo(&runtime);
+    let external = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    channel.eof();
+    let mut completed = None;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+    }
+    assert!(
+        completed.is_some(),
+        "external completion must release AwaitEffect"
+    );
+    assert_eq!(
+        runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+        external,
+        "late G1 completion writes no result or usage"
+    );
+    assert!(
+        driver_owner.retained_binding().is_none(),
+        "exact G1 binding is released"
+    );
+}
+
+#[test]
+fn actual_memory_external_completion_retires_retained_g1_before_finalize() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Manual)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..2000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    let request = request.expect("manual drive reaches G1 Request");
+    channel.push(raw("terminal", request.request_id as u8));
+    let mut parked = false;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if runtime
+            .pump
+            .drive(harness.peek_action())
+            .unwrap()
+            .is_some_and(|action| action.kind == "finalize_tool")
+        {
+            parked = true;
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(parked, "terminal retained at finalize gate");
+    externally_abort_pending_echo(&runtime);
+    let external = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    runtime.pump.drive(harness.execute_action()).unwrap();
+    let mut completed = None;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(
+        completed.is_some(),
+        "external result must return after finalize"
+    );
+    assert_eq!(
+        runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+        external
+    );
+    assert!(
+        driver_owner.retained_binding().is_none(),
+        "retained G1 receipt retired"
+    );
+}
+
+#[test]
+fn actual_memory_retired_b1_before_finalize_skips_after_tool() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use pi_extension_protocol::tool_live::RetireReason;
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() = vec![response].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Manual)))
+        .unwrap()
+        .harness;
+    let after = Arc::new(runtime_r6_retirement_support::AfterToolCount::default());
+    let _after_subscription = harness.hooks().after_tool(None, after.clone()).unwrap();
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(registry_echo(&route), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..2000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    let request = request.expect("manual drive reaches G1 Request");
+    channel.push(raw("terminal", request.request_id as u8));
+    let mut parked = false;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if runtime
+            .pump
+            .drive(harness.peek_action())
+            .unwrap()
+            .is_some_and(|action| action.kind == "finalize_tool")
+        {
+            parked = true;
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(parked, "terminal retained at finalize gate");
+    let binding = driver_owner.retained_binding().expect("retained B1");
+    driver_owner
+        .retire(&binding, RetireReason::NoLongerExpected)
+        .unwrap();
+    let before = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    runtime.pump.drive(harness.execute_action()).unwrap();
+    let mut completed = None;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completed = Some(value);
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(matches!(
+        completed,
+        Some(Err(pi_agent_schema::HarnessRuntimeError::Fault(_)))
+    ));
+    assert_eq!(after.0.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+        before
+    );
+    assert!(
+        driver_owner.retained_binding().is_none(),
+        "retained G1 receipt retired"
+    );
+}
+
+#[test]
+fn actual_memory_retired_b1_cannot_publish_tool_raw_or_after_tool() {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use pi_extension_protocol::tool_live::{LivePhase, RetireReason};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options::<()>(DriveMode::Automatic)))
+        .unwrap()
+        .harness;
+    let after = Arc::new(runtime_r6_retirement_support::AfterToolCount::default());
+    let _after_subscription = harness.hooks().after_tool(None, after.clone()).unwrap();
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..1000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+    }
+    let request = request.expect("G1 Q");
+    let binding = driver_owner.retained_binding().expect("B1");
+    channel.push(raw_terminal_with_usage(request.request_id));
+    for _ in 0..1000 {
+        spawner.tick();
+        if driver_owner.binding_phase(&binding) == Ok(LivePhase::TerminalReceived) {
+            break;
+        }
+    }
+    assert_eq!(
+        driver_owner.binding_phase(&binding),
+        Ok(LivePhase::TerminalReceived)
+    );
+    driver_owner
+        .retire(&binding, RetireReason::NoLongerExpected)
+        .unwrap();
+    let (_, _, g2) = setup(&driver_owner, &spawner, 8, 210);
+    let g2 = Arc::new(g2);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo, g2.clone(), route_timing()))
+        .unwrap()
+        .unwrap();
+    let g2_call = g2
+        .start_planned_with_bounds(&plan(), &saved(), "other-call", None, None)
+        .expect("B2 may use the owner slot after B1 retirement");
+    let b2 = g2_call.binding().clone();
+    let before = runtime.pump.drive(runtime.store.snapshot()).unwrap();
+    let mut completion = None;
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            completion = Some(value);
+            break;
+        }
+    }
+    assert!(matches!(
+        completion,
+        Some(Err(pi_agent_schema::HarnessRuntimeError::Fault(_)))
+    ));
+    assert_eq!(
+        after.0.load(Ordering::SeqCst),
+        0,
+        "retired B1 cannot reach after_tool"
+    );
+    assert_eq!(
+        runtime.pump.drive(runtime.store.snapshot()).unwrap(),
+        before,
+        "retired B1 cannot publish ToolResult or linked usage"
+    );
+    assert!(
+        driver_owner
+            .retained_binding()
+            .is_some_and(|live| live.same_live_identity(&b2)),
+        "B1 mismatch cannot retire or fence B2"
+    );
+}
+
+#[test]
+fn actual_memory_tool_result_lifecycle_wakes_lane_after_settings_release() {
+    use pi_agent_schema::{ProviderHeaderPolicy, SessionCodecOptions};
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+    use runtime_r6_retirement_support::{AfterRawStamp, Tool};
+
+    let runtime = Setup::new();
+    let marker = Tool::new();
+    let storage = Arc::new(AfterRawStamp::new(runtime.store.clone(), marker.clone()));
+    let session = Arc::new(
+        runtime
+            .pump
+            .drive(RuntimeSession::new(
+                storage.clone(),
+                runtime.session.metadata(),
+                Arc::new(
+                    SessionCodec::new(
+                        SessionCodecOptions::default(),
+                        ProviderHeaderPolicy::default(),
+                    )
+                    .unwrap(),
+                ),
+                runtime.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(runtime.options_for::<(), _>(session, DriveMode::Manual)))
+        .unwrap()
+        .harness;
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let echo = registry_echo(&route);
+    runtime
+        .pump
+        .drive(harness.register_ready_echo_tool(echo.clone(), route, route_timing()))
+        .unwrap()
+        .unwrap();
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut request = None;
+    for _ in 0..2000 {
+        let _ = poll(prompt.as_mut());
+        runtime.pump.tick();
+        spawner.tick();
+        if let Some(bytes) = channel.writes().get(2) {
+            request = Some(written_request(bytes));
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    let request = request.expect("Q before ToolResult");
+    channel.push(raw_terminal_with_usage(request.request_id));
+    let mut parked = false;
+    for _ in 0..1000 {
+        spawner.tick();
+        runtime.pump.tick();
+        if runtime
+            .pump
+            .drive(harness.peek_action())
+            .unwrap()
+            .is_some_and(|action| action.kind == "commit_settlement")
+        {
+            parked = true;
+            break;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    assert!(parked, "real ToolResult reached settlement gate");
+    marker.raw_done.store(1, Ordering::SeqCst);
+    runtime.pump.drive(harness.execute_action()).unwrap();
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        if storage.entered.is_cancelled() {
+            break;
+        }
+    }
+    assert!(
+        storage.entered.is_cancelled(),
+        "read_stamp parked under settlement lines"
+    );
+    let settings_ready = Arc::new(AtomicBool::new(false));
+    let callback_harness = harness.clone();
+    let callback_echo = echo.clone();
+    let callback_ready = settings_ready.clone();
+    let waker = Waker::from(Arc::new(OnceWake(Mutex::new(Some(Box::new(move || {
+        let mut reenter = Box::pin(callback_harness.set_tools(vec![callback_echo]));
+        callback_ready.store(poll(reenter.as_mut()).is_ready(), Ordering::SeqCst);
+    }))))));
+    let mut lane_waiter = Box::pin(harness.get_leaf_id());
+    assert!(
+        lane_waiter
+            .as_mut()
+            .poll(&mut Context::from_waker(&waker))
+            .is_pending(),
+        "settlement owns lane while its stamp read is pending"
+    );
+    storage.release.cancel();
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        if settings_ready.load(Ordering::SeqCst) {
+            break;
+        }
+    }
+    assert!(
+        settings_ready.load(Ordering::SeqCst),
+        "ToolResult lifecycle lane wake must reenter the released settings line"
+    );
+    runtime.pump.drive(lane_waiter).unwrap();
+    for _ in 0..1000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if let Poll::Ready(result) = poll(prompt.as_mut()) {
+            result.unwrap().unwrap();
+            return;
+        }
+        if runtime.pump.drive(harness.peek_action()).unwrap().is_some() {
+            runtime.pump.drive(harness.execute_action()).unwrap();
+        }
+    }
+    panic!("ToolResult settlement did not finish");
+}
+
 struct RegistryEventLog(Mutex<Vec<pi_agent_schema::HarnessEvent>>);
+
+struct OnceWake(Mutex<Option<Box<dyn FnOnce() + Send>>>);
+
+impl Wake for OnceWake {
+    fn wake(self: Arc<Self>) {
+        if let Some(callback) = self.0.lock().unwrap().take() {
+            callback();
+        }
+    }
+}
 
 impl pi_agent_schema::EventListener for RegistryEventLog {
     fn on_event(

@@ -47,6 +47,21 @@ impl Pump {
             }
         }
     }
+    pub fn tick_latest_with_waker(&self, waker: &Waker) {
+        let mut task = self
+            .tasks
+            .lock()
+            .unwrap()
+            .pop()
+            .expect("spawned close task");
+        if task
+            .as_mut()
+            .poll(&mut TaskContext::from_waker(waker))
+            .is_pending()
+        {
+            self.tasks.lock().unwrap().push(task);
+        }
+    }
     pub fn drive<F: Future>(&self, future: F) -> F::Output {
         let mut future = std::pin::pin!(future);
         for _ in 0..20000 {
@@ -362,12 +377,15 @@ pub struct Setup {
 }
 impl Setup {
     pub fn new() -> Self {
+        Self::with_storage_clock(|time| time)
+    }
+    pub fn with_storage_clock(clock: impl FnOnce(Arc<Time>) -> Arc<dyn StorageClock>) -> Self {
         let pump = Arc::new(Pump::default());
         let time = Arc::new(Time(AtomicU64::new(7)));
         let ids = Arc::new(Ids::default());
         let model = model();
         let backing = Arc::new(MemoryBacking::new());
-        let store = backing.open(time.clone()).unwrap();
+        let store = backing.open(clock(time.clone())).unwrap();
         let session = Arc::new(
             pump.drive(RuntimeSession::new(
                 store.clone(),

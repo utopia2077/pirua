@@ -4,15 +4,502 @@ use crate::tools::{CapturedToolCall, captured_arguments_match};
 use pi_agent_schema::*;
 use pi_agent_session::{
     backend_support::{register_key, register_seq},
+    session::WriteObservation,
     storage::RuntimeStorage,
 };
 use pi_ai_core::{CancellationToken, SafeUnsigned};
 use pi_harness_core::planner::*;
 use std::{
+    any::Any,
     collections::{BTreeMap, BTreeSet},
+    panic::{AssertUnwindSafe, catch_unwind, resume_unwind},
     sync::{Arc, Mutex},
     time::Duration,
 };
+
+/// Owns both Harness lines and any admitted commit across Session awaits,
+/// errors, cancellation and unwind. Drop releases the pair before the commit:
+/// the last commit can wake arbitrary drain waiters after an admission seal.
+struct SettlementPermits {
+    pair: Option<crate::scheduler::PairPermit>,
+    commit: Option<crate::scheduler::CommitPermit>,
+    observation: Option<WriteObservation>,
+    observation_parent: Option<Telemetry>,
+    pending_cleanup_fault: Option<Box<dyn FnOnce() + Send>>,
+}
+
+impl SettlementPermits {
+    fn new() -> Self {
+        Self {
+            pair: None,
+            commit: None,
+            observation: None,
+            observation_parent: None,
+            pending_cleanup_fault: None,
+        }
+    }
+
+    async fn acquire(
+        &mut self,
+        settings_line: &crate::scheduler::MutationLine,
+        lane_line: &crate::scheduler::MutationLine,
+    ) -> Result<(), HarnessRuntimeError> {
+        debug_assert!(self.pair.is_none());
+        self.pair = Some(settings_line.acquire_pair(lane_line).await?);
+        Ok(())
+    }
+
+    fn commit_slot(&mut self) -> &mut Option<crate::scheduler::CommitPermit> {
+        &mut self.commit
+    }
+
+    fn observation_slot(&mut self) -> &mut Option<WriteObservation> {
+        &mut self.observation
+    }
+
+    fn commit_and_observation_slots(
+        &mut self,
+    ) -> (
+        &mut Option<crate::scheduler::CommitPermit>,
+        &mut Option<WriteObservation>,
+    ) {
+        (&mut self.commit, &mut self.observation)
+    }
+
+    fn observation_parent(&mut self, parent: Telemetry) {
+        self.observation_parent = Some(parent);
+    }
+
+    fn release_lines(&mut self) {
+        if let Some(pair) = self.pair.take() {
+            pair.release();
+        }
+    }
+
+    #[cfg(feature = "extensions")]
+    fn arm_cleanup_fault(&mut self, fault: impl FnOnce() + Send + 'static) {
+        debug_assert!(self.pending_cleanup_fault.is_none());
+        self.pending_cleanup_fault = Some(Box::new(fault));
+    }
+
+    #[cfg(feature = "extensions")]
+    fn disarm_cleanup_fault(&mut self) {
+        self.pending_cleanup_fault = None;
+    }
+
+    /// Make the earned observation visible before exact B1 cleanup callbacks,
+    /// without allowing Close's last-commit drain to complete yet.
+    #[cfg(feature = "extensions")]
+    fn emit_before_cleanup(&mut self) {
+        let mut first = None;
+        Self::attempt(&mut first, || self.release_lines());
+        let observation = self.observation.take();
+        let parent = self.observation_parent.take();
+        if let Some(observation) = observation {
+            Self::attempt(&mut first, || {
+                let parent = parent.expect("earned write observation retains its parent");
+                observation.emit(parent.as_ref());
+            });
+        }
+        if let Some(panic) = first {
+            resume_unwind(panic);
+        }
+    }
+
+    fn attempt(first: &mut Option<Box<dyn Any + Send>>, work: impl FnOnce()) {
+        if let Err(panic) = catch_unwind(AssertUnwindSafe(work)) {
+            if first.is_none() {
+                *first = Some(panic);
+            } else {
+                let _ = catch_unwind(AssertUnwindSafe(|| drop(panic)));
+            }
+        }
+    }
+
+    fn finish_with(&mut self, observe: impl FnOnce()) {
+        let already_unwinding = std::thread::panicking();
+        let mut first = None;
+        Self::attempt(&mut first, || self.release_lines());
+        let observation = self.observation.take();
+        let parent = self.observation_parent.take();
+        if let Some(observation) = observation {
+            Self::attempt(&mut first, || {
+                let parent = parent.expect("earned write observation retains its parent");
+                observation.emit(parent.as_ref());
+            });
+        }
+        if let Some(cleanup_fault) = self.pending_cleanup_fault.take() {
+            Self::attempt(&mut first, cleanup_fault);
+        }
+        Self::attempt(&mut first, observe);
+        Self::attempt(&mut first, || drop(self.commit.take()));
+        if let Some(panic) = first {
+            if already_unwinding {
+                let _ = catch_unwind(AssertUnwindSafe(|| drop(panic)));
+            } else {
+                resume_unwind(panic);
+            }
+        }
+    }
+
+    fn observe_fault<C, S: RuntimeStorage, M: SessionMetadataRecord>(
+        &mut self,
+        owner: &Owner<C, S, M>,
+        error: HarnessRuntimeError,
+    ) -> HarnessRuntimeError {
+        let mut observed = None;
+        self.finish_with(|| {
+            observed = Some(
+                owner
+                    .observe::<()>(Err(error))
+                    .expect_err("fault observation"),
+            );
+        });
+        observed.expect("fault observed before commit drain")
+    }
+
+    fn release(&mut self) {
+        // Keep this explicit; field declaration order is not the ownership rule.
+        self.finish_with(|| {});
+    }
+}
+
+impl Drop for SettlementPermits {
+    fn drop(&mut self) {
+        self.release();
+    }
+}
+
+#[cfg(test)]
+mod settlement_permit_tests {
+    use super::SettlementPermits;
+    use crate::scheduler::{Admission, MutationLine};
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        task::{Context, Poll, Wake, Waker},
+    };
+
+    fn poll<F: Future + ?Sized>(future: Pin<&mut F>, waker: &Waker) -> Poll<F::Output> {
+        future.poll(&mut Context::from_waker(waker))
+    }
+
+    struct ReenterSettings {
+        settings: MutationLine,
+        acquired: Arc<AtomicBool>,
+    }
+
+    impl Wake for ReenterSettings {
+        fn wake(self: Arc<Self>) {
+            let mut attempt = Box::pin(self.settings.acquire());
+            if let Poll::Ready(Ok(permit)) = poll(attempt.as_mut(), Waker::noop()) {
+                self.acquired.store(true, Ordering::SeqCst);
+                drop(permit);
+            }
+        }
+    }
+
+    #[test]
+    fn dropping_pending_settlement_read_releases_both_lines_before_wake() {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission);
+        let mut settlement = Box::pin({
+            let settings = settings.clone();
+            let lane = lane.clone();
+            async move {
+                let mut permits = SettlementPermits::new();
+                permits.acquire(&settings, &lane).await.unwrap();
+                std::future::pending::<()>().await;
+            }
+        });
+        assert!(poll(settlement.as_mut(), Waker::noop()).is_pending());
+        let acquired = Arc::new(AtomicBool::new(false));
+        let wake = Waker::from(Arc::new(ReenterSettings {
+            settings: settings.clone(),
+            acquired: acquired.clone(),
+        }));
+        let mut lane_waiter = Box::pin(lane.acquire());
+        assert!(poll(lane_waiter.as_mut(), &wake).is_pending());
+        drop(settlement);
+        assert!(
+            acquired.load(Ordering::SeqCst),
+            "lane waiter reentered settings only after paired Drop released both"
+        );
+        let Poll::Ready(Ok(lane_permit)) = poll(lane_waiter.as_mut(), Waker::noop()) else {
+            panic!("lane waiter remained blocked")
+        };
+        drop(lane_permit);
+    }
+
+    #[test]
+    fn queued_settlement_pair_cancel_preserves_next_settings_ticket() {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission);
+        let mut occupied = Box::pin(lane.acquire());
+        let lane_holder = match poll(occupied.as_mut(), Waker::noop()) {
+            Poll::Ready(Ok(permit)) => permit,
+            _ => panic!("lane holder"),
+        };
+        let mut pair = Box::pin({
+            let settings = settings.clone();
+            let lane = lane.clone();
+            async move {
+                let mut permits = SettlementPermits::new();
+                permits.acquire(&settings, &lane).await
+            }
+        });
+        assert!(poll(pair.as_mut(), Waker::noop()).is_pending());
+        assert!(
+            !settings.held_for_test(),
+            "queued pair reserves without holding settings"
+        );
+        let mut successor = Box::pin(settings.acquire());
+        assert!(poll(successor.as_mut(), Waker::noop()).is_pending());
+        drop(pair);
+        let next = match poll(successor.as_mut(), Waker::noop()) {
+            Poll::Ready(Ok(permit)) => permit,
+            _ => panic!("cancelled pair must pass its settings position"),
+        };
+        drop(next);
+        drop(lane_holder);
+    }
+
+    #[test]
+    fn queued_tool_begin_pair_cancel_or_seal_without_settings_ownership() {
+        use pi_agent_schema::HarnessRuntimeError;
+
+        // The Tool branch of begin awaits this same pair acquisition before
+        // hydration or registration. Neither queue exit holds settings.
+        for seal in [false, true] {
+            let admission = Admission::new();
+            let settings = MutationLine::new(admission.clone());
+            let lane = MutationLine::new(admission.clone());
+            let mut occupied = Box::pin(lane.acquire());
+            let Poll::Ready(Ok(lane_holder)) = poll(occupied.as_mut(), Waker::noop()) else {
+                panic!("lane holder")
+            };
+            let mut begin_pair = Box::pin(settings.acquire_pair(&lane));
+            assert!(poll(begin_pair.as_mut(), Waker::noop()).is_pending());
+            assert!(!settings.held_for_test());
+            let mut next_settings = Box::pin(settings.acquire());
+            assert!(poll(next_settings.as_mut(), Waker::noop()).is_pending());
+            if seal {
+                admission.seal_close();
+                assert!(matches!(
+                    poll(begin_pair.as_mut(), Waker::noop()),
+                    Poll::Ready(Err(HarnessRuntimeError::Closed(_)))
+                ));
+                assert!(matches!(
+                    poll(next_settings.as_mut(), Waker::noop()),
+                    Poll::Ready(Err(HarnessRuntimeError::Closed(_)))
+                ));
+            } else {
+                drop(begin_pair);
+                let Poll::Ready(Ok(successor)) = poll(next_settings.as_mut(), Waker::noop()) else {
+                    panic!("cancelled begin passed its settings position")
+                };
+                drop(successor);
+            }
+            assert!(!settings.held_for_test());
+            drop(lane_holder);
+        }
+    }
+
+    struct CheckDrain {
+        settings: MutationLine,
+        lane: MutationLine,
+        called: Arc<AtomicBool>,
+    }
+    impl Wake for CheckDrain {
+        fn wake(self: Arc<Self>) {
+            assert!(!self.settings.held_for_test());
+            assert!(!self.lane.held_for_test());
+            self.called.store(true, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn last_commit_drain_follows_pair_release_on_drop() {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission.clone());
+        let mut scope = SettlementPermits::new();
+        let mut acquisition = Box::pin(scope.acquire(&settings, &lane));
+        assert!(matches!(
+            poll(acquisition.as_mut(), Waker::noop()),
+            Poll::Ready(Ok(()))
+        ));
+        drop(acquisition);
+        *scope.commit_slot() = Some(admission.try_admit().unwrap());
+        let called = Arc::new(AtomicBool::new(false));
+        let waker = Waker::from(Arc::new(CheckDrain {
+            settings: settings.clone(),
+            lane: lane.clone(),
+            called: called.clone(),
+        }));
+        let mut drain = Box::pin(admission.drained());
+        assert!(poll(drain.as_mut(), &waker).is_pending());
+        admission.seal_close();
+        assert!(!called.load(Ordering::SeqCst));
+        drop(scope);
+        assert!(called.load(Ordering::SeqCst));
+        assert!(poll(drain.as_mut(), Waker::noop()).is_ready());
+    }
+
+    #[test]
+    fn raw_fault_seal_notifies_after_pair_release() {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission.clone());
+        let called = Arc::new(AtomicBool::new(false));
+        let waker = Waker::from(Arc::new(CheckDrain {
+            settings: settings.clone(),
+            lane: lane.clone(),
+            called: called.clone(),
+        }));
+        let mut sealed = Box::pin(admission.seal_signal());
+        assert!(poll(sealed.as_mut(), &waker).is_pending());
+        let mut scope = SettlementPermits::new();
+        let mut acquisition = Box::pin(scope.acquire(&settings, &lane));
+        assert!(matches!(
+            poll(acquisition.as_mut(), Waker::noop()),
+            Poll::Ready(Ok(()))
+        ));
+        drop(acquisition);
+        let pi_agent_schema::HarnessRuntimeError::Fault(fault) =
+            crate::restore::fault("routed fault")
+        else {
+            unreachable!()
+        };
+        assert!(!called.load(Ordering::SeqCst));
+        scope.release();
+        admission.seal_fault(fault);
+        assert!(called.load(Ordering::SeqCst));
+        assert!(poll(sealed.as_mut(), Waker::noop()).is_ready());
+    }
+
+    struct PanicDropWake(Arc<AtomicBool>);
+    impl Wake for PanicDropWake {
+        fn wake(self: Arc<Self>) {
+            self.0.store(true, Ordering::SeqCst);
+        }
+    }
+    impl Drop for PanicDropWake {
+        fn drop(&mut self) {
+            panic!("deferred caller Waker drop");
+        }
+    }
+
+    #[test]
+    fn panicking_pair_waker_still_releases_lines_before_last_commit_drain() {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission.clone());
+        let mut scope = SettlementPermits::new();
+        let caller = Waker::from(Arc::new(PanicDropWake(Arc::new(AtomicBool::new(false)))));
+        let mut acquisition = Box::pin(scope.acquire(&settings, &lane));
+        assert!(matches!(
+            poll(acquisition.as_mut(), &caller),
+            Poll::Ready(Ok(()))
+        ));
+        drop(acquisition);
+        drop(caller);
+        *scope.commit_slot() = Some(admission.try_admit().unwrap());
+        let called = Arc::new(AtomicBool::new(false));
+        let waker = Waker::from(Arc::new(CheckDrain {
+            settings: settings.clone(),
+            lane: lane.clone(),
+            called: called.clone(),
+        }));
+        let mut drain = Box::pin(admission.drained());
+        assert!(poll(drain.as_mut(), &waker).is_pending());
+        admission.seal_close();
+        assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(scope))).is_err());
+        assert!(called.load(Ordering::SeqCst));
+        assert!(poll(drain.as_mut(), Waker::noop()).is_ready());
+    }
+
+    #[cfg(feature = "extensions")]
+    #[test]
+    fn cancelled_wait_for_cleanup_arbiter_faults_before_last_commit_drain() {
+        use crate::tools::CleanupArbiter;
+        use pi_agent_schema::HarnessRuntimeError;
+
+        struct FaultBeforeDrain {
+            admission: Admission,
+            settings: MutationLine,
+            lane: MutationLine,
+            called: Arc<AtomicBool>,
+        }
+        impl Wake for FaultBeforeDrain {
+            fn wake(self: Arc<Self>) {
+                assert!(!self.settings.held_for_test());
+                assert!(!self.lane.held_for_test());
+                assert!(matches!(
+                    self.admission.check(),
+                    Err(HarnessRuntimeError::Fault(_))
+                ));
+                self.called.store(true, Ordering::SeqCst);
+            }
+        }
+
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission.clone());
+        let arbiter = CleanupArbiter::new();
+        let mut first = Box::pin(arbiter.enter());
+        let Poll::Ready(Ok(Some(first_lease))) = poll(first.as_mut(), Waker::noop()) else {
+            panic!("first cleanup owns the arbiter")
+        };
+        drop(first);
+        let mut cleanup = Box::pin({
+            let admission = admission.clone();
+            let settings = settings.clone();
+            let lane = lane.clone();
+            let arbiter = arbiter.clone();
+            async move {
+                let mut permits = SettlementPermits::new();
+                permits.acquire(&settings, &lane).await.unwrap();
+                *permits.commit_slot() = Some(admission.try_admit().unwrap());
+                let fault_admission = admission.clone();
+                permits.arm_cleanup_fault(move || {
+                    let HarnessRuntimeError::Fault(fault) =
+                        crate::restore::fault("cancelled exact cleanup")
+                    else {
+                        unreachable!()
+                    };
+                    fault_admission.seal_fault(fault);
+                });
+                permits.emit_before_cleanup();
+                let _ = arbiter.enter().await;
+            }
+        });
+        assert!(poll(cleanup.as_mut(), Waker::noop()).is_pending());
+        assert!(!settings.held_for_test());
+        assert!(!lane.held_for_test());
+        let called = Arc::new(AtomicBool::new(false));
+        let waker = Waker::from(Arc::new(FaultBeforeDrain {
+            admission: admission.clone(),
+            settings: settings.clone(),
+            lane: lane.clone(),
+            called: called.clone(),
+        }));
+        let mut drain = Box::pin(admission.drained());
+        assert!(poll(drain.as_mut(), &waker).is_pending());
+        admission.seal_close();
+        assert!(!called.load(Ordering::SeqCst));
+        drop(cleanup);
+        assert!(called.load(Ordering::SeqCst));
+        assert!(poll(drain.as_mut(), Waker::noop()).is_ready());
+        drop(first_lease);
+    }
+}
 
 pub(crate) struct RuntimeEffects<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub lane: RuntimeLane<C, S, M>,
@@ -35,6 +522,8 @@ pub(crate) struct RuntimeEffects<C, S: RuntimeStorage, M: SessionMetadataRecord>
     pub cancel_targets: Mutex<BTreeMap<EntryId, crate::poll::CancelTarget>>,
     pub executed_tools: Mutex<BTreeSet<EffectKey>>,
     pub captured_tools: Mutex<BTreeMap<EffectKey, CapturedToolCall<C>>>,
+    #[cfg(feature = "extensions")]
+    pub(crate) routed_tools: Mutex<BTreeMap<EffectKey, Arc<Mutex<crate::tools::RoutedEffect>>>>,
     pub request_bindings: Mutex<BTreeMap<EffectKey, RequestBinding>>,
     pub start_signals: Mutex<BTreeMap<EffectKey, CancellationToken>>,
     pub context_line: crate::scheduler::MutationLine,
@@ -66,6 +555,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             request_bindings: Mutex::new(BTreeMap::new()),
             executed_tools: Mutex::new(BTreeSet::new()),
             captured_tools: Mutex::new(BTreeMap::new()),
+            #[cfg(feature = "extensions")]
+            routed_tools: Mutex::new(BTreeMap::new()),
             cancellation: CancellationToken::new(),
             retired: CancellationToken::new(),
             inbox_preparation: Mutex::new(None),
@@ -94,6 +585,20 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     pub(crate) async fn inputs(
         &self,
         h: &crate::restore::HydratedLane,
+    ) -> Result<PlannerInputs<Telemetry>, HarnessRuntimeError> {
+        self.inputs_with_policy(h, false).await
+    }
+    pub(crate) fn line_fault(&self, raw: bool, message: &'static str) -> HarnessRuntimeError {
+        if raw {
+            crate::restore::fault(message)
+        } else {
+            self.lane.owner.fail(message)
+        }
+    }
+    async fn inputs_with_policy(
+        &self,
+        h: &crate::restore::HydratedLane,
+        raw: bool,
     ) -> Result<PlannerInputs<Telemetry>, HarnessRuntimeError> {
         let settings = self
             .lane
@@ -147,7 +652,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .session
                     .get_register(RegisterNamespace::OperationToolArguments, &key)
                     .await
-                    .map_err(|_| self.lane.owner.fail("tool cleanup arguments read failed"))?
+                    .map_err(|_| self.line_fault(raw, "tool cleanup arguments read failed"))?
                 {
                     loaded.insert(key, PlannerLoadedValue::Register(register));
                 }
@@ -171,13 +676,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 stream_options: settings.stream_options,
                 retry_policy: NormalizedRetryPolicy {
                     max_attempts: OneBasedSafeUnsigned::new(attempts)
-                        .map_err(|_| self.lane.owner.fail("retry policy range failure"))?,
+                        .map_err(|_| self.line_fault(raw, "retry policy range failure"))?,
                     base_delay_ms: settings.retry.base_delay_ms,
                 },
             },
             context: None,
             now: SafeUnsigned::new(self.lane.owner.clock.now_unix_ms())
-                .map_err(|_| self.lane.owner.fail("runtime clock range failure"))?,
+                .map_err(|_| self.line_fault(raw, "runtime clock range failure"))?,
         })
     }
     pub(crate) async fn planning(
@@ -366,15 +871,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         plan: TransitionCommit<Telemetry>,
     ) -> Result<Option<CurrentOperation>, HarnessRuntimeError> {
         self.permission("commit_transition").await?;
-        let _settings = self.lane.owner.settings_line.acquire().await?;
-        let _line = self.lane.lane.line.acquire().await?;
+        let mut permits = SettlementPermits::new();
+        permits
+            .acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+            .await?;
         let h = self.lane.load().await?;
         let Some(current) = &h.current else {
             return Ok(None);
         };
-        if let Some(result) = self.nested_transition(&h, &plan).await? {
-            drop(_line);
-            drop(_settings);
+        if let Some(result) = self
+            .nested_transition(&h, &plan, permits.commit_slot())
+            .await?
+        {
+            permits.release();
             self.events().flush();
             self.lane.lane.announce();
             return Ok(result);
@@ -418,7 +927,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .map_err(|_| self.lane.owner.fail("threshold preparation stamp failed"))?;
                 if let Some(token) = token {
                     self.lane
-                        .apply_prepared(*recipe, Some(token))
+                        .apply_prepared_scoped(*recipe, Some(token), permits.commit_slot(), false)
                         .await?
                         .and_then(|h| h.current)
                 } else {
@@ -427,8 +936,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             } else {
                 None
             };
-            drop(_line);
-            drop(_settings);
+            permits.release();
             self.events().flush();
             self.lane.lane.announce();
             return Ok(result);
@@ -463,13 +971,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let result = match decision {
                 RecipeDecision::Apply(recipe) => self
                     .lane
-                    .apply_prepared(*recipe, prepared.entries)
+                    .apply_prepared_scoped(*recipe, prepared.entries, permits.commit_slot(), false)
                     .await?
                     .and_then(|h| h.current),
                 _ => None,
             };
-            drop(_line);
-            drop(_settings);
+            permits.release();
             self.events().flush();
             self.lane.lane.announce();
             return Ok(result);
@@ -497,7 +1004,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let result = match decision {
             RecipeDecision::Apply(recipe) => {
                 let dispatch = recipe.dispatch.clone();
-                let applied = self.lane.apply(*recipe).await?;
+                let applied = self
+                    .lane
+                    .apply_prepared_scoped(*recipe, None, permits.commit_slot(), false)
+                    .await?;
                 if let Some(current) = applied.as_ref().and_then(|h| h.current.as_ref())
                     && dispatch.is_some()
                 {
@@ -548,8 +1058,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         {
             self.turn_start(next);
         }
-        drop(_line);
-        drop(_settings);
+        permits.release();
         self.events().flush();
         self.lane.lane.announce();
         Ok(result)
@@ -562,19 +1071,42 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             return self.structural_settlement(plan).await;
         }
         self.permission("commit_settlement").await?;
+        #[cfg(feature = "extensions")]
+        let routed = matches!(
+            (&plan.plan, &plan.output),
+            (EffectPlan::Tool(_), SettlementOutput::Tool(_))
+        ) && self
+            .routed_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .contains_key(plan.plan.key());
+        #[cfg(not(feature = "extensions"))]
+        let routed = false;
         loop {
             let overflow = self.overflow_facts(&plan).await?;
             let mut retired_requests = Vec::new();
-            let mut settings = Some(self.lane.owner.settings_line.acquire().await?);
-            let mut line = Some(self.lane.lane.line.acquire().await?);
-            let h = self.lane.load().await?;
+            let mut permits = SettlementPermits::new();
+            permits
+                .acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                .await?;
+            let h = if routed {
+                self.lane.load_raw().await?
+            } else {
+                self.lane.load().await?
+            };
             let Some(current) = &h.current else {
+                permits.release();
+                #[cfg(feature = "extensions")]
+                self.cleanup_routed(plan.plan.key(), false).await?;
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             };
             if current.operation != plan.current.operation
                 || matches!(&plan.plan,EffectPlan::Deferred(p) if pi_harness_core::deferred::plan(current,&plan.plan.key().session_id,&plan.telemetry_context).map_or(true,|expected|expected.deferred!=p.deferred || expected.key!=p.key))
             {
+                permits.release();
+                #[cfg(feature = "extensions")]
+                self.cleanup_routed(plan.plan.key(), false).await?;
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             }
@@ -585,6 +1117,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     &self.lane.owner.session.metadata().base_metadata().id,
                     tool,
                 ) {
+                    permits.release();
+                    #[cfg(feature = "extensions")]
+                    self.cleanup_routed(plan.plan.key(), false).await?;
                     retired_requests.extend(self.retire_effect(plan.plan.key()));
                     return Ok(None);
                 }
@@ -594,19 +1129,120 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .unwrap_or_else(|p| p.into_inner())
                     .get(&tool.key)
                     .map(|capture| capture.arguments.clone())
-                    .ok_or_else(|| self.lane.owner.fail("tool execution capture absent"))?;
+                    .ok_or_else(|| self.line_fault(routed, "tool execution capture absent"))?;
                 if !captured_arguments_match(&h, &captured) {
-                    return Err(self
+                    return Err(
+                        self.line_fault(routed, "saved tool arguments changed before settlement")
+                    );
+                }
+                #[cfg(feature = "extensions")]
+                self.require_routed_terminal(&tool.key)?;
+            }
+            // The first routed tool needs a clock sample, a usage ID and
+            // application tool descriptors for its recipe. Gather those with
+            // both lines free, then revalidate the exact observation and
+            // registry generations before using them for checked publication.
+            #[cfg(feature = "extensions")]
+            let mut routed_registry = None;
+            let (h, routed_inputs, routed_facts) = if routed {
+                let (handles_generation, route_epoch) = {
+                    let tools = self
                         .lane
                         .owner
-                        .fail("saved tool arguments changed before settlement"));
+                        .tools
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner());
+                    (tools.handles_generation(), tools.route_epoch())
+                };
+                let settings_revision = self
+                    .lane
+                    .owner
+                    .settings
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .revision;
+                permits.release_lines();
+                let inputs = self.inputs_with_policy(&h, true).await?;
+                let facts = if overflow.is_none() {
+                    Some(self.settlement_facts(&plan, inputs.now, &h, true).await?)
+                } else {
+                    None
+                };
+                permits
+                    .acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                    .await?;
+                let latest = self.lane.load_raw().await?;
+                let same_registry = {
+                    let tools = self
+                        .lane
+                        .owner
+                        .tools
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner());
+                    Arc::ptr_eq(&handles_generation, &tools.handles_generation())
+                        && route_epoch == tools.route_epoch()
+                };
+                if latest.roots != h.roots
+                    || latest.entries != h.entries
+                    || latest.registers != h.registers
+                    || !same_registry
+                    || settings_revision != inputs.runtime.settings_revision
+                    || settings_revision
+                        != self
+                            .lane
+                            .owner
+                            .settings
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .revision
+                {
+                    continue;
                 }
-            }
-            let inputs = self.inputs(&h).await?;
+                let Some(current) = latest.current.as_ref() else {
+                    continue;
+                };
+                let EffectPlan::Tool(tool) = &plan.plan else {
+                    unreachable!("routed settlement has a tool plan")
+                };
+                if !pi_harness_core::tool_batch::expects_effect(
+                    current,
+                    &self.lane.owner.session.metadata().base_metadata().id,
+                    tool,
+                ) {
+                    continue;
+                }
+                let captured = self
+                    .captured_tools
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&tool.key)
+                    .map(|capture| capture.arguments.clone())
+                    .ok_or_else(|| self.line_fault(true, "tool execution capture absent"))?;
+                if !captured_arguments_match(&latest, &captured) {
+                    return Err(
+                        self.line_fault(true, "saved tool arguments changed before settlement")
+                    );
+                }
+                #[cfg(feature = "extensions")]
+                self.require_routed_terminal(&tool.key)?;
+                #[cfg(feature = "extensions")]
+                {
+                    routed_registry = Some((handles_generation, route_epoch, settings_revision));
+                }
+                (latest, Some(inputs), facts)
+            } else {
+                (h, None, None)
+            };
+            let current = h.current.as_ref().expect("checked current operation");
+            let inputs = match routed_inputs {
+                Some(inputs) => inputs,
+                None => self.inputs_with_policy(&h, false).await?,
+            };
             if matches!(plan.output, SettlementOutput::NotStarted { .. })
                 && (matches!(plan.plan, EffectPlan::Hook(_))
                     || matches!(&current.state,OperationState::Run(run) if matches!(run.control,Control::Running(_))))
             {
+                permits.release();
                 retired_requests.extend(self.retire_effect(plan.plan.key()));
                 return Ok(None);
             }
@@ -627,12 +1263,25 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             let facts = if let Some(candidate) = &overflow {
                 candidate.facts.clone()
+            } else if let Some(facts) = routed_facts {
+                facts
             } else {
-                self.settlement_facts(&plan, inputs.now, &h).await?
+                self.settlement_facts(&plan, inputs.now, &h, false).await?
             };
-            let decision =
-                settlement_recipe(current, &plan, &inputs, &self.lane.facts(&h)?, &facts)
-                    .map_err(|_| self.lane.owner.fail("settlement recipe rejected"))?;
+            let decision = settlement_recipe(
+                current,
+                &plan,
+                &inputs,
+                &if routed {
+                    self.lane.facts_raw(&h)?
+                } else {
+                    self.lane.facts(&h)?
+                },
+                &facts,
+            )
+            .map_err(|_| self.line_fault(routed, "settlement recipe rejected"))?;
+            #[cfg(feature = "extensions")]
+            let mut routed_committed = false;
             let result = match decision {
                 RecipeDecision::Suspend(result) => Some(SettlementResult {
                     current: current.clone(),
@@ -658,16 +1307,82 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         self.recovery,
                     );
                     if !lifecycle.is_empty() {
-                        drop(line.take());
-                        drop(settings.take());
+                        permits.release();
                         for (kind, event) in lifecycle {
                             self.events().enqueue(kind, &self.lane.lane.name, event);
                         }
                         self.events().flush();
-                        settings = Some(self.lane.owner.settings_line.acquire().await?);
-                        line = Some(self.lane.lane.line.acquire().await?);
+                        permits
+                            .acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                            .await?;
                     }
-                    let prepared = if let Some(candidate) = &overflow {
+                    let prepared = if routed {
+                        // This admitted write remains owned across the outside-line
+                        // timestamp preparation, checked CAS and final observation.
+                        debug_assert!(permits.commit_slot().is_none());
+                        *permits.commit_slot() = Some(self.lane.owner.admission.try_admit()?);
+                        permits.observation_parent(recipe.telemetry_context.clone());
+                        permits.release_lines();
+                        let slots = recipe
+                            .transaction
+                            .writes
+                            .iter()
+                            .enumerate()
+                            .filter_map(|(write_index, write)| match write {
+                                Write::Entry(entry) => {
+                                    Some(pi_agent_session::storage::PreparedEntrySlot {
+                                        write_index,
+                                        entry: entry.clone(),
+                                    })
+                                }
+                                _ => None,
+                            })
+                            .collect();
+                        let stamp = match self.lane.owner.session.read_stamp().await {
+                            Ok(stamp) => stamp,
+                            Err(_) => {
+                                *permits.observation_slot() = self
+                                    .lane
+                                    .owner
+                                    .session
+                                    .write_observation_for_preparation_error(&recipe.transaction)
+                                    .ok();
+                                return Err(permits.observe_fault(
+                                    self.lane.owner.as_ref(),
+                                    crate::restore::fault("routed publication stamp read failed"),
+                                ));
+                            }
+                        };
+                        let token =
+                            match self.lane.owner.session.prepare_entries(stamp, slots).await {
+                                Ok(Some(token)) => token,
+                                Ok(None) => {
+                                    // Stale preparation is a retry, not a failed write.
+                                    permits.release();
+                                    continue;
+                                }
+                                Err(_) => {
+                                    *permits.observation_slot() = self
+                                        .lane
+                                        .owner
+                                        .session
+                                        .write_observation_for_preparation_error(
+                                            &recipe.transaction,
+                                        )
+                                        .ok();
+                                    return Err(permits.observe_fault(
+                                        self.lane.owner.as_ref(),
+                                        crate::restore::fault(
+                                            "routed publication preparation failed",
+                                        ),
+                                    ));
+                                }
+                            };
+                        permits
+                            .acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                            .await?;
+                        Some(token)
+                    } else if let Some(candidate) = &overflow {
                         let slots = recipe
                             .transaction
                             .writes
@@ -691,21 +1406,133 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             .prepare_entries(candidate.stamp.clone(), slots)
                             .await
                             .map_err(|_| {
-                                self.lane.owner.fail("overflow entry preparation failed")
+                                self.line_fault(routed, "overflow entry preparation failed")
                             })?;
                         let Some(token) = token else { continue };
                         Some(token)
                     } else {
                         None
                     };
-                    let Some(applied) = self.lane.apply_prepared(*recipe, prepared).await? else {
+                    #[cfg(feature = "extensions")]
+                    if let (EffectPlan::Tool(tool), SettlementOutput::Tool(_)) =
+                        (&plan.plan, &plan.output)
+                    {
+                        let latest = if routed {
+                            match self.lane.load_raw().await {
+                                Ok(latest) => latest,
+                                Err(error) => {
+                                    return Err(
+                                        permits.observe_fault(self.lane.owner.as_ref(), error)
+                                    );
+                                }
+                            }
+                        } else {
+                            self.lane.load().await?
+                        };
+                        if !latest.current.as_ref().is_some_and(|current| {
+                            pi_harness_core::tool_batch::expects_effect(
+                                current,
+                                &self.lane.owner.session.metadata().base_metadata().id,
+                                tool,
+                            )
+                        }) {
+                            continue;
+                        }
+                        let captured = self
+                            .captured_tools
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .get(&tool.key)
+                            .map(|capture| capture.arguments.clone());
+                        let Some(captured) = captured else {
+                            let error =
+                                self.line_fault(routed, "routed tool capture absent before apply");
+                            return Err(if routed {
+                                permits.observe_fault(self.lane.owner.as_ref(), error)
+                            } else {
+                                error
+                            });
+                        };
+                        if !captured_arguments_match(&latest, &captured) {
+                            let error = self.line_fault(
+                                routed,
+                                "saved routed tool arguments changed before apply",
+                            );
+                            return Err(if routed {
+                                permits.observe_fault(self.lane.owner.as_ref(), error)
+                            } else {
+                                error
+                            });
+                        }
+                        if let Err(error) = self.require_routed_terminal(&tool.key) {
+                            return Err(if routed {
+                                permits.observe_fault(self.lane.owner.as_ref(), error)
+                            } else {
+                                error
+                            });
+                        }
+                        if routed {
+                            let (handles_generation, route_epoch, settings_revision) =
+                                routed_registry.as_ref().expect("routed registry captured");
+                            let same_registry = {
+                                let tools = self
+                                    .lane
+                                    .owner
+                                    .tools
+                                    .lock()
+                                    .unwrap_or_else(|p| p.into_inner());
+                                Arc::ptr_eq(handles_generation, &tools.handles_generation())
+                                    && *route_epoch == tools.route_epoch()
+                            };
+                            if latest.roots != h.roots
+                                || latest.entries != h.entries
+                                || latest.registers != h.registers
+                                || !same_registry
+                                || *settings_revision
+                                    != self
+                                        .lane
+                                        .owner
+                                        .settings
+                                        .lock()
+                                        .unwrap_or_else(|p| p.into_inner())
+                                        .revision
+                            {
+                                permits.release();
+                                continue;
+                            }
+                        }
+                    }
+                    let applied_result = if routed {
+                        let token = prepared.expect("routed commit has prepared entries");
+                        let (commit, observation) = permits.commit_and_observation_slots();
+                        self.lane
+                            .apply_routed_prepared(*recipe, token, commit, observation)
+                            .await
+                    } else {
+                        self.lane
+                            .apply_prepared_scoped(*recipe, prepared, permits.commit_slot(), false)
+                            .await
+                    };
+                    let Some(applied) = (match applied_result {
+                        Ok(applied) => applied,
+                        Err(error) if routed => {
+                            return Err(permits.observe_fault(self.lane.owner.as_ref(), error));
+                        }
+                        Err(error) => return Err(error),
+                    }) else {
                         // Keep the actual output/binding on CAS loss. The next
                         // iteration replans it against newer inbox/control roots.
                         continue;
                     };
+                    #[cfg(feature = "extensions")]
+                    {
+                        routed_committed = matches!(
+                            (&plan.plan, &plan.output),
+                            (EffectPlan::Tool(_), SettlementOutput::Tool(_))
+                        );
+                    }
                     if consume_deferred_poll {
-                        drop(line.take());
-                        drop(settings.take());
+                        permits.release_lines();
                         self.poll_permit
                             .store(false, std::sync::atomic::Ordering::Release);
                         if let Some(current) = &applied.current {
@@ -745,7 +1572,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         };
                         self.trace.step_outcome(outcome);
                     }
-                    self.after_settlement(current, &applied).await?;
+                    if let Err(error) = self.after_settlement(current, &applied, routed).await {
+                        return Err(if routed {
+                            permits.observe_fault(self.lane.owner.as_ref(), error)
+                        } else {
+                            error
+                        });
+                    }
                     let candidate = self
                         .request_bindings
                         .lock()
@@ -774,10 +1607,33 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     })
                 }
             };
+            #[cfg(feature = "extensions")]
+            if routed_committed {
+                let owner = self.lane.owner.clone();
+                permits.arm_cleanup_fault(move || {
+                    let _ = owner.observe::<()>(Err(crate::restore::fault(
+                        "routed cleanup abandoned after publication",
+                    )));
+                });
+                permits.emit_before_cleanup();
+                let cleanup = self.cleanup_routed_raw(plan.plan.key(), true).await;
+                if let Err(error) = cleanup {
+                    permits.disarm_cleanup_fault();
+                    return Err(permits.observe_fault(self.lane.owner.as_ref(), error));
+                }
+            } else {
+                permits.release();
+                self.cleanup_routed(plan.plan.key(), false).await?;
+            }
+            #[cfg(not(feature = "extensions"))]
+            permits.release();
             retired_requests.extend(self.retire_effect(plan.plan.key()));
-            drop(line);
-            drop(settings);
             drop(retired_requests);
+            #[cfg(feature = "extensions")]
+            if routed_committed {
+                permits.disarm_cleanup_fault();
+                permits.release();
+            }
             self.events().flush();
             self.lane.lane.announce();
             return Ok(result);
@@ -820,8 +1676,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             return Ok(None);
         }
         self.permission("commit_terminal").await?;
-        let _settings = self.lane.owner.settings_line.acquire().await?;
-        let _line = self.lane.lane.line.acquire().await?;
+        let mut permits = SettlementPermits::new();
+        permits
+            .acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+            .await?;
         let h = self.lane.load().await?;
         let Some(current) = &h.current else {
             return Ok(None);
@@ -908,7 +1766,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let result = match decision {
             RecipeDecision::Apply(recipe) => {
                 let prepared = candidate.as_mut().and_then(|c| c.prepared.take());
-                if self.lane.apply_prepared(*recipe, prepared).await?.is_some() {
+                if self
+                    .lane
+                    .apply_prepared_scoped(*recipe, prepared, permits.commit_slot(), false)
+                    .await?
+                    .is_some()
+                {
                     let result = candidate
                         .as_ref()
                         .map_or_else(|| plan.result.clone(), |c| c.result.clone());
@@ -934,8 +1797,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .lock()
                 .unwrap_or_else(|p| p.into_inner()) = Some(candidate);
         }
-        drop(_line);
-        drop(_settings);
+        permits.release();
         self.events().flush();
         self.lane.lane.announce();
         Ok(result)
@@ -1288,26 +2150,27 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         commit: &SettlementCommit<Telemetry>,
         now: SafeUnsigned,
         h: &crate::restore::HydratedLane,
+        raw: bool,
     ) -> Result<SettlementFacts, HarnessRuntimeError> {
         Ok(match &commit.output {
             SettlementOutput::RequestOptions(_) => SettlementFacts::Request {
                 response_entry_id: EntryId::new(self.lane.owner.ids.next(None))
-                    .map_err(|_| self.lane.owner.fail("response identity failed"))?,
+                    .map_err(|_| self.line_fault(raw, "response identity failed"))?,
                 usage_id: UsageId::new(self.lane.owner.ids.next(None))
-                    .map_err(|_| self.lane.owner.fail("usage identity failed"))?,
+                    .map_err(|_| self.line_fault(raw, "usage identity failed"))?,
             },
             SettlementOutput::Assistant { message, .. }
             | SettlementOutput::Deferred { message, .. } => {
-                let raw = message.as_message();
+                let message_raw = message.as_message();
                 let mut followers = Vec::new();
-                for (index, content) in raw.content.iter().enumerate() {
+                for (index, content) in message_raw.content.iter().enumerate() {
                     if matches!(content, pi_ai_core::AssistantContent::ToolCall(_)) {
                         followers.push((
                             SafeUnsigned::new(index as u64).map_err(|_| {
-                                self.lane.owner.fail("tool source index range failure")
+                                self.line_fault(raw, "tool source index range failure")
                             })?,
-                            EntryId::new(self.lane.owner.ids.next(Some(raw.timestamp)))
-                                .map_err(|_| self.lane.owner.fail("tool result identity failed"))?,
+                            EntryId::new(self.lane.owner.ids.next(Some(message_raw.timestamp)))
+                                .map_err(|_| self.line_fault(raw, "tool result identity failed"))?,
                         ));
                     }
                 }
@@ -1320,18 +2183,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                                 .unwrap_or_else(|p| p.into_inner())
                                 .get(commit.plan.key())
                                 .map(|b| b.model.max_tokens);
-                            (raw.stop_reason == pi_ai_core::StopReason::Error
-                                && pi_ai_core::is_context_overflow(raw, None))
+                            (message_raw.stop_reason == pi_ai_core::StopReason::Error
+                                && pi_ai_core::is_context_overflow(message_raw, None))
                                 || budget.is_some_and(|limit| {
-                                    raw.stop_reason == pi_ai_core::StopReason::Length
-                                        && raw.usage.output < limit
+                                    message_raw.stop_reason == pi_ai_core::StopReason::Length
+                                        && message_raw.usage.output < limit
                                 })
                         },
                         followers,
                     }
                 } else {
                     SettlementFacts::Assistant {
-                        retryable: pi_ai_core::is_retryable_assistant_error(raw),
+                        retryable: pi_ai_core::is_retryable_assistant_error(message_raw),
                         overflow: false,
                         followers,
                     }
@@ -1344,7 +2207,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     {
                         Some(NewMessageEntry {
                             id: EntryId::new(self.lane.owner.ids.next(None))
-                                .map_err(|_| self.lane.owner.fail("follow-up identity failed"))?,
+                                .map_err(|_| self.line_fault(raw, "follow-up identity failed"))?,
                             parent_id: commit.current.leaf_id.clone(),
                             entry_type: MessageEntryType::Message,
                             message: AgentMessage::BuiltIn(pi_ai_core::Message::User(
@@ -1355,7 +2218,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                                         self.lane.owner.clock.now_unix_ms(),
                                     )
                                     .map_err(|_| {
-                                        self.lane.owner.fail("follow-up clock range failure")
+                                        self.line_fault(raw, "follow-up clock range failure")
                                     })?,
                                 },
                             )),
@@ -1380,8 +2243,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .as_ref()
                     .map(|_| UsageId::new(self.lane.owner.ids.next(None)))
                     .transpose()
-                    .map_err(|_| self.lane.owner.fail("tool usage identity failed"))?,
-                declarations: self.declarations(&commit.current).await?,
+                    .map_err(|_| self.line_fault(raw, "tool usage identity failed"))?,
+                declarations: self.declarations_with_policy(&commit.current, raw).await?,
             },
             SettlementOutput::ToolClearance(output) => {
                 let usage = match output.outcome() {
@@ -1392,8 +2255,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     usage_id: usage
                         .map(|_| UsageId::new(self.lane.owner.ids.next(None)))
                         .transpose()
-                        .map_err(|_| self.lane.owner.fail("tool usage identity failed"))?,
-                    declarations: self.declarations(&commit.current).await?,
+                        .map_err(|_| self.line_fault(raw, "tool usage identity failed"))?,
+                    declarations: self.declarations_with_policy(&commit.current, raw).await?,
                 }
             }
             SettlementOutput::Reconciled(output) => match output.value() {
@@ -1408,8 +2271,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .as_ref()
                         .map(|_| UsageId::new(self.lane.owner.ids.next(None)))
                         .transpose()
-                        .map_err(|_| self.lane.owner.fail("tool usage identity failed"))?,
-                    declarations: self.declarations(&commit.current).await?,
+                        .map_err(|_| self.line_fault(raw, "tool usage identity failed"))?,
+                    declarations: self.declarations_with_policy(&commit.current, raw).await?,
                 },
             },
             SettlementOutput::NotStarted { .. } => match &commit.plan {
@@ -1504,9 +2367,27 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         // Declared before guards: even early returns drop these after the lane unlocks.
         let mut observed_registration = None;
         let mut displaced_request = None;
-        let _settings = self.lane.owner.settings_line.acquire().await?;
-        let _line = self.lane.lane.line.acquire().await?;
-        let h = self.lane.load().await?;
+        let routed = matches!(plan, EffectPlan::Tool(_));
+        let mut pair = None;
+        let mut settings = None;
+        let mut line = None;
+        if routed {
+            pair = Some(
+                self.lane
+                    .owner
+                    .settings_line
+                    .acquire_pair(&self.lane.lane.line)
+                    .await?,
+            );
+        } else {
+            settings = Some(self.lane.owner.settings_line.acquire().await?);
+            line = Some(self.lane.lane.line.acquire().await?);
+        }
+        let h = if routed {
+            self.lane.load_raw().await?
+        } else {
+            self.lane.load().await?
+        };
         let Some(current) = h.current.as_ref() else {
             return Ok(false);
         };
@@ -1518,8 +2399,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             return Ok(false);
         }
         if pi_harness_core::structural::is_cancelled(current) {
-            drop(_line);
-            drop(_settings);
+            drop(line);
+            drop(settings);
+            drop(pair);
             self.cancellation.cancel();
             return Ok(false);
         }
@@ -1578,7 +2460,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .unwrap_or_else(|p| p.into_inner())
             .insert(key.clone(), plan.clone());
         if previous.is_some() {
-            return Err(self.lane.owner.fail("duplicate actual effect start"));
+            return Err(if routed {
+                crate::restore::fault("duplicate actual effect start")
+            } else {
+                self.lane.owner.fail("duplicate actual effect start")
+            });
         }
         drop(previous);
         let signal = self
@@ -1586,8 +2472,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .remove(key);
-        drop(_line);
-        drop(_settings);
+        drop(line);
+        drop(settings);
+        drop(pair);
         drop(observed_registration);
         drop(displaced_request);
         if let Some(signal) = signal {
@@ -1764,6 +2651,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         previous: &CurrentOperation,
         applied: &crate::restore::HydratedLane,
+        raw: bool,
     ) -> Result<(), HarnessRuntimeError> {
         let Some(current) = &applied.current else {
             return Ok(());
@@ -1800,7 +2688,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             .get()
                             .saturating_sub(self.lane.owner.clock.now_unix_ms()),
                     )
-                    .map_err(|_| self.lane.owner.fail("retry delay range failure"))?,
+                    .map_err(|_| self.line_fault(raw, "retry delay range failure"))?,
                     error_message: error_message.clone(),
                 }),
             );
@@ -1837,7 +2725,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 ..
             }) => (
                 StepId::new(format!("{}:poll:{}", step_id.as_str(), poll.get()))
-                    .map_err(|_| self.lane.owner.fail("poll turn invalid"))?,
+                    .map_err(|_| self.line_fault(raw, "poll turn invalid"))?,
                 response_entry_id.clone(),
                 vec![],
             ),
@@ -1862,15 +2750,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .session
             .get_entries(&ids)
             .await
-            .map_err(|_| self.lane.owner.fail("turn closure hydration failed"))?;
+            .map_err(|_| self.line_fault(raw, "turn closure hydration failed"))?;
         let Some(Entry::Message(entry)) = entries.get(&assistant_id) else {
-            return Err(self.lane.owner.fail("turn assistant is absent"));
+            return Err(self.line_fault(raw, "turn assistant is absent"));
         };
         let AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(message)) = &entry.message else {
-            return Err(self.lane.owner.fail("turn assistant has wrong kind"));
+            return Err(self.line_fault(raw, "turn assistant has wrong kind"));
         };
         let message = SettledAssistantMessage::new(*message.clone())
-            .map_err(|_| self.lane.owner.fail("turn assistant is unsettled"))?;
+            .map_err(|_| self.line_fault(raw, "turn assistant is unsettled"))?;
         let tool_results = result_ids
             .iter()
             .map(|id| match entries.get(id) {
@@ -1878,9 +2766,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result)) => {
                         Ok(*result.clone())
                     }
-                    _ => Err(self.lane.owner.fail("turn tool result has wrong kind")),
+                    _ => Err(self.line_fault(raw, "turn tool result has wrong kind")),
                 },
-                _ => Err(self.lane.owner.fail("turn tool result absent")),
+                _ => Err(self.line_fault(raw, "turn tool result absent")),
             })
             .collect::<Result<Vec<_>, _>>()?;
         self.events().enqueue(

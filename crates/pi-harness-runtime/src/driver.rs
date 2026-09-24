@@ -523,6 +523,29 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 *effects.original_operation.lock().unwrap_or_else(|p|p.into_inner())=Some(current.operation.clone());
                 current};
             let _drive=DriveGuard::new(lane.lane.clone());
+            #[cfg(feature = "extensions")]
+            {
+                let mut permits = crate::tools::PairedPermits::acquire(
+                    &lane.owner.settings_line,
+                    &lane.lane.line,
+                ).await?;
+                let latest = lane.load_raw().await?;
+                if let Some(checked) = latest.current.as_ref()
+                    && checked.operation.operation_id == current.operation.operation_id
+                    && !lane.owner.tools.lock().unwrap_or_else(|p| p.into_inner()).has_ready_echo()
+                    && safe_routed_pending_without_route(
+                        checked,
+                        &lane.owner.session.metadata().base_metadata().id,
+                        &lane.lane.name,
+                        &lane.owner.routed_pending.lock().unwrap_or_else(|p| p.into_inner()),
+                    )
+                {
+                    permits.release();
+                    effects.release_drive();
+                    return Err(HarnessRuntimeError::PeerLost);
+                }
+                permits.release();
+            }
             if let OperationState::Run(run)=&current.state && matches!(run.control,Control::Running(_)) && let RunPhase::Deferred(p)=&run.phase {
                 let configuration=match &p.deferred {Deferred::Suspended{configuration,..}|Deferred::EffectPending{configuration,..}=>configuration};
                 let missing=lane.missing(configuration);
@@ -566,6 +589,46 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             Ok(Ok(resume_outcome(result,&current.operation.operation_id)?))
         })).await
     }
+}
+
+#[cfg(feature = "extensions")]
+fn safe_routed_pending_without_route(
+    current: &CurrentOperation,
+    session: &SessionId,
+    lane: &LaneId,
+    known: &std::collections::BTreeSet<EffectKey>,
+) -> bool {
+    let OperationState::Run(run) = &current.state else {
+        return false;
+    };
+    if !matches!(run.control, Control::Running(_)) {
+        return false;
+    }
+    let RunPhase::Tools(tools) = &run.phase else {
+        return false;
+    };
+    tools.batch.calls.iter().any(|call| {
+        let ToolCallState::EffectPending {
+            source_index,
+            replay: ToolReplay::Safe,
+            ..
+        } = call
+        else {
+            return false;
+        };
+        let Ok(step_or_task_id) = EffectStepId::new(tools.batch.turn_id.as_str()) else {
+            return false;
+        };
+        known.contains(&EffectKey {
+            session_id: session.clone(),
+            lane: lane.clone(),
+            operation_id: current.operation.operation_id.clone(),
+            kind: EffectKind::Tool,
+            step_or_task_id,
+            logical_attempt: SafeUnsigned::new(0).expect("zero safe unsigned"),
+            item_index: Some(*source_index),
+        })
+    })
 }
 fn resume_outcome(
     result: OperationResult,
@@ -761,7 +824,11 @@ pub(crate) async fn drive<
                 // once its original operation has ended.
                 let latest = {
                     let _line = fx.lane.lane.line.acquire().await?;
-                    fx.lane.load().await?
+                    if matches!(slot.plan, EffectPlan::Tool(_)) {
+                        fx.lane.load_raw().await?
+                    } else {
+                        fx.lane.load().await?
+                    }
                 };
                 if latest
                     .current
@@ -770,9 +837,59 @@ pub(crate) async fn drive<
                 {
                     return externally_completed(&fx, &operation_id).await;
                 }
-                let output = slot.output.lock().unwrap_or_else(|p| p.into_inner()).take();
-                let output = output
-                    .ok_or_else(|| fx.lane.owner.fail("effect completed without output"))??;
+                let output = slot
+                    .output
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .take()
+                    .ok_or_else(|| fx.lane.owner.fail("effect completed without output"))?;
+                #[cfg(feature = "extensions")]
+                if matches!(&slot.plan, EffectPlan::Tool(_)) {
+                    if let (EffectPlan::Tool(plan), Ok(EffectOutput::NotStarted { .. })) =
+                        (&slot.plan, &output)
+                    {
+                        fx.classify_skipped_routed_abort(plan).await?;
+                    }
+                    // An independent owner lifecycle error keeps its original
+                    // priority over any private route completion.
+                    if matches!(
+                        &output,
+                        Err(HarnessRuntimeError::Fault(_) | HarnessRuntimeError::Closed(_))
+                    ) {
+                        return Err(output.expect_err("checked error"));
+                    }
+                    if let Some(disposition) = fx.routed_disposition(&key) {
+                        match disposition {
+                            crate::tools::RoutedDisposition::PeerLost => {
+                                fx.cleanup_routed(&key, false).await?;
+                                fx.release_drive();
+                                return Err(HarnessRuntimeError::PeerLost);
+                            }
+                            crate::tools::RoutedDisposition::HostFault => {
+                                fx.cleanup_routed(&key, false).await?;
+                                return Err(fx.lane.owner.fail("extension tool host fault"));
+                            }
+                            crate::tools::RoutedDisposition::UnadmittedLocalAbort => {
+                                fx.cleanup_routed(&key, false).await?;
+                                continue;
+                            }
+                            crate::tools::RoutedDisposition::NoLongerExpected => {
+                                fx.cleanup_routed(&key, false).await?;
+                                let latest = {
+                                    let _line = fx.lane.lane.line.acquire().await?;
+                                    fx.lane.load_raw().await?
+                                };
+                                if latest.current.as_ref().is_some_and(|current| {
+                                    current.operation.operation_id == operation_id
+                                }) {
+                                    continue;
+                                }
+                                return externally_completed(&fx, &operation_id).await;
+                            }
+                        }
+                    }
+                }
+                let output = output?;
                 let output = match output {
                     EffectOutput::Summary { key, outcome } => {
                         SettlementOutput::Summary { key, outcome }
@@ -798,7 +915,7 @@ pub(crate) async fn drive<
                         let output = fx.finalize_tool(plan.clone(), output).await?;
                         let latest = {
                             let _line = fx.lane.lane.line.acquire().await?;
-                            fx.lane.load().await?
+                            fx.lane.load_raw().await?
                         };
                         if latest
                             .current
@@ -966,7 +1083,7 @@ async fn externally_completed<
     S: RuntimeStorage + 'static,
     M: SessionMetadataRecord,
 >(
-    fx: &RuntimeEffects<C, S, M>,
+    fx: &Arc<RuntimeEffects<C, S, M>>,
     operation: &OperationId,
 ) -> Result<OperationResult, HarnessRuntimeError> {
     fx.retired.cancel();
@@ -1008,6 +1125,17 @@ async fn externally_completed<
         .unwrap_or_else(|p| p.into_inner())
         .take();
     drop(old);
+    #[cfg(feature = "extensions")]
+    {
+        fx.cleanup_all_routed().await?;
+        fx.lane
+            .owner
+            .routed_pending
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .retain(|key| key.operation_id != *operation);
+    }
+    fx.release_drive();
     if matches!(result, OperationResult::Run(_)) {
         fx.events().enqueue(
             HarnessEventType::RunEnd,

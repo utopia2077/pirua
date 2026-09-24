@@ -2,31 +2,80 @@
 use crate::{
     owner::{RuntimeLane, Telemetry},
     restore::{HydratedLane, hydrate_lane},
-    scheduler::Admission,
+    scheduler::{Admission, CommitPermit, MutationPermit},
 };
 use pi_agent_schema::*;
 use pi_agent_session::{
     backend_support::{register_key, register_seq},
+    session::WriteObservation,
     storage::{
         ConditionalCommit, ConditionalOutcome, ExpectedRegister, RegisterCondition, RuntimeStorage,
     },
 };
 use pi_harness_core::planner::{CommitFacts, CommitRecipe, Publication};
 
+/// Native callers that already own both lines keep commit drain notification
+/// until after their held-line publication scope releases both lines.
+pub(crate) struct HeldPublication {
+    pair: Option<(MutationPermit, MutationPermit)>,
+    commit: Option<CommitPermit>,
+}
+
+impl HeldPublication {
+    pub(crate) fn new(settings: MutationPermit, lane: MutationPermit) -> Self {
+        Self {
+            pair: Some((settings, lane)),
+            commit: None,
+        }
+    }
+
+    pub(crate) fn commit_slot(&mut self) -> &mut Option<CommitPermit> {
+        &mut self.commit
+    }
+
+    pub(crate) fn release(&mut self) {
+        if let Some((settings, lane)) = self.pair.take() {
+            MutationPermit::release_pair(lane, settings);
+        }
+        drop(self.commit.take());
+    }
+}
+
+impl Drop for HeldPublication {
+    fn drop(&mut self) {
+        self.release();
+    }
+}
+
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeLane<C, S, M>
 {
     pub(crate) async fn load(&self) -> Result<HydratedLane, HarnessRuntimeError> {
-        self.owner.observe(
-            hydrate_lane(
-                self.owner.session.as_ref(),
-                self.lane.name.clone(),
-                &self.owner.admission,
-            )
-            .await,
+        self.owner.observe(self.load_raw().await)
+    }
+    /// The caller observes a routed failure after releasing its Harness lines.
+    pub(crate) async fn load_raw(&self) -> Result<HydratedLane, HarnessRuntimeError> {
+        hydrate_lane(
+            self.owner.session.as_ref(),
+            self.lane.name.clone(),
+            &self.owner.admission,
         )
+        .await
     }
     pub(crate) fn facts(&self, loaded: &HydratedLane) -> Result<CommitFacts, HarnessRuntimeError> {
+        self.facts_with_policy(loaded, false)
+    }
+    pub(crate) fn facts_raw(
+        &self,
+        loaded: &HydratedLane,
+    ) -> Result<CommitFacts, HarnessRuntimeError> {
+        self.facts_with_policy(loaded, true)
+    }
+    fn facts_with_policy(
+        &self,
+        loaded: &HydratedLane,
+        raw: bool,
+    ) -> Result<CommitFacts, HarnessRuntimeError> {
         Ok(CommitFacts {
             session_id: self.owner.session.metadata().base_metadata().id.clone(),
             leaf_seq: Some(register_seq(&loaded.roots.leaf)),
@@ -35,9 +84,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .roots
                     .operation_meta
                     .as_ref()
-                    .ok_or_else(|| self.owner.fail("operation meta missing"))?,
+                    .ok_or_else(|| self.publication_fault(raw, "operation meta missing"))?,
             ),
         })
+    }
+    fn publication_fault(&self, raw: bool, message: &'static str) -> HarnessRuntimeError {
+        if raw {
+            crate::restore::fault(message)
+        } else {
+            self.owner.fail(message)
+        }
     }
     /// Caller holds settings-before-lane mutation ownership. Admission and the
     /// retained task must outlive definitive commit and in-memory publication.
@@ -51,6 +107,48 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         recipe: CommitRecipe<Telemetry>,
         prepared: Option<pi_agent_session::storage::PreparedEntries>,
+    ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
+        let mut permit = None;
+        self.apply_prepared_scoped(recipe, prepared, &mut permit, false)
+            .await
+    }
+    /// The caller owns the permit until all held lines and publication work end.
+    pub(crate) async fn apply_prepared_scoped(
+        &self,
+        recipe: CommitRecipe<Telemetry>,
+        prepared: Option<pi_agent_session::storage::PreparedEntries>,
+        permit_slot: &mut Option<CommitPermit>,
+        raw: bool,
+    ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
+        self.apply_prepared_inner(recipe, prepared, permit_slot, raw, None)
+            .await
+    }
+    /// Routed commits have already admitted their permit and carry their write
+    /// observation out of this held-line publication call.
+    pub(crate) async fn apply_routed_prepared(
+        &self,
+        recipe: CommitRecipe<Telemetry>,
+        prepared: pi_agent_session::storage::PreparedEntries,
+        permit_slot: &mut Option<CommitPermit>,
+        observation_slot: &mut Option<WriteObservation>,
+    ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
+        debug_assert!(permit_slot.is_some());
+        self.apply_prepared_inner(
+            recipe,
+            Some(prepared),
+            permit_slot,
+            true,
+            Some(observation_slot),
+        )
+        .await
+    }
+    async fn apply_prepared_inner(
+        &self,
+        recipe: CommitRecipe<Telemetry>,
+        prepared: Option<pi_agent_session::storage::PreparedEntries>,
+        permit_slot: &mut Option<CommitPermit>,
+        raw: bool,
+        observation_slot: Option<&mut Option<WriteObservation>>,
     ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
         if let Some(revision) = recipe.expected_settings_revision
             && self
@@ -70,7 +168,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .unwrap_or_else(|p| p.into_inner())
             .current
             .clone();
-        let permit = self.owner.admission.try_admit()?;
+        if permit_slot.is_none() {
+            *permit_slot = Some(self.owner.admission.try_admit()?);
+        }
         let telemetry = recipe.telemetry_context.clone();
         let events = self.owner.events.with_context(telemetry.clone());
         let conditions: Vec<RegisterCondition> = recipe
@@ -118,8 +218,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             conditions,
             transaction: recipe.transaction,
         };
-        let outcome = match prepared {
-            Some(prepared) => {
+        let outcome = match (prepared, observation_slot) {
+            (Some(prepared), Some(slot)) => {
+                let (outcome, observation) = self
+                    .owner
+                    .session
+                    .commit_prepared_conditional_with_observation(prepared, request)
+                    .await;
+                *slot = observation;
+                outcome
+            }
+            (Some(prepared), None) => {
                 self.owner
                     .session
                     .commit_prepared_conditional_with_telemetry(
@@ -129,14 +238,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     )
                     .await
             }
-            None => {
+            (None, None) => {
                 self.owner
                     .session
                     .commit_conditional_with_telemetry(request, telemetry.as_ref())
                     .await
             }
+            (None, Some(_)) => unreachable!("routed commit requires prepared entries"),
         }
-        .map_err(|_| self.owner.fail("runtime conditional publication failed"))?;
+        .map_err(|_| self.publication_fault(raw, "runtime conditional publication failed"))?;
         let ConditionalOutcome::Applied(commit) = outcome else {
             return Ok(None);
         };
@@ -158,7 +268,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             &Admission::new(),
         )
         .await
-        .map_err(|_| self.owner.fail("runtime committed state hydration failed"))?;
+        .map_err(|_| self.publication_fault(raw, "runtime committed state hydration failed"))?;
         if let Some(current) = loaded.current.as_ref() {
             self.structural_started(previous.as_ref(), current, telemetry.clone());
         }
@@ -187,11 +297,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .session
                         .get_entries(std::slice::from_ref(&id))
                         .await
-                        .map_err(|_| self.owner.fail("runtime committed entry read failed"))?;
-                    let entry = entries
-                        .get(&id)
-                        .cloned()
-                        .ok_or_else(|| self.owner.fail("runtime committed entry is absent"))?;
+                        .map_err(|_| {
+                            self.publication_fault(raw, "runtime committed entry read failed")
+                        })?;
+                    let entry = entries.get(&id).cloned().ok_or_else(|| {
+                        self.publication_fault(raw, "runtime committed entry is absent")
+                    })?;
                     if let Entry::Message(message) = &entry {
                         let streamed = self
                             .lane
@@ -251,17 +362,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     let (index, row) = usage_writes
                         .iter()
                         .find(|(_, row)| row.id == id)
-                        .ok_or_else(|| self.owner.fail("usage publication row missing"))?;
-                    let seq = *commit
-                        .seqs
-                        .get(*index)
-                        .ok_or_else(|| self.owner.fail("usage publication sequence missing"))?;
+                        .ok_or_else(|| {
+                            self.publication_fault(raw, "usage publication row missing")
+                        })?;
+                    let seq = *commit.seqs.get(*index).ok_or_else(|| {
+                        self.publication_fault(raw, "usage publication sequence missing")
+                    })?;
                     let totals = self
                         .owner
                         .session
                         .get_stats()
                         .await
-                        .map_err(|_| self.owner.fail("usage totals read failed"))?
+                        .map_err(|_| self.publication_fault(raw, "usage totals read failed"))?
                         .usage;
                     events.enqueue(
                         HarnessEventType::Usage,
@@ -282,9 +394,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     );
                 }
                 Publication::Terminal(result) => {
-                    let operation_id = operation_id
-                        .clone()
-                        .ok_or_else(|| self.owner.fail("terminal publication owner missing"))?;
+                    let operation_id = operation_id.clone().ok_or_else(|| {
+                        self.publication_fault(raw, "terminal publication owner missing")
+                    })?;
                     if matches!(*result, OperationResult::Run(_)) {
                         events.enqueue(
                             HarnessEventType::RunEnd,
@@ -292,9 +404,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             run_end(self.lane.name.clone(), operation_id, *result)?,
                         );
                     } else {
-                        let current = previous
-                            .as_ref()
-                            .ok_or_else(|| self.owner.fail("structural terminal owner missing"))?;
+                        let current = previous.as_ref().ok_or_else(|| {
+                            self.publication_fault(raw, "structural terminal owner missing")
+                        })?;
                         let (kind, event) = crate::structural::end_event(
                             &current.operation,
                             crate::structural::reason(current),
@@ -311,10 +423,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             loaded.clone(),
         );
         if crate::inbox::queue_signature(&old) != crate::inbox::queue_signature(&loaded) {
-            self.queue_event(&loaded)?;
+            self.queue_event(&loaded, raw)?;
         }
         drop(old);
-        drop(permit);
         Ok(Some(loaded))
     }
 }
@@ -462,5 +573,89 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             ));
         }
         events
+    }
+}
+
+#[cfg(test)]
+mod held_publication_tests {
+    use super::HeldPublication;
+    use crate::scheduler::{Admission, MutationLine};
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        task::{Context, Poll, Wake, Waker},
+    };
+
+    fn poll<F: Future + ?Sized>(future: Pin<&mut F>, waker: &Waker) -> Poll<F::Output> {
+        future.poll(&mut Context::from_waker(waker))
+    }
+
+    struct CheckDrain {
+        settings: MutationLine,
+        lane: MutationLine,
+        called: Arc<AtomicBool>,
+    }
+    impl Wake for CheckDrain {
+        fn wake(self: Arc<Self>) {
+            assert!(!self.settings.held_for_test());
+            assert!(!self.lane.held_for_test());
+            self.called.store(true, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn native_held_publication_releases_lines_before_last_commit_drain() {
+        for exit in ["success", "refusal", "cancel", "unwind"] {
+            let admission = Admission::new();
+            let settings = MutationLine::new(admission.clone());
+            let lane = MutationLine::new(admission.clone());
+            let mut first = Box::pin(settings.acquire());
+            let Poll::Ready(Ok(settings_permit)) = poll(first.as_mut(), Waker::noop()) else {
+                panic!("settings permit")
+            };
+            let mut second = Box::pin(lane.acquire());
+            let Poll::Ready(Ok(lane_permit)) = poll(second.as_mut(), Waker::noop()) else {
+                panic!("lane permit")
+            };
+            let mut scope = HeldPublication::new(settings_permit, lane_permit);
+            *scope.commit_slot() = Some(admission.try_admit().unwrap());
+            let called = Arc::new(AtomicBool::new(false));
+            let waker = Waker::from(Arc::new(CheckDrain {
+                settings: settings.clone(),
+                lane: lane.clone(),
+                called: called.clone(),
+            }));
+            let mut drained = Box::pin(admission.drained());
+            assert!(poll(drained.as_mut(), &waker).is_pending());
+            admission.seal_close();
+            match exit {
+                "success" => scope.release(),
+                "refusal" => drop(scope),
+                "cancel" => {
+                    let mut pending = Box::pin(async move {
+                        let _scope = scope;
+                        std::future::pending::<()>().await;
+                    });
+                    assert!(poll(pending.as_mut(), Waker::noop()).is_pending());
+                    drop(pending);
+                }
+                "unwind" => {
+                    assert!(
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            let _scope = scope;
+                            panic!("publication caller unwound");
+                        }))
+                        .is_err()
+                    );
+                }
+                _ => unreachable!(),
+            }
+            assert!(called.load(Ordering::SeqCst));
+            assert!(poll(drained.as_mut(), Waker::noop()).is_ready());
+        }
     }
 }

@@ -350,16 +350,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let recipe = pi_harness_core::structural::acceptance_recipe(&facts)
                 .map_err(|_| self.owner.fail("structural acceptance rejected"))?
                 .ok_or_else(|| self.owner.fail("structural acceptance unexpectedly empty"))?;
-            if self.apply(recipe).await?.is_none() {
-                drop(line);
-                drop(settings_line);
+            let mut publication = crate::publication::HeldPublication::new(settings_line, line);
+            if self
+                .apply_prepared_scoped(recipe, None, publication.commit_slot(), false)
+                .await?
+                .is_none()
+            {
                 continue;
             }
             *fx.original_operation
                 .lock()
                 .unwrap_or_else(|p| p.into_inner()) = Some(operation);
-            drop(line);
-            drop(settings_line);
+            publication.release();
             self.owner.events.flush();
             self.lane.announce();
             fx.trace.begin_kind(
@@ -513,7 +515,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let recipe = pi_harness_core::structural::acceptance_recipe(&facts)
                 .map_err(|_| self.owner.fail("navigation acceptance rejected"))?
                 .ok_or_else(|| self.owner.fail("navigation acceptance unexpectedly empty"))?;
-            if self.apply(recipe).await?.is_none() {
+            let mut publication = crate::publication::HeldPublication::new(settings_line, line);
+            if self
+                .apply_prepared_scoped(recipe, None, publication.commit_slot(), false)
+                .await?
+                .is_none()
+            {
                 continue;
             }
             // Acceptance and drive registration share this lane line. No
@@ -528,8 +535,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             *fx.original_operation
                 .lock()
                 .unwrap_or_else(|p| p.into_inner()) = Some(operation);
-            drop(line);
-            drop(settings_line);
+            publication.release();
             self.owner.events.flush();
             self.lane.announce();
             fx.trace.begin_kind(
@@ -624,6 +630,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         loop {
             let settings = self.lane.owner.settings_line.acquire().await?;
             let line = self.lane.lane.line.acquire().await?;
+            let mut publication = crate::publication::HeldPublication::new(settings, line);
             let before = self
                 .lane
                 .owner
@@ -776,7 +783,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let result = match decision {
                 RecipeDecision::Apply(recipe) => {
                     let dispatch = recipe.dispatch.clone();
-                    let Some(applied) = self.lane.apply_prepared(*recipe, prepared).await? else {
+                    let Some(applied) = self
+                        .lane
+                        .apply_prepared_scoped(*recipe, prepared, publication.commit_slot(), false)
+                        .await?
+                    else {
                         continue;
                     };
                     self.summary_settled(current, applied.current.as_ref(), &plan.output);
@@ -885,8 +896,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     None
                 }
             };
-            drop(line);
-            drop(settings);
+            publication.release();
             self.events().flush();
             self.lane.lane.announce();
             return Ok(result);

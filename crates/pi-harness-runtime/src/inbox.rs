@@ -112,7 +112,18 @@ pub(crate) fn placements(
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeLane<C, S, M>
 {
-    pub(crate) fn queue_event(&self, h: &HydratedLane) -> Result<(), HarnessRuntimeError> {
+    pub(crate) fn queue_event(
+        &self,
+        h: &HydratedLane,
+        raw: bool,
+    ) -> Result<(), HarnessRuntimeError> {
+        let fault = |message| {
+            if raw {
+                crate::restore::fault(message)
+            } else {
+                self.owner.fail(message)
+            }
+        };
         let queued = |ids: &[EntryId]| {
             ids.iter()
                 .map(|id| {
@@ -120,7 +131,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .registers
                         .get(&(RegisterNamespace::PendingEntry, id.as_str().into()))
                     else {
-                        return Err(self.owner.fail("queue payload missing"));
+                        return Err(fault("queue payload missing"));
                     };
                     Ok(QueuedItem {
                         entry_id: id.clone(),
@@ -130,7 +141,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .collect::<Result<Vec<_>, _>>()
         };
         let Register::LaneState { value, .. } = &h.roots.lane_state else {
-            return Err(self.owner.fail("queue lane state missing"));
+            return Err(fault("queue lane state missing"));
         };
         let (steer, follow_up) = match h.current.as_ref().map(|c| &c.state) {
             Some(OperationState::Run(r)) => (queued(&r.inbox.steer)?, queued(&r.inbox.follow_up)?),

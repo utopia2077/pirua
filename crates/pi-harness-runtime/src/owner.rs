@@ -14,6 +14,8 @@ use pi_agent_session::{
 };
 use pi_ai_core::{Clock, ModelsRegistry, SafeUnsigned, TaskSpawner};
 use pi_telemetry::TelemetryContext;
+#[cfg(feature = "extensions")]
+use std::collections::BTreeSet;
 use std::{
     collections::BTreeMap,
     ops::Deref,
@@ -54,6 +56,7 @@ fn matches_ready_echo<C>(handle: &AgentHarnessToolHandle<C>, route: &ReadyToolRo
 /// Mutations of this value are serialized by the owner settings line.
 pub(crate) struct ToolRegistry<C> {
     handles: Vec<AgentHarnessToolHandle<C>>,
+    handles_generation: Arc<()>,
     #[cfg(feature = "extensions")]
     echo: Option<RegisteredEcho<C>>,
     #[cfg(feature = "extensions")]
@@ -82,6 +85,7 @@ impl<C> ToolRegistry<C> {
     fn new(handles: Vec<AgentHarnessToolHandle<C>>) -> Self {
         Self {
             handles,
+            handles_generation: Arc::new(()),
             #[cfg(feature = "extensions")]
             echo: None,
             #[cfg(feature = "extensions")]
@@ -115,6 +119,7 @@ impl<C> ToolRegistry<C> {
         } else {
             None
         };
+        self.handles_generation = Arc::new(());
         ReplacedTools {
             handles: std::mem::replace(&mut self.handles, handles),
             #[cfg(feature = "extensions")]
@@ -185,10 +190,6 @@ impl<C> ToolRegistry<C> {
     }
 
     #[cfg(feature = "extensions")]
-    #[expect(
-        dead_code,
-        reason = "consumed by the later exact-key execution wrapper"
-    )]
     pub(crate) fn echo_snapshot(
         &self,
         handle: &AgentHarnessToolHandle<C>,
@@ -204,10 +205,6 @@ impl<C> ToolRegistry<C> {
     }
 
     #[cfg(feature = "extensions")]
-    #[expect(
-        dead_code,
-        reason = "consumed by the later exact-key execution wrapper"
-    )]
     pub(crate) fn echo_is_current(&self, snapshot: &EchoRouteSnapshot<C>) -> bool {
         self.echo.as_ref().is_some_and(|current| {
             current.epoch == snapshot.epoch
@@ -216,6 +213,29 @@ impl<C> ToolRegistry<C> {
                 && Arc::ptr_eq(&current.route, &snapshot.route)
                 && current.timing == snapshot.timing
         })
+    }
+
+    /// Monotonic route registration generation for callback-free snapshot checks.
+    pub(crate) fn route_epoch(&self) -> u64 {
+        #[cfg(feature = "extensions")]
+        {
+            self.next_epoch
+        }
+        #[cfg(not(feature = "extensions"))]
+        {
+            0
+        }
+    }
+
+    pub(crate) fn handles_generation(&self) -> Arc<()> {
+        self.handles_generation.clone()
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) fn has_ready_echo(&self) -> bool {
+        self.echo
+            .as_ref()
+            .is_some_and(|selected| selected.route.is_current())
     }
 }
 
@@ -227,10 +247,6 @@ impl<C> Deref for ToolRegistry<C> {
 }
 
 #[cfg(feature = "extensions")]
-#[expect(
-    dead_code,
-    reason = "registration epoch is consumed through the later claim snapshot"
-)]
 struct RegisteredEcho<C> {
     handle: AgentHarnessToolHandle<C>,
     route: Arc<ReadyToolRoute>,
@@ -242,16 +258,25 @@ struct RegisteredEcho<C> {
 /// Candidate only: the later execution wrapper must recheck this under
 /// settings_line and claim in the driver before releasing that line.
 #[cfg(feature = "extensions")]
-#[expect(
-    dead_code,
-    reason = "consumed by the later exact-key execution wrapper"
-)]
 pub(crate) struct EchoRouteSnapshot<C> {
     pub(crate) handle: AgentHarnessToolHandle<C>,
     pub(crate) route: Arc<ReadyToolRoute>,
     pub(crate) generation: u64,
     pub(crate) epoch: u64,
     pub(crate) timing: EchoRouteTiming,
+}
+
+#[cfg(feature = "extensions")]
+impl<C> Clone for EchoRouteSnapshot<C> {
+    fn clone(&self) -> Self {
+        Self {
+            handle: self.handle.clone(),
+            route: self.route.clone(),
+            generation: self.generation,
+            epoch: self.epoch,
+            timing: self.timing,
+        }
+    }
 }
 
 pub type Telemetry = Arc<dyn TelemetryContext>;
@@ -328,6 +353,8 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub settings_line: MutationLine,
     pub settings: Mutex<Settings>,
     pub tools: Mutex<ToolRegistry<C>>,
+    #[cfg(feature = "extensions")]
+    pub(crate) routed_pending: Mutex<BTreeSet<EffectKey>>,
     pub lanes: Mutex<BTreeMap<LaneId, Arc<LaneControl>>>,
     pub suspensions: Mutex<BTreeMap<LaneId, SuspensionObservation>>,
     pub lease: Mutex<Option<RuntimeLease>>,
@@ -524,6 +551,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             closed: pi_ai_core::CancellationToken::new(),
             seed,
             tools: Mutex::new(ToolRegistry::new(options.tools)),
+            #[cfg(feature = "extensions")]
+            routed_pending: Mutex::new(BTreeSet::new()),
             lanes: Mutex::new(lanes),
             suspensions: Mutex::new(BTreeMap::new()),
             lease: Mutex::new(Some(lease)),

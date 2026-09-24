@@ -9,6 +9,17 @@ use pi_agent_session::storage::RuntimeStorage;
 use pi_ai_core::{Model, Presence, ProviderRegistration, SafeUnsigned};
 use std::sync::Arc;
 
+async fn nested_settlement_publication(
+    settings: &crate::scheduler::MutationLine,
+    lane: &crate::scheduler::MutationLine,
+) -> Result<crate::publication::HeldPublication, HarnessRuntimeError> {
+    // Keep the existing settings-then-lane admission order. This scope begins
+    // after both acquisitions and owns the last commit drain handoff.
+    let settings = settings.acquire().await?;
+    let lane = lane.acquire().await?;
+    Ok(crate::publication::HeldPublication::new(settings, lane))
+}
+
 #[derive(Clone)]
 pub(crate) struct SummaryBinding {
     outer: SummaryEffectPlan<Telemetry>,
@@ -355,6 +366,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         h: &crate::restore::HydratedLane,
         plan: &TransitionCommit<Telemetry>,
+        commit: &mut Option<crate::scheduler::CommitPermit>,
     ) -> Result<Option<Option<CurrentOperation>>, HarnessRuntimeError> {
         let Some(current) = h.current.as_ref() else {
             return Ok(None);
@@ -399,7 +411,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             if recipe.next.as_ref() != Some(&plan.next) {
                 return Ok(Some(None));
             }
-            self.lane.apply(*recipe).await?.and_then(|h| h.current)
+            self.lane
+                .apply_prepared_scoped(*recipe, None, commit, false)
+                .await?
+                .and_then(|h| h.current)
         } else {
             None
         };
@@ -557,8 +572,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .unwrap_or_else(|p| p.into_inner())
             .clone()
             .ok_or_else(|| self.lane.owner.fail("summary settlement binding missing"))?;
-        let _settings = self.lane.owner.settings_line.acquire().await?;
-        let _line = self.lane.lane.line.acquire().await?;
+        let mut publication =
+            nested_settlement_publication(&self.lane.owner.settings_line, &self.lane.lane.line)
+                .await?;
         let h = self.lane.load().await?;
         let Some(current) = h.current.as_ref() else {
             return Ok(None);
@@ -571,12 +587,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         )
         .map_err(|_| self.lane.owner.fail("nested summary settlement invalid"))?;
         let applied = if let pi_harness_core::planner::RecipeDecision::Apply(recipe) = decision {
-            self.lane.apply(*recipe).await?.and_then(|h| h.current)
+            self.lane
+                .apply_prepared_scoped(*recipe, None, publication.commit_slot(), false)
+                .await?
+                .and_then(|h| h.current)
         } else {
             None
         };
-        drop(_line);
-        drop(_settings);
+        publication.release();
         self.events().flush();
         self.lane.lane.announce();
         Ok(applied)
@@ -739,6 +757,98 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     final_error: error,
                 }),
             );
+        }
+    }
+}
+
+#[cfg(test)]
+mod nested_settlement_publication_tests {
+    use super::nested_settlement_publication;
+    use crate::scheduler::{Admission, MutationLine};
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::{
+            Arc,
+            atomic::{AtomicBool, Ordering},
+        },
+        task::{Context, Poll, Wake, Waker},
+    };
+
+    fn poll<F: Future + ?Sized>(future: Pin<&mut F>, waker: &Waker) -> Poll<F::Output> {
+        future.poll(&mut Context::from_waker(waker))
+    }
+
+    struct DrainProbe {
+        settings: MutationLine,
+        lane: MutationLine,
+        called: Arc<AtomicBool>,
+    }
+    impl Wake for DrainProbe {
+        fn wake(self: Arc<Self>) {
+            assert!(
+                !self.settings.held_for_test(),
+                "summary drain saw held settings"
+            );
+            assert!(!self.lane.held_for_test(), "summary drain saw held lane");
+            self.called.store(true, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn nested_summary_last_commit_drains_after_both_lines_on_all_exits() {
+        for exit in ["applied", "refused", "error", "cancel", "unwind"] {
+            let admission = Admission::new();
+            let settings = MutationLine::new(admission.clone());
+            let lane = MutationLine::new(admission.clone());
+            let mut acquire = Box::pin(nested_settlement_publication(&settings, &lane));
+            let Poll::Ready(Ok(mut scope)) = poll(acquire.as_mut(), Waker::noop()) else {
+                panic!("nested summary lines")
+            };
+            drop(acquire);
+            *scope.commit_slot() = Some(admission.try_admit().unwrap());
+            let called = Arc::new(AtomicBool::new(false));
+            let waker = Waker::from(Arc::new(DrainProbe {
+                settings: settings.clone(),
+                lane: lane.clone(),
+                called: called.clone(),
+            }));
+            let mut drained = Box::pin(admission.drained());
+            assert!(poll(drained.as_mut(), &waker).is_pending());
+            admission.seal_close();
+            match exit {
+                "applied" | "refused" => scope.release(),
+                "error" => {
+                    let result: Result<(), ()> = {
+                        let _scope = scope;
+                        Err(())
+                    };
+                    assert!(result.is_err());
+                }
+                "cancel" => {
+                    let mut pending = Box::pin(async move {
+                        let _scope = scope;
+                        std::future::pending::<()>().await;
+                    });
+                    assert!(poll(pending.as_mut(), Waker::noop()).is_pending());
+                    drop(pending);
+                }
+                "unwind" => {
+                    assert!(
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            let _scope = scope;
+                            panic!("nested summary caller unwind");
+                        }))
+                        .is_err()
+                    );
+                }
+                _ => unreachable!(),
+            }
+            assert!(
+                called.load(Ordering::SeqCst),
+                "last commit must notify drain"
+            );
+            assert!(poll(drained.as_mut(), Waker::noop()).is_ready());
         }
     }
 }

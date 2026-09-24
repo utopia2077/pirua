@@ -10,6 +10,562 @@ use pi_ai_core::{JsonObject, Presence, SafeUnsigned};
 use pi_harness_core::planner::{PlanningFacts, ToolDeclaration};
 use std::{collections::BTreeMap, sync::Arc};
 
+#[cfg(feature = "extensions")]
+use crate::extensions::tool_driver::{
+    CallOutcome, DriverError, LocalAbortCause, ReadyToolRoute, TypedTerminal,
+};
+#[cfg(feature = "extensions")]
+use crate::owner::EchoRouteSnapshot;
+#[cfg(feature = "extensions")]
+use pi_extension_protocol::tool_live::{InvocationBinding, LivePhase, RetireReason};
+#[cfg(feature = "extensions")]
+use std::{future::Future, pin::pin, sync::Mutex, task::Poll};
+
+#[cfg(feature = "extensions")]
+pub(crate) struct PairedPermits(Option<crate::scheduler::PairPermit>);
+
+#[cfg(feature = "extensions")]
+impl PairedPermits {
+    pub(crate) fn new(pair: crate::scheduler::PairPermit) -> Self {
+        Self(Some(pair))
+    }
+    pub(crate) async fn acquire(
+        settings: &crate::scheduler::MutationLine,
+        lane: &crate::scheduler::MutationLine,
+    ) -> Result<Self, HarnessRuntimeError> {
+        Ok(Self::new(settings.acquire_pair(lane).await?))
+    }
+    pub(crate) fn release(&mut self) {
+        if let Some(pair) = self.0.take() {
+            pair.release();
+        }
+    }
+}
+
+#[cfg(feature = "extensions")]
+impl Drop for PairedPermits {
+    fn drop(&mut self) {
+        self.release();
+    }
+}
+
+#[cfg(all(test, feature = "extensions"))]
+mod paired_permit_tests {
+    use super::PairedPermits;
+    use crate::scheduler::{Admission, MutationLine};
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::{
+            Arc,
+            atomic::{AtomicUsize, Ordering},
+        },
+        task::{Context, Poll, Wake, Waker},
+    };
+
+    struct CountWake(AtomicUsize);
+    impl Wake for CountWake {
+        fn wake(self: Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    fn poll<F: Future + ?Sized>(future: Pin<&mut F>, waker: &Waker) -> Poll<F::Output> {
+        future.poll(&mut Context::from_waker(waker))
+    }
+
+    #[test]
+    fn dropping_pending_load_releases_both_lines_and_wakes_waiters() {
+        let admission = Admission::new();
+        let settings = MutationLine::new(admission.clone());
+        let lane = MutationLine::new(admission);
+        let mut load = Box::pin({
+            let settings = settings.clone();
+            let lane = lane.clone();
+            async move {
+                let pair = settings.acquire_pair(&lane).await.unwrap();
+                let _both = PairedPermits::new(pair);
+                std::future::pending::<()>().await;
+            }
+        });
+        assert!(poll(load.as_mut(), Waker::noop()).is_pending());
+        let settings_wake = Arc::new(CountWake(AtomicUsize::new(0)));
+        let lane_wake = Arc::new(CountWake(AtomicUsize::new(0)));
+        let mut settings_waiter = Box::pin(settings.acquire());
+        let mut lane_waiter = Box::pin(lane.acquire());
+        assert!(
+            poll(
+                settings_waiter.as_mut(),
+                &Waker::from(settings_wake.clone())
+            )
+            .is_pending()
+        );
+        assert!(poll(lane_waiter.as_mut(), &Waker::from(lane_wake.clone())).is_pending());
+        drop(load);
+        assert_eq!(settings_wake.0.load(Ordering::SeqCst), 1);
+        assert_eq!(lane_wake.0.load(Ordering::SeqCst), 1);
+        let Poll::Ready(Ok(settings_permit)) = poll(settings_waiter.as_mut(), Waker::noop()) else {
+            panic!("settings released")
+        };
+        let Poll::Ready(Ok(lane_permit)) = poll(lane_waiter.as_mut(), Waker::noop()) else {
+            panic!("lane released")
+        };
+        drop(settings_permit);
+        drop(lane_permit);
+    }
+
+    #[test]
+    fn queued_routed_precheck_and_safe_resume_acquisition_cancel_or_seal() {
+        use pi_agent_schema::{ErrorContext, HarnessFault, HarnessRuntimeError};
+
+        // Both routed precheck and Safe resume call this exact acquisition
+        // helper before any state read or side effect.
+        for seal in [false, true] {
+            let admission = Admission::new();
+            let settings = MutationLine::new(admission.clone());
+            let lane = MutationLine::new(admission.clone());
+            let mut occupied = Box::pin(lane.acquire());
+            let Poll::Ready(Ok(lane_holder)) = poll(occupied.as_mut(), Waker::noop()) else {
+                panic!("lane holder")
+            };
+            let notified = Arc::new(CountWake(AtomicUsize::new(0)));
+            let pair_waker = Waker::from(notified.clone());
+            let mut route = Box::pin(PairedPermits::acquire(&settings, &lane));
+            assert!(poll(route.as_mut(), &pair_waker).is_pending());
+            assert!(!settings.held_for_test());
+            let mut next_settings = Box::pin(settings.acquire());
+            assert!(poll(next_settings.as_mut(), Waker::noop()).is_pending());
+            if seal {
+                admission.seal_fault(HarnessFault::new(
+                    ErrorContext::new("queued route seal").unwrap(),
+                ));
+                assert_eq!(notified.0.load(Ordering::SeqCst), 1);
+                assert!(matches!(
+                    poll(route.as_mut(), Waker::noop()),
+                    Poll::Ready(Err(HarnessRuntimeError::Fault(_)))
+                ));
+                assert!(matches!(
+                    poll(next_settings.as_mut(), Waker::noop()),
+                    Poll::Ready(Err(HarnessRuntimeError::Fault(_)))
+                ));
+            } else {
+                drop(route);
+                let Poll::Ready(Ok(successor)) = poll(next_settings.as_mut(), Waker::noop()) else {
+                    panic!("cancelled route passed its settings position")
+                };
+                drop(successor);
+            }
+            assert!(!settings.held_for_test());
+            drop(lane_holder);
+        }
+    }
+}
+
+#[cfg(feature = "extensions")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum RoutedDisposition {
+    NoLongerExpected,
+    UnadmittedLocalAbort,
+    PeerLost,
+    HostFault,
+}
+
+#[cfg(feature = "extensions")]
+pub(crate) struct RoutedEffect {
+    pub(crate) route: Arc<ReadyToolRoute>,
+    pub(crate) binding: Option<InvocationBinding>,
+    pub(crate) disposition: Option<RoutedDisposition>,
+    pub(crate) terminal: bool,
+    pub(crate) entered: bool,
+    pub(crate) owner_released: bool,
+    cleanup: Arc<CleanupArbiter>,
+}
+
+#[cfg(feature = "extensions")]
+pub(crate) struct CleanupArbiter {
+    state: Mutex<CleanupStatus>,
+}
+
+#[cfg(feature = "extensions")]
+enum CleanupStatus {
+    Ready,
+    Running(pi_ai_core::CancellationToken),
+    Complete,
+    Failed,
+}
+
+#[cfg(feature = "extensions")]
+impl CleanupArbiter {
+    pub(crate) fn new() -> Arc<Self> {
+        Arc::new(Self {
+            state: Mutex::new(CleanupStatus::Ready),
+        })
+    }
+
+    fn ready(&self) -> bool {
+        matches!(
+            *self.state.lock().unwrap_or_else(|p| p.into_inner()),
+            CleanupStatus::Ready
+        )
+    }
+
+    pub(crate) async fn enter(self: &Arc<Self>) -> Result<Option<CleanupLease>, ()> {
+        loop {
+            let pending = {
+                let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                match &*state {
+                    CleanupStatus::Ready => {
+                        *state = CleanupStatus::Running(pi_ai_core::CancellationToken::new());
+                        return Ok(Some(CleanupLease {
+                            arbiter: self.clone(),
+                            finished: false,
+                        }));
+                    }
+                    CleanupStatus::Running(done) => Some(done.clone()),
+                    CleanupStatus::Complete => return Ok(None),
+                    CleanupStatus::Failed => return Err(()),
+                }
+            };
+            pending.expect("running cleanup token").cancelled().await;
+        }
+    }
+
+    fn finish(&self, success: bool) {
+        let done = {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            let old = std::mem::replace(
+                &mut *state,
+                if success {
+                    CleanupStatus::Complete
+                } else {
+                    CleanupStatus::Failed
+                },
+            );
+            let CleanupStatus::Running(done) = old else {
+                panic!("cleanup owner must finish only its own reservation")
+            };
+            done
+        };
+        done.cancel();
+    }
+}
+
+#[cfg(feature = "extensions")]
+pub(crate) struct CleanupLease {
+    arbiter: Arc<CleanupArbiter>,
+    finished: bool,
+}
+
+#[cfg(feature = "extensions")]
+impl CleanupLease {
+    fn complete(mut self) {
+        self.finished = true;
+        self.arbiter.finish(true);
+    }
+}
+
+#[cfg(feature = "extensions")]
+impl Drop for CleanupLease {
+    fn drop(&mut self) {
+        if !self.finished {
+            self.arbiter.finish(false);
+        }
+    }
+}
+
+#[cfg(all(test, feature = "extensions"))]
+mod cleanup_arbiter_tests {
+    use super::CleanupArbiter;
+    use std::{
+        future::Future,
+        pin::Pin,
+        sync::{Arc, Barrier},
+        task::{Context, Poll, Waker},
+    };
+
+    fn poll<F: Future + ?Sized>(future: Pin<&mut F>) -> Poll<F::Output> {
+        future.poll(&mut Context::from_waker(Waker::noop()))
+    }
+
+    #[test]
+    fn overlapping_cleanup_waits_for_exact_owner_completion() {
+        let arbiter = CleanupArbiter::new();
+        let entered = Arc::new(Barrier::new(2));
+        let release = Arc::new(Barrier::new(2));
+        let first_arbiter = arbiter.clone();
+        let first_entered = entered.clone();
+        let first_release = release.clone();
+        let first = std::thread::spawn(move || {
+            let mut claim = Box::pin(first_arbiter.enter());
+            let Poll::Ready(Ok(Some(lease))) = poll(claim.as_mut()) else {
+                panic!("first cleanup must own the exact reservation")
+            };
+            first_entered.wait();
+            first_release.wait();
+            lease.complete();
+        });
+        entered.wait();
+        let mut second = Box::pin(arbiter.enter());
+        assert!(
+            poll(second.as_mut()).is_pending(),
+            "a second exit cannot report completed cleanup at entry"
+        );
+        release.wait();
+        first.join().unwrap();
+        assert!(matches!(poll(second.as_mut()), Poll::Ready(Ok(None))));
+
+        let failed = CleanupArbiter::new();
+        let mut first = Box::pin(failed.enter());
+        let Poll::Ready(Ok(Some(lease))) = poll(first.as_mut()) else {
+            panic!("first claim")
+        };
+        let mut second = Box::pin(failed.enter());
+        assert!(poll(second.as_mut()).is_pending());
+        drop(lease);
+        assert!(
+            matches!(poll(second.as_mut()), Poll::Ready(Err(()))),
+            "a failed owner transition is never counted as completed"
+        );
+    }
+}
+
+#[cfg(feature = "extensions")]
+fn route_error(message: &'static str) -> ToolExecutionError {
+    ToolExecutionError::new(ErrorContext::new(message).expect("static route error"))
+}
+
+#[cfg(feature = "extensions")]
+struct RoutedTool<C: Send + Sync + 'static, S: RuntimeStorage, M: SessionMetadataRecord> {
+    fx: Arc<RuntimeEffects<C, S, M>>,
+    plan: ToolEffectPlan<Telemetry>,
+    saved: CapturedArguments,
+    source_id: pi_ai_core::ToolCallId,
+    original: AgentHarnessToolHandle<C>,
+    snapshot: EchoRouteSnapshot<C>,
+    state: Arc<Mutex<RoutedEffect>>,
+}
+
+#[cfg(feature = "extensions")]
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    AgentHarnessTool<C> for RoutedTool<C, S, M>
+{
+    fn descriptor(&self) -> &AgentTool {
+        self.original.descriptor()
+    }
+
+    fn prepare_arguments(
+        &self,
+        args: pi_ai_core::JsonValue,
+    ) -> Result<JsonObject, ToolExecutionError> {
+        self.original.prepare_arguments(args)
+    }
+
+    fn execute<'a>(
+        &'a self,
+        tool_call_id: pi_ai_core::ToolCallId,
+        params: JsonObject,
+        cancellation: &'a dyn Cancellation,
+        _progress: &'a dyn ToolProgressSink,
+        _context: &'a C,
+    ) -> BoxFuture<'a, Result<AgentToolResult, ToolExecutionError>> {
+        self.state.lock().unwrap_or_else(|p| p.into_inner()).entered = true;
+        Box::pin(async move {
+            if tool_call_id != self.source_id || params != self.saved.value {
+                return Err(route_error("extension tool call changed before admission"));
+            }
+            // This guard pairs release even if an awaited Session read is
+            // cancelled and the wrapper future is dropped at that point.
+            let mut permits =
+                PairedPermits::acquire(&self.fx.lane.owner.settings_line, &self.fx.lane.lane.line)
+                    .await
+                    .map_err(|_| route_error("extension tool admission unavailable"))?;
+            let h = match self.fx.lane.load_raw().await {
+                Ok(h) => h,
+                Err(error) => {
+                    permits.release();
+                    let _ = self.fx.lane.owner.observe::<()>(Err(error));
+                    return Err(route_error("extension tool state unavailable"));
+                }
+            };
+            let current_key = h.current.as_ref().is_some_and(|current| {
+                pi_harness_core::tool_batch::expects_effect(
+                    current,
+                    &self.fx.lane.owner.session.metadata().base_metadata().id,
+                    &self.plan,
+                )
+            });
+            let running = h.current.as_ref().is_some_and(|current| {
+                matches!(&current.state, OperationState::Run(run)
+                    if matches!(run.control, Control::Running(_)))
+            });
+            let cancelled = h.current.as_ref().is_some_and(|current| {
+                matches!(&current.state, OperationState::Run(run)
+                    if matches!(run.control, Control::CancelRequested(_)))
+            });
+            let arguments_match = captured_arguments_match(&h, &self.saved);
+            if !current_key || !running || !arguments_match {
+                if current_key && cancelled && arguments_match {
+                    self.state
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .disposition = Some(RoutedDisposition::UnadmittedLocalAbort);
+                }
+                return Err(route_error(
+                    "extension tool effect changed before admission",
+                ));
+            }
+            let selected = self
+                .fx
+                .lane
+                .owner
+                .tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .echo_is_current(&self.snapshot);
+            if !selected {
+                return Err(route_error("extension tool route was replaced"));
+            }
+            let prepared = self.snapshot.route.prepare_planned_with_bounds(
+                &self.plan,
+                &self.saved.value,
+                self.source_id.as_str(),
+                None,
+                None,
+            );
+            if let Ok(prepared) = &prepared {
+                self.state.lock().unwrap_or_else(|p| p.into_inner()).binding =
+                    Some(prepared.binding().clone());
+                self.fx
+                    .lane
+                    .owner
+                    .routed_pending
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .insert(self.plan.key.clone());
+            }
+            permits.release();
+            let prepared = prepared.map_err(|error| {
+                if error == DriverError::HostFault {
+                    self.state
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .disposition = Some(RoutedDisposition::HostFault);
+                }
+                route_error("extension tool admission failed")
+            })?;
+            let binding = prepared.binding().clone();
+            let handle = prepared.activate().map_err(|error| {
+                if error == DriverError::HostFault {
+                    let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                    state.disposition = Some(RoutedDisposition::HostFault);
+                    state.owner_released = true;
+                }
+                route_error("extension tool activation failed")
+            })?;
+            let mut outcome = pin!(handle.outcome());
+            let mut cancelled = pin!(cancellation.cancelled());
+            let first = std::future::poll_fn(|cx| {
+                if let Poll::Ready(value) = outcome.as_mut().poll(cx) {
+                    return Poll::Ready(Some(value));
+                }
+                if cancelled.as_mut().poll(cx).is_ready() {
+                    return Poll::Ready(None);
+                }
+                Poll::Pending
+            })
+            .await;
+            if first.is_none() {
+                let line = self
+                    .fx
+                    .lane
+                    .lane
+                    .line
+                    .acquire()
+                    .await
+                    .map_err(|_| route_error("extension tool cancellation unavailable"))?;
+                let h = match self.fx.lane.load_raw().await {
+                    Ok(h) => h,
+                    Err(error) => {
+                        drop(line);
+                        let _ = self.fx.lane.owner.observe::<()>(Err(error));
+                        return Err(route_error("extension tool cancellation state unavailable"));
+                    }
+                };
+                let pending = h.current.as_ref().is_some_and(|current| {
+                    pi_harness_core::tool_batch::expects_effect(current,
+                        &self.fx.lane.owner.session.metadata().base_metadata().id, &self.plan)
+                        && matches!(&current.state, OperationState::Run(run) if matches!(run.control, Control::CancelRequested(_)))
+                });
+                drop(line);
+                if pending {
+                    let _ = self
+                        .snapshot
+                        .route
+                        .owner()
+                        .abort_local(&binding, LocalAbortCause::User);
+                }
+            }
+            let outcome = match first {
+                Some(value) => value,
+                None => outcome.await,
+            };
+            match outcome {
+                Ok(CallOutcome::Terminal(TypedTerminal::Result(result))) => {
+                    self.state
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .terminal = true;
+                    Ok(result)
+                }
+                Ok(CallOutcome::Terminal(TypedTerminal::PeerError(code))) => {
+                    self.state
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .terminal = true;
+                    Err(ToolExecutionError::new(
+                        ErrorContext::new(format!("extension tool peer error: {code:?}"))
+                            .expect("bounded peer error code"),
+                    ))
+                }
+                Ok(CallOutcome::NoLongerExpected) | Err(DriverError::NoLongerExpected) => {
+                    let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                    state.disposition = Some(RoutedDisposition::NoLongerExpected);
+                    state.owner_released = true;
+                    Err(route_error("extension tool effect no longer expected"))
+                }
+                Ok(CallOutcome::UnadmittedLocalAbort) | Err(DriverError::UnadmittedLocalAbort) => {
+                    let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                    state.disposition = Some(RoutedDisposition::UnadmittedLocalAbort);
+                    state.owner_released = true;
+                    Err(route_error("extension tool call locally aborted"))
+                }
+                Err(
+                    DriverError::PeerLost
+                    | DriverError::MalformedPeer
+                    | DriverError::Deadline
+                    | DriverError::Closed,
+                ) => {
+                    self.state
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .disposition = Some(RoutedDisposition::PeerLost);
+                    Err(route_error("extension tool peer lost"))
+                }
+                Err(DriverError::HostFault) => {
+                    self.state
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .disposition = Some(RoutedDisposition::HostFault);
+                    Err(route_error("extension tool host fault"))
+                }
+                Err(_) => Err(route_error("extension tool call failed")),
+            }
+        })
+    }
+}
+
 #[cfg(test)]
 fn saved_arguments_match(register: Option<&Register>, key: &str, args: &JsonObject) -> bool {
     matches!(register, Some(Register::OperationToolArguments { key: saved_key, value, .. })
@@ -61,12 +617,320 @@ pub(crate) fn captured_arguments_match(h: &HydratedLane, captured: &CapturedArgu
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeEffects<C, S, M>
 {
+    #[cfg(feature = "extensions")]
+    pub(crate) fn require_routed_terminal(
+        &self,
+        key: &EffectKey,
+    ) -> Result<(), HarnessRuntimeError> {
+        // Release the process-local cell before entering the owner line. The
+        // owner's exact opaque identity, not the local terminal latch or route
+        // generation, authorizes a routed ToolRaw and checked settlement.
+        let state = self
+            .routed_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        let Some(state) = state else { return Ok(()) };
+        let (route, binding, terminal, cleanup) = {
+            let state = state.lock().unwrap_or_else(|p| p.into_inner());
+            (
+                state.route.clone(),
+                state.binding.clone(),
+                state.terminal,
+                state.cleanup.clone(),
+            )
+        };
+        let available = cleanup.ready();
+        let Some(binding) = binding else {
+            return if terminal || !available {
+                Err(crate::restore::fault("routed terminal binding absent"))
+            } else {
+                // A rejected preclaim has no B1 and remains an ordinary
+                // content-free in-band tool error.
+                Ok(())
+            };
+        };
+        if !terminal
+            || !available
+            || route.owner().binding_phase(&binding) != Ok(LivePhase::TerminalReceived)
+        {
+            return Err(crate::restore::fault(
+                "routed terminal binding is no longer retained",
+            ));
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn routed_exit(
+        &self,
+        plan: &ToolEffectPlan<Telemetry>,
+    ) -> Result<Option<RoutedDisposition>, HarnessRuntimeError> {
+        self.lane.owner.admission.check()?;
+        let line = self.lane.lane.line.acquire().await?;
+        let h = self.lane.load_raw().await?;
+        let expected = h.current.as_ref().is_some_and(|current| {
+            pi_harness_core::tool_batch::expects_effect(
+                current,
+                &self.lane.owner.session.metadata().base_metadata().id,
+                plan,
+            )
+        });
+        let cancelled = h.current.as_ref().is_some_and(|current| {
+            matches!(&current.state, OperationState::Run(run) if matches!(run.control, Control::CancelRequested(_)))
+        });
+        let state = self
+            .routed_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .cloned();
+        let Some(state) = state else { return Ok(None) };
+        let mut state = state.lock().unwrap_or_else(|p| p.into_inner());
+        if !expected {
+            state.disposition = Some(RoutedDisposition::NoLongerExpected);
+        } else {
+            let captured = self
+                .captured_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&plan.key)
+                .map(|call| call.arguments.clone())
+                .ok_or_else(|| crate::restore::fault("routed tool capture absent"))?;
+            if !captured_arguments_match(&h, &captured) {
+                return Err(crate::restore::fault("saved routed tool arguments changed"));
+            }
+            if cancelled && !state.entered {
+                state.disposition = Some(RoutedDisposition::UnadmittedLocalAbort);
+            }
+            if state.terminal {
+                state.disposition = None;
+            }
+        }
+        let result = state.disposition;
+        let claimed = state.binding.is_some();
+        drop(state);
+        if result.is_none() && claimed {
+            self.require_routed_terminal(&plan.key)?;
+        }
+        drop(line);
+        Ok(result)
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn classify_skipped_routed_abort(
+        &self,
+        plan: &ToolEffectPlan<Telemetry>,
+    ) -> Result<(), HarnessRuntimeError> {
+        let mut permits =
+            PairedPermits::acquire(&self.lane.owner.settings_line, &self.lane.lane.line).await?;
+        let h = self.lane.load_raw().await?;
+        let expected = h.current.as_ref().is_some_and(|current| {
+            pi_harness_core::tool_batch::expects_effect(
+                current,
+                &self.lane.owner.session.metadata().base_metadata().id,
+                plan,
+            ) && matches!(&current.state, OperationState::Run(run)
+                    if matches!(run.control, Control::CancelRequested(_)))
+        });
+        if !expected || hydrated_arguments(&h, &plan.args_key).is_none() {
+            return Ok(());
+        }
+        let turn = StepId::new(plan.key.step_or_task_id.as_str())
+            .map_err(|_| crate::restore::fault("routed tool turn invalid"))?;
+        let candidate = self
+            .bindings
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&(turn, plan.source_index))
+            .cloned();
+        let Some(candidate) = candidate else {
+            return Ok(());
+        };
+        let snapshot = self
+            .lane
+            .owner
+            .tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .echo_snapshot(&candidate);
+        if let Some(snapshot) = snapshot {
+            self.routed_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .entry(plan.key.clone())
+                .or_insert_with(|| {
+                    Arc::new(Mutex::new(RoutedEffect {
+                        route: snapshot.route,
+                        binding: None,
+                        disposition: Some(RoutedDisposition::UnadmittedLocalAbort),
+                        terminal: false,
+                        entered: false,
+                        owner_released: false,
+                        cleanup: CleanupArbiter::new(),
+                    }))
+                });
+        }
+        permits.release();
+        Ok(())
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn cleanup_routed(
+        &self,
+        key: &EffectKey,
+        committed: bool,
+    ) -> Result<(), HarnessRuntimeError> {
+        self.cleanup_routed_with_policy(key, committed, false).await
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn cleanup_routed_raw(
+        &self,
+        key: &EffectKey,
+        committed: bool,
+    ) -> Result<(), HarnessRuntimeError> {
+        self.cleanup_routed_with_policy(key, committed, true).await
+    }
+
+    #[cfg(feature = "extensions")]
+    async fn cleanup_routed_with_policy(
+        &self,
+        key: &EffectKey,
+        committed: bool,
+        raw: bool,
+    ) -> Result<(), HarnessRuntimeError> {
+        let state = self
+            .routed_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        let Some(state) = state else { return Ok(()) };
+        let (route, binding, disposition, owner_released, cleanup) = {
+            let state = state.lock().unwrap_or_else(|p| p.into_inner());
+            (
+                state.route.clone(),
+                state.binding.clone(),
+                state.disposition,
+                state.owner_released,
+                state.cleanup.clone(),
+            )
+        };
+        // A competing external-completion exit must wait for the first exact
+        // owner transition and local view cleanup; entering is not success.
+        let Some(lease) = cleanup
+            .enter()
+            .await
+            .map_err(|()| self.line_fault(raw, "routed tool cleanup previously failed"))?
+        else {
+            return Ok(());
+        };
+        let peer_loss = disposition == Some(RoutedDisposition::PeerLost);
+        if peer_loss {
+            self.executed_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(key);
+            drop(self.retire_effect(key));
+        }
+        if let Some(binding) = &binding
+            && !owner_released
+        {
+            let owner = route.owner();
+            // The peer can retain T or lose its route between the Session
+            // read and the owner transition. Reclassify only this opaque B1.
+            let mut result = Err(DriverError::WrongBinding);
+            for _ in 0..3 {
+                result = match owner.binding_phase(binding) {
+                    _ if disposition == Some(RoutedDisposition::HostFault) => {
+                        owner.acknowledge_host_fault(binding)
+                    }
+                    Ok(LivePhase::TerminalReceived) => owner.retire(
+                        binding,
+                        if committed {
+                            RetireReason::Committed
+                        } else {
+                            RetireReason::NoLongerExpected
+                        },
+                    ),
+                    Ok(LivePhase::Open | LivePhase::CancelRequested) if !committed => {
+                        owner.fence_no_longer_expected(binding)
+                    }
+                    Ok(LivePhase::PeerLost) if !committed => owner.acknowledge_peer_lost(binding),
+                    Ok(_) => Err(DriverError::WrongBinding),
+                    Err(error) => Err(error),
+                };
+                if result != Err(DriverError::WrongBinding) {
+                    break;
+                }
+            }
+            if result.is_err() {
+                return Err(self.line_fault(raw, "routed tool binding cleanup failed"));
+            }
+        }
+        if committed || disposition != Some(RoutedDisposition::PeerLost) {
+            self.lane
+                .owner
+                .routed_pending
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(key);
+        }
+        if !peer_loss {
+            self.executed_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(key);
+            drop(self.retire_effect(key));
+        }
+        // Keep the completed cell as a drive-local tombstone. A concurrently
+        // finishing tool task must not mistake an absent map entry for a native
+        // call and publish ToolRaw after exact owner cleanup.
+        lease.complete();
+        Ok(())
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) fn routed_disposition(&self, key: &EffectKey) -> Option<RoutedDisposition> {
+        let state = self
+            .routed_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned()?;
+        state.lock().unwrap_or_else(|p| p.into_inner()).disposition
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn cleanup_all_routed(&self) -> Result<(), HarnessRuntimeError> {
+        let keys: Vec<_> = self
+            .routed_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .keys()
+            .cloned()
+            .collect();
+        for key in keys {
+            self.cleanup_routed(&key, false).await?;
+        }
+        Ok(())
+    }
+
     pub(crate) async fn declarations(
         &self,
         current: &CurrentOperation,
     ) -> Result<BTreeMap<SafeUnsigned, ToolDeclaration>, HarnessRuntimeError> {
+        self.declarations_with_policy(current, false).await
+    }
+    pub(crate) async fn declarations_with_policy(
+        &self,
+        current: &CurrentOperation,
+        raw: bool,
+    ) -> Result<BTreeMap<SafeUnsigned, ToolDeclaration>, HarnessRuntimeError> {
         let OperationState::Run(run) = &current.state else {
-            return Err(self.lane.owner.fail("tool operation kind invalid"));
+            return Err(self.line_fault(raw, "tool operation kind invalid"));
         };
         let RunPhase::Tools(tools) = &run.phase else {
             return Ok(BTreeMap::new());
@@ -77,13 +941,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .session
             .get_entries(std::slice::from_ref(&tools.batch.assistant_entry_id))
             .await
-            .map_err(|_| self.lane.owner.fail("tool source read failed"))?;
+            .map_err(|_| self.line_fault(raw, "tool source read failed"))?;
         let Some(Entry::Message(entry)) = entries.get(&tools.batch.assistant_entry_id) else {
-            return Err(self.lane.owner.fail("tool source absent"));
+            return Err(self.line_fault(raw, "tool source absent"));
         };
         let AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(assistant)) = &entry.message
         else {
-            return Err(self.lane.owner.fail("tool source kind invalid"));
+            return Err(self.line_fault(raw, "tool source kind invalid"));
         };
         let bindings = self
             .lane
@@ -98,7 +962,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let Some(pi_ai_core::AssistantContent::ToolCall(call)) =
                 assistant.content.get(index.get() as usize)
             else {
-                return Err(self.lane.owner.fail("tool source index invalid"));
+                return Err(self.line_fault(raw, "tool source index invalid"));
             };
             if let Some(binding) = bindings
                 .iter()
@@ -274,7 +1138,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         plan: &ToolEffectPlan<Telemetry>,
     ) -> Result<bool, HarnessRuntimeError> {
         let _line = self.lane.lane.line.acquire().await?;
-        let h = self.lane.load().await?;
+        let h = self.lane.load_raw().await?;
         Ok(h.current.as_ref().is_some_and(|current| {
             pi_harness_core::tool_batch::expects_effect(
                 current,
@@ -287,8 +1151,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         plan: &ToolEffectPlan<Telemetry>,
         check_current: bool,
-    ) -> Result<Option<(PreparedToolCall<AgentHarnessToolHandle<C>>, Arc<C>)>, HarnessRuntimeError>
-    {
+    ) -> Result<
+        Option<(
+            PreparedToolCall<AgentHarnessToolHandle<C>>,
+            Arc<C>,
+            CapturedArguments,
+            bool,
+        )>,
+        HarnessRuntimeError,
+    > {
         let call = self
             .source_call(&plan.assistant_entry_id, plan.source_index)
             .await?;
@@ -330,6 +1201,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             actual
         };
+        #[cfg(feature = "extensions")]
+        let was_routed = self
+            .lane
+            .owner
+            .tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .echo_snapshot(&binding)
+            .is_some();
+        #[cfg(not(feature = "extensions"))]
+        let was_routed = false;
         let register = self
             .lane
             .owner
@@ -338,7 +1220,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .await
             .map_err(|_| self.lane.owner.fail("saved tool arguments read failed"))?;
         let Some(Register::OperationToolArguments {
-            key, value: args, ..
+            key,
+            value: args,
+            seq,
         }) = register
         else {
             if !self.tool_is_current(plan).await? {
@@ -349,6 +1233,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         if key != plan.args_key {
             return Err(self.lane.owner.fail("saved tool arguments key mismatch"));
         }
+        let captured = CapturedArguments {
+            key: key.clone(),
+            value: args.clone(),
+            seq,
+        };
         Ok(Some((
             PreparedToolCall {
                 tool_call: call,
@@ -356,6 +1245,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 binding,
             },
             context,
+            captured,
+            was_routed,
         )))
     }
     async fn missing_binding_output(
@@ -367,7 +1258,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         // coherent capture below, never from this candidate read.
         let synthetic_prepared = self.prepared(&plan, false).await?;
         let _line = self.lane.lane.line.acquire().await?;
-        let h = self.lane.load().await?;
+        let h = self.lane.load_raw().await?;
         if !h.current.as_ref().is_some_and(|current| {
             pi_harness_core::tool_batch::expects_effect(
                 current,
@@ -378,7 +1269,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             return Ok(EffectOutput::NotStarted { key: plan.key });
         }
         let arguments = hydrated_arguments(&h, &plan.args_key)
-            .ok_or_else(|| self.lane.owner.fail("saved tool arguments absent"))?;
+            .ok_or_else(|| crate::restore::fault("saved tool arguments absent"))?;
         let old = self
             .captured_tools
             .lock()
@@ -387,8 +1278,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 plan.key.clone(),
                 CapturedToolCall {
                     arguments,
-                    prepared: synthetic_prepared
-                        .map(|(prepared, context)| (prepared.tool_call, prepared.binding, context)),
+                    prepared: synthetic_prepared.map(|(prepared, context, _, _)| {
+                        (prepared.tool_call, prepared.binding, context)
+                    }),
                 },
             );
         drop(old);
@@ -402,23 +1294,37 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self: &Arc<Self>,
         plan: ToolEffectPlan<Telemetry>,
     ) -> Result<EffectOutput, HarnessRuntimeError> {
-        let Some((prepared, context)) = self.prepared(&plan, true).await? else {
+        let Some((prepared, context, prepair_arguments, was_routed)) =
+            self.prepared(&plan, true).await?
+        else {
             return self.missing_binding_output(plan).await;
         };
-        let (replay, captured_arguments) = {
+        #[cfg(not(feature = "extensions"))]
+        let _ = (&prepair_arguments, was_routed);
+        let (replay, captured_arguments, route_snapshot) = {
+            #[cfg(feature = "extensions")]
+            let mut permits =
+                PairedPermits::acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                    .await?;
+            #[cfg(not(feature = "extensions"))]
             let _settings = self.lane.owner.settings_line.acquire().await?;
+            #[cfg(not(feature = "extensions"))]
             let _line = self.lane.lane.line.acquire().await?;
-            let h = self.lane.load().await?;
-            let expected=h.current.as_ref().is_some_and(|current| {
+            let h = self.lane.load_raw().await?;
+            let current_key = h.current.as_ref().is_some_and(|current| {
                 pi_harness_core::tool_batch::expects_effect(
                     current,
                     &self.lane.owner.session.metadata().base_metadata().id,
                     &plan,
-                ) && matches!(&current.state, OperationState::Run(run) if matches!(run.control, Control::Running(_)))
+                )
             });
-            if !expected {
+            if !current_key {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
+            let running = h.current.as_ref().is_some_and(|current| {
+                matches!(&current.state, OperationState::Run(run)
+                    if matches!(run.control, Control::Running(_)))
+            });
             // Telemetry uses the already-validated captured declaration; it
             // does not invoke another application descriptor callback.
             let replay = h
@@ -448,12 +1354,33 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
                 .clone();
+            #[cfg(feature = "extensions")]
+            let route_snapshot = self
+                .lane
+                .owner
+                .tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .echo_snapshot(&prepared.binding);
+            #[cfg(not(feature = "extensions"))]
+            let route_snapshot = ();
+            #[cfg(feature = "extensions")]
+            if (was_routed || route_snapshot.is_some())
+                && !captured_arguments_match(&h, &prepair_arguments)
+            {
+                return Err(crate::restore::fault(
+                    "saved routed tool arguments changed before claim",
+                ));
+            }
+            if !running {
+                return Ok(EffectOutput::NotStarted { key: plan.key });
+            }
             if !bindings
                 .iter()
                 .any(|binding| Arc::ptr_eq(binding, &prepared.binding))
             {
                 let arguments = hydrated_arguments(&h, &plan.args_key)
-                    .ok_or_else(|| self.lane.owner.fail("saved tool arguments absent"))?;
+                    .ok_or_else(|| crate::restore::fault("saved tool arguments absent"))?;
                 let old = self
                     .captured_tools
                     .lock()
@@ -469,6 +1396,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             )),
                         },
                     );
+                #[cfg(feature = "extensions")]
+                permits.release();
                 drop(old);
                 return Ok(EffectOutput::ToolRaw(ToolRawOutput {
                     key: plan.key,
@@ -477,12 +1406,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }));
             }
             let Some(arguments) = hydrated_arguments(&h, &plan.args_key) else {
-                return Err(self.lane.owner.fail("saved tool arguments absent"));
+                return Err(crate::restore::fault("saved tool arguments absent"));
             };
             if arguments.value != prepared.args {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
-            let old = self
+            let turn = StepId::new(plan.key.step_or_task_id.as_str())
+                .map_err(|_| crate::restore::fault("tool turn identity invalid"))?;
+            let displaced_capture = self
                 .captured_tools
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
@@ -497,15 +1428,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         )),
                     },
                 );
-            drop(old);
-            let turn = StepId::new(plan.key.step_or_task_id.as_str())
-                .map_err(|_| self.lane.owner.fail("tool turn identity invalid"))?;
-            let old = self
+            let displaced_binding = self
                 .bindings
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
                 .insert((turn, plan.source_index), prepared.binding.clone());
-            drop(old);
             self.executed_tools
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
@@ -538,8 +1465,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     args: pi_ai_core::JsonValue::Object(prepared.args.clone()),
                 }),
             );
-            (replay, arguments)
+            #[cfg(feature = "extensions")]
+            permits.release();
+            drop(displaced_binding);
+            drop(displaced_capture);
+            (replay, arguments, route_snapshot)
         };
+        #[cfg(not(feature = "extensions"))]
+        let _ = &route_snapshot;
         self.events().flush();
         let validator = ResultValidator {
             fx: self.as_ref(),
@@ -578,17 +1511,83 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let events = ToolEvents {
             fx: self.clone(),
             plan: plan.clone(),
-            arguments: captured_arguments,
+            arguments: captured_arguments.clone(),
             telemetry: span.clone(),
         };
-        let output = pi_agent_loop::execute_tool_call(
-            &prepared,
+        #[cfg(feature = "extensions")]
+        let routed_state = route_snapshot.map(|snapshot| {
+            let state = Arc::new(Mutex::new(RoutedEffect {
+                route: snapshot.route.clone(),
+                binding: None,
+                disposition: None,
+                terminal: false,
+                entered: false,
+                owner_released: false,
+                cleanup: CleanupArbiter::new(),
+            }));
+            self.routed_tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .insert(plan.key.clone(), state.clone());
+            (snapshot, state)
+        });
+        #[cfg(feature = "extensions")]
+        let execution_prepared = if let Some((snapshot, state)) = &routed_state {
+            let binding: AgentHarnessToolHandle<C> = Arc::new(RoutedTool {
+                fx: self.clone(),
+                plan: plan.clone(),
+                saved: captured_arguments.clone(),
+                source_id: prepared.tool_call.id.clone(),
+                original: prepared.binding.clone(),
+                snapshot: snapshot.clone(),
+                state: state.clone(),
+            });
+            PreparedToolCall {
+                tool_call: prepared.tool_call.clone(),
+                args: prepared.args.clone(),
+                binding,
+            }
+        } else {
+            PreparedToolCall {
+                tool_call: prepared.tool_call.clone(),
+                args: prepared.args.clone(),
+                binding: prepared.binding.clone(),
+            }
+        };
+        #[cfg(not(feature = "extensions"))]
+        let execution_prepared = PreparedToolCall {
+            tool_call: prepared.tool_call.clone(),
+            args: prepared.args.clone(),
+            binding: prepared.binding.clone(),
+        };
+        let execution = pi_agent_loop::execute_tool_call(
+            &execution_prepared,
             context.as_ref(),
             &TokenCancellation(self.cancellation.clone()),
             &events,
             &validator,
         )
-        .await?;
+        .await;
+        #[cfg(feature = "extensions")]
+        if routed_state.is_some() {
+            self.lane.owner.admission.check()?;
+        }
+        let output = execution?;
+        #[cfg(feature = "extensions")]
+        if routed_state.is_some()
+            && let Some(exit) = self.routed_exit(&plan).await?
+        {
+            return match exit {
+                RoutedDisposition::PeerLost => Err(HarnessRuntimeError::PeerLost),
+                RoutedDisposition::HostFault => {
+                    self.cleanup_routed(&plan.key, false).await?;
+                    Err(self.lane.owner.fail("extension tool host fault"))
+                }
+                RoutedDisposition::NoLongerExpected | RoutedDisposition::UnadmittedLocalAbort => {
+                    Ok(EffectOutput::NotStarted { key: plan.key })
+                }
+            };
+        }
         span.end(
             pi_telemetry::SpanAttributes::from([(
                 "pi.tool.is_error".into(),
@@ -601,7 +1600,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         // from this same stamped hydration: a separate read could observe an
         // external terminal's args deletion after the pending-state sample.
         let _line = self.lane.lane.line.acquire().await?;
-        let h = self.lane.load().await?;
+        let h = self.lane.load_raw().await?;
         let expected = h.current.as_ref().is_some_and(|current| {
             pi_harness_core::tool_batch::expects_effect(
                 current,
@@ -618,13 +1617,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .unwrap_or_else(|p| p.into_inner())
             .get(&plan.key)
             .map(|capture| capture.arguments.clone())
-            .ok_or_else(|| self.lane.owner.fail("tool execution capture absent"))?;
+            .ok_or_else(|| crate::restore::fault("tool execution capture absent"))?;
         if !captured_arguments_match(&h, &captured) {
-            return Err(self
-                .lane
-                .owner
-                .fail("saved tool arguments changed during execution"));
+            return Err(crate::restore::fault(
+                "saved tool arguments changed during execution",
+            ));
         }
+        #[cfg(feature = "extensions")]
+        self.require_routed_terminal(&plan.key)?;
         Ok(EffectOutput::ToolRaw(ToolRawOutput {
             key: plan.key,
             result: output.result,
@@ -643,7 +1643,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         // The manual gate may outlive a legitimate terminal transaction, which
         // removes saved arguments. Recheck authority before touching those facts.
         let _line = self.lane.lane.line.acquire().await?;
-        let h = self.lane.load().await?;
+        let h = self.lane.load_raw().await?;
         let expected = h.current.as_ref().is_some_and(|current| {
             pi_harness_core::tool_batch::expects_effect(
                 current,
@@ -666,7 +1666,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner());
             let captured = captures
                 .get(&plan.key)
-                .ok_or_else(|| self.lane.owner.fail("tool execution capture absent"))?;
+                .ok_or_else(|| crate::restore::fault("tool execution capture absent"))?;
             (
                 captured.arguments.clone(),
                 captured.prepared.as_ref().map(|(call, binding, context)| {
@@ -675,11 +1675,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             )
         };
         if !captured_arguments_match(&h, &arguments) {
-            return Err(self
-                .lane
-                .owner
-                .fail("saved tool arguments changed before finalization"));
+            return Err(crate::restore::fault(
+                "saved tool arguments changed before finalization",
+            ));
         }
+        #[cfg(feature = "extensions")]
+        self.require_routed_terminal(&plan.key)?;
         drop(_line);
         let Some((call, binding, context)) = captured_prepared else {
             return Ok(ToolSettlementOutput {

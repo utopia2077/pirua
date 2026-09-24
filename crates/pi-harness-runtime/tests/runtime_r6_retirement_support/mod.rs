@@ -290,6 +290,13 @@ pub struct AfterRawStamp {
     pub settle_entered: CancellationToken,
     pub settle_release: CancellationToken,
     pub settle_not_applied: AtomicUsize,
+    pub fail_next_post_commit_stamp: AtomicBool,
+    post_commit_stamp_armed: AtomicBool,
+    pub post_commit_fault_seen: AtomicBool,
+    pub args_read_target: AtomicUsize,
+    args_reads: AtomicUsize,
+    pub args_read_entered: CancellationToken,
+    pub args_read_release: CancellationToken,
 }
 impl AfterRawStamp {
     pub fn new(inner: Arc<MemoryStorage>, tool: Arc<Tool>) -> Self {
@@ -304,6 +311,13 @@ impl AfterRawStamp {
             settle_entered: CancellationToken::new(),
             settle_release: CancellationToken::new(),
             settle_not_applied: AtomicUsize::new(0),
+            fail_next_post_commit_stamp: AtomicBool::new(false),
+            post_commit_stamp_armed: AtomicBool::new(false),
+            post_commit_fault_seen: AtomicBool::new(false),
+            args_read_target: AtomicUsize::new(0),
+            args_reads: AtomicUsize::new(0),
+            args_read_entered: CancellationToken::new(),
+            args_read_release: CancellationToken::new(),
         }
     }
     pub fn for_checked_settlement(inner: Arc<MemoryStorage>, tool: Arc<Tool>) -> Self {
@@ -330,7 +344,17 @@ impl Storage for AfterRawStamp {
         namespace: RegisterNamespace,
         key: &'a str,
     ) -> BoxFuture<'a, Result<Option<Register>, StorageError>> {
-        self.inner.get_register(namespace, key)
+        Box::pin(async move {
+            let register = self.inner.get_register(namespace, key).await?;
+            if namespace == RegisterNamespace::OperationToolArguments {
+                let target = self.args_read_target.load(Ordering::SeqCst);
+                if target != 0 && self.args_reads.fetch_add(1, Ordering::SeqCst) + 1 == target {
+                    self.args_read_entered.cancel();
+                    self.args_read_release.cancelled().await;
+                }
+            }
+            Ok(register)
+        })
     }
     fn list_registers<'a>(
         &'a self,
@@ -386,6 +410,11 @@ impl CheckedStorage for AfterRawStamp {
             let outcome = self.inner.commit_checked(request, validator).await?;
             if matches!(outcome, ConditionalOutcome::NotApplied) {
                 self.settle_not_applied.fetch_add(1, Ordering::SeqCst);
+            } else if self
+                .fail_next_post_commit_stamp
+                .swap(false, Ordering::SeqCst)
+            {
+                self.post_commit_stamp_armed.store(true, Ordering::SeqCst);
             }
             Ok(outcome)
         })
@@ -397,6 +426,12 @@ impl RuntimeStorage for AfterRawStamp {
     }
     fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
         Box::pin(async move {
+            if self.post_commit_stamp_armed.swap(false, Ordering::SeqCst) {
+                self.post_commit_fault_seen.store(true, Ordering::SeqCst);
+                return Err(StorageError::Io(
+                    ErrorContext::new("injected post-commit hydration fault").unwrap(),
+                ));
+            }
             let stamp = self.inner.read_stamp().await?;
             if self.park_post_raw
                 && self.tool.raw_done.load(Ordering::SeqCst) == 1
@@ -432,6 +467,11 @@ impl RuntimeStorage for AfterRawStamp {
                 .await?;
             if matches!(outcome, ConditionalOutcome::NotApplied) {
                 self.settle_not_applied.fetch_add(1, Ordering::SeqCst);
+            } else if self
+                .fail_next_post_commit_stamp
+                .swap(false, Ordering::SeqCst)
+            {
+                self.post_commit_stamp_armed.store(true, Ordering::SeqCst);
             }
             Ok(outcome)
         })

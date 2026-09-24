@@ -70,6 +70,11 @@ impl MutationLine {
             done: false,
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn held_for_test(&self) -> bool {
+        lock_line(&self.state).held
+    }
 }
 
 fn lock_line(line: &Arc<Mutex<LineState>>) -> std::sync::MutexGuard<'_, LineState> {
