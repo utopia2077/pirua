@@ -331,6 +331,41 @@ fn oneof_replacement_and_last_scalar_match_prost() {
 }
 
 #[test]
+fn many_distinct_optional_message_parents_preserve_final_arm_and_reuse() {
+    // E1178's valid-input work witness: each profile is the first optional
+    // message field in a new CapabilityDeclaration. The former reverse lookup
+    // searched every preceding record on each of these misses.
+    let capability = delimited(3, &[]);
+    let mut manifest = Vec::new();
+    for _ in 0..4096 {
+        manifest.extend(delimited(4, &capability));
+    }
+    let mut body = delimited(3, &manifest);
+    body.extend(delimited(8, &[0x08, 0x11, 0x10, 0x02]));
+
+    let prost = v1_1::Envelope::decode(body.as_slice()).unwrap();
+    let Some(v1_1::envelope::Frame::StreamItem(item)) = prost.frame else {
+        panic!("final StreamItem")
+    };
+    assert_eq!((item.request_id, item.sequence), (17, 2));
+
+    let mut arena = IndexArena::try_new(nz(body.len())).unwrap();
+    let view = arena.scan_envelope(&body).unwrap();
+    assert_eq!(view.arm(), Some(8));
+    assert_eq!(view.body_len(), body.len());
+    let item = view.message(view.root(), 8).unwrap();
+    assert_eq!(view.scalar(item, 1), Some(17));
+    assert_eq!(view.scalar(item, 2), Some(2));
+
+    // Reusing the arena must clear the direct slots from the earlier scan.
+    let short = delimited(8, &[0x10, 0x03]);
+    let view = arena.scan_envelope(&short).unwrap();
+    let item = view.message(view.root(), 8).unwrap();
+    assert_eq!(view.scalar(item, 1), None);
+    assert_eq!(view.scalar(item, 2), Some(3));
+}
+
+#[test]
 fn every_earlier_arm_is_validated_before_a_later_good_item() {
     let valid = fixture("progress");
     for tag in 1..=12 {

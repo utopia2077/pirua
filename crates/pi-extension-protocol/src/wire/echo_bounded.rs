@@ -9,6 +9,9 @@ use std::num::NonZeroUsize;
 
 const NONE: usize = usize::MAX;
 const PROST_RECURSION_LIMIT: usize = 100;
+// ProtocolLimits has the largest known field tag in the active schema (17).
+// Slot zero is unused because protobuf field tags start at one.
+const LAST_RECORD_SLOTS: usize = 18;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScanError {
@@ -65,6 +68,10 @@ struct MessageState {
     kind: Kind,
     oneof_tag: u32,
     oneof_child: usize,
+    // A zero slot means absent; otherwise it is the field index plus one.
+    // Keeping these slots in the existing state array charges their capacity
+    // to IndexBudget and makes singular-field merge and view lookup constant.
+    last_record_by_tag: [usize; LAST_RECORD_SLOTS],
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -324,6 +331,7 @@ impl IndexArena {
             kind: root,
             oneof_tag: 0,
             oneof_child: NONE,
+            last_record_by_tag: [0; LAST_RECORD_SLOTS],
         };
         let mut stack = [ParseFrame::default(); PROST_RECURSION_LIMIT + 1];
         stack[0] = ParseFrame {
@@ -411,6 +419,7 @@ impl IndexArena {
                             kind,
                             oneof_tag: 0,
                             oneof_child: NONE,
+                            last_record_by_tag: [0; LAST_RECORD_SLOTS],
                         };
                         id
                     }
@@ -420,6 +429,7 @@ impl IndexArena {
                 if self.used_fields >= self.fields.len() {
                     return Err(ScanError::Limit);
                 }
+                let record_number = self.used_fields.checked_add(1).ok_or(ScanError::Limit)?;
                 self.fields.as_mut_slice()[self.used_fields] = FieldRecord {
                     parent: frame.state,
                     tag,
@@ -428,6 +438,10 @@ impl IndexArena {
                     child,
                 };
                 self.used_fields += 1;
+                *self.states.as_mut_slice()[frame.state]
+                    .last_record_by_tag
+                    .get_mut(tag as usize)
+                    .ok_or(ScanError::Limit)? = record_number;
                 if field.oneof {
                     let state = &mut self.states.as_mut_slice()[frame.state];
                     state.oneof_tag = tag;
@@ -473,11 +487,14 @@ impl IndexArena {
     }
 
     fn last_record(&self, parent: usize, tag: u32) -> Option<FieldRecord> {
-        self.fields.as_slice()[..self.used_fields]
-            .iter()
-            .rev()
-            .find(|record| record.parent == parent && record.tag == tag)
-            .copied()
+        let record_number = *self
+            .states
+            .as_slice()
+            .get(parent)?
+            .last_record_by_tag
+            .get(tag as usize)?;
+        let index = record_number.checked_sub(1)?;
+        (index < self.used_fields).then(|| self.fields.as_slice()[index])
     }
 }
 
