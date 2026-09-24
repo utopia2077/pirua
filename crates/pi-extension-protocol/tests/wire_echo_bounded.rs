@@ -3,7 +3,7 @@ use std::num::NonZeroUsize;
 use pi_extension_protocol::activation::HostAuthority;
 use pi_extension_protocol::endpoint::{Endpoint, EndpointEvent, SelectedEnvelope};
 use pi_extension_protocol::wire::echo_bounded::{
-    IndexArena, IndexBudget, ScanError, SelectedMinor,
+    IndexArena, IndexBudget, IndexStorage, ScanError, SelectedMinor,
 };
 use pi_extension_protocol::wire::{v1_0, v1_1};
 use prost::Message;
@@ -533,4 +533,160 @@ fn single_byte_fixture_mutations_agree_with_prost_envelope_validity() {
             }
         }
     }
+}
+
+#[test]
+fn typed_slot_checks_selected_layout_and_full_backing_before_borrow() {
+    assert_eq!(IndexBudget::checked(nz(1)).unwrap().capacity_bytes, 360);
+    assert_eq!(
+        IndexBudget::checked(nz(137)).unwrap().capacity_bytes,
+        27_560
+    );
+    assert_eq!(
+        IndexBudget::checked(nz(4096)).unwrap().capacity_bytes,
+        819_360
+    );
+
+    for (frame, expected) in [(1, 360), (137, 27_560), (4096, 819_360)] {
+        let slot = match frame {
+            1 => IndexStorage::<1, 2>::checked_slot_bytes(nz(frame), expected),
+            137 => IndexStorage::<137, 138>::checked_slot_bytes(nz(frame), expected),
+            _ => IndexStorage::<4096, 4097>::checked_slot_bytes(nz(frame), expected),
+        };
+        assert_eq!(slot, Ok(expected));
+        let below = match frame {
+            1 => IndexStorage::<1, 2>::checked_slot_bytes(nz(frame), expected - 1),
+            137 => IndexStorage::<137, 138>::checked_slot_bytes(nz(frame), expected - 1),
+            _ => IndexStorage::<4096, 4097>::checked_slot_bytes(nz(frame), expected - 1),
+        };
+        assert_eq!(below, Err(ScanError::Limit));
+    }
+    let mut small = IndexStorage::<1, 2>::new();
+    let mut small_arena = small.borrow(nz(1), 360).unwrap();
+    assert!(matches!(
+        small_arena.scan_envelope(&[0]),
+        Err(ScanError::Malformed)
+    ));
+
+    type Oversized = IndexStorage<256, 257>;
+    let full = std::mem::size_of::<Oversized>();
+    assert!(full > IndexBudget::checked(nz(137)).unwrap().capacity_bytes);
+    assert_eq!(
+        Oversized::checked_slot_bytes(nz(137), full - 1),
+        Err(ScanError::Limit)
+    );
+    assert_eq!(Oversized::checked_slot_bytes(nz(137), full), Ok(full));
+    assert_eq!(
+        IndexStorage::<136, 138>::checked_slot_bytes(nz(137), usize::MAX),
+        Err(ScanError::Limit)
+    );
+    assert_eq!(
+        IndexStorage::<137, 137>::checked_slot_bytes(nz(137), usize::MAX),
+        Err(ScanError::Limit)
+    );
+    assert_eq!(
+        Oversized::checked_slot_bytes(nz(usize::MAX), usize::MAX),
+        Err(ScanError::Limit)
+    );
+
+    let mut storage = Oversized::new();
+    assert!(matches!(
+        storage.borrow(nz(137), full - 1),
+        Err(ScanError::Limit)
+    ));
+    let arena = storage.borrow(nz(137), full).unwrap();
+    assert_eq!(
+        arena.selected_budget(),
+        IndexBudget::checked(nz(137)).unwrap()
+    );
+    assert_eq!(arena.slot_bytes(), full);
+}
+
+#[test]
+fn borrowed_scanner_preserves_prost_fixtures_and_reuses_after_malformed() {
+    let regular = fixture("progress");
+    let item = stream_item_from(&regular);
+    let mut split = delimited(8, &[0x08, 0x11]);
+    split.extend(delimited(8, &delimited(3, &item.payload)));
+    let mut replaced = delimited(8, &[0x08, 0x11]);
+    replaced.extend(delimited(10, &[0x08, 0x11]));
+    replaced.extend(delimited(8, &[0x10, 0x03]));
+    let mut storage = IndexStorage::<256, 257>::new();
+    let slot_bytes = std::mem::size_of_val(&storage);
+    let mut arena = storage.borrow(nz(256), slot_bytes).unwrap();
+
+    for body in [&regular, &split, &replaced] {
+        let expected = stream_item_from(body);
+        let view = arena.scan_envelope(body).unwrap();
+        let item = view.message(view.root(), 8).unwrap();
+        assert_eq!(view.arm(), Some(8));
+        assert_eq!(view.body_len(), body.len());
+        assert_eq!(view.scalar(item, 1).unwrap_or(0), expected.request_id);
+        assert_eq!(view.scalar(item, 2).unwrap_or(0), expected.sequence);
+        assert_eq!(view.bytes(item, 3).unwrap_or(&[]), expected.payload);
+    }
+    assert_eq!(split.len(), 139);
+    assert_eq!(
+        v1_0::Envelope::decode(split.as_slice())
+            .unwrap()
+            .encoded_len(),
+        137
+    );
+
+    let grouped = [vec![0x7b, 0x78, 0x01, 0x7c], regular.clone()].concat();
+    assert!(v1_1::Envelope::decode(grouped.as_slice()).is_ok());
+    assert_eq!(arena.scan_envelope(&grouped).unwrap().arm(), Some(8));
+    let malformed_earlier = [delimited(6, &[0x80]), regular.clone()].concat();
+    assert!(v1_1::Envelope::decode(malformed_earlier.as_slice()).is_err());
+    assert!(matches!(
+        arena.scan_envelope(&malformed_earlier),
+        Err(ScanError::Malformed)
+    ));
+
+    let malformed = [0x42, 0x01, 0x80];
+    assert!(matches!(
+        arena.scan_envelope(&malformed),
+        Err(ScanError::Malformed)
+    ));
+    let view = arena.scan_envelope(&regular).unwrap();
+    assert_eq!(view.arm(), Some(8));
+    let payload = item.payload;
+    let progress = arena.scan_tool_progress(&payload).unwrap();
+    assert!(progress.has_field(progress.root(), 1));
+    let mut with_zero = payload.clone();
+    with_zero.extend([0x10, 0x00]);
+    assert!(matches!(
+        arena.scan_selected_tool_progress(&with_zero, SelectedMinor::V1_0),
+        Err(ScanError::UnsupportedVariant)
+    ));
+    assert!(
+        arena
+            .scan_selected_tool_progress(&with_zero, SelectedMinor::V1_1)
+            .is_ok()
+    );
+}
+
+#[test]
+fn borrowed_scanner_keeps_transmitted_length_for_selected_1_0_counterexample() {
+    let mut error = vec![0x08, 0xff, 0xff, 0xff, 0xff, 0x0f];
+    error.extend(delimited(2, &vec![b'x'; 4078]));
+    let mut end = vec![0x08, 0x11];
+    end.extend(delimited(3, &error));
+    let body = delimited(9, &end);
+    assert_eq!(body.len(), 4095);
+    assert_eq!(
+        v1_1::Envelope::decode(body.as_slice())
+            .unwrap()
+            .encoded_len(),
+        4100
+    );
+
+    let mut storage = IndexStorage::<4096, 4097>::new();
+    let mut arena = storage.borrow(nz(4096), 819_360).unwrap();
+    let view = arena.scan_envelope(&body).unwrap();
+    assert_eq!(view.arm(), Some(9));
+    assert_eq!(view.body_len(), 4095);
+    let end = view.message(view.root(), 9).unwrap();
+    let error = view.message(end, 3).unwrap();
+    assert_eq!(view.scalar(error, 1), Some(u64::from(u32::MAX)));
 }

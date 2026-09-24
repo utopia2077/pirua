@@ -27,8 +27,8 @@ pub enum SelectedMinor {
     V1_1,
 }
 
-/// Minimum requested payload for the two scanner arrays. `IndexArena::budget`
-/// reports actual retained Vec capacity after allocation, which may be larger.
+/// Minimum requested payload for the selected frame allowance. Legacy
+/// `IndexArena::budget` reports actual retained Vec capacity instead.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IndexBudget {
     pub field_capacity: usize,
@@ -63,6 +63,16 @@ struct FieldRecord {
     child: usize,
 }
 
+impl FieldRecord {
+    const EMPTY: Self = Self {
+        parent: 0,
+        tag: 0,
+        start: 0,
+        end: 0,
+        child: NONE,
+    };
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 struct MessageState {
     kind: Kind,
@@ -72,6 +82,15 @@ struct MessageState {
     // Keeping these slots in the existing state array charges their capacity
     // to IndexBudget and makes singular-field merge and view lookup constant.
     last_record_by_tag: [usize; LAST_RECORD_SLOTS],
+}
+
+impl MessageState {
+    const EMPTY: Self = Self {
+        kind: Kind::Envelope,
+        oneof_tag: 0,
+        oneof_child: NONE,
+        last_record_by_tag: [0; LAST_RECORD_SLOTS],
+    };
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -212,13 +231,89 @@ struct ParseFrame {
     is_group: bool,
 }
 
-/// Reusable fallibly allocated index; scan performs no heap allocation. The
-/// retained capacity is measured, since Vec may reserve more than requested.
+/// Opaque, initialized fixed storage for a future owner-accounted index lease.
+/// The arrays are disjoint and aligned by Rust's type system. Construct this
+/// during trusted pool initialization, before accepting peer-controlled work.
+pub struct IndexStorage<const NF: usize, const NS: usize> {
+    fields: [FieldRecord; NF],
+    states: [MessageState; NS],
+}
+
+impl<const NF: usize, const NS: usize> IndexStorage<NF, NS> {
+    pub const fn new() -> Self {
+        Self {
+            fields: [FieldRecord::EMPTY; NF],
+            states: [MessageState::EMPTY; NS],
+        }
+    }
+
+    /// Full backing charge, including unused entries and struct padding. A
+    /// future owner must admit this charge before acquiring a storage lease.
+    pub fn checked_slot_bytes(
+        frame_bytes: NonZeroUsize,
+        max_retained_bytes: usize,
+    ) -> Result<usize, ScanError> {
+        let selected = IndexBudget::checked(frame_bytes)?;
+        if NF < selected.field_capacity || NS < selected.state_capacity {
+            return Err(ScanError::Limit);
+        }
+        Layout::array::<FieldRecord>(NF).map_err(|_| ScanError::Limit)?;
+        Layout::array::<MessageState>(NS).map_err(|_| ScanError::Limit)?;
+        let bytes = Layout::new::<Self>().size();
+        if bytes > isize::MAX as usize || bytes > max_retained_bytes {
+            return Err(ScanError::Limit);
+        }
+        Ok(bytes)
+    }
+
+    /// Bind a checked prefix. The exclusive borrow lasts through every view
+    /// made by the arena; the caller retains responsibility for its pool lease.
+    pub fn borrow(
+        &mut self,
+        frame_bytes: NonZeroUsize,
+        max_retained_bytes: usize,
+    ) -> Result<BorrowedIndexArena<'_>, ScanError> {
+        let slot_bytes = Self::checked_slot_bytes(frame_bytes, max_retained_bytes)?;
+        let selected = IndexBudget::checked(frame_bytes)?;
+        Ok(BorrowedIndexArena {
+            fields: &mut self.fields[..selected.field_capacity],
+            states: &mut self.states[..selected.state_capacity],
+            selected,
+            slot_bytes,
+        })
+    }
+}
+
+impl<const NF: usize, const NS: usize> Default for IndexStorage<NF, NS> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Scanner borrowing a checked prefix of an opaque fixed slot. This is an
+/// inert protocol API; it does not reserve an owner permit or acquire a pool.
+pub struct BorrowedIndexArena<'storage> {
+    fields: &'storage mut [FieldRecord],
+    states: &'storage mut [MessageState],
+    selected: IndexBudget,
+    slot_bytes: usize,
+}
+
+impl BorrowedIndexArena<'_> {
+    pub fn selected_budget(&self) -> IndexBudget {
+        self.selected
+    }
+
+    pub fn slot_bytes(&self) -> usize {
+        self.slot_bytes
+    }
+}
+
+/// Legacy allocating scanner factory. Its Vec reserves can exceed the checked
+/// ceiling before capacity is measured; it is not an owner-bounded path.
 pub struct IndexArena {
     fields: Vec<FieldRecord>,
     states: Vec<MessageState>,
-    used_fields: usize,
-    used_states: usize,
     retained_bytes: usize,
 }
 
@@ -265,8 +360,6 @@ impl IndexArena {
         Ok(Self {
             fields,
             states,
-            used_fields: 0,
-            used_states: 0,
             retained_bytes,
         })
     }
@@ -322,12 +415,82 @@ impl IndexArena {
     }
 
     fn scan<'a>(&'a mut self, body: &'a [u8], root: Kind) -> Result<IndexedMessage<'a>, ScanError> {
+        ScanCore::new(&mut self.fields[..], &mut self.states[..]).scan(body, root)
+    }
+}
+
+impl BorrowedIndexArena<'_> {
+    pub fn scan_envelope<'a>(
+        &'a mut self,
+        body: &'a [u8],
+    ) -> Result<IndexedMessage<'a>, ScanError> {
+        let view = self.scan(body, Kind::Envelope)?;
+        if view.arm().is_none() {
+            return Err(ScanError::Malformed);
+        }
+        Ok(view)
+    }
+
+    /// Parse the final StreamItem payload separately, after taking its borrowed
+    /// bytes and dropping the Envelope view. This raw view exposes presence;
+    /// `scan_selected_tool_progress` applies the selected-minor rule.
+    pub fn scan_tool_progress<'a>(
+        &'a mut self,
+        payload: &'a [u8],
+    ) -> Result<IndexedMessage<'a>, ScanError> {
+        self.scan(payload, Kind::ToolProgress)
+    }
+
+    /// Mirrors the existing 1.0 probe: any v1.1 percent field occurrence,
+    /// including present zero or repeated values, is unsupported in 1.0.
+    pub fn scan_selected_tool_progress<'a>(
+        &'a mut self,
+        payload: &'a [u8],
+        minor: SelectedMinor,
+    ) -> Result<IndexedMessage<'a>, ScanError> {
+        let view = self.scan_tool_progress(payload)?;
+        if minor == SelectedMinor::V1_0 && view.has_field(view.root(), 2) {
+            return Err(ScanError::UnsupportedVariant);
+        }
+        Ok(view)
+    }
+
+    pub fn scan_tool_result<'a>(
+        &'a mut self,
+        payload: &'a [u8],
+    ) -> Result<IndexedMessage<'a>, ScanError> {
+        self.scan(payload, Kind::InvokeToolResult)
+    }
+
+    fn scan<'a>(&'a mut self, body: &'a [u8], root: Kind) -> Result<IndexedMessage<'a>, ScanError> {
+        ScanCore::new(&mut self.fields[..], &mut self.states[..]).scan(body, root)
+    }
+}
+
+struct ScanCore<'a> {
+    fields: &'a mut [FieldRecord],
+    states: &'a mut [MessageState],
+    used_fields: usize,
+    used_states: usize,
+}
+
+impl<'a> ScanCore<'a> {
+    fn new(fields: &'a mut [FieldRecord], states: &'a mut [MessageState]) -> Self {
+        Self {
+            fields,
+            states,
+            used_fields: 0,
+            used_states: 0,
+        }
+    }
+
+    fn scan(mut self, body: &'a [u8], root: Kind) -> Result<IndexedMessage<'a>, ScanError> {
         if body.len() > self.fields.len() {
             return Err(ScanError::Limit);
         }
         self.used_fields = 0;
         self.used_states = 1;
-        self.states.as_mut_slice()[0] = MessageState {
+        self.states[0] = MessageState {
             kind: root,
             oneof_tag: 0,
             oneof_child: NONE,
@@ -379,7 +542,7 @@ impl IndexArena {
             let field = if frame.is_group {
                 None
             } else {
-                spec(self.states.as_slice()[frame.state].kind, tag)
+                spec(self.states[frame.state].kind, tag)
             };
             if let Some(field) = field {
                 let expected = match field.ty {
@@ -400,7 +563,7 @@ impl IndexArena {
                     let previous = if field.repeated {
                         None
                     } else if field.oneof {
-                        let state = self.states.as_slice()[frame.state];
+                        let state = self.states[frame.state];
                         (state.oneof_tag == tag && state.oneof_child != NONE)
                             .then_some(state.oneof_child)
                     } else {
@@ -415,7 +578,7 @@ impl IndexArena {
                         }
                         let id = self.used_states;
                         self.used_states += 1;
-                        self.states.as_mut_slice()[id] = MessageState {
+                        self.states[id] = MessageState {
                             kind,
                             oneof_tag: 0,
                             oneof_child: NONE,
@@ -430,7 +593,7 @@ impl IndexArena {
                     return Err(ScanError::Limit);
                 }
                 let record_number = self.used_fields.checked_add(1).ok_or(ScanError::Limit)?;
-                self.fields.as_mut_slice()[self.used_fields] = FieldRecord {
+                self.fields[self.used_fields] = FieldRecord {
                     parent: frame.state,
                     tag,
                     start,
@@ -438,12 +601,12 @@ impl IndexArena {
                     child,
                 };
                 self.used_fields += 1;
-                *self.states.as_mut_slice()[frame.state]
+                *self.states[frame.state]
                     .last_record_by_tag
                     .get_mut(tag as usize)
                     .ok_or(ScanError::Limit)? = record_number;
                 if field.oneof {
-                    let state = &mut self.states.as_mut_slice()[frame.state];
+                    let state = &mut self.states[frame.state];
                     state.oneof_tag = tag;
                     state.oneof_child = child;
                 }
@@ -481,7 +644,10 @@ impl IndexArena {
         }
         Ok(IndexedMessage {
             body,
-            arena: self,
+            fields: self.fields,
+            states: self.states,
+            used_fields: self.used_fields,
+            used_states: self.used_states,
             root: 0,
         })
     }
@@ -489,12 +655,11 @@ impl IndexArena {
     fn last_record(&self, parent: usize, tag: u32) -> Option<FieldRecord> {
         let record_number = *self
             .states
-            .as_slice()
             .get(parent)?
             .last_record_by_tag
             .get(tag as usize)?;
         let index = record_number.checked_sub(1)?;
-        (index < self.used_fields).then(|| self.fields.as_slice()[index])
+        (index < self.used_fields).then(|| self.fields[index])
     }
 }
 
@@ -556,7 +721,10 @@ fn read_value(
 /// used after the arena is reused. All accessors check IDs and field types.
 pub struct IndexedMessage<'a> {
     body: &'a [u8],
-    arena: &'a IndexArena,
+    fields: &'a [FieldRecord],
+    states: &'a [MessageState],
+    used_fields: usize,
+    used_states: usize,
     root: usize,
 }
 
@@ -571,8 +739,8 @@ impl IndexedMessage<'_> {
         MessageId(self.root)
     }
     pub fn arm(&self) -> Option<u32> {
-        (self.arena.states.as_slice()[self.root].kind == Kind::Envelope)
-            .then_some(self.arena.states.as_slice()[self.root].oneof_tag)
+        (self.states[self.root].kind == Kind::Envelope)
+            .then_some(self.states[self.root].oneof_tag)
             .filter(|tag| *tag != 0)
     }
     pub fn has_field(&self, parent: MessageId, tag: u32) -> bool {
@@ -582,7 +750,7 @@ impl IndexedMessage<'_> {
     /// bool, enum or zigzag conversion when constructing selected DTO values.
     pub fn scalar(&self, parent: MessageId, tag: u32) -> Option<u64> {
         let record = self.record(parent, tag)?;
-        let kind = self.arena.states.as_slice().get(parent.0)?.kind;
+        let kind = self.states.get(parent.0)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::Varint) {
             return None;
         }
@@ -591,7 +759,7 @@ impl IndexedMessage<'_> {
     }
     pub fn fixed64(&self, parent: MessageId, tag: u32) -> Option<u64> {
         let record = self.record(parent, tag)?;
-        let kind = self.arena.states.as_slice().get(parent.0)?.kind;
+        let kind = self.states.get(parent.0)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::Fixed64) {
             return None;
         }
@@ -601,7 +769,7 @@ impl IndexedMessage<'_> {
     }
     pub fn bytes(&self, parent: MessageId, tag: u32) -> Option<&[u8]> {
         let record = self.record(parent, tag)?;
-        let kind = self.arena.states.as_slice().get(parent.0)?.kind;
+        let kind = self.states.get(parent.0)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::Bytes | FieldType::String) {
             return None;
         }
@@ -609,7 +777,7 @@ impl IndexedMessage<'_> {
     }
     pub fn text(&self, parent: MessageId, tag: u32) -> Option<&str> {
         let record = self.record(parent, tag)?;
-        let kind = self.arena.states.as_slice().get(parent.0)?.kind;
+        let kind = self.states.get(parent.0)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::String) {
             return None;
         }
@@ -625,13 +793,11 @@ impl IndexedMessage<'_> {
         tag: u32,
     ) -> impl Iterator<Item = MessageId> + '_ {
         let repeated = self
-            .arena
             .states
-            .as_slice()
             .get(parent.0)
             .and_then(|state| spec(state.kind, tag))
             .is_some_and(|field| field.repeated);
-        self.arena.fields.as_slice()[..self.arena.used_fields]
+        self.fields[..self.used_fields]
             .iter()
             .filter(move |record| {
                 repeated && record.parent == parent.0 && record.tag == tag && record.child != NONE
@@ -639,14 +805,23 @@ impl IndexedMessage<'_> {
             .map(|record| MessageId(record.child))
     }
     fn record(&self, parent: MessageId, tag: u32) -> Option<FieldRecord> {
-        let state = self.arena.states.as_slice().get(parent.0)?;
-        if parent.0 >= self.arena.used_states {
+        let state = self.states.get(parent.0)?;
+        if parent.0 >= self.used_states {
             return None;
         }
         let field = spec(state.kind, tag)?;
         if field.oneof && state.oneof_tag != tag {
             return None;
         }
-        self.arena.last_record(parent.0, tag)
+        self.last_record(parent.0, tag)
+    }
+    fn last_record(&self, parent: usize, tag: u32) -> Option<FieldRecord> {
+        let record_number = *self
+            .states
+            .get(parent)?
+            .last_record_by_tag
+            .get(tag as usize)?;
+        let index = record_number.checked_sub(1)?;
+        (index < self.used_fields).then(|| self.fields[index])
     }
 }
