@@ -12,5 +12,6 @@ pub mod v1_1 {
     include!("generated/v1_1.rs");
 }
 
+pub mod echo_bounded;
 pub mod framing;
 pub mod value;
