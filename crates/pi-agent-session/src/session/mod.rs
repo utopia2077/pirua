@@ -9,6 +9,100 @@ use pi_telemetry::{
 };
 use std::sync::Arc;
 
+/// An owned, one-shot description of a checked Session write attempt.
+///
+/// It contains no transaction or storage borrow. The caller supplies the original
+/// telemetry parent when emitting it after releasing any external locks.
+#[must_use = "emit earned write observations after releasing external locks"]
+pub struct WriteObservation {
+    count: usize,
+    kinds: Vec<String>,
+    outcome: WriteObservationOutcome,
+}
+
+enum WriteObservationOutcome {
+    Applied { seqs: Option<(u64, u64)> },
+    StorageError,
+}
+
+impl WriteObservation {
+    fn for_result(
+        transaction: &Transaction,
+        result: &Result<ConditionalOutcome, CheckedCommitError<SessionError>>,
+    ) -> Option<Self> {
+        let outcome = match result {
+            Ok(ConditionalOutcome::Applied(commit)) => WriteObservationOutcome::Applied {
+                seqs: commit
+                    .seqs
+                    .first()
+                    .zip(commit.seqs.last())
+                    .map(|(first, last)| (first.get(), last.get())),
+            },
+            Err(CheckedCommitError::Storage(_)) => WriteObservationOutcome::StorageError,
+            _ => return None,
+        };
+        Some(Self::new(transaction, outcome))
+    }
+
+    fn new(transaction: &Transaction, outcome: WriteObservationOutcome) -> Self {
+        Self {
+            count: transaction.writes.len(),
+            kinds: transaction
+                .writes
+                .iter()
+                .map(|write| match write {
+                    Write::Entry(_) => "entry".to_owned(),
+                    Write::Usage(_) => "usage".to_owned(),
+                    Write::SetRegister(_) | Write::DeleteRegister(_) => "register".to_owned(),
+                })
+                .collect(),
+            outcome,
+        }
+    }
+
+    /// Emit the retrospective write span exactly once under `telemetry`.
+    /// Dropping the receipt without calling this method emits nothing.
+    pub fn emit(self, telemetry: &dyn TelemetryContext) {
+        fn number(value: f64) -> AttributeValue {
+            AttributeValue::Number(
+                FiniteTelemetryNumber::new(value).expect("bounded integer is finite"),
+            )
+        }
+        let span = telemetry.start_span(SpanOptions {
+            name: "pi.session.write".to_owned(),
+            attributes: [
+                (
+                    "pi.session.item_count".to_owned(),
+                    number(self.count as f64),
+                ),
+                (
+                    "pi.session.item_kinds".to_owned(),
+                    AttributeValue::Strings(self.kinds),
+                ),
+            ]
+            .into(),
+        });
+        match self.outcome {
+            WriteObservationOutcome::Applied { seqs } => {
+                if let Some((first, last)) = seqs {
+                    span.set_attributes(
+                        &[
+                            ("first_seq".to_owned(), number(first as f64)),
+                            ("last_seq".to_owned(), number(last as f64)),
+                        ]
+                        .into(),
+                    );
+                }
+                span.set_status(SpanStatus::Ok);
+            }
+            WriteObservationOutcome::StorageError => {
+                span.set_status(SpanStatus::Error { error: None });
+            }
+        }
+        span.finish();
+    }
+}
+
 /// Generic session handle; clones and lane views share exactly one backend incarnation.
 pub struct RuntimeSession<S: CheckedStorage, M: SessionMetadataRecord = SessionMetadata> {
     pub(crate) inner: Arc<Inner<S, M>>,
@@ -86,71 +180,15 @@ impl<S: CheckedStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
         let validator = SessionPublication {
             transaction: &request.transaction,
         };
-        let count = request.transaction.writes.len();
-        let kinds = request
-            .transaction
-            .writes
-            .iter()
-            .map(|write| {
-                match write {
-                    Write::Entry(_) => "entry",
-                    Write::Usage(_) => "usage",
-                    Write::SetRegister(_) | Write::DeleteRegister(_) => "register",
-                }
-                .to_owned()
-            })
-            .collect();
         let result = self
             .inner
             .storage
             .commit_checked(request.clone(), &validator)
             .await;
-        match &result {
-            Ok(ConditionalOutcome::Applied(commit)) => {
-                Self::observe(telemetry, count, kinds, Some(commit))
-            }
-            Err(CheckedCommitError::Storage(_)) => Self::observe(telemetry, count, kinds, None),
-            _ => (),
+        if let Some(observation) = WriteObservation::for_result(&request.transaction, &result) {
+            observation.emit(telemetry);
         }
         result
-    }
-    fn observe(
-        telemetry: &dyn TelemetryContext,
-        count: usize,
-        kinds: Vec<String>,
-        result: Option<&CommitResult>,
-    ) {
-        fn number(value: f64) -> AttributeValue {
-            AttributeValue::Number(
-                FiniteTelemetryNumber::new(value).expect("bounded integer is finite"),
-            )
-        }
-        let span = telemetry.start_span(SpanOptions {
-            name: "pi.session.write".to_owned(),
-            attributes: [
-                ("pi.session.item_count".to_owned(), number(count as f64)),
-                (
-                    "pi.session.item_kinds".to_owned(),
-                    AttributeValue::Strings(kinds),
-                ),
-            ]
-            .into(),
-        });
-        if let Some(result) = result {
-            if let (Some(first), Some(last)) = (result.seqs.first(), result.seqs.last()) {
-                span.set_attributes(
-                    &[
-                        ("first_seq".to_owned(), number(first.get() as f64)),
-                        ("last_seq".to_owned(), number(last.get() as f64)),
-                    ]
-                    .into(),
-                );
-            }
-            span.set_status(SpanStatus::Ok);
-        } else {
-            span.set_status(SpanStatus::Error { error: None });
-        }
-        span.finish();
     }
     pub(crate) async fn write(&self, tx: Transaction) -> Result<CommitResult, SessionError> {
         match self
@@ -376,6 +414,38 @@ impl<S: RuntimeStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
         request: ConditionalCommit,
         telemetry: &dyn TelemetryContext,
     ) -> Result<ConditionalOutcome, CheckedCommitError<SessionError>> {
+        let (result, observation) = self
+            .commit_prepared_conditional_with_observation(prepared, request)
+            .await;
+        if let Some(observation) = observation {
+            observation.emit(telemetry);
+        }
+        result
+    }
+
+    /// Publish a prepared checked transaction and return its exact outcome with an
+    /// owned write observation. No telemetry callback runs in this method.
+    /// Applied and checked storage errors earn a receipt; refusal and rejection do not.
+    pub async fn commit_prepared_conditional_with_observation(
+        &self,
+        prepared: PreparedEntries,
+        request: ConditionalCommit,
+    ) -> (
+        Result<ConditionalOutcome, CheckedCommitError<SessionError>>,
+        Option<WriteObservation>,
+    ) {
+        let result = self
+            .commit_prepared_conditional_unobserved(prepared, &request)
+            .await;
+        let observation = WriteObservation::for_result(&request.transaction, &result);
+        (result, observation)
+    }
+
+    async fn commit_prepared_conditional_unobserved(
+        &self,
+        prepared: PreparedEntries,
+        request: &ConditionalCommit,
+    ) -> Result<ConditionalOutcome, CheckedCommitError<SessionError>> {
         self.inner
             .codec
             .validate_transaction(&request.transaction)
@@ -383,33 +453,27 @@ impl<S: RuntimeStorage + 'static, M: SessionMetadataRecord> RuntimeSession<S, M>
         let validator = SessionPublication {
             transaction: &request.transaction,
         };
-        let count = request.transaction.writes.len();
-        let kinds = request
-            .transaction
-            .writes
-            .iter()
-            .map(|write| {
-                match write {
-                    Write::Entry(_) => "entry",
-                    Write::Usage(_) => "usage",
-                    Write::SetRegister(_) | Write::DeleteRegister(_) => "register",
-                }
-                .to_owned()
-            })
-            .collect();
-        let result = self
-            .inner
+        self.inner
             .storage
             .commit_prepared_checked(prepared, request.clone(), &validator)
-            .await;
-        match &result {
-            Ok(ConditionalOutcome::Applied(commit)) => {
-                Self::observe(telemetry, count, kinds, Some(commit))
-            }
-            Err(CheckedCommitError::Storage(_)) => Self::observe(telemetry, count, kinds, None),
-            _ => (),
-        }
-        result
+            .await
+    }
+
+    /// Describe one approved routed write attempt stopped by a `read_stamp` or
+    /// `prepare_entries` storage error before checked commit. A stale `Ok(None)`
+    /// preparation has no error and must not use this helper.
+    ///
+    /// The same transaction codec check as commit runs first, so a rejected
+    /// transaction cannot gain a failed write observation.
+    pub fn write_observation_for_preparation_error(
+        &self,
+        transaction: &Transaction,
+    ) -> Result<WriteObservation, SessionError> {
+        self.inner.codec.validate_transaction(transaction)?;
+        Ok(WriteObservation::new(
+            transaction,
+            WriteObservationOutcome::StorageError,
+        ))
     }
 
     /// Claim this backend incarnation, including through independent Session wrappers.
