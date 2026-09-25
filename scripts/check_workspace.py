@@ -16,6 +16,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 TOPOLOGY_PATH = ROOT / "workspace-topology.toml"
+APPROVED_DEV_EDGES = {("pi-harness-runtime", "pi-agent-sqlite")}
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -158,6 +159,7 @@ def validate_dependency_declarations(
     workspace_packages: list[dict[str, Any]],
     crate_names: set[str],
     expected_edges: dict[tuple[str, str], dict[str, Any]],
+    expected_dev_edges: set[tuple[str, str]],
     errors: list[str],
 ) -> None:
     expected_paths = {
@@ -187,7 +189,7 @@ def validate_dependency_declarations(
                 )
 
     declared_edges = set(declarations)
-    expected_identities = set(expected_edges)
+    expected_identities = set(expected_edges) | expected_dev_edges
     missing_edges = expected_identities - declared_edges
     extra_edges = declared_edges - expected_identities
     if missing_edges:
@@ -203,10 +205,16 @@ def validate_dependency_declarations(
                 f"internal edge must have exactly one declaration: {consumer} -> {dependency} "
                 f"has {len(records)}"
             )
-        expected_optional = expected_edges[identity].get("kind") == "optional"
+        dev_only = identity in expected_dev_edges
+        expected_optional = (
+            not dev_only and expected_edges[identity].get("kind") == "optional"
+        )
         for record in records:
-            if record.get("kind") is not None:
-                errors.append(f"{consumer} -> {dependency} kind must be normal")
+            if record.get("kind") != ("dev" if dev_only else None):
+                expected_kind = "dev" if dev_only else "normal"
+                errors.append(
+                    f"{consumer} -> {dependency} kind must be {expected_kind}"
+                )
             if record.get("target") is not None:
                 errors.append(f"{consumer} -> {dependency} must be untargeted")
             if record.get("rename") is not None:
@@ -385,11 +393,29 @@ def validate_workspace(
         if identity in expected_edges:
             errors.append(f"duplicate topology edge: {identity[0]} -> {identity[1]}")
         expected_edges[identity] = edge
+    expected_dev_edges: set[tuple[str, str]] = set()
+    for edge in topology.get("dev_edge", []):
+        identity = (edge.get("consumer"), edge.get("dependency"))
+        if (
+            identity[0] not in crate_names
+            or identity[1] not in crate_names
+            or identity[0] == identity[1]
+            or identity in expected_edges
+            or identity in expected_dev_edges
+        ):
+            errors.append(f"invalid or duplicate dev edge: {identity[0]} -> {identity[1]}")
+            continue
+        expected_dev_edges.add(identity)
+    if expected_dev_edges != APPROVED_DEV_EDGES:
+        errors.append(
+            "dev-only edge inventory must be exactly "
+            + formatted_edges(APPROVED_DEV_EDGES)
+        )
     required_edges = {
         identity for identity, edge in expected_edges.items() if edge.get("kind") == "required"
     }
     all_edges = set(expected_edges)
-    cycle = cycle_in(all_edges, crates)
+    cycle = cycle_in(all_edges | expected_dev_edges, crates)
     if cycle is not None:
         errors.append(f"topology graph contains a cycle involving: {', '.join(cycle)}")
 
@@ -398,7 +424,7 @@ def validate_workspace(
     )
     validate_local_packages(all_feature_metadata, crate_names, "all-feature", errors)
     validate_dependency_declarations(
-        root, workspace_packages, crate_names, expected_edges, errors
+        root, workspace_packages, crate_names, expected_edges, expected_dev_edges, errors
     )
 
     groups = {group["id"]: group["members"] for group in topology.get("feature_group", [])}
@@ -449,17 +475,19 @@ def validate_workspace(
                 )
 
     default_edges = internal_edges(default_metadata, crate_names)
-    if default_edges != required_edges:
-        missing = required_edges - default_edges
-        extra = default_edges - required_edges
+    expected_default_edges = required_edges | expected_dev_edges
+    if default_edges != expected_default_edges:
+        missing = expected_default_edges - default_edges
+        extra = default_edges - expected_default_edges
         errors.append(
             "default feature graph mismatch: "
             f"missing [{formatted_edges(missing)}], extra [{formatted_edges(extra)}]"
         )
     activated_edges = internal_edges(all_feature_metadata, crate_names)
-    if activated_edges != all_edges:
-        missing = all_edges - activated_edges
-        extra = activated_edges - all_edges
+    expected_all_edges = all_edges | expected_dev_edges
+    if activated_edges != expected_all_edges:
+        missing = expected_all_edges - activated_edges
+        extra = activated_edges - expected_all_edges
         errors.append(
             "all-feature graph mismatch: "
             f"missing [{formatted_edges(missing)}], extra [{formatted_edges(extra)}]"
@@ -490,10 +518,11 @@ def main() -> int:
     topology = load_toml(TOPOLOGY_PATH)
     required = sum(edge["kind"] == "required" for edge in topology["edge"])
     optional = sum(edge["kind"] == "optional" for edge in topology["edge"])
+    dev_only = len(topology.get("dev_edge", []))
     print(
         "workspace topology: ok "
         f"({len(topology['production_crates'])} crates, {required} required edges, "
-        f"{optional} optional edges)"
+        f"{optional} optional edges, {dev_only} dev-only edges)"
     )
     return 0
 

@@ -183,6 +183,43 @@ class ValidatorCausalTests(unittest.TestCase):
             result = run_validator("--topology", str(probe), "--skip-manifests")
             self.assert_rejected(result, "documented/machine dependency edges differ")
 
+    def test_documented_dev_only_edge_drift_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="rust-harness-dev-dag-doc-") as directory:
+            probe = Path(directory) / "topology.md"
+            text = TOPOLOGY.read_text(encoding="utf-8").replace(
+                "- `pi-harness-runtime` → `pi-agent-sqlite` (dev-only)\n",
+                "",
+                1,
+            )
+            probe.write_text(text, encoding="utf-8")
+            result = run_validator("--topology", str(probe), "--skip-manifests")
+            self.assert_rejected(result, "documented/machine dev-only edges differ")
+
+    def test_second_documented_dev_only_edge_is_not_authorized(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="rust-harness-extra-dev-edge-") as directory:
+            directory_path = Path(directory)
+            probe_doc = directory_path / "topology.md"
+            probe_map = directory_path / "topology.toml"
+            text = TOPOLOGY.read_text(encoding="utf-8").replace(
+                "- `pi-harness-runtime` → `pi-agent-sqlite` (dev-only)\n",
+                "- `pi-harness-runtime` → `pi-agent-sqlite` (dev-only)\n"
+                "- `pi-harness-runtime` → `pi-agent-search` (dev-only)\n",
+                1,
+            )
+            probe_doc.write_text(text, encoding="utf-8")
+            probe_map.write_text(
+                (ROOT / "workspace-topology.toml").read_text(encoding="utf-8")
+                + '\n[[dev_edge]]\nconsumer = "pi-harness-runtime"\n'
+                + 'dependency = "pi-agent-search"\n',
+                encoding="utf-8",
+            )
+            result = run_validator(
+                "--topology", str(probe_doc),
+                "--topology-map", str(probe_map),
+                "--skip-manifests",
+            )
+            self.assert_rejected(result, "dev-only edge inventory must be exactly")
+
     def test_dirty_checkout_does_not_change_pinned_evidence(self) -> None:
         with tempfile.TemporaryDirectory(prefix="rust-harness-dirty-") as directory:
             directory_path = Path(directory)

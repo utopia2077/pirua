@@ -143,6 +143,10 @@ dependency = "pi-extension-protocol"
 kind = "optional"
 feature = "extensions"
 
+[[dev_edge]]
+consumer = "pi-harness-runtime"
+dependency = "pi-agent-sqlite"
+
 [[edge]]
 consumer = "pi-agent-search"
 dependency = "pi-agent-schema"

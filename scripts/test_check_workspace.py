@@ -155,6 +155,79 @@ class WorkspaceCheckerTests(unittest.TestCase):
                 errors = self.validate_metadata(metadata)
                 self.assertTrue(any(expected in error for error in errors), errors)
 
+    def test_dev_only_sqlite_edge_stays_declared_and_cannot_become_production(self) -> None:
+        identity = ("pi-harness-runtime", "pi-agent-sqlite")
+        self.assertIn(
+            {"consumer": identity[0], "dependency": identity[1]},
+            self.topology["dev_edge"],
+        )
+        for field, value, expected in (
+            ("kind", None, "kind must be dev"),
+            ("kind", "build", "kind must be dev"),
+            ("target", "cfg(unix)", "must be untargeted"),
+            ("rename", "sqlite-alias", "must be unrenamed"),
+            ("optional", True, "optionality mismatch"),
+        ):
+            with self.subTest(field=field, value=value):
+                metadata = copy.deepcopy(self.default_metadata)
+                self.dependency(metadata, *identity)[field] = value
+                errors = self.validate_metadata(metadata)
+                self.assertTrue(any(expected in error for error in errors), errors)
+
+        changed = copy.deepcopy(self.topology)
+        changed["dev_edge"] = []
+        errors = checker.validate_workspace(
+            ROOT, changed, self.default_metadata, self.all_feature_metadata
+        )
+        self.assertTrue(
+            any(f"unlisted internal edges: {identity[0]} -> {identity[1]}" in error
+                for error in errors),
+            errors,
+        )
+
+    def test_second_well_formed_dev_edge_is_not_authorized(self) -> None:
+        changed = copy.deepcopy(self.topology)
+        changed["dev_edge"].append(
+            {"consumer": "pi-harness-runtime", "dependency": "pi-agent-search"}
+        )
+        default_metadata = copy.deepcopy(self.default_metadata)
+        all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
+        for metadata in (default_metadata, all_feature_metadata):
+            runtime = next(
+                package for package in metadata["packages"]
+                if package["name"] == "pi-harness-runtime"
+            )
+            extra = copy.deepcopy(
+                next(record for record in runtime["dependencies"]
+                     if record["name"] == "pi-agent-sqlite")
+            )
+            extra["name"] = "pi-agent-search"
+            extra["path"] = str(ROOT / "crates/pi-agent-search")
+            runtime["dependencies"].append(extra)
+            search_id = next(
+                package["id"] for package in metadata["packages"]
+                if package["name"] == "pi-agent-search"
+            )
+            runtime_node = next(
+                node for node in metadata["resolve"]["nodes"]
+                if node["id"] == runtime["id"]
+            )
+            extra_resolved = copy.deepcopy(
+                next(record for record in runtime_node["deps"]
+                     if record["pkg"] != search_id
+                     and record["name"] == "pi_agent_sqlite")
+            )
+            extra_resolved["name"] = "pi_agent_search"
+            extra_resolved["pkg"] = search_id
+            runtime_node["deps"].append(extra_resolved)
+        errors = checker.validate_workspace(
+            ROOT, changed, default_metadata, all_feature_metadata
+        )
+        self.assertTrue(
+            any("dev-only edge inventory must be exactly" in error for error in errors),
+            errors,
+        )
+
     def test_reachable_local_path_package_outside_workspace_is_rejected(self) -> None:
         for profile in ("default", "all-feature"):
             with self.subTest(profile=profile):

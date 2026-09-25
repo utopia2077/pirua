@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "unpublished/active/2026-09-01-rust-harness"
 DEFAULT_TOPOLOGY_DOC = BUNDLE / "design/02-crate-topology.md"
 DEFAULT_TOPOLOGY_MAP = ROOT / "workspace-topology.toml"
+APPROVED_DEV_EDGES = {("pi-harness-runtime", "pi-agent-sqlite")}
 DEFAULT_UPSTREAM_MAP = ROOT / "upstream-map.toml"
 PROPOSAL = BUNDLE / "proposal.md"
 PLAN = BUNDLE / "plan.md"
@@ -348,6 +349,29 @@ def validate_topology(
         graph[dependency].add(consumer)
         indegree[consumer] += 1
 
+    dev_edges = data.get("dev_edge", [])
+    seen_dev_edges: set[tuple[str, str]] = set()
+    for edge in dev_edges:
+        consumer = edge.get("consumer")
+        dependency = edge.get("dependency")
+        identity = (consumer, dependency)
+        if consumer not in crate_set or dependency not in crate_set or consumer == dependency:
+            errors.append(f"invalid dev-only topology edge: {consumer} -> {dependency}")
+            continue
+        if identity in seen_edges or identity in seen_dev_edges:
+            errors.append(f"duplicate topology edge: {consumer} -> {dependency}")
+            continue
+        if set(edge) != {"consumer", "dependency"}:
+            errors.append(f"dev-only topology edge has extra fields: {consumer} -> {dependency}")
+        seen_dev_edges.add(identity)
+        graph[dependency].add(consumer)
+        indegree[consumer] += 1
+    if seen_dev_edges != APPROVED_DEV_EDGES:
+        errors.append(
+            "dev-only edge inventory must be exactly "
+            "pi-harness-runtime -> pi-agent-sqlite"
+        )
+
     ready = deque(sorted(crate for crate, count in indegree.items() if count == 0))
     visited: list[str] = []
     while ready:
@@ -387,6 +411,19 @@ def validate_topology(
         extra = sorted(documented_edges - machine_edges)
         errors.append(
             f"documented/machine dependency edges differ: missing={missing}, extra={extra}"
+        )
+    documented_dev_edges = set(
+        re.findall(
+            r"^- `([^`]+)` → `([^`]+)` \(dev-only\)$",
+            dependency_table,
+            re.MULTILINE,
+        )
+    )
+    if documented_dev_edges != seen_dev_edges:
+        errors.append(
+            "documented/machine dev-only edges differ: "
+            f"missing={sorted(seen_dev_edges - documented_dev_edges)}, "
+            f"extra={sorted(documented_dev_edges - seen_dev_edges)}"
         )
     return crate_set
 
