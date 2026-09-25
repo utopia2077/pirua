@@ -13,5 +13,6 @@ pub mod v1_1 {
 }
 
 pub mod echo_bounded;
+pub mod echo_selected;
 pub mod framing;
 pub mod value;

@@ -6,12 +6,26 @@
 
 use std::alloc::Layout;
 use std::num::NonZeroUsize;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 const NONE: usize = usize::MAX;
 const PROST_RECURSION_LIMIT: usize = 100;
 // ProtocolLimits has the largest known field tag in the active schema (17).
 // Slot zero is unused because protobuf field tags start at one.
 const LAST_RECORD_SLOTS: usize = 18;
+// Process-unique successful-scan identity, independent of arena address or
+// storage lease. Exhaustion fails closed instead of reusing a prior identity.
+static NEXT_SCAN_TOKEN: AtomicU64 = AtomicU64::new(0);
+
+fn next_scan_token() -> Result<u64, ScanError> {
+    NEXT_SCAN_TOKEN
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |previous| {
+            previous.checked_add(1)
+        })
+        .map_err(|_| ScanError::Limit)?
+        .checked_add(1)
+        .ok_or(ScanError::Limit)
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScanError {
@@ -61,6 +75,8 @@ struct FieldRecord {
     start: usize,
     end: usize,
     child: usize,
+    // One-based index of the next direct field of the same message.
+    next_sibling: usize,
 }
 
 impl FieldRecord {
@@ -70,6 +86,7 @@ impl FieldRecord {
         start: 0,
         end: 0,
         child: NONE,
+        next_sibling: 0,
     };
 }
 
@@ -82,6 +99,10 @@ struct MessageState {
     // Keeping these slots in the existing state array charges their capacity
     // to IndexBudget and makes singular-field merge and view lookup constant.
     last_record_by_tag: [usize; LAST_RECORD_SLOTS],
+    first_record: usize,
+    last_record: usize,
+    selected: bool,
+    encoded_size: usize,
 }
 
 impl MessageState {
@@ -90,6 +111,10 @@ impl MessageState {
         oneof_tag: 0,
         oneof_child: NONE,
         last_record_by_tag: [0; LAST_RECORD_SLOTS],
+        first_record: 0,
+        last_record: 0,
+        selected: false,
+        encoded_size: 0,
     };
 }
 
@@ -372,10 +397,10 @@ impl IndexArena {
         }
     }
 
-    pub fn scan_envelope<'a>(
-        &'a mut self,
-        body: &'a [u8],
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    pub fn scan_envelope<'view, 'body>(
+        &'view mut self,
+        body: &'body [u8],
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         let view = self.scan(body, Kind::Envelope)?;
         if view.arm().is_none() {
             return Err(ScanError::Malformed);
@@ -386,20 +411,20 @@ impl IndexArena {
     /// Parse the final StreamItem payload separately, after taking its borrowed
     /// bytes and dropping the Envelope view. This raw view exposes presence;
     /// `scan_selected_tool_progress` applies the selected-minor rule.
-    pub fn scan_tool_progress<'a>(
-        &'a mut self,
-        payload: &'a [u8],
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    pub fn scan_tool_progress<'view, 'body>(
+        &'view mut self,
+        payload: &'body [u8],
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         self.scan(payload, Kind::ToolProgress)
     }
 
     /// Mirrors the existing 1.0 probe: any v1.1 percent field occurrence,
     /// including present zero or repeated values, is unsupported in 1.0.
-    pub fn scan_selected_tool_progress<'a>(
-        &'a mut self,
-        payload: &'a [u8],
+    pub fn scan_selected_tool_progress<'view, 'body>(
+        &'view mut self,
+        payload: &'body [u8],
         minor: SelectedMinor,
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         let view = self.scan_tool_progress(payload)?;
         if minor == SelectedMinor::V1_0 && view.has_field(view.root(), 2) {
             return Err(ScanError::UnsupportedVariant);
@@ -407,23 +432,27 @@ impl IndexArena {
         Ok(view)
     }
 
-    pub fn scan_tool_result<'a>(
-        &'a mut self,
-        payload: &'a [u8],
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    pub fn scan_tool_result<'view, 'body>(
+        &'view mut self,
+        payload: &'body [u8],
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         self.scan(payload, Kind::InvokeToolResult)
     }
 
-    fn scan<'a>(&'a mut self, body: &'a [u8], root: Kind) -> Result<IndexedMessage<'a>, ScanError> {
+    fn scan<'view, 'body>(
+        &'view mut self,
+        body: &'body [u8],
+        root: Kind,
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         ScanCore::new(&mut self.fields[..], &mut self.states[..]).scan(body, root)
     }
 }
 
 impl BorrowedIndexArena<'_> {
-    pub fn scan_envelope<'a>(
-        &'a mut self,
-        body: &'a [u8],
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    pub fn scan_envelope<'view, 'body>(
+        &'view mut self,
+        body: &'body [u8],
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         let view = self.scan(body, Kind::Envelope)?;
         if view.arm().is_none() {
             return Err(ScanError::Malformed);
@@ -434,20 +463,20 @@ impl BorrowedIndexArena<'_> {
     /// Parse the final StreamItem payload separately, after taking its borrowed
     /// bytes and dropping the Envelope view. This raw view exposes presence;
     /// `scan_selected_tool_progress` applies the selected-minor rule.
-    pub fn scan_tool_progress<'a>(
-        &'a mut self,
-        payload: &'a [u8],
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    pub fn scan_tool_progress<'view, 'body>(
+        &'view mut self,
+        payload: &'body [u8],
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         self.scan(payload, Kind::ToolProgress)
     }
 
     /// Mirrors the existing 1.0 probe: any v1.1 percent field occurrence,
     /// including present zero or repeated values, is unsupported in 1.0.
-    pub fn scan_selected_tool_progress<'a>(
-        &'a mut self,
-        payload: &'a [u8],
+    pub fn scan_selected_tool_progress<'view, 'body>(
+        &'view mut self,
+        payload: &'body [u8],
         minor: SelectedMinor,
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         let view = self.scan_tool_progress(payload)?;
         if minor == SelectedMinor::V1_0 && view.has_field(view.root(), 2) {
             return Err(ScanError::UnsupportedVariant);
@@ -455,14 +484,18 @@ impl BorrowedIndexArena<'_> {
         Ok(view)
     }
 
-    pub fn scan_tool_result<'a>(
-        &'a mut self,
-        payload: &'a [u8],
-    ) -> Result<IndexedMessage<'a>, ScanError> {
+    pub fn scan_tool_result<'view, 'body>(
+        &'view mut self,
+        payload: &'body [u8],
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         self.scan(payload, Kind::InvokeToolResult)
     }
 
-    fn scan<'a>(&'a mut self, body: &'a [u8], root: Kind) -> Result<IndexedMessage<'a>, ScanError> {
+    fn scan<'view, 'body>(
+        &'view mut self,
+        body: &'body [u8],
+        root: Kind,
+    ) -> Result<IndexedMessage<'view, 'body>, ScanError> {
         ScanCore::new(&mut self.fields[..], &mut self.states[..]).scan(body, root)
     }
 }
@@ -484,7 +517,11 @@ impl<'a> ScanCore<'a> {
         }
     }
 
-    fn scan(mut self, body: &'a [u8], root: Kind) -> Result<IndexedMessage<'a>, ScanError> {
+    fn scan<'body>(
+        mut self,
+        body: &'body [u8],
+        root: Kind,
+    ) -> Result<IndexedMessage<'a, 'body>, ScanError> {
         if body.len() > self.fields.len() {
             return Err(ScanError::Limit);
         }
@@ -495,6 +532,7 @@ impl<'a> ScanCore<'a> {
             oneof_tag: 0,
             oneof_child: NONE,
             last_record_by_tag: [0; LAST_RECORD_SLOTS],
+            ..MessageState::EMPTY
         };
         let mut stack = [ParseFrame::default(); PROST_RECURSION_LIMIT + 1];
         stack[0] = ParseFrame {
@@ -583,6 +621,7 @@ impl<'a> ScanCore<'a> {
                             oneof_tag: 0,
                             oneof_child: NONE,
                             last_record_by_tag: [0; LAST_RECORD_SLOTS],
+                            ..MessageState::EMPTY
                         };
                         id
                     }
@@ -599,7 +638,15 @@ impl<'a> ScanCore<'a> {
                     start,
                     end,
                     child,
+                    next_sibling: 0,
                 };
+                let parent_state = &mut self.states[frame.state];
+                if parent_state.last_record == 0 {
+                    parent_state.first_record = record_number;
+                } else {
+                    self.fields[parent_state.last_record - 1].next_sibling = record_number;
+                }
+                parent_state.last_record = record_number;
                 self.used_fields += 1;
                 *self.states[frame.state]
                     .last_record_by_tag
@@ -649,6 +696,7 @@ impl<'a> ScanCore<'a> {
             used_fields: self.used_fields,
             used_states: self.used_states,
             root: 0,
+            scan_token: next_scan_token()?,
         })
     }
 
@@ -717,26 +765,57 @@ fn read_value(
     }
 }
 
-/// Borrowed effective view. Message IDs are local to this view and cannot be
-/// used after the arena is reused. All accessors check IDs and field types.
-pub struct IndexedMessage<'a> {
-    body: &'a [u8],
-    fields: &'a [FieldRecord],
-    states: &'a [MessageState],
+/// Borrowed effective view. Every message ID carries this successful scan's
+/// identity; accessors reject IDs from reused or unrelated arenas.
+pub struct IndexedMessage<'view, 'body> {
+    body: &'body [u8],
+    fields: &'view [FieldRecord],
+    states: &'view mut [MessageState],
     used_fields: usize,
     used_states: usize,
     root: usize,
+    scan_token: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct MessageId(usize);
+pub struct MessageId {
+    index: usize,
+    scan_token: u64,
+}
 
-impl IndexedMessage<'_> {
+/// A checked interval in the original transmitted Envelope body. It contains
+/// no arena identifier, so it remains usable after the outer view is dropped.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BodySpan<'body> {
+    body: &'body [u8],
+    start: usize,
+    end: usize,
+}
+
+impl<'body> BodySpan<'body> {
+    /// Reborrow from the same original body after releasing the index view.
+    pub fn reborrow(self) -> Option<&'body [u8]> {
+        self.body.get(self.start..self.end)
+    }
+
+    pub fn len(self) -> usize {
+        self.end - self.start
+    }
+
+    pub fn is_empty(self) -> bool {
+        self.start == self.end
+    }
+}
+
+impl<'view, 'body> IndexedMessage<'view, 'body> {
     pub fn body_len(&self) -> usize {
         self.body.len()
     }
     pub fn root(&self) -> MessageId {
-        MessageId(self.root)
+        MessageId {
+            index: self.root,
+            scan_token: self.scan_token,
+        }
     }
     pub fn arm(&self) -> Option<u32> {
         (self.states[self.root].kind == Kind::Envelope)
@@ -750,7 +829,7 @@ impl IndexedMessage<'_> {
     /// bool, enum or zigzag conversion when constructing selected DTO values.
     pub fn scalar(&self, parent: MessageId, tag: u32) -> Option<u64> {
         let record = self.record(parent, tag)?;
-        let kind = self.states.get(parent.0)?.kind;
+        let kind = self.states.get(parent.index)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::Varint) {
             return None;
         }
@@ -759,7 +838,7 @@ impl IndexedMessage<'_> {
     }
     pub fn fixed64(&self, parent: MessageId, tag: u32) -> Option<u64> {
         let record = self.record(parent, tag)?;
-        let kind = self.states.get(parent.0)?.kind;
+        let kind = self.states.get(parent.index)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::Fixed64) {
             return None;
         }
@@ -769,15 +848,29 @@ impl IndexedMessage<'_> {
     }
     pub fn bytes(&self, parent: MessageId, tag: u32) -> Option<&[u8]> {
         let record = self.record(parent, tag)?;
-        let kind = self.states.get(parent.0)?.kind;
+        let kind = self.states.get(parent.index)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::Bytes | FieldType::String) {
             return None;
         }
         self.body.get(record.start..record.end)
     }
+    /// Only protobuf bytes fields may be exposed as an opaque payload span.
+    pub fn bytes_span(&self, parent: MessageId, tag: u32) -> Option<BodySpan<'body>> {
+        let record = self.record(parent, tag)?;
+        let kind = self.states.get(parent.index)?.kind;
+        if !matches!(spec(kind, tag)?.ty, FieldType::Bytes) {
+            return None;
+        }
+        self.body.get(record.start..record.end)?;
+        Some(BodySpan {
+            body: self.body,
+            start: record.start,
+            end: record.end,
+        })
+    }
     pub fn text(&self, parent: MessageId, tag: u32) -> Option<&str> {
         let record = self.record(parent, tag)?;
-        let kind = self.states.get(parent.0)?.kind;
+        let kind = self.states.get(parent.index)?.kind;
         if !matches!(spec(kind, tag)?.ty, FieldType::String) {
             return None;
         }
@@ -785,35 +878,45 @@ impl IndexedMessage<'_> {
     }
     pub fn message(&self, parent: MessageId, tag: u32) -> Option<MessageId> {
         let record = self.record(parent, tag)?;
-        (record.child != NONE).then_some(MessageId(record.child))
+        (record.child != NONE).then_some(MessageId {
+            index: record.child,
+            scan_token: self.scan_token,
+        })
     }
     pub fn repeated_messages(
         &self,
         parent: MessageId,
         tag: u32,
     ) -> impl Iterator<Item = MessageId> + '_ {
-        let repeated = self
-            .states
-            .get(parent.0)
-            .and_then(|state| spec(state.kind, tag))
-            .is_some_and(|field| field.repeated);
+        let repeated = parent.scan_token == self.scan_token
+            && self
+                .states
+                .get(parent.index)
+                .and_then(|state| spec(state.kind, tag))
+                .is_some_and(|field| field.repeated);
         self.fields[..self.used_fields]
             .iter()
             .filter(move |record| {
-                repeated && record.parent == parent.0 && record.tag == tag && record.child != NONE
+                repeated
+                    && record.parent == parent.index
+                    && record.tag == tag
+                    && record.child != NONE
             })
-            .map(|record| MessageId(record.child))
+            .map(|record| MessageId {
+                index: record.child,
+                scan_token: self.scan_token,
+            })
     }
     fn record(&self, parent: MessageId, tag: u32) -> Option<FieldRecord> {
-        let state = self.states.get(parent.0)?;
-        if parent.0 >= self.used_states {
+        if parent.scan_token != self.scan_token || parent.index >= self.used_states {
             return None;
         }
+        let state = self.states.get(parent.index)?;
         let field = spec(state.kind, tag)?;
         if field.oneof && state.oneof_tag != tag {
             return None;
         }
-        self.last_record(parent.0, tag)
+        self.last_record(parent.index, tag)
     }
     fn last_record(&self, parent: usize, tag: u32) -> Option<FieldRecord> {
         let record_number = *self
@@ -823,5 +926,242 @@ impl IndexedMessage<'_> {
             .get(tag as usize)?;
         let index = record_number.checked_sub(1)?;
         (index < self.used_fields).then(|| self.fields[index])
+    }
+}
+
+/// Internal failure: a changed generated field policy or impossible checked
+/// arithmetic must not be confused with a malformed peer field.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum SizeError {
+    UnmodeledField,
+    Overflow,
+}
+
+/// Source-derived upper bound for the selected normalization traversal.
+/// At most F known field records and F+1 states are scanned twice. Each
+/// effective field can run at most three ten-iteration varint loops: raw
+/// decode, canonical key length, and canonical value/length size.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NormalizationWorkBound {
+    pub index_visits: usize,
+    pub varint_steps: usize,
+    pub total_steps: usize,
+}
+
+impl NormalizationWorkBound {
+    pub fn checked(frame_bytes: NonZeroUsize) -> Result<Self, ScanError> {
+        let f = frame_bytes.get();
+        let states = f.checked_add(1).ok_or(ScanError::Limit)?;
+        let index_visits = f
+            .checked_mul(2)
+            .and_then(|records| states.checked_mul(2)?.checked_add(records))
+            .ok_or(ScanError::Limit)?;
+        let varint_steps = f.checked_mul(30).ok_or(ScanError::Limit)?;
+        let total_steps = index_visits
+            .checked_add(varint_steps)
+            .ok_or(ScanError::Limit)?;
+        Ok(Self {
+            index_visits,
+            varint_steps,
+            total_steps,
+        })
+    }
+}
+
+#[derive(Clone, Copy)]
+enum SizePolicy {
+    U64 { optional: bool },
+    U32,
+    Bool,
+    I32,
+    Text { optional: bool },
+    Bytes,
+    Message,
+}
+
+// Audited against the checked-in v1.1 generated DTO and common-1.1 descriptor.
+// Only descendants of final active Envelope arms are reachable here. In
+// particular, opaque tool payloads remain bytes; their fields are not sized.
+fn active_size_policy(kind: Kind, tag: u32) -> Option<SizePolicy> {
+    use Kind as K;
+    use SizePolicy as P;
+    Some(match (kind, tag) {
+        (K::Envelope, 6..=12) => P::Message,
+        (K::Request, 1 | 2 | 6 | 7) => P::U64 { optional: tag != 1 },
+        (K::Request, 3 | 4) => P::Message,
+        (K::Request, 5) => P::Text { optional: false },
+        (K::Request, 8) => P::Bytes,
+        (K::CapabilityRef, 1..=3) => P::Text { optional: false },
+        (K::CapabilityRef, 4) => P::Message,
+        (K::CapabilityRef, 5) => P::Bytes,
+        (K::CapabilityRef, 6) => P::Text { optional: true },
+        (K::ProfileVersion, 1) => P::Text { optional: false },
+        (K::ProfileVersion, 2 | 3) => P::U32,
+        (K::EffectKey, 1..=5) => P::Text { optional: false },
+        (K::EffectKey, 6 | 7) => P::U64 { optional: tag == 7 },
+        (K::Response | K::StreamEnd, 1) => P::U64 { optional: false },
+        (K::Response | K::StreamEnd, 2) => P::Bytes,
+        (K::Response | K::StreamEnd, 3) => P::Message,
+        (K::TypedError, 1) | (K::Cancel, 2) | (K::GoAway, 1) => P::I32,
+        (K::TypedError, 2) => P::Text { optional: false },
+        (K::StreamItem, 1 | 2) | (K::Cancel, 1) | (K::Credit, 1 | 2) => P::U64 { optional: false },
+        (K::StreamItem, 3) => P::Bytes,
+        (K::GoAway, 2) => P::Bool,
+        _ => return None,
+    })
+}
+
+fn varint_size(mut value: u64) -> usize {
+    let mut size = 1;
+    while value >= 128 {
+        size += 1;
+        value >>= 7;
+    }
+    size
+}
+
+impl IndexedMessage<'_, '_> {
+    fn effective_record(&self, state: usize, record_number: usize, record: FieldRecord) -> bool {
+        let parent = self.states[state];
+        let Some(field) = spec(parent.kind, record.tag) else {
+            return false;
+        };
+        field.repeated
+            || (parent.last_record_by_tag[record.tag as usize] == record_number
+                && (!field.oneof || parent.oneof_tag == record.tag))
+    }
+
+    /// Exact Prost v1.1 encoded size of a successfully scanned active Envelope.
+    /// Each selected record is visited twice and each varint is read once (at
+    /// most ten bytes); state passes are bounded by the scanner's F+1 slots.
+    /// The per-parent sibling chain avoids repeated whole-index enumeration.
+    pub(super) fn normalized_active_len(&mut self) -> Result<usize, SizeError> {
+        let frame_bytes = NonZeroUsize::new(self.body.len()).ok_or(SizeError::UnmodeledField)?;
+        let _work_bound =
+            NormalizationWorkBound::checked(frame_bytes).map_err(|_| SizeError::Overflow)?;
+        self.states[0].selected = true;
+        // State IDs increase when a child is first seen, including children
+        // reused by later optional/same-arm occurrences. Mark only effective
+        // branches so superseded handshake arms need no size policy.
+        for state in 0..self.used_states {
+            if !self.states[state].selected {
+                continue;
+            }
+            let mut number = self.states[state].first_record;
+            while number != 0 {
+                let record = self.fields[number - 1];
+                if self.effective_record(state, number, record) && record.child != NONE {
+                    self.states[record.child].selected = true;
+                }
+                number = record.next_sibling;
+            }
+        }
+        // Every child ID exceeds its parent ID. The reverse pass therefore
+        // knows the complete merged child size before charging the parent.
+        for state in (0..self.used_states).rev() {
+            if !self.states[state].selected {
+                continue;
+            }
+            let mut total = 0usize;
+            let mut number = self.states[state].first_record;
+            while number != 0 {
+                let record = self.fields[number - 1];
+                if self.effective_record(state, number, record) {
+                    let part = self.normalized_field_len(state, record)?;
+                    total = total.checked_add(part).ok_or(SizeError::Overflow)?;
+                }
+                number = record.next_sibling;
+            }
+            self.states[state].encoded_size = total;
+        }
+        Ok(self.states[0].encoded_size)
+    }
+
+    fn normalized_field_len(&self, state: usize, record: FieldRecord) -> Result<usize, SizeError> {
+        let kind = self.states[state].kind;
+        let policy = active_size_policy(kind, record.tag).ok_or(SizeError::UnmodeledField)?;
+        let field = spec(kind, record.tag).ok_or(SizeError::UnmodeledField)?;
+        let key_wire = match field.ty {
+            FieldType::Varint => 0u64,
+            FieldType::Fixed64 => 1,
+            FieldType::String | FieldType::Bytes | FieldType::Message(_) => 2,
+        };
+        let key = u64::from(record.tag)
+            .checked_mul(8)
+            .and_then(|key| key.checked_add(key_wire))
+            .ok_or(SizeError::Overflow)?;
+        let key_size = varint_size(key);
+        let payload_size = match (policy, field.ty) {
+            (SizePolicy::U64 { optional }, FieldType::Varint) => {
+                let value = self.raw_value(record)?;
+                if value == 0 && !optional && !field.oneof {
+                    return Ok(0);
+                }
+                varint_size(value)
+            }
+            (SizePolicy::U32, FieldType::Varint) => {
+                let value = self.raw_value(record)? as u32;
+                if value == 0 && !field.oneof {
+                    return Ok(0);
+                }
+                varint_size(u64::from(value))
+            }
+            (SizePolicy::Bool, FieldType::Varint) => {
+                let value = self.raw_value(record)? != 0;
+                if !value && !field.oneof {
+                    return Ok(0);
+                }
+                1
+            }
+            (SizePolicy::I32, FieldType::Varint) => {
+                let value = self.raw_value(record)? as i32;
+                if value == 0 && !field.oneof {
+                    return Ok(0);
+                }
+                varint_size(value as i64 as u64)
+            }
+            (SizePolicy::Text { optional }, FieldType::String) => {
+                let length = record.end - record.start;
+                if length == 0 && !optional && !field.oneof {
+                    return Ok(0);
+                }
+                return self.delimited_field_size(key_size, length);
+            }
+            (SizePolicy::Bytes, FieldType::Bytes) => {
+                let length = record.end - record.start;
+                if length == 0 && !field.oneof {
+                    return Ok(0);
+                }
+                return self.delimited_field_size(key_size, length);
+            }
+            (SizePolicy::Message, FieldType::Message(_)) => {
+                let child = self
+                    .states
+                    .get(record.child)
+                    .ok_or(SizeError::UnmodeledField)?;
+                return self.delimited_field_size(key_size, child.encoded_size);
+            }
+            _ => return Err(SizeError::UnmodeledField),
+        };
+        key_size
+            .checked_add(payload_size)
+            .ok_or(SizeError::Overflow)
+    }
+
+    fn raw_value(&self, record: FieldRecord) -> Result<u64, SizeError> {
+        let mut cursor = record.start;
+        let value = read_varint(self.body, &mut cursor, record.end)
+            .map_err(|_| SizeError::UnmodeledField)?;
+        (cursor == record.end)
+            .then_some(value)
+            .ok_or(SizeError::UnmodeledField)
+    }
+
+    fn delimited_field_size(&self, key_size: usize, length: usize) -> Result<usize, SizeError> {
+        let length64 = u64::try_from(length).map_err(|_| SizeError::Overflow)?;
+        key_size
+            .checked_add(varint_size(length64))
+            .and_then(|size| size.checked_add(length))
+            .ok_or(SizeError::Overflow)
     }
 }

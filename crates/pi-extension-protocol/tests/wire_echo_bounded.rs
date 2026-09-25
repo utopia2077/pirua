@@ -537,17 +537,17 @@ fn single_byte_fixture_mutations_agree_with_prost_envelope_validity() {
 
 #[test]
 fn typed_slot_checks_selected_layout_and_full_backing_before_borrow() {
-    assert_eq!(IndexBudget::checked(nz(1)).unwrap().capacity_bytes, 360);
+    assert_eq!(IndexBudget::checked(nz(1)).unwrap().capacity_bytes, 416);
     assert_eq!(
         IndexBudget::checked(nz(137)).unwrap().capacity_bytes,
-        27_560
+        31_968
     );
     assert_eq!(
         IndexBudget::checked(nz(4096)).unwrap().capacity_bytes,
-        819_360
+        950_456
     );
 
-    for (frame, expected) in [(1, 360), (137, 27_560), (4096, 819_360)] {
+    for (frame, expected) in [(1, 416), (137, 31_968), (4096, 950_456)] {
         let slot = match frame {
             1 => IndexStorage::<1, 2>::checked_slot_bytes(nz(frame), expected),
             137 => IndexStorage::<137, 138>::checked_slot_bytes(nz(frame), expected),
@@ -562,7 +562,7 @@ fn typed_slot_checks_selected_layout_and_full_backing_before_borrow() {
         assert_eq!(below, Err(ScanError::Limit));
     }
     let mut small = IndexStorage::<1, 2>::new();
-    let mut small_arena = small.borrow(nz(1), 360).unwrap();
+    let mut small_arena = small.borrow(nz(1), 416).unwrap();
     assert!(matches!(
         small_arena.scan_envelope(&[0]),
         Err(ScanError::Malformed)
@@ -682,7 +682,7 @@ fn borrowed_scanner_keeps_transmitted_length_for_selected_1_0_counterexample() {
     );
 
     let mut storage = IndexStorage::<4096, 4097>::new();
-    let mut arena = storage.borrow(nz(4096), 819_360).unwrap();
+    let mut arena = storage.borrow(nz(4096), 950_456).unwrap();
     let view = arena.scan_envelope(&body).unwrap();
     assert_eq!(view.arm(), Some(9));
     assert_eq!(view.body_len(), 4095);
