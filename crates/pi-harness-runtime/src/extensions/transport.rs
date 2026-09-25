@@ -5,10 +5,11 @@
 //! an OS resource nor dispatches an active request or touches a Session.
 
 use std::fmt;
+use std::future::Future;
 use std::future::poll_fn;
 use std::num::{NonZeroU64, NonZeroUsize};
 use std::sync::Arc;
-use std::task::Poll;
+use std::task::{Poll, Waker};
 
 use pi_ai_core::BoxFuture;
 use pi_extension_protocol::activation::{ActiveGrant, HostAuthority};
@@ -16,6 +17,8 @@ use pi_extension_protocol::endpoint::{
     ActiveFrame, Endpoint, EndpointError, EndpointEvent, EndpointPhase,
 };
 use pi_extension_protocol::wire::framing::EncodedFrame;
+
+use super::critical_port::{NotificationPost, SeatLease};
 
 /// Content-free host-channel failures. Implementations must not expose peer bytes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,6 +60,57 @@ pub trait OrderedByteChannel: Send + Sync {
     fn close(&self);
 }
 
+/// Notifications detached by an opt-in physical quiet close. The channel must
+/// already be closed when this value is returned. The caller transfers both
+/// notifications to independently serviced, reserved posts before exposing a
+/// no-denial completion. A repeat close returns empty notifications. Dropping
+/// a populated value may Drop arbitrary Wakers; the trusted host must post it.
+#[must_use = "post any detached notifications to independent roles"]
+pub struct QuietClose {
+    read: Option<Waker>,
+    write: Option<Waker>,
+}
+
+impl QuietClose {
+    pub fn new(read: Option<Waker>, write: Option<Waker>) -> Self {
+        Self { read, write }
+    }
+
+    pub fn into_posts<'a>(
+        self,
+        read_seat: SeatLease<'a>,
+        write_seat: SeatLease<'a>,
+    ) -> [Option<NotificationPost<'a>>; 2] {
+        [
+            self.read.map(|wake| NotificationPost::new(wake, read_seat)),
+            self.write
+                .map(|wake| NotificationPost::new(wake, write_seat)),
+        ]
+    }
+}
+
+/// First-route host capability. `close_quiet` is bounded, idempotent and
+/// physically closes before return. It neither invokes nor drops a detached
+/// Waker, performs peer I/O, waits, allocates or reenters the route. Generic
+/// `OrderedByteChannel::close` does not imply this contract. Before a live
+/// route uses `ConnectionPump`, its host must also make the pump's repeated
+/// `close` path quiet with reserved independent notification delivery, or
+/// arrange that the pump can only repeat an already completed quiet close.
+pub trait QuietOrderedByteChannel: OrderedByteChannel {
+    fn close_quiet(&self) -> QuietClose;
+}
+
+/// Opt-in sole-writer lifecycle. Construction, poll and Drop must be bounded,
+/// callback-free and nonwaiting. Only a port-owned writer Waker may be polled
+/// through this future. A live first route must require this capability.
+pub trait BoundedWriterChannel: QuietOrderedByteChannel {
+    type Write<'a>: Future<Output = Result<(), ChannelError>> + 'a
+    where
+        Self: 'a;
+
+    fn write_frame_bounded(&self, frame: EncodedFrame) -> Self::Write<'_>;
+}
+
 /// Host-supplied receiver-local monotonic milliseconds and wakeable timer.
 /// `now_ms` must finish promptly in bounded time: it must not block on I/O or
 /// another callback, reenter the owner/route line, or perform peer/channel I/O.
@@ -67,6 +121,22 @@ pub trait MonotonicClock: Send + Sync {
     fn now_ms(&self) -> u64;
 
     fn sleep_until(&self, deadline_ms: u64) -> BoxFuture<'_, ()>;
+}
+
+/// Opt-in recyclable writer timer. The future owns the reserved clock seat;
+/// Drop synchronously deregisters its exact host registration, without a
+/// tombstone, before the seat can be reused for the next FIFO frame.
+/// Construction, poll and Drop are bounded, callback-free and nonwaiting.
+pub trait ExactWriterClock: MonotonicClock {
+    type WriterSleep<'a>: Future<Output = ()> + 'a
+    where
+        Self: 'a;
+
+    fn writer_sleep_until<'a>(
+        &'a self,
+        seat: SeatLease<'a>,
+        original_deadline_ms: u64,
+    ) -> Self::WriterSleep<'a>;
 }
 
 #[derive(Clone, Copy, Debug)]
