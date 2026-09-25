@@ -41,6 +41,7 @@ pub struct CheckedSqlite {
     pub application_clock_calls: Arc<dyn Fn() -> u64 + Send + Sync>,
     pub clock_calls_during_commit: AtomicUsize,
     pub preparing_result: AtomicBool,
+    after_applied: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 impl CheckedSqlite {
     pub fn new(
@@ -60,7 +61,11 @@ impl CheckedSqlite {
             application_clock_calls,
             clock_calls_during_commit: AtomicUsize::new(0),
             preparing_result: AtomicBool::new(false),
+            after_applied: Mutex::new(None),
         }
+    }
+    pub fn after_applied(&self, callback: impl FnOnce() + Send + 'static) {
+        *self.after_applied.lock().unwrap() = Some(Box::new(callback));
     }
 }
 impl Storage for CheckedSqlite {
@@ -193,9 +198,149 @@ impl RuntimeStorage for CheckedSqlite {
                 }
                 ConditionalOutcome::Applied(_) => {
                     self.applied.fetch_add(1, Ordering::SeqCst);
+                    if let Some(callback) = self.after_applied.lock().unwrap().take() {
+                        callback();
+                    }
                 }
             }
             Ok(outcome)
         })
     }
+}
+
+/// The parent owns termination even if an assertion or acknowledgment times out.
+pub struct CrashChild {
+    process: Option<std::process::Child>,
+    lines: std::sync::mpsc::Receiver<String>,
+    reader: Option<std::thread::JoinHandle<()>>,
+}
+impl CrashChild {
+    const CLEANUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
+
+    pub fn start(path: &std::path::Path) -> Self {
+        use std::process::{Command, Stdio};
+        let mut process = Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "sqlite_post_apply_crash_child",
+                "--ignored",
+                "--nocapture",
+            ])
+            .env("PI_RUNTIME_SQLITE_CRASH_PATH", path)
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let output = process.stdout.take().unwrap();
+        let (sender, lines) = std::sync::mpsc::channel();
+        let reader = std::thread::spawn(move || {
+            use std::io::BufRead;
+            for line in std::io::BufReader::new(output).lines() {
+                if sender.send(line.unwrap()).is_err() {
+                    break;
+                }
+            }
+        });
+        Self {
+            process: Some(process),
+            lines,
+            reader: Some(reader),
+        }
+    }
+    pub fn await_applied(&self) {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            let line = self
+                .lines
+                .recv_timeout(remaining)
+                .expect("child did not acknowledge the applied SQLite commit in time");
+            if line.contains("PI_RUNTIME_SQLITE_CRASH:APPLIED:v1") {
+                return;
+            }
+        }
+    }
+    pub fn kill_and_reap(&mut self) {
+        let status = self
+            .cleanup(std::time::Instant::now() + Self::CLEANUP_TIMEOUT)
+            .expect("kill and reap parked SQLite child within deadline")
+            .expect("parked SQLite child was already reaped");
+        assert!(!status.success(), "parked child exited cleanly");
+    }
+    fn cleanup(
+        &mut self,
+        deadline: std::time::Instant,
+    ) -> Result<Option<std::process::ExitStatus>, &'static str> {
+        let mut kill_failed = false;
+        let status = if let Some(process) = self.process.as_mut() {
+            kill_failed = process.kill().is_err();
+            let status = loop {
+                match process.try_wait() {
+                    Ok(Some(status)) => break status,
+                    Ok(None) => {
+                        let remaining =
+                            deadline.saturating_duration_since(std::time::Instant::now());
+                        if remaining.is_zero() {
+                            return Err("SQLite child did not exit within cleanup deadline");
+                        }
+                        std::thread::sleep(remaining.min(std::time::Duration::from_millis(10)));
+                    }
+                    Err(_) => return Err("could not poll SQLite child exit"),
+                }
+            };
+            self.process.take();
+            Some(status)
+        } else {
+            None
+        };
+        if let Some(reader) = self.reader.as_ref() {
+            while !reader.is_finished() {
+                let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+                if remaining.is_zero() {
+                    return Err(
+                        "SQLite child output reader did not finish within cleanup deadline",
+                    );
+                }
+                std::thread::sleep(remaining.min(std::time::Duration::from_millis(10)));
+            }
+            self.reader
+                .take()
+                .unwrap()
+                .join()
+                .map_err(|_| "SQLite child output reader panicked")?;
+        }
+        if kill_failed {
+            return Err("could not kill parked SQLite child");
+        }
+        Ok(status)
+    }
+}
+impl Drop for CrashChild {
+    fn drop(&mut self) {
+        if (self.process.is_some() || self.reader.is_some())
+            && let Err(error) = self.cleanup(std::time::Instant::now() + Self::CLEANUP_TIMEOUT)
+        {
+            eprintln!("SQLite crash child cleanup: {error}");
+        }
+    }
+}
+
+#[test]
+fn crash_child_reader_cleanup_respects_deadline() {
+    let (_sender, lines) = std::sync::mpsc::channel::<String>();
+    let (release, held) = std::sync::mpsc::channel::<()>();
+    let reader = std::thread::spawn(move || held.recv().unwrap());
+    let mut child = CrashChild {
+        process: None,
+        lines,
+        reader: Some(reader),
+    };
+    assert!(matches!(
+        child.cleanup(std::time::Instant::now() + std::time::Duration::from_millis(30)),
+        Err("SQLite child output reader did not finish within cleanup deadline")
+    ));
+    release.send(()).unwrap();
+    assert!(matches!(
+        child.cleanup(std::time::Instant::now() + std::time::Duration::from_secs(1)),
+        Ok(None)
+    ));
 }

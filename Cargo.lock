@@ -1313,6 +1313,7 @@ dependencies = [
  "pi-harness-core",
  "pi-telemetry",
  "prost",
+ "rusqlite",
  "ryu-js",
  "serde_json",
 ]

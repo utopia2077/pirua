@@ -27,3 +27,4 @@ serde_json.workspace = true
 [dev-dependencies]
 pi-agent-sqlite.workspace = true
 prost.workspace = true
+rusqlite.workspace = true
