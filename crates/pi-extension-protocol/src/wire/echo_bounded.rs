@@ -18,7 +18,11 @@ const LAST_RECORD_SLOTS: usize = 18;
 static NEXT_SCAN_TOKEN: AtomicU64 = AtomicU64::new(0);
 
 fn next_scan_token() -> Result<u64, ScanError> {
-    NEXT_SCAN_TOKEN
+    next_scan_token_from(&NEXT_SCAN_TOKEN)
+}
+
+pub(super) fn next_scan_token_from(counter: &AtomicU64) -> Result<u64, ScanError> {
+    counter
         .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |previous| {
             previous.checked_add(1)
         })
@@ -822,6 +826,14 @@ impl<'view, 'body> IndexedMessage<'view, 'body> {
             .then_some(self.states[self.root].oneof_tag)
             .filter(|tag| *tag != 0)
     }
+    /// Effective oneof tag for a message from this scan, or `None` if absent.
+    pub fn oneof_tag(&self, parent: MessageId) -> Option<u32> {
+        if parent.scan_token != self.scan_token || parent.index >= self.used_states {
+            return None;
+        }
+        let tag = self.states[parent.index].oneof_tag;
+        (tag != 0).then_some(tag)
+    }
     pub fn has_field(&self, parent: MessageId, tag: u32) -> bool {
         self.record(parent, tag).is_some()
     }
@@ -907,6 +919,26 @@ impl<'view, 'body> IndexedMessage<'view, 'body> {
                 scan_token: self.scan_token,
             })
     }
+    /// Walk only this parent's stored sibling chain. Each visit includes a
+    /// nonmatching direct field; callers can inspect `visited_records` to
+    /// account for the full indexed enumeration cost.
+    pub fn direct_messages(&self, parent: MessageId, tag: u32) -> DirectMessages<'_, 'view, 'body> {
+        let first = if parent.scan_token == self.scan_token {
+            self.states.get(parent.index).and_then(|state| {
+                spec(state.kind, tag)
+                    .filter(|field| field.repeated && matches!(field.ty, FieldType::Message(_)))
+                    .map(|_| state.first_record)
+            })
+        } else {
+            None
+        };
+        DirectMessages {
+            view: self,
+            next_record: first.unwrap_or(0),
+            tag,
+            visited_records: 0,
+        }
+    }
     fn record(&self, parent: MessageId, tag: u32) -> Option<FieldRecord> {
         if parent.scan_token != self.scan_token || parent.index >= self.used_states {
             return None;
@@ -926,6 +958,51 @@ impl<'view, 'body> IndexedMessage<'view, 'body> {
             .get(tag as usize)?;
         let index = record_number.checked_sub(1)?;
         (index < self.used_fields).then(|| self.fields[index])
+    }
+}
+
+#[derive(Clone)]
+pub struct DirectMessages<'a, 'view, 'body> {
+    view: &'a IndexedMessage<'view, 'body>,
+    next_record: usize,
+    tag: u32,
+    visited_records: usize,
+}
+
+impl DirectMessages<'_, '_, '_> {
+    pub fn visited_records(&self) -> usize {
+        self.visited_records
+    }
+}
+
+impl Iterator for DirectMessages<'_, '_, '_> {
+    type Item = MessageId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.next_record != 0 {
+            let record = *self.view.fields.get(self.next_record - 1)?;
+            self.next_record = record.next_sibling;
+            self.visited_records += 1;
+            if record.tag == self.tag && record.child != NONE {
+                return Some(MessageId {
+                    index: record.child,
+                    scan_token: self.view.scan_token,
+                });
+            }
+        }
+        None
+    }
+}
+
+#[cfg(test)]
+mod token_tests {
+    use super::*;
+
+    #[test]
+    fn scan_token_exhaustion_is_a_local_limit() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(next_scan_token_from(&counter), Ok(u64::MAX));
+        assert_eq!(next_scan_token_from(&counter), Err(ScanError::Limit));
     }
 }
 
