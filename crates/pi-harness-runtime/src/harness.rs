@@ -7,9 +7,195 @@ use pi_agent_session::storage::RuntimeStorage;
 use std::sync::Arc;
 
 #[cfg(feature = "extensions")]
+pub(crate) fn recovered_echo_arguments(
+    h: &crate::restore::HydratedLane,
+    key: &EffectKey,
+    original: &AgentTool,
+) -> Result<Option<crate::tools::CapturedArguments>, HarnessRuntimeError> {
+    let Some(current) = h.current.as_ref() else {
+        return Ok(None);
+    };
+    let OperationState::Run(run) = &current.state else {
+        return Ok(None);
+    };
+    if !matches!(
+        run.control,
+        Control::Running(_) | Control::CancelRequested(_)
+    ) || current.operation.operation_id != key.operation_id
+    {
+        return Ok(None);
+    }
+    let RunPhase::Tools(tools) = &run.phase else {
+        return Ok(None);
+    };
+    let Some(index) = key.item_index else {
+        return Ok(None);
+    };
+    let expected = EffectKey {
+        session_id: key.session_id.clone(),
+        lane: key.lane.clone(),
+        operation_id: current.operation.operation_id.clone(),
+        kind: EffectKind::Tool,
+        step_or_task_id: EffectStepId::new(tools.batch.turn_id.as_str())
+            .map_err(|_| crate::restore::fault("recovered echo turn invalid"))?,
+        logical_attempt: pi_ai_core::SafeUnsigned::new(0).expect("zero safe unsigned"),
+        item_index: Some(index),
+    };
+    if expected != *key {
+        return Ok(None);
+    }
+    if run.settings.tool_execution != ToolExecutionMode::Sequential {
+        return Err(crate::restore::fault(
+            "recovered echo requires sequential execution",
+        ));
+    }
+    let pending = tools.batch.calls.iter().find(|call| {
+        matches!(call, ToolCallState::EffectPending { source_index, .. }
+            if *source_index == index)
+    });
+    let Some(ToolCallState::EffectPending {
+        replay: ToolReplay::Safe,
+        ..
+    }) = pending
+    else {
+        return if pending.is_some() {
+            Err(crate::restore::fault("recovered echo replay changed"))
+        } else {
+            Ok(None)
+        };
+    };
+    let Some(Entry::Message(entry)) = h.entries.get(&tools.batch.assistant_entry_id) else {
+        return Err(crate::restore::fault("recovered echo source missing"));
+    };
+    let AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(assistant)) = &entry.message else {
+        return Err(crate::restore::fault("recovered echo source invalid"));
+    };
+    let Some(pi_ai_core::AssistantContent::ToolCall(call)) =
+        assistant.content.get(index.get() as usize)
+    else {
+        return Err(crate::restore::fault("recovered echo call missing"));
+    };
+    if call.name != original.name {
+        return Err(crate::restore::fault("recovered echo source name changed"));
+    }
+    let args_key = pi_harness_core::tool_batch::args_key(current, &tools.batch, index);
+    let Some(Register::OperationToolArguments {
+        key: saved_key,
+        value,
+        seq,
+    }) = h
+        .registers
+        .get(&(RegisterNamespace::OperationToolArguments, args_key.clone()))
+    else {
+        return Err(crate::restore::fault("recovered echo arguments missing"));
+    };
+    if *saved_key != args_key {
+        return Err(crate::restore::fault(
+            "recovered echo arguments key invalid",
+        ));
+    }
+    Ok(Some(crate::tools::CapturedArguments {
+        key: args_key,
+        value: value.clone(),
+        seq: *seq,
+    }))
+}
+
+#[cfg(feature = "extensions")]
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeHarness<C, S, M>
 {
+    /// Register a trusted host's original declaration for one current Safe
+    /// pending echo effect. The host owns recoverable provenance and native
+    /// classification before invoking resume.
+    pub async fn register_recovered_echo_pending(
+        &self,
+        key: EffectKey,
+        original: AgentTool,
+    ) -> Result<Result<(), RecoveredEchoRegistrationError>, HarnessRuntimeError> {
+        use RecoveredEchoRegistrationError as Rejection;
+        self.main.owner.admission.check()?;
+        if original.name.as_str() != "echo"
+            || original.execution_mode != Some(ToolExecutionMode::Sequential)
+            || original.replay != Some(ToolReplay::Safe)
+            || original.constrained_sampling.is_some()
+        {
+            return Ok(Err(Rejection::InvalidOriginal));
+        }
+        if key.session_id != self.main.owner.session.metadata().base_metadata().id {
+            return Ok(Err(Rejection::NotCurrent));
+        }
+        let lane = self
+            .main
+            .owner
+            .lanes
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&key.lane)
+            .cloned();
+        let Some(lane) = lane else {
+            return Ok(Err(Rejection::NotCurrent));
+        };
+        let view = RuntimeLane {
+            owner: self.main.owner.clone(),
+            lane: lane.clone(),
+        };
+        let mut pair =
+            crate::tools::PairedPermits::acquire(&self.main.owner.settings_line, &lane.line)
+                .await?;
+        let busy = lane.recovered_intent_lane_busy();
+        if busy {
+            pair.release();
+            return Ok(Err(Rejection::LaneBusy));
+        }
+        let loaded = view.load_raw().await;
+        let result = match loaded {
+            Ok(h)
+                if !h.current.as_ref().is_some_and(|current| {
+                    matches!(&current.state,
+                OperationState::Run(run) if matches!(run.control, Control::Running(_)))
+                }) =>
+            {
+                Ok(Err(Rejection::NotCurrent))
+            }
+            Ok(h) => match recovered_echo_arguments(&h, &key, &original) {
+                Ok(Some(arguments)) => {
+                    let mut intents = self
+                        .main
+                        .owner
+                        .recovered_echo
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner());
+                    if let Some(existing) = intents.get(&key) {
+                        if existing.original != original {
+                            Ok(Err(Rejection::ConflictingIntent))
+                        } else if existing.arguments.key != arguments.key
+                            || existing.arguments.value != arguments.value
+                            || existing.arguments.seq != arguments.seq
+                        {
+                            Err(crate::restore::fault("recovered echo arguments changed"))
+                        } else {
+                            Ok(Ok(()))
+                        }
+                    } else {
+                        intents.insert(
+                            key,
+                            crate::owner::RecoveredEchoIntent {
+                                original,
+                                arguments,
+                            },
+                        );
+                        Ok(Ok(()))
+                    }
+                }
+                Ok(None) => Ok(Err(Rejection::NotCurrent)),
+                Err(error) => Err(error),
+            },
+            Err(error) => Err(error),
+        };
+        pair.release();
+        self.main.owner.observed_unlocked(result)
+    }
     /// Installs the one host-approved Ready echo route after concrete owner
     /// creation. A later execution wrapper must claim under this settings line.
     pub async fn register_ready_echo_tool(
@@ -21,6 +207,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         if let Err(error) = route.check_timing(timing) {
             return Ok(Err(error));
         }
+        let descriptor = handle.descriptor().clone();
         let line = self.main.owner.settings_line.acquire().await?;
         let result = self
             .main
@@ -28,7 +215,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .tools
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .register_echo(&handle, &route, timing);
+            .register_echo(&handle, descriptor, &route, timing);
         match result {
             Ok(old) => {
                 self.main.owner.events.enqueue(
@@ -107,6 +294,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         tools: Vec<AgentHarnessToolHandle<C>>,
     ) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
         Box::pin(async move {
+            self.main.owner.admission.check()?;
+            let descriptors = tools.iter().map(|tool| tool.descriptor().clone()).collect();
             let _line = self.main.owner.settings_line.acquire().await?;
             let old = self
                 .main
@@ -114,7 +303,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .tools
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
-                .replace_handles(tools);
+                .replace_handles(tools, descriptors);
             self.main.owner.events.enqueue(
                 HarnessEventType::ConfigUpdate,
                 &self.main.lane.name,

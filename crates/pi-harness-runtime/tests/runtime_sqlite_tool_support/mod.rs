@@ -30,6 +30,10 @@ impl Drop for File {
 
 pub struct CheckedSqlite {
     pub inner: Arc<SqliteStorage>,
+    pub args_read_target: AtomicUsize,
+    pub args_reads: AtomicUsize,
+    pub args_read_entered: CancellationToken,
+    pub args_read_release: CancellationToken,
     pub attempts: AtomicUsize,
     pub refused: AtomicUsize,
     pub applied: AtomicUsize,
@@ -50,6 +54,10 @@ impl CheckedSqlite {
     ) -> Self {
         Self {
             inner,
+            args_read_target: AtomicUsize::new(0),
+            args_reads: AtomicUsize::new(0),
+            args_read_entered: CancellationToken::new(),
+            args_read_release: CancellationToken::new(),
             attempts: AtomicUsize::new(0),
             refused: AtomicUsize::new(0),
             applied: AtomicUsize::new(0),
@@ -86,7 +94,17 @@ impl Storage for CheckedSqlite {
         namespace: RegisterNamespace,
         key: &'a str,
     ) -> BoxFuture<'a, Result<Option<Register>, StorageError>> {
-        self.inner.get_register(namespace, key)
+        Box::pin(async move {
+            let value = self.inner.get_register(namespace, key).await?;
+            if namespace == RegisterNamespace::OperationToolArguments {
+                let ordinal = self.args_reads.fetch_add(1, Ordering::SeqCst) + 1;
+                if self.args_read_target.load(Ordering::SeqCst) == ordinal {
+                    self.args_read_entered.cancel();
+                    self.args_read_release.cancelled().await;
+                }
+            }
+            Ok(value)
+        })
     }
     fn list_registers<'a>(
         &'a self,
@@ -218,18 +236,22 @@ impl CrashChild {
     const CLEANUP_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(2);
 
     pub fn start(path: &std::path::Path) -> Self {
+        Self::start_test(path, "sqlite_post_apply_crash_child", None)
+    }
+    pub fn start_pending(path: &std::path::Path, replay: &str) -> Self {
+        Self::start_test(path, "sqlite_pending_crash_child", Some(replay))
+    }
+    fn start_test(path: &std::path::Path, test: &str, replay: Option<&str>) -> Self {
         use std::process::{Command, Stdio};
-        let mut process = Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "sqlite_post_apply_crash_child",
-                "--ignored",
-                "--nocapture",
-            ])
+        let mut command = Command::new(std::env::current_exe().unwrap());
+        command
+            .args(["--exact", test, "--ignored", "--nocapture"])
             .env("PI_RUNTIME_SQLITE_CRASH_PATH", path)
-            .stdout(Stdio::piped())
-            .spawn()
-            .unwrap();
+            .stdout(Stdio::piped());
+        if let Some(replay) = replay {
+            command.env("PI_RUNTIME_SQLITE_PENDING_REPLAY", replay);
+        }
+        let mut process = command.spawn().unwrap();
         let output = process.stdout.take().unwrap();
         let (sender, lines) = std::sync::mpsc::channel();
         let reader = std::thread::spawn(move || {
@@ -256,6 +278,20 @@ impl CrashChild {
                 .expect("child did not acknowledge the applied SQLite commit in time");
             if line.contains("PI_RUNTIME_SQLITE_CRASH:APPLIED:v1") {
                 return;
+            }
+        }
+    }
+    pub fn await_pending(&self, replay: &str) -> u64 {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        let prefix = format!("PI_RUNTIME_SQLITE_PENDING:v1:{replay}:");
+        loop {
+            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+            let line = self
+                .lines
+                .recv_timeout(remaining)
+                .expect("child did not acknowledge persisted pending Request in time");
+            if let Some((_, mark)) = line.split_once(&prefix) {
+                return mark.trim().parse().expect("child ID high-water mark");
             }
         }
     }

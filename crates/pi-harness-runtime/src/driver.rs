@@ -530,6 +530,58 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     &lane.lane.line,
                 ).await?;
                 let latest = lane.load_raw().await?;
+                let mut recovered_without_route = false;
+                let mut recovered_fault = None;
+                if let Some(checked) = latest.current.as_ref()
+                    && checked.operation.operation_id == current.operation.operation_id
+                    && let OperationState::Run(run) = &checked.state
+                    && matches!(run.control, Control::Running(_))
+                    && let RunPhase::Tools(tools) = &run.phase
+                {
+                    let step = EffectStepId::new(tools.batch.turn_id.as_str())
+                        .map_err(|_| crate::restore::fault("recovered echo turn invalid"))?;
+                    for call in &tools.batch.calls {
+                        let ToolCallState::EffectPending {
+                            source_index,
+                            ..
+                        } = call else { continue };
+                        let key = EffectKey {
+                            session_id: lane.owner.session.metadata().base_metadata().id.clone(),
+                            lane: lane.lane.name.clone(),
+                            operation_id: checked.operation.operation_id.clone(),
+                            kind: EffectKind::Tool,
+                            step_or_task_id: step.clone(),
+                            logical_attempt: SafeUnsigned::new(0).expect("zero safe unsigned"),
+                            item_index: Some(*source_index),
+                        };
+                        let intents = lane.owner.recovered_echo.lock().unwrap_or_else(|p| p.into_inner());
+                        let Some(intent) = intents.get(&key) else { continue };
+                        match crate::harness::recovered_echo_arguments(&latest, &key, &intent.original) {
+                            Ok(Some(args)) if args.key == intent.arguments.key
+                                && args.value == intent.arguments.value
+                                && args.seq == intent.arguments.seq => {
+                                if !lane.owner.tools.lock().unwrap_or_else(|p| p.into_inner())
+                                    .has_recovered_echo_replacement(&intent.original) {
+                                    recovered_without_route = true;
+                                }
+                            }
+                            Ok(Some(_)) | Ok(None) => {
+                                recovered_fault = Some(crate::restore::fault("recovered echo arguments changed"));
+                                break;
+                            }
+                            Err(error) => { recovered_fault = Some(error); break; }
+                        }
+                    }
+                }
+                if let Some(error) = recovered_fault {
+                    permits.release();
+                    return Err(lane.owner.observed_unlocked::<()>(Err(error)).expect_err("recovered echo fault"));
+                }
+                if recovered_without_route {
+                    permits.release();
+                    effects.release_drive();
+                    return Err(HarnessRuntimeError::PeerLost);
+                }
                 if let Some(checked) = latest.current.as_ref()
                     && checked.operation.operation_id == current.operation.operation_id
                     && !lane.owner.tools.lock().unwrap_or_else(|p| p.into_inner()).has_ready_echo()
@@ -1133,7 +1185,21 @@ async fn externally_completed<
             .routed_pending
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .retain(|key| key.operation_id != *operation);
+            .retain(|key| {
+                key.operation_id != *operation
+                    || key.lane != fx.lane.lane.name
+                    || key.session_id != fx.lane.owner.session.metadata().base_metadata().id
+            });
+        fx.lane
+            .owner
+            .recovered_echo
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .retain(|key, _| {
+                key.operation_id != *operation
+                    || key.lane != fx.lane.lane.name
+                    || key.session_id != fx.lane.owner.session.metadata().base_metadata().id
+            });
     }
     fx.release_drive();
     if matches!(result, OperationResult::Run(_)) {
@@ -1383,6 +1449,43 @@ mod activity_tests {
         assert!(
             still_owned,
             "old guard exposed idle while it could still erase the next registration"
+        );
+    }
+    #[cfg(feature = "extensions")]
+    #[test]
+    fn recovered_registration_checks_activity_before_driving_during_drop() {
+        let lane = lane();
+        let guard = DriveGuard::new(lane.clone());
+        let driving = lane.driving.lock().unwrap();
+        let (started, receive) = std::sync::mpsc::channel();
+        let other = lane.clone();
+        let registration = std::thread::spawn(move || {
+            started.send(()).unwrap();
+            other.recovered_intent_lane_busy()
+        });
+        receive.recv().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if lane.activity.try_lock().is_err() {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "registration waited on driving before acquiring activity"
+            );
+            std::thread::yield_now();
+        }
+        let release = std::thread::spawn(move || drop(guard));
+        drop(driving);
+        assert!(registration.join().unwrap(), "active drive remains busy");
+        release.join().unwrap();
+        assert!(
+            !*lane.driving.lock().unwrap(),
+            "Drop releases drive after registration"
+        );
+        assert!(
+            !lane.recovered_intent_lane_busy(),
+            "lane is available after Drop"
         );
     }
     struct InertDrive;

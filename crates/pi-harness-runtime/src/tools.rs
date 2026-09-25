@@ -405,13 +405,39 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     if matches!(run.control, Control::CancelRequested(_)))
             });
             let arguments_match = captured_arguments_match(&h, &self.saved);
-            if !current_key || !running || !arguments_match {
-                if current_key && cancelled && arguments_match {
-                    self.state
-                        .lock()
-                        .unwrap_or_else(|p| p.into_inner())
-                        .disposition = Some(RoutedDisposition::UnadmittedLocalAbort);
-                }
+            let recovered_valid = self
+                .fx
+                .lane
+                .owner
+                .recovered_echo
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&self.plan.key)
+                .map(|intent| {
+                    crate::harness::recovered_echo_arguments(&h, &self.plan.key, &intent.original)
+                        .is_ok_and(|args| {
+                            args.is_some_and(|args| {
+                                args.key == intent.arguments.key
+                                    && args.value == intent.arguments.value
+                                    && args.seq == intent.arguments.seq
+                            })
+                        })
+                })
+                .unwrap_or(true);
+            if !current_key || !running || !arguments_match || !recovered_valid {
+                let disposition = if !current_key {
+                    RoutedDisposition::NoLongerExpected
+                } else if !arguments_match || !recovered_valid {
+                    RoutedDisposition::HostFault
+                } else if cancelled {
+                    RoutedDisposition::UnadmittedLocalAbort
+                } else {
+                    RoutedDisposition::HostFault
+                };
+                self.state
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .disposition = Some(disposition);
                 return Err(route_error(
                     "extension tool effect changed before admission",
                 ));
@@ -425,6 +451,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner())
                 .echo_is_current(&self.snapshot);
             if !selected {
+                self.state
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .disposition = Some(RoutedDisposition::PeerLost);
                 return Err(route_error("extension tool route was replaced"));
             }
             let prepared = self.snapshot.route.prepare_planned_with_bounds(
@@ -807,7 +837,46 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .unwrap_or_else(|p| p.into_inner())
             .get(key)
             .cloned();
-        let Some(state) = state else { return Ok(()) };
+        let Some(state) = state else {
+            if committed {
+                self.lane
+                    .owner
+                    .recovered_echo
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .remove(key);
+            } else {
+                let intent = self
+                    .lane
+                    .owner
+                    .recovered_echo
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(key)
+                    .cloned();
+                if let Some(intent) = intent {
+                    let mut pair = PairedPermits::acquire(
+                        &self.lane.owner.settings_line,
+                        &self.lane.lane.line,
+                    )
+                    .await?;
+                    let checked = self.lane.load_raw().await.and_then(|h| {
+                        crate::harness::recovered_echo_arguments(&h, key, &intent.original)
+                    });
+                    if matches!(checked, Ok(None)) {
+                        self.lane
+                            .owner
+                            .recovered_echo
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .remove(key);
+                    }
+                    pair.release();
+                    self.lane.owner.observed_unlocked(checked)?;
+                }
+            }
+            return Ok(());
+        };
         let (route, binding, disposition, owner_released, cleanup) = {
             let state = state.lock().unwrap_or_else(|p| p.into_inner());
             (
@@ -874,6 +943,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             self.lane
                 .owner
                 .routed_pending
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(key);
+            self.lane
+                .owner
+                .recovered_echo
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
                 .remove(key);
@@ -1294,9 +1369,55 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self: &Arc<Self>,
         plan: ToolEffectPlan<Telemetry>,
     ) -> Result<EffectOutput, HarnessRuntimeError> {
+        #[cfg(feature = "extensions")]
+        let recovered = self
+            .lane
+            .owner
+            .recovered_echo
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .cloned();
         let Some((prepared, context, prepair_arguments, was_routed)) =
             self.prepared(&plan, true).await?
         else {
+            #[cfg(feature = "extensions")]
+            if let Some(intent) = &recovered {
+                let mut pair =
+                    PairedPermits::acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                        .await?;
+                let checked = self.lane.load_raw().await;
+                let result = checked.and_then(|h| {
+                    if !h.current.as_ref().is_some_and(|current| {
+                        pi_harness_core::tool_batch::expects_effect(
+                            current,
+                            &self.lane.owner.session.metadata().base_metadata().id,
+                            &plan,
+                        )
+                    }) || !h.current.as_ref().is_some_and(|current| {
+                        matches!(&current.state,
+                        OperationState::Run(run) if matches!(run.control, Control::Running(_)))
+                    }) {
+                        return Ok(EffectOutput::NotStarted {
+                            key: plan.key.clone(),
+                        });
+                    }
+                    let current_intent =
+                        crate::harness::recovered_echo_arguments(&h, &plan.key, &intent.original)?;
+                    if current_intent.is_none_or(|args| {
+                        args.key != intent.arguments.key
+                            || args.value != intent.arguments.value
+                            || args.seq != intent.arguments.seq
+                    }) {
+                        return Err(crate::restore::fault(
+                            "recovered echo arguments changed before claim",
+                        ));
+                    }
+                    Err(HarnessRuntimeError::PeerLost)
+                });
+                pair.release();
+                return self.lane.owner.observed_unlocked(result);
+            }
             return self.missing_binding_output(plan).await;
         };
         #[cfg(not(feature = "extensions"))]
@@ -1320,6 +1441,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             });
             if !current_key {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
+            }
+            #[cfg(feature = "extensions")]
+            if let Some(intent) = &recovered
+                && crate::harness::recovered_echo_arguments(&h, &plan.key, &intent.original)?
+                    .is_none_or(|args| {
+                        args.key != intent.arguments.key
+                            || args.value != intent.arguments.value
+                            || args.seq != intent.arguments.seq
+                    })
+            {
+                return Err(crate::restore::fault(
+                    "recovered echo arguments changed before claim",
+                ));
             }
             let running = h.current.as_ref().is_some_and(|current| {
                 matches!(&current.state, OperationState::Run(run)
@@ -1355,13 +1489,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner())
                 .clone();
             #[cfg(feature = "extensions")]
-            let route_snapshot = self
-                .lane
-                .owner
-                .tools
-                .lock()
-                .unwrap_or_else(|p| p.into_inner())
-                .echo_snapshot(&prepared.binding);
+            let route_snapshot = {
+                let registry = self
+                    .lane
+                    .owner
+                    .tools
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner());
+                if let Some(intent) = &recovered {
+                    registry.recovered_echo_snapshot(&intent.original)
+                } else {
+                    registry.echo_snapshot(&prepared.binding)
+                }
+            };
             #[cfg(not(feature = "extensions"))]
             let route_snapshot = ();
             #[cfg(feature = "extensions")]
@@ -1375,10 +1515,24 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             if !running {
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
+            #[cfg(feature = "extensions")]
+            if recovered.is_some()
+                && route_snapshot
+                    .as_ref()
+                    .is_none_or(|snapshot| !Arc::ptr_eq(&snapshot.handle, &prepared.binding))
+            {
+                permits.release();
+                return Err(HarnessRuntimeError::PeerLost);
+            }
             if !bindings
                 .iter()
                 .any(|binding| Arc::ptr_eq(binding, &prepared.binding))
             {
+                #[cfg(feature = "extensions")]
+                if recovered.is_some() {
+                    permits.release();
+                    return Err(HarnessRuntimeError::PeerLost);
+                }
                 let arguments = hydrated_arguments(&h, &plan.args_key)
                     .ok_or_else(|| crate::restore::fault("saved tool arguments absent"))?;
                 let old = self

@@ -26,14 +26,13 @@ use std::{
 use crate::extensions::tool_driver::{EchoRouteTiming, ReadyToolRoute, SingleToolOwner};
 
 #[cfg(feature = "extensions")]
-fn matches_ready_echo<C>(handle: &AgentHarnessToolHandle<C>, route: &ReadyToolRoute) -> bool {
+fn matches_ready_echo(local: &AgentTool, route: &ReadyToolRoute) -> bool {
     use pi_extension_protocol::activation::{AgentToolMode, ToolReplay};
 
     let [granted] = route.grant().tools() else {
         return false;
     };
     let selected = granted.descriptor();
-    let local = handle.descriptor();
     let mode = match selected.execution_mode {
         AgentToolMode::Sequential => ToolExecutionMode::Sequential,
         AgentToolMode::Parallel => ToolExecutionMode::Parallel,
@@ -56,6 +55,7 @@ fn matches_ready_echo<C>(handle: &AgentHarnessToolHandle<C>, route: &ReadyToolRo
 /// Mutations of this value are serialized by the owner settings line.
 pub(crate) struct ToolRegistry<C> {
     handles: Vec<AgentHarnessToolHandle<C>>,
+    handle_names: Vec<pi_ai_core::ToolName>,
     handles_generation: Arc<()>,
     #[cfg(feature = "extensions")]
     echo: Option<RegisteredEcho<C>>,
@@ -82,9 +82,14 @@ impl<C> ReplacedTools<C> {
 }
 
 impl<C> ToolRegistry<C> {
-    fn new(handles: Vec<AgentHarnessToolHandle<C>>) -> Self {
+    fn new(handles: Vec<AgentHarnessToolHandle<C>>, descriptors: Vec<AgentTool>) -> Self {
+        debug_assert_eq!(handles.len(), descriptors.len());
         Self {
             handles,
+            handle_names: descriptors
+                .into_iter()
+                .map(|descriptor| descriptor.name)
+                .collect(),
             handles_generation: Arc::new(()),
             #[cfg(feature = "extensions")]
             echo: None,
@@ -99,18 +104,23 @@ impl<C> ToolRegistry<C> {
     pub(crate) fn replace_handles(
         &mut self,
         handles: Vec<AgentHarnessToolHandle<C>>,
+        descriptors: Vec<AgentTool>,
     ) -> ReplacedTools<C> {
+        debug_assert_eq!(handles.len(), descriptors.len());
         #[cfg(feature = "extensions")]
         let retired_echo = if let Some(registered) = self.echo.as_ref()
-            && (handles
+            && (descriptors
                 .iter()
-                .filter(|handle| handle.descriptor().name.as_str() == "echo")
+                .filter(|descriptor| descriptor.name.as_str() == "echo")
                 .count()
                 != 1
                 || !handles
                     .iter()
-                    .any(|handle| Arc::ptr_eq(handle, &registered.handle)))
-        {
+                    .zip(&descriptors)
+                    .any(|(handle, descriptor)| {
+                        Arc::ptr_eq(handle, &registered.handle)
+                            && *descriptor == registered.descriptor
+                    })) {
             let retired = self.echo.take();
             if let Some(registered) = &retired {
                 registered.route.stop_new_calls();
@@ -120,6 +130,10 @@ impl<C> ToolRegistry<C> {
             None
         };
         self.handles_generation = Arc::new(());
+        self.handle_names = descriptors
+            .into_iter()
+            .map(|descriptor| descriptor.name)
+            .collect();
         ReplacedTools {
             handles: std::mem::replace(&mut self.handles, handles),
             #[cfg(feature = "extensions")]
@@ -131,12 +145,13 @@ impl<C> ToolRegistry<C> {
     pub(crate) fn register_echo(
         &mut self,
         handle: &AgentHarnessToolHandle<C>,
+        descriptor: AgentTool,
         route: &Arc<ReadyToolRoute>,
         timing: EchoRouteTiming,
     ) -> Result<ReplacedTools<C>, crate::extensions::tool_driver::DriverError> {
         use crate::extensions::tool_driver::DriverError;
 
-        if !matches_ready_echo(handle, route)
+        if !matches_ready_echo(&descriptor, route)
             || !route.has_echo_domain_projections()
             || !route.is_current()
             || self
@@ -160,23 +175,30 @@ impl<C> ToolRegistry<C> {
             previous.route.stop_new_calls();
         }
         let mut handles = Vec::with_capacity(self.handles.len() + 1);
+        let mut handle_names = Vec::with_capacity(self.handle_names.len() + 1);
         let mut inserted = false;
-        for current in &self.handles {
-            if current.descriptor().name.as_str() == "echo" {
+        for (current, current_name) in self.handles.iter().zip(&self.handle_names) {
+            if current_name.as_str() == "echo" {
                 if !inserted {
                     handles.push(handle.clone());
+                    handle_names.push(descriptor.name.clone());
                     inserted = true;
                 }
             } else {
                 handles.push(current.clone());
+                handle_names.push(current_name.clone());
             }
         }
         if !inserted {
             handles.push(handle.clone());
+            handle_names.push(descriptor.name.clone());
         }
+        self.handle_names = handle_names;
+        self.handles_generation = Arc::new(());
         self.echo_owner.get_or_insert_with(|| route.owner().clone());
         self.echo = Some(RegisteredEcho {
             handle: handle.clone(),
+            descriptor,
             generation: route.generation(),
             epoch: self.next_epoch,
             route: route.clone(),
@@ -205,6 +227,32 @@ impl<C> ToolRegistry<C> {
     }
 
     #[cfg(feature = "extensions")]
+    pub(crate) fn has_recovered_echo_replacement(&self, original: &AgentTool) -> bool {
+        self.echo.as_ref().is_some_and(|registered| {
+            registered.descriptor == *original
+                && matches_ready_echo(&registered.descriptor, &registered.route)
+                && registered.route.has_echo_domain_projections()
+                && registered.route.is_current()
+        })
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) fn recovered_echo_snapshot(
+        &self,
+        original: &AgentTool,
+    ) -> Option<EchoRouteSnapshot<C>> {
+        let registered = self.echo.as_ref()?;
+        self.has_recovered_echo_replacement(original)
+            .then(|| EchoRouteSnapshot {
+                handle: registered.handle.clone(),
+                route: registered.route.clone(),
+                generation: registered.generation,
+                epoch: registered.epoch,
+                timing: registered.timing,
+            })
+    }
+
+    #[cfg(feature = "extensions")]
     pub(crate) fn echo_is_current(&self, snapshot: &EchoRouteSnapshot<C>) -> bool {
         self.echo.as_ref().is_some_and(|current| {
             current.epoch == snapshot.epoch
@@ -212,6 +260,7 @@ impl<C> ToolRegistry<C> {
                 && Arc::ptr_eq(&current.handle, &snapshot.handle)
                 && Arc::ptr_eq(&current.route, &snapshot.route)
                 && current.timing == snapshot.timing
+                && current.route.is_current()
         })
     }
 
@@ -249,10 +298,32 @@ impl<C> Deref for ToolRegistry<C> {
 #[cfg(feature = "extensions")]
 struct RegisteredEcho<C> {
     handle: AgentHarnessToolHandle<C>,
+    descriptor: AgentTool,
     route: Arc<ReadyToolRoute>,
     generation: u64,
     epoch: u64,
     timing: EchoRouteTiming,
+}
+
+#[cfg(feature = "extensions")]
+#[derive(Clone)]
+pub(crate) struct RecoveredEchoIntent {
+    pub(crate) original: AgentTool,
+    pub(crate) arguments: crate::tools::CapturedArguments,
+}
+
+/// A trusted recovered echo intent could not be registered for this lane.
+#[cfg(feature = "extensions")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RecoveredEchoRegistrationError {
+    /// A drive currently owns the lane.
+    LaneBusy,
+    /// The complete pending effect key is no longer current.
+    NotCurrent,
+    /// The supplied original declaration is outside the supported echo shape.
+    InvalidOriginal,
+    /// This key already carries a different original declaration.
+    ConflictingIntent,
 }
 
 /// Candidate only: the later execution wrapper must recheck this under
@@ -355,6 +426,8 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub tools: Mutex<ToolRegistry<C>>,
     #[cfg(feature = "extensions")]
     pub(crate) routed_pending: Mutex<BTreeSet<EffectKey>>,
+    #[cfg(feature = "extensions")]
+    pub(crate) recovered_echo: Mutex<BTreeMap<EffectKey, RecoveredEchoIntent>>,
     pub lanes: Mutex<BTreeMap<LaneId, Arc<LaneControl>>>,
     pub suspensions: Mutex<BTreeMap<LaneId, SuspensionObservation>>,
     pub lease: Mutex<Option<RuntimeLease>>,
@@ -447,8 +520,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             &options.stream_options,
             options.session.codec().header_policy(),
         )?;
-        // Capture once, outside locks, for both permitted main initialization and
-        // every future lane. Existing main configuration never replaces this seed.
+        // Capture each application getter once, outside locks. The same pure
+        // declarations feed the seed and all later registry replacements.
+        let tool_descriptors: Vec<AgentTool> = options
+            .tools
+            .iter()
+            .map(|tool| tool.descriptor().clone())
+            .collect();
+        // Existing main configuration never replaces this future-lane seed.
         let seed = LaneConfiguration {
             model: LaneModel {
                 provider: options.model.provider.clone(),
@@ -456,10 +535,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             },
             thinking_level: options.thinking_level.unwrap_or(AgentThinkingLevel::Off),
             active_tool_names: options.active_tool_names.clone().unwrap_or_else(|| {
-                options
-                    .tools
+                tool_descriptors
                     .iter()
-                    .map(|tool| tool.descriptor().name.clone())
+                    .map(|tool| tool.name.clone())
                     .collect()
             }),
         };
@@ -550,9 +628,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             close_started: std::sync::atomic::AtomicBool::new(false),
             closed: pi_ai_core::CancellationToken::new(),
             seed,
-            tools: Mutex::new(ToolRegistry::new(options.tools)),
+            tools: Mutex::new(ToolRegistry::new(options.tools, tool_descriptors)),
             #[cfg(feature = "extensions")]
             routed_pending: Mutex::new(BTreeSet::new()),
+            #[cfg(feature = "extensions")]
+            recovered_echo: Mutex::new(BTreeMap::new()),
             lanes: Mutex::new(lanes),
             suspensions: Mutex::new(BTreeMap::new()),
             lease: Mutex::new(Some(lease)),
@@ -664,6 +744,15 @@ pub(crate) fn suspended(h: &HydratedLane) -> Option<SuspendedOperation> {
 }
 
 impl LaneControl {
+    #[cfg(feature = "extensions")]
+    pub(crate) fn recovered_intent_lane_busy(&self) -> bool {
+        let _activity = self.activity.lock().unwrap_or_else(|p| p.into_inner());
+        let active = self.active.lock().unwrap_or_else(|p| p.into_inner());
+        let reservation = self.reservation.lock().unwrap_or_else(|p| p.into_inner());
+        let driving = self.driving.lock().unwrap_or_else(|p| p.into_inner());
+        active.is_some() || reservation.is_some() || *driving
+    }
+
     pub(crate) fn reserve_drive(
         &self,
         operation: OperationId,
