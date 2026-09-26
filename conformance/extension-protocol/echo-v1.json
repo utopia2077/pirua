@@ -1,0 +1,102 @@
+{
+  "format": "s12-echo-transcript/1",
+  "principal": "peer-a",
+  "inputs": [
+    {
+      "id": "a",
+      "generation": 7,
+      "request_id": 17,
+      "tool_call_id": "call-a",
+      "source_index": 2,
+      "effect_key": {
+        "session_id": "s-peer-a",
+        "lane": "main",
+        "operation_id": "op-a",
+        "effect_kind": "tool",
+        "step_or_task_id": "step-a",
+        "logical_attempt": 0,
+        "item_index": 2
+      },
+      "text": "north-31",
+      "expected_terminal_text": "north-31"
+    },
+    {
+      "id": "b",
+      "generation": 8,
+      "request_id": 18,
+      "tool_call_id": "call-b",
+      "source_index": 5,
+      "effect_key": {
+        "session_id": "s-peer-b",
+        "lane": "main",
+        "operation_id": "op-b",
+        "effect_kind": "tool",
+        "step_or_task_id": "step-b",
+        "logical_attempt": 0,
+        "item_index": 5
+      },
+      "text": "south-47",
+      "expected_terminal_text": "south-47"
+    }
+  ],
+  "version_pairs": [
+    {
+      "id": "core10-tool10",
+      "core_minor": 0,
+      "tool_minor": 0,
+      "inputs": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "core11-tool11",
+      "core_minor": 1,
+      "tool_minor": 1,
+      "inputs": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "core10-tool11",
+      "core_minor": 0,
+      "tool_minor": 1,
+      "inputs": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "core11-tool10",
+      "core_minor": 1,
+      "tool_minor": 0,
+      "inputs": [
+        "a",
+        "b"
+      ]
+    }
+  ],
+  "faults": [
+    {
+      "id": "manifest_profile_digest_wrong",
+      "stage": "manifest"
+    },
+    {
+      "id": "manifest_dynamic_digest_wrong",
+      "stage": "manifest"
+    },
+    {
+      "id": "terminal_projection_wrong",
+      "stage": "terminal"
+    },
+    {
+      "id": "terminal_digest_wrong",
+      "stage": "terminal"
+    },
+    {
+      "id": "duplicate_terminal",
+      "stage": "duplicate"
+    }
+  ]
+}

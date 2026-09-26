@@ -1,0 +1,19 @@
+{
+  "format": "s12-echo-digests/1",
+  "profile": {
+    "1.0": "a995f8db0e619aeba78b054bc6bfbdcd9e3c8987e4e6535b6eb7d3585e60b8d3",
+    "1.1": "1616abb00ef9a2089194e834fa5dc2de722cd4b56082adbbec992fca42f77d33"
+  },
+  "schema": {
+    "1.0": {
+      "arguments": "54669b5e6a1bfebb4d15788d41b5cd5fb8e51fc2d982eb2383a42262c748c90a",
+      "progress": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335",
+      "raw_result": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335"
+    },
+    "1.1": {
+      "arguments": "54669b5e6a1bfebb4d15788d41b5cd5fb8e51fc2d982eb2383a42262c748c90a",
+      "progress": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335",
+      "raw_result": "a08e48cf5321241817eefd20593ea27ef00f7effb1118796abe2da134ea00335"
+    }
+  }
+}
