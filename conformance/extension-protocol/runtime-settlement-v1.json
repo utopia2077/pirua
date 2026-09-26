@@ -1,0 +1,68 @@
+{
+  "format": "s12-runtime-settlement/1",
+  "principal": "peer-a",
+  "generation": 7,
+  "tool_call_id": "runtime-peer-call",
+  "input_text": "model-original",
+  "effective_text": "runtime-effective-1376",
+  "tokens": 5,
+  "version_pairs": [
+    {
+      "id": "core1.0-tool1.0",
+      "core_minor": 0,
+      "tool_minor": 0
+    },
+    {
+      "id": "core1.1-tool1.1",
+      "core_minor": 1,
+      "tool_minor": 1
+    },
+    {
+      "id": "core1.0-tool1.1",
+      "core_minor": 0,
+      "tool_minor": 1
+    },
+    {
+      "id": "core1.1-tool1.0",
+      "core_minor": 1,
+      "tool_minor": 0
+    }
+  ],
+  "faults": [
+    "normal",
+    "wrong_request",
+    "duplicate_terminal",
+    "terminal_digest_wrong"
+  ],
+  "backends": [
+    "memory",
+    "sqlite"
+  ],
+  "zero_credit": 0,
+  "bounded_case_timeout_ms": 15000,
+  "replacement_generation": 8,
+  "binding_histories": [
+    "wrong_key",
+    "wrong_generation",
+    "wrong_args",
+    "wrong_request",
+    "duplicate_terminal",
+    "terminal_digest_wrong",
+    "external_finalization"
+  ],
+  "restore_histories": [
+    "safe",
+    "never"
+  ],
+  "assertions": {
+    "cas": "same first receipt retained across real NotApplied; one Request, source-ordered after_tool, one ToolResult/linked UsageRow/args deletion",
+    "wrong_key": "actual durable turn/step changes after first receipt: no settlement writes",
+    "wrong_args": "actual saved effective arguments register changes after first receipt: no settlement writes",
+    "wrong_generation": "two actual public runtime owners G7/G8 have same K/request id but distinct opaque bindings: foreign retirement rejected, neither snapshot changes",
+    "wrong_request": "peer StreamEnd uses actual request_id+100: no receipt/result/usage/write",
+    "duplicate_terminal": "second identical StreamEnd closes only its generation; retained first terminal settles once; no duplicate result/usage/write",
+    "external_finalization": "actual host external aborted recipe removes exact pending K before released peer end: zero subsequent durable writes",
+    "restore_safe": "actual SQLite pending child exits73 after reaping actor; reopen unchanged K/args; trusted original Safe registration; fresh G8 binding sameK/savedargs settles",
+    "restore_never": "same pending child process-end: existing conservative interrupted result; G8 handshake only, no second Request"
+  }
+}
