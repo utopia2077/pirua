@@ -648,6 +648,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .host
                 .spawn(Box::pin(async move {
                     work.admission.drained().await;
+                    drop(crate::tools::retire_closed_publications(work.as_ref()));
                     if work.session.close().await.is_err() {
                         let _ = work.fail("runtime Session close failed");
                     }
@@ -794,6 +795,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     reservation: std::sync::Mutex::new(None),
                     streaming: std::sync::Mutex::new(None),
                     running_tools: std::sync::Mutex::new(std::collections::BTreeMap::new()),
+                    origin_leases: std::sync::Mutex::new(Vec::new()),
                     line: crate::scheduler::MutationLine::new(owner.admission.clone()),
                     gate: crate::manual_gate::ManualGate::new(
                         owner.admission.clone(),

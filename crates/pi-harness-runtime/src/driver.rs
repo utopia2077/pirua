@@ -38,7 +38,21 @@ impl DriveGuard {
 }
 impl Drop for DriveGuard {
     fn drop(&mut self) {
-        let removed = {
+        let weak = self
+            .lane
+            .origin_leases
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        let leases: Vec<_> = weak
+            .into_iter()
+            .filter_map(|lease| lease.upgrade())
+            .filter(|lease| lease.belongs_to_drive(&self.generation))
+            .collect();
+        for lease in &leases {
+            lease.begin_failure(true);
+        }
+        let removed = (|| {
             let _activity = self.lane.activity.lock().unwrap_or_else(|p| p.into_inner());
             if !Arc::ptr_eq(
                 &self.generation,
@@ -48,7 +62,7 @@ impl Drop for DriveGuard {
                     .lock()
                     .unwrap_or_else(|p| p.into_inner()),
             ) {
-                return;
+                return None;
             }
             let mut reservation = self
                 .lane
@@ -56,18 +70,22 @@ impl Drop for DriveGuard {
                 .lock()
                 .unwrap_or_else(|p| p.into_inner());
             if reservation.as_ref() != Some(&self.operation) {
-                return;
+                return None;
             }
             let mut active = self.lane.active.lock().unwrap_or_else(|p| p.into_inner());
             if active.as_ref().is_some_and(|(id, _)| id != &self.operation) {
-                return;
+                return None;
             }
             let removed = active.take();
             reservation.take();
             *self.lane.driving.lock().unwrap_or_else(|p| p.into_inner()) = false;
             removed
-        };
+        })();
         drop(removed);
+        for lease in &leases {
+            lease.finish_failure();
+        }
+        drop(leases);
         self.lane.announce();
     }
 }
@@ -517,19 +535,32 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let recovery=lane.lane.restored.load(std::sync::atomic::Ordering::Acquire);
             let effects=RuntimeEffects::new(lane.clone(),recovery);
             let registration:Arc<dyn crate::abort::ActiveDrive>=effects.clone();
-            let mut current={let _line=lane.lane.line.acquire().await?;let h=lane.load().await?;let Some(current)=h.current else {return Ok(Err(ResumeExpectedError::NothingToResume(NothingToResumeError {tag:Default::default(),message:"lane has no open operation".into(),lane:lane.lane.name.clone()})));};
+            let mut origin_release = crate::tools::OriginRelease::default();
+            let mut current={let _line=lane.lane.line.acquire().await?;let h=lane.load().await?;let Some(current)=h.current.clone() else {
+                let keys: Vec<_> = lane.owner.tool_publications.lock().unwrap_or_else(|p| p.into_inner()).keys().filter(|key| key.lane == lane.lane.name && key.session_id == lane.owner.session.metadata().base_metadata().id).cloned().collect();
+                for key in keys { origin_release.append(effects.retire_lost_publication(&h, &key)); }
+                return Ok(Err(ResumeExpectedError::NothingToResume(NothingToResumeError {tag:Default::default(),message:"lane has no open operation".into(),lane:lane.lane.name.clone()})));};
                 if !lane.lane.reserve_drive(current.operation.operation_id.clone(),Arc::downgrade(&registration)) {return Ok(Err(ResumeExpectedError::LaneBusy(LaneBusyError {tag:Default::default(),message:"lane is already driving".into(),lane:lane.lane.name.clone(),operation_id:current.operation.operation_id.clone(),operation_kind:crate::snapshots::kind(&current)})));}
                 *effects.operation_kind.lock().unwrap_or_else(|p|p.into_inner())=crate::snapshots::kind(&current);
                 *effects.original_operation.lock().unwrap_or_else(|p|p.into_inner())=Some(current.operation.clone());
                 current};
             let _drive=DriveGuard::new(lane.lane.clone());
+            effects.wait_tool_publications(&current.operation.operation_id).await?;
             #[cfg(feature = "extensions")]
             {
+                let _origin_finishers = effects.origin_return_finishers();
                 let mut permits = crate::tools::PairedPermits::acquire(
                     &lane.owner.settings_line,
                     &lane.lane.line,
                 ).await?;
-                let latest = lane.load_raw().await?;
+                effects.arm_origin_consumers(&mut permits);
+                let latest = match lane.load_raw().await {
+                    Ok(latest) => latest,
+                    Err(error) => {
+                        drop(permits);
+                        return Err(lane.owner.observed_unlocked::<()>(Err(error)).expect_err("Direct preflight read fault"));
+                    }
+                };
                 let mut recovered_without_route = false;
                 let mut recovered_fault = None;
                 if let Some(checked) = latest.current.as_ref()
@@ -556,11 +587,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         };
                         let intents = lane.owner.recovered_echo.lock().unwrap_or_else(|p| p.into_inner());
                         let Some(intent) = intents.get(&key) else { continue };
-                        match crate::harness::recovered_echo_arguments(&latest, &key, &intent.original) {
+                        match effects.live_recovered_arguments(&latest, &key, &intent.original) {
                             Ok(Some(args)) if args.key == intent.arguments.key
                                 && args.value == intent.arguments.value
                                 && args.seq == intent.arguments.seq => {
-                                if !lane.owner.tools.lock().unwrap_or_else(|p| p.into_inner())
+                                if intent.original.replay == Some(ToolReplay::Safe) && !lane.owner.tools.lock().unwrap_or_else(|p| p.into_inner())
                                     .has_recovered_echo_replacement(&intent.original) {
                                     recovered_without_route = true;
                                 }
@@ -574,12 +605,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     }
                 }
                 if let Some(error) = recovered_fault {
-                    permits.release();
+                    drop(permits);
                     return Err(lane.owner.observed_unlocked::<()>(Err(error)).expect_err("recovered echo fault"));
                 }
                 if recovered_without_route {
+                    let returned = effects.release_recoverable_drive(&latest, &mut origin_release);
+                    if let Err(error) = returned {
+                        drop(permits);
+                        return Err(lane.owner.observed_unlocked::<()>(Err(error)).expect_err("Direct return fault"));
+                    }
                     permits.release();
-                    effects.release_drive();
                     return Err(HarnessRuntimeError::PeerLost);
                 }
                 if let Some(checked) = latest.current.as_ref()
@@ -592,8 +627,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         &lane.owner.routed_pending.lock().unwrap_or_else(|p| p.into_inner()),
                     )
                 {
+                    let returned = effects.release_recoverable_drive(&latest, &mut origin_release);
+                    if let Err(error) = returned {
+                        drop(permits);
+                        return Err(lane.owner.observed_unlocked::<()>(Err(error)).expect_err("Direct return fault"));
+                    }
                     permits.release();
-                    effects.release_drive();
                     return Err(HarnessRuntimeError::PeerLost);
                 }
                 permits.release();
@@ -607,8 +646,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 if matches!(&current.state,OperationState::Run(r) if matches!(r.control,Control::Running(_))) && (!missing.models.is_empty()||!missing.tools.is_empty()) {
                     // Rejection and relinquishing this drive are one lane boundary.
                     // A later abort must select its own reconciliation drive.
-                    effects.release_drive();
+                    let origin_release = effects.stage_release_drive();
                     drop(precheck_line);
+                    drop(origin_release);
                     lane.lane.announce();
                     return Ok(Err(ResumeExpectedError::MissingIdentities(MissingIdentitiesError{tag:Default::default(),message:"captured identities are missing".into(),lane:lane.lane.name.clone(),tools:missing.tools,models:missing.models})));
                 }
@@ -618,7 +658,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 let latest=lane.load().await?.current;
                 match latest{Some(latest) if latest.operation.operation_id==current.operation.operation_id=>current=latest,_=>{drop(line);let result=externally_completed(&effects,&current.operation.operation_id).await?;return Ok(Ok(resume_outcome(result,&current.operation.operation_id)?));}}
                 if lane.resume_configuration(&current).as_ref()!=Some(&configuration){drop(line);continue}
-                if !missing.models.is_empty()||!missing.tools.is_empty(){effects.release_drive();drop(line);lane.lane.announce();return Ok(Err(ResumeExpectedError::MissingIdentities(MissingIdentitiesError{tag:Default::default(),message:"captured identities are missing".into(),lane:lane.lane.name.clone(),tools:missing.tools,models:missing.models})))}
+                if !missing.models.is_empty()||!missing.tools.is_empty(){let origin_release=effects.stage_release_drive();drop(line);drop(origin_release);lane.lane.announce();return Ok(Err(ResumeExpectedError::MissingIdentities(MissingIdentitiesError{tag:Default::default(),message:"captured identities are missing".into(),lane:lane.lane.name.clone(),tools:missing.tools,models:missing.models})))}
                 break
             }
             lane.owner.suspensions.lock().unwrap_or_else(|p|p.into_inner()).remove(&lane.lane.name);
@@ -714,6 +754,19 @@ async fn start<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
     mut plan: EffectPlan<Telemetry>,
     pending: &mut std::collections::BTreeMap<EffectKey, Arc<PendingEffect>>,
 ) -> Result<(), HarnessRuntimeError> {
+    let origin = if let EffectPlan::Tool(tool) = &plan {
+        fx.wait_tool_publications(&tool.key.operation_id).await?;
+        fx.origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&tool.key)
+            .cloned()
+    } else {
+        None
+    };
+    if let Some(origin) = &origin {
+        origin.transfer_to_work();
+    }
     if let EffectPlan::Hook(hook) = &mut plan
         && matches!(&hook.event,HookEvent::BeforeRequest(e) if e.step==HookRequestStep::Deferred)
     {
@@ -759,12 +812,16 @@ async fn start<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Session
         slot: slot.clone(),
         started: started.clone(),
         completed: false,
+        origin: origin.clone(),
     };
     fx.lane
         .owner
         .host
         .spawn(Box::pin(async move {
             let result = running.run(plan).await;
+            if let Some(origin) = &origin {
+                origin.return_to_drive();
+            }
             *slot.output.lock().unwrap_or_else(|p| p.into_inner()) = Some(result);
             ownership.complete();
         }))
@@ -782,6 +839,7 @@ pub(crate) async fn drive<
     let mut pending = std::collections::BTreeMap::new();
     let mut immediate_key = None;
     loop {
+        fx.wait_tool_publications(&operation_id).await?;
         let h = {
             let _line = fx.lane.lane.line.acquire().await?;
             fx.lane.load().await?
@@ -914,7 +972,27 @@ pub(crate) async fn drive<
                         match disposition {
                             crate::tools::RoutedDisposition::PeerLost => {
                                 fx.cleanup_routed(&key, false).await?;
-                                fx.release_drive();
+                                let _origin_finishers = fx.origin_return_finishers();
+                                let mut release = crate::tools::OriginRelease::default();
+                                let mut pair = crate::tools::PairedPermits::acquire(
+                                    &fx.lane.owner.settings_line,
+                                    &fx.lane.lane.line,
+                                )
+                                .await?;
+                                fx.arm_origin_consumers(&mut pair);
+                                let returned = fx.lane.load_raw().await.and_then(|latest| {
+                                    fx.release_recoverable_drive(&latest, &mut release)
+                                });
+                                if let Err(error) = returned {
+                                    drop(pair);
+                                    return Err(fx
+                                        .lane
+                                        .owner
+                                        .observed_unlocked::<()>(Err(error))
+                                        .expect_err("Direct return fault"));
+                                }
+                                pair.release();
+                                drop(release);
                                 return Err(HarnessRuntimeError::PeerLost);
                             }
                             crate::tools::RoutedDisposition::HostFault => {
@@ -1023,8 +1101,9 @@ pub(crate) async fn drive<
                 // lane boundary. A subsequent abort either owns this drive or starts
                 // a new reconciliation generation; it cannot lose both owners.
                 fx.publish_suspension(&latest, &result);
-                fx.release_drive();
+                let origin_release = fx.stage_release_drive();
                 drop(line);
+                drop(origin_release);
                 fx.events().flush();
                 fx.lane.lane.announce();
                 return Ok(result);
@@ -1086,6 +1165,7 @@ struct EffectTaskOwnership<
     slot: Arc<PendingEffect>,
     started: pi_ai_core::CancellationToken,
     completed: bool,
+    origin: Option<Arc<dyn crate::tools::OriginFence>>,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     EffectTaskOwnership<C, S, M>
@@ -1098,12 +1178,22 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     for EffectTaskOwnership<C, S, M>
 {
     fn drop(&mut self) {
+        if !self.completed
+            && let Some(origin) = &self.origin
+        {
+            origin.begin_failure(false);
+        }
         if !self.completed && self.fx.lane.owner.admission.check().is_ok() {
             let _ = self
                 .fx
                 .lane
                 .owner
                 .fail("host dropped an effect completion task");
+        }
+        if !self.completed
+            && let Some(origin) = &self.origin
+        {
+            origin.finish_failure();
         }
         self.slot.done.cancel();
         self.started.cancel();
@@ -1201,7 +1291,7 @@ async fn externally_completed<
                     || key.session_id != fx.lane.owner.session.metadata().base_metadata().id
             });
     }
-    fx.release_drive();
+    fx.release_protected_drive();
     if matches!(result, OperationResult::Run(_)) {
         fx.events().enqueue(
             HarnessEventType::RunEnd,
@@ -1415,6 +1505,7 @@ mod activity_tests {
             reservation: Mutex::new(Some(OperationId::new("old").unwrap())),
             streaming: Mutex::new(None),
             running_tools: Mutex::new(Default::default()),
+            origin_leases: Mutex::new(Vec::new()),
             line: crate::scheduler::MutationLine::new(admission.clone()),
             gate: crate::manual_gate::ManualGate::new(admission, DriveMode::Automatic),
             hydrated: Mutex::new(h),

@@ -120,7 +120,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         permit_slot: &mut Option<CommitPermit>,
         raw: bool,
     ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
-        self.apply_prepared_inner(recipe, prepared, permit_slot, raw, None)
+        self.apply_prepared_inner(recipe, prepared, permit_slot, raw, None, None)
             .await
     }
     /// Routed commits have already admitted their permit and carry their write
@@ -139,8 +139,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             permit_slot,
             true,
             Some(observation_slot),
+            None,
         )
         .await
+    }
+    pub(crate) async fn apply_tool_publication(
+        &self,
+        recipe: CommitRecipe<Telemetry>,
+        prepared: Option<pi_agent_session::storage::PreparedEntries>,
+        permit_slot: &mut Option<CommitPermit>,
+        cell: &crate::tools::ToolPublication<C>,
+    ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
+        self.apply_prepared_inner(recipe, prepared, permit_slot, true, None, Some(cell))
+            .await
     }
     async fn apply_prepared_inner(
         &self,
@@ -149,6 +160,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         permit_slot: &mut Option<CommitPermit>,
         raw: bool,
         observation_slot: Option<&mut Option<WriteObservation>>,
+        tool_publication: Option<&crate::tools::ToolPublication<C>>,
     ) -> Result<Option<HydratedLane>, HarnessRuntimeError> {
         if let Some(revision) = recipe.expected_settings_revision
             && self
@@ -214,6 +226,29 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .iter()
             .find(|c| c.namespace == RegisterNamespace::OperationMeta && c.seq.is_some())
             .and_then(|c| OperationId::new(c.key.clone()).ok());
+        let args_write = tool_publication.map(|cell| {
+            let matches: Vec<_> = recipe
+                .transaction
+                .writes
+                .iter()
+                .enumerate()
+                .filter_map(|(index, write)| {
+                    if let Write::SetRegister(register) = write
+                        && let RegisterSet::OperationToolArguments { key, value } =
+                            register.as_ref()
+                        && key == &cell.plan.args_key
+                    {
+                        Some((index, value.clone()))
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            match matches.as_slice() {
+                [(index, value)] if value == &cell.effective_args => Ok(*index),
+                _ => Err("tool publication args write is not unique and exact"),
+            }
+        });
         let request = ConditionalCommit {
             conditions,
             transaction: recipe.transaction,
@@ -250,6 +285,26 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let ConditionalOutcome::Applied(commit) = outcome else {
             return Ok(None);
         };
+        if let Some(cell) = tool_publication {
+            let receipt = args_write
+                .expect("tool receipt write checked")
+                .and_then(|index| {
+                    commit
+                        .seqs
+                        .get(index)
+                        .copied()
+                        .map(|seq| crate::tools::CapturedArguments {
+                            key: cell.plan.args_key.clone(),
+                            value: cell.effective_args.clone(),
+                            seq,
+                        })
+                        .ok_or("tool publication commit args sequence missing")
+                });
+            *cell.receipt.lock().unwrap_or_else(|p| p.into_inner()) =
+                crate::tools::CommitArgumentsReceipt::Applied(receipt);
+            // Interpret even a malformed host receipt only after fresh hydration
+            // has established whether its full Tool K is still expected.
+        }
         if accepted_operation.is_some()
             || recipe
                 .publication

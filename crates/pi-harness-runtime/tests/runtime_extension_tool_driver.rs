@@ -9252,3 +9252,4282 @@ fn omitted_known_profile_without_claimed_major_descriptor_has_no_known_method() 
         }
     }
 }
+
+// E1341 real runtime fixtures for captured selection and publication guards.
+struct Origin1341Native {
+    descriptor: pi_agent_schema::AgentTool,
+    prepares: AtomicU64,
+    selected_address: AtomicU64,
+    executions: AtomicU64,
+    execution_args: Mutex<Vec<JsonObject>>,
+    execute_gate: Mutex<Option<pi_ai_core::CancellationToken>>,
+}
+
+impl pi_agent_schema::AgentHarnessTool<()> for Origin1341Native {
+    fn descriptor(&self) -> &pi_agent_schema::AgentTool {
+        &self.descriptor
+    }
+
+    fn prepare_arguments(
+        &self,
+        arguments: pi_ai_core::JsonValue,
+    ) -> Result<JsonObject, pi_agent_schema::ToolExecutionError> {
+        self.prepares.fetch_add(1, Ordering::SeqCst);
+        self.selected_address
+            .store(self as *const Self as u64, Ordering::SeqCst);
+        let pi_ai_core::JsonValue::Object(arguments) = arguments else {
+            panic!("E1341 model fixture supplies object arguments")
+        };
+        Ok(arguments)
+    }
+
+    fn execute<'a>(
+        &'a self,
+        _: pi_ai_core::ToolCallId,
+        args: JsonObject,
+        _: &'a dyn pi_agent_schema::Cancellation,
+        _: &'a dyn pi_agent_schema::ToolProgressSink,
+        _: &'a (),
+    ) -> pi_agent_schema::BoxFuture<
+        'a,
+        Result<pi_agent_schema::AgentToolResult, pi_agent_schema::ToolExecutionError>,
+    > {
+        Box::pin(async move {
+            self.executions.fetch_add(1, Ordering::SeqCst);
+            self.execution_args.lock().unwrap().push(args);
+            let gate = self.execute_gate.lock().unwrap().clone();
+            if let Some(gate) = gate {
+                gate.cancelled().await;
+            }
+            Ok(pi_agent_schema::AgentToolResult {
+                content: vec![],
+                details: pi_ai_core::JsonValue::Null,
+                usage: None,
+                added_tool_names: None,
+                terminate: None,
+            })
+        })
+    }
+}
+
+struct Origin1341Before {
+    event: Mutex<Option<pi_agent_schema::BeforeToolEvent>>,
+    calls: AtomicU64,
+    gate: Mutex<(bool, Option<Waker>)>,
+}
+
+impl Origin1341Before {
+    fn release(&self) {
+        let waker = {
+            let mut gate = self.gate.lock().unwrap();
+            gate.0 = true;
+            gate.1.take()
+        };
+        if let Some(waker) = waker {
+            waker.wake();
+        }
+    }
+}
+
+impl pi_agent_schema::HookHandler<pi_agent_schema::BeforeTool> for Origin1341Before {
+    fn call(
+        &self,
+        event: pi_agent_schema::BeforeToolEvent,
+    ) -> pi_agent_schema::BoxFuture<
+        '_,
+        Result<Option<pi_agent_schema::BeforeToolResult>, pi_agent_schema::HandlerError>,
+    > {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        *self.event.lock().unwrap() = Some(event);
+        Box::pin(async move {
+            poll_fn(|cx| {
+                let mut gate = self.gate.lock().unwrap();
+                if gate.0 {
+                    Poll::Ready(())
+                } else {
+                    gate.1 = Some(cx.waker().clone());
+                    Poll::Pending
+                }
+            })
+            .await;
+            Ok(None)
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Origin1341Case {
+    SameArcReady,
+    NoRegistration,
+    DifferentArcReady,
+}
+
+struct Origin1341Observation {
+    case: Origin1341Case,
+    milestones: Vec<&'static str>,
+    issues: Vec<String>,
+    installed_address: u64,
+    selected_address: u64,
+    current_address: Option<u64>,
+    current_matches_selected: Option<bool>,
+    native_declaration: pi_agent_schema::AgentTool,
+    ready_declaration: pi_agent_schema::AgentTool,
+    session_id: SessionId,
+    wire_frames: Vec<Vec<u8>>,
+    same_declaration: bool,
+    registration: Option<String>,
+    prepares: u64,
+    before_calls: u64,
+    before_event: Option<pi_agent_schema::BeforeToolEvent>,
+    before_snapshot: Option<pi_agent_session::storage::StorageSnapshot>,
+    pending_snapshot: Option<pi_agent_session::storage::StorageSnapshot>,
+    request_snapshot: Option<pi_agent_session::storage::StorageSnapshot>,
+    tool_key: Option<EffectKey>,
+    native_executions: u64,
+    native_args: Vec<JsonObject>,
+    requests: Vec<v1_1::Request>,
+    completed_snapshot: Option<pi_agent_session::storage::StorageSnapshot>,
+    prompt_result: Option<String>,
+    close_result: Option<String>,
+    runtime_tasks: usize,
+    route_tasks: usize,
+    route_closed: bool,
+}
+
+fn origin1341_bounded<F: Future>(
+    future: F,
+    runtime: &Setup,
+    spawner: &FakeSpawner,
+) -> Option<F::Output> {
+    let mut future = std::pin::pin!(future);
+    for _ in 0..2000 {
+        if let Poll::Ready(result) = poll(future.as_mut()) {
+            return Some(result);
+        }
+        runtime.pump.tick();
+        spawner.tick();
+    }
+    None
+}
+
+fn origin1341_advance(
+    harness: &impl AgentLane,
+    runtime: &Setup,
+    spawner: &FakeSpawner,
+    issues: &mut Vec<String>,
+) {
+    match origin1341_bounded(harness.peek_action(), runtime, spawner) {
+        Some(Ok(Some(_))) => {
+            if !matches!(
+                origin1341_bounded(harness.execute_action(), runtime, spawner),
+                Some(Ok(_))
+            ) {
+                issues.push("manual execute_action did not return success".into());
+            }
+        }
+        Some(Ok(None)) => {}
+        other => issues.push(format!("manual peek_action: {other:?}")),
+    }
+}
+
+fn origin1341_snapshot(
+    runtime: &Setup,
+    spawner: &FakeSpawner,
+) -> Option<pi_agent_session::storage::StorageSnapshot> {
+    origin1341_bounded(runtime.store.snapshot(), runtime, spawner).and_then(Result::ok)
+}
+
+// The key comes from a coherent real Session snapshot, never the standalone
+// driver plan() fixture. Planned clearance has Hook identity; pending has Tool.
+fn origin1341_key(
+    snapshot: &pi_agent_session::storage::StorageSnapshot,
+    session_id: &SessionId,
+) -> Option<EffectKey> {
+    use pi_agent_schema::{OperationState, RunPhase};
+    let operation = snapshot
+        .registers
+        .iter()
+        .find_map(|register| match register {
+            Register::LaneState { key, value, .. } if key == "main" => {
+                value.current_operation_id.as_ref()
+            }
+            _ => None,
+        })?;
+    let run = snapshot
+        .registers
+        .iter()
+        .find_map(|register| match register {
+            Register::OperationState { key, value, .. } if key == operation.as_str() => {
+                match value.as_ref() {
+                    OperationState::Run(run) => Some(run),
+                    _ => None,
+                }
+            }
+            _ => None,
+        })?;
+    let RunPhase::Tools(tools) = &run.phase else {
+        return None;
+    };
+    Some(EffectKey {
+        session_id: session_id.clone(),
+        lane: LaneId::new("main").ok()?,
+        operation_id: operation.clone(),
+        kind: EffectKind::Tool,
+        step_or_task_id: EffectStepId::new(tools.batch.turn_id.as_str()).ok()?,
+        logical_attempt: SafeUnsigned::new(0).ok()?,
+        item_index: Some(SafeUnsigned::new(0).ok()?),
+    })
+}
+
+fn origin1341_requests(channel: &FakeChannel) -> Vec<v1_1::Request> {
+    channel
+        .writes()
+        .iter()
+        .filter_map(|bytes| {
+            let mut reader = FrameReader::<v1_1::Envelope>::new(nz(8192));
+            let envelope = reader.read_one(bytes).ok()?.frame?.envelope;
+            match envelope.frame? {
+                v1_1::envelope::Frame::Request(request) => Some(request),
+                _ => None,
+            }
+        })
+        .collect()
+}
+
+fn origin1341_history(case: Origin1341Case) -> Origin1341Observation {
+    use pi_ai_core::{AssistantContent, StopReason, ToolCall, ToolCallId, ToolName};
+    use runtime_r1_r4_support::assistant;
+
+    let runtime = Setup::new();
+    let mut response = assistant(&runtime.faux.model, StopReason::ToolUse);
+    response.content = vec![AssistantContent::ToolCall(ToolCall {
+        content_type: Default::default(),
+        id: ToolCallId::new("echo-call").unwrap(),
+        name: ToolName::new("echo").unwrap(),
+        arguments: saved(),
+        thought_signature: None,
+        namespace: None,
+    })];
+    *runtime.faux.responses.lock().unwrap() =
+        vec![response, assistant(&runtime.faux.model, StopReason::Stop)].into();
+    let native = Arc::new(Origin1341Native {
+        descriptor: registry_echo_declaration(ToolReplay::Safe)
+            .descriptor()
+            .clone(),
+        prepares: AtomicU64::new(0),
+        selected_address: AtomicU64::new(0),
+        executions: AtomicU64::new(0),
+        execution_args: Mutex::new(vec![]),
+        execute_gate: Mutex::new(None),
+    });
+    let selected: pi_agent_schema::AgentHarnessToolHandle<()> = native.clone();
+    let installed_address = Arc::as_ptr(&selected) as *const () as u64;
+    let factory = RuntimeFactory::new(
+        runtime.time.clone(),
+        runtime.pump.clone(),
+        runtime.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = runtime.options::<()>(DriveMode::Manual);
+    options.tools = vec![selected.clone()];
+    options.active_tool_names = Some(vec![ToolName::new("echo").unwrap()]);
+    let harness = runtime
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    runtime
+        .pump
+        .drive(harness.set_active_tools(vec![ToolName::new("echo").unwrap()]))
+        .unwrap();
+    let spawner = Arc::new(FakeSpawner::default());
+    let driver_owner = owner(spawner.clone());
+    let (channel, _, route) = setup(&driver_owner, &spawner, 7, 200);
+    let route = Arc::new(route);
+    let replacement = registry_echo(&route);
+    let same_declaration = selected.descriptor() == replacement.descriptor();
+    let before = Arc::new(Origin1341Before {
+        event: Mutex::new(None),
+        calls: AtomicU64::new(0),
+        gate: Mutex::new((false, None)),
+    });
+    let subscription = harness.hooks().before_tool(None, before.clone()).unwrap();
+    let mut milestones = vec!["native installed without registered route"];
+    let mut issues = vec![];
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    let mut completed = None;
+    for _ in 0..2000 {
+        if completed.is_none()
+            && let Poll::Ready(result) = poll(prompt.as_mut())
+        {
+            completed = Some(result);
+        }
+        runtime.pump.tick();
+        spawner.tick();
+        if before.calls.load(Ordering::SeqCst) != 0 {
+            milestones.push("actual BeforeTool entered after native preparation");
+            break;
+        }
+        origin1341_advance(harness.as_ref(), &runtime, &spawner, &mut issues);
+    }
+    let paused = before.calls.load(Ordering::SeqCst) == 1;
+    if !paused {
+        issues.push("real BeforeTool pause milestone was not reached".into());
+    }
+    let before_snapshot = origin1341_snapshot(&runtime, &spawner);
+    let selected_address = native.selected_address.load(Ordering::SeqCst);
+    let registration = if !paused || case == Origin1341Case::NoRegistration {
+        None
+    } else {
+        let current = if case == Origin1341Case::SameArcReady {
+            selected.clone()
+        } else {
+            replacement.clone()
+        };
+        let result = origin1341_bounded(
+            harness.register_ready_echo_tool(current, route.clone(), route_timing()),
+            &runtime,
+            &spawner,
+        );
+        if matches!(result, Some(Ok(Ok(())))) {
+            milestones.push("public Ready registration completed while BeforeTool paused");
+        } else {
+            issues.push(format!("Ready registration: {result:?}"));
+        }
+        Some(format!("{result:?}"))
+    };
+    let current_handles =
+        origin1341_bounded(harness.get_tools(), &runtime, &spawner).and_then(Result::ok);
+    let current_handle = current_handles.as_ref().and_then(|tools| tools.first());
+    let current_address = current_handle.map(|handle| Arc::as_ptr(handle) as *const () as u64);
+    let current_matches_selected = current_handle.map(|handle| Arc::ptr_eq(handle, &selected));
+    before.release();
+    milestones.push("BeforeTool released");
+    let mut pending_snapshot = None;
+    for _ in 0..2000 {
+        runtime.pump.tick();
+        spawner.tick();
+        let snapshot = origin1341_snapshot(&runtime, &spawner);
+        let has_args = snapshot.as_ref().is_some_and(|snapshot| {
+            snapshot
+                .registers
+                .iter()
+                .any(|register| matches!(register, Register::OperationToolArguments { .. }))
+        });
+        if has_args
+            && matches!(
+                origin1341_bounded(harness.peek_action(), &runtime, &spawner),
+                Some(Ok(Some(action))) if action.kind == "effect_start"
+            )
+        {
+            pending_snapshot = snapshot;
+            milestones.push("actual saved args and pending K at Tool effect_start gate");
+            break;
+        }
+        origin1341_advance(harness.as_ref(), &runtime, &spawner, &mut issues);
+    }
+    let session_id = runtime.session.metadata().id.clone();
+    let tool_key = pending_snapshot
+        .as_ref()
+        .and_then(|snapshot| origin1341_key(snapshot, &session_id));
+    let mut request_snapshot = None;
+    let mut terminal_sent = false;
+    for _ in 0..2000 {
+        if completed.is_none()
+            && let Poll::Ready(result) = poll(prompt.as_mut())
+        {
+            completed = Some(result);
+        }
+        runtime.pump.tick();
+        spawner.tick();
+        if !terminal_sent && let Some(request) = origin1341_requests(&channel).first() {
+            request_snapshot = origin1341_snapshot(&runtime, &spawner);
+            milestones.push("encoded Echo Request observed with pending K still live");
+            channel.push(raw_terminal_with_usage(request.request_id));
+            terminal_sent = true;
+            milestones.push("real peer terminal supplied after pending snapshot");
+        }
+        if completed.is_some() {
+            break;
+        }
+        origin1341_advance(harness.as_ref(), &runtime, &spawner, &mut issues);
+    }
+    if completed.is_some() {
+        milestones.push("retained runtime prompt completed");
+    } else {
+        issues.push("prompt did not complete within finite history budget".into());
+    }
+    let completed_snapshot = origin1341_snapshot(&runtime, &spawner);
+    let requests = origin1341_requests(&channel);
+    let wire_frames = channel.writes();
+    for (index, bytes) in wire_frames.iter().enumerate() {
+        let mut reader = FrameReader::<v1_1::Envelope>::new(nz(8192));
+        match reader.read_one(bytes) {
+            Ok(step)
+                if step.consumed == bytes.len()
+                    && step
+                        .frame
+                        .as_ref()
+                        .is_some_and(|frame| frame.envelope.frame.is_some()) => {}
+            other => issues.push(format!(
+                "encoded frame {index} did not decode completely: {other:?}"
+            )),
+        }
+    }
+    // Cleanup precedes every assertion, including the intentionally red guard.
+    before.release();
+    subscription.unsubscribe();
+    route.close();
+    channel.close();
+    if completed.is_none() {
+        let abort = origin1341_bounded(harness.abort(), &runtime, &spawner);
+        issues.push(format!("fallback abort: {abort:?}"));
+        for _ in 0..2000 {
+            runtime.pump.tick();
+            spawner.tick();
+            if let Poll::Ready(result) = poll(prompt.as_mut()) {
+                completed = Some(result);
+                break;
+            }
+            origin1341_advance(harness.as_ref(), &runtime, &spawner, &mut issues);
+        }
+    }
+    drop(prompt);
+    let close_result = origin1341_bounded(harness.close(), &runtime, &spawner);
+    drop(harness);
+    drop(route);
+    drop(driver_owner);
+    for _ in 0..2000 {
+        runtime.pump.tick();
+        spawner.tick();
+        if runtime.pump.tasks.lock().unwrap().is_empty() && spawner.tasks.lock().unwrap().is_empty()
+        {
+            break;
+        }
+    }
+    let runtime_tasks = runtime.pump.tasks.lock().unwrap().len();
+    let route_tasks = spawner.tasks.lock().unwrap().len();
+    // Cancels any task left by an unexpected fixture outcome before asserting.
+    runtime.pump.tasks.lock().unwrap().clear();
+    spawner.tasks.lock().unwrap().clear();
+    milestones.push("hook released, channel closed, owner closed, tasks reaped");
+    Origin1341Observation {
+        case,
+        milestones,
+        issues,
+        installed_address,
+        selected_address,
+        current_address,
+        current_matches_selected,
+        native_declaration: selected.descriptor().clone(),
+        ready_declaration: replacement.descriptor().clone(),
+        session_id,
+        wire_frames,
+        same_declaration,
+        registration,
+        prepares: native.prepares.load(Ordering::SeqCst),
+        before_calls: before.calls.load(Ordering::SeqCst),
+        before_event: before.event.lock().unwrap().clone(),
+        before_snapshot,
+        pending_snapshot,
+        request_snapshot,
+        tool_key,
+        native_executions: native.executions.load(Ordering::SeqCst),
+        native_args: native.execution_args.lock().unwrap().clone(),
+        requests,
+        completed_snapshot,
+        prompt_result: completed.map(|result| format!("{result:?}")),
+        close_result: close_result.map(|result| format!("{result:?}")),
+        runtime_tasks,
+        route_tasks,
+        route_closed: channel.closed.load(Ordering::SeqCst),
+    }
+}
+
+fn origin1341_print(observation: &Origin1341Observation) {
+    use prost::Message as _;
+    let requests: Vec<_> = observation.requests.iter().map(|request| {
+        serde_json::json!({
+            "decoded_request": format!("{request:?}"),
+            "decoded_invoke": format!("{:?}", v1_1::InvokeToolRequest::decode(request.payload.as_slice())),
+        })
+    }).collect();
+    println!(
+        "E1341_OBSERVATION {}",
+        serde_json::json!({
+            "case": format!("{:?}", observation.case),
+            "milestones": observation.milestones,
+            "issues": observation.issues,
+            "installed_arc_address": observation.installed_address,
+            "actual_prepared_self_address": observation.selected_address,
+            "current_arc_address_after_T2": observation.current_address,
+            "same_seven_field_declaration": observation.same_declaration,
+            "native_seven_field_declaration": observation.native_declaration,
+            "ready_seven_field_declaration": observation.ready_declaration,
+            "native_declaration_including_Option_presence": format!("{:?}", observation.native_declaration),
+            "current_Arc_ptr_eq_selected": observation.current_matches_selected,
+            "encoded_frame_hex": observation.wire_frames.iter().map(|bytes| bytes.iter().map(|byte| format!("{byte:02x}")).collect::<String>()).collect::<Vec<_>>(),
+            "T2_registration": observation.registration,
+            "prepare_calls": observation.prepares,
+            "before_tool_calls": observation.before_calls,
+            "before_tool_event": observation.before_event,
+            "paused_clearance_session": observation.before_snapshot,
+            "pending_session_before_dispatch": observation.pending_snapshot,
+            "pending_session_after_encoded_request": observation.request_snapshot,
+            "actual_session_tool_K": observation.tool_key.as_ref().map(|key| serde_json::json!({
+                "session_id": key.session_id.as_str(),
+                "lane": key.lane.as_str(),
+                "operation_id": key.operation_id.as_str(),
+                "kind": format!("{:?}", key.kind),
+                "step_or_task_id": key.step_or_task_id.as_str(),
+                "logical_attempt": key.logical_attempt.get(),
+                "item_index": key.item_index.map(|index| index.get()),
+            })),
+            "native_execute_count": observation.native_executions,
+            "native_execute_args": observation.native_args,
+            "encoded_echo_request_count": observation.requests.len(),
+            "requests": requests,
+            "completed_session": observation.completed_snapshot,
+            "prompt_result": observation.prompt_result,
+            "close_result": observation.close_result,
+            "runtime_tasks_after_cleanup": observation.runtime_tasks,
+            "route_tasks_after_cleanup": observation.route_tasks,
+            "channel_closed_after_cleanup": observation.route_closed,
+        })
+    );
+}
+
+fn origin1341_assert_history(observation: &Origin1341Observation) {
+    use pi_agent_schema::{OperationState, RunPhase, ToolCallState};
+    assert!(observation.issues.is_empty(), "{:?}", observation.issues);
+    assert_eq!(observation.prepares, 1);
+    assert_eq!(observation.before_calls, 1);
+    assert_eq!(observation.selected_address, observation.installed_address);
+    assert!(observation.same_declaration);
+    assert_eq!(observation.before_event.as_ref().unwrap().args, saved());
+    let before = observation.before_snapshot.as_ref().unwrap();
+    assert!(
+        !before
+            .registers
+            .iter()
+            .any(|r| matches!(r, Register::OperationToolArguments { .. }))
+    );
+    assert!(before.registers.iter().any(|register| matches!(register,
+        Register::OperationState { value, .. } if matches!(value.as_ref(),
+            OperationState::Run(run) if matches!(&run.phase,
+                RunPhase::Tools(tools) if matches!(&tools.batch.calls[0], ToolCallState::Planned { .. }))))));
+    let key = observation.tool_key.as_ref().unwrap();
+    assert_eq!(key.kind, EffectKind::Tool);
+    assert_eq!(key.session_id, observation.session_id);
+    let pending = observation.pending_snapshot.as_ref().unwrap();
+    assert!(pending.registers.iter().any(|register| matches!(register,
+        Register::OperationState { value, .. } if matches!(value.as_ref(),
+            OperationState::Run(run) if matches!(&run.phase,
+                RunPhase::Tools(tools) if matches!(&tools.batch.calls[0],
+                    ToolCallState::EffectPending { replay: pi_agent_schema::ToolReplay::Safe, .. }))))));
+    assert!(pending.registers.iter().any(|register| matches!(register,
+        Register::OperationToolArguments { key: args_key, value, .. }
+            if args_key == &format!("{}:{}:0", key.operation_id.as_str(), key.step_or_task_id.as_str())
+                && value == &saved())));
+    assert!(
+        observation
+            .prompt_result
+            .as_ref()
+            .unwrap()
+            .starts_with("Ok(Ok(")
+    );
+    assert_eq!(observation.close_result.as_deref(), Some("Ok(())"));
+    assert_eq!(observation.runtime_tasks, 0);
+    assert_eq!(observation.route_tasks, 0);
+    assert!(observation.route_closed);
+}
+
+#[test]
+fn origin1341_direct_same_arc_late_ready_keeps_native_selection() {
+    let observation = origin1341_history(Origin1341Case::SameArcReady);
+    origin1341_print(&observation);
+    origin1341_assert_history(&observation);
+    assert_eq!(
+        observation.registration.as_deref(),
+        Some("Some(Ok(Ok(())))")
+    );
+    assert_eq!(observation.current_matches_selected, Some(true));
+    assert_eq!(
+        observation.requests.len(),
+        0,
+        "captured Direct must not become Echo"
+    );
+    assert_eq!(observation.native_executions, 1);
+    assert_eq!(observation.native_args, vec![saved()]);
+}
+
+#[test]
+fn origin1341_direct_no_registration_keeps_native_selection() {
+    let observation = origin1341_history(Origin1341Case::NoRegistration);
+    origin1341_print(&observation);
+    origin1341_assert_history(&observation);
+    assert_eq!(observation.current_matches_selected, Some(true));
+    assert_eq!(observation.native_executions, 1);
+    assert_eq!(observation.native_args, vec![saved()]);
+    assert!(observation.requests.is_empty());
+}
+
+#[test]
+fn origin1341_direct_different_arc_keeps_missing_replaced_result() {
+    let observation = origin1341_history(Origin1341Case::DifferentArcReady);
+    origin1341_print(&observation);
+    origin1341_assert_history(&observation);
+    assert_eq!(observation.current_matches_selected, Some(false));
+    assert_eq!(observation.native_executions, 0);
+    assert!(observation.requests.is_empty());
+}
+
+mod origin1341_live {
+    use super::*;
+    use pi_agent_schema::*;
+    use pi_agent_session::{memory::MemoryStorage, storage::*};
+    use pi_ai_core::BoxFuture;
+
+    struct Task {
+        id: u64,
+        future: BoxFuture<'static, ()>,
+    }
+    pub struct Pump {
+        tasks: Mutex<Vec<Task>>,
+        next: AtomicU64,
+        pub current: AtomicU64,
+    }
+    impl Default for Pump {
+        fn default() -> Self {
+            Self {
+                tasks: Mutex::new(vec![]),
+                next: AtomicU64::new(1),
+                current: AtomicU64::new(0),
+            }
+        }
+    }
+    impl TaskSpawner for Pump {
+        fn spawn(&self, future: BoxFuture<'static, ()>) -> Result<(), SpawnError> {
+            let id = self.next.fetch_add(1, Ordering::SeqCst);
+            self.tasks.lock().unwrap().push(Task { id, future });
+            Ok(())
+        }
+    }
+    impl Pump {
+        pub fn tick(&self) {
+            let ids: Vec<_> = self
+                .tasks
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|task| task.id)
+                .collect();
+            for id in ids {
+                self.poll_task(id, Waker::noop());
+            }
+        }
+        pub fn poll_task(&self, id: u64, waker: &Waker) -> Option<bool> {
+            let mut task = {
+                let mut tasks = self.tasks.lock().unwrap();
+                let index = tasks.iter().position(|task| task.id == id)?;
+                tasks.remove(index)
+            };
+            let previous = self.current.swap(id, Ordering::SeqCst);
+            let pending = task
+                .future
+                .as_mut()
+                .poll(&mut Context::from_waker(waker))
+                .is_pending();
+            self.current.store(previous, Ordering::SeqCst);
+            if pending {
+                self.tasks.lock().unwrap().push(task);
+            }
+            Some(pending)
+        }
+        pub fn drop_task(&self, id: u64) {
+            let removed = {
+                let mut tasks = self.tasks.lock().unwrap();
+                let index = tasks
+                    .iter()
+                    .position(|task| task.id == id)
+                    .expect("actual task is retained");
+                tasks.remove(index)
+            };
+            drop(removed);
+        }
+        pub fn drive<F: Future>(&self, future: F) -> F::Output {
+            let mut future = std::pin::pin!(future);
+            for _ in 0..20000 {
+                if let Poll::Ready(result) = poll(future.as_mut()) {
+                    return result;
+                }
+                self.tick();
+            }
+            panic!("origin1341 actual runtime did not settle");
+        }
+    }
+
+    pub struct Store {
+        pub inner: Arc<MemoryStorage>,
+        pub pump: Arc<Pump>,
+        pub mode: AtomicU64,
+        pub exit: AtomicU64,
+        pub drive: AtomicU64,
+        pub producer: AtomicU64,
+        pub consumer: AtomicU64,
+        pub suppress_park: Arc<AtomicBool>,
+        pub attempts: AtomicU64,
+        pub refused: AtomicU64,
+        pub applied: AtomicBool,
+        pub args_seq: AtomicU64,
+        pub commit_entered: pi_ai_core::CancellationToken,
+        pub commit_release: pi_ai_core::CancellationToken,
+        pub retry_entered: pi_ai_core::CancellationToken,
+        pub retry_release: pi_ai_core::CancellationToken,
+        pub hydrate_entered: pi_ai_core::CancellationToken,
+        pub hydrate_release: pi_ai_core::CancellationToken,
+        pub consumer_entered: pi_ai_core::CancellationToken,
+        pub consumer_release: pi_ai_core::CancellationToken,
+        post_apply: AtomicBool,
+        consumer_parked: AtomicBool,
+    }
+    impl Store {
+        fn new(inner: Arc<MemoryStorage>, pump: Arc<Pump>) -> Self {
+            Self {
+                inner,
+                pump,
+                mode: AtomicU64::new(0),
+                exit: AtomicU64::new(0),
+                drive: AtomicU64::new(0),
+                producer: AtomicU64::new(0),
+                consumer: AtomicU64::new(0),
+                suppress_park: Arc::new(AtomicBool::new(false)),
+                attempts: AtomicU64::new(0),
+                refused: AtomicU64::new(0),
+                applied: AtomicBool::new(false),
+                args_seq: AtomicU64::new(0),
+                commit_entered: pi_ai_core::CancellationToken::new(),
+                commit_release: pi_ai_core::CancellationToken::new(),
+                retry_entered: pi_ai_core::CancellationToken::new(),
+                retry_release: pi_ai_core::CancellationToken::new(),
+                hydrate_entered: pi_ai_core::CancellationToken::new(),
+                hydrate_release: pi_ai_core::CancellationToken::new(),
+                consumer_entered: pi_ai_core::CancellationToken::new(),
+                consumer_release: pi_ai_core::CancellationToken::new(),
+                post_apply: AtomicBool::new(false),
+                consumer_parked: AtomicBool::new(false),
+            }
+        }
+        fn args_index(request: &ConditionalCommit) -> Option<usize> {
+            request.transaction.writes.iter().position(|write| matches!(write,
+                Write::SetRegister(register) if matches!(register.as_ref(), RegisterSet::OperationToolArguments { .. })))
+        }
+        async fn before(&self, request: &ConditionalCommit) -> Option<usize> {
+            let index = Self::args_index(request)?;
+            self.producer
+                .store(self.pump.current.load(Ordering::SeqCst), Ordering::SeqCst);
+            let attempt = self.attempts.fetch_add(1, Ordering::SeqCst) + 1;
+            if self.mode.load(Ordering::SeqCst) == 2 {
+                if attempt == 1 {
+                    self.commit_entered.cancel();
+                    self.commit_release.cancelled().await;
+                } else {
+                    self.retry_entered.cancel();
+                    self.retry_release.cancelled().await;
+                }
+            }
+            Some(index)
+        }
+        fn after(&self, index: Option<usize>, outcome: &ConditionalOutcome) {
+            let Some(index) = index else { return };
+            match outcome {
+                ConditionalOutcome::NotApplied => {
+                    self.refused.fetch_add(1, Ordering::SeqCst);
+                }
+                ConditionalOutcome::Applied(commit) => {
+                    self.args_seq
+                        .store(commit.seqs[index].get(), Ordering::SeqCst);
+                    self.applied.store(true, Ordering::SeqCst);
+                    self.post_apply.store(true, Ordering::SeqCst);
+                }
+            }
+        }
+    }
+    impl Storage for Store {
+        fn commit(
+            &self,
+            transaction: Transaction,
+        ) -> BoxFuture<'_, Result<CommitResult, StorageError>> {
+            self.inner.commit(transaction)
+        }
+        fn get_entries<'a>(
+            &'a self,
+            ids: &'a [EntryId],
+        ) -> BoxFuture<'a, Result<EntryMap, StorageError>> {
+            self.inner.get_entries(ids)
+        }
+        fn get_register<'a>(
+            &'a self,
+            namespace: RegisterNamespace,
+            key: &'a str,
+        ) -> BoxFuture<'a, Result<Option<Register>, StorageError>> {
+            self.inner.get_register(namespace, key)
+        }
+        fn list_registers<'a>(
+            &'a self,
+            namespace: RegisterNamespace,
+            prefix: Option<&'a str>,
+        ) -> BoxFuture<'a, Result<Vec<Register>, StorageError>> {
+            self.inner.list_registers(namespace, prefix)
+        }
+        fn scan_branch(
+            &self,
+            query: BranchScan,
+        ) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+            self.inner.scan_branch(query)
+        }
+        fn scan_branch_structure(
+            &self,
+            query: BranchScan,
+        ) -> BoxFuture<'_, Result<Vec<EntryStructure>, StorageError>> {
+            self.inner.scan_branch_structure(query)
+        }
+        fn scan_entries(
+            &self,
+            query: EntryScan,
+        ) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+            self.inner.scan_entries(query)
+        }
+        fn scan_usage(
+            &self,
+            query: UsageScan,
+        ) -> BoxFuture<'_, Result<Vec<UsageRow>, StorageError>> {
+            self.inner.scan_usage(query)
+        }
+        fn stats(&self) -> BoxFuture<'_, Result<SessionStats, StorageError>> {
+            self.inner.stats()
+        }
+        fn close(&self) -> BoxFuture<'_, Result<(), StorageError>> {
+            self.inner.close()
+        }
+    }
+    impl AtomicStorage for Store {
+        fn commit_conditional(
+            &self,
+            request: ConditionalCommit,
+        ) -> BoxFuture<'_, Result<ConditionalOutcome, StorageError>> {
+            self.inner.commit_conditional(request)
+        }
+        fn snapshot(&self) -> BoxFuture<'_, Result<StorageSnapshot, StorageError>> {
+            self.inner.snapshot()
+        }
+    }
+    impl CheckedStorage for Store {
+        fn commit_checked<'a, V: PublicationValidator + ?Sized>(
+            &'a self,
+            request: ConditionalCommit,
+            validator: &'a V,
+        ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+            Box::pin(async move {
+                let index = self.before(&request).await;
+                let outcome = self.inner.commit_checked(request, validator).await?;
+                self.after(index, &outcome);
+                Ok(outcome)
+            })
+        }
+    }
+    impl RuntimeStorage for Store {
+        fn runtime_attachment(&self) -> &RuntimeAttachment {
+            self.inner.runtime_attachment()
+        }
+        fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+            Box::pin(async move {
+                if self.post_apply.swap(false, Ordering::SeqCst)
+                    && (self.mode.load(Ordering::SeqCst) == 1
+                        || (self.mode.load(Ordering::SeqCst) == 5
+                            && self.attempts.load(Ordering::SeqCst) == 2))
+                {
+                    self.hydrate_entered.cancel();
+                    self.hydrate_release.cancelled().await;
+                    match self.exit.load(Ordering::SeqCst) {
+                        1 => {
+                            return Err(StorageError::Io(
+                                ErrorContext::new("origin1341 hydration error").unwrap(),
+                            ));
+                        }
+                        2 => panic!("origin1341 actual hydration unwind"),
+                        _ => {}
+                    }
+                }
+                let current = self.pump.current.load(Ordering::SeqCst);
+                if self.mode.load(Ordering::SeqCst) == 3
+                    && !self.suppress_park.load(Ordering::SeqCst)
+                    && current != 0
+                    && self.applied.load(Ordering::SeqCst)
+                    && current != self.drive.load(Ordering::SeqCst)
+                    && current != self.producer.load(Ordering::SeqCst)
+                    && !self.consumer_parked.swap(true, Ordering::SeqCst)
+                {
+                    self.consumer.store(current, Ordering::SeqCst);
+                    self.consumer_entered.cancel();
+                    self.consumer_release.cancelled().await;
+                    match self.exit.load(Ordering::SeqCst) {
+                        1 => {
+                            return Err(StorageError::Io(
+                                ErrorContext::new("origin1341 consumer read error").unwrap(),
+                            ));
+                        }
+                        2 => panic!("origin1341 actual consumer read unwind"),
+                        _ => {}
+                    }
+                }
+                self.inner.read_stamp().await
+            })
+        }
+        fn prepare_entries(
+            &self,
+            stamp: ReadStamp,
+            slots: Vec<PreparedEntrySlot>,
+        ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+            self.inner.prepare_entries(stamp, slots)
+        }
+        fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+            &'a self,
+            prepared: PreparedEntries,
+            request: ConditionalCommit,
+            validator: &'a V,
+        ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+            self.inner
+                .commit_prepared_checked(prepared, request, validator)
+        }
+    }
+
+    pub struct Fixture {
+        pub runtime: Setup,
+        pub pump: Arc<Pump>,
+        pub store: Arc<Store>,
+        pub harness: Arc<pi_harness_runtime::owner::RuntimeHarness<(), Store, SessionMetadata>>,
+        pub native: Arc<Origin1341Native>,
+        pub before: Arc<Origin1341Before>,
+        pub resume: Arc<ResumeProbe>,
+        pub spawner: Arc<FakeSpawner>,
+        pub driver_owner: SingleToolOwner,
+        pub channel: Arc<FakeChannel>,
+        pub route: Arc<pi_harness_runtime::extensions::tool_driver::ReadyToolRoute>,
+        subscriptions: Vec<Arc<dyn HookSubscription>>,
+    }
+    impl Fixture {
+        pub fn new(echo: bool, mode: u64, replay: super::ToolReplay) -> Self {
+            Self::new_with_mode(echo, mode, replay, false)
+        }
+        pub fn new_with_mode(
+            echo: bool,
+            mode: u64,
+            replay: super::ToolReplay,
+            parallel: bool,
+        ) -> Self {
+            Self::new_with_calls(echo, mode, replay, parallel, 1)
+        }
+        pub fn new_with_calls(
+            echo: bool,
+            mode: u64,
+            replay: super::ToolReplay,
+            parallel: bool,
+            calls: usize,
+        ) -> Self {
+            let runtime = Setup::new();
+            let mut response = runtime_r1_r4_support::assistant(
+                &runtime.faux.model,
+                pi_ai_core::StopReason::ToolUse,
+            );
+            response.content = vec![pi_ai_core::AssistantContent::ToolCall(
+                pi_ai_core::ToolCall {
+                    content_type: Default::default(),
+                    id: pi_ai_core::ToolCallId::new("echo-call").unwrap(),
+                    name: pi_ai_core::ToolName::new("echo").unwrap(),
+                    arguments: saved(),
+                    thought_signature: None,
+                    namespace: None,
+                },
+            )];
+            if calls > 1 {
+                let first = response.content[0].clone();
+                response.content = (0..calls)
+                    .map(|index| {
+                        let mut content = first.clone();
+                        if let pi_ai_core::AssistantContent::ToolCall(call) = &mut content {
+                            call.id =
+                                pi_ai_core::ToolCallId::new(format!("echo-call-{index}")).unwrap();
+                        }
+                        content
+                    })
+                    .collect();
+            }
+            *runtime.faux.responses.lock().unwrap() = vec![
+                response,
+                runtime_r1_r4_support::assistant(&runtime.faux.model, pi_ai_core::StopReason::Stop),
+            ]
+            .into();
+            let pump = Arc::new(Pump::default());
+            let store = Arc::new(Store::new(runtime.store.clone(), pump.clone()));
+            let session = Arc::new(
+                pump.drive(RuntimeSession::new(
+                    store.clone(),
+                    runtime.session.metadata(),
+                    Arc::new(
+                        SessionCodec::new(
+                            SessionCodecOptions::default(),
+                            ProviderHeaderPolicy::default(),
+                        )
+                        .unwrap(),
+                    ),
+                    runtime.ids.clone(),
+                    Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+                ))
+                .unwrap(),
+            );
+            let mut descriptor = registry_echo_declaration(replay).descriptor().clone();
+            descriptor.execution_mode = Some(if parallel {
+                ToolExecutionMode::Parallel
+            } else {
+                ToolExecutionMode::Sequential
+            });
+            let native = Arc::new(Origin1341Native {
+                descriptor,
+                prepares: AtomicU64::new(0),
+                selected_address: AtomicU64::new(0),
+                executions: AtomicU64::new(0),
+                execution_args: Mutex::new(vec![]),
+                execute_gate: Mutex::new(None),
+            });
+            let handle: AgentHarnessToolHandle<()> = native.clone();
+            let factory = RuntimeFactory::new(
+                runtime.time.clone(),
+                pump.clone(),
+                runtime.ids.clone(),
+                Arc::new(()),
+                Arc::new(Summary),
+            );
+            let mut options = runtime.options_for::<(), _>(session, DriveMode::Automatic);
+            options.tool_execution = if parallel {
+                ToolExecutionMode::Parallel
+            } else {
+                ToolExecutionMode::Sequential
+            };
+            options.tools = vec![handle.clone()];
+            options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("echo").unwrap()]);
+            let harness = pump
+                .drive(factory.create_configured(options))
+                .unwrap()
+                .harness;
+            let spawner = Arc::new(FakeSpawner::default());
+            let driver_owner = owner(spawner.clone());
+            let (channel, _, route) =
+                origin1341_setup_route(&driver_owner, &spawner, 7, 200, replay, parallel);
+            let route = Arc::new(route);
+            if echo {
+                pump.drive(harness.register_ready_echo_tool(handle, route.clone(), route_timing()))
+                    .unwrap()
+                    .unwrap();
+            }
+            pump.drive(harness.set_active_tools(vec![pi_ai_core::ToolName::new("echo").unwrap()]))
+                .unwrap();
+            let before = Arc::new(Origin1341Before {
+                event: Mutex::new(None),
+                calls: AtomicU64::new(0),
+                gate: Mutex::new((true, None)),
+            });
+            let resume = Arc::new(ResumeProbe(std::sync::atomic::AtomicUsize::new(0)));
+            let subscriptions = vec![
+                harness.hooks().before_tool(None, before.clone()).unwrap(),
+                harness
+                    .hooks()
+                    .before_resume(HandlerId::new("origin1341-resume").unwrap(), resume.clone())
+                    .unwrap(),
+            ];
+            store.mode.store(mode, Ordering::SeqCst);
+            Self {
+                runtime,
+                pump,
+                store,
+                harness,
+                native,
+                before,
+                resume,
+                spawner,
+                driver_owner,
+                channel,
+                route,
+                subscriptions,
+            }
+        }
+        pub fn tick(&self) {
+            self.pump.tick();
+            self.spawner.tick();
+        }
+        pub fn drive<F: Future>(&self, future: F) -> F::Output {
+            let mut future = std::pin::pin!(future);
+            for _ in 0..20000 {
+                if let Poll::Ready(result) = poll(future.as_mut()) {
+                    return result;
+                }
+                self.tick();
+            }
+            panic!("origin1341 history exceeded finite budget");
+        }
+        pub fn until(&self, signal: &pi_ai_core::CancellationToken) {
+            for _ in 0..20000 {
+                if signal.is_cancelled() {
+                    return;
+                }
+                self.tick();
+            }
+            panic!("origin1341 actual milestone not reached");
+        }
+        pub fn cleanup(&self) {
+            self.store.commit_release.cancel();
+            self.store.retry_release.cancel();
+            self.store.hydrate_release.cancel();
+            self.store.consumer_release.cancel();
+            self.before.release();
+            for subscription in &self.subscriptions {
+                subscription.unsubscribe();
+            }
+            self.route.close();
+            self.channel.close();
+            let _ = self.drive(self.harness.close());
+            for _ in 0..20000 {
+                self.tick();
+                if self.pump.tasks.lock().unwrap().is_empty()
+                    && self.spawner.tasks.lock().unwrap().is_empty()
+                {
+                    break;
+                }
+            }
+            assert!(
+                self.pump.tasks.lock().unwrap().is_empty(),
+                "actual runtime tasks reaped"
+            );
+            assert!(
+                self.spawner.tasks.lock().unwrap().is_empty(),
+                "actual route tasks reaped"
+            );
+        }
+        pub fn start_drive_id(&self) -> u64 {
+            self.pump.next.load(Ordering::SeqCst)
+        }
+    }
+}
+
+#[test]
+fn origin1341_existing_outer_seal_controls_true_drive_drop() {
+    use origin1341_live::Fixture;
+    for echo in [false, true] {
+        for exit in [1, 2, 3] {
+            let fixture = Fixture::new(echo, 1, ToolReplay::Safe);
+            let drive = fixture.start_drive_id();
+            fixture.store.drive.store(drive, Ordering::SeqCst);
+            let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+                text: "invoke echo".into(),
+                images: vec![],
+            }));
+            assert!(poll(prompt.as_mut()).is_pending());
+            fixture.until(&fixture.store.hydrate_entered);
+            let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            let key = origin1341_key(&applied, &fixture.runtime.session.metadata().id)
+                .expect("actual pending K");
+            let args_seq = applied
+                .registers
+                .iter()
+                .find_map(|register| match register {
+                    Register::OperationToolArguments { seq, .. } => Some(seq.get()),
+                    _ => None,
+                })
+                .unwrap();
+            assert_eq!(args_seq, fixture.store.args_seq.load(Ordering::SeqCst));
+            fixture.pump.drop_task(drive);
+            let mut resume = Box::pin(fixture.harness.resume());
+            let Poll::Ready(result) = poll(resume.as_mut()) else {
+                panic!("prior actual drive Drop seals admission")
+            };
+            for _ in 0..100 {
+                fixture.tick();
+            }
+            let protected = (
+                fixture.native.prepares.load(Ordering::SeqCst),
+                fixture.before.calls.load(Ordering::SeqCst),
+                fixture.resume.0.load(Ordering::SeqCst),
+                fixture.native.executions.load(Ordering::SeqCst),
+                origin1341_requests(&fixture.channel).len(),
+            );
+            if exit == 3 {
+                fixture
+                    .pump
+                    .drop_task(fixture.store.producer.load(Ordering::SeqCst));
+            } else {
+                fixture.store.exit.store(exit, Ordering::SeqCst);
+                fixture.store.hydrate_release.cancel();
+            }
+            drop(resume);
+            for _ in 0..100 {
+                fixture.tick();
+            }
+            let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            let final_counts = (
+                fixture.native.prepares.load(Ordering::SeqCst),
+                fixture.before.calls.load(Ordering::SeqCst),
+                fixture.resume.0.load(Ordering::SeqCst),
+                fixture.native.executions.load(Ordering::SeqCst),
+                origin1341_requests(&fixture.channel).len(),
+            );
+            let no_binding = fixture.driver_owner.retained_binding().is_none();
+            println!(
+                "E1341_EXISTING_OUTER_SEAL {}",
+                serde_json::json!({ "echo": echo, "exit": exit, "full_K": format!("{key:?}"), "original_commit_args_seq": args_seq, "protected_counts": protected, "final_counts": final_counts, "resume": format!("{result:?}"), "unchanged_after_apply": after == applied, "no_B1": no_binding })
+            );
+            drop(prompt);
+            fixture.cleanup();
+            assert_eq!(
+                protected,
+                (1, 1, 0, 0, 0),
+                "other resume must wait before callbacks"
+            );
+            assert_eq!(final_counts, protected);
+            assert!(matches!(
+                result,
+                Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+            ));
+            assert_eq!(
+                after, applied,
+                "failed producer must add no Session/ToolRaw/usage write"
+            );
+            assert!(no_binding);
+        }
+    }
+}
+
+type Origin1341IdleSlot =
+    Arc<Mutex<Option<BoxFuture<'static, Result<(), pi_agent_schema::HarnessRuntimeError>>>>>;
+type Origin1341ResumeSlot = Arc<Mutex<Option<BoxFuture<'static, pi_agent_schema::ResumeCall>>>>;
+
+struct Origin1341IdleWake {
+    suppress_park: Option<Arc<AtomicBool>>,
+    idle: Origin1341IdleSlot,
+    armed: AtomicBool,
+    fired: AtomicBool,
+    work: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+}
+impl Wake for Origin1341IdleWake {
+    fn wake(self: Arc<Self>) {
+        if self.armed.load(Ordering::SeqCst) && !self.fired.swap(true, Ordering::SeqCst) {
+            let work = self.work.lock().unwrap().take();
+            if let Some(work) = work {
+                work();
+            }
+            return;
+        }
+        if self.fired.load(Ordering::SeqCst) {
+            return;
+        }
+        let future = self.idle.lock().unwrap().take();
+        if let Some(mut future) = future {
+            let waker = Waker::from(self.clone());
+            if let Some(skip) = &self.suppress_park {
+                skip.store(true, Ordering::SeqCst);
+            }
+            let pending = future
+                .as_mut()
+                .poll(&mut Context::from_waker(&waker))
+                .is_pending();
+            if let Some(skip) = &self.suppress_park {
+                skip.store(false, Ordering::SeqCst);
+            }
+            if pending {
+                *self.idle.lock().unwrap() = Some(future);
+            }
+        }
+    }
+}
+
+#[test]
+fn origin1341_applied_pair_successor_cannot_enter_open_publication_window() {
+    use origin1341_live::Fixture;
+    for echo in [false, true] {
+        for exit in [3, 1, 2] {
+            let fixture = Arc::new(Fixture::new(echo, 1, ToolReplay::Safe));
+            fixture.before.gate.lock().unwrap().0 = false;
+            let drive = fixture.start_drive_id();
+            fixture.store.drive.store(drive, Ordering::SeqCst);
+            let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+                text: "invoke echo".into(),
+                images: vec![],
+            }));
+            assert!(poll(prompt.as_mut()).is_pending());
+            for _ in 0..20000 {
+                fixture.tick();
+                if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                    break;
+                }
+            }
+            assert_eq!(fixture.before.calls.load(Ordering::SeqCst), 1);
+
+            let idle_harness = fixture.harness.clone();
+            let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+                idle_harness.wait_for_idle().await
+            }))));
+            let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+            let observed = Arc::new(Mutex::new(None));
+            let callback_fixture = fixture.clone();
+            let callback_resume = resume_slot.clone();
+            let callback_observed = observed.clone();
+            let wake = Arc::new(Origin1341IdleWake {
+                suppress_park: None,
+                idle: idle.clone(),
+                armed: AtomicBool::new(false),
+                fired: AtomicBool::new(false),
+                work: Mutex::new(Some(Box::new(move || {
+                    let harness = callback_fixture.harness.clone();
+                    let resume_id = callback_fixture.start_drive_id();
+                    let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                        Box::pin(async move { harness.resume().await });
+                    assert!(
+                        poll(resume.as_mut()).is_pending(),
+                        "drive announce precedes existing outer Fault seal"
+                    );
+                    let pair_fixture = callback_fixture.clone();
+                    let pair_observed = callback_observed.clone();
+                    let pair_waker =
+                        Waker::from(Arc::new(OnceWake(Mutex::new(Some(Box::new(move || {
+                            let mut open = Box::pin(pair_fixture.harness.get_tools());
+                            let admission_open = matches!(poll(open.as_mut()), Poll::Ready(Ok(_)));
+                            pair_fixture.pump.poll_task(resume_id, Waker::noop());
+                            let counts = (
+                                pair_fixture.native.prepares.load(Ordering::SeqCst),
+                                pair_fixture.before.calls.load(Ordering::SeqCst),
+                                pair_fixture.resume.0.load(Ordering::SeqCst),
+                                pair_fixture.native.executions.load(Ordering::SeqCst),
+                                origin1341_requests(&pair_fixture.channel).len(),
+                            );
+                            *pair_observed.lock().unwrap() = Some((admission_open, counts));
+                        }))))));
+                    assert_eq!(
+                        callback_fixture.pump.poll_task(resume_id, &pair_waker),
+                        Some(true),
+                        "actual successor waits on producer-held lane"
+                    );
+                    if exit == 3 {
+                        callback_fixture
+                            .pump
+                            .drop_task(callback_fixture.store.producer.load(Ordering::SeqCst));
+                    } else {
+                        callback_fixture.store.exit.store(exit, Ordering::SeqCst);
+                        callback_fixture.store.hydrate_release.cancel();
+                        callback_fixture.pump.poll_task(
+                            callback_fixture.store.producer.load(Ordering::SeqCst),
+                            Waker::noop(),
+                        );
+                    }
+                    *callback_resume.lock().unwrap() = Some(resume);
+                }))),
+            });
+            let idle_waker = Waker::from(wake.clone());
+            let mut idle_future = idle.lock().unwrap().take().unwrap();
+            assert!(
+                idle_future
+                    .as_mut()
+                    .poll(&mut Context::from_waker(&idle_waker))
+                    .is_pending()
+            );
+            *idle.lock().unwrap() = Some(idle_future);
+            fixture.before.release();
+            fixture.until(&fixture.store.hydrate_entered);
+            let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            wake.armed.store(true, Ordering::SeqCst);
+            fixture.pump.drop_task(drive);
+            assert!(
+                wake.fired.load(Ordering::SeqCst),
+                "actual DriveGuard announce reentered the public waiter"
+            );
+            let successor = observed
+                .lock()
+                .unwrap()
+                .take()
+                .expect("actual pair successor woke");
+            let resume = resume_slot.lock().unwrap().take().unwrap();
+            let result = fixture.drive(resume);
+            let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            println!(
+                "E1341_OPEN_PAIR_WINDOW {}",
+                serde_json::json!({ "echo": echo, "exit": exit, "admission_open_at_pair_release": successor.0, "counts_before_outer_seal": successor.1, "resume": format!("{result:?}"), "after_apply_unchanged": after == applied })
+            );
+            let retired_idle = idle.lock().unwrap().take();
+            drop(retired_idle);
+            drop(wake);
+            drop(prompt);
+            fixture.cleanup();
+            assert_eq!(
+                successor.1,
+                (1, 1, 0, 0, 0),
+                "no BeforeResume/native/Request may cross the open publication boundary"
+            );
+            if exit != 3 {
+                assert!(
+                    successor.0,
+                    "error/unwind guard must distinguish the open pre-observer window"
+                );
+            }
+            assert!(matches!(
+                result,
+                Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+            ));
+            assert_eq!(after, applied);
+        }
+    }
+}
+
+fn origin1341_rewrite_same_state(fixture: &origin1341_live::Fixture) {
+    use pi_agent_schema::Storage;
+    let snapshot = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let (key, value) = snapshot
+        .registers
+        .iter()
+        .find_map(|register| match register {
+            Register::OperationState { key, value, .. } => Some((key.clone(), value.clone())),
+            _ => None,
+        })
+        .unwrap();
+    fixture
+        .drive(fixture.runtime.store.commit(pi_agent_schema::Transaction {
+            writes: vec![pi_agent_schema::Write::SetRegister(Box::new(
+                pi_agent_schema::RegisterSet::OperationState { key, value },
+            ))],
+        }))
+        .unwrap();
+}
+
+#[test]
+fn origin1341_real_not_applied_reuses_output_and_waiter_drop_keeps_work() {
+    use origin1341_live::Fixture;
+    for echo in [false, true] {
+        let fixture = Fixture::new(echo, 2, ToolReplay::Safe);
+        let drive = fixture.start_drive_id();
+        fixture.store.drive.store(drive, Ordering::SeqCst);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        fixture.until(&fixture.store.commit_entered);
+        let producer = fixture.store.producer.load(Ordering::SeqCst);
+        origin1341_rewrite_same_state(&fixture);
+        drop(prompt); // This is the public waiter, not the actual retained drive.
+        fixture.store.commit_release.cancel();
+        fixture.until(&fixture.store.retry_entered);
+        let planned = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let no_args = !planned
+            .registers
+            .iter()
+            .any(|register| matches!(register, Register::OperationToolArguments { .. }));
+        let counts = (
+            fixture.native.prepares.load(Ordering::SeqCst),
+            fixture.before.calls.load(Ordering::SeqCst),
+        );
+        let same_producer = fixture.store.producer.load(Ordering::SeqCst) == producer;
+        let actual_refused = fixture.store.refused.load(Ordering::SeqCst);
+        let mut resume = Box::pin(fixture.harness.resume());
+        assert!(poll(resume.as_mut()).is_pending());
+        fixture.store.retry_release.cancel();
+        fixture.pump.poll_task(producer, Waker::noop());
+        let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let key = origin1341_key(&applied, &fixture.runtime.session.metadata().id)
+            .expect("same future K became actually pending");
+        let original_args_seq = fixture.store.args_seq.load(Ordering::SeqCst);
+        assert!(applied.registers.iter().any(|register| matches!(register, Register::OperationToolArguments { value, seq, .. } if value == &saved() && seq.get() == original_args_seq)));
+        let mut terminal = false;
+        for _ in 0..20000 {
+            fixture.tick();
+            if !terminal && let Some(request) = origin1341_requests(&fixture.channel).first() {
+                assert_eq!(
+                    request.effect_key.as_ref().unwrap().operation_id,
+                    key.operation_id.as_str()
+                );
+                fixture
+                    .channel
+                    .push(raw_terminal_with_usage(request.request_id));
+                terminal = true;
+            }
+            if fixture
+                .drive(fixture.runtime.store.snapshot())
+                .unwrap()
+                .registers
+                .iter()
+                .any(|register| {
+                    matches!(register,
+                Register::LaneState { value, .. } if value.current_operation_id.is_none())
+                })
+            {
+                break;
+            }
+        }
+        let result = fixture.drive(resume);
+        let finished = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let final_counts = (
+            fixture.native.prepares.load(Ordering::SeqCst),
+            fixture.before.calls.load(Ordering::SeqCst),
+            fixture.native.executions.load(Ordering::SeqCst),
+            origin1341_requests(&fixture.channel).len(),
+        );
+        println!(
+            "E1341_NOT_APPLIED_WAITER_DROP {}",
+            serde_json::json!({ "echo": echo, "full_K": format!("{key:?}"), "real_refusals": actual_refused, "same_retained_producer": same_producer, "planned_has_no_args": no_args, "prepare_before": counts, "final_counts": final_counts, "original_commit_args_seq": original_args_seq, "competing_resume": format!("{result:?}") })
+        );
+        fixture.cleanup();
+        assert_eq!(actual_refused, 1);
+        assert!(same_producer);
+        assert!(no_args);
+        assert_eq!(counts, (1, 1));
+        assert_eq!(
+            final_counts,
+            (1, 1, if echo { 0 } else { 1 }, if echo { 1 } else { 0 })
+        );
+        assert_eq!(fixture.resume.0.load(Ordering::SeqCst), 0);
+        assert!(matches!(
+            result,
+            Ok(Err(pi_agent_schema::ResumeExpectedError::LaneBusy(_)))
+        ));
+        assert!(finished.registers.iter().any(|register| matches!(register, Register::LaneState { value, .. } if value.current_operation_id.is_none())));
+    }
+}
+
+#[test]
+fn origin1341_planned_owner_set_blocks_resume_before_hooks_after_real_refusal() {
+    use origin1341_live::Fixture;
+    for echo in [false, true] {
+        let fixture = Arc::new(Fixture::new(echo, 2, ToolReplay::Safe));
+        fixture.before.gate.lock().unwrap().0 = false;
+        let drive = fixture.start_drive_id();
+        fixture.store.drive.store(drive, Ordering::SeqCst);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        for _ in 0..20000 {
+            fixture.tick();
+            if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                break;
+            }
+        }
+        let idle_harness = fixture.harness.clone();
+        let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+            idle_harness.wait_for_idle().await
+        }))));
+        let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+        let observed = Arc::new(Mutex::new(None));
+        let callback_fixture = fixture.clone();
+        let callback_resume = resume_slot.clone();
+        let callback_observed = observed.clone();
+        let wake = Arc::new(Origin1341IdleWake {
+            suppress_park: None,
+            idle: idle.clone(),
+            armed: AtomicBool::new(false),
+            fired: AtomicBool::new(false),
+            work: Mutex::new(Some(Box::new(move || {
+                let harness = callback_fixture.harness.clone();
+                let resume_id = callback_fixture.start_drive_id();
+                let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                    Box::pin(async move { harness.resume().await });
+                assert!(poll(resume.as_mut()).is_pending());
+                let pair_fixture = callback_fixture.clone();
+                let pair_observed = callback_observed.clone();
+                let pair_waker =
+                    Waker::from(Arc::new(OnceWake(Mutex::new(Some(Box::new(move || {
+                        let mut open = Box::pin(pair_fixture.harness.get_tools());
+                        let admission_open = matches!(poll(open.as_mut()), Poll::Ready(Ok(_)));
+                        pair_fixture.pump.poll_task(resume_id, Waker::noop());
+                        *pair_observed.lock().unwrap() = Some((
+                            admission_open,
+                            pair_fixture.native.prepares.load(Ordering::SeqCst),
+                            pair_fixture.before.calls.load(Ordering::SeqCst),
+                            pair_fixture.resume.0.load(Ordering::SeqCst),
+                        ));
+                    }))))));
+                assert_eq!(
+                    callback_fixture.pump.poll_task(resume_id, &pair_waker),
+                    Some(true)
+                );
+                callback_fixture.store.commit_release.cancel();
+                callback_fixture.pump.poll_task(
+                    callback_fixture.store.producer.load(Ordering::SeqCst),
+                    Waker::noop(),
+                );
+                assert!(
+                    callback_fixture.store.retry_entered.is_cancelled(),
+                    "same producer reached actual retry"
+                );
+                *callback_resume.lock().unwrap() = Some(resume);
+            }))),
+        });
+        let idle_waker = Waker::from(wake.clone());
+        let mut idle_future = idle.lock().unwrap().take().unwrap();
+        assert!(
+            idle_future
+                .as_mut()
+                .poll(&mut Context::from_waker(&idle_waker))
+                .is_pending()
+        );
+        *idle.lock().unwrap() = Some(idle_future);
+        fixture.before.release();
+        fixture.until(&fixture.store.commit_entered);
+        let producer = fixture.store.producer.load(Ordering::SeqCst);
+        origin1341_rewrite_same_state(&fixture); // Changes the real condition sequence, while H stays Planned.
+        wake.armed.store(true, Ordering::SeqCst);
+        fixture.pump.drop_task(drive);
+        let successor = observed
+            .lock()
+            .unwrap()
+            .take()
+            .expect("actual NotApplied pair successor");
+        let real_refusal = fixture.store.refused.load(Ordering::SeqCst);
+        let same_producer = fixture.store.producer.load(Ordering::SeqCst) == producer;
+        let planned = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let no_args = !planned
+            .registers
+            .iter()
+            .any(|register| matches!(register, Register::OperationToolArguments { .. }));
+        origin1341_rewrite_same_state(&fixture); // The already admitted second attempt also refuses; no fabricated outcome.
+        fixture.store.retry_release.cancel();
+        let resume = resume_slot.lock().unwrap().take().unwrap();
+        let result = fixture.drive(resume);
+        for _ in 0..100 {
+            fixture.tick();
+        }
+        println!(
+            "E1341_PLANNED_REFUSAL {}",
+            serde_json::json!({ "echo": echo, "open_before_outer_seal": successor.0, "prepare_before_resume": [successor.1, successor.2, successor.3], "actual_refusals_at_gate": real_refusal, "same_producer": same_producer, "planned_no_args": no_args, "resume": format!("{result:?}") })
+        );
+        let retired_idle = idle.lock().unwrap().take();
+        drop(retired_idle);
+        drop(wake);
+        drop(prompt);
+        fixture.cleanup();
+        assert_eq!(
+            successor,
+            (true, 1, 1, 0),
+            "Planned H/future K must be found before BeforeResume or reprepare"
+        );
+        assert_eq!(real_refusal, 1);
+        assert!(same_producer);
+        assert!(no_args);
+        assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+        assert!(origin1341_requests(&fixture.channel).is_empty());
+        assert!(matches!(
+            result,
+            Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+        ));
+    }
+}
+
+fn origin1341_finish<F: Future>(fixture: &origin1341_live::Fixture, future: F) -> F::Output {
+    let mut future = std::pin::pin!(future);
+    let mut terminal = false;
+    for _ in 0..20000 {
+        if let Poll::Ready(result) = poll(future.as_mut()) {
+            return result;
+        }
+        fixture.tick();
+        if !terminal && let Some(request) = origin1341_requests(&fixture.channel).first() {
+            fixture
+                .channel
+                .push(raw_terminal_with_usage(request.request_id));
+            terminal = true;
+        }
+    }
+    panic!("actual origin1341 continuation did not finish");
+}
+
+fn origin1341_commit_sequence_case(echo: bool) {
+    use origin1341_live::Fixture;
+    use pi_agent_schema::{RegisterSet, Storage, Transaction, Write};
+    let fixture = Fixture::new(echo, 1, ToolReplay::Safe);
+    fixture
+        .store
+        .drive
+        .store(fixture.start_drive_id(), Ordering::SeqCst);
+    let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    assert!(poll(prompt.as_mut()).is_pending());
+    fixture.until(&fixture.store.hydrate_entered);
+    let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let (key, value, original_seq) = applied
+        .registers
+        .iter()
+        .find_map(|register| match register {
+            Register::OperationToolArguments { key, value, seq } => {
+                Some((key.clone(), value.clone(), seq.get()))
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(original_seq, fixture.store.args_seq.load(Ordering::SeqCst));
+    fixture
+        .drive(fixture.runtime.store.commit(Transaction {
+            writes: vec![Write::SetRegister(Box::new(
+                RegisterSet::OperationToolArguments {
+                    key: key.clone(),
+                    value: value.clone(),
+                },
+            ))],
+        }))
+        .unwrap();
+    let rewritten = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let later_seq = rewritten
+        .registers
+        .iter()
+        .find_map(|register| match register {
+            Register::OperationToolArguments {
+                key: saved_key,
+                seq,
+                ..
+            } if saved_key == &key => Some(seq.get()),
+            _ => None,
+        })
+        .unwrap();
+    fixture.store.hydrate_release.cancel();
+    let result = origin1341_finish(&fixture, prompt);
+    let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let counts = (
+        fixture.native.executions.load(Ordering::SeqCst),
+        origin1341_requests(&fixture.channel).len(),
+    );
+    println!(
+        "E1341_COMMIT_SEQUENCE_DRIFT {}",
+        serde_json::json!({ "echo": echo, "same_value": value == saved(), "actual_commit_seq": original_seq, "later_real_seq": later_seq, "result": format!("{result:?}"), "native_request": counts, "no_new_write": rewritten == after })
+    );
+    fixture.cleanup();
+    assert!(later_seq > original_seq);
+    assert_eq!(value, saved());
+    assert!(
+        matches!(result, Err(pi_agent_schema::HarnessRuntimeError::Fault(_))),
+        "same value is still original sequence drift"
+    );
+    assert_eq!(counts, (0, 0));
+    assert_eq!(after, rewritten);
+}
+
+#[test]
+fn origin1341_actual_commit_sequence_rejects_same_value_rewrite_before_hydration_direct() {
+    origin1341_commit_sequence_case(false);
+}
+#[test]
+fn origin1341_actual_commit_sequence_rejects_same_value_rewrite_before_hydration_echo() {
+    origin1341_commit_sequence_case(true);
+}
+
+#[test]
+fn origin1341_clean_commit_receipt_and_prior_full_key_loss_keep_distinct_channels() {
+    use origin1341_live::Fixture;
+    use pi_agent_schema::{RegisterSet, Storage, Transaction, Write};
+    for echo in [false, true] {
+        for loss in [0, 1, 2] {
+            let fixture = Fixture::new(echo, 1, ToolReplay::Safe);
+            fixture
+                .store
+                .drive
+                .store(fixture.start_drive_id(), Ordering::SeqCst);
+            let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+                text: "invoke echo".into(),
+                images: vec![],
+            }));
+            assert!(poll(prompt.as_mut()).is_pending());
+            fixture.until(&fixture.store.hydrate_entered);
+            let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            let tool_k = origin1341_key(&applied, &fixture.runtime.session.metadata().id).unwrap();
+            let args_key = applied
+                .registers
+                .iter()
+                .find_map(|register| match register {
+                    Register::OperationToolArguments { key, .. } => Some(key.clone()),
+                    _ => None,
+                })
+                .unwrap();
+            if loss != 0 {
+                externally_abort_pending_echo(&fixture.runtime);
+                if loss == 2 {
+                    fixture
+                        .drive(fixture.runtime.store.commit(Transaction {
+                            writes: vec![Write::SetRegister(Box::new(
+                                RegisterSet::OperationToolArguments {
+                                    key: args_key,
+                                    value:
+                                        serde_json::from_str(r#"{"text":"orphan drift"}"#).unwrap(),
+                                },
+                            ))],
+                        }))
+                        .unwrap();
+                }
+            }
+            let before_release = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            fixture.store.hydrate_release.cancel();
+            let result = origin1341_finish(&fixture, prompt);
+            let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            let counts = (
+                fixture.native.executions.load(Ordering::SeqCst),
+                origin1341_requests(&fixture.channel).len(),
+            );
+            let no_binding = fixture.driver_owner.retained_binding().is_none();
+            println!(
+                "E1341_RECEIPT_KEY_CHANNEL {}",
+                serde_json::json!({ "echo": echo, "loss": loss, "full_K": format!("{tool_k:?}"), "actual_commit_seq": fixture.store.args_seq.load(Ordering::SeqCst), "result": format!("{result:?}"), "native_request": counts, "unchanged_after_loss": loss != 0 && after == before_release, "no_B1": no_binding })
+            );
+            fixture.cleanup();
+            assert!(
+                matches!(result, Ok(Ok(_))),
+                "clean receipt or exact external terminal keeps original channel"
+            );
+            if loss == 0 {
+                assert_eq!(counts, (if echo { 0 } else { 1 }, if echo { 1 } else { 0 }));
+            } else {
+                assert_eq!(counts, (0, 0));
+                assert_eq!(after, before_release);
+            }
+            assert!(no_binding);
+        }
+    }
+}
+
+#[test]
+fn origin1341_coherent_cancel_and_original_never_keep_core_policy() {
+    use origin1341_live::Fixture;
+    for echo in [false, true] {
+        for cancel in [false, true] {
+            let fixture = Fixture::new(echo, 1, ToolReplay::Never);
+            fixture
+                .store
+                .drive
+                .store(fixture.start_drive_id(), Ordering::SeqCst);
+            let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+                text: "invoke echo".into(),
+                images: vec![],
+            }));
+            assert!(poll(prompt.as_mut()).is_pending());
+            fixture.until(&fixture.store.hydrate_entered);
+            let mut abort = cancel.then(|| Box::pin(fixture.harness.abort()));
+            if let Some(abort) = &mut abort {
+                assert!(poll(abort.as_mut()).is_pending());
+                for _ in 0..20 {
+                    fixture.tick();
+                }
+            }
+            fixture.store.hydrate_release.cancel();
+            let result = origin1341_finish(&fixture, prompt);
+            if let Some(abort) = abort {
+                assert!(fixture.drive(abort).is_ok());
+            }
+            let snapshot = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            let counts = (
+                fixture.native.executions.load(Ordering::SeqCst),
+                origin1341_requests(&fixture.channel).len(),
+            );
+            println!(
+                "E1341_CANCEL_NEVER {}",
+                serde_json::json!({ "echo": echo, "cancel": cancel, "original_Never": true, "native_request": counts, "result": format!("{result:?}") })
+            );
+            fixture.cleanup();
+            assert!(matches!(result, Ok(Ok(_))));
+            if cancel {
+                assert_eq!(counts, (0, 0));
+                assert_one_synthetic_interrupted_result(&snapshot);
+            } else {
+                assert_eq!(counts, (if echo { 0 } else { 1 }, if echo { 1 } else { 0 }));
+            }
+        }
+    }
+}
+
+#[test]
+fn origin1341_new_key_captures_current_echo_without_permanent_direct_ledger() {
+    use origin1341_live::Fixture;
+    let fixture = Fixture::new(false, 0, ToolReplay::Safe);
+    fixture.before.gate.lock().unwrap().0 = false;
+    let mut first = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "first key".into(),
+        images: vec![],
+    }));
+    assert!(poll(first.as_mut()).is_pending());
+    for _ in 0..20000 {
+        fixture.tick();
+        if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+            break;
+        }
+    }
+    let first_state = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let first_k = origin1341_key(&first_state, &fixture.runtime.session.metadata().id).unwrap();
+    let handle: pi_agent_schema::AgentHarnessToolHandle<()> = fixture.native.clone();
+    fixture
+        .drive(fixture.harness.register_ready_echo_tool(
+            handle,
+            fixture.route.clone(),
+            route_timing(),
+        ))
+        .unwrap()
+        .unwrap();
+    fixture.before.release();
+    assert!(origin1341_finish(&fixture, first).is_ok());
+    assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 1);
+    assert!(origin1341_requests(&fixture.channel).is_empty());
+    let mut response = runtime_r1_r4_support::assistant(
+        &fixture.runtime.faux.model,
+        pi_ai_core::StopReason::ToolUse,
+    );
+    let args: JsonObject = serde_json::from_str(r#"{"text":"new-key"}"#).unwrap();
+    response.content = vec![pi_ai_core::AssistantContent::ToolCall(
+        pi_ai_core::ToolCall {
+            content_type: Default::default(),
+            id: pi_ai_core::ToolCallId::new("new-key-call").unwrap(),
+            name: pi_ai_core::ToolName::new("echo").unwrap(),
+            arguments: args.clone(),
+            thought_signature: None,
+            namespace: None,
+        },
+    )];
+    *fixture.runtime.faux.responses.lock().unwrap() = vec![
+        response,
+        runtime_r1_r4_support::assistant(&fixture.runtime.faux.model, pi_ai_core::StopReason::Stop),
+    ]
+    .into();
+    let second = fixture.harness.prompt(PromptInput::Text {
+        text: "second key".into(),
+        images: vec![],
+    });
+    let result = origin1341_finish(&fixture, second);
+    let requests = origin1341_requests(&fixture.channel);
+    let request = requests.first().unwrap();
+    let payload = {
+        use prost::Message;
+        v1_1::InvokeToolRequest::decode(request.payload.as_slice()).unwrap()
+    };
+    println!(
+        "E1341_NEW_KEY {}",
+        serde_json::json!({ "old_K": format!("{first_k:?}"), "new_wire_K": format!("{:?}", request.effect_key), "native": fixture.native.executions.load(Ordering::SeqCst), "requests": requests.len(), "new_payload": format!("{payload:?}"), "result": format!("{result:?}") })
+    );
+    fixture.cleanup();
+    assert!(result.is_ok());
+    assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 1);
+    assert_eq!(requests.len(), 1);
+    assert_ne!(
+        request.effect_key.as_ref().unwrap().operation_id,
+        first_k.operation_id.as_str()
+    );
+    assert_eq!(payload.tool_call_id, "new-key-call");
+    assert_eq!(fixture.native.prepares.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.before.calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn origin1341_ready_direct_consumer_claim_has_no_self_wait_and_never_stays_core() {
+    use origin1341_live::Fixture;
+    for replay in [ToolReplay::Safe, ToolReplay::Never] {
+        let fixture = Arc::new(Fixture::new(false, 1, replay));
+        let execution_release = pi_ai_core::CancellationToken::new();
+        *fixture.native.execute_gate.lock().unwrap() = Some(execution_release.clone());
+        fixture.before.gate.lock().unwrap().0 = false;
+        let drive = fixture.start_drive_id();
+        fixture.store.drive.store(drive, Ordering::SeqCst);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        for _ in 0..20000 {
+            fixture.tick();
+            if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                break;
+            }
+        }
+        let idle_harness = fixture.harness.clone();
+        let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+            idle_harness.wait_for_idle().await
+        }))));
+        let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+        let observed = Arc::new(Mutex::new(None));
+        let callback_fixture = fixture.clone();
+        let callback_resume = resume_slot.clone();
+        let callback_observed = observed.clone();
+        let wake = Arc::new(Origin1341IdleWake {
+            suppress_park: None,
+            idle: idle.clone(),
+            armed: AtomicBool::new(false),
+            fired: AtomicBool::new(false),
+            work: Mutex::new(Some(Box::new(move || {
+                let harness = callback_fixture.harness.clone();
+                let resume_id = callback_fixture.start_drive_id();
+                let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                    Box::pin(async move { harness.resume().await });
+                assert!(poll(resume.as_mut()).is_pending());
+                let pair_fixture = callback_fixture.clone();
+                let pair_observed = callback_observed.clone();
+                let pair_waker = Waker::from(Arc::new(OnceWake(Mutex::new(Some(Box::new(
+                    move || {
+                        let mut open = Box::pin(pair_fixture.harness.get_tools());
+                        let admission_open = matches!(poll(open.as_mut()), Poll::Ready(Ok(_)));
+                        pair_fixture.pump.poll_task(resume_id, Waker::noop());
+                        for _ in 0..100 {
+                            pair_fixture.tick();
+                            let snapshot = pair_fixture
+                                .drive(pair_fixture.runtime.store.snapshot())
+                                .unwrap();
+                            if pair_fixture.native.executions.load(Ordering::SeqCst) == 1 || snapshot.entries.iter().any(|entry| matches!(entry, pi_agent_schema::Entry::Message(message) if matches!(&message.message, pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))))) { break; }
+                        }
+                        let snapshot = pair_fixture
+                            .drive(pair_fixture.runtime.store.snapshot())
+                            .unwrap();
+                        *pair_observed.lock().unwrap() = Some((
+                            admission_open,
+                            pair_fixture.resume.0.load(Ordering::SeqCst),
+                            pair_fixture.native.prepares.load(Ordering::SeqCst),
+                            pair_fixture.before.calls.load(Ordering::SeqCst),
+                            pair_fixture.native.executions.load(Ordering::SeqCst),
+                            origin1341_requests(&pair_fixture.channel).len(),
+                            snapshot,
+                        ));
+                    },
+                ))))));
+                assert_eq!(
+                    callback_fixture.pump.poll_task(resume_id, &pair_waker),
+                    Some(true)
+                );
+                callback_fixture.store.hydrate_release.cancel();
+                callback_fixture.pump.poll_task(
+                    callback_fixture.store.producer.load(Ordering::SeqCst),
+                    Waker::noop(),
+                );
+                *callback_resume.lock().unwrap() = Some(resume);
+            }))),
+        });
+        let idle_waker = Waker::from(wake.clone());
+        let mut idle_future = idle.lock().unwrap().take().unwrap();
+        assert!(
+            idle_future
+                .as_mut()
+                .poll(&mut Context::from_waker(&idle_waker))
+                .is_pending()
+        );
+        *idle.lock().unwrap() = Some(idle_future);
+        fixture.before.release();
+        fixture.until(&fixture.store.hydrate_entered);
+        let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let key = origin1341_key(&applied, &fixture.runtime.session.metadata().id).unwrap();
+        wake.armed.store(true, Ordering::SeqCst);
+        fixture.pump.drop_task(drive);
+        let successor = observed
+            .lock()
+            .unwrap()
+            .take()
+            .expect("actual ReadyDirect pair successor");
+        execution_release.cancel();
+        let resume = resume_slot.lock().unwrap().take().unwrap();
+        let result = fixture.drive(resume);
+        println!(
+            "E1341_DIRECT_CONSUMER {}",
+            serde_json::json!({ "replay": format!("{replay:?}"), "full_K": format!("{key:?}"), "open_before_outer_seal": successor.0, "resume_prepare_before_native_request": [successor.1, successor.2, successor.3, successor.4, successor.5], "original_context_args": fixture.native.execution_args.lock().unwrap().clone(), "resume": format!("{result:?}") })
+        );
+        drop(idle.lock().unwrap().take());
+        drop(wake);
+        drop(prompt);
+        fixture.cleanup();
+        assert!(successor.0);
+        assert_eq!(
+            (successor.1, successor.2, successor.3, successor.5),
+            (1, 1, 1, 0)
+        );
+        if replay == ToolReplay::Safe {
+            assert_eq!(
+                successor.4, 1,
+                "same consumer may continue through BeforeResume/start/ack"
+            );
+            assert_eq!(
+                *fixture.native.execution_args.lock().unwrap(),
+                vec![saved()]
+            );
+        } else {
+            assert_eq!(successor.4, 0);
+            assert_one_synthetic_interrupted_result(&successor.6);
+        }
+        assert!(
+            matches!(
+                result,
+                Err(pi_agent_schema::HarnessRuntimeError::Fault(_)) | Ok(Ok(_))
+            ),
+            "later original outer Drop retains its seal channel"
+        );
+    }
+}
+
+#[test]
+fn origin1341_consumer_pre_ack_work_owns_fence_and_other_reader_waits() {
+    use origin1341_live::Fixture;
+    for exit in [0, 1, 2, 3] {
+        let fixture = Arc::new(Fixture::new(false, 3, ToolReplay::Safe));
+        fixture.before.gate.lock().unwrap().0 = false;
+        let drive = fixture.start_drive_id();
+        fixture.store.drive.store(drive, Ordering::SeqCst);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        for _ in 0..20000 {
+            fixture.tick();
+            if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                break;
+            }
+        }
+        let idle_harness = fixture.harness.clone();
+        let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+            idle_harness.wait_for_idle().await
+        }))));
+        let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+        let observed = Arc::new(Mutex::new(None));
+        let callback_fixture = fixture.clone();
+        let callback_resume = resume_slot.clone();
+        let callback_observed = observed.clone();
+        let wake = Arc::new(Origin1341IdleWake {
+            suppress_park: Some(fixture.store.suppress_park.clone()),
+            idle: idle.clone(),
+            armed: AtomicBool::new(false),
+            fired: AtomicBool::new(false),
+            work: Mutex::new(Some(Box::new(move || {
+                let harness = callback_fixture.harness.clone();
+                let resume_id = callback_fixture.start_drive_id();
+                let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                    Box::pin(async move { harness.resume().await });
+                assert!(poll(resume.as_mut()).is_pending());
+                let pair_fixture = callback_fixture.clone();
+                let pair_observed = callback_observed.clone();
+                let pair_waker =
+                    Waker::from(Arc::new(OnceWake(Mutex::new(Some(Box::new(move || {
+                        let mut open = Box::pin(pair_fixture.harness.get_tools());
+                        let admission_open = matches!(poll(open.as_mut()), Poll::Ready(Ok(_)));
+                        pair_fixture.pump.poll_task(resume_id, Waker::noop());
+                        *pair_observed.lock().unwrap() = Some((
+                            admission_open,
+                            pair_fixture.resume.0.load(Ordering::SeqCst),
+                            pair_fixture.native.prepares.load(Ordering::SeqCst),
+                            pair_fixture.before.calls.load(Ordering::SeqCst),
+                            pair_fixture.native.executions.load(Ordering::SeqCst),
+                            origin1341_requests(&pair_fixture.channel).len(),
+                        ));
+                    }))))));
+                assert_eq!(
+                    callback_fixture.pump.poll_task(resume_id, &pair_waker),
+                    Some(true)
+                );
+                let consumer = callback_fixture.store.consumer.load(Ordering::SeqCst);
+                assert_ne!(
+                    consumer,
+                    callback_fixture.store.producer.load(Ordering::SeqCst)
+                );
+                if exit == 3 {
+                    callback_fixture.pump.drop_task(consumer);
+                } else {
+                    callback_fixture.store.exit.store(exit, Ordering::SeqCst);
+                    callback_fixture.store.consumer_release.cancel();
+                    let outcome = callback_fixture.pump.poll_task(consumer, Waker::noop());
+                    println!("E1341_CONSUMER_RELEASE exit={exit} outcome={outcome:?}");
+                }
+                // The nonowner resumed first while its predecessor exposed the lane.
+                // It must remain before BeforeResume even though the prior admission is still open.
+                *callback_resume.lock().unwrap() = Some(resume);
+            }))),
+        });
+        let idle_waker = Waker::from(wake.clone());
+        let mut idle_future = idle.lock().unwrap().take().unwrap();
+        assert!(
+            idle_future
+                .as_mut()
+                .poll(&mut Context::from_waker(&idle_waker))
+                .is_pending()
+        );
+        *idle.lock().unwrap() = Some(idle_future);
+        fixture.before.release();
+        fixture.until(&fixture.store.consumer_entered);
+        let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        wake.armed.store(true, Ordering::SeqCst);
+        fixture.pump.drop_task(drive);
+        let successor = observed
+            .lock()
+            .unwrap()
+            .take()
+            .expect("actual pre-ack consumer pair successor");
+        let resume = resume_slot.lock().unwrap().take().unwrap();
+        let result = fixture.drive(resume);
+        let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        println!(
+            "E1341_CONSUMER_PRE_ACK {}",
+            serde_json::json!({ "exit": exit, "actual_consumer_task": fixture.store.consumer.load(Ordering::SeqCst), "open_at_pair_release": successor.0, "resume_prepare_before_native_request": [successor.1, successor.2, successor.3, successor.4, successor.5], "resume": format!("{result:?}"), "no_new_write": after == applied })
+        );
+        drop(idle.lock().unwrap().take());
+        drop(wake);
+        drop(prompt);
+        fixture.cleanup();
+        assert!(successor.0);
+        assert_eq!(
+            (
+                successor.1,
+                successor.2,
+                successor.3,
+                successor.4,
+                successor.5
+            ),
+            (0, 1, 1, 0, 0)
+        );
+        assert!(matches!(
+            result,
+            Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+        ));
+        assert_eq!(after, applied);
+    }
+}
+
+fn origin1341_host(
+    generation: u64,
+    minor: u32,
+    alter_progress: bool,
+    parallel: bool,
+    replay: ToolReplay,
+) -> HostAuthority {
+    let catalog: Value = serde_json::from_str(CATALOG).unwrap();
+    let entry = &catalog["entries"][0];
+    let mut altered = entry["selected_minor_schema_sets"]["1.0"]["progress"]["schema"].clone();
+    if alter_progress {
+        altered["maxProperties"] = serde_json::json!(16);
+    }
+    let descriptor = AgentTool {
+        name: "echo".into(),
+        label: entry["agentTool"]["label"].as_str().unwrap().into(),
+        description: entry["agentTool"]["description"].as_str().unwrap().into(),
+        parameters: entry["agentTool"]["parameters"].clone(),
+        execution_mode: if parallel {
+            AgentToolMode::Parallel
+        } else {
+            AgentToolMode::Sequential
+        },
+        replay,
+    };
+    let schemas = [0, 1]
+        .into_iter()
+        .map(|minor| {
+            let set = &entry["selected_minor_schema_sets"][format!("1.{minor}")];
+            ToolSchemaInputs {
+                minor,
+                arguments: serde_json::to_vec(&set["arguments"]["schema"]).unwrap(),
+                progress: serde_json::to_vec(if alter_progress {
+                    &altered
+                } else {
+                    &set["progress"]["schema"]
+                })
+                .unwrap(),
+                raw_result: serde_json::to_vec(&set["raw_result"]["schema"]).unwrap(),
+            }
+        })
+        .collect();
+    let tool =
+        ApprovedTool::new("peer-a".into(), descriptor, schemas, JsonLimits::default()).unwrap();
+    let limits = v1_1::ProtocolLimits {
+        pre_handshake_frame_bytes: 4096,
+        frame_bytes: 8192,
+        aggregate_decoded_bytes: 8192,
+        value_depth: 32,
+        value_elements: 1024,
+        string_bytes: 4096,
+        bytes_length: 4096,
+        in_flight_requests: 8,
+        blocking_queue_bytes: 4096,
+        progress_queue_bytes: 4096,
+        passive_queue_bytes: 4096,
+        telemetry_queue_bytes: 4096,
+        nesting_depth: 8,
+        requests_per_second: 32,
+        handshake_ms: 1000,
+        cancellation_grace_ms: 100,
+        max_stream_credit_bytes: 4096,
+    };
+    HostAuthority::new(
+        "peer-a".into(),
+        generation,
+        minor,
+        minor,
+        limits,
+        vec![tool],
+        vec![],
+    )
+    .unwrap()
+}
+fn origin1341_setup_route(
+    owner: &SingleToolOwner,
+    spawner: &FakeSpawner,
+    generation: u64,
+    now: u64,
+    replay: ToolReplay,
+    parallel: bool,
+) -> (
+    Arc<FakeChannel>,
+    Arc<FakeClock>,
+    pi_harness_runtime::extensions::tool_driver::ReadyToolRoute,
+) {
+    let channel = Arc::new(FakeChannel::new());
+    let clock = Arc::new(FakeClock::new(now));
+    channel.push(hello());
+    channel.push(manifest_with_replay(replay));
+    channel.push(ready_frame());
+    let route = spawner
+        .drive(owner.connect(
+            origin1341_host(generation, 1, false, parallel, replay),
+            channel.clone(),
+            clock.clone(),
+            PumpConfig {
+                max_read_chunk: nz(8192),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        ))
+        .unwrap();
+    (channel, clock, route)
+}
+
+#[test]
+fn origin1341_known_echo_live_loss_preserves_key_and_matching_g2_uses_saved_selection() {
+    use origin1341_live::Fixture;
+    for parallel in [false, true] {
+        for loss in [0, 1, 2, 3] {
+            let fixture = Fixture::new_with_mode(true, 0, ToolReplay::Safe, parallel);
+            fixture.before.gate.lock().unwrap().0 = false;
+            let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+                text: "invoke echo".into(),
+                images: vec![],
+            }));
+            assert!(poll(prompt.as_mut()).is_pending());
+            for _ in 0..20000 {
+                fixture.tick();
+                if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                    break;
+                }
+            }
+            assert_eq!(fixture.native.prepares.load(Ordering::SeqCst), 1);
+            let replacement = Arc::new(Origin1341Native {
+                descriptor: fixture.native.descriptor.clone(),
+                prepares: AtomicU64::new(0),
+                selected_address: AtomicU64::new(0),
+                executions: AtomicU64::new(0),
+                execution_args: Mutex::new(vec![]),
+                execute_gate: Mutex::new(None),
+            });
+            let replacement_handle: pi_agent_schema::AgentHarnessToolHandle<()> =
+                replacement.clone();
+            if loss == 0 {
+                fixture.drive(fixture.harness.set_tools(vec![])).unwrap();
+            }
+            if loss == 1 {
+                fixture
+                    .drive(fixture.harness.set_tools(vec![replacement_handle.clone()]))
+                    .unwrap();
+            }
+            if loss == 2 {
+                fixture.drive(fixture.harness.set_tools(vec![])).unwrap();
+                let original_handle: pi_agent_schema::AgentHarnessToolHandle<()> =
+                    fixture.native.clone();
+                fixture
+                    .drive(fixture.harness.set_tools(vec![original_handle]))
+                    .unwrap();
+            }
+            if loss == 3 {
+                fixture.route.close();
+            }
+            fixture.before.release();
+            let original = fixture.drive(prompt);
+            let pending = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+            let key = origin1341_key(&pending, &fixture.runtime.session.metadata().id)
+                .expect("known Echo full K is retained");
+            assert!(
+                matches!(
+                    original,
+                    Err(pi_agent_schema::HarnessRuntimeError::PeerLost)
+                ),
+                "known Echo cannot become missing/native or retarget"
+            );
+            assert!(pending.registers.iter().any(|register| matches!(register, Register::OperationToolArguments { value, .. } if value == &saved())));
+            assert!(!pending.entries.iter().any(|entry| matches!(entry, pi_agent_schema::Entry::Message(message) if matches!(&message.message, pi_agent_schema::AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))))));
+            assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+            assert_eq!(replacement.executions.load(Ordering::SeqCst), 0);
+            assert!(origin1341_requests(&fixture.channel).is_empty());
+            let (g2_channel, _, g2_route) = origin1341_setup_route(
+                &fixture.driver_owner,
+                &fixture.spawner,
+                8,
+                300,
+                ToolReplay::Safe,
+                parallel,
+            );
+            let g2_route = Arc::new(g2_route);
+            fixture
+                .drive(fixture.harness.register_ready_echo_tool(
+                    replacement_handle,
+                    g2_route.clone(),
+                    route_timing(),
+                ))
+                .unwrap()
+                .unwrap();
+            let mut resume = Box::pin(fixture.harness.resume());
+            let mut terminal = false;
+            let mut result = None;
+            for _ in 0..20000 {
+                if let Poll::Ready(value) = poll(resume.as_mut()) {
+                    result = Some(value);
+                    break;
+                }
+                fixture.tick();
+                if !terminal && let Some(request) = origin1341_requests(&g2_channel).first() {
+                    g2_channel.push(raw_terminal_with_usage(request.request_id));
+                    terminal = true;
+                }
+            }
+            let result = result.expect("matching G2 real resumed effect completes");
+            let requests = origin1341_requests(&g2_channel);
+            let request = requests
+                .first()
+                .expect("fresh G2 binding wrote one Request");
+            let payload = {
+                use prost::Message;
+                v1_1::InvokeToolRequest::decode(request.payload.as_slice()).unwrap()
+            };
+            println!(
+                "E1341_ECHO_G2 {}",
+                serde_json::json!({ "parallel": parallel, "live_loss": loss, "original": format!("{original:?}"), "original_K": format!("{key:?}"), "fresh_G2_binding": format!("{:?}", request.effect_key), "payload": format!("{payload:?}"), "native_request": [fixture.native.executions.load(Ordering::SeqCst) + replacement.executions.load(Ordering::SeqCst), requests.len()], "prepare_before": [fixture.native.prepares.load(Ordering::SeqCst) + replacement.prepares.load(Ordering::SeqCst), fixture.before.calls.load(Ordering::SeqCst)], "resume": format!("{result:?}") })
+            );
+            g2_route.close();
+            g2_channel.close();
+            fixture.cleanup();
+            assert!(matches!(result, Ok(Ok(_))));
+            assert_eq!(requests.len(), 1);
+            assert_eq!(
+                request.effect_key.as_ref().unwrap().operation_id,
+                key.operation_id.as_str()
+            );
+            assert_eq!(payload.tool_call_id, "echo-call");
+            assert_eq!(
+                payload.arguments.as_ref().unwrap().value.as_ref().unwrap(),
+                &v1_1::WireValue {
+                    value: Some(v1_1::wire_value::Value::MapValue(v1_1::WireMap {
+                        entries: vec![v1_1::WireMapEntry {
+                            key: "text".into(),
+                            value: Some(v1_1::WireValue {
+                                value: Some(v1_1::wire_value::Value::TextValue("ping".into()))
+                            })
+                        }]
+                    }))
+                }
+            );
+            assert_eq!(
+                fixture.native.prepares.load(Ordering::SeqCst)
+                    + replacement.prepares.load(Ordering::SeqCst),
+                1
+            );
+            assert_eq!(fixture.before.calls.load(Ordering::SeqCst), 1);
+            assert_eq!(
+                fixture.native.executions.load(Ordering::SeqCst)
+                    + replacement.executions.load(Ordering::SeqCst),
+                0
+            );
+        }
+    }
+}
+
+#[test]
+fn origin1341_known_echo_new_never_fx_interrupts_without_second_execute() {
+    use origin1341_live::Fixture;
+    for parallel in [false, true] {
+        let fixture = Fixture::new_with_mode(true, 0, ToolReplay::Never, parallel);
+        fixture.before.gate.lock().unwrap().0 = false;
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        for _ in 0..20000 {
+            fixture.tick();
+            if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                break;
+            }
+        }
+        fixture.route.close();
+        fixture.before.release();
+        let original = fixture.drive(prompt);
+        assert!(matches!(
+            original,
+            Err(pi_agent_schema::HarnessRuntimeError::PeerLost)
+        ));
+        let pending = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let key = origin1341_key(&pending, &fixture.runtime.session.metadata().id).unwrap();
+        let (g2_channel, _, g2_route) = origin1341_setup_route(
+            &fixture.driver_owner,
+            &fixture.spawner,
+            8,
+            300,
+            ToolReplay::Never,
+            parallel,
+        );
+        let g2_route = Arc::new(g2_route);
+        let handle: pi_agent_schema::AgentHarnessToolHandle<()> = fixture.native.clone();
+        fixture
+            .drive(fixture.harness.register_ready_echo_tool(
+                handle,
+                g2_route.clone(),
+                route_timing(),
+            ))
+            .unwrap()
+            .unwrap();
+        let result = fixture.drive(fixture.harness.resume());
+        let snapshot = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        println!(
+            "E1341_ECHO_NEW_NEVER {}",
+            serde_json::json!({ "parallel": parallel, "full_K": format!("{key:?}"), "native_request": [fixture.native.executions.load(Ordering::SeqCst), origin1341_requests(&g2_channel).len()], "prepare_before": [fixture.native.prepares.load(Ordering::SeqCst), fixture.before.calls.load(Ordering::SeqCst)], "resume": format!("{result:?}") })
+        );
+        g2_route.close();
+        g2_channel.close();
+        fixture.cleanup();
+        assert!(matches!(result, Ok(Ok(_))));
+        assert_one_synthetic_interrupted_result(&snapshot);
+        assert_eq!(fixture.native.prepares.load(Ordering::SeqCst), 1);
+        assert_eq!(fixture.before.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+        assert!(origin1341_requests(&fixture.channel).is_empty());
+        assert!(origin1341_requests(&g2_channel).is_empty());
+    }
+}
+
+#[test]
+fn origin1341_multiple_public_echo_cells_gate_operation_before_resume() {
+    use origin1341_live::Fixture;
+    let fixture = Arc::new(Fixture::new_with_calls(true, 5, ToolReplay::Safe, true, 2));
+    fixture.before.gate.lock().unwrap().0 = false;
+    let drive = fixture.start_drive_id();
+    fixture.store.drive.store(drive, Ordering::SeqCst);
+    let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "invoke echo twice".into(),
+        images: vec![],
+    }));
+    assert!(poll(prompt.as_mut()).is_pending());
+    for _ in 0..20000 {
+        fixture.tick();
+        if fixture.before.calls.load(Ordering::SeqCst) >= 1 {
+            break;
+        }
+    }
+    let idle_harness = fixture.harness.clone();
+    let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+        idle_harness.wait_for_idle().await
+    }))));
+    let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+    let observed = Arc::new(Mutex::new(None));
+    let callback_fixture = fixture.clone();
+    let callback_resume = resume_slot.clone();
+    let callback_observed = observed.clone();
+    let wake = Arc::new(Origin1341IdleWake {
+        suppress_park: None,
+        idle: idle.clone(),
+        armed: AtomicBool::new(false),
+        fired: AtomicBool::new(false),
+        work: Mutex::new(Some(Box::new(move || {
+            let harness = callback_fixture.harness.clone();
+            let resume_id = callback_fixture.start_drive_id();
+            let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                Box::pin(async move { harness.resume().await });
+            assert!(poll(resume.as_mut()).is_pending());
+            let pair_fixture = callback_fixture.clone();
+            let pair_observed = callback_observed.clone();
+            let pair_waker =
+                Waker::from(Arc::new(OnceWake(Mutex::new(Some(Box::new(move || {
+                    let mut open = Box::pin(pair_fixture.harness.get_tools());
+                    let admission_open = matches!(poll(open.as_mut()), Poll::Ready(Ok(_)));
+                    pair_fixture.pump.poll_task(resume_id, Waker::noop());
+                    *pair_observed.lock().unwrap() = Some((
+                        admission_open,
+                        pair_fixture.resume.0.load(Ordering::SeqCst),
+                        pair_fixture.native.prepares.load(Ordering::SeqCst),
+                        pair_fixture.before.calls.load(Ordering::SeqCst),
+                        pair_fixture.native.executions.load(Ordering::SeqCst),
+                        origin1341_requests(&pair_fixture.channel).len(),
+                    ));
+                }))))));
+            assert_eq!(
+                callback_fixture.pump.poll_task(resume_id, &pair_waker),
+                Some(true)
+            );
+            callback_fixture.store.exit.store(1, Ordering::SeqCst);
+            callback_fixture.store.hydrate_release.cancel();
+            callback_fixture.pump.poll_task(
+                callback_fixture.store.producer.load(Ordering::SeqCst),
+                Waker::noop(),
+            );
+            *callback_resume.lock().unwrap() = Some(resume);
+        }))),
+    });
+    let idle_waker = Waker::from(wake.clone());
+    let mut idle_future = idle.lock().unwrap().take().unwrap();
+    assert!(
+        idle_future
+            .as_mut()
+            .poll(&mut Context::from_waker(&idle_waker))
+            .is_pending()
+    );
+    *idle.lock().unwrap() = Some(idle_future);
+    fixture.before.release();
+    fixture.until(&fixture.store.hydrate_entered);
+    let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let args_count = applied
+        .registers
+        .iter()
+        .filter(|register| matches!(register, Register::OperationToolArguments { .. }))
+        .count();
+    let first_requests = origin1341_requests(&fixture.channel).len();
+    let retained_first = fixture.driver_owner.retained_binding();
+    println!(
+        "E1341_MULTICELL_SETUP {}",
+        serde_json::json!({ "actual_args_commits": fixture.store.attempts.load(Ordering::SeqCst), "args_count": args_count, "first_request": first_requests, "first_B1": format!("{retained_first:?}"), "prepare_before": [fixture.native.prepares.load(Ordering::SeqCst), fixture.before.calls.load(Ordering::SeqCst)] })
+    );
+    wake.armed.store(true, Ordering::SeqCst);
+    fixture.pump.drop_task(drive);
+    let successor = observed
+        .lock()
+        .unwrap()
+        .take()
+        .expect("actual second publisher pair successor");
+    let result = fixture.drive(resume_slot.lock().unwrap().take().unwrap());
+    println!(
+        "E1341_MULTICELL {}",
+        serde_json::json!({ "open_at_pair_release": successor.0, "resume_prepare_before_native_request": [successor.1, successor.2, successor.3, successor.4, successor.5], "resume": format!("{result:?}") })
+    );
+    drop(idle.lock().unwrap().take());
+    drop(wake);
+    drop(prompt);
+    fixture.cleanup();
+    assert_eq!(args_count, 2);
+    assert_eq!(first_requests, 1);
+    assert!(retained_first.is_some());
+    assert!(successor.0);
+    assert_eq!(
+        (
+            successor.1,
+            successor.2,
+            successor.3,
+            successor.4,
+            successor.5
+        ),
+        (0, 2, 2, 0, 1)
+    );
+    assert!(matches!(
+        result,
+        Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+    ));
+}
+
+struct Origin1341FinalChannel {
+    inner: Arc<FakeChannel>,
+    probe: Arc<dyn Fn() + Send + Sync>,
+}
+impl Drop for Origin1341FinalChannel {
+    fn drop(&mut self) {
+        (self.probe)();
+    }
+}
+impl OrderedByteChannel for Origin1341FinalChannel {
+    fn max_read_scratch_bytes(&self) -> usize {
+        self.inner.max_read_scratch_bytes()
+    }
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+        self.inner.read_chunk(buffer)
+    }
+    fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
+        self.inner.write_frame(frame)
+    }
+    fn close(&self) {
+        self.inner.close();
+    }
+}
+
+#[test]
+fn origin1341_actual_final_route_payload_reenters_after_carrier_release() {
+    use origin1341_live::Fixture;
+    for path in ["retirement", "work-drop", "early-error", "close"] {
+        let fixture = Fixture::new(false, 1, ToolReplay::Safe);
+        let records = Arc::new(Mutex::new(Vec::new()));
+        let weak_harness = Arc::downgrade(&fixture.harness);
+        let pump = fixture.pump.clone();
+        let driver_owner = fixture.driver_owner.clone();
+        let probe_records = records.clone();
+        let probe: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
+            let weak_harness = weak_harness.clone();
+            let pump = pump.clone();
+            let driver_owner = driver_owner.clone();
+            let (send, receive) = std::sync::mpsc::channel();
+            let worker = std::thread::spawn(move || {
+                let Some(harness) = weak_harness.upgrade() else {
+                    let _ = send.send((false, "owner expired".into(), "owner expired".into()));
+                    return;
+                };
+                let binding = driver_owner.retained_binding();
+                let query = pump.drive(harness.get_tools()).map(|tools| tools.len());
+                let settings = pump.drive(harness.set_tools(vec![]));
+                send.send((
+                    binding.is_none(),
+                    format!("{query:?}"),
+                    format!("{settings:?}"),
+                ))
+                .unwrap();
+            });
+            let result = receive
+                .recv_timeout(std::time::Duration::from_secs(5))
+                .expect("final route/owner/registry/settings reentry has a finite deadline");
+            worker.join().unwrap();
+            probe_records.lock().unwrap().push(result);
+        });
+        let actual_channel = Arc::new(FakeChannel::new());
+        actual_channel.push(hello());
+        actual_channel.push(manifest());
+        actual_channel.push(ready_frame());
+        let transport = Arc::new(Origin1341FinalChannel {
+            inner: actual_channel.clone(),
+            probe,
+        });
+        let weak_transport = Arc::downgrade(&transport);
+        let route = Arc::new(
+            fixture
+                .spawner
+                .drive(fixture.driver_owner.connect(
+                    host(8),
+                    transport.clone(),
+                    Arc::new(FakeClock::new(300)),
+                    PumpConfig {
+                        max_read_chunk: nz(8192),
+                        write_timeout_ms: NonZeroU64::new(10).unwrap(),
+                    },
+                ))
+                .unwrap(),
+        );
+        drop(transport);
+        let handle: pi_agent_schema::AgentHarnessToolHandle<()> = fixture.native.clone();
+        fixture
+            .drive(
+                fixture
+                    .harness
+                    .register_ready_echo_tool(handle, route.clone(), route_timing()),
+            )
+            .unwrap()
+            .unwrap();
+        fixture.before.gate.lock().unwrap().0 = false;
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        for _ in 0..20000 {
+            fixture.tick();
+            if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+                break;
+            }
+        }
+        fixture.drive(fixture.harness.set_tools(vec![])).unwrap();
+        route.close();
+        drop(route);
+        fixture.before.release();
+        fixture.until(&fixture.store.hydrate_entered);
+        assert!(
+            weak_transport.upgrade().is_some(),
+            "actual prepared origin still owns the closed route payload"
+        );
+        let mut close = None;
+        match path {
+            "retirement" => fixture.store.hydrate_release.cancel(),
+            "work-drop" => fixture
+                .pump
+                .drop_task(fixture.store.producer.load(Ordering::SeqCst)),
+            "early-error" => {
+                fixture.store.exit.store(1, Ordering::SeqCst);
+                fixture.store.hydrate_release.cancel();
+            }
+            "close" => {
+                let mut future = Box::pin(fixture.harness.close());
+                assert!(poll(future.as_mut()).is_pending());
+                close = Some(future);
+                fixture.store.hydrate_release.cancel();
+            }
+            _ => unreachable!(),
+        }
+        let original = fixture.drive(prompt);
+        if path == "retirement" {
+            assert!(matches!(
+                original,
+                Err(pi_agent_schema::HarnessRuntimeError::PeerLost)
+            ));
+            assert!(
+                weak_transport.upgrade().is_some(),
+                "PublishedEcho carrier retains route while K is pending"
+            );
+            externally_abort_pending_echo(&fixture.runtime);
+            assert!(matches!(
+                fixture.drive(fixture.harness.resume()),
+                Ok(Err(pi_agent_schema::ResumeExpectedError::NothingToResume(
+                    _
+                )))
+            ));
+        }
+        if let Some(close) = close {
+            fixture.drive(close).unwrap();
+        }
+        for _ in 0..100 {
+            fixture.tick();
+        }
+        let observed = records.lock().unwrap().clone();
+        println!(
+            "E1341_FINAL_ROUTE {}",
+            serde_json::json!({ "path": path, "actual_final_payload": weak_transport.upgrade().is_none(), "reentries": observed, "original": format!("{original:?}") })
+        );
+        fixture.cleanup();
+        assert!(weak_transport.upgrade().is_none());
+        assert_eq!(observed.len(), 1);
+        assert!(observed[0].0);
+        if path == "retirement" {
+            assert_eq!(observed[0].1, "Ok(0)");
+            assert_eq!(observed[0].2, "Ok(())");
+        }
+        assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+        assert!(origin1341_requests(&actual_channel).is_empty());
+    }
+}
+
+#[test]
+fn origin1341_pre_ack_consumer_full_key_loss_keeps_owner_open_and_exact_external_result() {
+    use origin1341_live::Fixture;
+    use pi_agent_schema::{RegisterSet, Storage, Transaction, Write};
+    for orphan_drift in [false, true] {
+        let fixture = Fixture::new(false, 3, ToolReplay::Safe);
+        fixture
+            .store
+            .drive
+            .store(fixture.start_drive_id(), Ordering::SeqCst);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        fixture.until(&fixture.store.consumer_entered);
+        let pending = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let args_key = pending
+            .registers
+            .iter()
+            .find_map(|register| match register {
+                Register::OperationToolArguments { key, .. } => Some(key.clone()),
+                _ => None,
+            })
+            .unwrap();
+        externally_abort_pending_echo(&fixture.runtime);
+        if orphan_drift {
+            fixture
+                .drive(fixture.runtime.store.commit(Transaction {
+                    writes: vec![Write::SetRegister(Box::new(
+                        RegisterSet::OperationToolArguments {
+                            key: args_key,
+                            value: serde_json::from_str(r#"{"text":"orphan drift"}"#).unwrap(),
+                        },
+                    ))],
+                }))
+                .unwrap();
+        }
+        let external = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        fixture.store.consumer_release.cancel();
+        let result = fixture.drive(prompt);
+        let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let admission_open = fixture.drive(fixture.harness.get_tools()).is_ok();
+        println!(
+            "E1341_CONSUMER_KEY_LOSS {}",
+            serde_json::json!({ "orphan_drift": orphan_drift, "actual_consumer_task": fixture.store.consumer.load(Ordering::SeqCst), "result": format!("{result:?}"), "owner_still_open": admission_open, "no_new_write": after == external, "native_request": [fixture.native.executions.load(Ordering::SeqCst), origin1341_requests(&fixture.channel).len()] })
+        );
+        fixture.cleanup();
+        assert!(matches!(result, Ok(Ok(_))));
+        assert!(
+            admission_open,
+            "definitive full K loss is not consumer abandonment or a new Fault"
+        );
+        assert_eq!(after, external);
+        assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+        assert!(origin1341_requests(&fixture.channel).is_empty());
+    }
+}
+
+// E1351 append-only actual runtime normal-exit discriminators.
+mod origin1351_live {
+    use super::*;
+    use pi_agent_schema::*;
+    use pi_agent_session::{memory::MemoryStorage, storage::*};
+    use pi_ai_core::BoxFuture;
+
+    struct Task {
+        id: u64,
+        future: BoxFuture<'static, ()>,
+    }
+    pub struct Pump {
+        tasks: Mutex<Vec<Task>>,
+        next: AtomicU64,
+        pub current: AtomicU64,
+    }
+    impl Default for Pump {
+        fn default() -> Self {
+            Self {
+                tasks: Mutex::new(vec![]),
+                next: AtomicU64::new(1),
+                current: AtomicU64::new(0),
+            }
+        }
+    }
+    impl TaskSpawner for Pump {
+        fn spawn(&self, future: BoxFuture<'static, ()>) -> Result<(), SpawnError> {
+            let id = self.next.fetch_add(1, Ordering::SeqCst);
+            self.tasks.lock().unwrap().push(Task { id, future });
+            Ok(())
+        }
+    }
+    impl Pump {
+        pub fn tick(&self) {
+            let ids: Vec<_> = self
+                .tasks
+                .lock()
+                .unwrap()
+                .iter()
+                .map(|task| task.id)
+                .collect();
+            for id in ids {
+                self.poll_task(id, Waker::noop());
+            }
+        }
+        pub fn poll_task(&self, id: u64, waker: &Waker) -> Option<bool> {
+            let mut task = {
+                let mut tasks = self.tasks.lock().unwrap();
+                let index = tasks.iter().position(|task| task.id == id)?;
+                tasks.remove(index)
+            };
+            let previous = self.current.swap(id, Ordering::SeqCst);
+            let pending = task
+                .future
+                .as_mut()
+                .poll(&mut Context::from_waker(waker))
+                .is_pending();
+            self.current.store(previous, Ordering::SeqCst);
+            if pending {
+                self.tasks.lock().unwrap().push(task);
+            }
+            Some(pending)
+        }
+        pub fn drop_task(&self, id: u64) {
+            let removed = {
+                let mut tasks = self.tasks.lock().unwrap();
+                let index = tasks
+                    .iter()
+                    .position(|task| task.id == id)
+                    .expect("actual task is retained");
+                tasks.remove(index)
+            };
+            drop(removed);
+        }
+        pub fn drive<F: Future>(&self, future: F) -> F::Output {
+            let mut future = std::pin::pin!(future);
+            for _ in 0..20000 {
+                if let Poll::Ready(result) = poll(future.as_mut()) {
+                    return result;
+                }
+                self.tick();
+            }
+            panic!("origin1341 actual runtime did not settle");
+        }
+    }
+
+    pub struct Store {
+        pub inner: Arc<MemoryStorage>,
+        pub pump: Arc<Pump>,
+        pub mode: AtomicU64,
+        pub exit: AtomicU64,
+        pub drive: AtomicU64,
+        pub producer: AtomicU64,
+        pub consumer: AtomicU64,
+        pub suppress_park: Arc<AtomicBool>,
+        pub attempts: AtomicU64,
+        pub refused: AtomicU64,
+        pub applied: AtomicBool,
+        pub args_seq: AtomicU64,
+        pub commit_entered: pi_ai_core::CancellationToken,
+        pub commit_release: pi_ai_core::CancellationToken,
+        pub retry_entered: pi_ai_core::CancellationToken,
+        pub retry_release: pi_ai_core::CancellationToken,
+        pub hydrate_entered: pi_ai_core::CancellationToken,
+        pub hydrate_release: pi_ai_core::CancellationToken,
+        pub consumer_entered: pi_ai_core::CancellationToken,
+        pub consumer_release: pi_ai_core::CancellationToken,
+        post_apply: AtomicBool,
+        consumer_parked: AtomicBool,
+    }
+    impl Store {
+        fn new(inner: Arc<MemoryStorage>, pump: Arc<Pump>) -> Self {
+            Self {
+                inner,
+                pump,
+                mode: AtomicU64::new(0),
+                exit: AtomicU64::new(0),
+                drive: AtomicU64::new(0),
+                producer: AtomicU64::new(0),
+                consumer: AtomicU64::new(0),
+                suppress_park: Arc::new(AtomicBool::new(false)),
+                attempts: AtomicU64::new(0),
+                refused: AtomicU64::new(0),
+                applied: AtomicBool::new(false),
+                args_seq: AtomicU64::new(0),
+                commit_entered: pi_ai_core::CancellationToken::new(),
+                commit_release: pi_ai_core::CancellationToken::new(),
+                retry_entered: pi_ai_core::CancellationToken::new(),
+                retry_release: pi_ai_core::CancellationToken::new(),
+                hydrate_entered: pi_ai_core::CancellationToken::new(),
+                hydrate_release: pi_ai_core::CancellationToken::new(),
+                consumer_entered: pi_ai_core::CancellationToken::new(),
+                consumer_release: pi_ai_core::CancellationToken::new(),
+                post_apply: AtomicBool::new(false),
+                consumer_parked: AtomicBool::new(false),
+            }
+        }
+        fn args_index(request: &ConditionalCommit) -> Option<usize> {
+            request.transaction.writes.iter().position(|write| matches!(write,
+                Write::SetRegister(register) if matches!(register.as_ref(), RegisterSet::OperationToolArguments { .. })))
+        }
+        async fn before(&self, request: &ConditionalCommit) -> Option<usize> {
+            let index = Self::args_index(request)?;
+            self.producer
+                .store(self.pump.current.load(Ordering::SeqCst), Ordering::SeqCst);
+            let attempt = self.attempts.fetch_add(1, Ordering::SeqCst) + 1;
+            if self.mode.load(Ordering::SeqCst) == 2 {
+                if attempt == 1 {
+                    self.commit_entered.cancel();
+                    self.commit_release.cancelled().await;
+                } else {
+                    self.retry_entered.cancel();
+                    self.retry_release.cancelled().await;
+                }
+            }
+            Some(index)
+        }
+        fn after(&self, index: Option<usize>, outcome: &ConditionalOutcome) {
+            let Some(index) = index else { return };
+            match outcome {
+                ConditionalOutcome::NotApplied => {
+                    self.refused.fetch_add(1, Ordering::SeqCst);
+                }
+                ConditionalOutcome::Applied(commit) => {
+                    self.args_seq
+                        .store(commit.seqs[index].get(), Ordering::SeqCst);
+                    self.applied.store(true, Ordering::SeqCst);
+                    self.post_apply.store(true, Ordering::SeqCst);
+                }
+            }
+        }
+    }
+    impl Storage for Store {
+        fn commit(
+            &self,
+            transaction: Transaction,
+        ) -> BoxFuture<'_, Result<CommitResult, StorageError>> {
+            self.inner.commit(transaction)
+        }
+        fn get_entries<'a>(
+            &'a self,
+            ids: &'a [EntryId],
+        ) -> BoxFuture<'a, Result<EntryMap, StorageError>> {
+            self.inner.get_entries(ids)
+        }
+        fn get_register<'a>(
+            &'a self,
+            namespace: RegisterNamespace,
+            key: &'a str,
+        ) -> BoxFuture<'a, Result<Option<Register>, StorageError>> {
+            self.inner.get_register(namespace, key)
+        }
+        fn list_registers<'a>(
+            &'a self,
+            namespace: RegisterNamespace,
+            prefix: Option<&'a str>,
+        ) -> BoxFuture<'a, Result<Vec<Register>, StorageError>> {
+            self.inner.list_registers(namespace, prefix)
+        }
+        fn scan_branch(
+            &self,
+            query: BranchScan,
+        ) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+            self.inner.scan_branch(query)
+        }
+        fn scan_branch_structure(
+            &self,
+            query: BranchScan,
+        ) -> BoxFuture<'_, Result<Vec<EntryStructure>, StorageError>> {
+            self.inner.scan_branch_structure(query)
+        }
+        fn scan_entries(
+            &self,
+            query: EntryScan,
+        ) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+            self.inner.scan_entries(query)
+        }
+        fn scan_usage(
+            &self,
+            query: UsageScan,
+        ) -> BoxFuture<'_, Result<Vec<UsageRow>, StorageError>> {
+            self.inner.scan_usage(query)
+        }
+        fn stats(&self) -> BoxFuture<'_, Result<SessionStats, StorageError>> {
+            self.inner.stats()
+        }
+        fn close(&self) -> BoxFuture<'_, Result<(), StorageError>> {
+            self.inner.close()
+        }
+    }
+    impl AtomicStorage for Store {
+        fn commit_conditional(
+            &self,
+            request: ConditionalCommit,
+        ) -> BoxFuture<'_, Result<ConditionalOutcome, StorageError>> {
+            self.inner.commit_conditional(request)
+        }
+        fn snapshot(&self) -> BoxFuture<'_, Result<StorageSnapshot, StorageError>> {
+            self.inner.snapshot()
+        }
+    }
+    impl CheckedStorage for Store {
+        fn commit_checked<'a, V: PublicationValidator + ?Sized>(
+            &'a self,
+            request: ConditionalCommit,
+            validator: &'a V,
+        ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+            Box::pin(async move {
+                let index = self.before(&request).await;
+                let mut outcome = self.inner.commit_checked(request, validator).await?;
+                self.after(index, &outcome);
+                // Explicit host-contract exception: retain the real Applied
+                // storage history, but return an invalid missing args sequence.
+                if self.mode.load(Ordering::SeqCst) == 6
+                    && let (Some(index), ConditionalOutcome::Applied(commit)) =
+                        (index, &mut outcome)
+                {
+                    self.commit_entered.cancel();
+                    self.commit_release.cancelled().await;
+                    commit.seqs.truncate(index);
+                }
+                Ok(outcome)
+            })
+        }
+    }
+    impl RuntimeStorage for Store {
+        fn runtime_attachment(&self) -> &RuntimeAttachment {
+            self.inner.runtime_attachment()
+        }
+        fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+            Box::pin(async move {
+                if self.post_apply.load(Ordering::SeqCst)
+                    && self.mode.load(Ordering::SeqCst) == 7
+                    && self.attempts.load(Ordering::SeqCst) == 1
+                {
+                    self.post_apply.store(false, Ordering::SeqCst);
+                    self.retry_entered.cancel();
+                    self.retry_release.cancelled().await;
+                }
+                if self.post_apply.swap(false, Ordering::SeqCst)
+                    && (self.mode.load(Ordering::SeqCst) == 1
+                        || ((self.mode.load(Ordering::SeqCst) == 5
+                            || self.mode.load(Ordering::SeqCst) == 7)
+                            && self.attempts.load(Ordering::SeqCst) == 2))
+                {
+                    self.hydrate_entered.cancel();
+                    self.hydrate_release.cancelled().await;
+                    match self.exit.load(Ordering::SeqCst) {
+                        1 => {
+                            return Err(StorageError::Io(
+                                ErrorContext::new("origin1341 hydration error").unwrap(),
+                            ));
+                        }
+                        2 => panic!("origin1341 actual hydration unwind"),
+                        _ => {}
+                    }
+                }
+                let current = self.pump.current.load(Ordering::SeqCst);
+                if self.mode.load(Ordering::SeqCst) == 4
+                    && current != 0
+                    && self.applied.load(Ordering::SeqCst)
+                    && current != self.drive.load(Ordering::SeqCst)
+                    && current != self.producer.load(Ordering::SeqCst)
+                {
+                    let trace = std::backtrace::Backtrace::force_capture().to_string();
+                    if trace.contains("execute_tool_inner")
+                        && !trace.contains("wait_tool_publications")
+                        && !trace.contains("tool_is_current")
+                        && !self.consumer_parked.swap(true, Ordering::SeqCst)
+                    {
+                        println!("E1351_FINAL_PAIR_PAUSE consumer={current} trace={trace}");
+                        self.consumer.store(current, Ordering::SeqCst);
+                        self.consumer_entered.cancel();
+                        self.consumer_release.cancelled().await;
+                    }
+                }
+
+                if self.mode.load(Ordering::SeqCst) == 3
+                    && !self.suppress_park.load(Ordering::SeqCst)
+                    && current != 0
+                    && self.applied.load(Ordering::SeqCst)
+                    && current != self.drive.load(Ordering::SeqCst)
+                    && current != self.producer.load(Ordering::SeqCst)
+                    && !self.consumer_parked.swap(true, Ordering::SeqCst)
+                {
+                    self.consumer.store(current, Ordering::SeqCst);
+                    self.consumer_entered.cancel();
+                    self.consumer_release.cancelled().await;
+                    match self.exit.load(Ordering::SeqCst) {
+                        1 => {
+                            return Err(StorageError::Io(
+                                ErrorContext::new("origin1341 consumer read error").unwrap(),
+                            ));
+                        }
+                        2 => panic!("origin1341 actual consumer read unwind"),
+                        _ => {}
+                    }
+                }
+                self.inner.read_stamp().await
+            })
+        }
+        fn prepare_entries(
+            &self,
+            stamp: ReadStamp,
+            slots: Vec<PreparedEntrySlot>,
+        ) -> BoxFuture<'_, Result<Option<PreparedEntries>, StorageError>> {
+            self.inner.prepare_entries(stamp, slots)
+        }
+        fn commit_prepared_checked<'a, V: PublicationValidator + ?Sized>(
+            &'a self,
+            prepared: PreparedEntries,
+            request: ConditionalCommit,
+            validator: &'a V,
+        ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+            self.inner
+                .commit_prepared_checked(prepared, request, validator)
+        }
+    }
+
+    pub struct Fixture {
+        pub runtime: Setup,
+        pub pump: Arc<Pump>,
+        pub store: Arc<Store>,
+        pub harness: Arc<pi_harness_runtime::owner::RuntimeHarness<(), Store, SessionMetadata>>,
+        pub native: Arc<Origin1341Native>,
+        pub before: Arc<Origin1341Before>,
+        pub resume: Arc<ResumeProbe>,
+        pub spawner: Arc<FakeSpawner>,
+        pub driver_owner: SingleToolOwner,
+        pub channel: Arc<FakeChannel>,
+        pub route: Arc<pi_harness_runtime::extensions::tool_driver::ReadyToolRoute>,
+        subscriptions: Vec<Arc<dyn HookSubscription>>,
+    }
+    impl Fixture {
+        pub fn new(echo: bool, mode: u64, replay: super::ToolReplay) -> Self {
+            Self::new_with_mode(echo, mode, replay, false)
+        }
+        pub fn new_with_mode(
+            echo: bool,
+            mode: u64,
+            replay: super::ToolReplay,
+            parallel: bool,
+        ) -> Self {
+            Self::new_with_calls(echo, mode, replay, parallel, 1)
+        }
+        pub fn new_with_calls(
+            echo: bool,
+            mode: u64,
+            replay: super::ToolReplay,
+            parallel: bool,
+            calls: usize,
+        ) -> Self {
+            let runtime = Setup::new();
+            let mut response = runtime_r1_r4_support::assistant(
+                &runtime.faux.model,
+                pi_ai_core::StopReason::ToolUse,
+            );
+            response.content = vec![pi_ai_core::AssistantContent::ToolCall(
+                pi_ai_core::ToolCall {
+                    content_type: Default::default(),
+                    id: pi_ai_core::ToolCallId::new("echo-call").unwrap(),
+                    name: pi_ai_core::ToolName::new("echo").unwrap(),
+                    arguments: saved(),
+                    thought_signature: None,
+                    namespace: None,
+                },
+            )];
+            if calls > 1 {
+                let first = response.content[0].clone();
+                response.content = (0..calls)
+                    .map(|index| {
+                        let mut content = first.clone();
+                        if let pi_ai_core::AssistantContent::ToolCall(call) = &mut content {
+                            call.id =
+                                pi_ai_core::ToolCallId::new(format!("echo-call-{index}")).unwrap();
+                        }
+                        content
+                    })
+                    .collect();
+            }
+            *runtime.faux.responses.lock().unwrap() = vec![
+                response,
+                runtime_r1_r4_support::assistant(&runtime.faux.model, pi_ai_core::StopReason::Stop),
+            ]
+            .into();
+            let pump = Arc::new(Pump::default());
+            let store = Arc::new(Store::new(runtime.store.clone(), pump.clone()));
+            let session = Arc::new(
+                pump.drive(RuntimeSession::new(
+                    store.clone(),
+                    runtime.session.metadata(),
+                    Arc::new(
+                        SessionCodec::new(
+                            SessionCodecOptions::default(),
+                            ProviderHeaderPolicy::default(),
+                        )
+                        .unwrap(),
+                    ),
+                    runtime.ids.clone(),
+                    Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+                ))
+                .unwrap(),
+            );
+            let mut descriptor = registry_echo_declaration(replay).descriptor().clone();
+            descriptor.execution_mode = Some(if parallel {
+                ToolExecutionMode::Parallel
+            } else {
+                ToolExecutionMode::Sequential
+            });
+            let native = Arc::new(Origin1341Native {
+                descriptor,
+                prepares: AtomicU64::new(0),
+                selected_address: AtomicU64::new(0),
+                executions: AtomicU64::new(0),
+                execution_args: Mutex::new(vec![]),
+                execute_gate: Mutex::new(None),
+            });
+            let handle: AgentHarnessToolHandle<()> = native.clone();
+            let factory = RuntimeFactory::new(
+                runtime.time.clone(),
+                pump.clone(),
+                runtime.ids.clone(),
+                Arc::new(()),
+                Arc::new(Summary),
+            );
+            let mut options = runtime.options_for::<(), _>(session, DriveMode::Automatic);
+            options.tool_execution = if parallel {
+                ToolExecutionMode::Parallel
+            } else {
+                ToolExecutionMode::Sequential
+            };
+            options.tools = vec![handle.clone()];
+            options.active_tool_names = Some(vec![pi_ai_core::ToolName::new("echo").unwrap()]);
+            let harness = pump
+                .drive(factory.create_configured(options))
+                .unwrap()
+                .harness;
+            let spawner = Arc::new(FakeSpawner::default());
+            let driver_owner = owner(spawner.clone());
+            let (channel, _, route) =
+                origin1341_setup_route(&driver_owner, &spawner, 7, 200, replay, parallel);
+            let route = Arc::new(route);
+            if echo {
+                pump.drive(harness.register_ready_echo_tool(handle, route.clone(), route_timing()))
+                    .unwrap()
+                    .unwrap();
+            }
+            pump.drive(harness.set_active_tools(vec![pi_ai_core::ToolName::new("echo").unwrap()]))
+                .unwrap();
+            let before = Arc::new(Origin1341Before {
+                event: Mutex::new(None),
+                calls: AtomicU64::new(0),
+                gate: Mutex::new((true, None)),
+            });
+            let resume = Arc::new(ResumeProbe(std::sync::atomic::AtomicUsize::new(0)));
+            let subscriptions = vec![
+                harness.hooks().before_tool(None, before.clone()).unwrap(),
+                harness
+                    .hooks()
+                    .before_resume(HandlerId::new("origin1341-resume").unwrap(), resume.clone())
+                    .unwrap(),
+            ];
+            store.mode.store(mode, Ordering::SeqCst);
+            Self {
+                runtime,
+                pump,
+                store,
+                harness,
+                native,
+                before,
+                resume,
+                spawner,
+                driver_owner,
+                channel,
+                route,
+                subscriptions,
+            }
+        }
+        pub fn mixed() -> (Self, Arc<Origin1341Native>) {
+            let runtime = Setup::new();
+            let mut response = runtime_r1_r4_support::assistant(
+                &runtime.faux.model,
+                pi_ai_core::StopReason::ToolUse,
+            );
+            response.content = ["echo", "local"]
+                .into_iter()
+                .enumerate()
+                .map(|(index, name)| {
+                    pi_ai_core::AssistantContent::ToolCall(pi_ai_core::ToolCall {
+                        content_type: Default::default(),
+                        id: pi_ai_core::ToolCallId::new(format!("mixed-{index}")).unwrap(),
+                        name: pi_ai_core::ToolName::new(name).unwrap(),
+                        arguments: saved(),
+                        thought_signature: None,
+                        namespace: None,
+                    })
+                })
+                .collect();
+            *runtime.faux.responses.lock().unwrap() = vec![
+                response,
+                runtime_r1_r4_support::assistant(&runtime.faux.model, pi_ai_core::StopReason::Stop),
+            ]
+            .into();
+            let pump = Arc::new(Pump::default());
+            let store = Arc::new(Store::new(runtime.store.clone(), pump.clone()));
+            let session = Arc::new(
+                pump.drive(RuntimeSession::new(
+                    store.clone(),
+                    runtime.session.metadata(),
+                    Arc::new(
+                        SessionCodec::new(
+                            SessionCodecOptions::default(),
+                            ProviderHeaderPolicy::default(),
+                        )
+                        .unwrap(),
+                    ),
+                    runtime.ids.clone(),
+                    Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+                ))
+                .unwrap(),
+            );
+            let mut echo_descriptor = registry_echo_declaration(super::ToolReplay::Safe)
+                .descriptor()
+                .clone();
+            echo_descriptor.execution_mode = Some(ToolExecutionMode::Parallel);
+            let mut native_descriptor = echo_descriptor.clone();
+            native_descriptor.name = pi_ai_core::ToolName::new("local").unwrap();
+            let create = |descriptor| {
+                Arc::new(Origin1341Native {
+                    descriptor,
+                    prepares: AtomicU64::new(0),
+                    selected_address: AtomicU64::new(0),
+                    executions: AtomicU64::new(0),
+                    execution_args: Mutex::new(vec![]),
+                    execute_gate: Mutex::new(None),
+                })
+            };
+            let native = create(native_descriptor);
+            let echo = create(echo_descriptor);
+            let factory = RuntimeFactory::new(
+                runtime.time.clone(),
+                pump.clone(),
+                runtime.ids.clone(),
+                Arc::new(()),
+                Arc::new(Summary),
+            );
+            let mut options = runtime.options_for::<(), _>(session, DriveMode::Automatic);
+            options.tool_execution = ToolExecutionMode::Parallel;
+            options.tools = vec![echo.clone(), native.clone()];
+            let harness = pump
+                .drive(factory.create_configured(options))
+                .unwrap()
+                .harness;
+            let spawner = Arc::new(FakeSpawner::default());
+            let driver_owner = owner(spawner.clone());
+            let (channel, _, route) = origin1341_setup_route(
+                &driver_owner,
+                &spawner,
+                7,
+                200,
+                super::ToolReplay::Safe,
+                true,
+            );
+            let route = Arc::new(route);
+            pump.drive(harness.register_ready_echo_tool(
+                echo.clone(),
+                route.clone(),
+                route_timing(),
+            ))
+            .unwrap()
+            .unwrap();
+            pump.drive(harness.set_active_tools(vec![
+                pi_ai_core::ToolName::new("echo").unwrap(),
+                pi_ai_core::ToolName::new("local").unwrap(),
+            ]))
+            .unwrap();
+            let before = Arc::new(Origin1341Before {
+                event: Mutex::new(None),
+                calls: AtomicU64::new(0),
+                gate: Mutex::new((true, None)),
+            });
+            let resume = Arc::new(ResumeProbe(std::sync::atomic::AtomicUsize::new(0)));
+            let subscriptions = vec![
+                harness.hooks().before_tool(None, before.clone()).unwrap(),
+                harness
+                    .hooks()
+                    .before_resume(
+                        HandlerId::new("origin1351-mixed-resume").unwrap(),
+                        resume.clone(),
+                    )
+                    .unwrap(),
+            ];
+            store.mode.store(7, Ordering::SeqCst);
+            (
+                Self {
+                    runtime,
+                    pump,
+                    store,
+                    harness,
+                    native,
+                    before,
+                    resume,
+                    spawner,
+                    driver_owner,
+                    channel,
+                    route,
+                    subscriptions,
+                },
+                echo,
+            )
+        }
+        pub fn tick(&self) {
+            self.pump.tick();
+            self.spawner.tick();
+        }
+        pub fn drive<F: Future>(&self, future: F) -> F::Output {
+            let mut future = std::pin::pin!(future);
+            for _ in 0..20000 {
+                if let Poll::Ready(result) = poll(future.as_mut()) {
+                    return result;
+                }
+                self.tick();
+            }
+            panic!("origin1341 history exceeded finite budget");
+        }
+        pub fn until(&self, signal: &pi_ai_core::CancellationToken) {
+            for _ in 0..20000 {
+                if signal.is_cancelled() {
+                    return;
+                }
+                self.tick();
+            }
+            panic!("origin1341 actual milestone not reached");
+        }
+        pub fn cleanup(&self) {
+            self.store.commit_release.cancel();
+            self.store.retry_release.cancel();
+            self.store.hydrate_release.cancel();
+            self.store.consumer_release.cancel();
+            self.before.release();
+            for subscription in &self.subscriptions {
+                subscription.unsubscribe();
+            }
+            self.route.close();
+            self.channel.close();
+            let _ = self.drive(self.harness.close());
+            for _ in 0..20000 {
+                self.tick();
+                if self.pump.tasks.lock().unwrap().is_empty()
+                    && self.spawner.tasks.lock().unwrap().is_empty()
+                {
+                    break;
+                }
+            }
+            assert!(
+                self.pump.tasks.lock().unwrap().is_empty(),
+                "actual runtime tasks reaped"
+            );
+            assert!(
+                self.spawner.tasks.lock().unwrap().is_empty(),
+                "actual route tasks reaped"
+            );
+        }
+        pub fn start_drive_id(&self) -> u64 {
+            self.pump.next.load(Ordering::SeqCst)
+        }
+    }
+}
+
+#[test]
+fn origin1351_final_pair_full_key_loss_keeps_owner_open() {
+    use pi_agent_schema::{RegisterSet, Storage, Transaction, Write};
+    for orphan_drift in [false, true] {
+        let fixture = origin1351_live::Fixture::new(false, 4, ToolReplay::Safe);
+        fixture
+            .store
+            .drive
+            .store(fixture.start_drive_id(), Ordering::SeqCst);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        fixture.until(&fixture.store.consumer_entered);
+        let pending = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let key = origin1341_key(&pending, &fixture.runtime.session.metadata().id).unwrap();
+        let args_key = pending
+            .registers
+            .iter()
+            .find_map(|register| match register {
+                Register::OperationToolArguments { key, .. } => Some(key.clone()),
+                _ => None,
+            })
+            .unwrap();
+        externally_abort_pending_echo(&fixture.runtime);
+        if orphan_drift {
+            fixture
+                .drive(fixture.runtime.store.commit(Transaction {
+                    writes: vec![Write::SetRegister(Box::new(
+                        RegisterSet::OperationToolArguments {
+                            key: args_key,
+                            value: serde_json::from_str(r#"{"text":"orphan drift"}"#).unwrap(),
+                        },
+                    ))],
+                }))
+                .unwrap();
+        }
+        let external = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        fixture.store.consumer_release.cancel();
+        let result = fixture.drive(prompt);
+        let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let admission = fixture
+            .drive(fixture.harness.get_tools())
+            .map(|tools| tools.len());
+        println!(
+            "E1351_FINAL_PAIR_KLOSS {}",
+            serde_json::json!({ "orphan_drift": orphan_drift, "actual_K": format!("{key:?}"), "result": format!("{result:?}"), "owner_open": admission.is_ok(), "no_new_write": after == external, "native_request": [fixture.native.executions.load(Ordering::SeqCst), origin1341_requests(&fixture.channel).len()] })
+        );
+        fixture.cleanup();
+        assert_eq!(after, external);
+        assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+        assert!(origin1341_requests(&fixture.channel).is_empty());
+        assert!(
+            admission.is_ok(),
+            "final pair K loss must retire its exact consumer normally"
+        );
+        assert!(matches!(result, Ok(Ok(_))));
+    }
+}
+
+#[test]
+fn origin1351_final_pair_coherent_cancel_reconciles_without_abandonment() {
+    use pi_agent_schema::*;
+    let fixture = origin1351_live::Fixture::new(
+        false,
+        4,
+        pi_extension_protocol::activation::ToolReplay::Safe,
+    );
+    fixture
+        .store
+        .drive
+        .store(fixture.start_drive_id(), Ordering::SeqCst);
+    let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    assert!(poll(prompt.as_mut()).is_pending());
+    fixture.until(&fixture.store.consumer_entered);
+    let pending = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let (key, mut value) = pending
+        .registers
+        .iter()
+        .find_map(|r| match r {
+            Register::OperationState { key, value, .. } => {
+                Some((key.clone(), value.as_ref().clone()))
+            }
+            _ => None,
+        })
+        .unwrap();
+    let OperationState::Run(run) = &mut value else {
+        panic!("Run state")
+    };
+    run.control = Control::CancelRequested(CancelRequestedControl {
+        status: Default::default(),
+        requested_at: SafeUnsigned::new(7).unwrap(),
+        drained_steer: vec![],
+        drained_follow_up: vec![],
+    });
+    fixture
+        .drive(fixture.runtime.session.commit(Transaction {
+            writes: vec![Write::SetRegister(Box::new(RegisterSet::OperationState {
+                key,
+                value: Box::new(value),
+            }))],
+        }))
+        .unwrap();
+    fixture.store.consumer_release.cancel();
+    let mut result = None;
+    for _ in 0..2000 {
+        if let Poll::Ready(value) = poll(prompt.as_mut()) {
+            result = Some(value);
+            break;
+        }
+        fixture.tick();
+    }
+    let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let owner_open = fixture.drive(fixture.harness.get_tools()).is_ok();
+    println!(
+        "E1351_FINAL_PAIR_CANCEL {}",
+        serde_json::json!({ "result": format!("{result:?}"), "owner_open": owner_open, "native_request": [fixture.native.executions.load(Ordering::SeqCst), origin1341_requests(&fixture.channel).len()] })
+    );
+    drop(prompt);
+    fixture.cleanup();
+    assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+    assert!(origin1341_requests(&fixture.channel).is_empty());
+    assert!(owner_open);
+    assert!(
+        result.is_some(),
+        "final pair coherent cancel must retain the lease for original reconciliation"
+    );
+    let results: Vec<_> = after
+        .entries
+        .iter()
+        .filter_map(|entry| match entry {
+            Entry::Message(message) => match &message.message {
+                AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result)) => Some(result),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect();
+    assert_eq!(results.len(), 1, "one original core cancellation result");
+    assert!(results[0].is_error);
+    assert!(results[0].usage.is_none());
+    assert_eq!(results[0].tool_call_id.as_str(), "echo-call");
+    assert!(
+        matches!(&results[0].content[..], [pi_ai_core::InputContent::Text(text)] if text.text == "Operation aborted")
+    );
+}
+
+struct Origin1351DriveWake {
+    fixture: Arc<origin1351_live::Fixture>,
+    task: u64,
+    history: Arc<Mutex<Vec<(bool, usize)>>>,
+}
+impl Wake for Origin1351DriveWake {
+    fn wake(self: Arc<Self>) {
+        let waker = Waker::from(self.clone());
+        if self.fixture.pump.poll_task(self.task, &waker).is_some() {
+            let open = self.fixture.drive(self.fixture.harness.get_tools()).is_ok();
+            self.history
+                .lock()
+                .unwrap()
+                .push((open, self.fixture.resume.0.load(Ordering::SeqCst)));
+        }
+    }
+}
+
+fn origin1351_external_same_key_pending(fixture: &origin1351_live::Fixture) -> EffectKey {
+    use pi_agent_schema::*;
+    let snapshot = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    let full_key = origin1341_key(&snapshot, &fixture.runtime.session.metadata().id).unwrap();
+    let (key, mut value) = snapshot
+        .registers
+        .iter()
+        .find_map(|r| match r {
+            Register::OperationState { key, value, .. } => {
+                Some((key.clone(), value.as_ref().clone()))
+            }
+            _ => None,
+        })
+        .unwrap();
+    let OperationState::Run(run) = &mut value else {
+        panic!("Run")
+    };
+    let RunPhase::Tools(tools) = &mut run.phase else {
+        panic!("Tools")
+    };
+    let ToolCallState::Planned {
+        source_index,
+        result_entry_id,
+    } = tools.batch.calls[0].clone()
+    else {
+        panic!("actual original Planned H")
+    };
+    let args_key = format!(
+        "{}:{}:{}",
+        key,
+        tools.batch.turn_id.as_str(),
+        source_index.get()
+    );
+    tools.batch.calls[0] = ToolCallState::EffectPending {
+        source_index,
+        result_entry_id,
+        replay: pi_agent_schema::ToolReplay::Safe,
+    };
+    fixture
+        .drive(fixture.runtime.session.commit(Transaction {
+            writes: vec![
+                Write::SetRegister(Box::new(RegisterSet::OperationToolArguments {
+                    key: args_key,
+                    value: saved(),
+                })),
+                Write::SetRegister(Box::new(RegisterSet::OperationState {
+                    key,
+                    value: Box::new(value),
+                })),
+            ],
+        }))
+        .unwrap();
+    full_key
+}
+
+#[test]
+fn origin1351_real_refusal_then_same_key_pending_keeps_missing_receipt_fence() {
+    let fixture = Arc::new(origin1351_live::Fixture::new(false, 2, ToolReplay::Safe));
+    fixture.before.gate.lock().unwrap().0 = false;
+    let drive = fixture.start_drive_id();
+    fixture.store.drive.store(drive, Ordering::SeqCst);
+    let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "invoke echo".into(),
+        images: vec![],
+    }));
+    assert!(poll(prompt.as_mut()).is_pending());
+    for _ in 0..20000 {
+        fixture.tick();
+        if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+            break;
+        }
+    }
+    let idle_harness = fixture.harness.clone();
+    let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+        idle_harness.wait_for_idle().await
+    }))));
+    let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+    let history = Arc::new(Mutex::new(Vec::new()));
+    let callback_fixture = fixture.clone();
+    let callback_resume = resume_slot.clone();
+    let callback_history = history.clone();
+    let wake = Arc::new(Origin1341IdleWake {
+        suppress_park: None,
+        idle: idle.clone(),
+        armed: AtomicBool::new(false),
+        fired: AtomicBool::new(false),
+        work: Mutex::new(Some(Box::new(move || {
+            let harness = callback_fixture.harness.clone();
+            let task = callback_fixture.start_drive_id();
+            let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                Box::pin(async move { harness.resume().await });
+            assert!(poll(resume.as_mut()).is_pending());
+            let continuation = Waker::from(Arc::new(Origin1351DriveWake {
+                fixture: callback_fixture.clone(),
+                task,
+                history: callback_history.clone(),
+            }));
+            assert_eq!(
+                callback_fixture.pump.poll_task(task, &continuation),
+                Some(true)
+            );
+            callback_fixture.store.commit_release.cancel();
+            callback_fixture.pump.poll_task(
+                callback_fixture.store.producer.load(Ordering::SeqCst),
+                Waker::noop(),
+            );
+            *callback_resume.lock().unwrap() = Some(resume);
+        }))),
+    });
+    let idle_waker = Waker::from(wake.clone());
+    let mut idle_future = idle.lock().unwrap().take().unwrap();
+    assert!(
+        idle_future
+            .as_mut()
+            .poll(&mut Context::from_waker(&idle_waker))
+            .is_pending()
+    );
+    *idle.lock().unwrap() = Some(idle_future);
+    fixture.before.release();
+    fixture.until(&fixture.store.commit_entered);
+    let full_key = origin1351_external_same_key_pending(&fixture);
+    let coherent = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    wake.armed.store(true, Ordering::SeqCst);
+    fixture.pump.drop_task(drive);
+    let observed = history.lock().unwrap().clone();
+    let result = fixture.drive(resume_slot.lock().unwrap().take().unwrap());
+    let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    println!(
+        "E1351_REFUSED_PENDING {}",
+        serde_json::json!({ "same_full_K": format!("{full_key:?}"), "real_refusals": fixture.store.refused.load(Ordering::SeqCst), "producer_args_commit_seq": fixture.store.args_seq.load(Ordering::SeqCst), "release_history": observed, "resume": format!("{result:?}"), "native_request": [fixture.native.executions.load(Ordering::SeqCst), origin1341_requests(&fixture.channel).len()], "no_new_write": after == coherent })
+    );
+    drop(idle.lock().unwrap().take());
+    drop(wake);
+    drop(prompt);
+    fixture.cleanup();
+    assert_eq!(fixture.store.refused.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.store.args_seq.load(Ordering::SeqCst), 0);
+    assert!(
+        observed.iter().any(|(open, _)| *open),
+        "actual initial NotApplied release is OPEN"
+    );
+    assert!(
+        observed.iter().all(|(_, before)| *before == 0),
+        "H NoLongerExpected must not erase the unApplied still-pending K fence"
+    );
+    assert!(matches!(
+        result,
+        Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+    ));
+    assert_eq!(after, coherent);
+    assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+    assert!(fixture.driver_owner.retained_binding().is_none());
+}
+
+struct Origin1351MixedObservation {
+    rejected: pi_agent_schema::ResumeCall,
+    open: bool,
+    snapshot: pi_agent_session::storage::StorageSnapshot,
+    pre: (u64, u64, usize),
+    recovered: Option<pi_agent_schema::ResumeCall>,
+    g2_requests: usize,
+}
+struct Origin1351MixedWake {
+    fixture: Arc<origin1351_live::Fixture>,
+    echo: Arc<Origin1341Native>,
+    task: u64,
+    resume: Origin1341ResumeSlot,
+    observed: Arc<Mutex<Option<Origin1351MixedObservation>>>,
+}
+impl std::task::Wake for Origin1351MixedWake {
+    fn wake(self: Arc<Self>) {
+        self.wake_by_ref();
+    }
+    fn wake_by_ref(self: &Arc<Self>) {
+        if self.observed.lock().unwrap().is_some() {
+            return;
+        }
+        let waker = Waker::from(self.clone());
+        if self.fixture.pump.poll_task(self.task, &waker).is_none() {
+            return;
+        }
+        let Some(mut resume) = self.resume.lock().unwrap().take() else {
+            return;
+        };
+        let Poll::Ready(rejected) = poll(resume.as_mut()) else {
+            *self.resume.lock().unwrap() = Some(resume);
+            return;
+        };
+        let open = self.fixture.drive(self.fixture.harness.get_tools()).is_ok();
+        let snapshot = self
+            .fixture
+            .drive(self.fixture.runtime.store.snapshot())
+            .unwrap();
+        let pre = (
+            self.fixture.native.executions.load(Ordering::SeqCst),
+            self.echo.executions.load(Ordering::SeqCst),
+            origin1341_requests(&self.fixture.channel).len(),
+        );
+        let mut recovered = None;
+        let mut g2_requests = 0;
+        if open
+            && matches!(
+                rejected,
+                Err(pi_agent_schema::HarnessRuntimeError::PeerLost)
+            )
+        {
+            let (channel, _, route) = origin1341_setup_route(
+                &self.fixture.driver_owner,
+                &self.fixture.spawner,
+                8,
+                300,
+                ToolReplay::Safe,
+                true,
+            );
+            let route = Arc::new(route);
+            self.fixture
+                .drive(self.fixture.harness.register_ready_echo_tool(
+                    self.echo.clone(),
+                    route.clone(),
+                    route_timing(),
+                ))
+                .unwrap()
+                .unwrap();
+            let mut next = Box::pin(self.fixture.harness.resume());
+            let mut terminal = false;
+            for _ in 0..20000 {
+                if let Poll::Ready(value) = poll(next.as_mut()) {
+                    recovered = Some(value);
+                    break;
+                }
+                self.fixture.tick();
+                if !terminal && let Some(request) = origin1341_requests(&channel).first() {
+                    channel.push(raw_terminal_with_usage(request.request_id));
+                    terminal = true;
+                }
+            }
+            g2_requests = origin1341_requests(&channel).len();
+            route.close();
+            channel.close();
+        }
+        *self.observed.lock().unwrap() = Some(Origin1351MixedObservation {
+            rejected,
+            open,
+            snapshot,
+            pre,
+            recovered,
+            g2_requests,
+        });
+    }
+}
+
+#[test]
+fn origin1351_public_mixed_direct_echo_peer_loss_keeps_ready_bundle_recoverable() {
+    let (fixture, echo) = origin1351_live::Fixture::mixed();
+    let fixture = Arc::new(fixture);
+    fixture.before.gate.lock().unwrap().0 = false;
+    let drive = fixture.start_drive_id();
+    fixture.store.drive.store(drive, Ordering::SeqCst);
+    let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "invoke mixed".into(),
+        images: vec![],
+    }));
+    assert!(poll(prompt.as_mut()).is_pending());
+    for _ in 0..20000 {
+        fixture.tick();
+        if fixture.before.calls.load(Ordering::SeqCst) == 1 {
+            break;
+        }
+    }
+    let idle_harness = fixture.harness.clone();
+    let idle: Origin1341IdleSlot = Arc::new(Mutex::new(Some(Box::pin(async move {
+        idle_harness.wait_for_idle().await
+    }))));
+    let resume_slot: Origin1341ResumeSlot = Arc::new(Mutex::new(None));
+    let observed = Arc::new(Mutex::new(None));
+    let callback_fixture = fixture.clone();
+    let callback_resume = resume_slot.clone();
+    let callback_observed = observed.clone();
+    let callback_echo = echo.clone();
+    let wake = Arc::new(Origin1341IdleWake {
+        suppress_park: None,
+        idle: idle.clone(),
+        armed: AtomicBool::new(false),
+        fired: AtomicBool::new(false),
+        work: Mutex::new(Some(Box::new(move || {
+            let harness = callback_fixture.harness.clone();
+            let task = callback_fixture.start_drive_id();
+            let mut resume: BoxFuture<'static, pi_agent_schema::ResumeCall> =
+                Box::pin(async move { harness.resume().await });
+            let first = poll(resume.as_mut());
+            println!("E1351_MIXED_RESUME_INITIAL {first:?}");
+            if let Poll::Ready(Err(error)) = &first {
+                println!("E1351_MIXED_ERROR {error}");
+            }
+            assert!(first.is_pending());
+            *callback_resume.lock().unwrap() = Some(resume);
+            let continuation = Waker::from(Arc::new(Origin1351MixedWake {
+                fixture: callback_fixture.clone(),
+                echo: callback_echo.clone(),
+                task,
+                resume: callback_resume.clone(),
+                observed: callback_observed.clone(),
+            }));
+            assert_eq!(
+                callback_fixture.pump.poll_task(task, &continuation),
+                Some(true)
+            );
+            callback_fixture.store.hydrate_release.cancel();
+            callback_fixture.pump.poll_task(
+                callback_fixture.store.producer.load(Ordering::SeqCst),
+                Waker::noop(),
+            );
+        }))),
+    });
+    let idle_waker = Waker::from(wake.clone());
+    let mut idle_future = idle.lock().unwrap().take().unwrap();
+    assert!(
+        idle_future
+            .as_mut()
+            .poll(&mut Context::from_waker(&idle_waker))
+            .is_pending()
+    );
+    *idle.lock().unwrap() = Some(idle_future);
+    fixture.before.release();
+    fixture.until(&fixture.store.retry_entered);
+    assert_eq!(echo.executions.load(Ordering::SeqCst), 0);
+    assert!(origin1341_requests(&fixture.channel).is_empty());
+    // Close after actual Echo Applied but before its real Tool work can claim.
+    fixture.route.close();
+    fixture.store.retry_release.cancel();
+    fixture.until(&fixture.store.hydrate_entered);
+    let written = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    println!(
+        "E1351_MIXED_BEFORE_DROP owner={:?}",
+        fixture
+            .drive(fixture.harness.get_tools())
+            .map(|tools| tools.len())
+    );
+    assert_eq!(fixture.store.attempts.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.native.prepares.load(Ordering::SeqCst), 1);
+    assert_eq!(echo.prepares.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+    assert!(origin1341_requests(&fixture.channel).is_empty());
+    assert!(fixture.driver_owner.retained_binding().is_none());
+    let pending = written
+        .registers
+        .iter()
+        .filter_map(|r| match r {
+            pi_agent_schema::Register::OperationState { value, .. } => Some(value),
+            _ => None,
+        })
+        .flat_map(|value| match value.as_ref() {
+            pi_agent_schema::OperationState::Run(run) => match &run.phase {
+                pi_agent_schema::RunPhase::Tools(tools) => tools
+                    .batch
+                    .calls
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, call)| {
+                        matches!(call, pi_agent_schema::ToolCallState::EffectPending { .. })
+                            .then_some(index)
+                    })
+                    .collect::<Vec<_>>(),
+                _ => vec![],
+            },
+            _ => vec![],
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(pending, vec![0, 1]);
+    fixture.tick();
+    println!(
+        "E1351_MIXED_TASKS drive={drive} producer={}",
+        fixture.store.producer.load(Ordering::SeqCst)
+    );
+    wake.armed.store(true, Ordering::SeqCst);
+    fixture.pump.drop_task(drive);
+    let actual = observed
+        .lock()
+        .unwrap()
+        .take()
+        .expect("actual public successor completed its recoverable route rejection");
+    println!(
+        "E1351_MIXED_PEERLOSS {}",
+        serde_json::json!({ "public_source_indices": pending, "actual_args_commit_count": fixture.store.attempts.load(Ordering::SeqCst), "rejected": format!("{:?}", actual.rejected), "open_before_outer_seal": actual.open, "rejected_no_write": written == actual.snapshot, "pre_native_echo_request": actual.pre, "recovered": format!("{:?}", actual.recovered), "g2_requests": actual.g2_requests, "prepare_before": [fixture.native.prepares.load(Ordering::SeqCst), echo.prepares.load(Ordering::SeqCst), fixture.before.calls.load(Ordering::SeqCst)] })
+    );
+    drop(idle.lock().unwrap().take());
+    drop(wake);
+    drop(prompt);
+    drop(resume_slot.lock().unwrap().take());
+    fixture.cleanup();
+    assert!(matches!(
+        actual.rejected,
+        Err(pi_agent_schema::HarnessRuntimeError::PeerLost)
+    ));
+    assert!(
+        actual.open,
+        "normal mixed PeerLost must not abandon the actual unstarted Direct claim before the outer seal"
+    );
+    assert_eq!(written, actual.snapshot);
+    assert_eq!(actual.pre, (0, 0, 0));
+    assert!(matches!(actual.recovered, Some(Ok(Ok(_)))));
+    assert_eq!(actual.g2_requests, 1);
+    assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        *fixture.native.execution_args.lock().unwrap(),
+        vec![saved()]
+    );
+    assert_eq!(echo.executions.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.native.prepares.load(Ordering::SeqCst), 1);
+    assert_eq!(echo.prepares.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.before.calls.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn origin1351_host_missing_commit_sequence_obeys_fresh_key_priority() {
+    for key_lost in [true, false] {
+        let fixture = origin1351_live::Fixture::new(false, 6, ToolReplay::Safe);
+        let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+            text: "invoke echo".into(),
+            images: vec![],
+        }));
+        assert!(poll(prompt.as_mut()).is_pending());
+        fixture.until(&fixture.store.commit_entered);
+        let applied = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        assert!(origin1341_key(&applied, &fixture.runtime.session.metadata().id).is_some());
+        assert!(fixture.store.args_seq.load(Ordering::SeqCst) > 0);
+        if key_lost {
+            externally_abort_pending_echo(&fixture.runtime);
+        }
+        let checked = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        fixture.store.commit_release.cancel();
+        let result = fixture.drive(prompt);
+        let after = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+        let owner_open = fixture.drive(fixture.harness.get_tools()).is_ok();
+        println!(
+            "E1351_HOST_RECEIPT_EXCEPTION {}",
+            serde_json::json!({ "trust_boundary": "underlying real Applied; deliberately malformed host-returned seq vector", "key_lost": key_lost, "actual_commit_args_seq": fixture.store.args_seq.load(Ordering::SeqCst), "result": format!("{result:?}"), "owner_open": owner_open, "no_new_write": checked == after })
+        );
+        fixture.cleanup();
+        assert_eq!(checked, after);
+        assert_eq!(fixture.native.executions.load(Ordering::SeqCst), 0);
+        assert!(origin1341_requests(&fixture.channel).is_empty());
+        if key_lost {
+            assert!(
+                matches!(result, Ok(Ok(_))),
+                "fresh full-K loss precedes preserved Applied(Err)"
+            );
+            assert!(owner_open);
+        } else {
+            assert!(matches!(
+                result,
+                Err(pi_agent_schema::HarnessRuntimeError::Fault(_))
+            ));
+            assert!(!owner_open);
+        }
+    }
+}
+
+#[test]
+fn origin1359_public_waiter_drop_keeps_actual_publication_and_drive() {
+    let fixture = origin1351_live::Fixture::new(false, 1, ToolReplay::Safe);
+    let mut prompt = Box::pin(fixture.harness.prompt(PromptInput::Text {
+        text: "retained waiter control".into(),
+        images: vec![],
+    }));
+    assert!(poll(prompt.as_mut()).is_pending());
+    fixture.until(&fixture.store.hydrate_entered);
+    let pending = fixture.drive(fixture.runtime.store.snapshot()).unwrap();
+    assert!(origin1341_key(&pending, &fixture.runtime.session.metadata().id).is_some());
+    drop(prompt);
+    fixture.store.hydrate_release.cancel();
+    fixture.drive(fixture.harness.wait_for_idle()).unwrap();
+    let open = fixture.drive(fixture.harness.get_tools()).is_ok();
+    let count = fixture.native.executions.load(Ordering::SeqCst);
+    let requests = origin1341_requests(&fixture.channel).len();
+    fixture.cleanup();
+    assert!(open);
+    assert_eq!(count, 1);
+    assert_eq!(requests, 0);
+}

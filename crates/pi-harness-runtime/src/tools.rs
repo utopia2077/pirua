@@ -6,9 +6,12 @@ use crate::{
 };
 use pi_agent_schema::*;
 use pi_agent_session::storage::RuntimeStorage;
-use pi_ai_core::{JsonObject, Presence, SafeUnsigned};
+use pi_ai_core::{CancellationToken, JsonObject, Presence, SafeUnsigned};
 use pi_harness_core::planner::{PlanningFacts, ToolDeclaration};
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex},
+};
 
 #[cfg(feature = "extensions")]
 use crate::extensions::tool_driver::{
@@ -19,15 +22,16 @@ use crate::owner::EchoRouteSnapshot;
 #[cfg(feature = "extensions")]
 use pi_extension_protocol::tool_live::{InvocationBinding, LivePhase, RetireReason};
 #[cfg(feature = "extensions")]
-use std::{future::Future, pin::pin, sync::Mutex, task::Poll};
+use std::{future::Future, pin::pin, task::Poll};
 
-#[cfg(feature = "extensions")]
-pub(crate) struct PairedPermits(Option<crate::scheduler::PairPermit>);
+pub(crate) struct PairedPermits(
+    Option<crate::scheduler::PairPermit>,
+    Vec<Arc<dyn OriginFence>>,
+);
 
-#[cfg(feature = "extensions")]
 impl PairedPermits {
     pub(crate) fn new(pair: crate::scheduler::PairPermit) -> Self {
-        Self(Some(pair))
+        Self(Some(pair), Vec::new())
     }
     pub(crate) async fn acquire(
         settings: &crate::scheduler::MutationLine,
@@ -36,15 +40,25 @@ impl PairedPermits {
         Ok(Self::new(settings.acquire_pair(lane).await?))
     }
     pub(crate) fn release(&mut self) {
+        let origin = std::mem::take(&mut self.1);
         if let Some(pair) = self.0.take() {
             pair.release();
         }
+        drop(origin);
+    }
+    pub(crate) fn arm_origin(&mut self, origin: Option<Arc<dyn OriginFence>>) {
+        self.1 = origin.into_iter().collect();
+    }
+    pub(crate) fn add_origin(&mut self, origin: Arc<dyn OriginFence>) {
+        self.1.push(origin);
     }
 }
 
-#[cfg(feature = "extensions")]
 impl Drop for PairedPermits {
     fn drop(&mut self) {
+        for origin in &self.1 {
+            origin.begin_failure(false);
+        }
         self.release();
     }
 }
@@ -414,7 +428,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner())
                 .get(&self.plan.key)
                 .map(|intent| {
-                    crate::harness::recovered_echo_arguments(&h, &self.plan.key, &intent.original)
+                    self.fx
+                        .live_recovered_arguments(&h, &self.plan.key, &intent.original)
                         .is_ok_and(|args| {
                             args.is_some_and(|args| {
                                 args.key == intent.arguments.key
@@ -609,6 +624,1129 @@ pub(crate) struct CapturedArguments {
     pub seq: SafeUnsigned,
 }
 
+pub(crate) type SelectedTools<C> = BTreeMap<(StepId, SafeUnsigned), Arc<SelectedTool<C>>>;
+type PublicationOwner<C> = (Arc<ToolPublication<C>>, OriginOwnership);
+type CapturedPreparation<C> = (
+    PreparedToolCall<AgentHarnessToolHandle<C>>,
+    Arc<C>,
+    CapturedArguments,
+    bool,
+);
+
+pub(crate) struct SelectedTool<C> {
+    pub(crate) id: Arc<()>,
+    #[cfg(feature = "extensions")]
+    pub(crate) producer_fx: Arc<()>,
+    pub(crate) clearance: ToolClearancePlan<Telemetry>,
+    pub(crate) call: AgentToolCall,
+    pub(crate) arguments: JsonObject,
+    pub(crate) replay: ToolReplay,
+    pub(crate) handle: AgentHarnessToolHandle<C>,
+    pub(crate) context: Arc<C>,
+    pub(crate) origin: crate::owner::InstalledToolOrigin<C>,
+}
+
+#[derive(Clone)]
+pub(crate) enum CommitArgumentsReceipt {
+    Empty,
+    Applied(Result<CapturedArguments, &'static str>),
+}
+
+pub(crate) enum PublicationPhase {
+    Publishing(Arc<()>),
+    ReadyDirect,
+    ConsumerDirect {
+        token: Arc<()>,
+        fx: Arc<()>,
+        stamp: Arc<()>,
+    },
+    PublishedEcho,
+    Sealing(Arc<()>),
+    Sealed,
+    Retired,
+}
+
+pub(crate) struct PublicationState<C> {
+    pub(crate) phase: PublicationPhase,
+    pub(crate) selection: Option<Arc<SelectedTool<C>>>,
+}
+
+pub(crate) struct ToolPublication<C> {
+    pub(crate) plan: ToolEffectPlan<Telemetry>,
+    pub(crate) clearance: ToolClearancePlan<Telemetry>,
+    pub(crate) effective_args: JsonObject,
+    pub(crate) replay: ToolReplay,
+    pub(crate) original_call: AgentToolCall,
+    pub(crate) state: Mutex<PublicationState<C>>,
+    pub(crate) receipt: Arc<Mutex<CommitArgumentsReceipt>>,
+    pub(crate) publication_done: CancellationToken,
+    handoff_done: Mutex<CancellationToken>,
+}
+
+impl<C> ToolPublication<C> {
+    #[cfg(all(test, feature = "extensions"))]
+    pub(crate) fn test_handoff_signal(&self) -> CancellationToken {
+        self.handoff_signal()
+    }
+
+    fn handoff_signal(&self) -> CancellationToken {
+        self.handoff_done
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone()
+    }
+}
+
+/// Implementations stage callback-capable release before rights are exposed.
+/// The cell itself owns no strong Harness owner.
+pub(crate) trait OriginFence: Send + Sync {
+    fn begin_failure(&self, drive_only: bool);
+    fn finish_failure(&self);
+    fn token(&self) -> Arc<()>;
+    fn transfer_to_work(&self);
+    fn disarm(&self);
+    fn defer_release(&self, release: Box<dyn FnOnce() + Send>);
+    fn belongs_to_drive(&self, stamp: &Arc<()>) -> bool;
+    fn return_to_drive(&self);
+    fn is_work(&self) -> bool;
+    fn is_active(&self) -> bool;
+}
+
+#[derive(Default)]
+struct OriginResources {
+    released: bool,
+    pending: Vec<Box<dyn FnOnce() + Send>>,
+}
+
+pub(crate) struct OriginLease<
+    C: Send + Sync + 'static,
+    S: RuntimeStorage + 'static,
+    M: SessionMetadataRecord,
+> {
+    owner: Arc<crate::owner::Owner<C, S, M>>,
+    pub(crate) cell: Arc<ToolPublication<C>>,
+    pub(crate) token: Arc<()>,
+    active: std::sync::atomic::AtomicBool,
+    work: std::sync::atomic::AtomicBool,
+    release: Mutex<Option<Arc<SelectedTool<C>>>>,
+    resources: Mutex<OriginResources>,
+    finishing: std::sync::atomic::AtomicBool,
+}
+
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    OriginLease<C, S, M>
+{
+    fn new(
+        owner: Arc<crate::owner::Owner<C, S, M>>,
+        cell: Arc<ToolPublication<C>>,
+        token: Arc<()>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            owner,
+            cell,
+            token,
+            active: std::sync::atomic::AtomicBool::new(true),
+            work: std::sync::atomic::AtomicBool::new(false),
+            release: Mutex::new(None),
+            resources: Mutex::new(OriginResources::default()),
+            finishing: std::sync::atomic::AtomicBool::new(false),
+        })
+    }
+    pub(crate) fn transfer_to_work(&self) {
+        self.work.store(true, std::sync::atomic::Ordering::Release);
+    }
+    pub(crate) fn disarm(&self) {
+        self.active
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
+}
+
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord> OriginFence
+    for OriginLease<C, S, M>
+{
+    fn token(&self) -> Arc<()> {
+        self.token.clone()
+    }
+    fn transfer_to_work(&self) {
+        OriginLease::transfer_to_work(self);
+    }
+    fn disarm(&self) {
+        OriginLease::disarm(self);
+    }
+    fn defer_release(&self, release: Box<dyn FnOnce() + Send>) {
+        let release = {
+            let mut resources = self.resources.lock().unwrap_or_else(|p| p.into_inner());
+            if resources.released {
+                Some(release)
+            } else {
+                resources.pending.push(release);
+                None
+            }
+        };
+        if let Some(release) = release {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(release));
+        }
+    }
+    fn belongs_to_drive(&self, stamp: &Arc<()>) -> bool {
+        if self.work.load(std::sync::atomic::Ordering::Acquire) {
+            return false;
+        }
+        let state = self.cell.state.lock().unwrap_or_else(|p| p.into_inner());
+        matches!(&state.phase, PublicationPhase::ConsumerDirect { token, stamp: owned, .. }
+            if Arc::ptr_eq(token, &self.token) && Arc::ptr_eq(owned, stamp))
+    }
+    fn return_to_drive(&self) {
+        self.work.store(false, std::sync::atomic::Ordering::Release);
+    }
+    fn is_work(&self) -> bool {
+        self.work.load(std::sync::atomic::Ordering::Acquire)
+    }
+    fn is_active(&self) -> bool {
+        self.active.load(std::sync::atomic::Ordering::Acquire)
+    }
+    fn begin_failure(&self, drive_only: bool) {
+        if drive_only && self.work.load(std::sync::atomic::Ordering::Acquire) {
+            return;
+        }
+        {
+            let mut state = self.cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            if !self.active.swap(false, std::sync::atomic::Ordering::AcqRel) {
+                return;
+            }
+            let owned = match &state.phase {
+                PublicationPhase::Publishing(token)
+                | PublicationPhase::ConsumerDirect { token, .. } => Arc::ptr_eq(token, &self.token),
+                _ => false,
+            };
+            if !owned {
+                return;
+            }
+            let payload = state.selection.take();
+            *self.release.lock().unwrap_or_else(|p| p.into_inner()) = payload;
+            state.phase = PublicationPhase::Sealing(self.token.clone());
+        }
+    }
+    fn finish_failure(&self) {
+        let owned = {
+            let state = self.cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            matches!(&state.phase, PublicationPhase::Sealing(token) if Arc::ptr_eq(token, &self.token))
+                && !self
+                    .finishing
+                    .swap(true, std::sync::atomic::Ordering::AcqRel)
+        };
+        if !owned {
+            return;
+        }
+        // Catch each outward attempt separately: a host panic must not skip
+        // the admission seal, sticky notifications or final unlocked release.
+        let attempt = |work: &mut dyn FnMut()| {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(work));
+        };
+        attempt(&mut || {
+            let error = self
+                .owner
+                .admission
+                .check()
+                .err()
+                .unwrap_or_else(|| crate::restore::fault("tool publication owner abandoned"));
+            let _ = self.owner.observe::<()>(Err(error));
+        });
+        {
+            let mut state = self.cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            state.phase = PublicationPhase::Sealed;
+        }
+        attempt(&mut || self.cell.publication_done.cancel());
+        attempt(&mut || self.cell.handoff_signal().cancel());
+        let resources = {
+            let mut resources = self.resources.lock().unwrap_or_else(|p| p.into_inner());
+            resources.released = true;
+            std::mem::take(&mut resources.pending)
+        };
+        for resource in resources {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(resource));
+        }
+        let mut payload = self
+            .release
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
+        attempt(&mut || drop(payload.take()));
+    }
+}
+
+pub(crate) struct OriginOwnership(pub(crate) Arc<dyn OriginFence>, bool);
+impl OriginOwnership {
+    pub(crate) fn new(fence: Arc<dyn OriginFence>) -> Self {
+        Self(fence, false)
+    }
+    pub(crate) fn complete(&mut self) {
+        self.1 = true;
+    }
+}
+impl Drop for OriginOwnership {
+    fn drop(&mut self) {
+        if self.1 {
+            return;
+        }
+        self.0.begin_failure(false);
+        self.0.finish_failure();
+    }
+}
+
+/// One wait invocation owns completion for every exact lease it protects.
+/// The inner future stages failure before releasing its pair; this outer
+/// owner observes the original error before finishing the staged token.
+#[derive(Default)]
+struct OriginWaitOwnership(Vec<OriginOwnership>);
+impl OriginWaitOwnership {
+    fn protect(&mut self, lease: Arc<dyn OriginFence>) {
+        let token = lease.token();
+        if !self
+            .0
+            .iter()
+            .any(|owned| Arc::ptr_eq(&owned.0.token(), &token))
+        {
+            self.0.push(OriginOwnership::new(lease));
+        }
+    }
+    fn complete(&mut self) {
+        for owned in &mut self.0 {
+            owned.complete();
+        }
+    }
+}
+
+pub(crate) struct OriginDriveRelease(Vec<Arc<dyn OriginFence>>);
+impl Drop for OriginDriveRelease {
+    fn drop(&mut self) {
+        for lease in &self.0 {
+            lease.finish_failure();
+        }
+    }
+}
+
+pub(crate) struct OriginRelease<C> {
+    pub(crate) selections: Vec<Arc<SelectedTool<C>>>,
+    cells: Vec<Arc<ToolPublication<C>>>,
+    leases: Vec<Arc<dyn OriginFence>>,
+    signals: Vec<CancellationToken>,
+}
+impl<C> Default for OriginRelease<C> {
+    fn default() -> Self {
+        Self {
+            selections: vec![],
+            cells: vec![],
+            leases: vec![],
+            signals: vec![],
+        }
+    }
+}
+impl<C> OriginRelease<C> {
+    pub(crate) fn append(&mut self, mut other: Self) {
+        self.selections.append(&mut other.selections);
+        self.cells.append(&mut other.cells);
+        self.leases.append(&mut other.leases);
+        self.signals.append(&mut other.signals);
+    }
+}
+impl<C> Drop for OriginRelease<C> {
+    fn drop(&mut self) {
+        for signal in &self.signals {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| signal.cancel()));
+        }
+        for cell in &self.cells {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                cell.publication_done.cancel()
+            }));
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                cell.handoff_signal().cancel()
+            }));
+        }
+        for selection in self.selections.drain(..) {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(selection)));
+        }
+        for cell in self.cells.drain(..) {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(cell)));
+        }
+        for lease in self.leases.drain(..) {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(lease)));
+        }
+    }
+}
+
+pub(crate) fn retire_closed_publications<
+    C: Send + Sync + 'static,
+    S: RuntimeStorage + 'static,
+    M: SessionMetadataRecord,
+>(
+    owner: &crate::owner::Owner<C, S, M>,
+) -> OriginRelease<C> {
+    let mut release = OriginRelease::default();
+    let mut publications = owner
+        .tool_publications
+        .lock()
+        .unwrap_or_else(|p| p.into_inner());
+    let keys: Vec<_> = publications
+        .iter()
+        .filter_map(|(key, cell)| {
+            let state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            if matches!(
+                state.phase,
+                PublicationPhase::ReadyDirect
+                    | PublicationPhase::PublishedEcho
+                    | PublicationPhase::Sealed
+                    | PublicationPhase::Retired
+            ) {
+                Some(key.clone())
+            } else {
+                None
+            }
+        })
+        .collect();
+    for key in keys {
+        let cell = publications
+            .remove(&key)
+            .expect("selected closed publication");
+        {
+            let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            state.phase = PublicationPhase::Retired;
+            release.selections.extend(state.selection.take());
+        }
+        release.cells.push(cell);
+    }
+    drop(publications);
+    release
+}
+
+pub(crate) fn publication_arguments<C>(
+    cell: &ToolPublication<C>,
+    h: &HydratedLane,
+    session: &SessionId,
+) -> Result<Option<CapturedArguments>, HarnessRuntimeError> {
+    let Some(current) = h.current.as_ref().filter(|current| {
+        pi_harness_core::tool_batch::expects_effect(current, session, &cell.plan)
+    }) else {
+        return Ok(None);
+    };
+    let OperationState::Run(run) = &current.state else {
+        unreachable!("checked tool run")
+    };
+    let RunPhase::Tools(tools) = &run.phase else {
+        unreachable!("checked tool batch")
+    };
+    if tools.batch.configuration != cell.clearance.producing_configuration
+        || tools.batch.assistant_entry_id != cell.clearance.assistant_entry_id
+        || tools.batch.turn_id != cell.clearance.turn_id
+        || !tools.batch.calls.iter().any(|call| {
+            matches!(call,
+            ToolCallState::EffectPending { source_index, result_entry_id, replay }
+            if *source_index == cell.clearance.source_index
+                && *result_entry_id == cell.clearance.result_entry_id && *replay == cell.replay)
+        })
+    {
+        return Err(crate::restore::fault("tool publication pairing changed"));
+    }
+    if !h.entries.get(&cell.plan.assistant_entry_id).is_some_and(|entry| matches!(entry,
+        Entry::Message(message) if matches!(&message.message,
+            AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(assistant))
+                if assistant.content.get(cell.plan.source_index.get() as usize).is_some_and(|content|
+                    matches!(content, pi_ai_core::AssistantContent::ToolCall(call) if call == &cell.original_call))))) {
+        return Err(crate::restore::fault("tool publication original source changed"));
+    }
+    let receipt = cell
+        .receipt
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clone();
+    let captured = match receipt {
+        CommitArgumentsReceipt::Applied(Ok(args)) => args,
+        CommitArgumentsReceipt::Applied(Err(message)) => {
+            return Err(crate::restore::fault(message));
+        }
+        CommitArgumentsReceipt::Empty => {
+            return Err(crate::restore::fault(
+                "tool publication has no actual commit receipt",
+            ));
+        }
+    };
+    if !captured_arguments_match(h, &captured) {
+        return Err(crate::restore::fault(
+            "original committed tool arguments changed",
+        ));
+    }
+    Ok(Some(captured))
+}
+
+fn publication_still_planned<C>(cell: &ToolPublication<C>, h: &HydratedLane) -> bool {
+    h.current.as_ref().is_some_and(|current| {
+        current.operation.operation_id == cell.clearance.key.operation_id
+            && current.operation.lane == cell.clearance.key.lane
+            && matches!(&current.state, OperationState::Run(run)
+                if matches!(&run.phase, RunPhase::Tools(tools)
+                    if tools.batch.turn_id == cell.clearance.turn_id
+                        && tools.batch.assistant_entry_id == cell.clearance.assistant_entry_id
+                        && tools.batch.configuration == cell.clearance.producing_configuration
+                        && tools.batch.calls.iter().any(|call| matches!(call,
+                            ToolCallState::Planned { source_index, result_entry_id }
+                            if *source_index == cell.clearance.source_index && *result_entry_id == cell.clearance.result_entry_id))))
+    })
+}
+
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    RuntimeEffects<C, S, M>
+{
+    pub(crate) fn origin_stamp(&self, operation: &OperationId) -> Option<Arc<()>> {
+        let this: Arc<dyn crate::abort::ActiveDrive> = self.this.upgrade()?;
+        let own = Arc::downgrade(&this);
+        let lane = &self.lane.lane;
+        let _activity = lane.activity.lock().unwrap_or_else(|p| p.into_inner());
+        if !*lane.driving.lock().unwrap_or_else(|p| p.into_inner())
+            || lane
+                .reservation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+                != Some(operation)
+            || !lane
+                .active
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+                .is_some_and(|(id, fx)| id == operation && fx.ptr_eq(&own))
+        {
+            return None;
+        }
+        Some(
+            lane.generation
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clone(),
+        )
+    }
+
+    pub(crate) fn arm_tool_publication(
+        &self,
+        plan: &SettlementCommit<Telemetry>,
+    ) -> Result<Option<PublicationOwner<C>>, HarnessRuntimeError> {
+        let (EffectPlan::ToolClearance(clearance), SettlementOutput::ToolClearance(output)) =
+            (&plan.plan, &plan.output)
+        else {
+            return Ok(None);
+        };
+        let ToolClearanceOutcome::Prepared {
+            effective_args,
+            replay,
+        } = output.outcome()
+        else {
+            return Ok(None);
+        };
+        let selection = self
+            .selected_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&(clearance.turn_id.clone(), clearance.source_index))
+            .cloned()
+            .ok_or_else(|| crate::restore::fault("prepared selection absent"))?;
+        let original = &selection.clearance;
+        if original.key != clearance.key
+            || original.assistant_entry_id != clearance.assistant_entry_id
+            || original.source_index != clearance.source_index
+            || original.turn_id != clearance.turn_id
+            || original.result_entry_id != clearance.result_entry_id
+            || original.producing_configuration != clearance.producing_configuration
+            || output.key() != &clearance.key
+            || output.assistant_entry_id() != &clearance.assistant_entry_id
+            || output.source_index() != clearance.source_index
+            || output.result_entry_id() != &clearance.result_entry_id
+            || &selection.arguments != effective_args
+            || selection.replay != *replay
+        {
+            return Err(crate::restore::fault("prepared selection output mismatch"));
+        }
+        let mut key = clearance.key.clone();
+        key.kind = EffectKind::Tool;
+        let token = Arc::new(());
+        let cell = Arc::new(ToolPublication {
+            plan: ToolEffectPlan {
+                key: key.clone(),
+                assistant_entry_id: clearance.assistant_entry_id.clone(),
+                source_index: clearance.source_index,
+                args_key: format!(
+                    "{}:{}:{}",
+                    key.operation_id.as_str(),
+                    clearance.turn_id.as_str(),
+                    clearance.source_index.get()
+                ),
+                telemetry_context: clearance.telemetry_context.clone(),
+            },
+            clearance: clearance.clone(),
+            effective_args: effective_args.clone(),
+            replay: *replay,
+            original_call: selection.call.clone(),
+            state: Mutex::new(PublicationState {
+                phase: PublicationPhase::Publishing(token.clone()),
+                selection: Some(selection),
+            }),
+            receipt: Arc::new(Mutex::new(CommitArgumentsReceipt::Empty)),
+            publication_done: CancellationToken::new(),
+            handoff_done: Mutex::new(CancellationToken::new()),
+        });
+        let mut publications = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        if publications.contains_key(&key) {
+            return Err(crate::restore::fault(
+                "another producer owns prepared selection",
+            ));
+        }
+        publications.insert(key, cell.clone());
+        drop(publications);
+        let fence: Arc<dyn OriginFence> =
+            OriginLease::new(self.lane.owner.clone(), cell.clone(), token);
+        Ok(Some((cell, OriginOwnership::new(fence))))
+    }
+
+    pub(crate) fn publish_tool_selection(
+        &self,
+        cell: &ToolPublication<C>,
+        h: &HydratedLane,
+    ) -> Result<bool, HarnessRuntimeError> {
+        if publication_arguments(
+            cell,
+            h,
+            &self.lane.owner.session.metadata().base_metadata().id,
+        )?
+        .is_none()
+        {
+            return Ok(false);
+        }
+        let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+        let selection = state
+            .selection
+            .as_ref()
+            .ok_or_else(|| crate::restore::fault("publishing selection absent"))?;
+        let direct = matches!(
+            selection.origin,
+            crate::owner::InstalledToolOrigin::Direct(_)
+        );
+        state.phase = if direct {
+            PublicationPhase::ReadyDirect
+        } else {
+            PublicationPhase::PublishedEcho
+        };
+        Ok(true)
+    }
+
+    pub(crate) fn retire_tool_publication(&self, key: &EffectKey, owned: bool) -> OriginRelease<C> {
+        let mut release = OriginRelease::default();
+        let cell = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        let Some(cell) = cell else { return release };
+        let payload = {
+            let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            if !owned
+                && matches!(
+                    state.phase,
+                    PublicationPhase::Publishing(_)
+                        | PublicationPhase::ConsumerDirect { .. }
+                        | PublicationPhase::Sealing(_)
+                )
+            {
+                return release;
+            }
+            state.phase = PublicationPhase::Retired;
+            state.selection.take()
+        };
+        let removed = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(key);
+        release.cells.extend(removed);
+        release.cells.push(cell);
+        if let Some(lease) = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(key)
+        {
+            lease.disarm();
+            release.leases.push(lease);
+        }
+        release.selections.extend(payload);
+        release
+    }
+    pub(crate) fn retire_lost_publication(
+        &self,
+        h: &HydratedLane,
+        key: &EffectKey,
+    ) -> OriginRelease<C> {
+        let cell = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        if cell.as_ref().is_some_and(|cell| {
+            h.current.as_ref().is_some_and(|current| {
+                pi_harness_core::tool_batch::expects_effect(current, &key.session_id, &cell.plan)
+            })
+        }) {
+            return OriginRelease::default();
+        }
+        let owned = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .is_some_and(|lease| !lease.is_work());
+        self.retire_tool_publication(key, owned)
+    }
+    pub(crate) fn retire_actual_lost_publication(
+        &self,
+        h: &HydratedLane,
+        key: &EffectKey,
+    ) -> OriginRelease<C> {
+        let cell = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        let Some(cell) = cell else {
+            return OriginRelease::default();
+        };
+        if h.current.as_ref().is_some_and(|current| {
+            pi_harness_core::tool_batch::expects_effect(current, &key.session_id, &cell.plan)
+        }) {
+            return OriginRelease::default();
+        }
+        let lease = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        let mut release = OriginRelease::default();
+        let own = {
+            let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            let own = matches!(&state.phase, PublicationPhase::ConsumerDirect { token, fx, .. }
+                if Arc::ptr_eq(fx, &self.identity) && lease.as_ref().is_some_and(|lease| lease.is_active() && Arc::ptr_eq(token, &lease.token())));
+            if own {
+                state.phase = PublicationPhase::Retired;
+                release.selections.extend(state.selection.take());
+                lease.as_ref().expect("checked consumer").disarm();
+            }
+            own
+        };
+        release.append(self.retire_tool_publication(key, own));
+        release
+    }
+
+    pub(crate) fn stage_release_drive(self: &Arc<Self>) -> OriginDriveRelease {
+        let leases: Vec<_> = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .values()
+            .cloned()
+            .collect();
+        for lease in &leases {
+            lease.begin_failure(true);
+        }
+        self.release_drive();
+        OriginDriveRelease(leases)
+    }
+    pub(crate) fn release_protected_drive(self: &Arc<Self>) {
+        drop(self.stage_release_drive());
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) fn origin_return_finishers(&self) -> OriginDriveRelease {
+        OriginDriveRelease(
+            self.origin_consumers
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .values()
+                .cloned()
+                .collect(),
+        )
+    }
+
+    #[cfg(feature = "extensions")]
+    pub(crate) fn arm_origin_consumers(&self, pair: &mut PairedPermits) {
+        let leases: Vec<_> = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .values()
+            .cloned()
+            .collect();
+        for lease in leases {
+            pair.add_origin(lease);
+        }
+    }
+
+    /// Normal recoverable route rejection gives back unstarted exclusive
+    /// consumers under the caller's pair, retaining the immutable bundle.
+    #[cfg(feature = "extensions")]
+    pub(crate) fn release_recoverable_drive(
+        self: &Arc<Self>,
+        h: &HydratedLane,
+        release: &mut OriginRelease<C>,
+    ) -> Result<(), HarnessRuntimeError> {
+        let leases: Vec<_> = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .iter()
+            .map(|(key, lease)| (key.clone(), lease.clone()))
+            .collect();
+        for (key, lease) in leases {
+            if !lease.is_active() || lease.is_work() {
+                continue;
+            }
+            let cell = self
+                .lane
+                .owner
+                .tool_publications
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&key)
+                .cloned();
+            let Some(cell) = cell else {
+                continue;
+            };
+            if publication_arguments(&cell, h, &key.session_id)?.is_none() {
+                release.append(self.retire_actual_lost_publication(h, &key));
+                continue;
+            }
+            let returned = {
+                let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+                if !lease.is_active()
+                    || lease.is_work()
+                    || !matches!(&state.phase, PublicationPhase::ConsumerDirect { token, fx, .. }
+                    if Arc::ptr_eq(token, &lease.token()) && Arc::ptr_eq(fx, &self.identity))
+                {
+                    false
+                } else {
+                    let PublicationPhase::ConsumerDirect { stamp, .. } = &state.phase else {
+                        unreachable!("checked consumer")
+                    };
+                    if !self
+                        .origin_stamp(&key.operation_id)
+                        .is_some_and(|current| Arc::ptr_eq(&current, stamp))
+                    {
+                        return Err(crate::restore::fault(
+                            "Direct consumer lost its actual drive stamp",
+                        ));
+                    }
+                    state.phase = PublicationPhase::ReadyDirect;
+                    lease.disarm();
+                    // Each exclusive handoff owns its sticky signal. Wake old
+                    // nonowners after pair release; the next claim gets a fresh one.
+                    release.signals.push(std::mem::replace(
+                        &mut *cell.handoff_done.lock().unwrap_or_else(|p| p.into_inner()),
+                        CancellationToken::new(),
+                    ));
+                    true
+                }
+            };
+            if returned {
+                let removed = self
+                    .origin_consumers
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .remove(&key);
+                release.leases.extend(removed);
+            }
+        }
+        self.release_drive();
+        Ok(())
+    }
+
+    async fn wait_origin_signal(
+        &self,
+        signal: &CancellationToken,
+    ) -> Result<(), HarnessRuntimeError> {
+        let mut done = Box::pin(signal.cancelled());
+        let mut seal = Box::pin(self.lane.owner.admission.seal_signal());
+        std::future::poll_fn(|cx| {
+            if seal.as_mut().poll(cx).is_ready() {
+                return std::task::Poll::Ready(self.lane.owner.admission.check());
+            }
+            done.as_mut().poll(cx).map(|_| Ok(()))
+        })
+        .await
+    }
+
+    pub(crate) async fn wait_tool_publications(
+        &self,
+        operation: &OperationId,
+    ) -> Result<(), HarnessRuntimeError> {
+        let mut ownership = OriginWaitOwnership::default();
+        let existing: Vec<_> = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .iter()
+            .filter(|(key, _)| key.operation_id == *operation)
+            .map(|(_, lease)| lease.clone())
+            .collect();
+        for lease in existing {
+            ownership.protect(lease);
+        }
+        let result = self
+            .wait_tool_publications_inner(operation, &mut ownership)
+            .await;
+        let result = self.lane.owner.observe(result);
+        if result.is_ok() {
+            ownership.complete();
+        }
+        result
+    }
+
+    async fn wait_tool_publications_inner(
+        &self,
+        operation: &OperationId,
+        ownership: &mut OriginWaitOwnership,
+    ) -> Result<(), HarnessRuntimeError> {
+        loop {
+            self.lane.owner.admission.check()?;
+            if !self
+                .lane
+                .owner
+                .tool_publications
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .values()
+                .any(|cell| {
+                    cell.plan.key.operation_id == *operation
+                        && cell.plan.key.lane == self.lane.lane.name
+                        && cell.plan.key.session_id
+                            == self.lane.owner.session.metadata().base_metadata().id
+                })
+            {
+                return Ok(());
+            }
+            let mut release = OriginRelease::default();
+            let mut cells = Vec::new();
+            let mut pair =
+                PairedPermits::acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
+                    .await?;
+            let owned: Vec<_> = self
+                .origin_consumers
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .iter()
+                .filter(|(key, _)| key.operation_id == *operation)
+                .map(|(_, lease)| lease.clone())
+                .collect();
+            for lease in owned {
+                ownership.protect(lease.clone());
+                pair.add_origin(lease);
+            }
+            let loaded = self.lane.load_raw().await?;
+            cells.extend(
+                self.lane
+                    .owner
+                    .tool_publications
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .values()
+                    .filter(|cell| {
+                        cell.plan.key.operation_id == *operation
+                            && cell.plan.key.lane == self.lane.lane.name
+                            && cell.plan.key.session_id
+                                == self.lane.owner.session.metadata().base_metadata().id
+                    })
+                    .cloned(),
+            );
+            let mut wait = None;
+            for cell in &cells {
+                let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+                match &state.phase {
+                    PublicationPhase::Publishing(_) => {
+                        let pending = loaded.current.as_ref().is_some_and(|current| {
+                            pi_harness_core::tool_batch::expects_effect(
+                                current,
+                                &cell.plan.key.session_id,
+                                &cell.plan,
+                            )
+                        });
+                        if publication_still_planned(cell, &loaded) || pending {
+                            wait = Some(cell.publication_done.clone());
+                            break;
+                        }
+                    }
+                    PublicationPhase::Sealing(_) | PublicationPhase::Sealed => {
+                        let pending = loaded.current.as_ref().is_some_and(|current| {
+                            pi_harness_core::tool_batch::expects_effect(
+                                current,
+                                &cell.plan.key.session_id,
+                                &cell.plan,
+                            )
+                        });
+                        if publication_still_planned(cell, &loaded) || pending {
+                            wait = Some(cell.handoff_signal());
+                            break;
+                        }
+                    }
+                    PublicationPhase::Retired => {}
+                    PublicationPhase::ConsumerDirect { token, fx, stamp } => {
+                        if publication_arguments(cell, &loaded, &cell.plan.key.session_id)?
+                            .is_none()
+                        {
+                            continue;
+                        }
+                        let own = self
+                            .origin_consumers
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .get(&cell.plan.key)
+                            .cloned();
+                        let owner = own
+                            .as_ref()
+                            .is_some_and(|lease| Arc::ptr_eq(&lease.token(), token))
+                            && Arc::ptr_eq(fx, &self.identity);
+                        if owner
+                            && !self
+                                .origin_stamp(operation)
+                                .is_some_and(|current| Arc::ptr_eq(&current, stamp))
+                        {
+                            return Err(crate::restore::fault(
+                                "Direct consumer lost its actual drive stamp",
+                            ));
+                        }
+                        if !owner {
+                            wait = Some(cell.handoff_signal());
+                            break;
+                        }
+                    }
+                    PublicationPhase::ReadyDirect => {
+                        if publication_arguments(cell, &loaded, &cell.plan.key.session_id)?
+                            .is_none()
+                        {
+                            drop(state);
+                            release.append(self.retire_tool_publication(&cell.plan.key, false));
+                            continue;
+                        }
+                        let stamp = self.origin_stamp(operation).ok_or_else(|| {
+                            crate::restore::fault("Direct handoff drive stamp lost")
+                        })?;
+                        let token = Arc::new(());
+                        let lease: Arc<dyn OriginFence> =
+                            OriginLease::new(self.lane.owner.clone(), cell.clone(), token.clone());
+                        ownership.protect(lease.clone());
+                        state.phase = PublicationPhase::ConsumerDirect {
+                            token,
+                            fx: self.identity.clone(),
+                            stamp,
+                        };
+                        pair.add_origin(lease.clone());
+                        self.origin_consumers
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .insert(cell.plan.key.clone(), lease.clone());
+                        let mut leases = self
+                            .lane
+                            .lane
+                            .origin_leases
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner());
+                        leases.retain(|lease| lease.strong_count() != 0);
+                        leases.push(Arc::downgrade(&lease));
+                        drop(leases);
+                        if let Some(selection) = &state.selection {
+                            let old = self
+                                .selected_tools
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .insert(
+                                    (
+                                        selection.clearance.turn_id.clone(),
+                                        selection.clearance.source_index,
+                                    ),
+                                    selection.clone(),
+                                );
+                            release.selections.extend(old);
+                        }
+                    }
+                    PublicationPhase::PublishedEcho => {
+                        let args = publication_arguments(cell, &loaded, &cell.plan.key.session_id)?;
+                        if args.is_none() {
+                            drop(state);
+                            release.append(self.retire_tool_publication(&cell.plan.key, false));
+                            continue;
+                        }
+                        #[cfg(feature = "extensions")]
+                        if let Some(selection) = &state.selection
+                            && let crate::owner::InstalledToolOrigin::Echo { declaration, .. } =
+                                &selection.origin
+                        {
+                            self.lane
+                                .owner
+                                .routed_pending
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .insert(cell.plan.key.clone());
+                            let old = self
+                                .lane
+                                .owner
+                                .recovered_echo
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .insert(
+                                    cell.plan.key.clone(),
+                                    crate::owner::RecoveredEchoIntent {
+                                        original: declaration.as_ref().clone(),
+                                        arguments: args.expect("checked receipt"),
+                                    },
+                                );
+                            drop(old);
+                            let old = self
+                                .selected_tools
+                                .lock()
+                                .unwrap_or_else(|p| p.into_inner())
+                                .insert(
+                                    (
+                                        selection.clearance.turn_id.clone(),
+                                        selection.clearance.source_index,
+                                    ),
+                                    selection.clone(),
+                                );
+                            release.selections.extend(old);
+                        }
+                    }
+                }
+            }
+            pair.release();
+            drop(cells);
+            drop(release);
+            if let Some(signal) = wait {
+                self.wait_origin_signal(&signal).await?;
+            } else {
+                return Ok(());
+            }
+        }
+    }
+}
+
 pub(crate) struct CapturedToolCall<C> {
     pub arguments: CapturedArguments,
     pub prepared: Option<(AgentToolCall, AgentHarnessToolHandle<C>, Arc<C>)>,
@@ -647,6 +1785,39 @@ pub(crate) fn captured_arguments_match(h: &HydratedLane, captured: &CapturedArgu
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeEffects<C, S, M>
 {
+    #[cfg(feature = "extensions")]
+    pub(crate) fn live_recovered_arguments(
+        &self,
+        h: &HydratedLane,
+        key: &EffectKey,
+        original: &AgentTool,
+    ) -> Result<Option<CapturedArguments>, HarnessRuntimeError> {
+        let cell = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(key)
+            .cloned();
+        if let Some(cell) = cell {
+            let args = publication_arguments(
+                &cell,
+                h,
+                &self.lane.owner.session.metadata().base_metadata().id,
+            )?;
+            if args.is_none() {
+                return Ok(None);
+            }
+            let state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+            if !state.selection.as_ref().is_some_and(|selection| matches!(&selection.origin,
+                crate::owner::InstalledToolOrigin::Echo { declaration, .. } if declaration.as_ref() == original)) {
+                return Err(crate::restore::fault("known Echo original declaration conflict"));
+            }
+            return Ok(args);
+        }
+        crate::harness::recovered_echo_arguments(h, key, original)
+    }
     #[cfg(feature = "extensions")]
     pub(crate) fn require_routed_terminal(
         &self,
@@ -769,6 +1940,21 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         }
         let turn = StepId::new(plan.key.step_or_task_id.as_str())
             .map_err(|_| crate::restore::fault("routed tool turn invalid"))?;
+        let selection = self
+            .selected_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&(turn.clone(), plan.source_index))
+            .cloned();
+        if selection.as_ref().is_some_and(|selection| {
+            matches!(
+                selection.origin,
+                crate::owner::InstalledToolOrigin::Direct(_)
+            )
+        }) {
+            permits.release();
+            return Ok(());
+        }
         let candidate = self
             .bindings
             .lock()
@@ -778,13 +1964,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let Some(candidate) = candidate else {
             return Ok(());
         };
-        let snapshot = self
-            .lane
-            .owner
-            .tools
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .echo_snapshot(&candidate);
+        let snapshot = if let Some(selection) = &selection
+            && let crate::owner::InstalledToolOrigin::Echo { route, .. } = &selection.origin
+        {
+            Some(route.clone())
+        } else {
+            self.lane
+                .owner
+                .tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .echo_snapshot(&candidate)
+        };
         if let Some(snapshot) = snapshot {
             self.routed_tools
                 .lock()
@@ -860,9 +2051,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         &self.lane.lane.line,
                     )
                     .await?;
-                    let checked = self.lane.load_raw().await.and_then(|h| {
-                        crate::harness::recovered_echo_arguments(&h, key, &intent.original)
-                    });
+                    let checked = self
+                        .lane
+                        .load_raw()
+                        .await
+                        .and_then(|h| self.live_recovered_arguments(&h, key, &intent.original));
                     if matches!(checked, Ok(None)) {
                         self.lane
                             .owner
@@ -1151,24 +2344,27 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self: &Arc<Self>,
         plan: ToolClearancePlan<Telemetry>,
     ) -> Result<EffectOutput, HarnessRuntimeError> {
+        self.wait_tool_publications(&plan.key.operation_id).await?;
         let call = self
             .source_call(&plan.assistant_entry_id, plan.source_index)
             .await?;
-        let context = self.batch_context(&plan.turn_id).await?;
         let bindings = self
             .lane
             .owner
             .tools
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .clone();
-        let binding = bindings.into_iter().find(|binding| {
+            .selection_snapshot();
+        let selected = bindings.into_iter().find(|(binding, _)| {
             binding.descriptor().name == call.name
                 && plan
                     .producing_configuration
                     .active_tool_names
                     .contains(&call.name)
         });
+        let binding = selected.as_ref().map(|(binding, _)| binding.clone());
+        let origin = selected.map(|(_, origin)| origin);
+        let context = self.batch_context(&plan.turn_id).await?;
         let hooks = ToolHooks {
             fx: self.clone(),
             key: plan.key.clone(),
@@ -1185,7 +2381,34 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         .await?;
         let outcome = match output {
             ToolPreparation::Prepared(prepared) => {
-                let replay = prepared.binding.descriptor().replay.unwrap_or_default();
+                let origin = origin.expect("prepared actual selection has origin");
+                let replay = match &origin {
+                    #[cfg(feature = "extensions")]
+                    crate::owner::InstalledToolOrigin::Echo { declaration, .. } => {
+                        declaration.replay.unwrap_or_default()
+                    }
+                    crate::owner::InstalledToolOrigin::Direct(_) => {
+                        prepared.binding.descriptor().replay.unwrap_or_default()
+                    }
+                };
+                let selection = Arc::new(SelectedTool {
+                    id: Arc::new(()),
+                    #[cfg(feature = "extensions")]
+                    producer_fx: self.identity.clone(),
+                    clearance: plan.clone(),
+                    call: call.clone(),
+                    arguments: prepared.args.clone(),
+                    replay,
+                    handle: prepared.binding.clone(),
+                    context: context.clone(),
+                    origin,
+                });
+                let displaced = self
+                    .selected_tools
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .insert((plan.turn_id.clone(), plan.source_index), selection);
+                drop(displaced);
                 let old = self
                     .bindings
                     .lock()
@@ -1212,107 +2435,200 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
         plan: &ToolEffectPlan<Telemetry>,
     ) -> Result<bool, HarnessRuntimeError> {
-        let _line = self.lane.lane.line.acquire().await?;
+        let cell = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .cloned();
+        let origin = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .cloned();
+        let mut pair =
+            PairedPermits::acquire(&self.lane.owner.settings_line, &self.lane.lane.line).await?;
+        pair.arm_origin(origin);
         let h = self.lane.load_raw().await?;
-        Ok(h.current.as_ref().is_some_and(|current| {
+        let expected = h.current.as_ref().is_some_and(|current| {
             pi_harness_core::tool_batch::expects_effect(
                 current,
                 &self.lane.owner.session.metadata().base_metadata().id,
                 plan,
             )
-        }))
+        });
+        if expected && let Some(cell) = &cell {
+            publication_arguments(cell, &h, &plan.key.session_id)?;
+        }
+        pair.release();
+        Ok(expected)
     }
     async fn prepared(
         &self,
         plan: &ToolEffectPlan<Telemetry>,
         check_current: bool,
-    ) -> Result<
-        Option<(
-            PreparedToolCall<AgentHarnessToolHandle<C>>,
-            Arc<C>,
-            CapturedArguments,
-            bool,
-        )>,
-        HarnessRuntimeError,
-    > {
-        let call = self
-            .source_call(&plan.assistant_entry_id, plan.source_index)
-            .await?;
+    ) -> Result<Option<CapturedPreparation<C>>, HarnessRuntimeError> {
         let turn = StepId::new(plan.key.step_or_task_id.as_str())
-            .map_err(|_| self.lane.owner.fail("tool turn identity invalid"))?;
-        let context = self.batch_context(&turn).await?;
-        let current = self
+            .map_err(|_| crate::restore::fault("tool turn identity invalid"))?;
+        let selection = self
+            .selected_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&(turn.clone(), plan.source_index))
+            .cloned();
+        let call = if let Some(selection) = &selection {
+            selection.call.clone()
+        } else {
+            self.source_call(&plan.assistant_entry_id, plan.source_index)
+                .await?
+        };
+        let context = if let Some(selection) = &selection {
+            selection.context.clone()
+        } else {
+            self.batch_context(&turn).await?
+        };
+        let registry = self
             .lane
             .owner
             .tools
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .clone();
-        let candidate = self
-            .bindings
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .get(&(turn.clone(), plan.source_index))
-            .cloned();
-        let actual = current
+            .selection_snapshot();
+        let actual = registry
             .into_iter()
-            .find(|binding| binding.descriptor().name == call.name);
+            .find(|(binding, _)| binding.descriptor().name == call.name)
+            .map(|(binding, _)| binding);
+        let candidate = selection
+            .as_ref()
+            .map(|selection| selection.handle.clone())
+            .or_else(|| {
+                self.bindings
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&(turn, plan.source_index))
+                    .cloned()
+            });
+        #[cfg(feature = "extensions")]
+        let echo = selection
+            .as_ref()
+            .and_then(|selection| match &selection.origin {
+                crate::owner::InstalledToolOrigin::Echo { declaration, route } => Some((
+                    declaration.clone(),
+                    route.clone(),
+                    Arc::ptr_eq(&selection.producer_fx, &self.identity),
+                )),
+                _ => None,
+            });
+        #[cfg(feature = "extensions")]
+        let actual = if let Some((declaration, original, false)) = &echo {
+            self.lane
+                .owner
+                .tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .recovered_echo_snapshot(declaration)
+                .filter(|current| original.route.owner().same_owner(current.route.owner()))
+                .map(|current| current.handle)
+        } else {
+            actual
+        };
         let actual = if check_current {
             actual
         } else {
             candidate.clone().or(actual)
         };
-        let Some(actual) = actual else {
-            return Ok(None);
-        };
-        let binding = if let Some(candidate) = candidate {
-            if check_current && !Arc::ptr_eq(&candidate, &actual) {
+        let binding = match (candidate, actual) {
+            (Some(candidate), Some(actual)) => {
+                #[cfg(feature = "extensions")]
+                let recovered = echo
+                    .as_ref()
+                    .is_some_and(|(_, _, original_fx)| !original_fx);
+                #[cfg(not(feature = "extensions"))]
+                let recovered = false;
+                if check_current && !recovered && !Arc::ptr_eq(&candidate, &actual) {
+                    #[cfg(feature = "extensions")]
+                    if echo.is_some() && self.tool_is_current(plan).await? {
+                        return Err(HarnessRuntimeError::PeerLost);
+                    }
+                    return Ok(None);
+                }
+                if recovered { actual } else { candidate }
+            }
+            (None, Some(actual)) if actual.descriptor().replay == Some(ToolReplay::Safe) => actual,
+            _ => {
+                #[cfg(feature = "extensions")]
+                if echo.is_some() && self.tool_is_current(plan).await? {
+                    return Err(HarnessRuntimeError::PeerLost);
+                }
                 return Ok(None);
             }
-            candidate
-        } else {
-            if actual.descriptor().replay != Some(ToolReplay::Safe) {
-                return Ok(None);
-            }
-            actual
         };
         #[cfg(feature = "extensions")]
-        let was_routed = self
-            .lane
-            .owner
-            .tools
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .echo_snapshot(&binding)
-            .is_some();
+        let was_routed = if let Some(selection) = &selection {
+            matches!(
+                selection.origin,
+                crate::owner::InstalledToolOrigin::Echo { .. }
+            )
+        } else {
+            self.lane
+                .owner
+                .tools
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .echo_snapshot(&binding)
+                .is_some()
+        };
         #[cfg(not(feature = "extensions"))]
         let was_routed = false;
-        let register = self
+        let cell = self
             .lane
             .owner
-            .session
-            .get_register(RegisterNamespace::OperationToolArguments, &plan.args_key)
-            .await
-            .map_err(|_| self.lane.owner.fail("saved tool arguments read failed"))?;
-        let Some(Register::OperationToolArguments {
-            key,
-            value: args,
-            seq,
-        }) = register
-        else {
-            if !self.tool_is_current(plan).await? {
-                return Ok(None);
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .cloned();
+        let captured = if let Some(cell) = &cell {
+            match cell
+                .receipt
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clone()
+            {
+                CommitArgumentsReceipt::Applied(Ok(arguments)) => arguments,
+                CommitArgumentsReceipt::Applied(Err(message)) => {
+                    return Err(crate::restore::fault(message));
+                }
+                CommitArgumentsReceipt::Empty => {
+                    return Err(crate::restore::fault("prepared selection receipt absent"));
+                }
             }
-            return Err(self.lane.owner.fail("saved tool arguments absent"));
+        } else {
+            let register = self
+                .lane
+                .owner
+                .session
+                .get_register(RegisterNamespace::OperationToolArguments, &plan.args_key)
+                .await
+                .map_err(|_| crate::restore::fault("saved tool arguments read failed"))?;
+            let Some(Register::OperationToolArguments { key, value, seq }) = register else {
+                if !self.tool_is_current(plan).await? {
+                    return Ok(None);
+                }
+                return Err(crate::restore::fault("saved tool arguments absent"));
+            };
+            if key != plan.args_key {
+                return Err(crate::restore::fault("saved tool arguments key mismatch"));
+            }
+            CapturedArguments { key, value, seq }
         };
-        if key != plan.args_key {
-            return Err(self.lane.owner.fail("saved tool arguments key mismatch"));
-        }
-        let captured = CapturedArguments {
-            key: key.clone(),
-            value: args.clone(),
-            seq,
-        };
+        let args = selection.as_ref().map_or_else(
+            || captured.value.clone(),
+            |selection| selection.arguments.clone(),
+        );
         Ok(Some((
             PreparedToolCall {
                 tool_call: call,
@@ -1369,6 +2685,64 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self: &Arc<Self>,
         plan: ToolEffectPlan<Telemetry>,
     ) -> Result<EffectOutput, HarnessRuntimeError> {
+        let origin = self
+            .origin_consumers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&plan.key)
+            .cloned();
+        let mut ownership = origin
+            .as_ref()
+            .map(|origin| OriginOwnership::new(origin.clone()));
+        let result = self.execute_tool_inner(plan).await;
+        let result = if origin.is_some() {
+            self.lane.owner.observe(result)
+        } else {
+            result
+        };
+        if let Some(origin) = &origin
+            && result.is_ok()
+        {
+            origin.return_to_drive();
+            if let Some(ownership) = &mut ownership {
+                ownership.complete();
+            }
+        }
+        result
+    }
+    async fn execute_tool_inner(
+        self: &Arc<Self>,
+        plan: ToolEffectPlan<Telemetry>,
+    ) -> Result<EffectOutput, HarnessRuntimeError> {
+        self.wait_tool_publications(&plan.key.operation_id).await?;
+        let known = self
+            .lane
+            .owner
+            .tool_publications
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .contains_key(&plan.key);
+        if known && !self.tool_is_current(&plan).await? {
+            let owned = self
+                .origin_consumers
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .contains_key(&plan.key);
+            drop(self.retire_tool_publication(&plan.key, owned));
+            return Ok(EffectOutput::NotStarted { key: plan.key });
+        }
+        let turn = StepId::new(plan.key.step_or_task_id.as_str())
+            .map_err(|_| crate::restore::fault("tool turn invalid"))?;
+        let selection = self
+            .selected_tools
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&(turn, plan.source_index))
+            .cloned();
+        let mut handoff_release = OriginRelease::default();
+        let mut binding_release = Vec::new();
+        #[cfg(feature = "extensions")]
+        let mut route_release = Vec::new();
         #[cfg(feature = "extensions")]
         let recovered = self
             .lane
@@ -1377,7 +2751,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .get(&plan.key)
-            .cloned();
+            .cloned()
+            .filter(|_| {
+                selection
+                    .as_ref()
+                    .is_none_or(|selection| !Arc::ptr_eq(&selection.producer_fx, &self.identity))
+            });
         let Some((prepared, context, prepair_arguments, was_routed)) =
             self.prepared(&plan, true).await?
         else {
@@ -1403,7 +2782,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         });
                     }
                     let current_intent =
-                        crate::harness::recovered_echo_arguments(&h, &plan.key, &intent.original)?;
+                        self.live_recovered_arguments(&h, &plan.key, &intent.original)?;
                     if current_intent.is_none_or(|args| {
                         args.key != intent.arguments.key
                             || args.value != intent.arguments.value
@@ -1423,14 +2802,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         #[cfg(not(feature = "extensions"))]
         let _ = (&prepair_arguments, was_routed);
         let (replay, captured_arguments, route_snapshot) = {
-            #[cfg(feature = "extensions")]
             let mut permits =
                 PairedPermits::acquire(&self.lane.owner.settings_line, &self.lane.lane.line)
                     .await?;
-            #[cfg(not(feature = "extensions"))]
-            let _settings = self.lane.owner.settings_line.acquire().await?;
-            #[cfg(not(feature = "extensions"))]
-            let _line = self.lane.lane.line.acquire().await?;
+            permits.arm_origin(
+                self.origin_consumers
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&plan.key)
+                    .cloned(),
+            );
             let h = self.lane.load_raw().await?;
             let current_key = h.current.as_ref().is_some_and(|current| {
                 pi_harness_core::tool_batch::expects_effect(
@@ -1440,11 +2821,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 )
             });
             if !current_key {
+                handoff_release.append(self.retire_actual_lost_publication(&h, &plan.key));
+                permits.release();
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
             #[cfg(feature = "extensions")]
             if let Some(intent) = &recovered
-                && crate::harness::recovered_echo_arguments(&h, &plan.key, &intent.original)?
+                && self
+                    .live_recovered_arguments(&h, &plan.key, &intent.original)?
                     .is_none_or(|args| {
                         args.key != intent.arguments.key
                             || args.value != intent.arguments.value
@@ -1488,6 +2872,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
                 .clone();
+            binding_release.extend(bindings.iter().cloned());
             #[cfg(feature = "extensions")]
             let route_snapshot = {
                 let registry = self
@@ -1496,16 +2881,41 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .tools
                     .lock()
                     .unwrap_or_else(|p| p.into_inner());
-                if let Some(intent) = &recovered {
+                if selection.as_ref().is_some_and(|selection| {
+                    matches!(
+                        selection.origin,
+                        crate::owner::InstalledToolOrigin::Direct(_)
+                    )
+                }) {
+                    None
+                } else if let Some(selection) = &selection
+                    && let crate::owner::InstalledToolOrigin::Echo {
+                        declaration,
+                        route: original,
+                    } = &selection.origin
+                {
+                    registry
+                        .recovered_echo_snapshot(declaration)
+                        .filter(|current| {
+                            Arc::ptr_eq(&current.handle, &prepared.binding)
+                                && original.route.owner().same_owner(current.route.owner())
+                        })
+                } else if let Some(intent) = &recovered {
                     registry.recovered_echo_snapshot(&intent.original)
                 } else {
                     registry.echo_snapshot(&prepared.binding)
                 }
             };
+            #[cfg(feature = "extensions")]
+            route_release.extend(route_snapshot.clone());
+            #[cfg(feature = "extensions")]
+            if was_routed && route_snapshot.is_none() {
+                permits.release();
+                return Err(HarnessRuntimeError::PeerLost);
+            }
             #[cfg(not(feature = "extensions"))]
             let route_snapshot = ();
-            #[cfg(feature = "extensions")]
-            if (was_routed || route_snapshot.is_some())
+            if (selection.is_some() || was_routed)
                 && !captured_arguments_match(&h, &prepair_arguments)
             {
                 return Err(crate::restore::fault(
@@ -1513,6 +2923,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 ));
             }
             if !running {
+                // Original core cancellation still owns this exact lease.
+                permits.release();
                 return Ok(EffectOutput::NotStarted { key: plan.key });
             }
             #[cfg(feature = "extensions")]
@@ -1529,7 +2941,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .any(|binding| Arc::ptr_eq(binding, &prepared.binding))
             {
                 #[cfg(feature = "extensions")]
-                if recovered.is_some() {
+                if recovered.is_some() || was_routed {
                     permits.release();
                     return Err(HarnessRuntimeError::PeerLost);
                 }
@@ -1550,7 +2962,6 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             )),
                         },
                     );
-                #[cfg(feature = "extensions")]
                 permits.release();
                 drop(old);
                 return Ok(EffectOutput::ToolRaw(ToolRawOutput {
@@ -1587,6 +2998,42 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
                 .insert((turn, plan.source_index), prepared.binding.clone());
+            let consumer = self
+                .origin_consumers
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&plan.key)
+                .cloned();
+            if let Some(lease) = consumer {
+                let cell = self
+                    .lane
+                    .owner
+                    .tool_publications
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&plan.key)
+                    .cloned()
+                    .ok_or_else(|| crate::restore::fault("Direct consumer cell absent"))?;
+                let mut state = cell.state.lock().unwrap_or_else(|p| p.into_inner());
+                if !lease.is_active()
+                    || !matches!(&state.phase, PublicationPhase::ConsumerDirect { token, fx, stamp }
+                    if Arc::ptr_eq(token, &lease.token()) && Arc::ptr_eq(fx, &self.identity)
+                        && self.origin_stamp(&plan.key.operation_id).is_some_and(|current| Arc::ptr_eq(&current, stamp)))
+                    || !selection
+                        .as_ref()
+                        .zip(state.selection.as_ref())
+                        .is_some_and(|(selected, owned)| Arc::ptr_eq(&selected.id, &owned.id))
+                {
+                    return Err(crate::restore::fault(
+                        "Direct consumer acknowledgement stamp changed",
+                    ));
+                }
+                state.phase = PublicationPhase::Retired;
+                handoff_release.selections.extend(state.selection.take());
+                lease.disarm();
+                drop(state);
+                handoff_release.append(self.retire_tool_publication(&plan.key, true));
+            }
             self.executed_tools
                 .lock()
                 .unwrap_or_else(|p| p.into_inner())
@@ -1619,12 +3066,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     args: pi_ai_core::JsonValue::Object(prepared.args.clone()),
                 }),
             );
-            #[cfg(feature = "extensions")]
             permits.release();
             drop(displaced_binding);
             drop(displaced_capture);
             (replay, arguments, route_snapshot)
         };
+        drop(handoff_release);
+        drop(binding_release);
+        #[cfg(feature = "extensions")]
+        drop(route_release);
         #[cfg(not(feature = "extensions"))]
         let _ = &route_snapshot;
         self.events().flush();

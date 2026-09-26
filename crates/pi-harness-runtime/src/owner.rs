@@ -65,6 +65,28 @@ pub(crate) struct ToolRegistry<C> {
     next_epoch: u64,
 }
 
+pub(crate) enum InstalledToolOrigin<C> {
+    Direct(std::marker::PhantomData<fn() -> C>),
+    #[cfg(feature = "extensions")]
+    Echo {
+        declaration: Arc<AgentTool>,
+        route: EchoRouteSnapshot<C>,
+    },
+}
+
+impl<C> Clone for InstalledToolOrigin<C> {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Direct(marker) => Self::Direct(*marker),
+            #[cfg(feature = "extensions")]
+            Self::Echo { declaration, route } => Self::Echo {
+                declaration: declaration.clone(),
+                route: route.clone(),
+            },
+        }
+    }
+}
+
 /// Displaced host-owned objects must be released after both registry and
 /// settings-line guards. Their destructors may synchronously call back in.
 pub(crate) struct ReplacedTools<C> {
@@ -82,6 +104,34 @@ impl<C> ReplacedTools<C> {
 }
 
 impl<C> ToolRegistry<C> {
+    /// Clone actual objects and installed origin under one registry boundary;
+    /// descriptor/context/prepare callbacks run only after this snapshot exists.
+    pub(crate) fn selection_snapshot(
+        &self,
+    ) -> Vec<(AgentHarnessToolHandle<C>, InstalledToolOrigin<C>)> {
+        self.handles
+            .iter()
+            .map(|handle| {
+                #[cfg(feature = "extensions")]
+                let origin = self.echo_snapshot(handle).map_or(
+                    InstalledToolOrigin::Direct(std::marker::PhantomData),
+                    |route| InstalledToolOrigin::Echo {
+                        declaration: Arc::new(
+                            self.echo
+                                .as_ref()
+                                .expect("snapshot registration")
+                                .descriptor
+                                .clone(),
+                        ),
+                        route,
+                    },
+                );
+                #[cfg(not(feature = "extensions"))]
+                let origin = InstalledToolOrigin::Direct(std::marker::PhantomData);
+                (handle.clone(), origin)
+            })
+            .collect()
+    }
     fn new(handles: Vec<AgentHarnessToolHandle<C>>, descriptors: Vec<AgentTool>) -> Self {
         debug_assert_eq!(handles.len(), descriptors.len());
         Self {
@@ -396,6 +446,7 @@ pub(crate) struct LaneControl {
     pub reservation: Mutex<Option<OperationId>>,
     pub streaming: Mutex<Option<(EntryId, pi_ai_core::AssistantMessage)>>,
     pub running_tools: Mutex<BTreeMap<EffectKey, RunningToolSnapshot>>,
+    pub(crate) origin_leases: Mutex<Vec<std::sync::Weak<dyn crate::tools::OriginFence>>>,
     pub line: MutationLine,
     pub gate: ManualGate,
     pub hydrated: Mutex<HydratedLane>,
@@ -424,6 +475,7 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub settings_line: MutationLine,
     pub settings: Mutex<Settings>,
     pub tools: Mutex<ToolRegistry<C>>,
+    pub(crate) tool_publications: Mutex<BTreeMap<EffectKey, Arc<crate::tools::ToolPublication<C>>>>,
     #[cfg(feature = "extensions")]
     pub(crate) routed_pending: Mutex<BTreeSet<EffectKey>>,
     #[cfg(feature = "extensions")]
@@ -571,6 +623,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     reservation: Mutex::new(None),
                     streaming: Mutex::new(None),
                     running_tools: Mutex::new(BTreeMap::new()),
+                    origin_leases: Mutex::new(Vec::new()),
                     line: MutationLine::new(admission.clone()),
                     gate: ManualGate::new(admission.clone(), options.drive),
                     hydrated: Mutex::new(hydrated),
@@ -629,6 +682,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             closed: pi_ai_core::CancellationToken::new(),
             seed,
             tools: Mutex::new(ToolRegistry::new(options.tools, tool_descriptors)),
+            tool_publications: Mutex::new(BTreeMap::new()),
             #[cfg(feature = "extensions")]
             routed_pending: Mutex::new(BTreeSet::new()),
             #[cfg(feature = "extensions")]
