@@ -18,6 +18,10 @@ use crate::activation::{
 };
 use crate::endpoint::{ActiveFrame, SelectedEnvelope};
 use crate::jcs;
+use crate::wire::echo_bounded::{BorrowedIndexArena, ScanError, SelectedMinor};
+use crate::wire::echo_selected::{
+    self, ActiveArm, AdmissionError, ResultTerminal, RoleError, SelectError, SelectedActive,
+};
 use crate::wire::framing::{self, EncodedFrame, FrameError};
 use crate::wire::value;
 use crate::wire::{v1_0, v1_1};
@@ -28,6 +32,7 @@ pub enum LiveError {
     WrongGeneration,
     WrongRequestId,
     WrongVersion,
+    UnexpectedFrame,
     InvalidEffectKey,
     InvalidToolCallId,
     InvalidDeadline,
@@ -53,6 +58,7 @@ impl fmt::Display for LiveError {
             Self::WrongGeneration => "wrong connection generation",
             Self::WrongRequestId => "wrong invocation request id",
             Self::WrongVersion => "wrong selected protocol version",
+            Self::UnexpectedFrame => "unexpected active frame",
             Self::InvalidEffectKey => "invalid planned effect key",
             Self::InvalidToolCallId => "invalid source tool call id",
             Self::InvalidDeadline => "invalid relative deadline",
@@ -85,6 +91,49 @@ impl From<value::Error> for LiveError {
         Self::Value(value)
     }
 }
+
+/// Caller-local scanner/policy failures; these never blame the peer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IndexedLocalFault {
+    ScanLimit,
+    ScanAllocation,
+    InternalPolicy,
+}
+
+impl fmt::Display for IndexedLocalFault {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::ScanLimit => "indexed scan capacity exhausted",
+            Self::ScanAllocation => "indexed scan allocation failed",
+            Self::InternalPolicy => "indexed receive policy mismatch",
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum IndexedReceiveError {
+    Protocol(LiveError),
+    Local(IndexedLocalFault),
+}
+
+impl fmt::Display for IndexedReceiveError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Protocol(error) => error.fmt(f),
+            Self::Local(error) => error.fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for IndexedReceiveError {}
+
+impl From<LiveError> for IndexedReceiveError {
+    fn from(error: LiveError) -> Self {
+        Self::Protocol(error)
+    }
+}
+
+type IndexedResult<T> = std::result::Result<T, IndexedReceiveError>;
 
 type Result<T> = std::result::Result<T, LiveError>;
 const MAX_SAFE_UNSIGNED: u64 = 9_007_199_254_740_991;
@@ -342,6 +391,8 @@ pub struct ToolInvocation {
     next_sequence: u64,
     phase: LivePhase,
     receipt: Option<TerminalReceipt>,
+    #[cfg(test)]
+    indexed_test_fault: Option<IndexedTestFault>,
 }
 
 impl ToolInvocation {
@@ -487,6 +538,8 @@ impl ToolInvocation {
                 next_sequence: 0,
                 phase: LivePhase::Open,
                 receipt: None,
+                #[cfg(test)]
+                indexed_test_fault: None,
             },
             outbound,
         ))
@@ -573,15 +626,119 @@ impl ToolInvocation {
         frame: &ActiveFrame,
         ingress_now_ms: u64,
         additional_deadline_ms: Option<u64>,
-        mut domain: F,
-        mut final_now_ms: N,
+        domain: F,
+        final_now_ms: N,
     ) -> Result<ReceiveOutcome>
     where
         F: FnMut(DomainCheck<'_>) -> DomainDecision,
         N: FnMut() -> u64,
     {
+        self.receive_engine(
+            generation,
+            ReceiveSource::Owned(frame),
+            ingress_now_ms,
+            additional_deadline_ms,
+            domain,
+            final_now_ms,
+        )
+        .map_err(|error| match error {
+            IndexedReceiveError::Protocol(error) => error,
+            IndexedReceiveError::Local(_) => LiveError::HostDomainFault,
+        })
+    }
+
+    /// Inert caller-backed receive after Ready. Selection and debit use this
+    /// invocation's stored grant and the actual body, excluding its prefix.
+    /// Outer peer errors leave the invocation untouched: the caller closes the
+    /// supplied generation and calls `peer_lost` only on matching bindings.
+    /// Local faults leave reached invocation state unchanged and belong to the host.
+    #[allow(clippy::too_many_arguments)]
+    pub fn receive_indexed_checked_with_final_time<F, N>(
+        &mut self,
+        generation: u64,
+        transmitted_body: &[u8],
+        arena: &mut BorrowedIndexArena<'_>,
+        ingress_now_ms: u64,
+        additional_deadline_ms: Option<u64>,
+        domain: F,
+        final_now_ms: N,
+    ) -> IndexedResult<ReceiveOutcome>
+    where
+        F: FnMut(DomainCheck<'_>) -> DomainDecision,
+        N: FnMut() -> u64,
+    {
+        self.receive_engine(
+            generation,
+            ReceiveSource::Indexed {
+                body: transmitted_body,
+                arena,
+            },
+            ingress_now_ms,
+            additional_deadline_ms,
+            domain,
+            final_now_ms,
+        )
+    }
+
+    fn receive_engine<F, N>(
+        &mut self,
+        generation: u64,
+        source: ReceiveSource<'_, '_, '_, '_>,
+        ingress_now_ms: u64,
+        additional_deadline_ms: Option<u64>,
+        mut domain: F,
+        mut final_now_ms: N,
+    ) -> IndexedResult<ReceiveOutcome>
+    where
+        F: FnMut(DomainCheck<'_>) -> DomainDecision,
+        N: FnMut() -> u64,
+    {
+        let (owned, transmitted_body, mut arena) = match source {
+            ReceiveSource::Owned(frame) => (Some(frame), None, None),
+            ReceiveSource::Indexed { body, arena } => (None, Some(body), Some(arena)),
+        };
+        let body_len = owned.map_or_else(
+            || transmitted_body.unwrap_or_default().len(),
+            |f| f.body_len,
+        );
+        let debit = u64::try_from(body_len).map_err(|_| local_policy())?;
+        let input = if let Some(frame) = owned {
+            ReceiveInput::Owned(frame)
+        } else {
+            let body = transmitted_body.ok_or_else(local_policy)?;
+            if body.is_empty() {
+                return Err(LiveError::Frame(FrameError::ZeroLength).into());
+            }
+            if body_len > self.limits.frame.get() {
+                return Err(LiveError::Frame(FrameError::FrameTooLarge {
+                    length: debit,
+                    limit: self.limits.frame.get(),
+                })
+                .into());
+            }
+            #[cfg(test)]
+            if let Some(IndexedTestFault::Outer(error)) = self.indexed_test_fault {
+                return Err(outer_scan_error(error));
+            }
+            let view = arena
+                .as_deref_mut()
+                .ok_or_else(local_policy)?
+                .scan_envelope(body)
+                .map_err(outer_scan_error)?;
+            #[cfg(test)]
+            if let Some(IndexedTestFault::Selection(error)) = self.indexed_test_fault {
+                return Err(select_error(error));
+            }
+            let selected = echo_selected::select_active(
+                view,
+                selected_minor(self.core_minor),
+                self.limits.frame,
+            )
+            .map_err(select_error)?;
+            ReceiveInput::Indexed(selected)
+        };
         if generation != self.binding.generation() {
-            return Err(LiveError::WrongGeneration);
+            return Err(LiveError::WrongGeneration.into());
         }
         if matches!(
             self.phase,
@@ -590,80 +747,77 @@ impl ToolInvocation {
             return Ok(ReceiveOutcome::Stale);
         }
         if self.phase == LivePhase::PeerLost {
-            return Err(LiveError::PeerLost);
+            return Err(LiveError::PeerLost.into());
         }
         if self.expire_with_additional(ingress_now_ms, additional_deadline_ms) {
-            return Err(LiveError::PeerLost);
+            return Err(LiveError::PeerLost.into());
         }
-        if frame.body_len == 0 || frame.body_len > self.limits.frame.get() {
-            return self.malformed(LiveError::Limit);
+        if body_len == 0 || body_len > self.limits.frame.get() {
+            return self.receive_failure(IndexedReceiveError::Protocol(LiveError::Limit));
         }
-        let inbound = match (&frame.envelope, self.core_minor) {
-            (SelectedEnvelope::V1_0(e), 0) => match e.frame.as_ref() {
-                Some(v1_0::envelope::Frame::StreamItem(item)) => Inbound::Item {
-                    request_id: item.request_id,
-                    sequence: item.sequence,
-                    payload: &item.payload,
-                },
-                Some(v1_0::envelope::Frame::StreamEnd(end)) => Inbound::End {
-                    request_id: end.request_id,
-                    terminal: match end.terminal.as_ref() {
-                        Some(v1_0::stream_end::Terminal::Result(bytes)) => {
-                            TerminalView::Result(bytes)
-                        }
-                        Some(v1_0::stream_end::Terminal::Error(error)) => TerminalView::Error {
-                            code: error.code,
-                            message: &error.safe_message,
-                        },
-                        None => return self.malformed(LiveError::InvalidTerminal),
-                    },
-                },
-                _ => return self.malformed(LiveError::InvalidTerminal),
-            },
-            (SelectedEnvelope::V1_1(e), 1) => match e.frame.as_ref() {
-                Some(v1_1::envelope::Frame::StreamItem(item)) => Inbound::Item {
-                    request_id: item.request_id,
-                    sequence: item.sequence,
-                    payload: &item.payload,
-                },
-                Some(v1_1::envelope::Frame::StreamEnd(end)) => Inbound::End {
-                    request_id: end.request_id,
-                    terminal: match end.terminal.as_ref() {
-                        Some(v1_1::stream_end::Terminal::Result(bytes)) => {
-                            TerminalView::Result(bytes)
-                        }
-                        Some(v1_1::stream_end::Terminal::Error(error)) => TerminalView::Error {
-                            code: error.code,
-                            message: &error.safe_message,
-                        },
-                        None => return self.malformed(LiveError::InvalidTerminal),
-                    },
-                },
-                _ => return self.malformed(LiveError::InvalidTerminal),
-            },
-            _ => return Err(LiveError::WrongVersion),
+        let header = match input.header(self.core_minor) {
+            Ok(header) => header,
+            Err(IndexedReceiveError::Protocol(LiveError::WrongVersion)) => {
+                return Err(LiveError::WrongVersion.into());
+            }
+            Err(error) => return self.receive_failure(error),
         };
-        match inbound {
-            Inbound::Item {
+        match header {
+            InboundHeader::Item {
                 request_id,
                 sequence,
-                payload,
             } => {
                 if request_id != self.binding.request_id() {
-                    return self.malformed(LiveError::WrongRequestId);
+                    return self
+                        .receive_failure(IndexedReceiveError::Protocol(LiveError::WrongRequestId));
                 }
                 if sequence != self.next_sequence {
-                    return self.malformed(LiveError::InvalidSequence);
+                    return self.receive_failure(IndexedReceiveError::Protocol(
+                        LiveError::InvalidSequence,
+                    ));
                 }
-                if frame.body_len as u64 > self.credit {
-                    return self.malformed(LiveError::CreditViolation);
+                if debit > self.credit {
+                    return self.receive_failure(IndexedReceiveError::Protocol(
+                        LiveError::CreditViolation,
+                    ));
                 }
-                if payload.len() > self.limits.frame.get() {
-                    return self.malformed(LiveError::Limit);
-                }
-                let progress = match self.validate_progress(payload) {
+                let progress = match input {
+                    ReceiveInput::Owned(frame) => {
+                        let Inbound::Item { payload, .. } = owned_inbound(frame, self.core_minor)?
+                        else {
+                            return self.receive_failure(local_policy());
+                        };
+                        if payload.len() > self.limits.frame.get() {
+                            return self.receive_failure(LiveError::Limit.into());
+                        }
+                        self.validate_progress(payload)
+                            .map_err(IndexedReceiveError::from)
+                    }
+                    ReceiveInput::Indexed(selected) => {
+                        let payload = match selected.into_progress_payload() {
+                            Ok(payload) => payload,
+                            Err(error) => return self.receive_failure(role_error(error)),
+                        };
+                        let admission = payload.admit(
+                            arena.as_deref_mut().ok_or_else(local_policy)?,
+                            selected_minor(self.tool_minor),
+                            &selected_projection(self.projections.progress()),
+                            self.limits.value,
+                            self.limits.json,
+                        );
+                        #[cfg(test)]
+                        let admission = self.inject_indexed_admission(admission);
+                        admission
+                            .map(|p| ValidatedProgress {
+                                json: p.json,
+                                percent_complete: p.percent_complete,
+                            })
+                            .map_err(admission_error)
+                    }
+                };
+                let progress = match progress {
                     Ok(progress) => progress,
-                    Err(error) => return self.malformed(error),
+                    Err(error) => return self.receive_failure(error),
                 };
                 let projection = self.projections.progress();
                 match domain(DomainCheck {
@@ -676,19 +830,25 @@ impl ToolInvocation {
                 }) {
                     DomainDecision::Accept => {}
                     DomainDecision::PeerValueMismatch => {
-                        return self.malformed(LiveError::InvalidProgress);
+                        return self.receive_failure(IndexedReceiveError::Protocol(
+                            LiveError::InvalidProgress,
+                        ));
                     }
-                    DomainDecision::HostFault => return Err(LiveError::HostDomainFault),
+                    DomainDecision::HostFault => return Err(LiveError::HostDomainFault.into()),
                 }
                 let next_sequence = match self.next_sequence.checked_add(1) {
                     Some(next) => next,
-                    None => return self.malformed(LiveError::InvalidSequence),
+                    None => {
+                        return self.receive_failure(IndexedReceiveError::Protocol(
+                            LiveError::InvalidSequence,
+                        ));
+                    }
                 };
                 let final_ms = final_now_ms();
                 if self.expire_with_additional(final_ms, additional_deadline_ms) {
-                    return Err(LiveError::PeerLost);
+                    return Err(LiveError::PeerLost.into());
                 }
-                self.credit -= frame.body_len as u64;
+                self.credit -= debit;
                 self.next_sequence = next_sequence;
                 if self.phase == LivePhase::CancelRequested {
                     Ok(ReceiveOutcome::IgnoredCancelledProgress)
@@ -696,16 +856,50 @@ impl ToolInvocation {
                     Ok(ReceiveOutcome::Progress(progress))
                 }
             }
-            Inbound::End {
-                request_id,
-                terminal,
-            } => {
+            InboundHeader::End { request_id } => {
                 if request_id != self.binding.request_id() {
-                    return self.malformed(LiveError::WrongRequestId);
+                    return self
+                        .receive_failure(IndexedReceiveError::Protocol(LiveError::WrongRequestId));
                 }
-                let output = match self.validate_terminal(terminal) {
+                let output = match input {
+                    ReceiveInput::Owned(frame) => {
+                        let Inbound::End { terminal, .. } = owned_inbound(frame, self.core_minor)?
+                        else {
+                            return self.receive_failure(local_policy());
+                        };
+                        self.validate_terminal(terminal)
+                            .map_err(IndexedReceiveError::from)
+                    }
+                    ReceiveInput::Indexed(selected) => {
+                        let terminal = match selected.into_result_terminal() {
+                            Ok(terminal) => terminal,
+                            Err(error) => return self.receive_failure(role_error(error)),
+                        };
+                        match terminal {
+                            ResultTerminal::Result(payload) => {
+                                let admission = payload.admit(
+                                    arena.ok_or_else(local_policy)?,
+                                    selected_minor(self.tool_minor),
+                                    &selected_projection(self.projections.raw_result()),
+                                    self.limits.value,
+                                    self.limits.json,
+                                );
+                                #[cfg(test)]
+                                let admission = self.inject_indexed_admission(admission);
+                                admission
+                                    .map(|result| TerminalOutput::Result(result.json))
+                                    .map_err(admission_error)
+                            }
+                            ResultTerminal::ErrorTerminal(error) => error
+                                .validate(|code, message| self.validate_error(code, message))
+                                .map_err(role_error)?
+                                .map_err(IndexedReceiveError::from),
+                        }
+                    }
+                };
+                let output = match output {
                     Ok(output) => output,
-                    Err(error) => return self.malformed(error),
+                    Err(error) => return self.receive_failure(error),
                 };
                 if let TerminalOutput::Result(ref json) = output {
                     let projection = self.projections.raw_result();
@@ -719,15 +913,17 @@ impl ToolInvocation {
                     }) {
                         DomainDecision::Accept => {}
                         DomainDecision::PeerValueMismatch => {
-                            return self.malformed(LiveError::InvalidTerminal);
+                            return self.receive_failure(IndexedReceiveError::Protocol(
+                                LiveError::InvalidTerminal,
+                            ));
                         }
-                        DomainDecision::HostFault => return Err(LiveError::HostDomainFault),
+                        DomainDecision::HostFault => return Err(LiveError::HostDomainFault.into()),
                     }
                 }
                 let binding = self.binding.clone();
                 let final_ms = final_now_ms();
                 if self.expire_with_additional(final_ms, additional_deadline_ms) {
-                    return Err(LiveError::PeerLost);
+                    return Err(LiveError::PeerLost.into());
                 }
                 self.receipt = Some(TerminalReceipt {
                     binding,
@@ -994,19 +1190,185 @@ impl ToolInvocation {
                 };
                 Ok(TerminalOutput::Result(json))
             }
-            TerminalView::Error { code, message } => {
-                let code =
-                    v1_1::ErrorCode::try_from(code).map_err(|_| LiveError::UnsupportedVariant)?;
-                if code == v1_1::ErrorCode::Unspecified {
-                    return Err(LiveError::UnsupportedVariant);
-                }
-                if message.len() > self.limits.string_bytes {
-                    return Err(LiveError::Limit);
-                }
-                Ok(TerminalOutput::Error { code })
-            }
+            TerminalView::Error { code, message } => self.validate_error(code, message),
         }
     }
+
+    fn validate_error(&self, code: i32, message: &str) -> Result<TerminalOutput> {
+        let code = v1_1::ErrorCode::try_from(code).map_err(|_| LiveError::UnsupportedVariant)?;
+        if code == v1_1::ErrorCode::Unspecified {
+            return Err(LiveError::UnsupportedVariant);
+        }
+        if message.len() > self.limits.string_bytes {
+            return Err(LiveError::Limit);
+        }
+        Ok(TerminalOutput::Error { code })
+    }
+
+    #[cfg(test)]
+    fn inject_indexed_admission<T>(
+        &self,
+        result: std::result::Result<T, AdmissionError>,
+    ) -> std::result::Result<T, AdmissionError> {
+        match self.indexed_test_fault {
+            Some(IndexedTestFault::Inner(error)) => Err(error),
+            _ => result,
+        }
+    }
+
+    fn receive_failure<T>(&mut self, error: IndexedReceiveError) -> IndexedResult<T> {
+        match error {
+            IndexedReceiveError::Protocol(error) => self.malformed(error).map_err(Into::into),
+            IndexedReceiveError::Local(_) => Err(error),
+        }
+    }
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy)]
+enum IndexedTestFault {
+    Outer(ScanError),
+    Selection(SelectError),
+    Inner(AdmissionError),
+}
+
+enum ReceiveSource<'frame, 'body, 'arena, 'storage> {
+    Owned(&'frame ActiveFrame),
+    Indexed {
+        body: &'body [u8],
+        arena: &'arena mut BorrowedIndexArena<'storage>,
+    },
+}
+
+enum ReceiveInput<'frame, 'view, 'body> {
+    Owned(&'frame ActiveFrame),
+    Indexed(SelectedActive<'view, 'body>),
+}
+
+enum InboundHeader {
+    Item { request_id: u64, sequence: u64 },
+    End { request_id: u64 },
+}
+
+impl ReceiveInput<'_, '_, '_> {
+    fn header(&self, core_minor: u32) -> IndexedResult<InboundHeader> {
+        match self {
+            Self::Owned(frame) => Ok(match owned_inbound(frame, core_minor)? {
+                Inbound::Item {
+                    request_id,
+                    sequence,
+                    ..
+                } => InboundHeader::Item {
+                    request_id,
+                    sequence,
+                },
+                Inbound::End { request_id, .. } => InboundHeader::End { request_id },
+            }),
+            Self::Indexed(selected) => match selected.arm() {
+                ActiveArm::StreamItem => Ok(InboundHeader::Item {
+                    request_id: selected.request_id().map_err(role_error)?,
+                    sequence: selected.sequence().map_err(role_error)?,
+                }),
+                ActiveArm::StreamEnd => {
+                    if !selected.terminal_present().map_err(role_error)? {
+                        return Err(LiveError::InvalidTerminal.into());
+                    }
+                    Ok(InboundHeader::End {
+                        request_id: selected.request_id().map_err(role_error)?,
+                    })
+                }
+                _ => Err(LiveError::InvalidTerminal.into()),
+            },
+        }
+    }
+}
+
+fn selected_minor(minor: u32) -> SelectedMinor {
+    if minor == 0 {
+        SelectedMinor::V1_0
+    } else {
+        SelectedMinor::V1_1
+    }
+}
+fn local_policy() -> IndexedReceiveError {
+    IndexedReceiveError::Local(IndexedLocalFault::InternalPolicy)
+}
+fn outer_scan_error(error: ScanError) -> IndexedReceiveError {
+    match error {
+        ScanError::Malformed => LiveError::Frame(FrameError::InvalidEnvelope).into(),
+        ScanError::UnsupportedVariant => LiveError::UnsupportedVariant.into(),
+        ScanError::Limit => IndexedReceiveError::Local(IndexedLocalFault::ScanLimit),
+        ScanError::Allocation => IndexedReceiveError::Local(IndexedLocalFault::ScanAllocation),
+    }
+}
+fn select_error(error: SelectError) -> IndexedReceiveError {
+    match error {
+        SelectError::UnexpectedFrame => LiveError::UnexpectedFrame.into(),
+        SelectError::FrameTooLarge { length, limit } => {
+            LiveError::Frame(FrameError::FrameTooLarge { length, limit }).into()
+        }
+        SelectError::InternalPolicy => local_policy(),
+    }
+}
+fn role_error(error: RoleError) -> IndexedReceiveError {
+    match error {
+        RoleError::InvalidTerminal => LiveError::InvalidTerminal.into(),
+        RoleError::WrongArm | RoleError::InternalPolicy => local_policy(),
+    }
+}
+fn admission_error(error: AdmissionError) -> IndexedReceiveError {
+    match error {
+        AdmissionError::InvalidProgress => LiveError::InvalidProgress.into(),
+        AdmissionError::InvalidTerminal => LiveError::InvalidTerminal.into(),
+        AdmissionError::UnsupportedVariant => LiveError::UnsupportedVariant.into(),
+        AdmissionError::Value(error) => LiveError::Value(error).into(),
+        AdmissionError::InternalPolicy => local_policy(),
+        AdmissionError::LocalResource(error) => outer_scan_error(error),
+    }
+}
+
+fn owned_inbound(frame: &ActiveFrame, core_minor: u32) -> Result<Inbound<'_>> {
+    Ok(match (&frame.envelope, core_minor) {
+        (SelectedEnvelope::V1_0(e), 0) => match e.frame.as_ref() {
+            Some(v1_0::envelope::Frame::StreamItem(item)) => Inbound::Item {
+                request_id: item.request_id,
+                sequence: item.sequence,
+                payload: &item.payload,
+            },
+            Some(v1_0::envelope::Frame::StreamEnd(end)) => Inbound::End {
+                request_id: end.request_id,
+                terminal: match end.terminal.as_ref() {
+                    Some(v1_0::stream_end::Terminal::Result(bytes)) => TerminalView::Result(bytes),
+                    Some(v1_0::stream_end::Terminal::Error(error)) => TerminalView::Error {
+                        code: error.code,
+                        message: &error.safe_message,
+                    },
+                    None => return Err(LiveError::InvalidTerminal),
+                },
+            },
+            _ => return Err(LiveError::InvalidTerminal),
+        },
+        (SelectedEnvelope::V1_1(e), 1) => match e.frame.as_ref() {
+            Some(v1_1::envelope::Frame::StreamItem(item)) => Inbound::Item {
+                request_id: item.request_id,
+                sequence: item.sequence,
+                payload: &item.payload,
+            },
+            Some(v1_1::envelope::Frame::StreamEnd(end)) => Inbound::End {
+                request_id: end.request_id,
+                terminal: match end.terminal.as_ref() {
+                    Some(v1_1::stream_end::Terminal::Result(bytes)) => TerminalView::Result(bytes),
+                    Some(v1_1::stream_end::Terminal::Error(error)) => TerminalView::Error {
+                        code: error.code,
+                        message: &error.safe_message,
+                    },
+                    None => return Err(LiveError::InvalidTerminal),
+                },
+            },
+            _ => return Err(LiveError::InvalidTerminal),
+        },
+        _ => return Err(LiveError::WrongVersion),
+    })
 }
 
 enum Inbound<'a> {
@@ -1071,4 +1433,380 @@ fn convert_message<T: Message + Default, M: Message>(
 ) -> Result<T> {
     let bytes = encode_inner(message, limit)?;
     T::decode(bytes.as_slice()).map_err(|_| LiveError::WrongVersion)
+}
+
+#[cfg(test)]
+mod indexed_tests {
+    use super::*;
+    use crate::activation::{
+        Activation, AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolSchemaInputs,
+    };
+    use crate::wire::echo_bounded::IndexStorage;
+    use serde_json::Value;
+    use std::cell::Cell;
+
+    fn unhex(s: &str) -> Vec<u8> {
+        s.as_bytes()
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|p| u8::from_str_radix(std::str::from_utf8(p).unwrap(), 16).unwrap())
+            .collect()
+    }
+    fn invocation(core: u32, tool: u32) -> ToolInvocation {
+        let catalog: Value =
+            serde_json::from_str(include_str!("../schema/fixtures/host-catalog.json")).unwrap();
+        let entry = &catalog["entries"][0];
+        let descriptor = &entry["agentTool"];
+        let approved = ApprovedTool::new(
+            "peer-a".into(),
+            AgentTool {
+                name: "echo".into(),
+                label: descriptor["label"].as_str().unwrap().into(),
+                description: descriptor["description"].as_str().unwrap().into(),
+                parameters: descriptor["parameters"].clone(),
+                execution_mode: AgentToolMode::Sequential,
+                replay: ToolReplay::Safe,
+            },
+            [0, 1]
+                .into_iter()
+                .map(|minor| {
+                    let set = &entry["selected_minor_schema_sets"][format!("1.{minor}")];
+                    ToolSchemaInputs {
+                        minor,
+                        arguments: serde_json::to_vec(&set["arguments"]["schema"]).unwrap(),
+                        progress: serde_json::to_vec(&set["progress"]["schema"]).unwrap(),
+                        raw_result: serde_json::to_vec(&set["raw_result"]["schema"]).unwrap(),
+                    }
+                })
+                .collect(),
+            jcs::Limits::default(),
+        )
+        .unwrap();
+        let l = v1_1::ProtocolLimits {
+            pre_handshake_frame_bytes: 4096,
+            frame_bytes: 4096,
+            aggregate_decoded_bytes: 8192,
+            value_depth: 32,
+            value_elements: 1024,
+            string_bytes: 4096,
+            bytes_length: 4096,
+            in_flight_requests: 1,
+            blocking_queue_bytes: 4096,
+            progress_queue_bytes: 4096,
+            passive_queue_bytes: 4096,
+            telemetry_queue_bytes: 4096,
+            nesting_depth: 8,
+            requests_per_second: 32,
+            handshake_ms: 1000,
+            cancellation_grace_ms: 100,
+            max_stream_credit_bytes: 4096,
+        };
+        let host =
+            HostAuthority::new("peer-a".into(), 7, core, tool, l, vec![approved], vec![]).unwrap();
+        let mut a = Activation::new(host, 100);
+        a.receive_hello(
+            &v1_1::Hello {
+                protocol: Some(v1_1::VersionRange {
+                    major: 1,
+                    min_minor: 0,
+                    max_minor: 1,
+                }),
+                supported_profiles: vec![v1_1::ProfileRange {
+                    name: "tool.v1".into(),
+                    major: 1,
+                    min_minor: 0,
+                    max_minor: 1,
+                }],
+            }
+            .encode_to_vec(),
+            101,
+        )
+        .unwrap();
+        let vectors: Value =
+            serde_json::from_str(include_str!("../schema/fixtures/activation-vectors.json"))
+                .unwrap();
+        a.receive_manifest(
+            &unhex(
+                vectors["cases"]["valid_1_1"]["manifest_pb_hex"]
+                    .as_str()
+                    .unwrap(),
+            ),
+            102,
+        )
+        .unwrap();
+        a.receive_ready(&[], 103).unwrap();
+        let raw: Value =
+            serde_json::from_str(include_str!("../schema/fixtures/raw-vectors.json")).unwrap();
+        let envelope =
+            v1_1::Envelope::decode(unhex(raw["request"]["body_hex"].as_str().unwrap()).as_slice())
+                .unwrap();
+        let Some(v1_1::envelope::Frame::Request(request)) = envelope.frame else {
+            panic!()
+        };
+        let inner = v1_1::InvokeToolRequest::decode(request.payload.as_slice()).unwrap();
+        let arguments = inner.arguments.unwrap();
+        let arguments = if tool == 0 {
+            SelectedArguments::V1_0(
+                v1_0::SchemaBoundValue::decode(arguments.encode_to_vec().as_slice()).unwrap(),
+            )
+        } else {
+            SelectedArguments::V1_1(arguments)
+        };
+        ToolInvocation::start(
+            a.active_grant().unwrap(),
+            "echo",
+            Start {
+                effect_key: request.effect_key.unwrap(),
+                source_call_id: inner.tool_call_id,
+                request_id: 17,
+                active_generation: 7,
+                arguments,
+                now_ms: 200,
+                requested_deadline_after_ms: Some(300),
+                method_limit_ms: 300,
+                connection_remaining_ms: 300,
+                parent_remaining_ms: None,
+                initial_credit_bytes: Some(4096),
+            },
+        )
+        .unwrap()
+        .0
+    }
+    fn body(progress: bool, sequence: u64) -> Vec<u8> {
+        let raw: Value =
+            serde_json::from_str(include_str!("../schema/fixtures/raw-vectors.json")).unwrap();
+        let mut envelope = v1_1::Envelope::decode(
+            unhex(
+                raw[if progress { "progress" } else { "terminal" }]["body_hex"]
+                    .as_str()
+                    .unwrap(),
+            )
+            .as_slice(),
+        )
+        .unwrap();
+        if let Some(v1_1::envelope::Frame::StreamItem(item)) = &mut envelope.frame {
+            item.sequence = sequence;
+        }
+        envelope.encode_to_vec()
+    }
+    #[test]
+    fn indexed_fault_classifiers_run_common_path_without_mutation_or_clock() {
+        let exhausted = echo_selected::exhausted_scan_fixture();
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                for progress in [true, false] {
+                    for (fault, expected) in [
+                        (
+                            IndexedTestFault::Outer(exhausted),
+                            IndexedLocalFault::ScanLimit,
+                        ),
+                        (
+                            IndexedTestFault::Outer(ScanError::Allocation),
+                            IndexedLocalFault::ScanAllocation,
+                        ),
+                        (
+                            IndexedTestFault::Selection(SelectError::InternalPolicy),
+                            IndexedLocalFault::InternalPolicy,
+                        ),
+                        (
+                            IndexedTestFault::Inner(AdmissionError::LocalResource(exhausted)),
+                            IndexedLocalFault::ScanLimit,
+                        ),
+                        (
+                            IndexedTestFault::Inner(AdmissionError::LocalResource(
+                                ScanError::Allocation,
+                            )),
+                            IndexedLocalFault::ScanAllocation,
+                        ),
+                        (
+                            IndexedTestFault::Inner(AdmissionError::InternalPolicy),
+                            IndexedLocalFault::InternalPolicy,
+                        ),
+                    ] {
+                        let mut live = invocation(core, tool);
+                        live.indexed_test_fault = Some(fault);
+                        let mut slot = IndexStorage::<1024, 1025>::new();
+                        let mut arena = slot
+                            .borrow(NonZeroUsize::new(1024).unwrap(), usize::MAX)
+                            .unwrap();
+                        let domain = Cell::new(0);
+                        let clock = Cell::new(0);
+                        let result = live.receive_indexed_checked_with_final_time(
+                            7,
+                            &body(progress, 0),
+                            &mut arena,
+                            201,
+                            None,
+                            |_| {
+                                domain.set(domain.get() + 1);
+                                DomainDecision::Accept
+                            },
+                            || {
+                                clock.set(clock.get() + 1);
+                                201
+                            },
+                        );
+                        assert_eq!(result.err(), Some(IndexedReceiveError::Local(expected)));
+                        assert_eq!(
+                            (
+                                live.phase(),
+                                live.credit(),
+                                live.next_sequence(),
+                                domain.get(),
+                                clock.get()
+                            ),
+                            (LivePhase::Open, 4096, 0, 0, 0)
+                        );
+                        assert!(live.receipt().is_none());
+                    }
+                }
+            }
+        }
+    }
+    #[test]
+    fn indexed_sequence_overflow_after_domain_before_final_clock_and_debit() {
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                let mut live = invocation(core, tool);
+                live.next_sequence = u64::MAX;
+                let mut slot = IndexStorage::<1024, 1025>::new();
+                let mut arena = slot
+                    .borrow(NonZeroUsize::new(1024).unwrap(), usize::MAX)
+                    .unwrap();
+                let calls = Cell::new(0);
+                let result = live.receive_indexed_checked_with_final_time(
+                    7,
+                    &body(true, u64::MAX),
+                    &mut arena,
+                    201,
+                    None,
+                    |check| {
+                        calls.set(calls.get() + 1);
+                        assert_eq!(check.kind(), DomainKind::Progress);
+                        DomainDecision::Accept
+                    },
+                    || panic!("overflow skips final clock"),
+                );
+                assert_eq!(result.err(), Some(LiveError::InvalidSequence.into()));
+                assert_eq!(calls.get(), 1);
+                assert_eq!(
+                    (live.phase(), live.credit(), live.next_sequence()),
+                    (LivePhase::PeerLost, 4096, u64::MAX)
+                );
+                assert!(live.receipt().is_none());
+            }
+        }
+    }
+    #[test]
+    fn indexed_invocation_exact_json_jcs_and_value_first_error_boundaries() {
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                for progress in [true, false] {
+                    let raw = body(progress, 0);
+                    let envelope = v1_1::Envelope::decode(raw.as_slice()).unwrap();
+                    let oracle = ActiveFrame {
+                        envelope: SelectedEnvelope::V1_1(envelope),
+                        body_len: raw.len(),
+                    };
+                    let source = invocation(core, tool);
+                    let expected = if progress {
+                        let Inbound::Item { payload, .. } = owned_inbound(&oracle, 1).unwrap()
+                        else {
+                            panic!()
+                        };
+                        source.validate_progress(payload).unwrap().json
+                    } else {
+                        let Inbound::End { terminal, .. } = owned_inbound(&oracle, 1).unwrap()
+                        else {
+                            panic!()
+                        };
+                        let TerminalOutput::Result(json) =
+                            source.validate_terminal(terminal).unwrap()
+                        else {
+                            panic!()
+                        };
+                        json
+                    };
+                    for json_gate in [true, false] {
+                        for fits in [true, false] {
+                            let mut live = invocation(core, tool);
+                            let ceiling = expected.len() - usize::from(!fits);
+                            if json_gate {
+                                live.limits.value.json_bytes = ceiling;
+                            } else {
+                                live.limits.json.input_bytes = ceiling;
+                            }
+                            let mut slot = IndexStorage::<1024, 1025>::new();
+                            let mut arena = slot
+                                .borrow(NonZeroUsize::new(1024).unwrap(), usize::MAX)
+                                .unwrap();
+                            let calls = Cell::new(0);
+                            let clock = Cell::new(0);
+                            let result = live.receive_indexed_checked_with_final_time(
+                                7,
+                                &raw,
+                                &mut arena,
+                                201,
+                                None,
+                                |check| {
+                                    calls.set(calls.get() + 1);
+                                    assert_eq!(check.json(), expected);
+                                    DomainDecision::Accept
+                                },
+                                || {
+                                    clock.set(clock.get() + 1);
+                                    201
+                                },
+                            );
+                            if fits {
+                                assert!(result.is_ok());
+                                assert_eq!((calls.get(), clock.get()), (1, 1));
+                            } else {
+                                let error = if json_gate {
+                                    value::Error::Limit
+                                } else {
+                                    value::Error::Schema(jcs::Error::Limit)
+                                };
+                                assert_eq!(result.err(), Some(LiveError::Value(error).into()));
+                                assert_eq!(
+                                    (
+                                        calls.get(),
+                                        clock.get(),
+                                        live.credit(),
+                                        live.next_sequence()
+                                    ),
+                                    (0, 0, 4096, 0)
+                                );
+                                assert!(live.receipt().is_none());
+                            }
+                        }
+                    }
+                    // Projection wins before missing value; full known-wire scanning
+                    // already happened before semantic value/instance admission.
+                    let mut live = invocation(core, tool);
+                    live.limits.value.depth = 1;
+                    let mut slot = IndexStorage::<1024, 1025>::new();
+                    let mut arena = slot
+                        .borrow(NonZeroUsize::new(1024).unwrap(), usize::MAX)
+                        .unwrap();
+                    let result = live.receive_indexed_checked_with_final_time(
+                        7,
+                        &raw,
+                        &mut arena,
+                        201,
+                        None,
+                        |_| panic!("depth precedes domain"),
+                        || panic!("depth precedes clock"),
+                    );
+                    assert_eq!(
+                        result.err(),
+                        Some(LiveError::Value(value::Error::Limit).into())
+                    );
+                    assert_eq!(live.credit(), 4096);
+                    assert!(live.receipt().is_none());
+                }
+            }
+        }
+    }
 }

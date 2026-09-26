@@ -3,13 +3,19 @@ use std::num::NonZeroUsize;
 use pi_extension_protocol::activation::{
     Activation, AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolReplay, ToolSchemaInputs,
 };
-use pi_extension_protocol::endpoint::{ActiveFrame, SelectedEnvelope};
+use pi_extension_protocol::endpoint::{
+    ActiveFrame, Endpoint, EndpointError, EndpointEvent, EndpointPhase, SelectedEnvelope,
+};
 use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::tool_live::{
-    DomainDecision, DomainKind, LiveError, LivePhase, ReceiveOutcome, RetireReason,
-    SelectedArguments, Start, TerminalKind, ToolInvocation,
+    DomainDecision, DomainKind, IndexedLocalFault, IndexedReceiveError, LiveError, LivePhase,
+    ReceiveOutcome, RetireReason, SelectedArguments, Start, TerminalKind, ToolInvocation,
 };
-use pi_extension_protocol::wire::framing::{self, FrameReader};
+use pi_extension_protocol::wire::echo_bounded::{IndexStorage, SelectedMinor};
+use pi_extension_protocol::wire::echo_selected::select_active;
+use pi_extension_protocol::wire::framing::{
+    self, FrameError, FrameReader, RawFrame, RawFrameReader,
+};
 use pi_extension_protocol::wire::value;
 use pi_extension_protocol::wire::{v1_0, v1_1};
 use prost::Message;
@@ -83,6 +89,17 @@ fn active_with_credit(
     tool_minor: u32,
     max_credit: u64,
 ) -> Activation {
+    let mut host_limits = limits();
+    host_limits.max_stream_credit_bytes = max_credit;
+    active_with_settings(generation, core_minor, tool_minor, host_limits)
+}
+
+fn host_with_settings(
+    generation: u64,
+    core_minor: u32,
+    tool_minor: u32,
+    host_limits: v1_1::ProtocolLimits,
+) -> HostAuthority {
     let catalog: Value = serde_json::from_str(CATALOG).unwrap();
     let entry = &catalog["entries"][0];
     let agent = &entry["agentTool"];
@@ -108,9 +125,7 @@ fn active_with_credit(
         .collect();
     let tool =
         ApprovedTool::new("peer-a".into(), descriptor, inputs, JsonLimits::default()).unwrap();
-    let mut host_limits = limits();
-    host_limits.max_stream_credit_bytes = max_credit;
-    let host = HostAuthority::new(
+    HostAuthority::new(
         "peer-a".into(),
         generation,
         core_minor,
@@ -119,7 +134,16 @@ fn active_with_credit(
         vec![tool],
         vec![],
     )
-    .unwrap();
+    .unwrap()
+}
+
+fn active_with_settings(
+    generation: u64,
+    core_minor: u32,
+    tool_minor: u32,
+    host_limits: v1_1::ProtocolLimits,
+) -> Activation {
+    let host = host_with_settings(generation, core_minor, tool_minor, host_limits);
     let mut activation = Activation::new(host, 100);
     let hello = v1_1::Hello {
         protocol: Some(v1_1::VersionRange {
@@ -2191,4 +2215,954 @@ fn cancel_blocks_new_credit_without_changing_window() {
         Some(LiveError::PeerLost)
     );
     assert_eq!(overdue.phase(), LivePhase::PeerLost);
+}
+
+fn r1_large_stack(run: impl FnOnce() + Send + 'static) {
+    std::thread::Builder::new()
+        .stack_size(16 * 1024 * 1024)
+        .spawn(run)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+// R1 acceptance probes use R0 fragmentation and retain a coalesced next frame.
+// Heap-backed test scaffolding provides no production allocation claim.
+fn r1_varint(mut n: u64) -> Vec<u8> {
+    let mut out = Vec::new();
+    while n >= 128 {
+        out.push(n as u8 | 128);
+        n >>= 7;
+    }
+    out.push(n as u8);
+    out
+}
+fn r1_bytes(tag: u64, bytes: &[u8]) -> Vec<u8> {
+    let mut out = r1_varint(tag << 3 | 2);
+    out.extend(r1_varint(bytes.len() as u64));
+    out.extend(bytes);
+    out
+}
+fn r1_scalar(tag: u64, n: u64) -> Vec<u8> {
+    let mut out = r1_varint(tag << 3);
+    out.extend(r1_varint(n));
+    out
+}
+fn r1_item(id: u64, sequence: u64, payload: &[u8]) -> Vec<u8> {
+    let mut item = r1_scalar(1, id);
+    item.extend(r1_scalar(2, sequence));
+    item.extend(r1_bytes(3, payload));
+    r1_bytes(8, &item)
+}
+fn r1_end(id: u64, tag: u64, payload: &[u8]) -> Vec<u8> {
+    let mut end = r1_scalar(1, id);
+    if tag != 0 {
+        end.extend(r1_bytes(tag, payload));
+    }
+    r1_bytes(9, &end)
+}
+fn r1_error(code: u64, message: &[u8]) -> Vec<u8> {
+    let mut error = r1_scalar(1, code);
+    error.extend(r1_bytes(2, message));
+    error
+}
+fn r1_endpoint(core: u32, tool: u32, limits: v1_1::ProtocolLimits) -> Endpoint {
+    let mut endpoint = Endpoint::new(host_with_settings(7, core, tool, limits), 100);
+    let hello = v1_1::Envelope {
+        frame: Some(v1_1::envelope::Frame::Hello(v1_1::Hello {
+            protocol: Some(v1_1::VersionRange {
+                major: 1,
+                min_minor: 0,
+                max_minor: 1,
+            }),
+            supported_profiles: vec![v1_1::ProfileRange {
+                name: "tool.v1".into(),
+                major: 1,
+                min_minor: 0,
+                max_minor: 1,
+            }],
+        })),
+    };
+    endpoint
+        .read_one(&framing::encode(&hello, nz(4096)).unwrap().bytes, 101)
+        .unwrap();
+    let vectors: Value = serde_json::from_str(VECTORS).unwrap();
+    let manifest = v1_1::Manifest::decode(
+        unhex(
+            vectors["cases"]["valid_1_1"]["manifest_pb_hex"]
+                .as_str()
+                .unwrap(),
+        )
+        .as_slice(),
+    )
+    .unwrap();
+    let manifest = v1_1::Envelope {
+        frame: Some(v1_1::envelope::Frame::Manifest(manifest)),
+    };
+    endpoint
+        .read_one(&framing::encode(&manifest, nz(4096)).unwrap().bytes, 102)
+        .unwrap();
+    let ready = v1_1::Envelope {
+        frame: Some(v1_1::envelope::Frame::Ready(v1_1::Ready {})),
+    };
+    assert!(matches!(
+        endpoint
+            .read_one(&framing::encode(&ready, nz(4096)).unwrap().bytes, 103)
+            .unwrap()
+            .event,
+        Some(EndpointEvent::Ready)
+    ));
+    endpoint
+}
+#[derive(Debug, PartialEq, Eq)]
+enum R1Outcome {
+    Progress(Vec<u8>, Option<u32>),
+    Ignored,
+    Terminal,
+    Stale,
+}
+fn r1_outcome(value: ReceiveOutcome) -> R1Outcome {
+    match value {
+        ReceiveOutcome::Progress(p) => R1Outcome::Progress(p.json().to_vec(), p.percent_complete()),
+        ReceiveOutcome::IgnoredCancelledProgress => R1Outcome::Ignored,
+        ReceiveOutcome::TerminalReceived => R1Outcome::Terminal,
+        ReceiveOutcome::Stale => R1Outcome::Stale,
+    }
+}
+type R1Receipt = (TerminalKind, Vec<u8>, Option<v1_1::ErrorCode>, u64, bool);
+
+#[derive(Debug, PartialEq, Eq)]
+struct R1Observation {
+    result: Result<R1Outcome, IndexedReceiveError>,
+    phase: LivePhase,
+    credit: u64,
+    next: u64,
+    receipt: Option<R1Receipt>,
+    domain: usize,
+    clock: usize,
+}
+fn r1_snapshot(
+    live: &ToolInvocation,
+    result: Result<ReceiveOutcome, IndexedReceiveError>,
+    domain: usize,
+    clock: usize,
+) -> R1Observation {
+    R1Observation {
+        result: result.map(r1_outcome),
+        phase: live.phase(),
+        credit: live.credit(),
+        next: live.next_sequence(),
+        receipt: live.receipt().map(|r| {
+            if let Some((_, message)) = r.error() {
+                assert_eq!(message, "remote tool error");
+            }
+            (
+                r.kind(),
+                r.result_json().unwrap_or_default().to_vec(),
+                r.error().map(|(c, _)| c),
+                r.received_ms(),
+                r.binding().same_live_identity(live.binding()),
+            )
+        }),
+        domain,
+        clock,
+    }
+}
+fn r1_settings(frame: u64) -> v1_1::ProtocolLimits {
+    v1_1::ProtocolLimits {
+        frame_bytes: frame,
+        max_stream_credit_bytes: 8192,
+        ..limits()
+    }
+}
+fn r1_started(core: u32, tool: u32, credit: u64, frame: u64) -> ToolInvocation {
+    let a = active_with_settings(7, core, tool, r1_settings(frame));
+    ToolInvocation::start(
+        a.active_grant().unwrap(),
+        "echo",
+        start(core, tool, 7, 17, Some(credit)),
+    )
+    .unwrap()
+    .0
+}
+// Keep the fixture's reader grant separate from scanner allowance and clocks.
+#[allow(clippy::too_many_arguments)]
+fn r1_indexed(
+    live: &mut ToolInvocation,
+    generation: u64,
+    body: &[u8],
+    allowance: usize,
+    ingress: u64,
+    additional: Option<u64>,
+    final_ms: u64,
+    frame_limit: usize,
+) -> R1Observation {
+    let mut storage = Box::new(IndexStorage::<8192, 8193>::new());
+    let mut arena = storage.borrow(nz(allowance), usize::MAX).unwrap();
+    let mut backing = vec![0; 8192];
+    let mut reader = RawFrameReader::new(nz(4096), &mut backing).unwrap();
+    reader.use_negotiated_limit(nz(frame_limit)).unwrap();
+    let mut framed = r1_varint(body.len() as u64);
+    framed.extend(body);
+    let boundary = framed.len();
+    framed.extend([0x02, 0x4a, 0]);
+    assert!(reader.read_one(&framed[..1]).unwrap().frame.is_none());
+    let split = (boundary - 1).min(3) + 1;
+    assert!(reader.read_one(&framed[1..split]).unwrap().frame.is_none());
+    let step = reader.read_one(&framed[split..]).unwrap();
+    assert_eq!(split + step.consumed, boundary);
+    let raw = step.frame.unwrap();
+    assert_eq!(raw.body, body);
+    let mut domain = 0;
+    let mut clock = 0;
+    let result = live.receive_indexed_checked_with_final_time(
+        generation,
+        raw.body,
+        &mut arena,
+        ingress,
+        additional,
+        |_| {
+            domain += 1;
+            DomainDecision::Accept
+        },
+        || {
+            clock += 1;
+            final_ms
+        },
+    );
+    r1_snapshot(live, result, domain, clock)
+}
+fn r1_owned(
+    live: &mut ToolInvocation,
+    endpoint: &mut Endpoint,
+    generation: u64,
+    body: &[u8],
+    ingress: u64,
+    additional: Option<u64>,
+    final_ms: u64,
+) -> R1Observation {
+    let mut framed = r1_varint(body.len() as u64);
+    framed.extend(body);
+    let mut domain = 0;
+    let mut clock = 0;
+    let result = match endpoint.read_one(&framed, ingress) {
+        Ok(step) => {
+            let Some(EndpointEvent::Active(frame)) = step.event else {
+                panic!("active endpoint event")
+            };
+            live.receive_checked_with_final_time(
+                generation,
+                &frame,
+                ingress,
+                additional,
+                |_| {
+                    domain += 1;
+                    DomainDecision::Accept
+                },
+                || {
+                    clock += 1;
+                    final_ms
+                },
+            )
+            .map_err(IndexedReceiveError::Protocol)
+        }
+        Err(EndpointError::Frame(error)) => Err(LiveError::Frame(error).into()),
+        Err(EndpointError::UnexpectedFrame) => Err(LiveError::UnexpectedFrame.into()),
+        Err(error) => panic!("unexpected endpoint error {error}"),
+    };
+    r1_snapshot(live, result, domain, clock)
+}
+fn r1_pair(
+    core: u32,
+    tool: u32,
+    body: &[u8],
+    credit: u64,
+    frame: u64,
+    generation: u64,
+    ingress: u64,
+) -> R1Observation {
+    let mut indexed = r1_started(core, tool, credit, frame);
+    let mut endpoint = r1_endpoint(core, tool, r1_settings(frame));
+    let mut owned = ToolInvocation::start(
+        endpoint.active_grant().unwrap(),
+        "echo",
+        start(core, tool, 7, 17, Some(credit)),
+    )
+    .unwrap()
+    .0;
+    let observed = r1_indexed(
+        &mut indexed,
+        generation,
+        body,
+        8192,
+        ingress,
+        None,
+        ingress,
+        frame as usize,
+    );
+    let oracle = r1_owned(
+        &mut owned,
+        &mut endpoint,
+        generation,
+        body,
+        ingress,
+        None,
+        ingress,
+    );
+    assert_eq!(observed, oracle, "core={core}, tool={tool}");
+    if endpoint.phase() == EndpointPhase::Closed {
+        // The owned Endpoint has closed the supplied generation before calling
+        // the invocation. The inert indexed feeder models that same owner line.
+        if indexed.binding().generation() == generation {
+            indexed.peer_lost();
+        }
+        if owned.binding().generation() == generation {
+            owned.peer_lost();
+        }
+        assert_eq!(
+            indexed.phase(),
+            if generation == 7 {
+                LivePhase::PeerLost
+            } else {
+                observed.phase
+            }
+        );
+        assert_eq!(
+            r1_snapshot(&indexed, Ok(ReceiveOutcome::Stale), 0, 0),
+            r1_snapshot(&owned, Ok(ReceiveOutcome::Stale), 0, 0),
+        );
+        assert_eq!(
+            (indexed.credit(), indexed.next_sequence()),
+            (observed.credit, observed.next)
+        );
+        assert!(indexed.receipt().is_none());
+    }
+    observed
+}
+fn r1_rejected(observed: &R1Observation, error: LiveError, phase: LivePhase, credit: u64) {
+    assert_eq!(observed.result, Err(error.into()));
+    assert_eq!(observed.phase, phase);
+    assert_eq!(
+        (
+            observed.credit,
+            observed.next,
+            observed.domain,
+            observed.clock
+        ),
+        (credit, 0, 0, 0)
+    );
+    assert!(observed.receipt.is_none());
+}
+
+#[test]
+fn indexed_receive_uses_stored_core_limit_before_later_invocation_errors() {
+    r1_large_stack(|| {
+        let body = r1_end(17, 3, &r1_error(u32::MAX as u64, &vec![b'x'; 4078]));
+        assert_eq!(body.len(), 4095);
+        assert_eq!(
+            v1_1::Envelope::decode(body.as_slice())
+                .unwrap()
+                .encoded_len(),
+            4100
+        );
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                for (id, later) in [
+                    (17, LiveError::UnsupportedVariant),
+                    (18, LiveError::WrongRequestId),
+                ] {
+                    let body = r1_end(id, 3, &r1_error(u32::MAX as u64, &vec![b'x'; 4078]));
+                    for frame in [4096, 4100] {
+                        let observed = r1_pair(core, tool, &body, 0, frame, 7, 201);
+                        let normalized = core == 0 && frame == 4096;
+                        r1_rejected(
+                            &observed,
+                            if normalized {
+                                LiveError::Frame(FrameError::FrameTooLarge {
+                                    length: 4100,
+                                    limit: 4096,
+                                })
+                            } else {
+                                later.clone()
+                            },
+                            if normalized {
+                                LivePhase::Open
+                            } else {
+                                LivePhase::PeerLost
+                            },
+                            0,
+                        );
+                    }
+                }
+            }
+        }
+        // A caller can select the body independently; that view is not receive authority.
+        let mut slot = Box::new(IndexStorage::<8192, 8193>::new());
+        let mut arena = slot.borrow(nz(8192), usize::MAX).unwrap();
+        assert_eq!(
+            select_active(
+                arena.scan_envelope(&body).unwrap(),
+                SelectedMinor::V1_1,
+                nz(4100)
+            )
+            .unwrap()
+            .body_len(),
+            4095
+        );
+        let mut live = r1_started(0, 1, 0, 4096);
+        let observed = r1_indexed(&mut live, 7, &body, 8192, 201, None, 201, 4096);
+        r1_rejected(
+            &observed,
+            LiveError::Frame(FrameError::FrameTooLarge {
+                length: 4100,
+                limit: 4096,
+            }),
+            LivePhase::Open,
+            0,
+        );
+
+        // Response is active but wrong direction; its enum also expands before that gate.
+        let response = r1_bytes(7, &{
+            let mut out = r1_scalar(1, 17);
+            out.extend(r1_bytes(3, &r1_error(u32::MAX as u64, &vec![b'x'; 4078])));
+            out
+        });
+        assert_eq!(response.len(), 4095);
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                let got = r1_pair(core, tool, &response, 0, 4096, 7, 201);
+                r1_rejected(
+                    &got,
+                    if core == 0 {
+                        LiveError::Frame(FrameError::FrameTooLarge {
+                            length: 4100,
+                            limit: 4096,
+                        })
+                    } else {
+                        LiveError::InvalidTerminal
+                    },
+                    if core == 0 {
+                        LivePhase::Open
+                    } else {
+                        LivePhase::PeerLost
+                    },
+                    0,
+                );
+            }
+        }
+    });
+}
+
+#[test]
+fn indexed_receive_debits_original_139_bytes_and_ignores_raw_metadata() {
+    r1_large_stack(|| {
+        let regular = v1_1::Envelope::decode(
+            {
+                let f = raw_frame("progress");
+                f[2..].to_vec()
+            }
+            .as_slice(),
+        )
+        .unwrap();
+        let Some(v1_1::envelope::Frame::StreamItem(item)) = regular.frame else {
+            panic!()
+        };
+        let mut body = r1_bytes(8, &r1_scalar(1, 17));
+        body.extend(r1_bytes(8, &r1_bytes(3, &item.payload)));
+        assert_eq!(body.len(), 139);
+        assert_eq!(
+            v1_1::Envelope::decode(body.as_slice())
+                .unwrap()
+                .encoded_len(),
+            137
+        );
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                let mut live = r1_started(core, tool, 139, 8192);
+                let mut storage = Box::new(IndexStorage::<8192, 8193>::new());
+                let mut arena = storage.borrow(nz(8192), usize::MAX).unwrap();
+                let forged = RawFrame {
+                    body: &body,
+                    body_len: 1,
+                };
+                let result = live
+                    .receive_indexed_checked_with_final_time(
+                        7,
+                        forged.body,
+                        &mut arena,
+                        201,
+                        None,
+                        |_| DomainDecision::Accept,
+                        || 201,
+                    )
+                    .unwrap();
+                let ReceiveOutcome::Progress(progress) = result else {
+                    panic!()
+                };
+                assert_eq!(
+                    progress.json(),
+                    br#"{"content":[{"text":"working","type":"text"}],"details":{}}"#
+                );
+                assert_eq!((live.credit(), live.next_sequence()), (0, 1));
+                let got = r1_pair(core, tool, &body, 138, 8192, 7, 201);
+                r1_rejected(&got, LiveError::CreditViolation, LivePhase::PeerLost, 138);
+                let accepted = r1_pair(core, tool, &body, 139, 8192, 7, 201);
+                assert_eq!(
+                    (
+                        accepted.credit,
+                        accepted.next,
+                        accepted.domain,
+                        accepted.clock
+                    ),
+                    (0, 1, 1, 1)
+                );
+            }
+        }
+    });
+}
+
+#[test]
+fn indexed_receive_current_body_arena_priority_and_physical_guards() {
+    r1_large_stack(|| {
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                let mut live = r1_started(core, tool, 0, 4096);
+                let malformed = [0x4a, 3, 0x0a, 1, b'x'];
+                let got = r1_indexed(&mut live, 7, &malformed, 16, 201, None, 201, 4096);
+                r1_rejected(
+                    &got,
+                    LiveError::Frame(FrameError::InvalidEnvelope),
+                    LivePhase::Open,
+                    0,
+                );
+                live.peer_lost();
+                assert_eq!(live.phase(), LivePhase::PeerLost);
+                let mut live = r1_started(core, tool, 0, 4096);
+                let valid = [0x4a, 6, 8, 17, 0x1a, 2, 8, 14];
+                let got = r1_indexed(&mut live, 7, &valid, 16, 201, None, 202, 4096);
+                assert_eq!(got.result, Ok(R1Outcome::Terminal));
+                assert_eq!(
+                    (got.phase, got.credit, got.next, got.domain, got.clock),
+                    (LivePhase::TerminalReceived, 0, 0, 0, 1)
+                );
+                assert_eq!(
+                    got.receipt,
+                    Some((
+                        TerminalKind::Error,
+                        vec![],
+                        Some(v1_1::ErrorCode::HandlerError),
+                        202,
+                        true
+                    ))
+                );
+                let long = [
+                    0x4a, 15, 8, 17, 0x1a, 11, 8, 14, 0x12, 7, b'x', b'x', b'x', b'x', b'x', b'x',
+                    b'x',
+                ];
+                let mut live = r1_started(core, tool, 17, 4096);
+                let got = r1_indexed(&mut live, 7, &long, 16, 201, None, 201, 4096);
+                assert_eq!(
+                    got.result,
+                    Err(IndexedReceiveError::Local(IndexedLocalFault::ScanLimit))
+                );
+                assert_eq!(
+                    (got.phase, got.credit, got.next, got.domain, got.clock),
+                    (LivePhase::Open, 17, 0, 0, 0)
+                );
+                assert!(got.receipt.is_none());
+                for body in [vec![], vec![0; 4097]] {
+                    let mut storage = IndexStorage::<1, 2>::new();
+                    let mut arena = storage.borrow(nz(1), usize::MAX).unwrap();
+                    let err = live
+                        .receive_indexed_checked_with_final_time(
+                            7,
+                            &body,
+                            &mut arena,
+                            201,
+                            None,
+                            |_| panic!("physical error skips domain"),
+                            || panic!("physical error skips clock"),
+                        )
+                        .err()
+                        .unwrap();
+                    assert_eq!(
+                        err,
+                        IndexedReceiveError::Protocol(LiveError::Frame(if body.is_empty() {
+                            FrameError::ZeroLength
+                        } else {
+                            FrameError::FrameTooLarge {
+                                length: 4097,
+                                limit: 4096,
+                            }
+                        }))
+                    );
+                    assert_eq!(
+                        (live.phase(), live.credit(), live.next_sequence()),
+                        (LivePhase::Open, 17, 0)
+                    );
+                }
+            }
+        }
+    });
+}
+
+#[test]
+fn indexed_receive_common_gate_preserves_missing_terminal_and_payload_priority() {
+    r1_large_stack(|| {
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                for (body, generation, ingress, error, phase) in [
+                    (
+                        r1_end(18, 0, &[]),
+                        7,
+                        201,
+                        LiveError::InvalidTerminal,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_end(18, 0, &[]),
+                        8,
+                        201,
+                        LiveError::WrongGeneration,
+                        LivePhase::Open,
+                    ),
+                    (
+                        r1_end(18, 0, &[]),
+                        7,
+                        500,
+                        LiveError::PeerLost,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_end(18, 3, &r1_error(999, b"bad")),
+                        7,
+                        201,
+                        LiveError::WrongRequestId,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_end(18, 2, &[0x0a, 1, 0xff]),
+                        7,
+                        201,
+                        LiveError::WrongRequestId,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_item(18, 0, &[0xff]),
+                        7,
+                        201,
+                        LiveError::WrongRequestId,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_item(17, 1, &[0xff]),
+                        7,
+                        201,
+                        LiveError::InvalidSequence,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_item(17, 0, &[0xff]),
+                        7,
+                        201,
+                        LiveError::InvalidProgress,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_item(17, 0, &[]),
+                        7,
+                        201,
+                        LiveError::InvalidProgress,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_end(17, 2, &[]),
+                        7,
+                        201,
+                        LiveError::InvalidTerminal,
+                        LivePhase::PeerLost,
+                    ),
+                    (
+                        r1_end(17, 3, &[]),
+                        7,
+                        201,
+                        LiveError::UnsupportedVariant,
+                        LivePhase::PeerLost,
+                    ),
+                ] {
+                    r1_rejected(
+                        &r1_pair(core, tool, &body, 256, 8192, generation, ingress),
+                        error,
+                        phase,
+                        256,
+                    );
+                }
+                r1_rejected(
+                    &r1_pair(core, tool, &r1_item(17, 0, &[0xff]), 0, 8192, 7, 201),
+                    LiveError::CreditViolation,
+                    LivePhase::PeerLost,
+                    0,
+                );
+                // Earlier known malformed arms cannot be hidden by a later valid arm.
+                let mut body = r1_bytes(9, &[0x0a, 1, b'x']);
+                body.extend(r1_end(17, 3, &r1_error(14, b"")));
+                let mut indexed = r1_started(core, tool, 0, 8192);
+                let got = r1_indexed(&mut indexed, 8, &body, 8192, 201, None, 201, 8192);
+                r1_rejected(
+                    &got,
+                    LiveError::Frame(FrameError::InvalidEnvelope),
+                    LivePhase::Open,
+                    0,
+                );
+                if indexed.binding().generation() == 8 {
+                    indexed.peer_lost();
+                }
+                assert_eq!(indexed.phase(), LivePhase::Open);
+                r1_rejected(
+                    &r1_pair(core, tool, &body, 0, 8192, 8, 201),
+                    LiveError::Frame(FrameError::InvalidEnvelope),
+                    LivePhase::Open,
+                    0,
+                );
+                let got = r1_pair(core, tool, &body, 0, 8192, 7, 201);
+                r1_rejected(
+                    &got,
+                    LiveError::Frame(FrameError::InvalidEnvelope),
+                    LivePhase::Open,
+                    0,
+                );
+                indexed.peer_lost();
+                assert_eq!(indexed.phase(), LivePhase::PeerLost);
+                let pre_ready = r1_bytes(1, &r1_bytes(99, &vec![b'x'; 4000]));
+                r1_rejected(
+                    &r1_pair(core, tool, &pre_ready, 0, 4096, 7, 201),
+                    LiveError::UnexpectedFrame,
+                    LivePhase::Open,
+                    0,
+                );
+            }
+        }
+    });
+}
+
+#[test]
+fn indexed_receive_error_defaults_merge_replacement_and_closed_code_priority() {
+    r1_large_stack(|| {
+        let valid = r1_error(14, b"SECRET_SENTINEL");
+        let mut split = r1_end(17, 3, &r1_scalar(1, 14));
+        split.extend(r1_bytes(9, &r1_bytes(3, &r1_bytes(2, b"SECRET_SENTINEL"))));
+        let mut empty_child = split.clone();
+        empty_child.extend(r1_bytes(9, &r1_bytes(3, &[])));
+        let mut overwrite = split.clone();
+        overwrite.extend(r1_bytes(9, &r1_bytes(3, &r1_error(3, b""))));
+        let mut explicit_zero = split.clone();
+        explicit_zero.extend(r1_bytes(9, &r1_bytes(3, &r1_scalar(1, 0))));
+        let mut replacement = r1_end(17, 3, &r1_error(999, &vec![b'x'; 4097]));
+        replacement.extend(r1_bytes(9, &r1_bytes(2, &[])));
+        replacement.extend(r1_bytes(9, &r1_bytes(3, &r1_scalar(1, 14))));
+        let mut final_result = r1_end(17, 2, &[]);
+        final_result.extend(r1_bytes(9, &r1_bytes(3, &valid)));
+        final_result.extend(r1_bytes(9, &r1_bytes(2, &[])));
+        let cases = [
+            (r1_end(17, 3, &[]), Some(LiveError::UnsupportedVariant)),
+            (
+                r1_end(17, 3, &r1_bytes(2, b"absent code")),
+                Some(LiveError::UnsupportedVariant),
+            ),
+            (
+                r1_end(17, 3, &r1_error(0, &vec![b'x'; 4097])),
+                Some(LiveError::UnsupportedVariant),
+            ),
+            (
+                r1_end(17, 3, &r1_error(999, &vec![b'x'; 4097])),
+                Some(LiveError::UnsupportedVariant),
+            ),
+            (
+                r1_end(17, 3, &r1_error(14, &vec![b'x'; 4097])),
+                Some(LiveError::Limit),
+            ),
+            (r1_end(17, 3, &valid), None),
+            (split, None),
+            (empty_child, None),
+            (overwrite, None),
+            (explicit_zero, Some(LiveError::UnsupportedVariant)),
+            (replacement, None),
+            (final_result, Some(LiveError::InvalidTerminal)),
+            (
+                r1_end(17, 3, &r1_scalar(1, u32::MAX as u64)),
+                Some(LiveError::UnsupportedVariant),
+            ),
+            (
+                r1_end(17, 3, &r1_scalar(1, u64::MAX)),
+                Some(LiveError::UnsupportedVariant),
+            ),
+            (r1_end(17, 3, &r1_scalar(1, (1u64 << 32) + 14)), None),
+        ];
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                for (body, error) in &cases {
+                    let observed = r1_pair(core, tool, body, 0, 8192, 7, 201);
+                    if let Some(error) = error {
+                        r1_rejected(&observed, error.clone(), LivePhase::PeerLost, 0);
+                    } else {
+                        let dto = v1_1::Envelope::decode(body.as_slice()).unwrap();
+                        let Some(v1_1::envelope::Frame::StreamEnd(end)) = dto.frame else {
+                            panic!()
+                        };
+                        let Some(v1_1::stream_end::Terminal::Error(error)) = end.terminal else {
+                            panic!()
+                        };
+                        let code = v1_1::ErrorCode::try_from(error.code).unwrap();
+                        assert_eq!(observed.result, Ok(R1Outcome::Terminal));
+                        assert_eq!(
+                            (
+                                observed.phase,
+                                observed.credit,
+                                observed.next,
+                                observed.domain,
+                                observed.clock
+                            ),
+                            (LivePhase::TerminalReceived, 0, 0, 0, 1)
+                        );
+                        assert_eq!(
+                            observed.receipt,
+                            Some((TerminalKind::Error, vec![], Some(code), 201, true))
+                        );
+                    }
+                }
+            }
+        }
+    });
+}
+
+#[test]
+fn indexed_receive_percent_full_scan_and_projection_first_error_four_minors() {
+    r1_large_stack(|| {
+        let selected = valid_progress(1);
+        let SelectedEnvelope::V1_1(envelope) = selected.envelope else {
+            panic!()
+        };
+        let Some(v1_1::envelope::Frame::StreamItem(item)) = envelope.frame else {
+            panic!()
+        };
+        let mut event = v1_1::ToolProgress::decode(item.payload.as_slice())
+            .unwrap()
+            .event
+            .unwrap();
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                for percent in [0, 100, 101] {
+                    let mut payload = item.payload.clone();
+                    payload.extend(r1_scalar(2, 0));
+                    payload.extend(r1_scalar(2, percent));
+                    let got = r1_pair(core, tool, &r1_item(17, 0, &payload), 256, 8192, 7, 201);
+                    if tool == 0 {
+                        r1_rejected(
+                            &got,
+                            LiveError::UnsupportedVariant,
+                            LivePhase::PeerLost,
+                            256,
+                        );
+                    } else if percent == 101 {
+                        r1_rejected(&got, LiveError::InvalidProgress, LivePhase::PeerLost, 256);
+                    } else {
+                        assert_eq!(
+                            got.result,
+                            Ok(R1Outcome::Progress(
+                                br#"{"content":[{"text":"working","type":"text"}],"details":{}}"#
+                                    .to_vec(),
+                                Some(percent as u32)
+                            ))
+                        );
+                        assert_eq!((got.domain, got.clock, got.next), (1, 1, 1));
+                    }
+                    payload.extend(r1_bytes(2, b"bad known wire"));
+                    r1_rejected(
+                        &r1_pair(core, tool, &r1_item(17, 0, &payload), 256, 8192, 7, 201),
+                        LiveError::InvalidProgress,
+                        LivePhase::PeerLost,
+                        256,
+                    );
+                }
+                event.projection_id = "wrong".into();
+                event.value = None;
+                let payload = v1_1::ToolProgress {
+                    event: Some(event.clone()),
+                    percent_complete: None,
+                }
+                .encode_to_vec();
+                r1_rejected(
+                    &r1_pair(core, tool, &r1_item(17, 0, &payload), 256, 8192, 7, 201),
+                    LiveError::Value(value::Error::ProjectionMismatch),
+                    LivePhase::PeerLost,
+                    256,
+                );
+                let mut malformed = payload;
+                malformed.extend(r1_bytes(2, b"wire"));
+                r1_rejected(
+                    &r1_pair(core, tool, &r1_item(17, 0, &malformed), 256, 8192, 7, 201),
+                    LiveError::InvalidProgress,
+                    LivePhase::PeerLost,
+                    256,
+                );
+            }
+        }
+    });
+}
+
+#[test]
+fn indexed_receive_retained_receipt_stale_retired_fenced_and_owner_loss() {
+    r1_large_stack(|| {
+        for core in [0, 1] {
+            for tool in [0, 1] {
+                let mut live = r1_started(core, tool, 0, 8192);
+                let body = r1_end(17, 3, &r1_error(14, b"SECRET_SENTINEL"));
+                let initial = r1_indexed(&mut live, 7, &body, 8192, 201, None, 202, 8192);
+                let receipt = live.receipt().unwrap() as *const _;
+                let stale = r1_indexed(
+                    &mut live,
+                    7,
+                    &r1_end(18, 0, &[]),
+                    8192,
+                    900,
+                    None,
+                    900,
+                    8192,
+                );
+                assert_eq!(stale.result, Ok(R1Outcome::Stale));
+                assert_eq!((stale.domain, stale.clock), (0, 0));
+                assert_eq!(stale.receipt, initial.receipt);
+                assert_eq!(live.receipt().unwrap() as *const _, receipt);
+                let malformed = [0x4a, 3, 0x0a, 1, b'x'];
+                let failed = r1_indexed(&mut live, 7, &malformed, 8192, 201, None, 201, 8192);
+                assert_eq!(
+                    failed.result,
+                    Err(LiveError::Frame(FrameError::InvalidEnvelope).into())
+                );
+                live.peer_lost();
+                assert_eq!(live.receipt().unwrap() as *const _, receipt);
+                let failed = r1_indexed(&mut live, 7, &body, 1, 201, None, 201, 8192);
+                assert_eq!(
+                    failed.result,
+                    Err(IndexedReceiveError::Local(IndexedLocalFault::ScanLimit))
+                );
+                assert_eq!(failed.receipt, initial.receipt);
+                let binding = live.binding().clone();
+                live.retire(&binding, RetireReason::Committed).unwrap();
+                assert_eq!(
+                    r1_indexed(&mut live, 7, &body, 8192, 201, None, 201, 8192).result,
+                    Ok(R1Outcome::Stale)
+                );
+                assert!(live.receipt().is_none());
+                let mut fenced = r1_started(core, tool, 0, 8192);
+                let binding = fenced.binding().clone();
+                fenced.fence_no_longer_expected(&binding).unwrap();
+                let stale = r1_indexed(&mut fenced, 7, &body, 8192, 201, None, 201, 8192);
+                assert_eq!(stale.result, Ok(R1Outcome::Stale));
+                assert_eq!(stale.phase, LivePhase::Fenced);
+                assert!(stale.receipt.is_none());
+                assert_eq!((stale.domain, stale.clock), (0, 0));
+            }
+        }
+    });
 }

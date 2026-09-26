@@ -6,7 +6,7 @@
 use std::num::NonZeroUsize;
 
 use super::echo_bounded::{
-    BodySpan, BorrowedIndexArena, IndexedMessage, ScanError, SelectedMinor, SizeError,
+    BodySpan, BorrowedIndexArena, IndexedMessage, MessageId, ScanError, SelectedMinor, SizeError,
 };
 use super::value::{self, Projection};
 use crate::jcs;
@@ -87,6 +87,45 @@ impl<'view, 'body> SelectedActive<'view, 'body> {
         &self.view
     }
 
+    /// Ordinary proto3 scalar defaults apply only to genuinely absent fields.
+    pub fn request_id(&self) -> Result<u64, RoleError> {
+        self.header_scalar(1)
+    }
+
+    pub fn sequence(&self) -> Result<u64, RoleError> {
+        if self.arm != ActiveArm::StreamItem {
+            return Err(RoleError::WrongArm);
+        }
+        self.header_scalar(2)
+    }
+
+    fn header_scalar(&self, tag: u32) -> Result<u64, RoleError> {
+        let child = self
+            .view
+            .message(self.view.root(), self.arm.tag())
+            .ok_or(RoleError::InternalPolicy)?;
+        if self.view.has_field(child, tag) {
+            self.view
+                .scalar(child, tag)
+                .ok_or(RoleError::InternalPolicy)
+        } else {
+            Ok(0)
+        }
+    }
+
+    /// Presence is inspected at the common invocation extraction gate; no
+    /// present terminal contents are interpreted here.
+    pub fn terminal_present(&self) -> Result<bool, RoleError> {
+        if self.arm != ActiveArm::StreamEnd {
+            return Err(RoleError::WrongArm);
+        }
+        let child = self
+            .view
+            .message(self.view.root(), 9)
+            .ok_or(RoleError::InternalPolicy)?;
+        Ok(self.view.oneof_tag(child).is_some())
+    }
+
     /// Span of the final arm's opaque bytes, if present. An absent ordinary
     /// proto3 bytes field has no span; a present oneof empty result does.
     pub fn opaque_payload_span(&self) -> Option<BodySpan<'body>> {
@@ -107,15 +146,28 @@ impl<'view, 'body> SelectedActive<'view, 'body> {
         if self.arm != ActiveArm::StreamItem {
             return Err(RoleError::WrongArm);
         }
+        let item = self
+            .view
+            .message(self.view.root(), 8)
+            .ok_or(RoleError::InternalPolicy)?;
+        let span = if self.view.has_field(item, 3) {
+            Some(
+                self.view
+                    .bytes_span(item, 3)
+                    .ok_or(RoleError::InternalPolicy)?,
+            )
+        } else {
+            None
+        };
         Ok(ProgressPayload {
-            span: self.opaque_payload_span(),
+            span,
             body_len: self.body_len(),
         })
     }
 
     /// Consume a selected StreamEnd after checking the effective terminal
     /// oneof. A present empty result remains a result payload.
-    pub fn into_result_terminal(self) -> Result<ResultTerminal<'body>, RoleError> {
+    pub fn into_result_terminal(self) -> Result<ResultTerminal<'view, 'body>, RoleError> {
         if self.arm != ActiveArm::StreamEnd {
             return Err(RoleError::WrongArm);
         }
@@ -131,9 +183,14 @@ impl<'view, 'body> SelectedActive<'view, 'body> {
                     .ok_or(RoleError::InternalPolicy)?,
                 body_len: self.body_len(),
             })),
-            Some(3) => Ok(ResultTerminal::ErrorTerminal {
-                body_len: self.body_len(),
-            }),
+            Some(3) => {
+                let error = self.view.message(end, 3).ok_or(RoleError::InternalPolicy)?;
+                Ok(ResultTerminal::ErrorTerminal(ErrorTerminal {
+                    body_len: self.body_len(),
+                    view: self.view,
+                    error,
+                }))
+            }
             None => Err(RoleError::InvalidTerminal),
             _ => Err(RoleError::InternalPolicy),
         }
@@ -176,9 +233,42 @@ pub struct ResultPayload<'body> {
     body_len: usize,
 }
 
-pub enum ResultTerminal<'body> {
+pub enum ResultTerminal<'view, 'body> {
     Result(ResultPayload<'body>),
-    ErrorTerminal { body_len: usize },
+    ErrorTerminal(ErrorTerminal<'view, 'body>),
+}
+
+/// The effective merged error child stays within its owning scan. Peer text
+/// is supplied only during synchronous validation and never enters diagnostics.
+pub struct ErrorTerminal<'view, 'body> {
+    view: IndexedMessage<'view, 'body>,
+    error: MessageId,
+    body_len: usize,
+}
+
+impl ErrorTerminal<'_, '_> {
+    pub fn body_len(&self) -> usize {
+        self.body_len
+    }
+
+    pub fn validate<T>(self, check: impl FnOnce(i32, &str) -> T) -> Result<T, RoleError> {
+        let code = if self.view.has_field(self.error, 1) {
+            (self
+                .view
+                .scalar(self.error, 1)
+                .ok_or(RoleError::InternalPolicy)? as u32) as i32
+        } else {
+            0
+        };
+        let message = if self.view.has_field(self.error, 2) {
+            self.view
+                .text(self.error, 2)
+                .ok_or(RoleError::InternalPolicy)?
+        } else {
+            ""
+        };
+        Ok(check(code, message))
+    }
 }
 
 pub struct AdmittedProgress {
@@ -311,6 +401,12 @@ pub fn select_active<'view, 'body>(
         arm,
         normalized_len,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn exhausted_scan_fixture() -> ScanError {
+    use std::sync::atomic::AtomicU64;
+    super::echo_bounded::next_scan_token_from(&AtomicU64::new(u64::MAX)).unwrap_err()
 }
 
 #[cfg(test)]

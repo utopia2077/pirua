@@ -1415,3 +1415,81 @@ fn merge_replacement_unknowns_and_repeated_superseded_children_match_prost() {
         ))
     );
 }
+
+#[test]
+fn selected_error_role_keeps_effective_scoped_fields_and_header_defaults() {
+    let error = |fields: &[u8]| body(9, &bytes(3, fields));
+    let mut first = scalar(1, 14);
+    first.extend(bytes(2, b"SECRET_SENTINEL"));
+    let mut split = body(9, &{
+        let mut fields = scalar(1, 17);
+        fields.extend(bytes(3, &scalar(1, 14)));
+        fields
+    });
+    split.extend(error(&bytes(2, b"SECRET_SENTINEL")));
+    let mut empty = split.clone();
+    empty.extend(error(&[]));
+    let mut defaults = split.clone();
+    defaults.extend(error(&{
+        let mut fields = scalar(1, 0);
+        fields.extend(bytes(2, b""));
+        fields
+    }));
+    let mut replaced = error(&first);
+    replaced.extend(body(9, &bytes(2, b"")));
+    replaced.extend(error(&[]));
+    let cases = [
+        (error(&[]), (0, "")),
+        (split, (14, "SECRET_SENTINEL")),
+        (empty, (14, "SECRET_SENTINEL")),
+        (defaults, (0, "")),
+        (replaced, (0, "")),
+        (error(&scalar(1, u32::MAX as u64)), (-1, "")),
+        (error(&scalar(1, u64::MAX)), (-1, "")),
+        (error(&scalar(1, (1u64 << 32) + 14)), (14, "")),
+    ];
+    let mut slot = IndexStorage::<1024, 1025>::new();
+    let mut arena = slot.borrow(nz(1024), usize::MAX).unwrap();
+    for core in [SelectedMinor::V1_0, SelectedMinor::V1_1] {
+        for (transmitted, expected) in &cases {
+            let selected =
+                select_active(arena.scan_envelope(transmitted).unwrap(), core, nz(1024)).unwrap();
+            assert!(selected.terminal_present().unwrap());
+            let request_id = selected.request_id().unwrap();
+            let ResultTerminal::ErrorTerminal(error) = selected.into_result_terminal().unwrap()
+            else {
+                panic!()
+            };
+            assert_eq!(error.body_len(), transmitted.len());
+            let fields = error
+                .validate(|code, message| (code, message.to_owned()))
+                .unwrap();
+            assert_eq!(fields, (expected.0, expected.1.to_owned()));
+            let oracle = v1_1::Envelope::decode(transmitted.as_slice()).unwrap();
+            let Some(v1_1::envelope::Frame::StreamEnd(end)) = oracle.frame else {
+                panic!()
+            };
+            assert_eq!(request_id, end.request_id);
+            let Some(v1_1::stream_end::Terminal::Error(error)) = end.terminal else {
+                panic!()
+            };
+            assert_eq!(fields, (error.code, error.safe_message));
+            let oracle = v1_0::Envelope::decode(transmitted.as_slice()).unwrap();
+            let Some(v1_0::envelope::Frame::StreamEnd(end)) = oracle.frame else {
+                panic!()
+            };
+            let Some(v1_0::stream_end::Terminal::Error(error)) = end.terminal else {
+                panic!()
+            };
+            assert_eq!(fields, (error.code, error.safe_message));
+        }
+    }
+    let transmitted = body(8, &[]);
+    let selected = select_active(
+        arena.scan_envelope(&transmitted).unwrap(),
+        SelectedMinor::V1_1,
+        nz(1024),
+    )
+    .unwrap();
+    assert_eq!((selected.request_id(), selected.sequence()), (Ok(0), Ok(0)));
+}
