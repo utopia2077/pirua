@@ -2,6 +2,8 @@
 
 pub mod critical_port;
 pub mod domain;
+#[cfg(test)]
+mod finite_host_core;
 // Preparatory storage only; no live route acquires a lease yet.
 #[allow(dead_code)]
 mod index_pool;

@@ -7,6 +7,8 @@
 //! fixed-capacity atomic work. `submit` crosses only the attested scalar host
 //! boundary; no opaque future is invoked here.
 
+#[cfg(test)]
+use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::task::{Wake, Waker};
@@ -68,6 +70,8 @@ impl RouteId {
 struct WriterSignal {
     epoch: AtomicU64,
     ready: AtomicBool,
+    #[cfg(test)]
+    scheduled: AtomicBool,
 }
 
 impl WriterSignal {
@@ -76,6 +80,8 @@ impl WriterSignal {
         // signal because only the sole writer clears that bit on take_ready.
         let epoch = self.epoch.fetch_add(1, Ordering::AcqRel).wrapping_add(1);
         self.ready.store(true, Ordering::Release);
+        #[cfg(test)]
+        self.scheduled.store(true, Ordering::Release);
         epoch
     }
 }
@@ -197,6 +203,8 @@ impl CriticalRoutePort {
                 seat.generation.store(generation, Ordering::Release);
                 seat.writer_signal.epoch.store(0, Ordering::Release);
                 seat.writer_signal.ready.store(false, Ordering::Release);
+                #[cfg(test)]
+                seat.writer_signal.scheduled.store(false, Ordering::Release);
                 return Ok(RouteLease {
                     port: self,
                     id: RouteId {
@@ -259,6 +267,213 @@ impl CriticalRoutePort {
                 Err(actual) => current = actual,
             }
         }
+    }
+}
+
+// Owned handles are intentionally private to the test-only finite host. An
+// Arc is acquired before the public claim, and ManuallyDrop moves precisely
+// that claim's single release obligation into the owned handle.
+#[cfg(test)]
+impl CriticalRoutePort {
+    pub(super) fn try_reserve_route_owned(self: &Arc<Self>) -> Result<OwnedRoute, PortError> {
+        let port = Arc::clone(self);
+        let lease = ManuallyDrop::new(self.try_reserve_route()?);
+        Ok(OwnedRoute { port, id: lease.id })
+    }
+}
+
+#[cfg(test)]
+pub(super) struct OwnedRoute {
+    port: Arc<CriticalRoutePort>,
+    id: RouteId,
+}
+
+#[cfg(test)]
+impl OwnedRoute {
+    pub(super) fn id(&self) -> RouteId {
+        self.id
+    }
+
+    pub(super) fn borrowed_view(&self) -> RouteLease<'_> {
+        self.seat().refs.fetch_add(1, Ordering::AcqRel);
+        RouteLease {
+            port: &self.port,
+            id: self.id,
+        }
+    }
+
+    fn seat(&self) -> &RouteSeat {
+        let seat = &self.port.routes[self.id.slot];
+        assert_eq!(seat.generation.load(Ordering::Acquire), self.id.generation);
+        seat
+    }
+
+    pub(super) fn try_reserve_writer(&self) -> Result<OwnedWriter, PortError> {
+        let port = Arc::clone(&self.port);
+        if !claim(&self.seat().writer) {
+            return Err(PortError::Exhausted);
+        }
+        self.seat().refs.fetch_add(1, Ordering::AcqRel);
+        Ok(OwnedWriter { port, id: self.id })
+    }
+
+    pub(super) fn writer_clock_seat(&self) -> Result<WriterClockSeat<'_>, PortError> {
+        let seat = self.seat();
+        if !claim(&seat.writer_clock) {
+            return Err(PortError::Exhausted);
+        }
+        seat.refs.fetch_add(1, Ordering::AcqRel);
+        Ok(WriterClockSeat(SeatLease {
+            route: seat,
+            slot: &seat.writer_clock,
+        }))
+    }
+
+    pub(super) fn try_reserve_binding(&self) -> Result<OwnedBinding, PortError> {
+        let port = Arc::clone(&self.port);
+        let slot = self
+            .port
+            .bindings
+            .iter()
+            .position(claim)
+            .ok_or(PortError::Exhausted)?;
+        self.seat().refs.fetch_add(1, Ordering::AcqRel);
+        Ok(OwnedBinding {
+            port,
+            id: self.id,
+            slot,
+        })
+    }
+
+    pub(super) fn try_reserve_drain(&self) -> Result<OwnedDrainTicket, PortError> {
+        let port = Arc::clone(&self.port);
+        let view = ManuallyDrop::new(RouteLease {
+            port: &self.port,
+            id: self.id,
+        });
+        let ticket = ManuallyDrop::new(view.try_reserve_drain()?);
+        Ok(OwnedDrainTicket {
+            port,
+            key: ticket.key,
+        })
+    }
+}
+
+#[cfg(test)]
+impl Drop for OwnedRoute {
+    fn drop(&mut self) {
+        self.seat().refs.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+#[cfg(test)]
+pub(super) struct WriterClockSeat<'a>(SeatLease<'a>);
+
+#[cfg(test)]
+impl<'a> WriterClockSeat<'a> {
+    pub(super) fn into_raw(self) -> SeatLease<'a> {
+        self.0
+    }
+}
+
+#[cfg(test)]
+pub(super) struct OwnedWriter {
+    port: Arc<CriticalRoutePort>,
+    id: RouteId,
+}
+
+#[cfg(test)]
+pub(super) struct WriterNotify(std::sync::Weak<WriterSignal>);
+
+#[cfg(test)]
+impl WriterNotify {
+    pub(super) fn signal(&self) {
+        if let Some(signal) = self.0.upgrade() {
+            signal.signal();
+        }
+    }
+}
+
+#[cfg(test)]
+impl OwnedWriter {
+    fn signal(&self) -> &Arc<WriterSignal> {
+        &self.port.routes[self.id.slot].writer_signal
+    }
+    pub(super) fn signal_writer(&self) -> u64 {
+        self.signal().signal()
+    }
+    pub(super) fn owned_waker(&self) -> Waker {
+        Waker::from(Arc::clone(self.signal()))
+    }
+    pub(super) fn weak_notify(&self) -> WriterNotify {
+        WriterNotify(Arc::downgrade(self.signal()))
+    }
+    pub(super) fn take_scheduled(&self) -> bool {
+        self.signal().scheduled.swap(false, Ordering::AcqRel)
+    }
+    pub(super) fn changed_since(&self, epoch: u64) -> bool {
+        self.signal().epoch.load(Ordering::Acquire) != epoch
+            || self.signal().scheduled.load(Ordering::Acquire)
+    }
+    pub(super) fn epoch(&self) -> u64 {
+        self.signal().epoch.load(Ordering::Acquire)
+    }
+}
+
+#[cfg(test)]
+impl Drop for OwnedWriter {
+    fn drop(&mut self) {
+        let seat = &self.port.routes[self.id.slot];
+        seat.writer.store(false, Ordering::Release);
+        seat.refs.fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+#[cfg(test)]
+pub(super) struct OwnedBinding {
+    port: Arc<CriticalRoutePort>,
+    id: RouteId,
+    slot: usize,
+}
+
+#[cfg(test)]
+impl Drop for OwnedBinding {
+    fn drop(&mut self) {
+        self.port.bindings[self.slot].store(false, Ordering::Release);
+        self.port.routes[self.id.slot]
+            .refs
+            .fetch_sub(1, Ordering::AcqRel);
+    }
+}
+
+#[cfg(test)]
+pub(super) struct OwnedDrainTicket {
+    port: Arc<CriticalRoutePort>,
+    key: DrainKey,
+}
+
+#[cfg(test)]
+impl OwnedDrainTicket {
+    pub(super) fn key(&self) -> DrainKey {
+        self.key
+    }
+    pub(super) fn submit(&mut self, host: &impl DrainSubmitter, deadline: u64) -> DrainArmResult {
+        let mut view = ManuallyDrop::new(DrainTicket {
+            port: &self.port,
+            key: self.key,
+        });
+        view.submit(host, deadline)
+    }
+}
+
+#[cfg(test)]
+impl Drop for OwnedDrainTicket {
+    fn drop(&mut self) {
+        let view = DrainTicket {
+            port: &self.port,
+            key: self.key,
+        };
+        drop(view);
     }
 }
 
