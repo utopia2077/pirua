@@ -137,7 +137,14 @@ impl RequestPayloadTransform for PayloadBridge {
 pub async fn run_request(
     input: RequestInput,
 ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
-    run_request_inner(input, None, None).await
+    run_request_inner(
+        input,
+        None,
+        None,
+        #[cfg(feature = "extensions")]
+        None,
+    )
+    .await
 }
 
 /// Owner-only route: captured registration survives listener reentry and delayed spawn.
@@ -148,13 +155,21 @@ pub(crate) async fn run_captured_request(
     if &input.model != captured.model() {
         return Err(capture_fault());
     }
-    run_request_inner(input, Some(captured), None).await
+    run_request_inner(
+        input,
+        Some(captured),
+        None,
+        #[cfg(feature = "extensions")]
+        None,
+    )
+    .await
 }
 
 async fn run_request_inner(
     input: RequestInput,
     captured: Option<pi_ai_core::CapturedTextDispatch>,
     summary: Option<SummaryRequestSettings>,
+    #[cfg(feature = "extensions")] keyed: Option<&dyn KeyedRequestSource>,
 ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
     let cancellation = input.runtime.cancellation.clone();
     let error = Arc::new(Mutex::new(None));
@@ -228,25 +243,32 @@ async fn run_request_inner(
         ..Default::default()
     };
     let lifecycle = RequestLifecycleOptions { payload };
-    let observed = match captured {
-        Some(captured) => input
-            .models
-            .stream_simple_captured_with_lifecycle(
-                captured,
-                input.context,
-                overrides,
-                options,
-                lifecycle,
-            )
-            .map_err(|_| capture_fault())?,
-        None => input.models.stream_simple_with_lifecycle(
+    #[cfg(feature = "extensions")]
+    let observed = if let Some(source) = keyed {
+        source
+            .stream(input.model, input.context, overrides, options, lifecycle)
+            .await?
+    } else {
+        native_dispatch(
+            input.models,
             input.model,
             input.context,
+            captured,
             overrides,
             options,
             lifecycle,
-        ),
+        )?
     };
+    #[cfg(not(feature = "extensions"))]
+    let observed = native_dispatch(
+        input.models,
+        input.model,
+        input.context,
+        captured,
+        overrides,
+        options,
+        lifecycle,
+    )?;
     consume_observed(
         observed,
         input.callbacks,
@@ -256,6 +278,24 @@ async fn run_request_inner(
         error,
     )
     .await
+}
+
+fn native_dispatch(
+    models: Arc<ModelsRegistry>,
+    model: Model,
+    context: Context,
+    captured: Option<pi_ai_core::CapturedTextDispatch>,
+    overrides: ModelsRequestOverrides,
+    options: SimpleStreamOptions,
+    lifecycle: RequestLifecycleOptions,
+) -> Result<pi_ai_core::ObservedAssistantStream, HarnessRuntimeError> {
+    let observed = match captured {
+        Some(captured) => models
+            .stream_simple_captured_with_lifecycle(captured, context, overrides, options, lifecycle)
+            .map_err(|_| capture_fault())?,
+        None => models.stream_simple_with_lifecycle(model, context, overrides, options, lifecycle),
+    };
+    Ok(observed)
 }
 
 async fn consume_observed(
@@ -408,6 +448,74 @@ pub async fn run_deferred_request(
         error,
     )
     .await
+}
+
+#[cfg(feature = "extensions")]
+pub(crate) async fn run_keyed_deferred_request(
+    input: DeferredRequestInput,
+    captured: pi_ai_core::CapturedTextDispatch,
+    source: &dyn KeyedRequestSource,
+    existing: pi_ai_core::AssistantMessage,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    if &input.model != captured.model() || existing.deferred.as_ref() != Some(&input.handle) {
+        return Err(capture_fault());
+    }
+    let cancellation = input.runtime.cancellation.clone();
+    let error = Arc::new(Mutex::new(None));
+    let handlers = catch_unwind(AssertUnwindSafe(|| input.callbacks.has_payload_handlers()))
+        .map_err(|_| callback_panic())?;
+    let payload = handlers.then(|| {
+        Arc::new(PayloadBridge {
+            callbacks: input.callbacks.clone(),
+            lane: input.lane.clone(),
+            run_id: input.run_id.clone(),
+            error: error.clone(),
+        }) as Arc<dyn RequestPayloadTransform>
+    });
+    let overrides = deferred_headers(&input.options);
+    let options = keyed_deferred_options(input.options, input.runtime);
+    let context = Context {
+        system_prompt: None,
+        messages: vec![pi_ai_core::Message::Assistant(Box::new(existing))],
+        tools: Some(vec![]),
+    };
+    let observed = source
+        .stream(
+            input.model,
+            context,
+            overrides,
+            options,
+            RequestLifecycleOptions { payload },
+        )
+        .await?;
+    consume_observed(
+        observed,
+        input.callbacks,
+        input.lane,
+        input.run_id,
+        cancellation,
+        error,
+    )
+    .await
+}
+#[cfg(feature = "extensions")]
+pub(crate) fn keyed_deferred_options(
+    input: AgentHarnessStreamOptions,
+    runtime: RequestRuntime,
+) -> SimpleStreamOptions {
+    SimpleStreamOptions {
+        runtime,
+        wire: pi_ai_core::SimpleStreamOptionsWire {
+            stream: pi_ai_core::StreamOptionsWire {
+                timeout_ms: input.timeout_ms,
+                max_retries: input.max_retries,
+                max_retry_delay_ms: input.max_retry_delay_ms,
+                ..Default::default()
+            },
+            deferred: Some(pi_ai_core::DeferredRequest::Enabled(false)),
+            ..Default::default()
+        },
+    }
 }
 
 fn cancel_provider_panic() -> pi_ai_core::AuthResolutionError {
@@ -643,5 +751,46 @@ pub async fn run_summary_request(
     input.runtime.spawner = Arc::new(SummarySpawner(input.runtime.spawner));
     input.context.tools = None;
     input.callbacks = Arc::new(SummaryCallbacks(input.callbacks));
-    run_request_inner(input, Some(captured), Some(settings)).await
+    run_request_inner(
+        input,
+        Some(captured),
+        Some(settings),
+        #[cfg(feature = "extensions")]
+        None,
+    )
+    .await
+}
+
+#[cfg(feature = "extensions")]
+pub(crate) trait KeyedRequestSource: Send + Sync {
+    fn stream(
+        &self,
+        model: Model,
+        context: Context,
+        overrides: ModelsRequestOverrides,
+        options: SimpleStreamOptions,
+        lifecycle: RequestLifecycleOptions,
+    ) -> BoxFuture<'_, Result<pi_ai_core::ObservedAssistantStream, HarnessRuntimeError>>;
+}
+#[cfg(feature = "extensions")]
+pub(crate) async fn run_keyed_request(
+    mut input: RequestInput,
+    captured: pi_ai_core::CapturedTextDispatch,
+    source: &dyn KeyedRequestSource,
+    summary: Option<SummaryRequestSettings>,
+) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    if &input.model != captured.model()
+        || summary.as_ref().is_some_and(|s| s.routing_key.is_empty())
+    {
+        return Err(capture_fault());
+    }
+    if summary.is_some() {
+        if !input.model.reasoning {
+            input.thinking = AgentThinkingLevel::Off;
+        }
+        input.runtime.spawner = Arc::new(SummarySpawner(input.runtime.spawner));
+        input.context.tools = None;
+        input.callbacks = Arc::new(SummaryCallbacks(input.callbacks));
+    }
+    run_request_inner(input, Some(captured), summary, Some(source)).await
 }

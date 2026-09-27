@@ -304,6 +304,48 @@ enum StartTiming {
     },
 }
 
+pub(crate) trait ToolProfileIngress: Send + Sync {
+    fn incoming(&self, frame: ActiveFrame) -> Result<(), DriverError>;
+    fn admit_write(&self, id: u64) -> pi_ai_core::BoxFuture<'_, bool>;
+    fn written(&self, id: u64, completed: bool);
+    fn close(&self);
+}
+struct ToolProfileIds {
+    owner: SingleToolOwner,
+    route: Arc<Route>,
+}
+impl pi_extension_protocol::profile_live::ConnectionIds for ToolProfileIds {
+    fn connection(&self) -> pi_extension_protocol::profile_live::ConnectionIdentity {
+        self.route.connection.clone()
+    }
+    fn reserve_request_id(
+        &self,
+        now_ms: u64,
+        requested: Option<u64>,
+        minimum: u64,
+    ) -> Result<u64, pi_extension_protocol::profile_live::Error> {
+        use pi_extension_protocol::profile_live::Error;
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        if state
+            .active
+            .as_ref()
+            .is_none_or(|active| !Arc::ptr_eq(active, &self.route))
+            || self.route.status() != RouteStatus::Active
+            || self.route.timing.get().is_some_and(|timing| {
+                now_ms.max(self.route.clock.now_ms()) >= timing.connection_deadline_ms
+            })
+        {
+            return Err(Error::Generation);
+        }
+        let first = self.route.next_id.load(Ordering::SeqCst).max(minimum);
+        let id = requested.unwrap_or(first);
+        if id < first || id == 0 || id == u64::MAX {
+            return Err(Error::Stale);
+        }
+        self.route.next_id.store(id + 1, Ordering::SeqCst);
+        Ok(id)
+    }
+}
 struct LiveSlot {
     invocation: ToolInvocation,
     domain: EchoDomainBinding,
@@ -333,6 +375,159 @@ struct OwnerInner {
 #[derive(Clone)]
 pub struct SingleToolOwner(Arc<OwnerInner>);
 
+struct ToolProfileParent {
+    owner: SingleToolOwner,
+    binding: InvocationBinding,
+}
+impl pi_extension_protocol::profile_live::ParentCustody for ToolProfileParent {
+    fn observe(
+        &self,
+        now_ms: u64,
+    ) -> Result<
+        pi_extension_protocol::profile_live::ParentObservation,
+        pi_extension_protocol::profile_live::Error,
+    > {
+        use pi_extension_protocol::profile_live::{Error, ParentObservation};
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let slot = state.live.as_ref().ok_or(Error::Parent)?;
+        let binding = slot.invocation.binding();
+        let now = now_ms.max(slot.route.clock.now_ms());
+        if !binding.same_live_identity(&self.binding)
+            || slot.invocation.phase() != LivePhase::Open
+            || slot.local_fault
+            || slot.cancel_deadline_ms.is_some()
+            || slot.route.status() == RouteStatus::Closed
+            || binding.generation() != slot.route.generation
+            || binding.capability_ref().authenticated_extension_id
+                != slot.route.grant.wire().authenticated_extension_id
+            || now >= slot.invocation.effective_deadline_ms()
+        {
+            return Err(Error::Parent);
+        }
+        Ok(ParentObservation {
+            connection: slot.route.connection.clone(),
+            principal: binding.capability_ref().authenticated_extension_id.clone(),
+            generation: binding.generation(),
+            request_id: binding.request_id(),
+            key: binding.effect_key().clone(),
+            deadline_ms: slot.invocation.effective_deadline_ms(),
+            depth: 1,
+        })
+    }
+    fn reserve_request_id(
+        &self,
+        now_ms: u64,
+        requested: Option<u64>,
+        minimum: u64,
+    ) -> Result<u64, pi_extension_protocol::profile_live::Error> {
+        use pi_extension_protocol::profile_live::Error;
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let slot = state.live.as_ref().ok_or(Error::Parent)?;
+        let binding = slot.invocation.binding();
+        let now = now_ms.max(slot.route.clock.now_ms());
+        if !binding.same_live_identity(&self.binding)
+            || slot.invocation.phase() != LivePhase::Open
+            || slot.local_fault
+            || slot.cancel_deadline_ms.is_some()
+            || slot.route.status() != RouteStatus::Active
+            || binding.generation() != slot.route.generation
+            || binding.capability_ref().authenticated_extension_id
+                != slot.route.grant.wire().authenticated_extension_id
+            || now >= slot.invocation.effective_deadline_ms()
+        {
+            return Err(Error::Parent);
+        }
+        let first = slot.route.next_id.load(Ordering::SeqCst).max(minimum);
+        let id = requested.unwrap_or(first);
+        if id < first || id == 0 || id == u64::MAX {
+            return Err(Error::Stale);
+        }
+        slot.route.next_id.store(id + 1, Ordering::SeqCst);
+        Ok(id)
+    }
+}
+
+struct ToolNativeProfileParent {
+    owner: SingleToolOwner,
+    binding: InvocationBinding,
+    native_deadline_ms: u64,
+}
+impl pi_extension_protocol::profile_live::NativeCustody for ToolNativeProfileParent {
+    fn observe(
+        &self,
+        now_ms: u64,
+    ) -> Result<
+        pi_extension_protocol::profile_live::NativeObservation,
+        pi_extension_protocol::profile_live::Error,
+    > {
+        use pi_extension_protocol::profile_live::{Error, NativeObservation};
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let slot = state.live.as_ref().ok_or(Error::Parent)?;
+        let binding = slot.invocation.binding();
+        let now = now_ms.max(slot.route.clock.now_ms());
+        if !binding.same_live_identity(&self.binding)
+            || !matches!(
+                slot.invocation.phase(),
+                LivePhase::Open | LivePhase::TerminalReceived
+            )
+            || slot.local_fault
+            || slot.cancel_deadline_ms.is_some()
+            || binding.generation() != slot.route.generation
+            || binding.capability_ref().authenticated_extension_id
+                != slot.route.grant.wire().authenticated_extension_id
+            || now >= self.native_deadline_ms
+            || slot.invocation.phase() == LivePhase::Open
+                && (slot.route.status() != RouteStatus::Active
+                    || now >= slot.invocation.effective_deadline_ms())
+        {
+            return Err(Error::Parent);
+        }
+        Ok(NativeObservation {
+            connection: Some(slot.route.connection.clone()),
+            key: Some(binding.effect_key().clone()),
+            parent_request_id: Some(binding.request_id()),
+            deadline_ms: if slot.invocation.phase() == LivePhase::TerminalReceived {
+                self.native_deadline_ms
+            } else {
+                self.native_deadline_ms
+                    .min(slot.invocation.effective_deadline_ms())
+            },
+        })
+    }
+    fn reserve_request_id(
+        &self,
+        now_ms: u64,
+        requested: Option<u64>,
+        minimum: u64,
+    ) -> Result<Option<u64>, pi_extension_protocol::profile_live::Error> {
+        use pi_extension_protocol::profile_live::Error;
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let slot = state.live.as_ref().ok_or(Error::Parent)?;
+        let now = now_ms.max(slot.route.clock.now_ms());
+        if !slot.invocation.binding().same_live_identity(&self.binding)
+            || !matches!(
+                slot.invocation.phase(),
+                LivePhase::Open | LivePhase::TerminalReceived
+            )
+            || slot.local_fault
+            || slot.cancel_deadline_ms.is_some()
+            || slot.route.status() != RouteStatus::Active
+            || now >= self.native_deadline_ms
+            || slot.invocation.phase() == LivePhase::Open
+                && now >= slot.invocation.effective_deadline_ms()
+        {
+            return Err(Error::Parent);
+        }
+        let first = slot.route.next_id.load(Ordering::SeqCst).max(minimum);
+        let id = requested.unwrap_or(first);
+        if id < first || id == 0 || id == u64::MAX {
+            return Err(Error::Stale);
+        }
+        slot.route.next_id.store(id + 1, Ordering::SeqCst);
+        Ok(Some(id))
+    }
+}
+
 impl SingleToolOwner {
     /// Process-local identity check for a harness's one owner-wide live slot.
     pub(crate) fn same_owner(&self, other: &Self) -> bool {
@@ -359,6 +554,27 @@ impl SingleToolOwner {
         channel: Arc<dyn OrderedByteChannel>,
         clock: Arc<dyn MonotonicClock>,
         config: PumpConfig,
+    ) -> Result<ReadyToolRoute, DriverError> {
+        self.connect_inner(host, channel, clock, config, None).await
+    }
+    pub(crate) async fn connect_profiles(
+        &self,
+        host: HostAuthority,
+        channel: Arc<dyn OrderedByteChannel>,
+        clock: Arc<dyn MonotonicClock>,
+        config: PumpConfig,
+        profiles: Arc<dyn ToolProfileIngress>,
+    ) -> Result<ReadyToolRoute, DriverError> {
+        self.connect_inner(host, channel, clock, config, Some(profiles))
+            .await
+    }
+    async fn connect_inner(
+        &self,
+        host: HostAuthority,
+        channel: Arc<dyn OrderedByteChannel>,
+        clock: Arc<dyn MonotonicClock>,
+        config: PumpConfig,
+        profiles: Option<Arc<dyn ToolProfileIngress>>,
     ) -> Result<ReadyToolRoute, DriverError> {
         let mut pump = ConnectionPump::new(host, channel.clone(), clock.clone(), config)
             .map_err(|_| DriverError::InvalidHost)?;
@@ -405,9 +621,14 @@ impl SingleToolOwner {
         };
         let reference = tool.reference();
         let profile = reference.profile.as_ref().ok_or(DriverError::InvalidHost)?;
-        if grant.wire().selected_capabilities.len() != 1
-            || grant.wire().selected_capabilities[0] != *reference
-            || !grant.wire().permissions.is_empty()
+        if (profiles.is_none()
+            && (grant.wire().selected_capabilities.len() != 1
+                || grant.wire().selected_capabilities[0] != *reference
+                || !grant.wire().permissions.is_empty()))
+            || (profiles.is_some()
+                && (grant.profiles().is_empty()
+                    || grant.wire().selected_capabilities.len() != grant.profiles().len() + 1
+                    || !grant.wire().selected_capabilities.contains(reference)))
             || tool.descriptor().name != "echo"
             || reference.authenticated_extension_id != grant.wire().authenticated_extension_id
             || reference.kind != "tool"
@@ -422,6 +643,8 @@ impl SingleToolOwner {
         let route = Arc::new(Route {
             generation,
             grant,
+            connection: pi_extension_protocol::profile_live::ConnectionIdentity::new(),
+            profiles,
             channel,
             clock,
             supervisor: Supervisor::new(self.0.host.clone()),
@@ -534,6 +757,35 @@ impl SingleToolOwner {
         Ok(slot.invocation.phase())
     }
 
+    /// Capture actual opaque Tool owner/binding custody for subordinate profile
+    /// calls. Caller-supplied keys and IDs cannot replace this binding.
+    pub fn profile_parent(
+        &self,
+        binding: &InvocationBinding,
+    ) -> Result<pi_extension_protocol::profile_live::ExternalParent, DriverError> {
+        let parent = ToolProfileParent {
+            owner: self.clone(),
+            binding: binding.clone(),
+        };
+        use pi_extension_protocol::profile_live::ParentCustody;
+        parent.observe(0).map_err(|_| DriverError::WrongBinding)?;
+        Ok(pi_extension_protocol::profile_live::ExternalParent::from_owner(Arc::new(parent)))
+    }
+
+    pub(crate) fn native_profile_parent(
+        &self,
+        binding: &InvocationBinding,
+        native_deadline_ms: u64,
+    ) -> Result<Arc<dyn pi_extension_protocol::profile_live::NativeCustody>, DriverError> {
+        let parent = ToolNativeProfileParent {
+            owner: self.clone(),
+            binding: binding.clone(),
+            native_deadline_ms,
+        };
+        use pi_extension_protocol::profile_live::NativeCustody;
+        parent.observe(0).map_err(|_| DriverError::WrongBinding)?;
+        Ok(Arc::new(parent))
+    }
     /// Caller invokes only after exact no-write cleanup of a preterminal loss.
     pub fn acknowledge_peer_lost(&self, binding: &InvocationBinding) -> Result<(), DriverError> {
         let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
@@ -993,12 +1245,64 @@ impl SingleToolOwner {
     }
 }
 
+#[derive(Clone)]
 pub struct ReadyToolRoute {
     owner: SingleToolOwner,
     route: Arc<Route>,
 }
 
 impl ReadyToolRoute {
+    pub(crate) fn profile_ids(
+        &self,
+    ) -> Arc<dyn pi_extension_protocol::profile_live::ConnectionIds> {
+        Arc::new(ToolProfileIds {
+            owner: self.owner.clone(),
+            route: self.route.clone(),
+        })
+    }
+    pub(crate) fn peer_profile_parent(
+        &self,
+        id: u64,
+    ) -> Result<pi_extension_protocol::profile_live::ExternalParent, DriverError> {
+        let binding = {
+            let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            let slot = state
+                .live
+                .as_ref()
+                .filter(|slot| {
+                    Arc::ptr_eq(&slot.route, &self.route)
+                        && slot.invocation.binding().request_id() == id
+                })
+                .ok_or(DriverError::WrongBinding)?;
+            slot.invocation.binding().clone()
+        };
+        self.owner.profile_parent(&binding)
+    }
+    pub(crate) fn enqueue_profile(
+        &self,
+        frame: EncodedFrame,
+        id: u64,
+        response: bool,
+    ) -> Result<(), DriverError> {
+        let kind = if response {
+            WriteKind::ProfileResponse(id)
+        } else {
+            WriteKind::ProfileRequest(id)
+        };
+        let (wake, _) = self.route.enqueue(frame, kind)?;
+        if let Some(wake) = wake {
+            wake.wake();
+        }
+        Ok(())
+    }
+    pub(crate) fn close_profiles(&self) {
+        self.owner.close_route(&self.route, DriverError::PeerLost);
+    }
+    pub(crate) fn connection_identity(
+        &self,
+    ) -> pi_extension_protocol::profile_live::ConnectionIdentity {
+        self.route.connection.clone()
+    }
     pub fn grant(&self) -> &ActiveGrant {
         &self.route.grant
     }
@@ -1276,6 +1580,8 @@ enum FenceRouteDecision {
 struct Route {
     generation: u64,
     grant: Arc<ActiveGrant>,
+    connection: pi_extension_protocol::profile_live::ConnectionIdentity,
+    profiles: Option<Arc<dyn ToolProfileIngress>>,
     channel: Arc<dyn OrderedByteChannel>,
     clock: Arc<dyn MonotonicClock>,
     supervisor: Supervisor,
@@ -1308,6 +1614,9 @@ impl Route {
             return;
         }
         self.channel.close();
+        if let Some(profiles) = &self.profiles {
+            profiles.close();
+        }
         let wake = {
             let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
             let wake = writes.waker.take();
@@ -1530,9 +1839,9 @@ impl Route {
     fn release_write(&self, kind: WriteKind, size: usize) {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
         let reserved = match kind {
-            WriteKind::Denial => &mut writes.control_bytes,
+            WriteKind::Denial | WriteKind::ProfileResponse(_) => &mut writes.control_bytes,
             WriteKind::Cancel(_) => &mut writes.cancel_bytes,
-            WriteKind::Request(_) => &mut writes.normal_bytes,
+            WriteKind::Request(_) | WriteKind::ProfileRequest(_) => &mut writes.normal_bytes,
         };
         *reserved = reserved.saturating_sub(size);
         if matches!(kind, WriteKind::Cancel(_)) && writes.cancel_bytes == 0 {
@@ -1584,6 +1893,8 @@ enum WriteKind {
     Request(u64),
     Cancel(u64),
     Denial,
+    ProfileRequest(u64),
+    ProfileResponse(u64),
 }
 struct WriteJob {
     frame: EncodedFrame,
@@ -1613,8 +1924,12 @@ impl WriteState {
         cancel_cap: usize,
     ) -> Result<(), DriverError> {
         let (reserved, cap) = match kind {
-            WriteKind::Request(_) => (&mut self.normal_bytes, normal_cap),
-            WriteKind::Denial => (&mut self.control_bytes, denial_cap),
+            WriteKind::Request(_) | WriteKind::ProfileRequest(_) => {
+                (&mut self.normal_bytes, normal_cap)
+            }
+            WriteKind::Denial | WriteKind::ProfileResponse(_) => {
+                (&mut self.control_bytes, denial_cap)
+            }
             WriteKind::Cancel(_) => (&mut self.cancel_bytes, cancel_cap),
         };
         *reserved = reserved
@@ -1681,6 +1996,28 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             owner.close_route(&route, DriverError::PeerLost);
             break;
         }
+        if let WriteKind::ProfileRequest(id) | WriteKind::ProfileResponse(id) = job.kind {
+            let admitted = if let Some(profiles) = &route.profiles {
+                let mut admission = profiles.admit_write(id);
+                let mut deadline = route.clock.sleep_until(job.deadline);
+                poll_fn(|cx| {
+                    if deadline.as_mut().poll(cx).is_ready() {
+                        return Poll::Ready(false);
+                    }
+                    admission.as_mut().poll(cx)
+                })
+                .await
+            } else {
+                false
+            };
+            if !admitted {
+                route.release_write(job.kind, job.frame.bytes.len());
+                if let Some(profiles) = &route.profiles {
+                    profiles.written(id, false);
+                }
+                continue;
+            }
+        }
         let size = job.frame.bytes.len();
         if route.clock.now_ms() >= job.deadline {
             route.release_write(job.kind, size);
@@ -1699,6 +2036,11 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             && route.clock.now_ms() < job.deadline;
         let denial = matches!(job.kind, WriteKind::Denial);
         route.release_write(job.kind, size);
+        if let WriteKind::ProfileRequest(id) | WriteKind::ProfileResponse(id) = job.kind
+            && let Some(profiles) = &route.profiles
+        {
+            profiles.written(id, completed);
+        }
         if !completed {
             owner.close_route(&route, DriverError::PeerLost);
             break;
@@ -1731,14 +2073,81 @@ enum ReaderAction {
 async fn reader_loop(owner: SingleToolOwner, route: Arc<Route>, mut pump: ConnectionPump) {
     loop {
         match pump.next_active().await {
-            Ok(Some(frame)) => match owner.on_frame(&route, frame) {
-                Ok(ReaderAction::Continue) => {}
-                Ok(ReaderAction::Stop) => break,
-                Err(error) => {
-                    owner.close_route(&route, error);
-                    break;
+            Ok(Some(frame)) => {
+                if let Some(profiles) = &route.profiles {
+                    let profile_id = match &frame.envelope {
+                        SelectedEnvelope::V1_1(e) => match &e.frame {
+                            Some(v1_1::envelope::Frame::Request(request)) => {
+                                let Some(reference) = request.capability_ref.as_ref() else {
+                                    owner.close_route(&route, DriverError::MalformedPeer);
+                                    break;
+                                };
+                                if validated_peer_ref(&route, &peer_ref_1_1(reference)).is_none() {
+                                    owner.close_route(&route, DriverError::MalformedPeer);
+                                    break;
+                                }
+                                Some(request.request_id)
+                            }
+                            Some(v1_1::envelope::Frame::Response(response)) => {
+                                Some(response.request_id)
+                            }
+                            Some(v1_1::envelope::Frame::StreamEnd(end)) => Some(end.request_id),
+                            Some(v1_1::envelope::Frame::StreamItem(item)) => Some(item.request_id),
+                            Some(v1_1::envelope::Frame::Cancel(cancel)) => Some(cancel.request_id),
+                            Some(v1_1::envelope::Frame::Credit(credit)) => Some(credit.request_id),
+                            _ => None,
+                        },
+                        SelectedEnvelope::V1_0(e) => match &e.frame {
+                            Some(v1_0::envelope::Frame::Request(request)) => {
+                                let Some(reference) = request.capability_ref.as_ref() else {
+                                    owner.close_route(&route, DriverError::MalformedPeer);
+                                    break;
+                                };
+                                if validated_peer_ref(&route, &peer_ref_1_0(reference)).is_none() {
+                                    owner.close_route(&route, DriverError::MalformedPeer);
+                                    break;
+                                }
+                                Some(request.request_id)
+                            }
+                            Some(v1_0::envelope::Frame::Response(response)) => {
+                                Some(response.request_id)
+                            }
+                            Some(v1_0::envelope::Frame::StreamEnd(end)) => Some(end.request_id),
+                            Some(v1_0::envelope::Frame::StreamItem(item)) => Some(item.request_id),
+                            Some(v1_0::envelope::Frame::Cancel(cancel)) => Some(cancel.request_id),
+                            Some(v1_0::envelope::Frame::Credit(credit)) => Some(credit.request_id),
+                            _ => None,
+                        },
+                    };
+                    if let Some(id) = profile_id {
+                        let tool_id = {
+                            let state = owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+                            state
+                                .live
+                                .as_ref()
+                                .filter(|slot| Arc::ptr_eq(&slot.route, &route))
+                                .map(|slot| slot.invocation.binding().request_id())
+                        };
+                        let peer_request = matches!(&frame.envelope,SelectedEnvelope::V1_1(e) if matches!(e.frame,Some(v1_1::envelope::Frame::Request(_))))
+                            || matches!(&frame.envelope,SelectedEnvelope::V1_0(e) if matches!(e.frame,Some(v1_0::envelope::Frame::Request(_))));
+                        if peer_request || tool_id != Some(id) {
+                            if let Err(error) = profiles.incoming(frame) {
+                                owner.close_route(&route, error);
+                                break;
+                            }
+                            continue;
+                        }
+                    }
                 }
-            },
+                match owner.on_frame(&route, frame) {
+                    Ok(ReaderAction::Continue) => {}
+                    Ok(ReaderAction::Stop) => break,
+                    Err(error) => {
+                        owner.close_route(&route, error);
+                        break;
+                    }
+                }
+            }
             Ok(None) | Err(_) => {
                 owner.close_route(&route, DriverError::PeerLost);
                 break;

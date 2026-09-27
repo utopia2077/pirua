@@ -1,0 +1,232 @@
+//! Bounded demultiplexing behind the actual Tool route's sole reader/writer.
+use super::connection::ProfileConnection;
+use crate::extensions::{
+    tool_driver::{DriverError, ToolProfileIngress},
+    transport::PumpError,
+};
+use pi_ai_core::CancellationToken;
+use pi_extension_protocol::endpoint::ActiveFrame;
+use std::{
+    collections::{BTreeMap, VecDeque},
+    sync::{Arc, Mutex, Weak},
+    task::{Poll, Waker},
+};
+struct PendingWrite {
+    done: CancellationToken,
+    result: Mutex<Option<bool>>,
+    cancel: bool,
+    response: bool,
+}
+struct State {
+    requests: VecDeque<ActiveFrame>,
+    replies: VecDeque<ActiveFrame>,
+    bytes: usize,
+    closed: bool,
+    request_wake: Option<Waker>,
+    reply_wake: Option<Waker>,
+    writes: BTreeMap<u64, Arc<PendingWrite>>,
+}
+pub(crate) struct ToolInbox {
+    state: Mutex<State>,
+    connection: Mutex<Weak<ProfileConnection>>,
+    max_bytes: usize,
+    max_frames: usize,
+}
+impl ToolInbox {
+    pub(crate) fn new(max_bytes: usize, max_frames: usize) -> Result<Arc<Self>, DriverError> {
+        if max_bytes == 0 || max_bytes == usize::MAX || max_frames == 0 || max_frames > 256 {
+            return Err(DriverError::InvalidHost);
+        }
+        Ok(Arc::new(Self {
+            state: Mutex::new(State {
+                requests: VecDeque::new(),
+                replies: VecDeque::new(),
+                bytes: 0,
+                closed: false,
+                request_wake: None,
+                reply_wake: None,
+                writes: BTreeMap::new(),
+            }),
+            connection: Mutex::new(Weak::new()),
+            max_bytes,
+            max_frames,
+        }))
+    }
+    pub(crate) fn attach(&self, connection: &Arc<ProfileConnection>) {
+        *self.connection.lock().unwrap_or_else(|p| p.into_inner()) = Arc::downgrade(connection);
+    }
+    pub(crate) async fn next(&self, requests: bool) -> Result<Option<ActiveFrame>, PumpError> {
+        std::future::poll_fn(|cx| {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            let frame = if requests {
+                state.requests.pop_front()
+            } else {
+                state.replies.pop_front()
+            };
+            if let Some(frame) = frame {
+                state.bytes -= frame.body_len;
+                return Poll::Ready(Ok(Some(frame)));
+            }
+            if state.closed {
+                return Poll::Ready(Ok(None));
+            }
+            let old = if requests {
+                state.request_wake.replace(cx.waker().clone())
+            } else {
+                state.reply_wake.replace(cx.waker().clone())
+            };
+            drop(state);
+            drop(old);
+            Poll::Pending
+        })
+        .await
+    }
+    pub(crate) async fn write(
+        &self,
+        connection: &ProfileConnection,
+        frame: pi_extension_protocol::wire::framing::EncodedFrame,
+        deadline: u64,
+    ) -> Result<(), pi_agent_schema::HarnessRuntimeError> {
+        // The existing selected framing carries the request ID; parse one
+        // bounded complete frame without interpreting its native payload.
+        let (id, response, cancel) = connection.outgoing_identity(&frame)?;
+        let pending = Arc::new(PendingWrite {
+            done: CancellationToken::new(),
+            result: Mutex::new(None),
+            cancel,
+            response,
+        });
+        {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            if state.closed
+                || state.writes.len() >= self.max_frames
+                || state.writes.contains_key(&id)
+            {
+                return Err(super::fault());
+            }
+            state.writes.insert(id, pending.clone());
+        }
+        if connection
+            .enqueue_profile(frame, id, response, deadline)
+            .is_err()
+        {
+            self.written(id, false);
+        }
+        let mut done = Box::pin(pending.done.cancelled());
+        let clock = connection.clock();
+        let mut timer = Box::pin(clock.sleep_until(deadline));
+        let completed = std::future::poll_fn(|cx| {
+            if timer.as_mut().poll(cx).is_ready() {
+                return Poll::Ready(false);
+            }
+            done.as_mut().poll(cx).map(|_| true)
+        })
+        .await;
+        if !completed
+            || pending
+                .result
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+                != Some(&true)
+        {
+            return Err(super::fault());
+        }
+        Ok(())
+    }
+}
+impl ToolProfileIngress for ToolInbox {
+    fn incoming(&self, frame: ActiveFrame) -> Result<(), DriverError> {
+        let requests = super::connection::peer_request(&frame.envelope).is_some()
+            || self
+                .connection
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .upgrade()
+                .is_some_and(|connection| connection.passive_control(&frame.envelope));
+        let wake = {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            let bytes = state
+                .bytes
+                .checked_add(frame.body_len)
+                .ok_or(DriverError::Overloaded)?;
+            if state.closed
+                || bytes > self.max_bytes
+                || state.requests.len() + state.replies.len() >= self.max_frames
+            {
+                return Err(DriverError::Overloaded);
+            }
+            state.bytes = bytes;
+            if requests {
+                state.requests.push_back(frame);
+                state.request_wake.take()
+            } else {
+                state.replies.push_back(frame);
+                state.reply_wake.take()
+            }
+        };
+        if let Some(wake) = wake {
+            wake.wake();
+        }
+        Ok(())
+    }
+    fn admit_write(&self, id: u64) -> pi_ai_core::BoxFuture<'_, bool> {
+        Box::pin(async move {
+            let connection = self
+                .connection
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .upgrade();
+            let Some(connection) = connection else {
+                return false;
+            };
+            let (response, cancel) = {
+                let state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                let Some(write) = state.writes.get(&id) else {
+                    return false;
+                };
+                (write.response, write.cancel)
+            };
+            connection.admit_tool_write(id, response, cancel).await
+        })
+    }
+    fn written(&self, id: u64, completed: bool) {
+        let pending = self
+            .state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .writes
+            .remove(&id);
+        if let Some(pending) = pending {
+            *pending.result.lock().unwrap_or_else(|p| p.into_inner()) = Some(completed);
+            pending.done.cancel();
+        }
+    }
+    fn close(&self) {
+        let (wake, reply, writes) = {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            if state.closed {
+                return;
+            }
+            state.closed = true;
+            state.bytes = 0;
+            state.requests.clear();
+            state.replies.clear();
+            (
+                state.request_wake.take(),
+                state.reply_wake.take(),
+                std::mem::take(&mut state.writes),
+            )
+        };
+        for pending in writes.into_values() {
+            *pending.result.lock().unwrap_or_else(|p| p.into_inner()) = Some(false);
+            pending.done.cancel();
+        }
+        if let Some(wake) = wake {
+            wake.wake();
+        }
+        if let Some(wake) = reply {
+            wake.wake();
+        }
+    }
+}

@@ -8,6 +8,8 @@ mod pipeline;
 mod registry;
 mod request;
 
+#[cfg(feature = "extensions")]
+pub(crate) use pipeline::validate_remote_result;
 pub use pipeline::{HookErrorSink, HookPipelineOutput, StartedHookContext};
 pub use registry::{CaptureRevision, CapturedHookPipeline, HookRegistry};
 pub use request::apply_stream_options_patch;

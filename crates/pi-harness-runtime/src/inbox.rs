@@ -4,6 +4,8 @@ use pi_agent_schema::*;
 use pi_agent_session::{backend_support::register_seq, storage::RuntimeStorage};
 use pi_ai_core::Presence;
 use pi_harness_core::planner::{CommitRecipe, Publication, RegisterCondition};
+#[cfg(feature = "extensions")]
+use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub(crate) enum QueueKind {
@@ -162,6 +164,22 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Ok(())
     }
     pub(crate) async fn queue_input(&self, message: AgentMessage, kind: QueueKind) -> QueueCall {
+        self.queue_input_guarded(
+            message,
+            kind,
+            #[cfg(feature = "extensions")]
+            None,
+        )
+        .await
+    }
+    pub(crate) async fn queue_input_guarded(
+        &self,
+        message: AgentMessage,
+        kind: QueueKind,
+        #[cfg(feature = "extensions")] guard: Option<
+            Arc<crate::extensions::profiles::actions::ActionGuard>,
+        >,
+    ) -> QueueCall {
         if let Err(e) = self.owner.admission.check() {
             return match e {
                 HarnessRuntimeError::Closed(_) => Ok(Err(QueueExpectedError::Closed(closed()))),
@@ -188,12 +206,41 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self.owner
             .clone()
             .retain_runtime(Box::pin(async move {
+                #[cfg(feature = "extensions")]
+                let held = if let Some(guard) = &guard {
+                    let line = lane.lane.line.acquire().await?;
+                    let h = lane.load().await?;
+                    if !guard.check(&h) {
+                        return Ok(Err(QueueExpectedError::NoActiveRun(NoActiveRunError {
+                            tag: Default::default(),
+                            message: "parent is no longer current".into(),
+                            lane: lane.lane.name.clone(),
+                        })));
+                    }
+                    Some(line)
+                } else {
+                    None
+                };
                 let pending = payload(&message)?;
                 let id = EntryId::new(lane.owner.ids.next(None))
                     .map_err(|_| lane.owner.fail("queue identity failed"))?;
+                #[cfg(feature = "extensions")]
+                let line = match held {
+                    Some(line) => line,
+                    None => lane.lane.line.acquire().await?,
+                };
+                #[cfg(not(feature = "extensions"))]
                 let line = lane.lane.line.acquire().await?;
                 loop {
                     let h = lane.load().await?;
+                    #[cfg(feature = "extensions")]
+                    if guard.as_ref().is_some_and(|guard| !guard.check(&h)) {
+                        return Ok(Err(QueueExpectedError::NoActiveRun(NoActiveRunError {
+                            tag: Default::default(),
+                            message: "parent is no longer current".into(),
+                            lane: lane.lane.name.clone(),
+                        })));
+                    }
                     let mut r = recipe(&h, &lane.owner.telemetry);
                     r.expected.push(RegisterCondition {
                         namespace: RegisterNamespace::PendingEntry,

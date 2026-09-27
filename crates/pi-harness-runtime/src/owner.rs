@@ -431,6 +431,8 @@ impl<C, S: RuntimeStorage, M: SessionMetadataRecord> RuntimeFactory<C, S, M> {
 pub(crate) struct Settings {
     pub revision: SafeUnsigned,
     pub resources: Resources,
+    #[cfg(feature = "extensions")]
+    pub profile_resources: Option<Arc<crate::extensions::profiles::resources::ResourceRevision>>,
     pub stream_options: AgentHarnessStreamOptions,
     pub retry: RetryPolicy,
     pub run: RunSettings,
@@ -470,6 +472,10 @@ pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub projectors: BTreeMap<CustomType, Arc<dyn EntryProjector>>,
     pub telemetry: Telemetry,
     pub hooks: HookRegistry,
+    #[cfg(feature = "extensions")]
+    pub(crate) profile_providers: Mutex<
+        BTreeMap<pi_ai_core::ProviderId, crate::extensions::profiles::provider::RegisteredProvider>,
+    >,
     pub events: crate::events::EventHub,
     pub admission: Admission,
     pub settings_line: MutationLine,
@@ -662,12 +668,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             projectors: options.entry_projectors,
             telemetry: options.telemetry_context,
             hooks: HookRegistry::new(),
+            #[cfg(feature = "extensions")]
+            profile_providers: Mutex::new(BTreeMap::new()),
             events,
             settings_line: MutationLine::new(admission.clone()),
             admission,
             settings: Mutex::new(Settings {
                 revision: SafeUnsigned::new(0).expect("zero"),
                 resources: options.resources,
+                #[cfg(feature = "extensions")]
+                profile_resources: None,
                 stream_options: options.stream_options,
                 retry: options.retry,
                 run: RunSettings {

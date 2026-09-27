@@ -127,7 +127,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             });
         }
         let transformed = self
-            .hook(
+            .hook_with_key(
                 HookEvent::TransformContext(TransformContextEvent {
                     lane: plan.key.lane.clone(),
                     run_id: plan.key.operation_id.clone(),
@@ -135,6 +135,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }),
                 true,
                 None,
+                &plan.key,
             )
             .await?;
         {
@@ -317,6 +318,24 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 projection: RequestProjection::Assistant(plan.generation.clone()),
             }),
         };
+        #[cfg(feature = "extensions")]
+        let message = if let Some(provider) = candidate.remote {
+            crate::request::run_keyed_request(
+                input,
+                captured,
+                &crate::extensions::profiles::provider::Source {
+                    fx: self.clone(),
+                    key: plan.key.clone(),
+                    provider,
+                    deferred_source: None,
+                },
+                None,
+            )
+            .await?
+        } else {
+            crate::request::run_captured_request(input, captured).await?
+        };
+        #[cfg(not(feature = "extensions"))]
         let message = crate::request::run_captured_request(input, captured).await?;
         let reason = match message.as_message().stop_reason {
             pi_ai_core::StopReason::Stop => "stop",
@@ -402,11 +421,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Box::pin(async move {
             let result = self
                 .fx
-                .hook_with_telemetry(
+                .hook_with_telemetry_key(
                     HookEvent::BeforePayload(Box::new(event)),
                     true,
                     None,
                     self.telemetry.clone(),
+                    Some(&self.key),
                 )
                 .await?;
             match result.result() {
@@ -425,11 +445,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let original = event.message.clone();
             let result = self
                 .fx
-                .hook_with_telemetry(
+                .hook_with_telemetry_key(
                     HookEvent::AfterResponse(Box::new(event)),
                     true,
                     None,
                     self.telemetry.clone(),
+                    Some(&self.key),
                 )
                 .await?;
             match result.result() {

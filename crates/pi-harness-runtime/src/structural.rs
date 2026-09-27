@@ -657,6 +657,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 self.retire_effect(plan.plan.key());
                 return Ok(None);
             };
+            #[cfg(feature = "extensions")]
+            self.profile_receipts.check(plan.plan.key())?;
             let inputs = self.inputs(&h).await?;
             let mut extra = pi_harness_core::structural::Settlement::default();
             let mut prepared = None;

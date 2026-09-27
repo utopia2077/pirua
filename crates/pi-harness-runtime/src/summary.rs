@@ -26,6 +26,8 @@ pub(crate) struct SummaryBinding {
     request: SummaryRequestPlan<Telemetry>,
     model: Model,
     registration: ProviderRegistration,
+    #[cfg(feature = "extensions")]
+    remote: Option<crate::extensions::profiles::provider::RegisteredProvider>,
     options: AgentHarnessStreamOptions,
     spec: SummaryRequestSpec,
 }
@@ -38,7 +40,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         mut messages: Vec<AgentMessage>,
     ) -> Result<Vec<pi_ai_core::Message>, HarnessRuntimeError> {
         let transformed = self
-            .structural_wait(self.hook(
+            .structural_wait(self.hook_with_key(
                 HookEvent::TransformContext(TransformContextEvent {
                     lane: outer.key.lane.clone(),
                     run_id: outer.key.operation_id.clone(),
@@ -46,6 +48,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }),
                 true,
                 None,
+                &outer.key,
             ))
             .await?;
         if let Some(HookResult::TransformContext(Some(value))) = transformed.result() {
@@ -209,7 +212,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 outer.generation.context.stream_options.clone(),
             );
             let before = self
-                .structural_wait(self.hook(
+                .structural_wait(self.hook_with_key(
                     HookEvent::BeforeRequest(Box::new(BeforeRequestEvent {
                         lane: outer.key.lane.clone(),
                         run_id: outer.key.operation_id.clone(),
@@ -224,6 +227,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     })),
                     true,
                     None,
+                    &outer.key,
                 ))
                 .await?;
             let options = before.request_options().cloned().unwrap_or(seeded);
@@ -244,6 +248,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner()) = Some(SummaryBinding {
                 outer: outer.clone(),
                 request: request.clone(),
+                #[cfg(feature = "extensions")]
+                remote: self
+                    .lane
+                    .owner
+                    .profile_providers
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&model.provider)
+                    .filter(|remote| {
+                        remote.registration.same_registration(&registration)
+                            && remote.models.contains(&model)
+                    })
+                    .cloned(),
                 model,
                 registration,
                 options,
@@ -530,23 +547,44 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             callbacks: Arc::new(SummaryHooks {
                 fx: self.clone(),
                 telemetry: span.clone(),
+                key: binding.outer.key.clone(),
             }),
         };
-        let response = self
-            .structural_wait(crate::request::run_summary_request(
+        let settings = crate::request::SummaryRequestSettings {
+            routing_key: format!(
+                "{}:{}:{}:{}",
+                binding.outer.key.operation_id.as_str(),
+                request.task_id.as_str(),
+                request.attempt.get(),
+                request.usage_id.as_str()
+            ),
+            max_tokens: binding.spec.max_tokens,
+            logical_prompt_utf16_units: Some(binding.spec.prompt_utf16_units),
+        };
+        #[cfg(feature = "extensions")]
+        let response = if let Some(provider) = binding.remote {
+            self.structural_wait(crate::request::run_keyed_request(
                 input,
                 captured,
-                crate::request::SummaryRequestSettings {
-                    routing_key: format!(
-                        "{}:{}:{}:{}",
-                        binding.outer.key.operation_id.as_str(),
-                        request.task_id.as_str(),
-                        request.attempt.get(),
-                        request.usage_id.as_str()
-                    ),
-                    max_tokens: binding.spec.max_tokens,
-                    logical_prompt_utf16_units: Some(binding.spec.prompt_utf16_units),
+                &crate::extensions::profiles::provider::Source {
+                    fx: self.clone(),
+                    key: binding.outer.key.clone(),
+                    provider,
+                    deferred_source: None,
                 },
+                Some(settings),
+            ))
+            .await?
+        } else {
+            self.structural_wait(crate::request::run_summary_request(
+                input, captured, settings,
+            ))
+            .await?
+        };
+        #[cfg(not(feature = "extensions"))]
+        let response = self
+            .structural_wait(crate::request::run_summary_request(
+                input, captured, settings,
             ))
             .await?;
         span.outcome(
@@ -603,6 +641,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
 struct SummaryHooks<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     fx: Arc<RuntimeEffects<C, S, M>>,
     telemetry: Telemetry,
+    key: EffectKey,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     crate::request::RequestCallbacks for SummaryHooks<C, S, M>
@@ -623,11 +662,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Box::pin(async move {
             let result = self
                 .fx
-                .hook_with_telemetry(
+                .hook_with_telemetry_key(
                     HookEvent::BeforePayload(Box::new(event)),
                     true,
                     None,
                     self.telemetry.clone(),
+                    Some(&self.key),
                 )
                 .await?;
             match result.result() {
@@ -646,11 +686,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let original = event.message.clone();
             let result = self
                 .fx
-                .hook_with_telemetry(
+                .hook_with_telemetry_key(
                     HookEvent::AfterResponse(Box::new(event)),
                     true,
                     None,
                     self.telemetry.clone(),
+                    Some(&self.key),
                 )
                 .await?;
             match result.result() {

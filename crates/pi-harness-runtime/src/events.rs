@@ -34,6 +34,12 @@ struct Publication {
     // Kept until every Pending entry in this chain is Ready. Later nodes keep
     // weak links to the entry current at their own publication point.
     latest_pending: Option<Arc<PendingBarrier>>,
+    #[cfg(feature = "extensions")]
+    profiles: Vec<Weak<crate::extensions::profiles::events::ProjectedEvents>>,
+    #[cfg(feature = "extensions")]
+    profile_revision: u64,
+    #[cfg(feature = "extensions")]
+    profile_next_id: u64,
 }
 struct Node {
     event: Option<BufferedEvent>,
@@ -231,6 +237,8 @@ impl SharedLog {
         let mut publication = self.publication.lock().unwrap_or_else(|p| p.into_inner());
         *node.predecessor.lock().unwrap_or_else(|p| p.into_inner()) =
             publication.latest_pending.as_ref().map(Arc::downgrade);
+        #[cfg(feature = "extensions")]
+        publication.publish_profiles(&node);
         *publication
             .tail
             .next
@@ -246,6 +254,8 @@ impl SharedLog {
         *node.predecessor.lock().unwrap_or_else(|p| p.into_inner()) =
             previous.as_ref().map(Arc::downgrade);
         *barrier.previous.lock().unwrap_or_else(|p| p.into_inner()) = previous;
+        #[cfg(feature = "extensions")]
+        publication.publish_profiles(&node);
         *publication
             .tail
             .next
@@ -549,6 +559,12 @@ impl EventHub {
                     tail: sentinel,
                     deliveries: Arc::new(Vec::new()),
                     latest_pending: None,
+                    #[cfg(feature = "extensions")]
+                    profiles: Vec::new(),
+                    #[cfg(feature = "extensions")]
+                    profile_revision: 0,
+                    #[cfg(feature = "extensions")]
+                    profile_next_id: 1,
                 }),
                 registrars: Mutex::new(()),
                 materializers: Mutex::new(()),
@@ -681,6 +697,21 @@ impl EventHub {
         for delivery in deliveries {
             delivery.schedule();
         }
+        #[cfg(feature = "extensions")]
+        {
+            let subscriptions = self
+                .shared
+                .publication
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .profiles
+                .iter()
+                .filter_map(std::sync::Weak::upgrade)
+                .collect::<Vec<_>>();
+            for subscription in subscriptions {
+                subscription.notify();
+            }
+        }
     }
     /// Caller captures the snapshot and registers this buffer while holding the
     /// same publication line; the hub does not execute a snapshot callback.
@@ -768,6 +799,129 @@ impl FaultSnapshot for LaneSnapshot {
 impl FaultSnapshot for SessionSnapshot {
     fn set_faulted(&mut self, value: bool) {
         self.faulted = value;
+    }
+}
+
+#[cfg(feature = "extensions")]
+impl crate::extensions::profiles::events::Readiness for Node {
+    fn ready(&self) -> bool {
+        if !self.is_ready() {
+            return false;
+        }
+        let mut previous = self
+            .predecessor
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .as_ref()
+            .and_then(Weak::upgrade);
+        while let Some(barrier) = previous {
+            if !barrier.node.is_ready() {
+                return false;
+            }
+            previous = barrier
+                .previous
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .clone();
+        }
+        true
+    }
+}
+#[cfg(feature = "extensions")]
+impl Publication {
+    fn publish_profiles(&mut self, node: &Arc<Node>) {
+        let Some(revision) = self.profile_revision.checked_add(1) else {
+            for profile in self.profiles.iter().filter_map(Weak::upgrade) {
+                profile.cancel();
+            }
+            return;
+        };
+        self.profile_revision = revision;
+        let Some((event, _, _, lane)) = &node.event else {
+            return;
+        };
+        let ready: Arc<dyn crate::extensions::profiles::events::Readiness> = node.clone();
+        self.profiles.retain(|profile| {
+            let Some(profile) = profile.upgrade() else {
+                return false;
+            };
+            if &profile.lane == lane {
+                profile.publish(event, revision, Arc::downgrade(&ready));
+            }
+            profile.active()
+        });
+    }
+}
+#[cfg(feature = "extensions")]
+impl EventHub {
+    // Keep the captured native authority and independent finite route inputs explicit.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn profile_subscribe<
+        S: pi_agent_session::storage::RuntimeStorage + 'static,
+        M: SessionMetadataRecord,
+    >(
+        &self,
+        session: Arc<pi_agent_session::session::RuntimeSession<S, M>>,
+        snapshot: &LaneSnapshot,
+        contract: pi_extension_protocol::activation::GrantedProfile,
+        generation: u64,
+        max_bytes: usize,
+        clock: Arc<dyn crate::extensions::transport::MonotonicClock>,
+        options: crate::extensions::profiles::events::EventOptions,
+    ) -> Result<Arc<crate::extensions::profiles::events::ProjectedEvents>, HarnessRuntimeError>
+    {
+        let mut publication = self
+            .shared
+            .publication
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        let id = publication.profile_next_id;
+        let next = id
+            .checked_add(1)
+            .ok_or_else(crate::extensions::profiles::fault)?;
+        publication
+            .profiles
+            .retain(|profile| profile.upgrade().is_some_and(|profile| profile.active()));
+        if id == 0 || publication.profiles.len() >= options.max_subscriptions.get() {
+            return Err(crate::extensions::profiles::fault());
+        }
+        let profile = crate::extensions::profiles::events::ProjectedEvents::new(
+            snapshot.lane.clone(),
+            session,
+            contract,
+            id.to_string(),
+            generation,
+            max_bytes,
+            publication.profile_revision,
+            snapshot,
+            clock,
+            options,
+        )?;
+        publication.profile_next_id = next;
+        publication.profiles.push(Arc::downgrade(&profile));
+        Ok(profile)
+    }
+    pub(crate) fn profile_resync(
+        &self,
+        profile: &crate::extensions::profiles::events::ProjectedEvents,
+        snapshot: &LaneSnapshot,
+    ) -> Result<pi_extension_protocol::profiles::wire_v1_1::SubscriptionSnapshot, HarnessRuntimeError>
+    {
+        let publication = self
+            .shared
+            .publication
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        if snapshot.lane != profile.lane
+            || !publication
+                .profiles
+                .iter()
+                .filter_map(Weak::upgrade)
+                .any(|registered| std::ptr::eq(registered.as_ref(), profile))
+        {
+            return Err(crate::extensions::profiles::fault());
+        }
+        profile.resync(snapshot, publication.profile_revision)
     }
 }
 

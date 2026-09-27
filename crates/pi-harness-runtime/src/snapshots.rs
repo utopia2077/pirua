@@ -16,6 +16,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         &self,
     ) -> Result<Arc<dyn WatchHandle<LaneSnapshot>>, HarnessRuntimeError> {
         let _line = self.lane.line.acquire().await?;
+        let snapshot = self.capture_lane_snapshot().await?;
+        Ok(self
+            .owner
+            .events
+            .watch(snapshot, Some(self.lane.name.clone())))
+    }
+    pub(crate) async fn capture_lane_snapshot(&self) -> Result<LaneSnapshot, HarnessRuntimeError> {
         let h = crate::restore::hydrate_lane(
             self.owner.session.as_ref(),
             self.lane.name.clone(),
@@ -174,10 +181,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             pending_writes,
             faulted: false,
         };
-        Ok(self
-            .owner
-            .events
-            .watch(snapshot, Some(self.lane.name.clone())))
+        Ok(snapshot)
     }
 }
 pub(crate) fn kind(current: &CurrentOperation) -> OperationKind {
@@ -185,5 +189,93 @@ pub(crate) fn kind(current: &CurrentOperation) -> OperationKind {
         OperationIntent::Run(_) => OperationKind::Run,
         OperationIntent::Compaction(_) => OperationKind::Compaction,
         OperationIntent::Navigation(_) => OperationKind::Navigation,
+    }
+}
+
+#[cfg(feature = "extensions")]
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    RuntimeLane<C, S, M>
+{
+    pub(crate) async fn subscribe_profile_events(
+        &self,
+        connection: &crate::extensions::profiles::connection::ProfileConnection,
+        capability: &pi_extension_protocol::profiles::wire_v1_1::CapabilityRef,
+        clock: Arc<dyn crate::extensions::transport::MonotonicClock>,
+        options: crate::extensions::profiles::events::EventOptions,
+    ) -> Result<Arc<crate::extensions::profiles::events::ProjectedEvents>, HarnessRuntimeError>
+    {
+        self.owner.admission.check()?;
+        let contract = connection
+            .grant()
+            .profiles()
+            .iter()
+            .find(|p| p.reference() == capability && p.approved().profile() == "event-sink.v1")
+            .ok_or_else(crate::extensions::profiles::fault)?
+            .clone();
+        let line = self.lane.line.acquire().await?;
+        let snapshot = self.capture_lane_snapshot().await?;
+        let subscription = self.owner.events.profile_subscribe(
+            self.owner.session.clone(),
+            &snapshot,
+            contract,
+            connection.grant().wire().connection_generation,
+            connection.max_payload_bytes(),
+            clock,
+            options,
+        )?;
+        drop(line);
+        let weak = Arc::downgrade(&subscription);
+        let clock = subscription.clock();
+        let deadline = subscription.deadline();
+        self.owner
+            .host
+            .spawn(Box::pin(async move {
+                clock.sleep_until(deadline).await;
+                if let Some(subscription) = weak.upgrade() {
+                    subscription.cancel();
+                }
+            }))
+            .map_err(|_| {
+                subscription.cancel();
+                crate::extensions::profiles::fault()
+            })?;
+        Ok(subscription)
+    }
+    pub(crate) async fn resync_profile_events(
+        &self,
+        subscription: &crate::extensions::profiles::events::ProjectedEvents,
+    ) -> Result<pi_extension_protocol::profiles::wire_v1_1::SubscriptionSnapshot, HarnessRuntimeError>
+    {
+        let line = self.lane.line.acquire().await?;
+        let snapshot = self.capture_lane_snapshot().await?;
+        let result = self.owner.events.profile_resync(subscription, &snapshot);
+        drop(line);
+        subscription.notify();
+        result
+    }
+}
+
+#[cfg(feature = "extensions")]
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    RuntimeHarness<C, S, M>
+{
+    pub async fn subscribe_profile_events(
+        &self,
+        connection: &crate::extensions::profiles::connection::ProfileConnection,
+        capability: &pi_extension_protocol::profiles::wire_v1_1::CapabilityRef,
+        clock: Arc<dyn crate::extensions::transport::MonotonicClock>,
+        options: crate::extensions::profiles::events::EventOptions,
+    ) -> Result<Arc<crate::extensions::profiles::events::ProjectedEvents>, HarnessRuntimeError>
+    {
+        self.main
+            .subscribe_profile_events(connection, capability, clock, options)
+            .await
+    }
+    pub async fn resync_profile_events(
+        &self,
+        subscription: &crate::extensions::profiles::events::ProjectedEvents,
+    ) -> Result<pi_extension_protocol::profiles::wire_v1_1::SubscriptionSnapshot, HarnessRuntimeError>
+    {
+        self.main.resync_profile_events(subscription).await
     }
 }

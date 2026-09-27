@@ -567,6 +567,11 @@ pub(crate) struct RuntimeEffects<C, S: RuntimeStorage, M: SessionMetadataRecord>
     #[cfg(feature = "extensions")]
     pub(crate) routed_tools: Mutex<BTreeMap<EffectKey, Arc<Mutex<crate::tools::RoutedEffect>>>>,
     pub request_bindings: Mutex<BTreeMap<EffectKey, RequestBinding>>,
+    #[cfg(feature = "extensions")]
+    pub(crate) profile_receipts: crate::extensions::profiles::custody::Receipts,
+    #[cfg(feature = "extensions")]
+    pub(crate) profile_resources:
+        Option<Arc<crate::extensions::profiles::resources::ResourceRevision>>,
     pub start_signals: Mutex<BTreeMap<EffectKey, CancellationToken>>,
     pub context_line: crate::scheduler::MutationLine,
     pub contexts: Mutex<BTreeMap<StepId, Arc<C>>>,
@@ -579,6 +584,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     RuntimeEffects<C, S, M>
 {
     pub fn new(lane: RuntimeLane<C, S, M>, recovery: bool) -> Arc<Self> {
+        #[cfg(feature = "extensions")]
+        let captured_resources = if recovery {
+            None
+        } else {
+            lane.owner
+                .settings
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .profile_resources
+                .clone()
+        };
         let fx = Arc::new_cyclic(|this| Self {
             trace: crate::telemetry::Trace::new(lane.owner.telemetry.clone()),
             operation_kind: Mutex::new(OperationKind::Run),
@@ -601,6 +617,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             started_turns: Mutex::new(BTreeSet::new()),
             start_signals: Mutex::new(BTreeMap::new()),
             request_bindings: Mutex::new(BTreeMap::new()),
+            #[cfg(feature = "extensions")]
+            profile_receipts: Default::default(),
+            #[cfg(feature = "extensions")]
+            profile_resources: captured_resources,
             executed_tools: Mutex::new(BTreeSet::new()),
             captured_tools: Mutex::new(BTreeMap::new()),
             #[cfg(feature = "extensions")]
@@ -1784,6 +1804,21 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             #[cfg(not(feature = "extensions"))]
             permits.release();
+            #[cfg(feature = "extensions")]
+            let terminal_pending = result
+                .as_ref()
+                .is_some_and(|result| result.terminal.is_some());
+            #[cfg(feature = "extensions")]
+            if terminal_pending {
+                self.profile_receipts.invalidate(plan.plan.key());
+                retired_requests.extend(self.retire_effect_state(plan.plan.key()));
+            } else {
+                if result.is_some() {
+                    self.profile_receipts.settled(plan.plan.key());
+                }
+                retired_requests.extend(self.retire_effect(plan.plan.key()));
+            }
+            #[cfg(not(feature = "extensions"))]
             retired_requests.extend(self.retire_effect(plan.plan.key()));
             drop(retired_requests);
             #[cfg(feature = "extensions")]
@@ -1801,6 +1836,11 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         }
     }
     pub(crate) fn retire_effect(&self, key: &EffectKey) -> Option<RequestBinding> {
+        #[cfg(feature = "extensions")]
+        self.profile_receipts.retire(key);
+        self.retire_effect_state(key)
+    }
+    fn retire_effect_state(&self, key: &EffectKey) -> Option<RequestBinding> {
         let old = self
             .captured_tools
             .lock()
@@ -1845,6 +1885,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let Some(current) = &h.current else {
             return Ok(None);
         };
+        #[cfg(feature = "extensions")]
+        self.profile_receipts
+            .check_operation(&current.operation.operation_id)?;
         let inputs = self.inputs(&h).await?;
         let prefix = format!("{}:", current.operation.operation_id.as_str());
         let mut registers = Vec::new();
@@ -1959,6 +2002,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 .unwrap_or_else(|p| p.into_inner()) = Some(candidate);
         }
         permits.release();
+        #[cfg(feature = "extensions")]
+        if result.is_some() {
+            self.profile_receipts.retire_operation(
+                &current.operation.operation_id,
+                pi_extension_protocol::profile_live::RetireReason::Consumed,
+            );
+        }
         self.events().flush();
         self.lane.lane.announce();
         Ok(result)
@@ -2203,6 +2253,27 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         tool: Option<&pi_ai_core::Tool>,
         telemetry: Telemetry,
     ) -> Result<crate::hooks::HookPipelineOutput, HarnessRuntimeError> {
+        self.hook_with_telemetry_key(event, accepted, tool, telemetry, None)
+            .await
+    }
+    pub(crate) async fn hook_with_key(
+        &self,
+        event: HookEvent,
+        accepted: bool,
+        tool: Option<&pi_ai_core::Tool>,
+        key: &EffectKey,
+    ) -> Result<crate::hooks::HookPipelineOutput, HarnessRuntimeError> {
+        self.hook_with_telemetry_key(event, accepted, tool, self.trace.context(), Some(key))
+            .await
+    }
+    pub(crate) async fn hook_with_telemetry_key(
+        &self,
+        event: HookEvent,
+        accepted: bool,
+        tool: Option<&pi_ai_core::Tool>,
+        telemetry: Telemetry,
+        key: Option<&EffectKey>,
+    ) -> Result<crate::hooks::HookPipelineOutput, HarnessRuntimeError> {
         if accepted && !matches!(event, HookEvent::BeforeResume(_)) {
             let _ = self.ordinary_permission("hook").await?;
         } else {
@@ -2254,7 +2325,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }
             }
         }
-        self.started_hook_with_telemetry(event, accepted, tool, telemetry)
+        self.started_hook_with_telemetry(event, accepted, tool, telemetry, key)
             .await
     }
     async fn started_hook_with_telemetry(
@@ -2263,6 +2334,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         accepted: bool,
         tool: Option<&pi_ai_core::Tool>,
         telemetry: Telemetry,
+        _key: Option<&EffectKey>,
     ) -> Result<crate::hooks::HookPipelineOutput, HarnessRuntimeError> {
         self.lane.owner.admission.check()?;
         let saved = match &event {
@@ -2286,6 +2358,15 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             errors: &ErrorSink(self.events().clone()),
         };
         let captured = self.lane.owner.hooks.capture(event.name());
+        #[cfg(feature = "extensions")]
+        let scope = crate::extensions::profiles::custody::EffectScope {
+            fx: self.this.upgrade().expect("live hook owner"),
+            accepted,
+            expected_key: _key.cloned(),
+        };
+        #[cfg(feature = "extensions")]
+        let mut invocation = Box::pin(captured.run_started_scoped(event, &context, &scope));
+        #[cfg(not(feature = "extensions"))]
         let mut invocation = Box::pin(captured.run_started(event, &context));
         let mut close = Box::pin(self.lane.owner.admission.seal_signal());
         std::future::poll_fn(|cx| {
@@ -2313,6 +2394,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         h: &crate::restore::HydratedLane,
         raw: bool,
     ) -> Result<SettlementFacts, HarnessRuntimeError> {
+        #[cfg(feature = "extensions")]
+        self.profile_receipts.check(commit.plan.key())?;
         Ok(match &commit.output {
             SettlementOutput::RequestOptions(_) => SettlementFacts::Request {
                 response_entry_id: EntryId::new(self.lane.owner.ids.next(None))
@@ -2519,6 +2602,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 return Ok(false);
             }
             Some(RequestBinding {
+                #[cfg(feature = "extensions")]
+                remote: self
+                    .lane
+                    .owner
+                    .profile_providers
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .get(&model.provider)
+                    .filter(|remote| {
+                        remote.registration.same_registration(&before)
+                            && remote.models.contains(&model)
+                    })
+                    .cloned(),
                 model,
                 registration: before,
             })
@@ -2740,6 +2836,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         true,
                         None,
                         plan.telemetry_context.clone(),
+                        Some(&plan.key),
                     )
                     .await?;
                 if let Some(options) = output.request_options() {
@@ -2782,6 +2879,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
 pub(crate) struct RequestBinding {
     pub model: pi_ai_core::Model,
     pub registration: pi_ai_core::ProviderRegistration,
+    #[cfg(feature = "extensions")]
+    pub remote: Option<crate::extensions::profiles::provider::RegisteredProvider>,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeEffects<C, S, M>

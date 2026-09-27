@@ -521,6 +521,17 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         self.main.owner.events.flush();
         Ok(())
     }
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn install_profile_resources(
+        &self,
+        revision: Arc<crate::extensions::profiles::resources::ResourceRevision>,
+    ) -> Result<(), HarnessRuntimeError> {
+        self.change_settings(GlobalConfigProperty::Resources, move |settings| {
+            settings.resources = revision.resources();
+            settings.profile_resources = Some(revision);
+        })
+        .await
+    }
     async fn list_lanes(&self) -> Result<Vec<LaneInfo>, HarnessRuntimeError> {
         let result = self.list_lanes_inner().await;
         self.main.owner.observed_unlocked(result)

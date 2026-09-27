@@ -90,8 +90,33 @@ impl CapturedHookPipeline {
     /// assumes the caller has authorized start; its output grants no settlement.
     pub async fn run_started(
         &self,
+        event: HookEvent,
+        context: &StartedHookContext<'_>,
+    ) -> Result<HookPipelineOutput, HarnessRuntimeError> {
+        self.run_started_inner(
+            event,
+            context,
+            #[cfg(feature = "extensions")]
+            None,
+        )
+        .await
+    }
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn run_started_scoped(
+        &self,
+        event: HookEvent,
+        context: &StartedHookContext<'_>,
+        scope: &dyn crate::extensions::profiles::hooks::ScopeAuthority,
+    ) -> Result<HookPipelineOutput, HarnessRuntimeError> {
+        self.run_started_inner(event, context, Some(scope)).await
+    }
+    async fn run_started_inner(
+        &self,
         mut event: HookEvent,
         context: &StartedHookContext<'_>,
+        #[cfg(feature = "extensions")] scope: Option<
+            &dyn crate::extensions::profiles::hooks::ScopeAuthority,
+        >,
     ) -> Result<HookPipelineOutput, HarnessRuntimeError> {
         if event.name() != self.name {
             return Err(fault());
@@ -102,6 +127,16 @@ impl CapturedHookPipeline {
             let span = start_span(entry, &event, context);
             let invocation =
                 resume_invocation(event.clone(), entry.id.as_ref(), context.resume_data);
+            #[cfg(feature = "extensions")]
+            let result = if let Callback::Remote(remote) = &entry.callback {
+                match scope {
+                    Some(scope) => remote.call(invocation, context, scope).await?,
+                    None => Err(failure("remote hook has no runtime owner")),
+                }
+            } else {
+                invoke(&entry.callback, invocation).await
+            };
+            #[cfg(not(feature = "extensions"))]
             let result = invoke(&entry.callback, invocation).await;
             let accepted = result.and_then(|result| {
                 let mut candidate = event.clone();
@@ -156,6 +191,17 @@ impl CapturedHookPipeline {
         }
     }
 }
+#[cfg(feature = "extensions")]
+pub(crate) fn validate_remote_result(
+    event: &HookEvent,
+    result: &HookResult,
+    id: Option<&HandlerId>,
+    context: &StartedHookContext<'_>,
+) -> Result<(), HandlerError> {
+    let mut candidate = event.clone();
+    let mut aggregate = initial_result(event.name());
+    apply(&mut candidate, &mut aggregate, result.clone(), id, context).map(|_| ())
+}
 
 async fn invoke(callback: &Callback, event: HookEvent) -> Result<HookResult, HandlerError> {
     // Construct and poll the user's future within separate unwind boundaries.
@@ -175,6 +221,8 @@ async fn invoke(callback: &Callback, event: HookEvent) -> Result<HookResult, Han
         }};
     }
     match (callback, event) {
+        #[cfg(feature = "extensions")]
+        (Callback::Remote(_), _) => Err(failure("remote hook has no runtime owner")),
         (Callback::BeforeRun(h), HookEvent::BeforeRun(e)) => call!(h, e, HookResult::BeforeRun),
         (Callback::BeforeResume(h), HookEvent::BeforeResume(e)) => {
             call!(h, e, |()| HookResult::BeforeResume)

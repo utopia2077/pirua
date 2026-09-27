@@ -8,6 +8,15 @@ pub(crate) trait ActiveDrive: Send + Sync {
     fn kind(&self) -> OperationKind {
         OperationKind::Run
     }
+    #[cfg(feature = "extensions")]
+    fn profile_actions(
+        self: Arc<Self>,
+        _key: &pi_extension_protocol::wire::v1_1::EffectKey,
+        _registry: pi_extension_protocol::profiles::Registry,
+        _max_bytes: usize,
+    ) -> Option<Arc<dyn crate::extensions::profiles::connection::HostActions>> {
+        None
+    }
     fn register_cancel(&self, h: &HydratedLane) -> Result<(), HarnessRuntimeError>;
     fn abort(
         self: Arc<Self>,
@@ -22,6 +31,35 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .operation_kind
             .lock()
             .unwrap_or_else(|p| p.into_inner())
+    }
+    #[cfg(feature = "extensions")]
+    fn profile_actions(
+        self: Arc<Self>,
+        wire: &pi_extension_protocol::wire::v1_1::EffectKey,
+        registry: pi_extension_protocol::profiles::Registry,
+        max_bytes: usize,
+    ) -> Option<Arc<dyn crate::extensions::profiles::connection::HostActions>> {
+        let key = self
+            .running
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .keys()
+            .find(|key| crate::extensions::profiles::connection::key_wire(key) == *wire)
+            .cloned()?;
+        Some(Arc::new(
+            crate::extensions::profiles::actions::LaneActions {
+                lane: self.lane.clone(),
+                resources: self.profile_resources.clone(),
+                registry,
+                max_bytes,
+                scope: crate::extensions::profiles::actions::scope(
+                    &self,
+                    key.operation_id.clone(),
+                    Some(key),
+                    true,
+                ),
+            },
+        ))
     }
     fn register_cancel(&self, h: &HydratedLane) -> Result<(), HarnessRuntimeError> {
         self.register_cancel_target(h)
@@ -165,6 +203,53 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     RuntimeLane<C, S, M>
 {
     pub(crate) async fn abort_run(&self) -> AbortCall {
+        self.abort_run_checked(
+            None,
+            #[cfg(feature = "extensions")]
+            None,
+        )
+        .await
+    }
+    /// Abort only the named current operation. The target comparison and native
+    /// abort recipe share the same lane mutation line, including CAS retries.
+    #[cfg(feature = "extensions")]
+    pub async fn abort_expected_operation(
+        &self,
+        expected: &OperationId,
+    ) -> Result<bool, HarnessRuntimeError> {
+        match self.abort_run_checked(Some(expected.clone()), None).await? {
+            Ok(_) => Ok(true),
+            Err(AbortExpectedError::NoActiveOperation(_)) => Ok(false),
+            Err(AbortExpectedError::Closed(_)) => Err(HarnessRuntimeError::Closed(HarnessClosed)),
+        }
+    }
+    #[cfg(feature = "extensions")]
+    pub(crate) async fn abort_profile_operation(
+        &self,
+        expected: &OperationId,
+        guard: Arc<crate::extensions::profiles::actions::ActionGuard>,
+    ) -> Result<bool, HarnessRuntimeError> {
+        match self
+            .abort_run_checked(Some(expected.clone()), Some(guard))
+            .await?
+        {
+            Ok(_) => Ok(true),
+            Err(AbortExpectedError::NoActiveOperation(_)) => Ok(false),
+            Err(AbortExpectedError::Closed(_)) => Err(self
+                .owner
+                .admission
+                .check()
+                .err()
+                .unwrap_or_else(|| self.owner.fail("closed abort admission"))),
+        }
+    }
+    async fn abort_run_checked(
+        &self,
+        expected: Option<OperationId>,
+        #[cfg(feature = "extensions")] guard: Option<
+            Arc<crate::extensions::profiles::actions::ActionGuard>,
+        >,
+    ) -> AbortCall {
         if let Err(e) = self.owner.admission.check() {
             return match e {
                 HarnessRuntimeError::Closed(_) => {
@@ -180,6 +265,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 let line = lane.lane.line.acquire().await?;
                 loop {
                     let h = lane.load().await?;
+                    #[cfg(feature = "extensions")]
+                    if guard.as_ref().is_some_and(|guard| !guard.check(&h)) {
+                        return Ok(Err(AbortExpectedError::NoActiveOperation(
+                            NoActiveOperationError {
+                                tag: Default::default(),
+                                message: "parent is no longer current".into(),
+                                lane: lane.lane.name.clone(),
+                            },
+                        )));
+                    }
                     let Some(current) = &h.current else {
                         return Ok(Err(AbortExpectedError::NoActiveOperation(
                             NoActiveOperationError {
@@ -189,6 +284,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                             },
                         )));
                     };
+                    if expected
+                        .as_ref()
+                        .is_some_and(|expected| expected != &current.operation.operation_id)
+                    {
+                        return Ok(Err(AbortExpectedError::NoActiveOperation(
+                            NoActiveOperationError {
+                                tag: Default::default(),
+                                message: "target operation is not current".into(),
+                                lane: lane.lane.name.clone(),
+                            },
+                        )));
+                    }
                     let ids = if let OperationState::Run(run) = &current.state {
                         match &run.control {
                             Control::Running(_) => run
@@ -313,5 +420,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }
             }))
             .await
+    }
+}
+
+#[cfg(feature = "extensions")]
+impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
+    RuntimeHarness<C, S, M>
+{
+    /// Compare the expected main-lane operation inside the native abort line.
+    pub async fn abort_expected_operation(
+        &self,
+        expected: &OperationId,
+    ) -> Result<bool, HarnessRuntimeError> {
+        self.main.abort_expected_operation(expected).await
     }
 }

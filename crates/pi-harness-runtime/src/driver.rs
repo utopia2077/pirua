@@ -390,9 +390,13 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             let recipe = acceptance_recipe(&facts)
                 .map_err(|_| self.owner.fail("prompt acceptance recipe rejected"))?;
+            #[cfg(feature = "extensions")]
+            effects.profile_receipts.check_validation(&run_id)?;
             if self.apply(recipe).await?.is_none() {
                 continue;
             }
+            #[cfg(feature = "extensions")]
+            effects.profile_receipts.retire_validation(&run_id);
             drop(_line);
             drop(_settings);
             effects.events().flush();
@@ -674,6 +678,20 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             if let OperationIntent::Compaction(intent)=&current.operation.intent{effects.hook(HookEvent::BeforeResume(BeforeResumeEvent::Compaction(BeforeResumeCompactionEvent{lane:lane.lane.name.clone(),run_id:current.operation.operation_id.clone(),kind:Default::default(),source_leaf_id:current.operation.source_leaf_id.clone(),custom_instructions:intent.custom_instructions.clone(),resume_data:Presence::Missing})),true,None).await?;}
             if let OperationIntent::Navigation(intent)=&current.operation.intent{effects.hook(HookEvent::BeforeResume(BeforeResumeEvent::Navigation(BeforeResumeNavigationEvent{lane:lane.lane.name.clone(),run_id:current.operation.operation_id.clone(),kind:Default::default(),source_leaf_id:current.operation.source_leaf_id.clone(),target_id:intent.target_id.clone(),summarize:intent.summarize,label:intent.label.clone(),custom_instructions:intent.custom_instructions.clone(),resume_data:Presence::Missing})),true,None).await?;}
+            #[cfg(feature = "extensions")]
+            if effects.profile_receipts.has_validation(&current.operation.operation_id){
+                let line=lane.lane.line.acquire().await?;
+                let latest=lane.load().await?;
+                if latest.current.as_ref().is_none_or(|latest|latest.operation!=current.operation){
+                    drop(line);
+                    effects.profile_receipts.retire_operation(&current.operation.operation_id,pi_extension_protocol::profile_live::RetireReason::NoLongerExpected);
+                    let result=externally_completed(&effects,&current.operation.operation_id).await?;
+                    return Ok(Ok(resume_outcome(result,&current.operation.operation_id)?));
+                }
+                effects.profile_receipts.check_validation(&current.operation.operation_id)?;
+                drop(line);
+                effects.profile_receipts.retire_validation(&current.operation.operation_id);
+            }
             effects.events().enqueue(HarnessEventType::RunResume,&lane.lane.name,HarnessEvent::RunResume(RunResumeEvent {event_type:Default::default(),lane:lane.lane.name.clone(),recovery:recovery.then_some(pi_ai_core::LiteralTrue),run_id:current.operation.operation_id.clone()}));effects.events().flush();
             effects.resume_structure(&current);
             effects.turn_start(&current);effects.events().flush();

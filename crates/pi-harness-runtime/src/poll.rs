@@ -172,11 +172,28 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             .cloned()
             .ok_or_else(|| self.lane.owner.fail("deferred request binding absent"))?;
         let model = binding.model.clone();
+        #[cfg(feature = "extensions")]
+        let mut profile_source = None;
         let (captured, handle) = {
             let _line = self.lane.lane.line.acquire().await?;
             let h = self.lane.load().await?;
             if !crate::provider::current_request(&h,&plan.key,&RequestProjection::Deferred(plan.deferred.clone())) || h.current.as_ref().is_some_and(|c|matches!(&c.state,OperationState::Run(r) if matches!(r.control,Control::CancelRequested(_)))){return Ok(EffectOutput::NotStarted{key:plan.key});}
             let handle = source(&h, &plan.deferred.source_entry_id)?;
+            #[cfg(feature = "extensions")]
+            if binding.remote.is_some() {
+                let Some(Entry::Message(entry)) = h.entries.get(&plan.deferred.source_entry_id)
+                else {
+                    return Err(self.lane.owner.fail("deferred source absent"));
+                };
+                let AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(message)) = &entry.message
+                else {
+                    return Err(self.lane.owner.fail("deferred source kind invalid"));
+                };
+                if message.deferred.as_ref() != Some(&handle) {
+                    return Err(self.lane.owner.fail("deferred source handle changed"));
+                }
+                profile_source = Some(message.as_ref().clone());
+            }
             let captured = self
                 .lane
                 .owner
@@ -273,25 +290,45 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             clock: self.lane.owner.clock.clone(),
             spawner: Arc::new(self.lane.owner.effects.clone()),
         };
-        let message = crate::request::run_deferred_request(
-            crate::request::DeferredRequestInput {
-                models: self.lane.owner.models.clone(),
-                model,
-                handle,
-                options: plan.stream_options.clone(),
-                runtime,
-                lane: plan.key.lane.clone(),
-                run_id: plan.key.operation_id.clone(),
-                callbacks: Arc::new(RequestHooks {
+        let input = crate::request::DeferredRequestInput {
+            models: self.lane.owner.models.clone(),
+            model,
+            handle,
+            options: plan.stream_options.clone(),
+            runtime,
+            lane: plan.key.lane.clone(),
+            run_id: plan.key.operation_id.clone(),
+            callbacks: Arc::new(RequestHooks {
+                fx: self.clone(),
+                telemetry: span.clone(),
+                key: plan.key.clone(),
+                projection: RequestProjection::Deferred(plan.deferred.clone()),
+            }),
+        };
+        #[cfg(feature = "extensions")]
+        let message = if let Some(provider) = binding.remote {
+            let existing = profile_source
+                .ok_or_else(|| self.lane.owner.fail("deferred profile source absent"))?;
+            crate::request::run_keyed_deferred_request(
+                input,
+                captured,
+                &crate::extensions::profiles::provider::Source {
                     fx: self.clone(),
-                    telemetry: span.clone(),
                     key: plan.key.clone(),
-                    projection: RequestProjection::Deferred(plan.deferred.clone()),
-                }),
-            },
-            captured,
-        )
-        .await?;
+                    provider,
+                    deferred_source: Some((
+                        plan.deferred.source_entry_id.clone(),
+                        existing.clone(),
+                    )),
+                },
+                existing,
+            )
+            .await?
+        } else {
+            crate::request::run_deferred_request(input, captured).await?
+        };
+        #[cfg(not(feature = "extensions"))]
+        let message = crate::request::run_deferred_request(input, captured).await?;
         span.outcome(
             "pi.ai.request.outcome",
             if matches!(
@@ -479,7 +516,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Ok(())
     }
     async fn cancel_source(
-        &self,
+        self: &Arc<Self>,
         plan: CancelDeferredEffectPlan<Telemetry>,
         configuration: LaneConfiguration,
         options: AgentHarnessStreamOptions,
@@ -516,9 +553,35 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let Ok(Some(model)) = model else {
             return Ok(());
         };
+        #[cfg(feature = "extensions")]
+        let remote = self
+            .lane
+            .owner
+            .profile_providers
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .get(&model.provider)
+            .filter(|provider| provider.registration.same_registration(&registration))
+            .cloned();
+        #[cfg(feature = "extensions")]
+        let mut profile_source = None;
         let captured = {
             let _line = self.lane.lane.line.acquire().await?;
             let h = self.lane.load().await?;
+            #[cfg(feature = "extensions")]
+            if remote.is_some() {
+                let Some(Entry::Message(entry)) = h.entries.get(&plan.source_entry_id) else {
+                    return Ok(());
+                };
+                let AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(message)) = &entry.message
+                else {
+                    return Ok(());
+                };
+                if message.deferred.as_ref() != Some(&plan.handle) {
+                    return Ok(());
+                }
+                profile_source = Some(message.as_ref().clone());
+            }
             if h.current.as_ref().is_none_or(|c|c.operation.operation_id!=plan.key.operation_id||!matches!(&c.state,OperationState::Run(r) if matches!(r.control,Control::CancelRequested(_)))){return Ok(());}
             if !self
                 .cancel_targets
@@ -561,16 +624,50 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             clock: self.lane.owner.clock.clone(),
             spawner: Arc::new(self.lane.owner.effects.clone()),
         };
-        let mut request = Box::pin(crate::request::cancel_deferred_request(
-            crate::request::DeferredCancelInput {
-                models: self.lane.owner.models.clone(),
-                model,
-                handle: plan.handle,
-                options,
-                runtime,
-            },
-            captured,
-        ));
+        let input = crate::request::DeferredCancelInput {
+            models: self.lane.owner.models.clone(),
+            model,
+            handle: plan.handle,
+            options,
+            runtime,
+        };
+        #[cfg(feature = "extensions")]
+        let request: BoxFuture<
+            '_,
+            Result<Result<(), pi_ai_core::AuthResolutionError>, HarnessRuntimeError>,
+        > = if let Some(provider) = remote {
+            let existing = profile_source
+                .ok_or_else(|| self.lane.owner.fail("cancel profile source absent"))?;
+            let source = crate::extensions::profiles::provider::Source {
+                fx: self.clone(),
+                key: plan.key.clone(),
+                provider,
+                deferred_source: Some((plan.source_entry_id.clone(), existing)),
+            };
+            Box::pin(async move {
+                if input
+                    .options
+                    .headers
+                    .as_ref()
+                    .is_some_and(|headers| !headers.as_map().is_empty())
+                {
+                    return Ok(Err(pi_ai_core::AuthResolutionError::Models(
+                        pi_ai_core::ModelsError::new(pi_ai_core::ModelsErrorCode::Provider),
+                    )));
+                }
+                source
+                    .cancel(
+                        input.model,
+                        crate::request::keyed_deferred_options(input.options, input.runtime),
+                    )
+                    .await
+            })
+        } else {
+            Box::pin(crate::request::cancel_deferred_request(input, captured))
+        };
+        #[cfg(not(feature = "extensions"))]
+        let request = crate::request::cancel_deferred_request(input, captured);
+        let mut request = Box::pin(request);
         let mut close = Box::pin(self.lane.owner.admission.seal_signal());
         let mut retired = Box::pin(self.retired.cancelled());
         let result = std::future::poll_fn(|cx| {

@@ -32,6 +32,8 @@ pub(super) struct Entry {
     pub callback: Callback,
 }
 pub(super) enum Callback {
+    #[cfg(feature = "extensions")]
+    Remote(Arc<crate::extensions::profiles::hooks::RemoteHook>),
     BeforeRun(Arc<dyn HookHandler<BeforeRun>>),
     BeforeResume(Arc<dyn HookHandler<BeforeResume>>),
     BeforeRunEnd(Arc<dyn HookHandler<BeforeRunEnd>>),
@@ -47,6 +49,8 @@ pub(super) enum Callback {
 impl Callback {
     fn name(&self) -> HookName {
         match self {
+            #[cfg(feature = "extensions")]
+            Self::Remote(hook) => hook.name,
             Self::BeforeRun(_) => HookName::BeforeRun,
             Self::BeforeResume(_) => HookName::BeforeResume,
             Self::BeforeRunEnd(_) => HookName::BeforeRunEnd,
@@ -88,6 +92,14 @@ impl CapturedHookPipeline {
     }
 }
 impl HookRegistry {
+    /// Register an authenticated remote callback in the same ordered registry.
+    #[cfg(feature = "extensions")]
+    pub fn register_remote(
+        &self,
+        hook: crate::extensions::profiles::hooks::RemoteHook,
+    ) -> Result<Arc<dyn HookSubscription>, HookRegistrationError> {
+        self.register(Some(hook.stable_id()?), Callback::Remote(Arc::new(hook)))
+    }
     /// Create an empty independent registry.
     pub fn new() -> Self {
         Self::default()

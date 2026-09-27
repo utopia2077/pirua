@@ -3386,7 +3386,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             });
             let result = self
                 .fx
-                .hook(
+                .hook_with_key(
                     HookEvent::BeforeTool(BeforeToolEvent {
                         lane: self.key.lane.clone(),
                         run_id: self.key.operation_id.clone(),
@@ -3396,6 +3396,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     }),
                     true,
                     tool.as_ref(),
+                    &self.key,
                 )
                 .await
                 .map_err(pi_agent_loop::ToolPhaseError::Runtime)?;
@@ -3418,7 +3419,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         Box::pin(async move {
             let result = self
                 .fx
-                .hook(
+                .hook_with_key(
                     HookEvent::AfterTool(AfterToolEvent {
                         lane: self.key.lane.clone(),
                         run_id: self.key.operation_id.clone(),
@@ -3432,6 +3433,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     }),
                     true,
                     None,
+                    &self.key,
                 )
                 .await
                 .map_err(pi_agent_loop::ToolPhaseError::Runtime)?;

@@ -63,6 +63,111 @@ pub enum RetireReason {
     Consumed,
     NoLongerExpected,
 }
+
+/// Opaque process-local identity of one physical connection. IDs, principal
+/// and generation tuples do not distinguish independent owners.
+#[derive(Clone, Debug)]
+pub struct ConnectionIdentity(Arc<()>);
+impl ConnectionIdentity {
+    pub fn new() -> Self {
+        Self(Arc::new(()))
+    }
+    pub fn same_connection(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+impl Default for ConnectionIdentity {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+/// Trusted actual connection owner serializes every tool/profile/peer ID.
+pub trait ConnectionIds: Send + Sync {
+    fn connection(&self) -> ConnectionIdentity;
+    fn reserve_request_id(&self, now_ms: u64, requested: Option<u64>, minimum: u64) -> Result<u64>;
+}
+/// Facts read from an actual host-owned parent, never from a peer Request.
+#[derive(Clone, Debug)]
+pub struct ParentObservation {
+    pub connection: ConnectionIdentity,
+    pub principal: String,
+    pub generation: u64,
+    pub request_id: u64,
+    pub key: v1_1::EffectKey,
+    pub deadline_ms: u64,
+    pub depth: u32,
+}
+/// A trusted host implementation retains the opaque parent owner and binding.
+/// `observe` must synchronously recheck that owner's exact live identity and
+/// phase under its state line. It cannot perform I/O, wait, or reenter this owner.
+pub trait ParentCustody: Send + Sync {
+    fn observe(&self, now_ms: u64) -> Result<ParentObservation>;
+    /// Reserve from the actual connection's shared ID allocator, under the
+    /// same owner state line as a fresh parent liveness check. Failed request
+    /// admission may consume an ID; it must never make that ID reusable.
+    fn reserve_request_id(
+        &self,
+        _now_ms: u64,
+        _requested: Option<u64>,
+        _minimum: u64,
+    ) -> Result<u64> {
+        Err(Error::HostContract)
+    }
+}
+/// Process-local custody for a parent owned by the existing tool route.
+/// A plain ID/key tuple cannot construct this value without a trusted owner.
+#[derive(Clone)]
+pub struct ExternalParent(Arc<dyn ParentCustody>);
+impl ExternalParent {
+    pub fn from_owner(owner: Arc<dyn ParentCustody>) -> Self {
+        Self(owner)
+    }
+    pub fn observation(&self, now_ms: u64) -> Result<ParentObservation> {
+        self.0.observe(now_ms)
+    }
+    fn observe(&self, now_ms: u64) -> Result<ParentObservation> {
+        self.0.observe(now_ms)
+    }
+}
+
+/// Runtime-only native effect/accepted-operation custody. The implementation
+/// retains the actual runtime owner and captured effect or operation identity;
+/// current Session state is checked by runtime before this synchronous seam.
+pub trait NativeCustody: Send + Sync {
+    fn observe(&self, now_ms: u64) -> Result<NativeObservation>;
+    fn reserve_request_id(
+        &self,
+        _now_ms: u64,
+        _requested: Option<u64>,
+        _minimum: u64,
+    ) -> Result<Option<u64>> {
+        Ok(None)
+    }
+}
+#[derive(Clone, Debug)]
+pub struct NativeObservation {
+    pub connection: Option<ConnectionIdentity>,
+    pub key: Option<v1_1::EffectKey>,
+    pub parent_request_id: Option<u64>,
+    pub deadline_ms: u64,
+}
+#[derive(Clone)]
+pub struct NativeParent(Arc<dyn NativeCustody>);
+impl NativeParent {
+    pub fn from_runtime(owner: Arc<dyn NativeCustody>) -> Self {
+        Self(owner)
+    }
+}
+
+/// Encode an existing canonical selected DTO only after its finite host bound
+/// has been checked. This helper conveys no grant or receive resource approval.
+pub fn encode_payload<M: Message>(message: &M, max_bytes: usize) -> Result<Vec<u8>> {
+    let size = message.encoded_len();
+    if max_bytes == 0 || max_bytes == usize::MAX || size > max_bytes {
+        return Err(Error::Frame);
+    }
+    Ok(message.encode_to_vec())
+}
 struct BindingCore {
     capability: v1_1::CapabilityRef,
     generation: u64,
@@ -184,9 +289,14 @@ pub enum Accepted {
 /// Owns finite live bindings and reserved receipt/control capacity across transport loss.
 pub struct Owner {
     grant: ActiveGrant,
+    connection: ConnectionIdentity,
+    ids: Option<Arc<dyn ConnectionIds>>,
     limits: v1_1::ProtocolLimits,
     reservations: Reservations,
     calls: BTreeMap<u64, Invocation>,
+    denials: BTreeSet<u64>,
+    external_parents: BTreeMap<u64, ExternalParent>,
+    native_parents: BTreeMap<u64, NativeParent>,
     next_id: u64,
     blocking: u64,
     progress: u64,
@@ -203,6 +313,21 @@ impl Owner {
         reservations: Reservations,
         now_ms: u64,
         connection_remaining_ms: u64,
+    ) -> Result<Self> {
+        Self::new_with_connection(
+            grant,
+            reservations,
+            now_ms,
+            connection_remaining_ms,
+            ConnectionIdentity::new(),
+        )
+    }
+    pub fn new_with_connection(
+        grant: ActiveGrant,
+        reservations: Reservations,
+        now_ms: u64,
+        connection_remaining_ms: u64,
+        connection: ConnectionIdentity,
     ) -> Result<Self> {
         let limits = grant.wire().limits.ok_or(Error::HostContract)?;
         let seats = u64::from(limits.in_flight_requests);
@@ -224,9 +349,14 @@ impl Owner {
         }
         Ok(Self {
             grant,
+            connection,
+            ids: None,
             limits,
             reservations,
             calls: BTreeMap::new(),
+            denials: BTreeSet::new(),
+            external_parents: BTreeMap::new(),
+            native_parents: BTreeMap::new(),
             next_id: 1,
             blocking: 0,
             progress: 0,
@@ -239,6 +369,67 @@ impl Owner {
             rate_window: now_ms,
             rate_count: 0,
         })
+    }
+    pub fn with_connection_ids(mut self, ids: Arc<dyn ConnectionIds>) -> Result<Self> {
+        if !ids.connection().same_connection(&self.connection) {
+            return Err(Error::HostContract);
+        }
+        self.ids = Some(ids);
+        Ok(self)
+    }
+    pub fn connection_identity(&self) -> ConnectionIdentity {
+        self.connection.clone()
+    }
+    /// Reserve a fixed no-work denial before its response allocation. This
+    /// host control ticket conveys no payload/native/durability authority.
+    pub fn reserve_denial(&mut self, id: u64, generation: u64, now: u64) -> Result<()> {
+        self.sample(now)?;
+        if self.draining || generation != self.grant.wire().connection_generation {
+            return Err(Error::Generation);
+        }
+        let elapsed = now.checked_sub(self.rate_window).ok_or(Error::Deadline)?;
+        let count = if elapsed >= 1000 { 0 } else { self.rate_count };
+        if id < self.next_id
+            || id == 0
+            || id == u64::MAX
+            || self.calls.contains_key(&id)
+            || self.denials.contains(&id)
+        {
+            return Err(Error::Stale);
+        }
+        if self.calls.len() + self.denials.len() >= self.limits.in_flight_requests as usize
+            || count >= self.limits.requests_per_second
+        {
+            return Err(Error::Overloaded);
+        }
+        if now >= self.connection_deadline {
+            return Err(Error::Deadline);
+        }
+        if let Some(ids) = &self.ids
+            && ids.reserve_request_id(now, Some(id), self.next_id)? != id
+        {
+            return Err(Error::Stale);
+        }
+        self.denials.insert(id);
+        self.next_id = id + 1;
+        self.rate_count = count + 1;
+        if elapsed >= 1000 {
+            self.rate_window = now;
+        }
+        Ok(())
+    }
+    pub fn denial_live(&self, id: u64, now: u64) -> bool {
+        self.denials.contains(&id) && !self.draining && now < self.connection_deadline
+    }
+    pub fn retire_denial(&mut self, id: u64) -> Result<()> {
+        if self.denials.remove(&id) {
+            Ok(())
+        } else {
+            Err(Error::Stale)
+        }
+    }
+    pub fn binding(&self, id: u64) -> Option<Binding> {
+        self.calls.get(&id).map(|call| call.binding.clone())
     }
     fn sample(&mut self, now: u64) -> Result<()> {
         if now < self.last_ms {
@@ -331,6 +522,29 @@ impl Owner {
                 return Err(Error::Parent);
             }
             deadline = Some(deadline.map_or(c.deadline, |d: u64| d.min(c.deadline)));
+            if let Some(parent) = self.external_parents.get(&id) {
+                let p = self.checked_external(parent, now)?;
+                if depth
+                    .checked_add(p.depth)
+                    .is_none_or(|d| d > 8 || d > self.limits.nesting_depth)
+                {
+                    return Err(Error::Parent);
+                }
+                deadline = Some(deadline.expect("current deadline").min(p.deadline_ms));
+                break;
+            }
+            if let Some(parent) = self.native_parents.get(&id) {
+                let observed = parent.0.observe(now)?;
+                if observed.key != c.binding.key().cloned() {
+                    return Err(Error::Parent);
+                }
+                deadline = Some(
+                    deadline
+                        .expect("current deadline")
+                        .min(observed.deadline_ms),
+                );
+                break;
+            }
             cursor = c.binding.parent();
         }
         Ok(deadline)
@@ -340,7 +554,50 @@ impl Owner {
         start: Start,
         native: &mut impl NativeValidator,
     ) -> Result<(Binding, v1_1::Request)> {
-        self.start_with_id(start, None, native)
+        self.start_with_id(start, None, None, None, native)
+    }
+    fn checked_external(&self, parent: &ExternalParent, now: u64) -> Result<ParentObservation> {
+        let p = parent.observe(now)?;
+        if !p.connection.same_connection(&self.connection)
+            || p.principal != self.grant.wire().authenticated_extension_id
+            || p.generation != self.grant.wire().connection_generation
+            || p.request_id == 0
+            || p.request_id == u64::MAX
+            || p.depth == 0
+            || p.depth >= 8
+            || p.depth >= self.limits.nesting_depth
+            || now >= p.deadline_ms
+            || self.calls.contains_key(&p.request_id)
+        {
+            return Err(Error::Parent);
+        }
+        Ok(p)
+    }
+    /// Additive tool-parent entry; existing Start callers and profile parents
+    /// retain their original semantics. The parent is rechecked at dispatch.
+    pub fn start_with_external_parent(
+        &mut self,
+        start: Start,
+        parent: ExternalParent,
+        native: &mut impl NativeValidator,
+    ) -> Result<(Binding, v1_1::Request)> {
+        self.start_with_id(start, None, Some(parent), None, native)
+    }
+    /// Runtime-only inline or unit before_resume anchor. It cannot authorize a
+    /// peer-originated HostAction or create an independent durable Hook intent.
+    pub fn start_with_native_parent(
+        &mut self,
+        start: Start,
+        parent: NativeParent,
+        native: &mut impl NativeValidator,
+    ) -> Result<(Binding, v1_1::Request)> {
+        self.start_with_id(start, None, None, Some(parent), native)
+    }
+    pub fn request_payload(&self, binding: &Binding) -> Option<&ValidatedPayload> {
+        self.calls
+            .get(&binding.id())
+            .filter(|c| c.binding.same_identity(binding))
+            .map(|c| &c.request)
     }
     /// Peer IDs are accepted only after all gates and cannot reuse any earlier ID.
     pub fn accept_request(
@@ -367,7 +624,7 @@ impl Owner {
         context.requested_deadline_ms = request.deadline_after_ms;
         context.initial_credit = request.initial_stream_credit_bytes;
         let result = self
-            .start_with_id(context, Some(request.request_id), native)
+            .start_with_id(context, Some(request.request_id), None, None, native)
             .map(|(b, _)| b);
         if result.as_ref().is_err_and(|error| {
             matches!(
@@ -394,10 +651,47 @@ impl Owner {
             }
         }
     }
+    /// Admit the actual peer Request against opaque external Tool custody.
+    /// Its wire parent ID is checked against that owner; the peer cannot mint
+    /// custody by supplying the ID or an EffectKey tuple.
+    pub fn accept_request_with_external_parent(
+        &mut self,
+        request: v1_1::Request,
+        mut context: Start,
+        parent: ExternalParent,
+        native: &mut impl NativeValidator,
+    ) -> Result<Binding> {
+        let observed = self.checked_external(&parent, context.now_ms)?;
+        if request.request_id == 0
+            || request.request_id == u64::MAX
+            || context.direction != Direction::ExtensionToCore
+            || context.role != Role::HostAction
+            || request.parent_request_id != Some(observed.request_id)
+            || request.effect_key != context.key
+            || request.capability_ref.as_ref() != Some(&context.capability)
+            || request.method != context.method
+        {
+            return Err(Error::Parent);
+        }
+        context.parent = None;
+        context.payload = request.payload;
+        context.requested_deadline_ms = request.deadline_after_ms;
+        context.initial_credit = request.initial_stream_credit_bytes;
+        self.start_with_id(
+            context,
+            Some(request.request_id),
+            Some(parent),
+            None,
+            native,
+        )
+        .map(|(binding, _)| binding)
+    }
     fn start_with_id(
         &mut self,
         start: Start,
         peer_id: Option<u64>,
+        external: Option<ExternalParent>,
+        native_parent: Option<NativeParent>,
         native: &mut impl NativeValidator,
     ) -> Result<(Binding, v1_1::Request)> {
         self.sample(start.now_ms)?;
@@ -425,9 +719,51 @@ impl Owner {
         if direction != start.direction {
             return Err(Error::Reference);
         }
-        let parent_deadline =
-            self.parent_deadline(start.parent.as_ref(), start.role, start.now_ms)?;
-        if !valid_role(&start, contract.approved().profile()) {
+        let external_observation = external
+            .as_ref()
+            .map(|p| self.checked_external(p, start.now_ms))
+            .transpose()?;
+        let native_observation = native_parent
+            .as_ref()
+            .map(|p| p.0.observe(start.now_ms))
+            .transpose()?;
+        if let Some(parent) = &native_observation
+            && (parent
+                .connection
+                .as_ref()
+                .is_some_and(|connection| !connection.same_connection(&self.connection))
+                || external.is_some()
+                || start.parent.is_some()
+                || start.direction != Direction::CoreToExtension
+                || contract.approved().profile() != "hook.v1"
+                || parent.deadline_ms <= start.now_ms
+                || parent.key != start.key
+                || !(start.role == Role::Inline && start.key.is_some()
+                    || start.role == Role::Preaccept
+                        && start.key.is_none()
+                        && start.method == "before_resume"))
+        {
+            return Err(Error::Parent);
+        }
+        if external.is_some()
+            && (start.parent.is_some() || !matches!(start.role, Role::HostAction | Role::Inline))
+        {
+            return Err(Error::Parent);
+        }
+        let parent_deadline = match (&external_observation, &native_observation) {
+            (Some(parent), _) => Some(parent.deadline_ms),
+            (_, Some(parent)) => Some(parent.deadline_ms),
+            _ => self.parent_deadline(start.parent.as_ref(), start.role, start.now_ms)?,
+        };
+        let role_valid = if native_observation.is_some() {
+            true
+        } else if start.role == Role::Inline && external_observation.is_some() {
+            contract.approved().profile() == "hook.v1"
+                && start.key.as_ref() == external_observation.as_ref().map(|p| &p.key)
+        } else {
+            valid_role(&start, contract.approved().profile())
+        };
+        if !role_valid {
             return Err(Error::Reference);
         }
         if contract.approved().scope() != start.scope
@@ -478,11 +814,42 @@ impl Owner {
         if credit > self.limits.max_stream_credit_bytes || mode == Mode::Unary && credit != 0 {
             return Err(Error::Credit);
         }
-        let id = peer_id.unwrap_or(self.next_id);
+        let first_id = self.next_id;
+        let id = if let Some(parent) = &external {
+            parent
+                .0
+                .reserve_request_id(start.now_ms, peer_id, first_id)?
+        } else if let Some(parent) = &native_parent {
+            match parent
+                .0
+                .reserve_request_id(start.now_ms, peer_id, first_id)?
+            {
+                Some(id) => id,
+                None => match &self.ids {
+                    Some(ids) => ids.reserve_request_id(start.now_ms, peer_id, first_id)?,
+                    None => peer_id.unwrap_or(first_id),
+                },
+            }
+        } else if let Some(ids) = &self.ids {
+            ids.reserve_request_id(start.now_ms, peer_id, first_id)?
+        } else {
+            peer_id.unwrap_or(first_id)
+        };
+        if id < first_id {
+            return Err(Error::Stale);
+        }
         let next = id.checked_add(1).ok_or(Error::Overloaded)?;
         let request = v1_1::Request {
             request_id: id,
-            parent_request_id: start.parent.as_ref().map(Binding::id),
+            parent_request_id: external_observation
+                .as_ref()
+                .map(|p| p.request_id)
+                .or_else(|| {
+                    native_observation
+                        .as_ref()
+                        .and_then(|p| p.parent_request_id)
+                })
+                .or_else(|| start.parent.as_ref().map(Binding::id)),
             capability_ref: Some(start.capability.clone()),
             effect_key: start.key.clone(),
             method: start.method.clone(),
@@ -502,7 +869,7 @@ impl Owner {
         let count = if window >= 1000 { 0 } else { self.rate_count };
         if bytes > self.limits.frame_bytes
             || charge > self.reservations.blocking_bytes
-            || self.calls.len() >= self.limits.in_flight_requests as usize
+            || self.calls.len() + self.denials.len() >= self.limits.in_flight_requests as usize
             || count >= self.limits.requests_per_second
         {
             return Err(Error::Overloaded);
@@ -564,6 +931,12 @@ impl Owner {
                 blocking: bytes,
             },
         );
+        if let Some(parent) = external {
+            self.external_parents.insert(id, parent);
+        }
+        if let Some(parent) = native_parent {
+            self.native_parents.insert(id, parent);
+        }
         self.next_id = next;
         self.blocking = charge;
         if window >= 1000 {
@@ -574,6 +947,15 @@ impl Owner {
     }
     /// Release the finite blocking reservation only after transport/worker intake.
     pub fn dispatched(&mut self, b: &Binding) -> Result<()> {
+        if let Some(parent) = self.native_parents.get(&b.id()) {
+            let observed = parent.0.observe(self.last_ms)?;
+            if observed.key.as_ref() != b.key() || observed.deadline_ms <= self.last_ms {
+                return Err(Error::Parent);
+            }
+        }
+        if let Some(parent) = self.external_parents.get(&b.id()) {
+            self.checked_external(parent, self.last_ms)?;
+        }
         let call = self
             .calls
             .get(&b.id())
@@ -582,7 +964,10 @@ impl Owner {
         if call.phase != Phase::Open || self.last_ms >= call.deadline {
             return Err(Error::Deadline);
         }
-        if let Some(parent) = call.binding.parent() {
+        if let Some(parent) = call.binding.parent().filter(|_| {
+            !self.external_parents.contains_key(&b.id())
+                && !self.native_parents.contains_key(&b.id())
+        }) {
             let p = self
                 .calls
                 .get(&parent)
@@ -603,12 +988,90 @@ impl Owner {
         c.blocking = 0;
         Ok(())
     }
+    /// Actual dispatch samples the host's monotonic clock again.
+    pub fn dispatched_at(&mut self, b: &Binding, now_ms: u64) -> Result<()> {
+        self.expire(now_ms)?;
+        self.dispatched(b)
+    }
+    /// Validate and charge host-egress stream bytes for the actual admitted
+    /// peer-origin passive request. This does not grant ingress credit.
+    pub fn host_stream_item(
+        &mut self,
+        binding: &Binding,
+        payload: Vec<u8>,
+        now: u64,
+        native: &mut impl NativeValidator,
+    ) -> Result<v1_1::StreamItem> {
+        self.expire(now)?;
+        let limits = self.bound_limits();
+        let json_limits = self.json_limits();
+        let call = self
+            .calls
+            .get_mut(&binding.id())
+            .filter(|call| call.binding.same_identity(binding))
+            .ok_or(Error::Stale)?;
+        if call.binding.role() != Role::Passive
+            || call.method != "event.subscribe"
+            || call.mode != Mode::Stream
+            || call.phase != Phase::Open
+        {
+            return Err(Error::Reference);
+        }
+        if payload.len() > self.limits.frame_bytes as usize {
+            return Err(Error::Frame);
+        }
+        let item = v1_1::StreamItem {
+            request_id: binding.id(),
+            sequence: call.sequence,
+            payload,
+        };
+        let envelope = v1_1::Envelope {
+            frame: Some(v1_1::envelope::Frame::StreamItem(item)),
+        };
+        let bytes = envelope.encoded_len() as u64;
+        if bytes > self.limits.frame_bytes || bytes > call.credit {
+            return Err(Error::Credit);
+        }
+        let Some(v1_1::envelope::Frame::StreamItem(item)) = envelope.frame else {
+            return Err(Error::Frame);
+        };
+        call.contract.approved().validate_payload(
+            binding
+                .capability()
+                .profile
+                .as_ref()
+                .ok_or(Error::Reference)?
+                .minor,
+            &call.method,
+            Stage::Progress,
+            &item.payload,
+            limits,
+            json_limits,
+            native,
+        )?;
+        call.credit -= bytes;
+        call.sequence = call.sequence.checked_add(1).ok_or(Error::Sequence)?;
+        Ok(item)
+    }
     pub fn receive(
         &mut self,
         generation: u64,
         frame: ActiveFrame,
         now: u64,
         native: &mut impl NativeValidator,
+    ) -> Result<Accepted> {
+        self.receive_checked(generation, frame, now, native, || now)
+    }
+    /// Sample the trusted receiver clock again after native payload validation,
+    /// immediately before charging progress or retaining the first terminal.
+    /// The original receive entry retains its supplied-time behavior.
+    pub fn receive_checked(
+        &mut self,
+        generation: u64,
+        frame: ActiveFrame,
+        now: u64,
+        native: &mut impl NativeValidator,
+        final_now: impl Fn() -> u64,
     ) -> Result<Accepted> {
         let isolated = match &frame.envelope {
             SelectedEnvelope::V1_0(e) => match &e.frame {
@@ -633,7 +1096,7 @@ impl Owner {
                 c.binding.capability().name.clone(),
             )
         });
-        let result = self.receive_inner(generation, frame, now, native);
+        let result = self.receive_inner(generation, frame, now, native, &final_now);
         if let Some(capability) = isolated
             && result.as_ref().is_err_and(|error| {
                 matches!(
@@ -687,6 +1150,7 @@ impl Owner {
         frame: ActiveFrame,
         now: u64,
         native: &mut impl NativeValidator,
+        final_now: &dyn Fn() -> u64,
     ) -> Result<Accepted> {
         self.sample(now)?;
         if generation != self.grant.wire().connection_generation {
@@ -781,6 +1245,11 @@ impl Owner {
                     native,
                 )?;
                 provider_identity(&c.request, &p)?;
+                let sampled = final_now();
+                if sampled < now || sampled >= c.deadline {
+                    c.phase = Phase::Abandoned;
+                    return Err(Error::Deadline);
+                }
                 c.credit -= body_len;
                 c.sequence = next;
                 if c.phase == Phase::CancelRequested {
@@ -808,6 +1277,7 @@ impl Owner {
                     limits,
                     json_limits,
                     native,
+                    final_now,
                 )
             }
             v1_1::envelope::Frame::StreamEnd(r) => {
@@ -828,6 +1298,7 @@ impl Owner {
                     limits,
                     json_limits,
                     native,
+                    final_now,
                 )
             }
             _ => Err(Error::Frame),
@@ -843,6 +1314,7 @@ impl Owner {
         limits: value::Limits,
         json_limits: jcs::Limits,
         native: &mut impl NativeValidator,
+        final_now: &dyn Fn() -> u64,
     ) -> Result<Accepted> {
         let mut code = None;
         let mut payload = None;
@@ -888,12 +1360,17 @@ impl Owner {
             }
             payload = Some(p);
         }
+        let received_ms = final_now();
+        if received_ms < now || received_ms >= c.deadline {
+            c.phase = Phase::Abandoned;
+            return Err(Error::Deadline);
+        }
         c.receipt = Some(Receipt {
             binding: c.binding.clone(),
             kind,
             payload,
             error: code,
-            received_ms: now,
+            received_ms,
         });
         c.phase = Phase::TerminalReceived;
         Ok(Accepted::Terminal)
@@ -961,7 +1438,41 @@ impl Owner {
     }
     pub fn expire(&mut self, now: u64) -> Result<()> {
         self.sample(now)?;
+        let mut invalid: BTreeSet<_> = self
+            .external_parents
+            .iter()
+            .filter_map(|(id, parent)| self.checked_external(parent, now).is_err().then_some(*id))
+            .collect();
+        invalid.extend(
+            self.native_parents
+                .iter()
+                .filter_map(|(id, parent)| parent.0.observe(now).is_err().then_some(*id)),
+        );
+        let mut cancelled = invalid;
+        for _ in 0..8 {
+            let descendants: Vec<_> = self
+                .calls
+                .values()
+                .filter_map(|c| {
+                    c.binding
+                        .parent()
+                        .filter(|p| cancelled.contains(p))
+                        .map(|_| c.binding.id())
+                })
+                .collect();
+            let before = cancelled.len();
+            cancelled.extend(descendants);
+            if cancelled.len() == before {
+                break;
+            }
+        }
         for c in self.calls.values_mut() {
+            if cancelled.contains(&c.binding.id()) && c.phase == Phase::Open {
+                c.phase = Phase::CancelRequested;
+                c.deadline = c
+                    .deadline
+                    .min(now.saturating_add(self.limits.cancellation_grace_ms));
+            }
             if now >= c.deadline && c.phase != Phase::TerminalReceived {
                 c.phase = Phase::Abandoned;
                 if matches!(
@@ -991,6 +1502,8 @@ impl Owner {
             .checked_sub(c.blocking)
             .ok_or(Error::HostContract)?;
         self.calls.remove(&b.id());
+        self.external_parents.remove(&b.id());
+        self.native_parents.remove(&b.id());
         Ok(())
     }
 }
