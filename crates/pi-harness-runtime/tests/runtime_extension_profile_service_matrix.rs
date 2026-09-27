@@ -20,9 +20,58 @@ use prost::Message;
 use runtime_extension_profiles_support::*;
 use runtime_r1_r4_support::*;
 use std::{
+    collections::{BTreeMap, BTreeSet},
     num::{NonZeroU64, NonZeroUsize},
     sync::{Arc, atomic::Ordering},
 };
+
+fn keyed_payload_schema() -> pi_extension_protocol::jcs::PortableSchema {
+    pi_extension_protocol::jcs::admit_schema(
+        br#"{"type":"object","properties":{"model":{"type":"object"},"context":{"type":"object"},"tools":{"type":"array","items":{"type":"null"},"maxItems":0},"options":{"type":"object"}},"required":["model","context","tools","options"],"additionalProperties":false}"#,
+        Default::default(),
+    )
+    .unwrap()
+}
+
+fn keyed_before_payload_profile(
+    model: &pi_ai_core::Model,
+) -> pi_extension_protocol::profiles::ApprovedProfile {
+    use pi_extension_protocol::profiles::{ApprovedProfile, Exposure, ProfileApproval};
+    let payload = keyed_payload_schema();
+    let mut leaves = BTreeMap::from([
+        (
+            "hook.input:before_payload.event.payload".into(),
+            payload.clone(),
+        ),
+        ("hook.output:before_payload.result.payload".into(), payload),
+    ]);
+    let model = serde_json::to_value(model).unwrap();
+    for part in ["compat", "samplingParams"] {
+        let schema = pi_extension_protocol::jcs::admit_schema(
+            &serde_json::to_vec(&exact_schema(&model[part])).unwrap(),
+            Default::default(),
+        )
+        .unwrap();
+        leaves.insert(
+            format!("hook.input:before_payload.event.model.{part}"),
+            schema,
+        );
+    }
+    ApprovedProfile::new(ProfileApproval {
+        principal: "peer-a".into(),
+        kind: "hook".into(),
+        name: "before_payload".into(),
+        profile: "hook.v1".into(),
+        handler: "remote-handler".into(),
+        minors: BTreeSet::from([0, 1]),
+        replay: 1,
+        execution: 1,
+        scope: "main".into(),
+        permissions: BTreeSet::new(),
+        exposure: Exposure::new(leaves, BTreeSet::new()).unwrap(),
+    })
+    .unwrap()
+}
 
 fn sqlite_case(
     setup: &Setup,
@@ -112,7 +161,13 @@ fn run<S: RuntimeStorage + 'static>(
         .harness;
     let profiles = HOOKS
         .iter()
-        .map(|name| profile("hook.v1", name))
+        .map(|name| {
+            if *name == "before_payload" {
+                keyed_before_payload_profile(&setup.faux.model)
+            } else {
+                profile("hook.v1", name)
+            }
+        })
         .chain([
             profile("provider.v1", setup.faux.model.provider.as_str()),
             profile("resource.v1", "resources"),
@@ -148,7 +203,7 @@ fn run<S: RuntimeStorage + 'static>(
             .reference()
             .clone()
     };
-    for name in HOOKS.into_iter().filter(|name| *name != "before_payload") {
+    for name in HOOKS {
         let grant = cap(name);
         assert_eq!(grant.handler_id.as_deref(), Some("remote-handler"));
         harness
@@ -164,7 +219,7 @@ fn run<S: RuntimeStorage + 'static>(
             cap(setup.faux.model.provider.as_str()),
             vec![setup.faux.model.clone()],
             Default::default(),
-            None,
+            Some(keyed_payload_schema()),
         ))
         .unwrap();
     let catalog = ResourceCatalog::new("allowed".into()).unwrap();
@@ -373,10 +428,36 @@ fn run<S: RuntimeStorage + 'static>(
         .iter()
         .map(|request| request.method.clone())
         .collect::<Vec<_>>();
+    let requests = peer.requests.lock().unwrap();
+    let payload_at = requests
+        .iter()
+        .position(|request| request.method == "before_payload")
+        .unwrap();
+    let provider_at = requests
+        .iter()
+        .position(|request| request.method == "provider.invoke")
+        .unwrap();
+    assert!(payload_at < provider_at);
+    let first_payload = &requests[payload_at];
+    assert_eq!(
+        first_payload.capability_ref.as_ref(),
+        Some(&cap("before_payload"))
+    );
+    assert_eq!(first_payload.initial_stream_credit_bytes, Some(0));
+    let invocation = dto::InvokeHookRequest::decode(first_payload.payload.as_slice()).unwrap();
+    assert_eq!(invocation.handler_id, "remote-handler");
+    let input = wire_value(invocation.input.unwrap().value.unwrap());
+    assert_eq!(
+        input["event"]["payload"]["context"]["messages"][0]["content"],
+        "one selected service"
+    );
+    assert_eq!(input["event"]["payload"]["tools"], serde_json::json!([]));
+    drop(requests);
     for method in [
         "before_run",
         "before_resume",
         "before_request",
+        "before_payload",
         "transform_context",
         "provider.invoke",
         "after_response",
@@ -424,5 +505,53 @@ fn sqlite_one_service_all_minor_pairs() {
             drop(store);
             std::fs::remove_dir_all(dir).unwrap();
         }
+    }
+}
+
+struct AcceptNative;
+impl pi_extension_protocol::profiles::NativeValidator for AcceptNative {
+    fn validate(
+        &mut self,
+        _: &pi_extension_protocol::profiles::ValidatedPayload,
+    ) -> Result<(), pi_extension_protocol::profiles::NativeError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn malformed_before_payload_replacement_fails_selected_exposure() {
+    use pi_extension_protocol::profiles::{Error, Stage};
+    let setup = Setup::new();
+    let approved = keyed_before_payload_profile(&setup.faux.model);
+    let malformed = serde_json::json!({"request":"malformed"});
+    assert!(
+        keyed_payload_schema()
+            .validate_instance(&serde_json::to_vec(&malformed).unwrap(), Default::default())
+            .is_err()
+    );
+    let result = serde_json::json!({"name":"before_payload","result":{"payload":malformed}});
+    let bound = pi_harness_runtime::extensions::profiles::bound(
+        approved.registry(),
+        "hook.output:before_payload",
+        &result,
+    )
+    .unwrap();
+    let bytes = dto::InvokeHookResult {
+        output: Some(bound),
+    }
+    .encode_to_vec();
+    for minor in 0..=1 {
+        assert_eq!(
+            approved.validate_payload(
+                minor,
+                "before_payload",
+                Stage::Terminal,
+                &bytes,
+                Default::default(),
+                Default::default(),
+                &mut AcceptNative,
+            ),
+            Err(Error::Exposure)
+        );
     }
 }
