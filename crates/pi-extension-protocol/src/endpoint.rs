@@ -141,6 +141,25 @@ impl Endpoint {
         self.activation.active_grant()
     }
 
+    /// Freeze the authenticated catalog into a separate finite shared owner.
+    /// Transport loss must be forwarded to that owner so retained receipts survive.
+    pub fn profile_owner(
+        &self,
+        reservations: crate::profile_live::Reservations,
+        now_ms: u64,
+        connection_remaining_ms: u64,
+    ) -> Result<crate::profile_live::Owner, crate::profile_live::Error> {
+        let grant = self
+            .active_grant()
+            .ok_or(crate::profile_live::Error::HostContract)?;
+        crate::profile_live::Owner::new(
+            grant.clone(),
+            reservations,
+            now_ms,
+            connection_remaining_ms,
+        )
+    }
+
     /// Consumes at most one frame and leaves every later byte with the caller.
     pub fn read_one(&mut self, input: &[u8], now_ms: u64) -> Result<ReadStep, EndpointError> {
         if self.reader.is_none() {

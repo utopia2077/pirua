@@ -13,6 +13,7 @@ use serde_json::Value;
 
 use crate::descriptor::canonical_profile_digest;
 use crate::jcs::{self, Limits as JsonLimits, PortableSchema};
+use crate::profiles::ApprovedProfile;
 use crate::wire::{v1_0, v1_1};
 
 const PROFILE: &str = "tool.v1";
@@ -205,6 +206,7 @@ pub struct HostAuthority {
     limits: v1_1::ProtocolLimits,
     tools: BTreeMap<String, ApprovedTool>,
     permissions: BTreeSet<(String, String)>,
+    profiles: BTreeMap<(String, String), ApprovedProfile>,
 }
 
 impl HostAuthority {
@@ -247,7 +249,27 @@ impl HostAuthority {
             limits,
             tools: catalog,
             permissions: ceiling,
+            profiles: BTreeMap::new(),
         })
+    }
+
+    /// Additive host-only entrypoint. The original constructor remains tool-only.
+    pub fn with_profiles(mut self, profiles: Vec<ApprovedProfile>) -> Result<Self> {
+        if profiles.len() > MAX_DECLARATIONS || !self.profiles.is_empty() {
+            return Err(ActivationError::new("host_authority_invalid"));
+        }
+        for profile in profiles {
+            if profile.principal() != self.principal
+                || !profile.permissions().is_subset(&self.permissions)
+                || self
+                    .profiles
+                    .insert((profile.kind().into(), profile.name().into()), profile)
+                    .is_some()
+            {
+                return Err(ActivationError::new("host_authority_invalid"));
+            }
+        }
+        Ok(self)
     }
 
     pub fn principal(&self) -> &str {
@@ -347,6 +369,7 @@ pub struct ActiveGrant {
     wire: v1_1::CapabilityGrant,
     tools: Vec<GrantedTool>,
     omitted: Vec<String>,
+    profiles: Vec<GrantedProfile>,
 }
 
 impl ActiveGrant {
@@ -356,8 +379,26 @@ impl ActiveGrant {
     pub fn tools(&self) -> &[GrantedTool] {
         &self.tools
     }
+    pub fn profiles(&self) -> &[GrantedProfile] {
+        &self.profiles
+    }
     pub fn omitted(&self) -> &[String] {
         &self.omitted
+    }
+}
+
+/// Immutable executable profile contract, available only after Ready.
+#[derive(Clone, Debug)]
+pub struct GrantedProfile {
+    reference: v1_1::CapabilityRef,
+    approved: ApprovedProfile,
+}
+impl GrantedProfile {
+    pub fn reference(&self) -> &v1_1::CapabilityRef {
+        &self.reference
+    }
+    pub fn approved(&self) -> &ApprovedProfile {
+        &self.approved
     }
 }
 
@@ -545,6 +586,22 @@ impl Activation {
                 return Err(ActivationError::new("duplicate_capability"));
             }
             validate_capability(cap)?;
+            if !self.host.profiles.is_empty()
+                && cap.kind != "tool"
+                && crate::descriptor::canonical_profile_digest(
+                    &cap.profile.as_ref().expect("validated").name,
+                    1,
+                    0,
+                )
+                .is_some()
+                && !crate::profiles::profile_mode(
+                    &cap.profile.as_ref().expect("validated").name,
+                    cap.replay,
+                    cap.execution,
+                )
+            {
+                return Err(ActivationError::new("profile_inapplicable_variant"));
+            }
         }
         let mut seen_permissions = BTreeSet::new();
         for permission in &manifest.permissions {
@@ -562,10 +619,16 @@ impl Activation {
             }
         }
         let mut tools = Vec::new();
+        let mut profiles = Vec::new();
         let mut refs = Vec::new();
         let mut omitted = Vec::new();
         for cap in &manifest.capabilities {
             if cap.kind != "tool" || cap.profile.as_ref().is_none_or(|p| p.name != PROFILE) {
+                if let Some(profile) = self.select_profile(cap, &manifest.permissions)? {
+                    refs.push(profile.reference.clone());
+                    profiles.push(profile);
+                    continue;
+                }
                 if cap.required {
                     return Err(ActivationError::new("required_capability_denied"));
                 }
@@ -585,6 +648,12 @@ impl Activation {
         }
         let mut grants = Vec::new();
         for request in manifest.permissions {
+            if !self.host.profiles.is_empty() && request.name == "secret.resolve" {
+                if request.required {
+                    return Err(ActivationError::new("secret_broker_unapproved"));
+                }
+                continue;
+            }
             if self
                 .host
                 .permissions
@@ -609,7 +678,62 @@ impl Activation {
             },
             tools,
             omitted,
+            profiles,
         })
+    }
+
+    fn select_profile(
+        &self,
+        cap: &CapabilityView,
+        permissions: &[v1_1::PermissionRequest],
+    ) -> Result<Option<GrantedProfile>> {
+        let Some(approved) = self
+            .host
+            .profiles
+            .get(&(cap.kind.clone(), cap.name.clone()))
+        else {
+            return Ok(None);
+        };
+        let profile = cap.profile.as_ref().expect("structural pass");
+        if profile.name != approved.profile()
+            || cap.handler_id != approved.handler()
+            || cap.replay != approved.replay()
+            || cap.execution != approved.execution()
+            || !approved
+                .permissions()
+                .iter()
+                .all(|(n, s)| permissions.iter().any(|p| &p.name == n && &p.scope == s))
+        {
+            return Ok(None);
+        }
+        let Some(hello) = self.hello_profiles.get(approved.profile()) else {
+            return Ok(None);
+        };
+        if hello.major != 1 {
+            return Ok(None);
+        }
+        // Every advertised canonical minor is exact, even when a lower minor is selected.
+        if cap.descriptors.iter().any(|d| {
+            crate::descriptor::canonical_profile_digest(approved.profile(), 1, d.minor)
+                .is_none_or(|expected| d.descriptor_digest_sha256 != expected)
+        }) {
+            return Ok(None);
+        }
+        let lower = profile.min_minor.max(hello.min_minor);
+        let upper = profile.max_minor.min(hello.max_minor);
+        let Some(minor) = (lower..=upper)
+            .rev()
+            .find(|m| approved.minors().contains(m))
+        else {
+            return Ok(None);
+        };
+        let reference = approved
+            .reference(minor)
+            .map_err(|_| ActivationError::new("host_authority_invalid"))?;
+        Ok(Some(GrantedProfile {
+            reference,
+            approved: approved.clone(),
+        }))
     }
 
     fn select_tool(&self, cap: &CapabilityView) -> Result<Option<GrantedTool>> {

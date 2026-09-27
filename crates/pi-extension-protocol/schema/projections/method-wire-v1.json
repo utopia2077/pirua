@@ -1,0 +1,3477 @@
+{
+  "artifact": "canonical descriptor-derived six-profile wire fixtures",
+  "source_registry_sha256": "a735c6862639f36a24e3190d650207193ef125b6a5b329a30701c2ace3aa60be",
+  "source_vectors_sha256": "dfd59501a43b34abb40bf7ef5985f6715a14c8cdd4c37ed98567ed2371fbad37",
+  "fields": [
+    {
+      "profile": "hook",
+      "minor": 0,
+      "message": "InvokeHookRequest",
+      "fields": [
+        {
+          "name": "handler_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "input",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "hook",
+      "minor": 0,
+      "message": "InvokeHookResult",
+      "fields": [
+        {
+          "name": "output",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "hook",
+      "minor": 0,
+      "message": "BeforeResumeUnitResult",
+      "fields": []
+    },
+    {
+      "profile": "hook",
+      "minor": 1,
+      "message": "InvokeHookRequest",
+      "fields": [
+        {
+          "name": "handler_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "input",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "hook",
+      "minor": 1,
+      "message": "InvokeHookResult",
+      "fields": [
+        {
+          "name": "output",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "hook",
+      "minor": 1,
+      "message": "BeforeResumeUnitResult",
+      "fields": []
+    },
+    {
+      "profile": "provider",
+      "minor": 0,
+      "message": "InvokeProviderRequest",
+      "fields": [
+        {
+          "name": "model_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "context",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "options",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "tools",
+          "number": 4,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "auth_mode",
+          "number": 5,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "model",
+          "number": 6,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "provider",
+      "minor": 0,
+      "message": "ProviderStreamEvent",
+      "fields": [
+        {
+          "name": "event",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "provider",
+      "minor": 0,
+      "message": "InvokeProviderResult",
+      "fields": [
+        {
+          "name": "assistant_message",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "usage",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "provider",
+      "minor": 1,
+      "message": "InvokeProviderRequest",
+      "fields": [
+        {
+          "name": "model_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "context",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "options",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "tools",
+          "number": 4,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "auth_mode",
+          "number": 5,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "model",
+          "number": 6,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "provider",
+      "minor": 1,
+      "message": "ProviderStreamEvent",
+      "fields": [
+        {
+          "name": "event",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "provider",
+      "minor": 1,
+      "message": "InvokeProviderResult",
+      "fields": [
+        {
+          "name": "assistant_message",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "usage",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceListRequest",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "known_revision",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": true,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceManifest",
+      "fields": [
+        {
+          "name": "id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "version",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "kind",
+          "number": 3,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "digest_sha256",
+          "number": 4,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "metadata",
+          "number": 5,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceListResult",
+      "fields": [
+        {
+          "name": "revision",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "resources",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.ResourceManifest",
+          "label": 3,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceReadRequest",
+      "fields": [
+        {
+          "name": "id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "version",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "expected_digest_sha256",
+          "number": 3,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceReadResult",
+      "fields": [
+        {
+          "name": "digest_sha256",
+          "number": 1,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "text",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "raw_bytes",
+          "number": 3,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "portable",
+          "number": 4,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceChanged",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceChangedAck",
+      "fields": []
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceListRequest",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "known_revision",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": true,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceManifest",
+      "fields": [
+        {
+          "name": "id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "version",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "kind",
+          "number": 3,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "digest_sha256",
+          "number": 4,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "metadata",
+          "number": 5,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceListResult",
+      "fields": [
+        {
+          "name": "revision",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "resources",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.ResourceManifest",
+          "label": 3,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceReadRequest",
+      "fields": [
+        {
+          "name": "id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "version",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "expected_digest_sha256",
+          "number": 3,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceReadResult",
+      "fields": [
+        {
+          "name": "digest_sha256",
+          "number": 1,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "text",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "raw_bytes",
+          "number": 3,
+          "type": 12,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "portable",
+          "number": 4,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceChanged",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceChangedAck",
+      "fields": []
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "SnapshotGetRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "visibility",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "SnapshotGetResult",
+      "fields": [
+        {
+          "name": "filtered_snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "ResourceGetRequest",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "id",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "version",
+          "number": 3,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": true,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "ResourceGetResult",
+      "fields": [
+        {
+          "name": "snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueSteerRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "item",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueFollowUpRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "item",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueNextRunRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "item",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueResult",
+      "fields": [
+        {
+          "name": "item_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "accepted",
+          "number": 2,
+          "type": 8,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "OperationAbortRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "operation_id",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "OperationAbortResult",
+      "fields": [
+        {
+          "name": "aborted",
+          "number": 1,
+          "type": 8,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "SnapshotGetRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "visibility",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "SnapshotGetResult",
+      "fields": [
+        {
+          "name": "filtered_snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "ResourceGetRequest",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "id",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "version",
+          "number": 3,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": true,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "ResourceGetResult",
+      "fields": [
+        {
+          "name": "snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueSteerRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "item",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueFollowUpRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "item",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueNextRunRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "item",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueResult",
+      "fields": [
+        {
+          "name": "item_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "accepted",
+          "number": 2,
+          "type": 8,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "OperationAbortRequest",
+      "fields": [
+        {
+          "name": "lane",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "operation_id",
+          "number": 2,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "OperationAbortResult",
+      "fields": [
+        {
+          "name": "aborted",
+          "number": 1,
+          "type": 8,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "SubscribeRequest",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "SubscriptionSnapshot",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "snapshot_revision",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "next_event_sequence",
+          "number": 3,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "filtered_snapshot",
+          "number": 4,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventNotification",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "sequence",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "event",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventGap",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "first_dropped",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "last_dropped",
+          "number": 3,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventSinkItem",
+      "fields": [
+        {
+          "name": "snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SubscriptionSnapshot",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "event",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.EventNotification",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "gap",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.EventGap",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "SubscribeEnd",
+      "fields": []
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "ResyncRequest",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "ResyncResult",
+      "fields": [
+        {
+          "name": "snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SubscriptionSnapshot",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "SubscribeRequest",
+      "fields": [
+        {
+          "name": "scope",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "SubscriptionSnapshot",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "snapshot_revision",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "next_event_sequence",
+          "number": 3,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "filtered_snapshot",
+          "number": 4,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventNotification",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "sequence",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "event",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventGap",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "first_dropped",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "last_dropped",
+          "number": 3,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventSinkItem",
+      "fields": [
+        {
+          "name": "snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SubscriptionSnapshot",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "event",
+          "number": 2,
+          "type": 11,
+          "type_name": ".pi.extension.v1.EventNotification",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        },
+        {
+          "name": "gap",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.EventGap",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": 0
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "SubscribeEnd",
+      "fields": []
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "ResyncRequest",
+      "fields": [
+        {
+          "name": "subscription_id",
+          "number": 1,
+          "type": 9,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "ResyncResult",
+      "fields": [
+        {
+          "name": "snapshot",
+          "number": 1,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SubscriptionSnapshot",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryEmitBatchRequest",
+      "fields": [
+        {
+          "name": "schema_version",
+          "number": 1,
+          "type": 13,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "sequence",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "records",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 3,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryEmitBatchResult",
+      "fields": [
+        {
+          "name": "accepted",
+          "number": 1,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "dropped",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryFlushRequest",
+      "fields": [
+        {
+          "name": "through_sequence",
+          "number": 1,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryFlushResult",
+      "fields": [
+        {
+          "name": "flushed_through",
+          "number": 1,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryEmitBatchRequest",
+      "fields": [
+        {
+          "name": "schema_version",
+          "number": 1,
+          "type": 13,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "sequence",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "records",
+          "number": 3,
+          "type": 11,
+          "type_name": ".pi.extension.v1.SchemaBoundValue",
+          "label": 3,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryEmitBatchResult",
+      "fields": [
+        {
+          "name": "accepted",
+          "number": 1,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        },
+        {
+          "name": "dropped",
+          "number": 2,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryFlushRequest",
+      "fields": [
+        {
+          "name": "through_sequence",
+          "number": 1,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryFlushResult",
+      "fields": [
+        {
+          "name": "flushed_through",
+          "number": 1,
+          "type": 4,
+          "type_name": "",
+          "label": 1,
+          "proto3_optional": false,
+          "oneof_index": null
+        }
+      ]
+    }
+  ],
+  "methods": [
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_run",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212af010a15686f6f6b2e696e7075743a6265666f72655f72756e1220968889c4e899d74dd3eb7acb2072ff25191f671e0155366cc2d3c12720882e371a7442720a140a046e616d65120c2a0a6265666f72655f72756e0a5a0a056576656e741251424f0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0c0a0670726f6d707412023a000a130a0c73797374656d50726f6d707412032a01780a0f0a097265736f757263657312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a620a16686f6f6b2e6f75747075743a6265666f72655f72756e1220ff7e3aa39dd0084369c73f836d002b8ace67a75bcfd0033b351edb9edb68781a1a2642240a140a046e616d65120c2a0a6265666f72655f72756e0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_resume",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c6572129e010a18686f6f6b2e696e7075743a6265666f72655f726573756d651220783e797bc15ec13f23c9171d02c5dbbcc51b74e269717e16d126c50c4969d5bf1a60425e0a170a046e616d65120f2a0d6265666f72655f726573756d650a430a056576656e74123a42380a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0d0a046b696e6412052a0372756e0a0c0a0670726f6d707412023a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.BeforeResumeUnitResult",
+          "hex": "",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_run_end",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c65721293010a19686f6f6b2e696e7075743a6265666f72655f72756e5f656e6412205af97a952a648d0722c5297f8ef4de4462eb4ed6196778c7b4a7a61138ddd9d81a5442520a180a046e616d6512102a0e6265666f72655f72756e5f656e640a360a056576656e74122d422b0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0e0a086d6573736167657312023a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a6a0a1a686f6f6b2e6f75747075743a6265666f72655f72756e5f656e64122087d6fee76d7493b267220e4628f117c5022865783b6873024aa10140493253301a2a42280a180a046e616d6512102a0e6265666f72655f72756e5f656e640a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "transform_context",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c65721299010a1c686f6f6b2e696e7075743a7472616e73666f726d5f636f6e746578741220dc4de6250a5e5015b671f8b1f830af6e52aa701818acec85dbee585971acfa2e1a5742550a1b0a046e616d6512132a117472616e73666f726d5f636f6e746578740a360a056576656e74122d422b0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0e0a086d6573736167657312023a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a80010a1d686f6f6b2e6f75747075743a7472616e73666f726d5f636f6e74657874122090234e3d865e15d3c1469b6d88b294b9a1ffd3bb1b416bf7f2612899dee61a231a3d423b0a1b0a046e616d6512132a117472616e73666f726d5f636f6e746578740a1c0a06726573756c74121242100a0e0a086d6573736167657312023a00",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_request",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212be030a19686f6f6b2e696e7075743a6265666f72655f7265717565737412208edfae07b5ca792bd4eddb7cbd7cce4332ebd813684d7412d953f99a1fa042d41afe0242fb020a180a046e616d6512102a0e6265666f72655f726571756573740ade020a056576656e7412d40242d1020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780afa010a056d6f64656c12f00142ed010a090a02696412032a01780a0b0a046e616d6512032a01780a0a0a0361706912032a01780a0f0a0870726f766964657212032a01780a280a076261736555726c121d2a1b68747470733a2f2f70726f76696465722e696e76616c69642f76310a0f0a09726561736f6e696e67120210000a0b0a05696e70757412023a000a480a04636f73741240423e0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a130a0d636f6e7465787457696e646f77120218000a0f0a096d6178546f6b656e73120218000a130a0473746570120b2a09617373697374616e740a0d0a07617474656d7074120218020a130a0d73747265616d4f7074696f6e7312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a6a0a1a686f6f6b2e6f75747075743a6265666f72655f726571756573741220d5cd1ce987eb304f4a29e71fa24216086316bdba3adf4b46d99b07bb00e777921a2a42280a180a046e616d6512102a0e6265666f72655f726571756573740a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_payload",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c65721294030a19686f6f6b2e696e7075743a6265666f72655f7061796c6f616412201d8a31f100b2903b8d2ac3e8c5a50efc00bc804499199bcfb4d365482bd557331ad40242d1020a180a046e616d6512102a0e6265666f72655f7061796c6f61640ab4020a056576656e7412aa0242a7020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780afa010a056d6f64656c12f00142ed010a090a02696412032a01780a0b0a046e616d6512032a01780a0a0a0361706912032a01780a0f0a0870726f766964657212032a01780a280a076261736555726c121d2a1b68747470733a2f2f70726f76696465722e696e76616c69642f76310a0f0a09726561736f6e696e67120210000a0b0a05696e70757412023a000a480a04636f73741240423e0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a130a0d636f6e7465787457696e646f77120218000a0f0a096d6178546f6b656e73120218000a0d0a077061796c6f616412020a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a790a1a686f6f6b2e6f75747075743a6265666f72655f7061796c6f616412205cdd0c94e0c3bc305ab9e661eea30799a8ea7953892878d97da48c71756b18bc1a3942370a180a046e616d6512102a0e6265666f72655f7061796c6f61640a1b0a06726573756c741211420f0a0d0a077061796c6f616412020a00",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "after_response",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212c8030a19686f6f6b2e696e7075743a61667465725f726573706f6e736512205fe9cd2263f21b8ef84fe340ad75be8316ce43a351bdc7096a4beccbb54186ab1a88034285030a180a046e616d6512102a0e61667465725f726573706f6e73650ae8020a056576656e7412de0242db020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780abd020a076d65737361676512b10242ae020a130a04726f6c65120b2a09617373697374616e740a0d0a07636f6e74656e7412023a000a0a0a0361706912032a01780a0f0a0870726f766964657212032a01780a0c0a056d6f64656c12032a01780ab5010a05757361676512ab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c120218000a140a0a73746f70526561736f6e12062a0473746f700a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a6a0a1a686f6f6b2e6f75747075743a61667465725f726573706f6e73651220c33829ad946b34b1c2ed1fec40ed19131c786de49350908870ad7d9faa99e9d51a2a42280a180a046e616d6512102a0e61667465725f726573706f6e73650a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_tool",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212ad010a16686f6f6b2e696e7075743a6265666f72655f746f6f6c1220fb2bcd2ad173b2d42ac2378f40087a13524d10e4c7c5df6b515a9c9414f672961a71426f0a150a046e616d65120d2a0b6265666f72655f746f6f6c0a560a056576656e74124d424b0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a110a0a746f6f6c43616c6c496412032a01780a0f0a08746f6f6c4e616d6512032a01780a0a0a046172677312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a640a17686f6f6b2e6f75747075743a6265666f72655f746f6f6c12203b3b5f12402e12dad81c6dfbd2b4614f078eeed770a5f47adc730ccd6d80d08b1a2742250a150a046e616d65120d2a0b6265666f72655f746f6f6c0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "after_tool",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212cb010a15686f6f6b2e696e7075743a61667465725f746f6f6c12201dc7772e205ae977b1467315569ca77dafa0277256007048ac3df5b60f1197751a8f01428c010a140a046e616d65120c2a0a61667465725f746f6f6c0a740a056576656e74126b42690a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a110a0a746f6f6c43616c6c496412032a01780a0f0a08746f6f6c4e616d6512032a01780a0a0a0461726773120242000a0d0a07636f6e74656e7412023a000a0d0a0769734572726f7212021000",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a620a16686f6f6b2e6f75747075743a61667465725f746f6f6c1220402f8dcd4d7a1452e0d5323f3d0bb29cb6d2703ab68a68e5f2744440797a55861a2642240a140a046e616d65120c2a0a61667465725f746f6f6c0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_compaction",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212ac030a1c686f6f6b2e696e7075743a6265666f72655f636f6d70616374696f6e1220bcd551ff0bed9117d6269ca978babcfe7f4a0b1c27a7d7398d5e2b8be8b3bd6c1ae90242e6020a1b0a046e616d6512132a116265666f72655f636f6d70616374696f6e0ac6020a056576656e7412bc0242b9020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a120a06726561736f6e12082a066d616e75616c0a87020a0b7072657061726174696f6e12f70142f4010a190a136d65737361676573546f53756d6d6172697a6512023a000a180a127475726e5072656669784d6573736167657312023a000a120a0c72657461696e65645461696c12023a000a110a0b697353706c69745475726e120210000a120a0c746f6b656e734265666f7265120218000a360a0766696c654f7073122b42290a0a0a047265616412023a000a0d0a077772697474656e12023a000a0c0a0665646974656412023a000a4a0a0873657474696e6773123e423c0a0d0a07656e61626c6564120210000a130a0d72657365727665546f6b656e73120218000a160a106b656570526563656e74546f6b656e7312021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a700a1d686f6f6b2e6f75747075743a6265666f72655f636f6d70616374696f6e1220a78500c3a2b4801c3be727e378f1047606e2793c714c1f69a8bd605773e51ea91a2d422b0a1b0a046e616d6512132a116265666f72655f636f6d70616374696f6e0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 0,
+      "method": "before_navigation",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c6572128d020a1c686f6f6b2e696e7075743a6265666f72655f6e617669676174696f6e12209e27ffecbb33bde8f6c6be8ff44696929150ad9e46df81d0addc3acf3a83f5631aca0142c7010a1b0a046e616d6512132a116265666f72655f6e617669676174696f6e0aa7010a056576656e74129d01429a010a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0f0a08746172676574496412032a01780a6c0a0b7072657061726174696f6e125d425b0a0e0a086d6573736167657312023a000a360a0766696c654f7073122b42290a0a0a047265616412023a000a0d0a077772697474656e12023a000a0c0a0665646974656412023a000a110a0b746f74616c546f6b656e7312021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a700a1d686f6f6b2e6f75747075743a6265666f72655f6e617669676174696f6e122017508eba0470ed4018aa682417ba09e2998e62fdc3b4b534a95e88e9a73bd8481a2d422b0a1b0a046e616d6512132a116265666f72655f6e617669676174696f6e0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_run",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212af010a15686f6f6b2e696e7075743a6265666f72655f72756e1220968889c4e899d74dd3eb7acb2072ff25191f671e0155366cc2d3c12720882e371a7442720a140a046e616d65120c2a0a6265666f72655f72756e0a5a0a056576656e741251424f0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0c0a0670726f6d707412023a000a130a0c73797374656d50726f6d707412032a01780a0f0a097265736f757263657312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a620a16686f6f6b2e6f75747075743a6265666f72655f72756e1220ff7e3aa39dd0084369c73f836d002b8ace67a75bcfd0033b351edb9edb68781a1a2642240a140a046e616d65120c2a0a6265666f72655f72756e0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_resume",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c6572129e010a18686f6f6b2e696e7075743a6265666f72655f726573756d651220783e797bc15ec13f23c9171d02c5dbbcc51b74e269717e16d126c50c4969d5bf1a60425e0a170a046e616d65120f2a0d6265666f72655f726573756d650a430a056576656e74123a42380a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0d0a046b696e6412052a0372756e0a0c0a0670726f6d707412023a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.BeforeResumeUnitResult",
+          "hex": "",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_run_end",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c65721293010a19686f6f6b2e696e7075743a6265666f72655f72756e5f656e6412205af97a952a648d0722c5297f8ef4de4462eb4ed6196778c7b4a7a61138ddd9d81a5442520a180a046e616d6512102a0e6265666f72655f72756e5f656e640a360a056576656e74122d422b0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0e0a086d6573736167657312023a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a6a0a1a686f6f6b2e6f75747075743a6265666f72655f72756e5f656e64122087d6fee76d7493b267220e4628f117c5022865783b6873024aa10140493253301a2a42280a180a046e616d6512102a0e6265666f72655f72756e5f656e640a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "transform_context",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c65721299010a1c686f6f6b2e696e7075743a7472616e73666f726d5f636f6e746578741220dc4de6250a5e5015b671f8b1f830af6e52aa701818acec85dbee585971acfa2e1a5742550a1b0a046e616d6512132a117472616e73666f726d5f636f6e746578740a360a056576656e74122d422b0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0e0a086d6573736167657312023a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a80010a1d686f6f6b2e6f75747075743a7472616e73666f726d5f636f6e74657874122090234e3d865e15d3c1469b6d88b294b9a1ffd3bb1b416bf7f2612899dee61a231a3d423b0a1b0a046e616d6512132a117472616e73666f726d5f636f6e746578740a1c0a06726573756c74121242100a0e0a086d6573736167657312023a00",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_request",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212be030a19686f6f6b2e696e7075743a6265666f72655f7265717565737412208edfae07b5ca792bd4eddb7cbd7cce4332ebd813684d7412d953f99a1fa042d41afe0242fb020a180a046e616d6512102a0e6265666f72655f726571756573740ade020a056576656e7412d40242d1020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780afa010a056d6f64656c12f00142ed010a090a02696412032a01780a0b0a046e616d6512032a01780a0a0a0361706912032a01780a0f0a0870726f766964657212032a01780a280a076261736555726c121d2a1b68747470733a2f2f70726f76696465722e696e76616c69642f76310a0f0a09726561736f6e696e67120210000a0b0a05696e70757412023a000a480a04636f73741240423e0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a130a0d636f6e7465787457696e646f77120218000a0f0a096d6178546f6b656e73120218000a130a0473746570120b2a09617373697374616e740a0d0a07617474656d7074120218020a130a0d73747265616d4f7074696f6e7312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a6a0a1a686f6f6b2e6f75747075743a6265666f72655f726571756573741220d5cd1ce987eb304f4a29e71fa24216086316bdba3adf4b46d99b07bb00e777921a2a42280a180a046e616d6512102a0e6265666f72655f726571756573740a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_payload",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c65721294030a19686f6f6b2e696e7075743a6265666f72655f7061796c6f616412201d8a31f100b2903b8d2ac3e8c5a50efc00bc804499199bcfb4d365482bd557331ad40242d1020a180a046e616d6512102a0e6265666f72655f7061796c6f61640ab4020a056576656e7412aa0242a7020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780afa010a056d6f64656c12f00142ed010a090a02696412032a01780a0b0a046e616d6512032a01780a0a0a0361706912032a01780a0f0a0870726f766964657212032a01780a280a076261736555726c121d2a1b68747470733a2f2f70726f76696465722e696e76616c69642f76310a0f0a09726561736f6e696e67120210000a0b0a05696e70757412023a000a480a04636f73741240423e0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a130a0d636f6e7465787457696e646f77120218000a0f0a096d6178546f6b656e73120218000a0d0a077061796c6f616412020a00",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a790a1a686f6f6b2e6f75747075743a6265666f72655f7061796c6f616412205cdd0c94e0c3bc305ab9e661eea30799a8ea7953892878d97da48c71756b18bc1a3942370a180a046e616d6512102a0e6265666f72655f7061796c6f61640a1b0a06726573756c741211420f0a0d0a077061796c6f616412020a00",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "after_response",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212c8030a19686f6f6b2e696e7075743a61667465725f726573706f6e736512205fe9cd2263f21b8ef84fe340ad75be8316ce43a351bdc7096a4beccbb54186ab1a88034285030a180a046e616d6512102a0e61667465725f726573706f6e73650ae8020a056576656e7412de0242db020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780abd020a076d65737361676512b10242ae020a130a04726f6c65120b2a09617373697374616e740a0d0a07636f6e74656e7412023a000a0a0a0361706912032a01780a0f0a0870726f766964657212032a01780a0c0a056d6f64656c12032a01780ab5010a05757361676512ab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c120218000a140a0a73746f70526561736f6e12062a0473746f700a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a6a0a1a686f6f6b2e6f75747075743a61667465725f726573706f6e73651220c33829ad946b34b1c2ed1fec40ed19131c786de49350908870ad7d9faa99e9d51a2a42280a180a046e616d6512102a0e61667465725f726573706f6e73650a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_tool",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212ad010a16686f6f6b2e696e7075743a6265666f72655f746f6f6c1220fb2bcd2ad173b2d42ac2378f40087a13524d10e4c7c5df6b515a9c9414f672961a71426f0a150a046e616d65120d2a0b6265666f72655f746f6f6c0a560a056576656e74124d424b0a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a110a0a746f6f6c43616c6c496412032a01780a0f0a08746f6f6c4e616d6512032a01780a0a0a046172677312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a640a17686f6f6b2e6f75747075743a6265666f72655f746f6f6c12203b3b5f12402e12dad81c6dfbd2b4614f078eeed770a5f47adc730ccd6d80d08b1a2742250a150a046e616d65120d2a0b6265666f72655f746f6f6c0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "after_tool",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212cb010a15686f6f6b2e696e7075743a61667465725f746f6f6c12201dc7772e205ae977b1467315569ca77dafa0277256007048ac3df5b60f1197751a8f01428c010a140a046e616d65120c2a0a61667465725f746f6f6c0a740a056576656e74126b42690a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a110a0a746f6f6c43616c6c496412032a01780a0f0a08746f6f6c4e616d6512032a01780a0a0a0461726773120242000a0d0a07636f6e74656e7412023a000a0d0a0769734572726f7212021000",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a620a16686f6f6b2e6f75747075743a61667465725f746f6f6c1220402f8dcd4d7a1452e0d5323f3d0bb29cb6d2703ab68a68e5f2744440797a55861a2642240a140a046e616d65120c2a0a61667465725f746f6f6c0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_compaction",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c657212ac030a1c686f6f6b2e696e7075743a6265666f72655f636f6d70616374696f6e1220bcd551ff0bed9117d6269ca978babcfe7f4a0b1c27a7d7398d5e2b8be8b3bd6c1ae90242e6020a1b0a046e616d6512132a116265666f72655f636f6d70616374696f6e0ac6020a056576656e7412bc0242b9020a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a120a06726561736f6e12082a066d616e75616c0a87020a0b7072657061726174696f6e12f70142f4010a190a136d65737361676573546f53756d6d6172697a6512023a000a180a127475726e5072656669784d6573736167657312023a000a120a0c72657461696e65645461696c12023a000a110a0b697353706c69745475726e120210000a120a0c746f6b656e734265666f7265120218000a360a0766696c654f7073122b42290a0a0a047265616412023a000a0d0a077772697474656e12023a000a0c0a0665646974656412023a000a4a0a0873657474696e6773123e423c0a0d0a07656e61626c6564120210000a130a0d72657365727665546f6b656e73120218000a160a106b656570526563656e74546f6b656e7312021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a700a1d686f6f6b2e6f75747075743a6265666f72655f636f6d70616374696f6e1220a78500c3a2b4801c3be727e378f1047606e2793c714c1f69a8bd605773e51ea91a2d422b0a1b0a046e616d6512132a116265666f72655f636f6d70616374696f6e0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "hook.v1",
+      "minor": 1,
+      "method": "before_navigation",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeHookRequest",
+          "hex": "0a117175616c69666965645f68616e646c6572128d020a1c686f6f6b2e696e7075743a6265666f72655f6e617669676174696f6e12209e27ffecbb33bde8f6c6be8ff44696929150ad9e46df81d0addc3acf3a83f5631aca0142c7010a1b0a046e616d6512132a116265666f72655f6e617669676174696f6e0aa7010a056576656e74129d01429a010a0b0a046c616e6512032a01780a0c0a0572756e496412032a01780a0f0a08746172676574496412032a01780a6c0a0b7072657061726174696f6e125d425b0a0e0a086d6573736167657312023a000a360a0766696c654f7073122b42290a0a0a047265616412023a000a0d0a077772697474656e12023a000a0c0a0665646974656412023a000a110a0b746f74616c546f6b656e7312021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeHookResult",
+          "hex": "0a700a1d686f6f6b2e6f75747075743a6265666f72655f6e617669676174696f6e122017508eba0470ed4018aa682417ba09e2998e62fdc3b4b534a95e88e9a73bd8481a2d422b0a1b0a046e616d6512132a116265666f72655f6e617669676174696f6e0a0c0a06726573756c7412024200",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "provider.v1",
+      "minor": 0,
+      "method": "provider.invoke",
+      "direction": 1,
+      "mode": 2,
+      "descriptor_sha256": "50af1df1d423a5320a166e2096aae1125f92ca8eb2ec097b08bd8b5376e492e7",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeProviderRequest",
+          "hex": "0a016d124b0a1370726f76696465722e636f6e746578742e76311220de98f85a48f43941492fde3987961dac18ec15ed9dc21be91a17b8e0e585382b1a1242100a0e0a086d6573736167657312023a001a3b0a1370726f76696465722e6f7074696f6e732e76311220e5ef12fca5663b89e833231f6a8b0ea3504aea7077e2cd4060c1705bde88625d1a02420022390a1170726f76696465722e746f6f6c732e76311220b1aeefb3d820740b7aa9996c82a46fe42ac9bee7d63713e384b106b0973880aa1a023a002a046e6f6e6532be020a1170726f76696465722e6d6f64656c2e763112206bf2c063d926a8070d95c317e53b45bdde8038d98074f3d6ba70b0652c9a5c3d1a86024283020a090a02696412032a016d0a0b0a046e616d6512032a01780a1b0a0361706912142a126f70656e61692d636f6d706c6574696f6e730a140a0870726f766964657212082a0672656d6f74650a280a076261736555726c121d2a1b68747470733a2f2f70726f76696465722e696e76616c69642f76310a0f0a09726561736f6e696e67120210000a0b0a05696e70757412023a000a480a04636f73741240423e0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a130a0d636f6e7465787457696e646f77120218000a0f0a096d6178546f6b656e7312021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeProviderResult",
+          "hex": "0a8b030a1d70726f76696465722e617373697374616e745f6d6573736167652e7631122038178300d9d06eaebdee8f6e11883f3f55cfdb6d092c0b8e62e5c0ee3602901b1ac70242c4020a130a04726f6c65120b2a09617373697374616e740a0d0a07636f6e74656e7412023a000a1b0a0361706912142a126f70656e61692d636f6d706c6574696f6e730a140a0870726f766964657212082a0672656d6f74650a0c0a056d6f64656c12032a016d0ab5010a05757361676512ab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c120218000a140a0a73746f70526561736f6e12062a0473746f700a0f0a0974696d657374616d701202180012e3010a1170726f76696465722e75736167652e763112206e6ae57ce14a7aa4bd60d7b6ff5aa3d00858788021dbe7d4d8840682d84901e71aab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c12021800",
+          "protoc_decode_exit": 0
+        },
+        "progress": {
+          "type": ".pi.extension.v1.ProviderStreamEvent",
+          "hex": "0aaf030a1b70726f76696465722e617373697374616e745f6576656e742e7631122028d12246ae77f5ac2f0403c201f3f365bd6c0b145f4a61174cf4c7b24206a6a11aed0242ea020a0f0a047479706512072a0573746172740ad6020a077061727469616c12ca0242c7020a130a04726f6c65120b2a09617373697374616e740a0d0a07636f6e74656e7412023a000a1b0a0361706912142a126f70656e61692d636f6d706c6574696f6e730a140a0870726f766964657212082a0672656d6f74650a0c0a056d6f64656c12032a016d0ab5010a05757361676512ab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c120218000a170a0a73746f70526561736f6e12092a0770656e64696e670a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "provider.v1",
+      "minor": 1,
+      "method": "provider.invoke",
+      "direction": 1,
+      "mode": 2,
+      "descriptor_sha256": "c660f958422716ca43e9e48e88b8a8ac0c76dc43b3cafdaa4bdcd73eb9937eae",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.InvokeProviderRequest",
+          "hex": "0a016d124b0a1370726f76696465722e636f6e746578742e76311220de98f85a48f43941492fde3987961dac18ec15ed9dc21be91a17b8e0e585382b1a1242100a0e0a086d6573736167657312023a001a3b0a1370726f76696465722e6f7074696f6e732e76311220e5ef12fca5663b89e833231f6a8b0ea3504aea7077e2cd4060c1705bde88625d1a02420022390a1170726f76696465722e746f6f6c732e76311220b1aeefb3d820740b7aa9996c82a46fe42ac9bee7d63713e384b106b0973880aa1a023a002a046e6f6e6532be020a1170726f76696465722e6d6f64656c2e763112206bf2c063d926a8070d95c317e53b45bdde8038d98074f3d6ba70b0652c9a5c3d1a86024283020a090a02696412032a016d0a0b0a046e616d6512032a01780a1b0a0361706912142a126f70656e61692d636f6d706c6574696f6e730a140a0870726f766964657212082a0672656d6f74650a280a076261736555726c121d2a1b68747470733a2f2f70726f76696465722e696e76616c69642f76310a0f0a09726561736f6e696e67120210000a0b0a05696e70757412023a000a480a04636f73741240423e0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a130a0d636f6e7465787457696e646f77120218000a0f0a096d6178546f6b656e7312021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.InvokeProviderResult",
+          "hex": "0a8b030a1d70726f76696465722e617373697374616e745f6d6573736167652e7631122038178300d9d06eaebdee8f6e11883f3f55cfdb6d092c0b8e62e5c0ee3602901b1ac70242c4020a130a04726f6c65120b2a09617373697374616e740a0d0a07636f6e74656e7412023a000a1b0a0361706912142a126f70656e61692d636f6d706c6574696f6e730a140a0870726f766964657212082a0672656d6f74650a0c0a056d6f64656c12032a016d0ab5010a05757361676512ab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c120218000a140a0a73746f70526561736f6e12062a0473746f700a0f0a0974696d657374616d701202180012e3010a1170726f76696465722e75736167652e763112206e6ae57ce14a7aa4bd60d7b6ff5aa3d00858788021dbe7d4d8840682d84901e71aab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c12021800",
+          "protoc_decode_exit": 0
+        },
+        "progress": {
+          "type": ".pi.extension.v1.ProviderStreamEvent",
+          "hex": "0aaf030a1b70726f76696465722e617373697374616e745f6576656e742e7631122028d12246ae77f5ac2f0403c201f3f365bd6c0b145f4a61174cf4c7b24206a6a11aed0242ea020a0f0a047479706512072a0573746172740ad6020a077061727469616c12ca0242c7020a130a04726f6c65120b2a09617373697374616e740a0d0a07636f6e74656e7412023a000a1b0a0361706912142a126f70656e61692d636f6d706c6574696f6e730a140a0870726f766964657212082a0672656d6f74650a0c0a056d6f64656c12032a016d0ab5010a05757361676512ab0142a8010a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a110a0b746f74616c546f6b656e73120218000a550a04636f7374124d424b0a0b0a05696e707574120218000a0c0a066f7574707574120218000a0f0a09636163686552656164120218000a100a0a63616368655772697465120218000a0b0a05746f74616c120218000a170a0a73746f70526561736f6e12092a0770656e64696e670a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "resource.v1",
+      "minor": 0,
+      "method": "resource.list",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceListRequest",
+          "hex": "0a07616c6c6f776564",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceListResult",
+          "hex": "0a02723112ab010a01731201311a05736b696c6c22202d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a48812a7a0a177265736f757263652e6d657461646174613a736b696c6c1220095ae552933bb73abde35b960f7de371783e8b9ecab1d4fbfe1e99911e19a2391a3d423b0a0b0a046e616d6512032a01730a120a0b6465736372697074696f6e12032a01640a180a0866696c6550617468120c2a0a696e6572742f70617468",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "resource.v1",
+      "minor": 0,
+      "method": "resource.read",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceReadRequest",
+          "hex": "0a01731201311a202d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceReadResult",
+          "hex": "0a202d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881120178",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "resource.v1",
+      "minor": 0,
+      "method": "resource.changed",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceChanged",
+          "hex": "0a07616c6c6f776564",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceChangedAck",
+          "hex": "",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "resource.v1",
+      "minor": 1,
+      "method": "resource.list",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceListRequest",
+          "hex": "0a07616c6c6f776564",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceListResult",
+          "hex": "0a02723112ab010a01731201311a05736b696c6c22202d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a48812a7a0a177265736f757263652e6d657461646174613a736b696c6c1220095ae552933bb73abde35b960f7de371783e8b9ecab1d4fbfe1e99911e19a2391a3d423b0a0b0a046e616d6512032a01730a120a0b6465736372697074696f6e12032a01640a180a0866696c6550617468120c2a0a696e6572742f70617468",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "resource.v1",
+      "minor": 1,
+      "method": "resource.read",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceReadRequest",
+          "hex": "0a01731201311a202d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceReadResult",
+          "hex": "0a202d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881120178",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "resource.v1",
+      "minor": 1,
+      "method": "resource.changed",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceChanged",
+          "hex": "0a07616c6c6f776564",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceChangedAck",
+          "hex": "",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 0,
+      "method": "snapshot.get",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.SnapshotGetRequest",
+          "hex": "0a046d61696e121363617074757265645f7669736962696c697479",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.SnapshotGetResult",
+          "hex": "0ae2010a19686f73742e66696c74657265645f736e617073686f742e763112208bee61c14b79e85e359ce3b8a73a355d0b8858f5f6143c876691d7688fa7f6201aa201429f010a0e0a046c616e6512062a046d61696e0a100a0a7472616e73637269707412023a000a0c0a066c656166496412020a000a0f0a096f7065726174696f6e12020a000a380a06717565756573122e422c0a0b0a05737465657212023a000a0e0a08666f6c6c6f77557012023a000a0d0a076e65787452756e12023a000a130a0d70656e64696e6757726974657312023a000a0d0a076661756c74656412021000",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 0,
+      "method": "resource.get",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceGetRequest",
+          "hex": "0a07616c6c6f776564120173",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceGetResult",
+          "hex": "0acb010a19686f73742e7265736f757263655f736e617073686f742e76311220a2a4403093db407c6cd2efbe7d9c47689ebdd5c065fdb70bc8b43d90337e4a7f1a8b014288010a090a02696412032a01730a0e0a0776657273696f6e12032a01310a0f0a046b696e6412072a05736b696c6c0a4c0a0664696765737412422a40326437313136343262373236623034343031363237636139666261633332663563383533306662313930336363346462303232353837313739323161343838310a0c0a0576616c756512032a0178",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 0,
+      "method": "queue.steer",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.QueueSteerRequest",
+          "hex": "0a046d61696e126b0a12686f73742e71756575655f6974656d2e7631122027f479c436bb5994ea940605ceda49ac6d9c0ae8d24901d0538a8c986d8f6a631a3342310a0e0a04726f6c6512062a04757365720a0e0a07636f6e74656e7412032a01780a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.QueueResult",
+          "hex": "0a0e72657365727665645f656e7472791001",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 0,
+      "method": "queue.follow_up",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.QueueFollowUpRequest",
+          "hex": "0a046d61696e126b0a12686f73742e71756575655f6974656d2e7631122027f479c436bb5994ea940605ceda49ac6d9c0ae8d24901d0538a8c986d8f6a631a3342310a0e0a04726f6c6512062a04757365720a0e0a07636f6e74656e7412032a01780a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.QueueResult",
+          "hex": "0a0e72657365727665645f656e7472791001",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 0,
+      "method": "queue.next_run",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.QueueNextRunRequest",
+          "hex": "0a046d61696e126b0a12686f73742e71756575655f6974656d2e7631122027f479c436bb5994ea940605ceda49ac6d9c0ae8d24901d0538a8c986d8f6a631a3342310a0e0a04726f6c6512062a04757365720a0e0a07636f6e74656e7412032a01780a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.QueueResult",
+          "hex": "0a0e72657365727665645f656e7472791001",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 0,
+      "method": "operation.abort",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.OperationAbortRequest",
+          "hex": "0a046d61696e120763757272656e74",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.OperationAbortResult",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 1,
+      "method": "snapshot.get",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.SnapshotGetRequest",
+          "hex": "0a046d61696e121363617074757265645f7669736962696c697479",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.SnapshotGetResult",
+          "hex": "0ae2010a19686f73742e66696c74657265645f736e617073686f742e763112208bee61c14b79e85e359ce3b8a73a355d0b8858f5f6143c876691d7688fa7f6201aa201429f010a0e0a046c616e6512062a046d61696e0a100a0a7472616e73637269707412023a000a0c0a066c656166496412020a000a0f0a096f7065726174696f6e12020a000a380a06717565756573122e422c0a0b0a05737465657212023a000a0e0a08666f6c6c6f77557012023a000a0d0a076e65787452756e12023a000a130a0d70656e64696e6757726974657312023a000a0d0a076661756c74656412021000",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 1,
+      "method": "resource.get",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResourceGetRequest",
+          "hex": "0a07616c6c6f776564120173",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResourceGetResult",
+          "hex": "0acb010a19686f73742e7265736f757263655f736e617073686f742e76311220a2a4403093db407c6cd2efbe7d9c47689ebdd5c065fdb70bc8b43d90337e4a7f1a8b014288010a090a02696412032a01730a0e0a0776657273696f6e12032a01310a0f0a046b696e6412072a05736b696c6c0a4c0a0664696765737412422a40326437313136343262373236623034343031363237636139666261633332663563383533306662313930336363346462303232353837313739323161343838310a0c0a0576616c756512032a0178",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 1,
+      "method": "queue.steer",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.QueueSteerRequest",
+          "hex": "0a046d61696e126b0a12686f73742e71756575655f6974656d2e7631122027f479c436bb5994ea940605ceda49ac6d9c0ae8d24901d0538a8c986d8f6a631a3342310a0e0a04726f6c6512062a04757365720a0e0a07636f6e74656e7412032a01780a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.QueueResult",
+          "hex": "0a0e72657365727665645f656e7472791001",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 1,
+      "method": "queue.follow_up",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.QueueFollowUpRequest",
+          "hex": "0a046d61696e126b0a12686f73742e71756575655f6974656d2e7631122027f479c436bb5994ea940605ceda49ac6d9c0ae8d24901d0538a8c986d8f6a631a3342310a0e0a04726f6c6512062a04757365720a0e0a07636f6e74656e7412032a01780a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.QueueResult",
+          "hex": "0a0e72657365727665645f656e7472791001",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 1,
+      "method": "queue.next_run",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.QueueNextRunRequest",
+          "hex": "0a046d61696e126b0a12686f73742e71756575655f6974656d2e7631122027f479c436bb5994ea940605ceda49ac6d9c0ae8d24901d0538a8c986d8f6a631a3342310a0e0a04726f6c6512062a04757365720a0e0a07636f6e74656e7412032a01780a0f0a0974696d657374616d7012021800",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.QueueResult",
+          "hex": "0a0e72657365727665645f656e7472791001",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "host-action.v1",
+      "minor": 1,
+      "method": "operation.abort",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.OperationAbortRequest",
+          "hex": "0a046d61696e120763757272656e74",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.OperationAbortResult",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "event-sink.v1",
+      "minor": 0,
+      "method": "event.subscribe",
+      "direction": 2,
+      "mode": 2,
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.SubscribeRequest",
+          "hex": "0a0e63617074757265645f73636f7065",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.SubscribeEnd",
+          "hex": "",
+          "protoc_decode_exit": 0
+        },
+        "progress": {
+          "type": ".pi.extension.v1.EventSinkItem",
+          "hex": "0aea010a02733122e3010a1a6576656e742e66696c74657265645f736e617073686f742e763112204030f2078230f65d1786a24c3b38d7b1d05e34c1a2da2adde736bbfb0952f0181aa201429f010a0e0a046c616e6512062a046d61696e0a100a0a7472616e73637269707412023a000a0c0a066c656166496412020a000a0f0a096f7065726174696f6e12020a000a380a06717565756573122e422c0a0b0a05737465657212023a000a0e0a08666f6c6c6f77557012023a000a0d0a076e65787452756e12023a000a130a0d70656e64696e6757726974657312023a000a0d0a076661756c74656412021000",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "event-sink.v1",
+      "minor": 0,
+      "method": "event.resync",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResyncRequest",
+          "hex": "0a027331",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResyncResult",
+          "hex": "0aee010a0273311002180422e3010a1a6576656e742e66696c74657265645f736e617073686f742e763112204030f2078230f65d1786a24c3b38d7b1d05e34c1a2da2adde736bbfb0952f0181aa201429f010a0e0a046c616e6512062a046d61696e0a100a0a7472616e73637269707412023a000a0c0a066c656166496412020a000a0f0a096f7065726174696f6e12020a000a380a06717565756573122e422c0a0b0a05737465657212023a000a0e0a08666f6c6c6f77557012023a000a0d0a076e65787452756e12023a000a130a0d70656e64696e6757726974657312023a000a0d0a076661756c74656412021000",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "event-sink.v1",
+      "minor": 1,
+      "method": "event.subscribe",
+      "direction": 2,
+      "mode": 2,
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.SubscribeRequest",
+          "hex": "0a0e63617074757265645f73636f7065",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.SubscribeEnd",
+          "hex": "",
+          "protoc_decode_exit": 0
+        },
+        "progress": {
+          "type": ".pi.extension.v1.EventSinkItem",
+          "hex": "0aea010a02733122e3010a1a6576656e742e66696c74657265645f736e617073686f742e763112204030f2078230f65d1786a24c3b38d7b1d05e34c1a2da2adde736bbfb0952f0181aa201429f010a0e0a046c616e6512062a046d61696e0a100a0a7472616e73637269707412023a000a0c0a066c656166496412020a000a0f0a096f7065726174696f6e12020a000a380a06717565756573122e422c0a0b0a05737465657212023a000a0e0a08666f6c6c6f77557012023a000a0d0a076e65787452756e12023a000a130a0d70656e64696e6757726974657312023a000a0d0a076661756c74656412021000",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "event-sink.v1",
+      "minor": 1,
+      "method": "event.resync",
+      "direction": 2,
+      "mode": 1,
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.ResyncRequest",
+          "hex": "0a027331",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.ResyncResult",
+          "hex": "0aee010a0273311002180422e3010a1a6576656e742e66696c74657265645f736e617073686f742e763112204030f2078230f65d1786a24c3b38d7b1d05e34c1a2da2adde736bbfb0952f0181aa201429f010a0e0a046c616e6512062a046d61696e0a100a0a7472616e73637269707412023a000a0c0a066c656166496412020a000a0f0a096f7065726174696f6e12020a000a380a06717565756573122e422c0a0b0a05737465657212023a000a0e0a08666f6c6c6f77557012023a000a0d0a076e65787452756e12023a000a130a0d70656e64696e6757726974657312023a000a0d0a076661756c74656412021000",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "telemetry-sink.v1",
+      "minor": 0,
+      "method": "telemetry.emit_batch",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "05bd120a17f432e7a91c0fe84ec751a9685d4c094afbc03abcba28f400620b5e",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.TelemetryEmitBatchRequest",
+          "hex": "08011a8b010a1374656c656d657472792e7265636f72642e76311220f6bc4911e2cdcbaaa0e84b3d62f2b4aa8278afcb448c56a6971aec61a55bc91b1a5242500a140a046b696e64120c2a0a7370616e5f73746172740a0c0a067370616e4964120218020a180a046e616d6512102a0e70692e6861726e6573732e72756e0a100a0a6174747269627574657312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.TelemetryEmitBatchResult",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "telemetry-sink.v1",
+      "minor": 0,
+      "method": "telemetry.flush",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "05bd120a17f432e7a91c0fe84ec751a9685d4c094afbc03abcba28f400620b5e",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.TelemetryFlushRequest",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.TelemetryFlushResult",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "telemetry-sink.v1",
+      "minor": 1,
+      "method": "telemetry.emit_batch",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "46e67a9b8db3070eb3275ffd83f770f1184b76142ac5e96ffb741e9b9370af86",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.TelemetryEmitBatchRequest",
+          "hex": "08011a8b010a1374656c656d657472792e7265636f72642e76311220f6bc4911e2cdcbaaa0e84b3d62f2b4aa8278afcb448c56a6971aec61a55bc91b1a5242500a140a046b696e64120c2a0a7370616e5f73746172740a0c0a067370616e4964120218020a180a046e616d6512102a0e70692e6861726e6573732e72756e0a100a0a6174747269627574657312024200",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.TelemetryEmitBatchResult",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        }
+      }
+    },
+    {
+      "profile": "telemetry-sink.v1",
+      "minor": 1,
+      "method": "telemetry.flush",
+      "direction": 1,
+      "mode": 1,
+      "descriptor_sha256": "46e67a9b8db3070eb3275ffd83f770f1184b76142ac5e96ffb741e9b9370af86",
+      "payloads": {
+        "request": {
+          "type": ".pi.extension.v1.TelemetryFlushRequest",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        },
+        "terminal": {
+          "type": ".pi.extension.v1.TelemetryFlushResult",
+          "hex": "0801",
+          "protoc_decode_exit": 0
+        }
+      }
+    }
+  ],
+  "field_witnesses": [
+    {
+      "profile": "hook",
+      "minor": 0,
+      "message": "InvokeHookRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "hook",
+      "minor": 0,
+      "message": "InvokeHookResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "hook",
+      "minor": 0,
+      "message": "BeforeResumeUnitResult",
+      "oneof_choice": 0,
+      "hex": "",
+      "descriptor_sha256": "e331bc6d8e007a0c0bc42481e4e72f341e7d43435716db647fa575a736a66c20",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "hook",
+      "minor": 1,
+      "message": "InvokeHookRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "hook",
+      "minor": 1,
+      "message": "InvokeHookResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "hook",
+      "minor": 1,
+      "message": "BeforeResumeUnitResult",
+      "oneof_choice": 0,
+      "hex": "",
+      "descriptor_sha256": "f9eda831522d1fdb00f0df92579af1a5502349940352a7c17f155079d90ae58f",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "provider",
+      "minor": 0,
+      "message": "InvokeProviderRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e6573731a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e6573732a12776972652d6669656c642d7769746e657373324c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "50af1df1d423a5320a166e2096aae1125f92ca8eb2ec097b08bd8b5376e492e7",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "provider",
+      "minor": 0,
+      "message": "ProviderStreamEvent",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "50af1df1d423a5320a166e2096aae1125f92ca8eb2ec097b08bd8b5376e492e7",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "provider",
+      "minor": 0,
+      "message": "InvokeProviderResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "50af1df1d423a5320a166e2096aae1125f92ca8eb2ec097b08bd8b5376e492e7",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "provider",
+      "minor": 1,
+      "message": "InvokeProviderRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e6573731a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e6573732a12776972652d6669656c642d7769746e657373324c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "c660f958422716ca43e9e48e88b8a8ac0c76dc43b3cafdaa4bdcd73eb9937eae",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "provider",
+      "minor": 1,
+      "message": "ProviderStreamEvent",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "c660f958422716ca43e9e48e88b8a8ac0c76dc43b3cafdaa4bdcd73eb9937eae",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "provider",
+      "minor": 1,
+      "message": "InvokeProviderResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "c660f958422716ca43e9e48e88b8a8ac0c76dc43b3cafdaa4bdcd73eb9937eae",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceListRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceManifest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a12776972652d6669656c642d7769746e657373222058585858585858585858585858585858585858585858585858585858585858582a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceListResult",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737312ac010a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a12776972652d6669656c642d7769746e657373222058585858585858585858585858585858585858585858585858585858585858582a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceReadRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a205858585858585858585858585858585858585858585858585858585858585858",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceReadResult",
+      "oneof_choice": 0,
+      "hex": "0a2058585858585858585858585858585858585858585858585858585858585858581212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceReadResult",
+      "oneof_choice": 1,
+      "hex": "0a2058585858585858585858585858585858585858585858585858585858585858581a205858585858585858585858585858585858585858585858585858585858585858",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceReadResult",
+      "oneof_choice": 2,
+      "hex": "0a205858585858585858585858585858585858585858585858585858585858585858224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceChanged",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 0,
+      "message": "ResourceChangedAck",
+      "oneof_choice": 0,
+      "hex": "",
+      "descriptor_sha256": "ab13c4038e03b12d344d53b3ff04da655d27efe53e5e427f360d3984e84514f9",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceListRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceManifest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a12776972652d6669656c642d7769746e657373222058585858585858585858585858585858585858585858585858585858585858582a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceListResult",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737312ac010a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a12776972652d6669656c642d7769746e657373222058585858585858585858585858585858585858585858585858585858585858582a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceReadRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a205858585858585858585858585858585858585858585858585858585858585858",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceReadResult",
+      "oneof_choice": 0,
+      "hex": "0a2058585858585858585858585858585858585858585858585858585858585858581212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceReadResult",
+      "oneof_choice": 1,
+      "hex": "0a2058585858585858585858585858585858585858585858585858585858585858581a205858585858585858585858585858585858585858585858585858585858585858",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceReadResult",
+      "oneof_choice": 2,
+      "hex": "0a205858585858585858585858585858585858585858585858585858585858585858224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceChanged",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "resource",
+      "minor": 1,
+      "message": "ResourceChangedAck",
+      "oneof_choice": 0,
+      "hex": "",
+      "descriptor_sha256": "03bcff88412a43c1853f51f1eac8a776e51c8979e71a747ec36943f3529c47c6",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "SnapshotGetRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "SnapshotGetResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "ResourceGetRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "ResourceGetResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueSteerRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueFollowUpRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueNextRunRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "QueueResult",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731001",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "OperationAbortRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 0,
+      "message": "OperationAbortResult",
+      "oneof_choice": 0,
+      "hex": "0801",
+      "descriptor_sha256": "e1390cbb6b36b91782dda7452f56e7430bff38d46359bfb32ce92e78a890d482",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "SnapshotGetRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "SnapshotGetResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "ResourceGetRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e6573731a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "ResourceGetResult",
+      "oneof_choice": 0,
+      "hex": "0a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueSteerRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueFollowUpRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueNextRunRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373124c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "QueueResult",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731001",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "OperationAbortRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e6573731212776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "host_action",
+      "minor": 1,
+      "message": "OperationAbortResult",
+      "oneof_choice": 0,
+      "hex": "0801",
+      "descriptor_sha256": "3e3bca17b83b366d7ede6738f1d1e3021a0053658aa39ad2b633e0bf356e0322",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "SubscribeRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "SubscriptionSnapshot",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737310011801224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventNotification",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737310011a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventGap",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737310011801",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventSinkItem",
+      "oneof_choice": 0,
+      "hex": "0a660a12776972652d6669656c642d7769746e65737310011801224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventSinkItem",
+      "oneof_choice": 1,
+      "hex": "12640a12776972652d6669656c642d7769746e65737310011a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "EventSinkItem",
+      "oneof_choice": 2,
+      "hex": "1a180a12776972652d6669656c642d7769746e65737310011801",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "SubscribeEnd",
+      "oneof_choice": 0,
+      "hex": "",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "ResyncRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 0,
+      "message": "ResyncResult",
+      "oneof_choice": 0,
+      "hex": "0a660a12776972652d6669656c642d7769746e65737310011801224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "55611cf2fe8407f6ff6399f3656de886897ed9d8f72095c89cbfd2f942ea14db",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "SubscribeRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "SubscriptionSnapshot",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737310011801224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventNotification",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737310011a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventGap",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e65737310011801",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventSinkItem",
+      "oneof_choice": 0,
+      "hex": "0a660a12776972652d6669656c642d7769746e65737310011801224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventSinkItem",
+      "oneof_choice": 1,
+      "hex": "12640a12776972652d6669656c642d7769746e65737310011a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "EventSinkItem",
+      "oneof_choice": 2,
+      "hex": "1a180a12776972652d6669656c642d7769746e65737310011801",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "SubscribeEnd",
+      "oneof_choice": 0,
+      "hex": "",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "ResyncRequest",
+      "oneof_choice": 0,
+      "hex": "0a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "event_sink",
+      "minor": 1,
+      "message": "ResyncResult",
+      "oneof_choice": 0,
+      "hex": "0a660a12776972652d6669656c642d7769746e65737310011801224c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "65de707e46aa943d6194f5ef23b8dca1abe2b1fad4acfce264313ee04daf822a",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryEmitBatchRequest",
+      "oneof_choice": 0,
+      "hex": "080110011a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "05bd120a17f432e7a91c0fe84ec751a9685d4c094afbc03abcba28f400620b5e",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryEmitBatchResult",
+      "oneof_choice": 0,
+      "hex": "08011001",
+      "descriptor_sha256": "05bd120a17f432e7a91c0fe84ec751a9685d4c094afbc03abcba28f400620b5e",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryFlushRequest",
+      "oneof_choice": 0,
+      "hex": "0801",
+      "descriptor_sha256": "05bd120a17f432e7a91c0fe84ec751a9685d4c094afbc03abcba28f400620b5e",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 0,
+      "message": "TelemetryFlushResult",
+      "oneof_choice": 0,
+      "hex": "0801",
+      "descriptor_sha256": "05bd120a17f432e7a91c0fe84ec751a9685d4c094afbc03abcba28f400620b5e",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryEmitBatchRequest",
+      "oneof_choice": 0,
+      "hex": "080110011a4c0a12776972652d6669656c642d7769746e657373122058585858585858585858585858585858585858585858585858585858585858581a142a12776972652d6669656c642d7769746e657373",
+      "descriptor_sha256": "46e67a9b8db3070eb3275ffd83f770f1184b76142ac5e96ffb741e9b9370af86",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryEmitBatchResult",
+      "oneof_choice": 0,
+      "hex": "08011001",
+      "descriptor_sha256": "46e67a9b8db3070eb3275ffd83f770f1184b76142ac5e96ffb741e9b9370af86",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryFlushRequest",
+      "oneof_choice": 0,
+      "hex": "0801",
+      "descriptor_sha256": "46e67a9b8db3070eb3275ffd83f770f1184b76142ac5e96ffb741e9b9370af86",
+      "protoc_decode_exit": 0
+    },
+    {
+      "profile": "telemetry_sink",
+      "minor": 1,
+      "message": "TelemetryFlushResult",
+      "oneof_choice": 0,
+      "hex": "0801",
+      "descriptor_sha256": "46e67a9b8db3070eb3275ffd83f770f1184b76142ac5e96ffb741e9b9370af86",
+      "protoc_decode_exit": 0
+    }
+  ]
+}
