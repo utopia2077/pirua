@@ -1387,28 +1387,29 @@ fn actual_runtime_peers_memory_and_sqlite_settlement() {
 #[test]
 fn actual_runtime_peers_wrong_binding_and_first_terminal_no_write() {
     let f = fixture();
-    let pair = &f["version_pairs"][1];
     for language in ["typescript", "python"] {
-        for history in f["binding_histories"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|v| history(v.as_str().unwrap()))
-        {
-            let runtime = Setup::new();
-            run(&runtime, runtime.store.clone(), language, pair, history);
-            let runtime = Setup::new();
-            let file = File::new();
-            let sqlite = SqliteStorage::create(
-                &file.0,
-                runtime.session.metadata(),
-                codec(),
-                runtime.time.clone(),
-                SqliteOptions::default(),
-            )
-            .unwrap();
-            run(&runtime, sqlite.clone(), language, pair, history);
-            drive(&runtime, sqlite.close()).unwrap();
+        for pair in f["version_pairs"].as_array().unwrap() {
+            for history in f["binding_histories"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|v| history(v.as_str().unwrap()))
+            {
+                let runtime = Setup::new();
+                run(&runtime, runtime.store.clone(), language, pair, history);
+                let runtime = Setup::new();
+                let file = File::new();
+                let sqlite = SqliteStorage::create(
+                    &file.0,
+                    runtime.session.metadata(),
+                    codec(),
+                    runtime.time.clone(),
+                    SqliteOptions::default(),
+                )
+                .unwrap();
+                run(&runtime, sqlite.clone(), language, pair, history);
+                drive(&runtime, sqlite.close()).unwrap();
+            }
         }
     }
 }
@@ -1487,7 +1488,13 @@ fn crash_child(path: &Path, language: &str, replay: WireReplay) -> ! {
         .unwrap()
         .harness;
     let f = fixture();
-    let pair = &f["version_pairs"][1];
+    let case = std::env::var("PI_PEER1376_CRASH_CASE").unwrap();
+    let pair = f["version_pairs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|pair| pair["id"] == case)
+        .expect("declared runtime settlement version pair");
     let (owner, channel, route) = connect(&runtime, language, pair, "normal", replay);
     drive(
         &runtime,
@@ -1540,7 +1547,7 @@ fn crash_child(path: &Path, language: &str, replay: WireReplay) -> ! {
         .unwrap();
     println!(
         "PENDING1376 {}",
-        serde_json::json!({"key":key_record(&key),"saved":saved,"high":high,"generation":7,"request_id":1,"requests":1,"peer_request":peer_request,"language":language,"replay":if replay==WireReplay::Safe{"safe"}else{"never"}})
+        serde_json::json!({"pair":pair["id"],"key":key_record(&key),"saved":saved,"high":high,"generation":7,"request_id":1,"requests":1,"peer_request":peer_request,"language":language,"replay":if replay==WireReplay::Safe{"safe"}else{"never"}})
     );
     std::io::stdout().flush().unwrap();
     std::process::exit(73)
@@ -1561,7 +1568,7 @@ impl Drop for Process {
         }
     }
 }
-fn pending_process(path: &Path, language: &str, replay: WireReplay) -> Value {
+fn pending_process(path: &Path, language: &str, pair: &Value, replay: WireReplay) -> Value {
     let mut command = Command::new(std::env::current_exe().unwrap());
     command
         .args([
@@ -1571,6 +1578,7 @@ fn pending_process(path: &Path, language: &str, replay: WireReplay) -> Value {
         ])
         .env("PI_PEER1376_CRASH_PATH", path)
         .env("PI_PEER1376_CRASH_LANGUAGE", language)
+        .env("PI_PEER1376_CRASH_CASE", pair["id"].as_str().unwrap())
         .env(
             "PI_PEER1376_CRASH_REPLAY",
             if replay == WireReplay::Safe {
@@ -1616,8 +1624,14 @@ fn actual_sqlite_runtime_peers_process_end_safe_never() {
         };
         crash_child(Path::new(&path), &language, replay);
     }
+    let f = fixture();
     for language in ["typescript", "python"] {
-        for replay in [WireReplay::Safe, WireReplay::Never] {
+        for (pair, replay) in f["version_pairs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .flat_map(|pair| [WireReplay::Safe, WireReplay::Never].map(|replay| (pair, replay)))
+        {
             let runtime = Setup::new();
             let file = File::new();
             let initial = SqliteStorage::create(
@@ -1629,7 +1643,10 @@ fn actual_sqlite_runtime_peers_process_end_safe_never() {
             )
             .unwrap();
             drive(&runtime, initial.close()).unwrap();
-            let marker = pending_process(&file.0, language, replay);
+            let marker = pending_process(&file.0, language, pair, replay);
+            assert_eq!(marker["pair"], pair["id"], "crash child used selected pair");
+            assert_eq!(marker["peer_request"]["core"], pair["core_minor"]);
+            assert_eq!(marker["peer_request"]["tool"], pair["tool_minor"]);
             let before = SqliteStorage::read_snapshot(&file.0, &codec(), crash_options()).unwrap();
             let (key, saved) = pending(&before.snapshot);
             assert_eq!(key_record(&key), marker["key"]);
@@ -1694,15 +1711,8 @@ fn actual_sqlite_runtime_peers_process_end_safe_never() {
             let harness = drive(&runtime, factory.create_configured(options))
                 .unwrap()
                 .harness;
-            let f = fixture();
-            let (owner, channel, route) = connect_generation(
-                &runtime,
-                language,
-                &f["version_pairs"][1],
-                "normal",
-                replay,
-                8,
-            );
+            let (owner, channel, route) =
+                connect_generation(&runtime, language, pair, "normal", replay, 8);
             if replay == WireReplay::Safe {
                 drive(
                     &runtime,
@@ -1812,7 +1822,8 @@ fn actual_sqlite_runtime_peers_process_end_safe_never() {
             drive(&runtime, harness.close()).unwrap();
             drive(&runtime, sqlite.close()).unwrap();
             println!(
-                "CRASH1376 language={language} replay={replay:?} original_generation=7 replacement_generation=8 key={key:?} child_marker={marker}"
+                "CRASH1376 language={language} pair={} replay={replay:?} original_generation=7 replacement_generation=8 key={key:?} child_marker={marker}",
+                pair["id"]
             );
         }
     }
