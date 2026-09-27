@@ -1179,12 +1179,19 @@ fn selected_wire_map_keys_survive_closed_shapes_open_leaves_and_canonical_roundt
                     "{language} JCS keys {}",
                     row["id"]
                 );
-                let rebuilt = profiles::json_wire(&expected["json"])
-                    .unwrap()
-                    .encode_to_vec();
+                let rebuilt = v1_1::WireValue::decode(
+                    unhex(actual["rebuiltHex"]["value"].as_str().unwrap()).as_slice(),
+                )
+                .unwrap();
+                value::admit_v1_1(
+                    &rebuilt,
+                    value::Limits::default(),
+                    value::BytePolicy::JsonOnly,
+                )
+                .unwrap();
                 assert_eq!(
-                    actual["rebuiltHex"],
-                    json!({"value":hex_bytes(&rebuilt)}),
+                    ordered_wire_maps(rebuilt),
+                    ordered_wire_maps(profiles::json_wire(&expected["json"]).unwrap()),
                     "{language} rebuilt keys {}",
                     row["id"]
                 );
@@ -1335,4 +1342,25 @@ fn selected_descriptor_case_and_portable_property_lookup_use_only_own_keys() {
 
 fn hex_bytes(raw: &[u8]) -> String {
     raw.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+// WireMap entries are unordered. Keep every key/value arm and list position;
+// descriptor decode/reencode byte equality is asserted separately above.
+fn ordered_wire_maps(mut value: v1_1::WireValue) -> v1_1::WireValue {
+    match value.value.as_mut() {
+        Some(v1_1::wire_value::Value::MapValue(map)) => {
+            for entry in &mut map.entries {
+                entry.value = entry.value.take().map(ordered_wire_maps);
+            }
+            map.entries
+                .sort_by(|a, b| a.key.encode_utf16().cmp(b.key.encode_utf16()));
+        }
+        Some(v1_1::wire_value::Value::ListValue(list)) => {
+            for item in &mut list.items {
+                *item = ordered_wire_maps(std::mem::take(item));
+            }
+        }
+        _ => (),
+    }
+    value
 }
