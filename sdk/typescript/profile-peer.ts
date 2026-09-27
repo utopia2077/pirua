@@ -1,0 +1,568 @@
+// A process peer: no Session, Effects, credentials, or durable authority.
+import { readFileSync, readSync, writeSync } from "node:fs";
+import {
+  Codec, varint, payloadObject, sha, jsonValue, wireValue,
+} from "./profiles/wire.ts";
+import { Shapes, probe, canonical, portable } from "./profiles/shapes.ts";
+const [mode, repo, coreText, minorText, scenario = "all-methods"] =
+  process.argv.slice(2);
+if (mode === "--probe") {
+  writeSync(1, JSON.stringify(probe(repo)));
+  process.exit(0);
+}
+if (mode === "--key-fidelity-probe") {
+  writeSync(1, JSON.stringify(keyFidelityProbe(repo, coreText)));
+  process.exit(0);
+}
+if (mode !== "--serve") throw Error("peer mode");
+const core = Number(coreText),
+  minor = Number(minorText),
+  codec = new Codec(repo, core),
+  profileCodec = new Codec(repo, minor),
+  shapes = new Shapes(repo);
+const corpus = JSON.parse(
+  readFileSync(
+    `${repo}/conformance/extension-protocol/profiles-runtime-v1.json`,
+    "utf8",
+  ),
+);
+if (
+  !corpus.scenarios.includes(scenario) ||
+  ![0, 1].includes(core) ||
+  ![0, 1].includes(minor)
+)
+  throw Error("selection");
+let inbound = 0,
+  outbound = 0,
+  onceDone = false;
+const MAX = 262144;
+function readExact(n: number): Buffer {
+  const b = Buffer.alloc(n);
+  let at = 0;
+  while (at < n) {
+    const got = readSync(0, b, at, n - at, null);
+    if (!got) throw Error("EOF");
+    at += got;
+  }
+  return b;
+}
+function recv(): any {
+  let n = 0n,
+    prefix = Buffer.alloc(0);
+  for (let i = 0; i < 10; i++) {
+    let b: Buffer;
+    try {
+      b = readExact(1);
+    } catch (e) {
+      if (prefix.length === 0) return null;
+      throw e;
+    }
+    prefix = Buffer.concat([prefix, b]);
+    n |= BigInt(b[0] & 127) << BigInt(i * 7);
+    if (b[0] < 128) {
+      if (!prefix.equals(varint(n)) || n === 0n || n > BigInt(MAX))
+        throw Error("frame cap");
+      if (++inbound > 128) throw Error("frame count");
+      return codec.decode("Envelope", readExact(Number(n)));
+    }
+  }
+  throw Error("prefix cap");
+}
+function send(e: any) {
+  const b = codec.encode("Envelope", e);
+  if (b.length > MAX || ++outbound > 128) throw Error("outbound cap");
+  const raw = Buffer.concat([varint(b.length), b]);
+  let at = 0;
+  while (at < raw.length) at += writeSync(1, raw, at, raw.length - at);
+}
+function sortedMaps(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(sortedMaps);
+  if (!obj || typeof obj !== "object" || Buffer.isBuffer(obj)) return obj;
+  const out: any = {};
+  for (const [k, v] of Object.entries(obj)) out[k] = sortedMaps(v);
+  if (out.map_value)
+    out.map_value.entries.sort((a: any, b: any) =>
+      a.key < b.key ? -1 : a.key > b.key ? 1 : 0,
+    );
+  return out;
+}
+function boundCheck(obj: any) {
+  if (Array.isArray(obj)) {
+    obj.forEach(boundCheck);
+    return;
+  }
+  if (!obj || typeof obj !== "object" || Buffer.isBuffer(obj)) return;
+  if (Object.hasOwn(obj, "projection_id")) {
+    const root = obj.projection_id;
+    if (
+      !shapes.registry.projections[root] ||
+      obj.schema_digest_sha256?.toString("hex") !==
+        shapes.registry.projections[root].proposed_digest_sha256 ||
+      !obj.value ||
+      !shapes.check(root, obj.value) ||
+      !shapes.exposed(root, obj.value, corpus.exposure.open_leaves)
+    )
+      throw Error("selected projection");
+  }
+  for (const x of Object.values(obj)) boundCheck(x);
+}
+const hooks = Object.keys(corpus.methods).filter(
+  (n) => profileCodec.methods[n].profile === "hook.v1",
+);
+const entries = [
+  { profile: "host-action.v1", name: "actions-resource" },
+  ...hooks.map((name) => ({ profile: "hook.v1", name })),
+  ...[
+    "provider",
+    "resource",
+    "host-action",
+    "event-sink",
+    "telemetry-sink",
+  ].map((p) => ({
+    profile: p + ".v1",
+    name: {
+      provider: "remote",
+      resource: "resources",
+      "host-action": "actions",
+      "event-sink": "events",
+      "telemetry-sink": "metrics",
+    }[p],
+  })),
+];
+const range = (name: string) => ({
+  name,
+  major: 1,
+  min_minor: minor,
+  max_minor: minor,
+});
+send({
+  hello: {
+    protocol: { major: 1, min_minor: core, max_minor: core },
+    supported_profiles: [...new Set(entries.map((x) => x.profile))].map(range),
+  },
+});
+const hello = recv();
+if (hello?.hello_ack?.selected_protocol?.minor !== core)
+  throw Error("HelloAck");
+const caps = entries.map((e) => ({
+  kind: e.profile.slice(0, -3),
+  name: e.name,
+  profile: range(e.profile),
+  handler_id: "qualified_handler",
+  replay: 1,
+  execution:
+    e.profile === "provider.v1"
+      ? 2
+      : ["event-sink.v1", "telemetry-sink.v1"].includes(e.profile)
+        ? 3
+        : 1,
+  required: true,
+  supported_descriptor_digests: [
+    {
+      minor,
+      descriptor_digest_sha256: Buffer.from(
+        profileCodec.digests[e.profile],
+        "hex",
+      ),
+    },
+  ],
+}));
+send({
+  manifest: {
+    declared_extension_id: "peer-claimed",
+    extension_version: "1",
+    protocol: { major: 1, min_minor: core, max_minor: core },
+    capabilities: caps,
+    permissions: corpus.exposure.permission_scopes.map(
+      ([name, scope]: string[]) => ({
+        name,
+        scope,
+        required: scenario !== "host-ungranted" || name !== "queue.steer",
+      }),
+    ),
+  },
+});
+const granted = recv()?.grant;
+if (
+  !granted ||
+  granted.authenticated_extension_id !== "peer-a" ||
+  granted.connection_generation !== 7
+)
+  throw Error("grant identity");
+for (const cap of granted.selected_capabilities) {
+  if (
+    cap.profile.minor !== minor ||
+    cap.schema_digest_sha256.toString("hex") !==
+      profileCodec.digests[cap.profile.name]
+  )
+    throw Error("grant digest");
+}
+send({ ready: {} });
+const streams = new Map<number, any>();
+let hostIndex = 0,
+  parent: any = null;
+let passiveIndex = 0,
+  passiveSequence = 0,
+  passiveCredit = 1048576,
+  passiveValidated = 0;
+const passiveNames =
+  scenario === "event-gap"
+    ? ["event.subscribe", "event.resync"]
+    : ["resource.changed", "event.subscribe", "event.resync"];
+function passiveRequest() {
+  const method = passiveNames[passiveIndex];
+  if (!method) return;
+  const m = profileCodec.methods[method],
+    ref = granted.selected_capabilities.find(
+      (c: any) => c.profile.name === m.profile,
+    );
+  send({
+    request: {
+      request_id: 2000 + passiveIndex,
+      capability_ref: ref,
+      method,
+      initial_stream_credit_bytes: m.mode === 2 ? 1048576 : undefined,
+      payload: profileCodec.encode(
+        m.request,
+        payloadObject(corpus.methods[method].request),
+      ),
+    },
+  });
+}
+if (["passive-origin", "event-gap"].includes(scenario)) passiveRequest();
+function resultFor(method: string) {
+  const v =
+    corpus.scenario_payloads?.[scenario]?.[method] ?? corpus.methods[method];
+  return payloadObject(
+    scenario === "none" && profileCodec.methods[method].profile === "hook.v1"
+      ? v.default_terminal
+      : (v.positive_terminal ?? v.terminal),
+  );
+}
+function terminal(r: any) {
+  const m = profileCodec.methods[r.method];
+  let obj = resultFor(r.method);
+  if (scenario === "pending" && r.method === "provider.invoke")
+    obj.assistant_message.value.map_value.entries.find(
+      (e: any) => e.key === "stopReason",
+    ).value = { text_value: "pending" };
+  if (scenario === "wrong-projection" && r.method === "provider.invoke")
+    obj.assistant_message.projection_id = "peer-alias";
+  if (scenario === "bad-ack" && r.method === "telemetry.emit_batch")
+    obj.accepted = 2;
+  if (scenario === "bad-flush" && r.method === "telemetry.flush")
+    obj.flushed_through = 2;
+  if (scenario === "bad-resource" && r.method === "resource.read")
+    obj.text = "y";
+  if (scenario === "sentinel" && r.method === "before_tool")
+    obj.output.value.map_value.entries.find(
+      (e: any) => e.key === "result",
+    ).value = {
+      map_value: {
+        entries: [
+          {
+            key: "args",
+            value: {
+              map_value: {
+                entries: [
+                  { key: "authorization", value: { text_value: "SENTINEL" } },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    };
+  const payload = profileCodec.encode(m.terminal, obj);
+  const end: any = { request_id: r.request_id };
+  if (scenario === "error" || scenario === "unknown-enum")
+    end.error = {
+      code: scenario === "unknown-enum" ? 777 : 14,
+      safe_message: "handler failed",
+    };
+  else end.result = payload;
+  const arm = m.mode === 2 ? "stream_end" : "response";
+  send({ [arm]: end });
+  if (scenario === "duplicate") send({ [arm]: end });
+  if (scenario === "single-provider") onceDone = true;
+}
+function progress(r: any) {
+  const v = corpus.methods[r.method];
+  return r.method === "event.subscribe" && scenario === "event-gap"
+    ? [v.first_item, v.event_item, v.gap_item]
+    : [v.progress ?? v.first_item];
+}
+function flush(state: any) {
+  while (state.items.length) {
+    const payload = profileCodec.encode(
+      profileCodec.methods[state.r.method].progress,
+      payloadObject(state.items[0]),
+    );
+    const item = {
+      request_id: state.r.request_id,
+      sequence: scenario === "sequence" ? state.sequence + 1 : state.sequence,
+      payload,
+    };
+    const charge = codec.encode("Envelope", { stream_item: item }).length;
+    if (state.credit < charge) break;
+    state.credit -= charge;
+    state.sequence++;
+    state.items.shift();
+    send({ stream_item: item });
+  }
+  if (
+    !state.items.length ||
+    !["credit", "cancel-progress", "silence"].includes(scenario)
+  ) {
+    terminal(state.r);
+    streams.delete(state.r.request_id);
+  }
+}
+function hostRequest() {
+  const names = [
+    "snapshot.get",
+    "resource.get",
+    "queue.steer",
+    "queue.follow_up",
+    "queue.next_run",
+    "operation.abort",
+  ];
+  let method =
+    scenario === "host-actions"
+      ? names[hostIndex]
+      : scenario === "host-secret"
+        ? "secret.resolve"
+        : scenario === "host-unknown"
+          ? "unfamiliar.method"
+          : "queue.steer";
+  if (!method) {
+    terminal(parent);
+    return;
+  }
+  const ref = granted.selected_capabilities.find(
+    (c: any) =>
+      c.profile.name === "host-action.v1" &&
+      c.name === (method === "resource.get" ? "actions-resource" : "actions"),
+  );
+  const r: any = {
+    request_id: 1000 + hostIndex,
+    parent_request_id:
+      scenario === "host-parent" ? undefined : parent.request_id,
+    capability_ref: ref,
+    method,
+    deadline_after_ms: 100,
+    payload: profileCodec.methods[method]
+      ? profileCodec.encode(
+          profileCodec.methods[method].request,
+          payloadObject(corpus.methods[method].request),
+        )
+      : Buffer.alloc(0),
+  };
+  if (scenario === "host-reference")
+    r.capability_ref = { ...ref, authenticated_extension_id: "wrong" };
+  send({ request: r });
+}
+for (;;) {
+  if (onceDone) break;
+  const e = recv();
+  if (!e) break;
+  if (e.request) {
+    const r = e.request,
+      m = profileCodec.methods[r.method];
+    if (!m) throw Error("unknown selected method");
+    const decoded = profileCodec.decode(m.request, r.payload);
+    boundCheck(decoded);
+    const expected = payloadObject(
+      (
+        corpus.scenario_payloads?.[scenario]?.[r.method] ??
+        corpus.methods[r.method]
+      ).request,
+    );
+    if (
+      !profileCodec
+        .encode(m.request, sortedMaps(decoded))
+        .equals(profileCodec.encode(m.request, expected))
+    )
+      throw Error("request semantic mismatch");
+    if (
+      r.capability_ref.profile.minor !== minor ||
+      r.capability_ref.schema_digest_sha256.toString("hex") !==
+        profileCodec.digests[m.profile]
+    )
+      throw Error("request reference");
+    if (scenario.startsWith("host-") && r.method === "provider.invoke") {
+      parent = r;
+      hostRequest();
+      continue;
+    }
+    if (scenario === "silence") continue;
+    if (m.mode === 2) {
+      const state = {
+        r,
+        credit:
+          scenario === "overcredit"
+            ? 1048576
+            : (r.initial_stream_credit_bytes ?? 0),
+        sequence: 0,
+        items: progress(r),
+      };
+      streams.set(r.request_id, state);
+      if (!["cancel", "cancel-progress", "loss"].includes(scenario))
+        flush(state);
+    } else terminal(r);
+  } else if (e.credit) {
+    const s = streams.get(e.credit.request_id);
+    if (!s) throw Error("unowned Credit");
+    s.credit += e.credit.additional_bytes;
+    if (s.credit > granted.limits.max_stream_credit_bytes)
+      throw Error("credit ceiling");
+    flush(s);
+  } else if (e.cancel) {
+    codec.selectedEnum("CancelReason", e.cancel.reason);
+    const s = streams.get(e.cancel.request_id);
+    if (s) {
+      if (scenario === "cancel-progress") flush(s);
+      else {
+        terminal(s.r);
+        streams.delete(s.r.request_id);
+      }
+    }
+  } else if (e.response && parent) {
+    if (scenario === "host-actions") {
+      if (!("result" in e.response)) throw Error("host-action denied");
+      const names = [
+        "snapshot.get",
+        "resource.get",
+        "queue.steer",
+        "queue.follow_up",
+        "queue.next_run",
+        "operation.abort",
+      ];
+      const n = names[hostIndex];
+      const decoded = profileCodec.decode(
+        profileCodec.methods[n].terminal,
+        e.response.result,
+      );
+      boundCheck(decoded);
+      if (
+        !profileCodec
+          .encode(profileCodec.methods[n].terminal, sortedMaps(decoded))
+          .equals(
+            profileCodec.encode(profileCodec.methods[n].terminal, resultFor(n)),
+          )
+      )
+        throw Error("host result");
+      hostIndex++;
+      hostRequest();
+    } else terminal(parent);
+  } else if (
+    ["passive-origin", "event-gap"].includes(scenario) &&
+    e.stream_item
+  ) {
+    const method = passiveNames[passiveIndex],
+      m = profileCodec.methods[method],
+      item = e.stream_item;
+    if (
+      item.request_id !== 2000 + passiveIndex ||
+      item.sequence !== passiveSequence++
+    )
+      throw Error("passive sequence");
+    const charge = codec.encode("Envelope", e).length;
+    if (charge > passiveCredit) throw Error("passive credit");
+    passiveCredit -= charge;
+    const decoded = profileCodec.decode(m.progress, item.payload);
+    boundCheck(decoded);
+    const expected =
+      scenario === "event-gap"
+        ? [
+            corpus.methods[method].first_item,
+            corpus.methods[method].event_item,
+            corpus.methods[method].gap_item,
+          ][item.sequence]
+        : corpus.methods[method].first_item;
+    if (
+      !profileCodec
+        .encode(m.progress, sortedMaps(decoded))
+        .equals(profileCodec.encode(m.progress, payloadObject(expected)))
+    )
+      throw Error("passive projection");
+    passiveValidated++;
+  } else if (
+    ["passive-origin", "event-gap"].includes(scenario) &&
+    (e.response || e.stream_end)
+  ) {
+    const end = e.response ?? e.stream_end,
+      method = passiveNames[passiveIndex],
+      m = profileCodec.methods[method];
+    if (end.request_id !== 2000 + passiveIndex || !("result" in end))
+      throw Error("passive terminal");
+    const decoded = profileCodec.decode(m.terminal, end.result);
+    boundCheck(decoded);
+    if (
+      !profileCodec
+        .encode(m.terminal, sortedMaps(decoded))
+        .equals(profileCodec.encode(m.terminal, resultFor(method)))
+    )
+      throw Error("passive terminal value");
+    passiveValidated++;
+    passiveIndex++;
+    passiveRequest();
+  } else if (e.go_away) {
+    codec.selectedEnum("GoAwayReason", e.go_away.reason);
+    break;
+  } else throw Error("unexpected envelope");
+}
+writeSync(
+  2,
+  JSON.stringify({
+    language: "TypeScript",
+    core,
+    minor,
+    scenario,
+    inbound,
+    outbound,
+    passiveValidated,
+    codec_messages: codec.messages.size,
+    descriptor_sha256: sha(
+      readFileSync(
+        `${repo}/crates/pi-extension-protocol/schema/descriptors/common-1.${core}.pb`,
+      ),
+    ),
+  }) + "\n",
+);
+
+// Inputs contain independent Rust-produced selected-descriptor bytes, never verdicts.
+function keyFidelityProbe(repo: string, inputPath: string) {
+  const input = JSON.parse(readFileSync(inputPath, "utf8")),
+    shapes = new Shapes(repo);
+  const attempt = (f: () => any) => {
+    try {
+      return { value: f() };
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  };
+  return input.rows.map((row: any) => {
+    const codec = new Codec(repo, row.minor),
+      raw = Buffer.from(row.hex, "hex"),
+      decoded = codec.decode(row.message, raw),
+      w = row.message === "WireValue"
+        ? decoded
+        : (decoded.input ?? decoded.item).value;
+    const result: any = {
+      id: row.id,
+      roundtripHex: codec.encode(row.message, decoded).toString("hex"),
+      shape: attempt(() => shapes.check(row.type, w)),
+      json: attempt(() => jsonValue(w)),
+      canonical: attempt(() => canonical(jsonValue(w))),
+      rebuiltHex: attempt(() =>
+        codec.encode("WireValue", wireValue(jsonValue(w))).toString("hex")),
+    };
+    if (row.leaves)
+      result.exposed = attempt(() => shapes.exposed(row.type, w, row.leaves));
+    if (row.portable)
+      result.portable = attempt(() =>
+        portable(row.portable.schema, row.portable.value));
+    return result;
+  });
+}
