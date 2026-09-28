@@ -2832,6 +2832,22 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     )
     .unwrap();
     assert_eq!(connection.grant().profiles().len(), 17);
+    assert_eq!(
+        connection
+            .grant()
+            .wire()
+            .selected_protocol
+            .as_ref()
+            .unwrap()
+            .minor,
+        core
+    );
+    for profile in connection.grant().profiles() {
+        let reference = profile.reference();
+        assert_eq!(reference.profile.as_ref().unwrap().minor, minor);
+        assert_eq!(reference.handler_id.as_deref(), Some("qualified_handler"));
+        assert_eq!(reference.schema_digest_sha256.len(), 32);
+    }
     let cap = connection
         .grant()
         .profiles()
@@ -2843,12 +2859,25 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     let catalog = ResourceCatalog::new("allowed".into()).unwrap();
     let revision = drive(
         setup,
-        harness.refresh_profile_resources(connection.clone(), cap, &catalog),
+        harness.refresh_profile_resources(connection.clone(), cap.clone(), &catalog),
     )
     .unwrap();
     assert_eq!(revision.revision(), "r1");
     assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
     assert_eq!(peer.requests(), 2);
+    let requests = peer.request_frames();
+    assert_eq!(
+        requests
+            .iter()
+            .map(|request| request.method.as_str())
+            .collect::<Vec<_>>(),
+        ["resource.list", "resource.read"]
+    );
+    for request in &requests {
+        assert_eq!(request.capability_ref.as_ref(), Some(&cap));
+        assert_eq!(request.initial_stream_credit_bytes, Some(0));
+        assert_ne!(request.request_id, 0);
+    }
     drive(
         setup,
         harness.skill(
@@ -2864,6 +2893,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     );
     let snapshot = setup.pump.drive(store.snapshot()).unwrap();
     assert_eq!(snapshot.usage.len(), 1);
+    let usage = &snapshot.usage[0];
+    assert!(!usage.adjustment);
+    let linked = usage.entry_id.as_ref().expect("native skill usage entry");
+    assert!(snapshot.entries.iter().any(|entry| matches!(entry, Entry::Message(message) if &message.id == linked && matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
     assert!(snapshot.entries.iter().any(|entry|matches!(entry,Entry::Message(entry) if matches!(&entry.message,AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
     assert_eq!(connection.occupancy(), 0);
     peer.finish(true);

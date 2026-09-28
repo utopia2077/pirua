@@ -305,6 +305,23 @@ impl Channel {
             })
             .count()
     }
+    /// Decode every actual host-to-peer Request retained by this process
+    /// channel, preserving wire order for same-connection native assertions.
+    pub fn request_frames(&self) -> Vec<v1_1::Request> {
+        self.writes
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|bytes| {
+                let mut reader = FrameReader::<v1_1::Envelope>::new(nz(4096));
+                let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+                match envelope.frame {
+                    Some(v1_1::envelope::Frame::Request(request)) => Some(request),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
     pub fn finish(&self, success: bool) {
         self.closed.store(true, Ordering::SeqCst);
         let deadline = Instant::now() + LIMIT;
