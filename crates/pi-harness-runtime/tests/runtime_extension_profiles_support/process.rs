@@ -1,9 +1,11 @@
 use pi_ai_core::BoxFuture;
+use pi_extension_protocol::profiles::wire_v1_1 as dto;
 use pi_extension_protocol::wire::{
-    framing::{EncodedFrame, FrameReader},
+    framing::{self, EncodedFrame, FrameReader},
     v1_1,
 };
 use pi_harness_runtime::extensions::transport::{ChannelError, MonotonicClock, OrderedByteChannel};
+use prost::Message;
 use serde_json::Value;
 use std::{
     future::{Future, poll_fn},
@@ -78,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "0ae4270e1ef451b5d1993c84410b2c0233674014733e235586060a2dbadf1ff6",
+            "af511acde35e36bf1155cd3089380a1573039b3e93066fdbaf50fc9f65022971",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -90,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "4b7f18001b089ffc9b5cfc8b609bc479d33204afd9f93c5e7f2cc334b739bb34",
+            "a39dbfbe2ff35c0a582e47ba24838529f48c8131759edb80b0dfa5f6c5465b9a",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -133,9 +135,13 @@ pub struct Channel {
     done: Mutex<mpsc::Receiver<()>>,
     workers: Mutex<Vec<std::thread::JoinHandle<()>>>,
     release: PathBuf,
+    corrupt_lane: AtomicBool,
 }
 impl Channel {
     pub fn spawn(language: &str, core: u32, minor: u32) -> Arc<Self> {
+        Self::spawn_scenario(language, core, minor, "none")
+    }
+    pub fn spawn_scenario(language: &str, core: u32, minor: u32, scenario: &str) -> Arc<Self> {
         verify_inputs();
         let release = std::env::temp_dir().join(format!(
             "profile-peer1412-{}-{}",
@@ -164,7 +170,7 @@ impl Channel {
             .arg(&repo)
             .arg(core.to_string())
             .arg(minor.to_string())
-            .arg("none");
+            .arg(scenario);
         let mut child = command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -266,7 +272,16 @@ impl Channel {
             done: Mutex::new(done_rx),
             workers: Mutex::new(workers),
             release,
+            corrupt_lane: AtomicBool::new(false),
         })
+    }
+    pub fn spawn_invalid_lane(language: &str, core: u32, minor: u32) -> Arc<Self> {
+        let peer = Self::spawn_scenario(language, core, minor, "runtime-native");
+        peer.corrupt_lane.store(true, Ordering::SeqCst);
+        peer
+    }
+    pub fn stderr_text(&self) -> String {
+        String::from_utf8_lossy(&self.stderr.lock().unwrap()).into_owned()
     }
     fn request(&self) -> Option<v1_1::Request> {
         self.writes.lock().unwrap().iter().find_map(|bytes| {
@@ -412,7 +427,34 @@ impl OrderedByteChannel for Channel {
     }
     fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
         let reply: Reply = Arc::new(Mutex::new((None, None)));
-        let mut data = Some(frame.bytes);
+        let mut bytes = frame.bytes;
+        if self.corrupt_lane.load(Ordering::SeqCst) {
+            let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+            let mut envelope = reader.read_one(&bytes).unwrap().frame.unwrap().envelope;
+            if let Some(v1_1::envelope::Frame::Request(request)) = envelope.frame.as_mut()
+                && request.method == "before_run"
+            {
+                let mut hook = dto::InvokeHookRequest::decode(request.payload.as_slice()).unwrap();
+                fn child<'a>(value: &'a mut v1_1::WireValue, key: &str) -> &'a mut v1_1::WireValue {
+                    let Some(v1_1::wire_value::Value::MapValue(map)) = value.value.as_mut() else {
+                        panic!("expected projected map")
+                    };
+                    map.entries
+                        .iter_mut()
+                        .find(|entry| entry.key == key)
+                        .unwrap()
+                        .value
+                        .as_mut()
+                        .unwrap()
+                }
+                let root = hook.input.as_mut().unwrap().value.as_mut().unwrap();
+                let lane = child(child(root, "event"), "lane");
+                lane.value = Some(v1_1::wire_value::Value::TextValue("wrong-lane".into()));
+                request.payload = hook.encode_to_vec();
+                bytes = framing::encode(&envelope, nz(262144)).unwrap().bytes;
+            }
+        }
+        let mut data = Some(bytes);
         Box::pin(poll_fn(move |cx| {
             if self.closed.load(Ordering::SeqCst) {
                 return Poll::Ready(Err(ChannelError::Closed));

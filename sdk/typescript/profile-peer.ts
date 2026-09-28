@@ -27,7 +27,7 @@ const corpus = JSON.parse(
   ),
 );
 if (
-  !corpus.scenarios.includes(scenario) ||
+  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native") ||
   ![0, 1].includes(core) ||
   ![0, 1].includes(minor)
 )
@@ -105,6 +105,103 @@ function boundCheck(obj: any) {
       throw Error("selected projection");
   }
   for (const x of Object.values(obj)) boundCheck(x);
+}
+const runtimeMethods = [
+  "resource.list", "resource.read", "before_run", "before_request",
+  "transform_context", "provider.invoke", "after_response", "before_run_end",
+];
+let runtimeIndex = 0;
+let runtimeRunId: string | null = null;
+let runtimeProviderId: number | null = null;
+const runtimeIds = new Set<number>();
+function runtimeProjection(value: any, id: string): any {
+  if (value?.projection_id !== id || !value.value)
+    throw Error("runtime projection identity");
+  return jsonValue(value.value);
+}
+function validateRuntime(r: any, m: any, decoded: any) {
+  const encoded = profileCodec.encode(m.request, sortedMaps(decoded));
+  const again = profileCodec.decode(m.request, encoded);
+  boundCheck(again);
+  if (!profileCodec.encode(m.request, sortedMaps(again)).equals(encoded))
+    throw Error("runtime DTO round trip");
+  if (r.method !== runtimeMethods[runtimeIndex++])
+    throw Error(`runtime method order: ${r.method}`);
+  if (
+    !Number.isSafeInteger(r.request_id) || r.request_id <= 0 ||
+    runtimeIds.has(r.request_id) ||
+    (r.method === "after_response"
+      ? r.parent_request_id !== runtimeProviderId
+      : r.parent_request_id !== undefined) ||
+    r.initial_stream_credit_bytes !== 0
+  ) throw Error("runtime request identity");
+  runtimeIds.add(r.request_id);
+  if (r.method === "provider.invoke") runtimeProviderId = r.request_id;
+  const name = m.profile === "resource.v1" ? "resources" :
+    m.profile === "provider.v1" ? "remote" : r.method;
+  const selected = granted.selected_capabilities.find(
+    (c: any) => c.profile.name === m.profile && c.name === name,
+  );
+  if (
+    !selected || selected.handler_id !== "qualified_handler" ||
+    !codec.encode("CapabilityRef", r.capability_ref).equals(
+      codec.encode("CapabilityRef", selected),
+    )
+  ) throw Error("runtime selected reference");
+  if (m.profile === "resource.v1") {
+    const expected = payloadObject(corpus.methods[r.method].request);
+    if (!profileCodec.encode(m.request, sortedMaps(decoded)).equals(
+      profileCodec.encode(m.request, expected),
+    )) throw Error("runtime resource request");
+    return;
+  }
+  if (m.profile === "hook.v1") {
+    if (decoded.handler_id !== "qualified_handler")
+      throw Error("runtime handler");
+    const value = runtimeProjection(decoded.input, `hook.input:${r.method}`);
+    if (value.name !== r.method || value.event?.lane !== "main")
+      throw Error("runtime hook event");
+    const event = value.event;
+    if (r.method === "before_run") {
+      if (
+        typeof event.runId !== "string" ||
+        !/^runtime-id-[0-9]+$/.test(event.runId) ||
+        !Array.isArray(event.prompt) ||
+        !JSON.stringify(event.prompt).includes("native profile peer dynamic run") ||
+        (event.systemPrompt !== null && typeof event.systemPrompt !== "string")
+      ) throw Error("runtime before_run fields");
+      runtimeRunId = event.runId;
+    } else if (event.runId !== runtimeRunId) {
+      throw Error("runtime hook run");
+    }
+    if (r.method === "before_request" && (
+      event.model?.id !== "m" || event.model.provider !== "remote" ||
+      event.model.api !== "openai-completions" ||
+      event.step !== "assistant" || !Number.isSafeInteger(event.attempt) ||
+      event.attempt < 1
+    )) throw Error("runtime before_request fields");
+    if (r.method === "after_response" && (
+      event.message?.role !== "assistant" ||
+      event.message.provider !== "remote" || event.message.model !== "m"
+    )) throw Error("runtime after_response fields");
+    if (["transform_context", "before_run_end"].includes(r.method) &&
+        !Array.isArray(event.messages)) throw Error("runtime hook messages");
+    return;
+  }
+  if (m.profile !== "provider.v1" || decoded.model_id !== "m" ||
+      decoded.auth_mode !== "none") throw Error("runtime provider identity");
+  const model = runtimeProjection(decoded.model, "provider.model.v1");
+  const context = runtimeProjection(decoded.context, "provider.context.v1");
+  const options = runtimeProjection(decoded.options, "provider.options.v1");
+  const tools = runtimeProjection(decoded.tools, "provider.tools.v1");
+  if (
+    model.id !== "m" || model.provider !== "remote" ||
+    model.api !== "openai-completions" ||
+    !Array.isArray(context.messages) ||
+    !JSON.stringify(context.messages).includes("native profile peer dynamic run") ||
+    !options || typeof options !== "object" || Array.isArray(options) ||
+    !Array.isArray(tools) || tools.length !== 0
+  ) throw Error("runtime provider fields");
 }
 const hooks = Object.keys(corpus.methods).filter(
   (n) => profileCodec.methods[n].profile === "hook.v1",
@@ -234,7 +331,7 @@ function resultFor(method: string) {
   const v =
     corpus.scenario_payloads?.[scenario]?.[method] ?? corpus.methods[method];
   return payloadObject(
-    scenario === "none" && profileCodec.methods[method].profile === "hook.v1"
+    (scenario === "none" || scenario === "runtime-native") && profileCodec.methods[method].profile === "hook.v1"
       ? v.default_terminal
       : (v.positive_terminal ?? v.terminal),
   );
@@ -372,18 +469,21 @@ for (;;) {
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
     boundCheck(decoded);
-    const expected = payloadObject(
-      (
-        corpus.scenario_payloads?.[scenario]?.[r.method] ??
-        corpus.methods[r.method]
-      ).request,
-    );
-    if (
-      !profileCodec
-        .encode(m.request, sortedMaps(decoded))
-        .equals(profileCodec.encode(m.request, expected))
-    )
-      throw Error("request semantic mismatch");
+    if (scenario === "runtime-native") validateRuntime(r, m, decoded);
+    else {
+      const expected = payloadObject(
+        (
+          corpus.scenario_payloads?.[scenario]?.[r.method] ??
+          corpus.methods[r.method]
+        ).request,
+      );
+      if (
+        !profileCodec
+          .encode(m.request, sortedMaps(decoded))
+          .equals(profileCodec.encode(m.request, expected))
+      )
+        throw Error("request semantic mismatch");
+    }
     if (
       r.capability_ref.profile.minor !== minor ||
       r.capability_ref.schema_digest_sha256.toString("hex") !==

@@ -2798,6 +2798,12 @@ fn real_sqlite_actions_parent_loss_and_actual_cas_retry_fences_all_pairs() {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ProcessMode {
+    Resource,
+    Native,
+    InvalidLane,
+}
 fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     setup: &Setup,
     session: Arc<RuntimeSession<S>>,
@@ -2805,6 +2811,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     core: u32,
     minor: u32,
     language: &str,
+    mode: ProcessMode,
 ) {
     use pi_harness_runtime::extensions::{
         profiles::{connection::ProfileConnection, resources::ResourceCatalog},
@@ -2814,7 +2821,14 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     use std::num::{NonZeroU64, NonZeroUsize};
     let harness = create(setup, session);
     let profiles = accepted_profiles();
-    let peer = Channel::spawn(language, core, minor);
+    let invalid_lane = mode == ProcessMode::InvalidLane;
+    let peer = if invalid_lane {
+        Channel::spawn_invalid_lane(language, core, minor)
+    } else if mode == ProcessMode::Native {
+        Channel::spawn_scenario(language, core, minor, "runtime-native")
+    } else {
+        Channel::spawn(language, core, minor)
+    };
     let clock = Arc::new(RealClock::default());
     let connection = drive(
         setup,
@@ -2898,6 +2912,154 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     let linked = usage.entry_id.as_ref().expect("native skill usage entry");
     assert!(snapshot.entries.iter().any(|entry| matches!(entry, Entry::Message(message) if &message.id == linked && matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
     assert!(snapshot.entries.iter().any(|entry|matches!(entry,Entry::Message(entry) if matches!(&entry.message,AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
+    if mode != ProcessMode::Resource {
+        let names = [
+            "before_run",
+            "before_request",
+            "transform_context",
+            "after_response",
+            "before_run_end",
+        ];
+        for name in names {
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|profile| profile.reference().name == name)
+                .unwrap()
+                .reference()
+                .clone();
+            harness
+                .register_profile_hook(
+                    RemoteHook::new(connection.clone(), selected, Default::default()).unwrap(),
+                )
+                .unwrap();
+        }
+        let corpus: serde_json::Value = serde_json::from_str(include_str!(
+            "runtime_extension_profiles_support/profiles-runtime-v1.json"
+        ))
+        .unwrap();
+        let remote: pi_ai_core::Model = serde_json::from_value(
+            corpus["methods"]["provider.invoke"]["request"]["model"]["value"].clone(),
+        )
+        .unwrap();
+        let provider = connection
+            .grant()
+            .profiles()
+            .iter()
+            .find(|profile| profile.reference().name == "remote")
+            .unwrap()
+            .reference()
+            .clone();
+        drive(
+            setup,
+            harness.register_profile_provider(
+                connection.clone(),
+                provider,
+                vec![remote.clone()],
+                Default::default(),
+                None,
+            ),
+        )
+        .unwrap();
+        drive(setup, harness.set_model(remote)).unwrap();
+        let call = drive(
+            setup,
+            harness.prompt(PromptInput::Text {
+                text: "native profile peer dynamic run".into(),
+                images: vec![],
+            }),
+        );
+        if invalid_lane {
+            assert!(
+                !matches!(call, Ok(Ok(_))),
+                "invalid dynamic lane was accepted"
+            );
+            let actual = peer.request_frames();
+            assert_eq!(actual.last().unwrap().method, "before_run");
+            let hook = pi_extension_protocol::profiles::wire_v1_1::InvokeHookRequest::decode(
+                actual.last().unwrap().payload.as_slice(),
+            )
+            .unwrap();
+            assert_eq!(
+                wire_value(hook.input.unwrap().value.unwrap())["event"]["lane"],
+                "wrong-lane"
+            );
+            peer.finish(false);
+            assert!(peer.stderr_text().contains("runtime hook event"));
+            connection.close();
+            let _ = setup.pump.drive(harness.close());
+            return;
+        }
+        if call.is_err() {
+            peer.finish(false);
+            panic!(
+                "native profile process failed: {call:?}; wire={:?}; faux={}",
+                peer.request_frames()
+                    .iter()
+                    .map(|request| request.method.as_str())
+                    .collect::<Vec<_>>(),
+                setup.faux.requests.lock().unwrap().len()
+            );
+        }
+        let completion = call.unwrap().unwrap();
+        assert!(matches!(
+            completion.outcome,
+            RunOutcome::CompletedWithAssistant(_)
+        ));
+        let wire = peer.request_frames();
+        assert_eq!(
+            wire.iter()
+                .map(|request| request.method.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "resource.list",
+                "resource.read",
+                "before_run",
+                "before_request",
+                "transform_context",
+                "provider.invoke",
+                "after_response",
+                "before_run_end"
+            ]
+        );
+        let mut ids = std::collections::BTreeSet::new();
+        for request in &wire {
+            assert!(ids.insert(request.request_id));
+            assert_ne!(request.request_id, 0);
+            assert_eq!(request.initial_stream_credit_bytes, Some(0));
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|profile| {
+                    profile.reference().name == request.capability_ref.as_ref().unwrap().name
+                })
+                .unwrap()
+                .reference();
+            assert_eq!(request.capability_ref.as_ref(), Some(selected));
+            assert_eq!(
+                request.parent_request_id,
+                (request.method == "after_response").then_some(wire[5].request_id)
+            );
+        }
+        assert_eq!(
+            wire[5].effect_key.as_ref().unwrap().operation_id,
+            completion.run_id.as_str()
+        );
+        assert_eq!(setup.faux.requests.lock().unwrap().len(), 1);
+        let after = setup.pump.drive(store.snapshot()).unwrap();
+        assert_eq!(after.usage.len(), 2);
+        assert_ne!(after.usage[0].entry_id, after.usage[1].entry_id);
+        for usage in &after.usage {
+            assert!(!usage.adjustment);
+            let linked = usage
+                .entry_id
+                .as_ref()
+                .expect("assistant-linked native usage");
+            assert!(after.entries.iter().any(|entry| matches!(entry, Entry::Message(message) if &message.id == linked && matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
+        }
+    }
     assert_eq!(connection.occupancy(), 0);
     peer.finish(true);
     connection.close();
@@ -2916,6 +3078,7 @@ fn accepted_node_python_real_memory_resource_native_consumers_all_pairs() {
                     core,
                     minor,
                     language,
+                    ProcessMode::Resource,
                 );
             }
         }
@@ -2928,11 +3091,75 @@ fn accepted_node_python_real_sqlite_resource_native_consumers_all_pairs() {
             for minor in 0..=1 {
                 let setup = Setup::new();
                 let (session, store, dir) = sqlite_case(&setup);
-                accepted_process_consumer(&setup, session, store.clone(), core, minor, language);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Resource,
+                );
                 drop(store);
                 std::fs::remove_dir_all(dir).unwrap();
             }
         }
+    }
+}
+#[test]
+fn runtime_native_memory_profile_peer_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Native,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_sqlite_profile_peer_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Native,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_rejects_corrupted_before_run_lane() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        accepted_process_consumer(
+            &setup,
+            setup.session.clone(),
+            setup.store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::InvalidLane,
+        );
     }
 }
 

@@ -19,7 +19,7 @@ codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(rep
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
-if scenario not in corpus["scenarios"] or core not in (0, 1) or minor not in (0, 1):
+if scenario not in (*corpus["scenarios"], "runtime-native") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -100,6 +100,130 @@ def bound_check(obj):
                 raise ValueError("selected projection")
         for x in obj.values():
             bound_check(x)
+
+
+runtime_methods = [
+    "resource.list", "resource.read", "before_run", "before_request",
+    "transform_context", "provider.invoke", "after_response", "before_run_end",
+]
+runtime_index = 0
+runtime_run_id = None
+runtime_provider_id = None
+runtime_ids = set()
+
+
+def runtime_projection(value, projection):
+    if not value or value.get("projection_id") != projection or "value" not in value:
+        raise ValueError("runtime projection identity")
+    from profiles.wire import json_value
+    return json_value(value["value"])
+
+
+def validate_runtime(request, method, decoded):
+    global runtime_index, runtime_run_id, runtime_provider_id
+    encoded = profile_codec.encode(method["request"], sorted_maps(decoded))
+    again = profile_codec.decode(method["request"], encoded)
+    bound_check(again)
+    if profile_codec.encode(method["request"], sorted_maps(again)) != encoded:
+        raise ValueError("runtime DTO round trip")
+    name = request["method"]
+    if runtime_index >= len(runtime_methods) or name != runtime_methods[runtime_index]:
+        raise ValueError("runtime method order: " + name)
+    runtime_index += 1
+    request_id = request["request_id"]
+    if (
+        not isinstance(request_id, int) or request_id <= 0
+        or request_id in runtime_ids or (
+            request.get("parent_request_id") != runtime_provider_id
+            if name == "after_response" else "parent_request_id" in request
+        )
+        or request.get("initial_stream_credit_bytes") != 0
+    ):
+        raise ValueError("runtime request identity")
+    runtime_ids.add(request_id)
+    if name == "provider.invoke":
+        runtime_provider_id = request_id
+    capability_name = (
+        "resources" if method["profile"] == "resource.v1" else
+        "remote" if method["profile"] == "provider.v1" else name
+    )
+    selected = next(
+        (c for c in granted["selected_capabilities"]
+         if c["profile"]["name"] == method["profile"]
+         and c["name"] == capability_name), None
+    )
+    if (
+        selected is None or selected["handler_id"] != "qualified_handler"
+        or codec.encode("CapabilityRef", request["capability_ref"])
+        != codec.encode("CapabilityRef", selected)
+    ):
+        raise ValueError("runtime selected reference")
+    if method["profile"] == "resource.v1":
+        expected = payload_object(corpus["methods"][name]["request"])
+        if profile_codec.encode(method["request"], sorted_maps(decoded)) != profile_codec.encode(
+            method["request"], expected
+        ):
+            raise ValueError("runtime resource request")
+        return
+    if method["profile"] == "hook.v1":
+        if decoded["handler_id"] != "qualified_handler":
+            raise ValueError("runtime handler")
+        value = runtime_projection(decoded["input"], "hook.input:" + name)
+        event = value.get("event", {})
+        if value.get("name") != name or event.get("lane") != "main":
+            raise ValueError("runtime hook event")
+        if name == "before_run":
+            run_id = event.get("runId")
+            if (
+                not isinstance(run_id, str) or not run_id.startswith("runtime-id-")
+                or not run_id[11:].isdigit()
+                or not isinstance(event.get("prompt"), list)
+                or "native profile peer dynamic run" not in json.dumps(event["prompt"])
+                or event.get("systemPrompt") is not None
+                and not isinstance(event["systemPrompt"], str)
+            ):
+                raise ValueError("runtime before_run fields")
+            runtime_run_id = run_id
+        elif event.get("runId") != runtime_run_id:
+            raise ValueError("runtime hook run")
+        if name == "before_request" and (
+            event.get("model", {}).get("id") != "m"
+            or event["model"].get("provider") != "remote"
+            or event["model"].get("api") != "openai-completions"
+            or event.get("step") != "assistant"
+            or type(event.get("attempt")) is not int or event["attempt"] < 1
+        ):
+            raise ValueError("runtime before_request fields")
+        if name == "after_response" and (
+            event.get("message", {}).get("role") != "assistant"
+            or event["message"].get("provider") != "remote"
+            or event["message"].get("model") != "m"
+        ):
+            raise ValueError("runtime after_response fields")
+        if name in ("transform_context", "before_run_end") and not isinstance(
+            event.get("messages"), list
+        ):
+            raise ValueError("runtime hook messages")
+        return
+    if (
+        method["profile"] != "provider.v1"
+        or decoded.get("model_id") != "m"
+        or decoded.get("auth_mode") != "none"
+    ):
+        raise ValueError("runtime provider identity")
+    model = runtime_projection(decoded["model"], "provider.model.v1")
+    context = runtime_projection(decoded["context"], "provider.context.v1")
+    options = runtime_projection(decoded["options"], "provider.options.v1")
+    tools = runtime_projection(decoded["tools"], "provider.tools.v1")
+    if (
+        model.get("id") != "m" or model.get("provider") != "remote"
+        or model.get("api") != "openai-completions"
+        or not isinstance(context.get("messages"), list)
+        or "native profile peer dynamic run" not in json.dumps(context["messages"])
+        or not isinstance(options, dict)
+        or not isinstance(tools, list) or tools
+    ):
+        raise ValueError("runtime provider fields")
 
 
 hooks = [
@@ -241,7 +365,7 @@ def result_for(method):
     )
     return payload_object(
         v["default_terminal"]
-        if scenario == "none" and profile_codec.methods[method]["profile"] == "hook.v1"
+        if scenario in ("none", "runtime-native") and profile_codec.methods[method]["profile"] == "hook.v1"
         else v.get("positive_terminal", v.get("terminal"))
     )
 
@@ -402,15 +526,18 @@ while not once_done:
         m = profile_codec.methods[request["method"]]
         decoded = profile_codec.decode(m["request"], request["payload"])
         bound_check(decoded)
-        expected = payload_object(
-            corpus.get("scenario_payloads", {})
-            .get(scenario, {})
-            .get(request["method"], corpus["methods"][request["method"]])["request"]
-        )
-        if profile_codec.encode(
-            m["request"], sorted_maps(decoded)
-        ) != profile_codec.encode(m["request"], expected):
-            raise ValueError("request semantic mismatch")
+        if scenario == "runtime-native":
+            validate_runtime(request, m, decoded)
+        else:
+            expected = payload_object(
+                corpus.get("scenario_payloads", {})
+                .get(scenario, {})
+                .get(request["method"], corpus["methods"][request["method"]])["request"]
+            )
+            if profile_codec.encode(
+                m["request"], sorted_maps(decoded)
+            ) != profile_codec.encode(m["request"], expected):
+                raise ValueError("request semantic mismatch")
         if (
             request["capability_ref"]["profile"]["minor"] != minor
             or request["capability_ref"]["schema_digest_sha256"].hex()
