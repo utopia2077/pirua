@@ -2808,6 +2808,7 @@ enum ProcessMode {
     Telemetry,
     TelemetryBadAck,
     TelemetryBadFlush,
+    BeforeResume,
 }
 fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     setup: &Setup,
@@ -2829,7 +2830,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     use std::num::{NonZeroU64, NonZeroUsize};
     let telemetry_mode = matches!(
         mode,
-        ProcessMode::Telemetry | ProcessMode::TelemetryBadAck | ProcessMode::TelemetryBadFlush
+        ProcessMode::Telemetry
+            | ProcessMode::TelemetryBadAck
+            | ProcessMode::TelemetryBadFlush
+            | ProcessMode::BeforeResume
     );
     let telemetry = telemetry_mode.then(|| {
         ProjectedTelemetry::new(Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT), 1048576, 256)
@@ -2853,7 +2857,64 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     } else {
         create(setup, session)
     };
-    let profiles = accepted_profiles();
+    let profiles = if mode == ProcessMode::BeforeResume {
+        use std::collections::{BTreeMap, BTreeSet};
+        let corpus: serde_json::Value = serde_json::from_str(include_str!(
+            "runtime_extension_profiles_support/profiles-runtime-v1.json"
+        ))
+        .unwrap();
+        let mut leaves = corpus["exposure"]["open_leaves"]
+            .as_object()
+            .unwrap()
+            .iter()
+            .map(|(path, schema)| {
+                (
+                    path.clone(),
+                    pi_extension_protocol::jcs::admit_schema(
+                        &serde_json::to_vec(schema).unwrap(),
+                        Default::default(),
+                    )
+                    .unwrap(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let saved = pi_extension_protocol::jcs::admit_schema(
+            br#"{"type":"object","properties":{"marker":{"type":"string","enum":["peer-before-resume"]}},"required":["marker"],"additionalProperties":false}"#,
+            Default::default(),
+        )
+        .unwrap();
+        for path in [
+            "hook.output:before_run.result.resumeData",
+            "hook.input:before_resume.event.resumeData",
+        ] {
+            leaves.insert(path.into(), saved.clone());
+        }
+        let exposure =
+            pi_extension_protocol::profiles::Exposure::new(leaves, BTreeSet::new()).unwrap();
+        accepted_profiles()
+            .into_iter()
+            .map(|profile| {
+                pi_extension_protocol::profiles::ApprovedProfile::new(
+                    pi_extension_protocol::profiles::ProfileApproval {
+                        principal: profile.principal().into(),
+                        kind: profile.kind().into(),
+                        name: profile.name().into(),
+                        profile: profile.profile().into(),
+                        handler: profile.handler().into(),
+                        minors: profile.minors().clone(),
+                        replay: profile.replay(),
+                        execution: profile.execution(),
+                        scope: profile.scope().into(),
+                        permissions: profile.permissions().clone(),
+                        exposure: exposure.clone(),
+                    },
+                )
+                .unwrap()
+            })
+            .collect()
+    } else {
+        accepted_profiles()
+    };
     let invalid_lane = mode == ProcessMode::InvalidLane;
     let peer = if invalid_lane {
         Channel::spawn_invalid_lane(language, core, minor)
@@ -2867,6 +2928,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-telemetry-bad-ack")
     } else if mode == ProcessMode::TelemetryBadFlush {
         Channel::spawn_scenario(language, core, minor, "runtime-native-telemetry-bad-flush")
+    } else if mode == ProcessMode::BeforeResume {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-before-resume")
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
@@ -2884,6 +2947,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::Telemetry
             | ProcessMode::TelemetryBadAck
             | ProcessMode::TelemetryBadFlush
+            | ProcessMode::BeforeResume
     ) {
         drive(
             setup,
@@ -3131,6 +3195,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 | ProcessMode::Telemetry
                 | ProcessMode::TelemetryBadAck
                 | ProcessMode::TelemetryBadFlush
+                | ProcessMode::BeforeResume
         ) {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
@@ -3371,7 +3436,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                         through + u64::from(mode == ProcessMode::TelemetryBadFlush)
                     );
                     assert_eq!(sink.disabled(), mode == ProcessMode::TelemetryBadFlush);
-                    if mode == ProcessMode::Telemetry {
+                    if matches!(mode, ProcessMode::Telemetry | ProcessMode::BeforeResume) {
                         assert_eq!(sink.dropped(), 0);
                     }
                 }
@@ -3384,6 +3449,272 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                     before_telemetry
                 );
             }
+        }
+        if mode == ProcessMode::BeforeResume {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "before_resume")
+                .unwrap()
+                .reference()
+                .clone();
+            harness
+                .register_profile_hook(
+                    RemoteHook::new(connection.clone(), selected.clone(), Default::default())
+                        .unwrap(),
+                )
+                .unwrap();
+            let before_deferred = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(before_deferred.usage.len(), 2);
+            let suspended = drive(
+                setup,
+                harness.prompt(PromptInput::Text {
+                    text: "native profile peer dynamic run deferred source".into(),
+                    images: vec![],
+                }),
+            )
+            .unwrap_or_else(|error| panic!("deferred prompt: {error}; {}", peer.stderr_text()))
+            .unwrap();
+            assert!(matches!(suspended.outcome, RunOutcome::Deferred(_)));
+            let suspended_snapshot = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(suspended_snapshot.usage.len(), 3);
+            assert_eq!(
+                &suspended_snapshot.usage[..2],
+                before_deferred.usage.as_slice()
+            );
+            assert_eq!(
+                &suspended_snapshot.entries[..before_deferred.entries.len()],
+                before_deferred.entries.as_slice()
+            );
+            let source = suspended_snapshot
+                .entries
+                .iter()
+                .find_map(|entry| match entry {
+                    Entry::Message(entry) => match &entry.message {
+                        AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(message))
+                            if message.deferred.is_some() =>
+                        {
+                            Some((entry.id.clone(), message))
+                        }
+                        _ => None,
+                    },
+                    _ => None,
+                })
+                .expect("actual deferred assistant source");
+            assert_eq!(
+                suspended_snapshot.usage[2].entry_id.as_ref(),
+                Some(&source.0)
+            );
+            let resumed = drive(setup, harness.resume())
+                .unwrap_or_else(|error| panic!("resume: {error}; {}", peer.stderr_text()))
+                .unwrap();
+            assert!(matches!(
+                resumed,
+                ResumeOutcome::RunCompletedWithAssistant(_)
+            ));
+            let after = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(after.usage.len(), 4);
+            assert_eq!(&after.usage[..3], suspended_snapshot.usage.as_slice());
+            assert_eq!(
+                &after.entries[..before_deferred.entries.len()],
+                before_deferred.entries.as_slice()
+            );
+            let final_id = after.usage[3]
+                .entry_id
+                .as_ref()
+                .expect("resumed Usage entry");
+            assert!(after.entries.iter().any(|entry| matches!(entry, Entry::Message(message)
+                if &message.id == final_id && matches!(&message.message,
+                    AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(a)) if a.deferred.is_none()))));
+            assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
+            assert!(catalog.refresh_pending());
+            let wire = peer.request_frames();
+            let flushed = wire
+                .iter()
+                .position(|r| r.method == "telemetry.flush")
+                .unwrap();
+            let tail = &wire[flushed + 1..];
+            assert_eq!(
+                tail.iter().map(|r| r.method.as_str()).collect::<Vec<_>>(),
+                [
+                    "before_run",
+                    "before_request",
+                    "transform_context",
+                    "provider.invoke",
+                    "after_response",
+                    "before_resume",
+                    "before_request",
+                    "provider.invoke",
+                    "after_response",
+                    "before_run_end",
+                ]
+            );
+            let before_resume = wire
+                .iter()
+                .position(|r| r.method == "before_resume")
+                .expect("real selected before_resume Request");
+            let resume_request = &wire[before_resume];
+            assert_eq!(resume_request.capability_ref.as_ref(), Some(&selected));
+            assert_eq!(resume_request.parent_request_id, None);
+            assert_eq!(resume_request.effect_key, None);
+            assert_eq!(resume_request.initial_stream_credit_bytes, Some(0));
+            assert!(
+                resume_request
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            let hook = dto::InvokeHookRequest::decode(resume_request.payload.as_slice()).unwrap();
+            assert_eq!(hook.handler_id, "qualified_handler");
+            let event = wire_value(hook.input.unwrap().value.unwrap());
+            assert_eq!(event["event"]["kind"], "run");
+            assert_eq!(event["event"]["runId"], suspended.run_id.as_str());
+            assert_eq!(
+                event["event"]["resumeData"],
+                serde_json::json!({"marker":"peer-before-resume"})
+            );
+            assert!(
+                event["event"]["prompt"]
+                    .to_string()
+                    .contains("native profile peer dynamic run deferred source")
+            );
+            let fetch = wire
+                .iter()
+                .skip(before_resume + 1)
+                .find(|r| {
+                    r.method == "provider.invoke"
+                        && r.effect_key
+                            .as_ref()
+                            .is_some_and(|key| key.effect_kind == "deferred")
+                })
+                .expect("real keyed deferred fetch");
+            assert_eq!(
+                fetch.effect_key.as_ref().unwrap().operation_id,
+                suspended.run_id.as_str()
+            );
+            assert_eq!(
+                tail[3].effect_key.as_ref().unwrap().effect_kind,
+                "assistant"
+            );
+            assert_eq!(
+                tail[3].effect_key.as_ref().unwrap().operation_id,
+                suspended.run_id.as_str()
+            );
+            assert_eq!(tail[4].parent_request_id, Some(tail[3].request_id));
+            assert_eq!(tail[8].parent_request_id, Some(fetch.request_id));
+            let roles = [
+                None,
+                Some("hook"),
+                Some("assistant"),
+                Some("assistant"),
+                Some("assistant"),
+                None,
+                Some("hook"),
+                Some("deferred"),
+                Some("deferred"),
+                Some("hook"),
+            ];
+            for (index, (request, expected_role)) in tail.iter().zip(roles).enumerate() {
+                assert_eq!(
+                    request
+                        .effect_key
+                        .as_ref()
+                        .map(|key| key.effect_kind.as_str()),
+                    expected_role
+                );
+                if let Some(key) = &request.effect_key {
+                    assert_eq!(key.operation_id, suspended.run_id.as_str());
+                    assert_eq!(key.lane, "main");
+                    assert_eq!(key.session_id, "runtime-session");
+                    assert_eq!(key.logical_attempt, u64::from(index != 9));
+                    assert_eq!(key.item_index, None);
+                }
+                if index != 4 && index != 8 {
+                    assert_eq!(request.parent_request_id, None);
+                }
+            }
+            assert_eq!(tail[2].effect_key, tail[3].effect_key);
+            assert_eq!(tail[4].effect_key, tail[3].effect_key);
+            assert_eq!(tail[8].effect_key, fetch.effect_key);
+            assert_eq!(fetch.parent_request_id, None);
+            assert_eq!(fetch.initial_stream_credit_bytes, Some(0));
+            assert!(
+                fetch
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            let invoke = dto::InvokeProviderRequest::decode(fetch.payload.as_slice()).unwrap();
+            assert_eq!(
+                wire_value(invoke.context.unwrap().value.unwrap())["messages"],
+                serde_json::json!([source.1])
+            );
+            assert_eq!(
+                wire_value(invoke.options.unwrap().value.unwrap())["deferred"],
+                false
+            );
+            let child_replies = peer.peer_response_frames();
+            let reply = child_replies
+                .iter()
+                .find(|r| r.request_id == resume_request.request_id)
+                .expect("same child hook Result");
+            let Some(v1_1::response::Terminal::Result(body)) = &reply.terminal else {
+                panic!("typed before_resume Result");
+            };
+            dto::BeforeResumeUnitResult::decode(body.as_slice()).unwrap();
+            assert!(body.is_empty(), "before_resume is a typed unit Result");
+            let provider_ends = peer.peer_stream_end_frames();
+            for (request, stop_reason) in
+                [(tail[3].request_id, "deferred"), (fetch.request_id, "stop")]
+            {
+                let end = provider_ends
+                    .iter()
+                    .find(|end| end.request_id == request)
+                    .expect("same child provider terminal");
+                let Some(v1_1::stream_end::Terminal::Result(body)) = &end.terminal else {
+                    panic!("typed provider Result");
+                };
+                let result = dto::InvokeProviderResult::decode(body.as_slice()).unwrap();
+                assert_eq!(
+                    wire_value(result.assistant_message.unwrap().value.unwrap())["stopReason"],
+                    stop_reason
+                );
+                assert!(result.usage.is_some());
+            }
+            let mut ids = std::collections::BTreeSet::new();
+            for request in &wire {
+                assert!(ids.insert(request.request_id));
+                assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                assert!(
+                    request
+                        .deadline_after_ms
+                        .is_some_and(|ms| ms > 0 && ms <= 5000)
+                );
+                let reference = connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| p.reference().name == request.capability_ref.as_ref().unwrap().name)
+                    .unwrap()
+                    .reference();
+                assert_eq!(request.capability_ref.as_ref(), Some(reference));
+            }
+            let no_work_snapshot = setup.pump.drive(store.snapshot()).unwrap();
+            let no_work_requests = peer.requests();
+            let no_work_replies = peer.peer_response_frames().len();
+            let no_work_ends = peer.peer_stream_end_frames().len();
+            assert!(matches!(
+                drive(setup, harness.resume()),
+                Ok(Err(ResumeExpectedError::NothingToResume(_)))
+            ));
+            assert_eq!(
+                setup.pump.drive(store.snapshot()).unwrap(),
+                no_work_snapshot
+            );
+            assert_eq!(peer.requests(), no_work_requests);
+            assert_eq!(peer.peer_response_frames().len(), no_work_replies);
+            assert_eq!(peer.peer_stream_end_frames().len(), no_work_ends);
         }
     }
     assert_eq!(connection.occupancy(), 0);
@@ -3596,6 +3927,47 @@ fn runtime_native_telemetry_sqlite_all_pairs() {
                     minor,
                     language,
                     ProcessMode::Telemetry,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_before_resume_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::BeforeResume,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_before_resume_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::BeforeResume,
                 );
                 drop(store);
                 std::fs::remove_dir_all(dir).unwrap();

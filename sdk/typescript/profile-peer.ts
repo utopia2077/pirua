@@ -28,7 +28,20 @@ const corpus = JSON.parse(
 );
 const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
   scenario === "runtime-native-telemetry-bad-ack" ||
-  scenario === "runtime-native-telemetry-bad-flush";
+  scenario === "runtime-native-telemetry-bad-flush" ||
+  scenario === "runtime-native-before-resume";
+const runtimeResume = scenario === "runtime-native-before-resume";
+const runtimeOpenLeaves = runtimeResume ? {
+  ...corpus.exposure.open_leaves,
+  "hook.output:before_run.result.resumeData": {
+    type: "object", properties: { marker: { type: "string", enum: ["peer-before-resume"] } },
+    required: ["marker"], additionalProperties: false,
+  },
+  "hook.input:before_resume.event.resumeData": {
+    type: "object", properties: { marker: { type: "string", enum: ["peer-before-resume"] } },
+    required: ["marker"], additionalProperties: false,
+  },
+} : corpus.exposure.open_leaves;
 const runtimeChanged = scenario === "runtime-native-changed" ||
   scenario === "runtime-native-changed-wrong-scope" || runtimeTelemetry;
 if (
@@ -105,7 +118,7 @@ function boundCheck(obj: any) {
         shapes.registry.projections[root].proposed_digest_sha256 ||
       !obj.value ||
       !shapes.check(root, obj.value) ||
-      !shapes.exposed(root, obj.value, corpus.exposure.open_leaves)
+      !shapes.exposed(root, obj.value, runtimeOpenLeaves)
     )
       throw Error("selected projection");
   }
@@ -124,6 +137,15 @@ let changedAcked = false;
 let telemetryBatches = 0;
 let telemetryLastSequence: number | null = null;
 let telemetryFlushed = false;
+let resumePhase = 0;
+const resumeMethods = [
+  "before_run", "before_request", "transform_context", "provider.invoke",
+  "after_response", "before_resume", "before_request", "provider.invoke",
+  "after_response", "before_run_end",
+];
+let suspendedRunId: string | null = null;
+let suspendedProviderId: number | null = null;
+let deferredProviderId: number | null = null;
 const runtimeIds = new Set<number>();
 function runtimeProjection(value: any, id: string): any {
   if (value?.projection_id !== id || !value.value)
@@ -139,9 +161,13 @@ function validateRuntime(r: any, m: any, decoded: any) {
   if (runtimeIndex < runtimeMethods.length) {
     if (r.method !== runtimeMethods[runtimeIndex++])
       throw Error(`runtime method order: ${r.method}`);
+  } else if (runtimeResume && telemetryFlushed) {
+    if (r.method !== resumeMethods[resumePhase])
+      throw Error(`runtime resume phase ${resumePhase}: ${r.method}`);
+    resumePhase++;
   } else if (!runtimeTelemetry || telemetryFlushed ||
-    (r.method !== "telemetry.emit_batch" &&
-      (r.method !== "telemetry.flush" || telemetryBatches === 0))) {
+      (r.method !== "telemetry.emit_batch" &&
+        (r.method !== "telemetry.flush" || telemetryBatches === 0))) {
     throw Error(`runtime telemetry order: ${r.method}`);
   }
   if (
@@ -153,7 +179,13 @@ function validateRuntime(r: any, m: any, decoded: any) {
     r.initial_stream_credit_bytes !== 0
   ) throw Error("runtime request identity");
   runtimeIds.add(r.request_id);
-  if (r.method === "provider.invoke") runtimeProviderId = r.request_id;
+  if (r.method === "provider.invoke") {
+    runtimeProviderId = r.request_id;
+    if (runtimeResume && telemetryFlushed) {
+      if (r.effect_key?.effect_kind === "assistant") suspendedProviderId = r.request_id;
+      if (r.effect_key?.effect_kind === "deferred") deferredProviderId = r.request_id;
+    }
+  }
   const name = m.profile === "resource.v1" ? "resources" :
     m.profile === "provider.v1" ? "remote" :
     m.profile === "telemetry-sink.v1" ? "metrics" : r.method;
@@ -213,13 +245,21 @@ function validateRuntime(r: any, m: any, decoded: any) {
         (event.systemPrompt !== null && typeof event.systemPrompt !== "string")
       ) throw Error("runtime before_run fields");
       runtimeRunId = event.runId;
+      if (runtimeResume && telemetryFlushed) suspendedRunId = event.runId;
     } else if (event.runId !== runtimeRunId) {
       throw Error("runtime hook run");
     }
+    if (r.method === "before_resume" && (
+      event.kind !== "run" || event.runId !== suspendedRunId ||
+      !JSON.stringify(event.prompt).includes("native profile peer dynamic run deferred source") ||
+      JSON.stringify(event.resumeData) !== JSON.stringify({ marker: "peer-before-resume" }) ||
+      !suspendedProviderId || r.effect_key !== undefined
+    )) throw Error("runtime before_resume fields");
     if (r.method === "before_request" && (
       event.model?.id !== "m" || event.model.provider !== "remote" ||
       event.model.api !== "openai-completions" ||
-      event.step !== "assistant" || !Number.isSafeInteger(event.attempt) ||
+      event.step !== (runtimeResume && resumePhase === 7 ? "deferred" : "assistant") ||
+      !Number.isSafeInteger(event.attempt) ||
       event.attempt < 1
     )) throw Error("runtime before_request fields");
     if (r.method === "after_response" && (
@@ -240,10 +280,21 @@ function validateRuntime(r: any, m: any, decoded: any) {
     model.id !== "m" || model.provider !== "remote" ||
     model.api !== "openai-completions" ||
     !Array.isArray(context.messages) ||
-    !JSON.stringify(context.messages).includes("native profile peer dynamic run") ||
+    !(runtimeResume && r.effect_key?.effect_kind === "deferred"
+      ? JSON.stringify(context.messages).includes("native-source-handle")
+      : JSON.stringify(context.messages).includes("native profile peer dynamic run")) ||
     !options || typeof options !== "object" || Array.isArray(options) ||
     !Array.isArray(tools) || tools.length !== 0
   ) throw Error("runtime provider fields");
+  if (runtimeResume && telemetryFlushed) {
+    const key = r.effect_key;
+    if (!key || key.operation_id !== suspendedRunId ||
+      !["assistant", "deferred"].includes(key.effect_kind) ||
+      (key.effect_kind === "deferred" && (
+        !suspendedProviderId || !JSON.stringify(context.messages).includes("native-source-handle") ||
+        options.deferred !== false
+      ))) throw Error("runtime deferred provider binding");
+  }
 }
 const hooks = Object.keys(corpus.methods).filter(
   (n) => profileCodec.methods[n].profile === "hook.v1",
@@ -397,6 +448,23 @@ function resultFor(method: string) {
 function terminal(r: any, decoded?: any) {
   const m = profileCodec.methods[r.method];
   let obj = resultFor(r.method);
+  if (runtimeResume && telemetryFlushed && r.method === "before_run") {
+    obj = resultFor(r.method);
+    obj.output = payloadObject(corpus.methods.before_run.positive_terminal.output);
+    obj.output.value = wireValue({
+      name: "before_run", result: { resumeData: { marker: "peer-before-resume" } },
+    });
+  }
+  if (runtimeResume && telemetryFlushed && r.method === "provider.invoke" &&
+      r.effect_key?.effect_kind === "assistant") {
+    const message = jsonValue(obj.assistant_message.value);
+    message.stopReason = "deferred";
+    message.deferred = {
+      provider: "remote", api: "openai-completions", modelId: "m",
+      id: "native-source-handle",
+    };
+    obj.assistant_message.value = wireValue(message);
+  }
   if (runtimeTelemetry && r.method === "telemetry.emit_batch") {
     if (!decoded) throw Error("runtime telemetry payload");
     obj = { accepted: decoded.records.length, dropped: 0 };
@@ -441,6 +509,12 @@ function terminal(r: any, decoded?: any) {
       },
     };
   const payload = profileCodec.encode(m.terminal, obj);
+  if (runtimeResume) {
+    const roundTrip = profileCodec.decode(m.terminal, payload);
+    boundCheck(roundTrip);
+    if (!profileCodec.encode(m.terminal, roundTrip).equals(payload))
+      throw Error("runtime terminal DTO round trip");
+  }
   const end: any = { request_id: r.request_id };
   if (scenario === "error" || scenario === "unknown-enum")
     end.error = {
@@ -542,8 +616,9 @@ for (;;) {
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
     boundCheck(decoded);
-    if (scenario === "runtime-native" || runtimeChanged) validateRuntime(r, m, decoded);
-    else {
+    if (scenario === "runtime-native" || runtimeChanged) {
+      validateRuntime(r, m, decoded);
+    } else {
       const expected = payloadObject(
         (
           corpus.scenario_payloads?.[scenario]?.[r.method] ??
@@ -705,6 +780,11 @@ for (;;) {
     break;
   } else throw Error("unexpected envelope");
 }
+if (runtimeResume && (
+  runtimeIndex !== runtimeMethods.length || !changedAcked || !telemetryFlushed ||
+  resumePhase !== resumeMethods.length || !suspendedRunId ||
+  !suspendedProviderId || !deferredProviderId
+)) throw Error("incomplete native resume history");
 writeSync(
   2,
   JSON.stringify({

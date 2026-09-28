@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from profiles.wire import Codec, varint, payload_object, sha
+from profiles.wire import Codec, varint, payload_object, sha, wire_value, json_value
 from profiles.shapes import Shapes, probe
 
 mode, repo = sys.argv[1:3]
@@ -19,9 +19,20 @@ codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(rep
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
-runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush")
+runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume")
+runtime_resume = scenario == "runtime-native-before-resume"
+runtime_open_leaves = dict(corpus["exposure"]["open_leaves"])
+if runtime_resume:
+    saved_schema = {
+        "type": "object",
+        "properties": {"marker": {"type": "string", "enum": ["peer-before-resume"]}},
+        "required": ["marker"],
+        "additionalProperties": False,
+    }
+    runtime_open_leaves["hook.output:before_run.result.resumeData"] = saved_schema
+    runtime_open_leaves["hook.input:before_resume.event.resumeData"] = saved_schema
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush") or core not in (0, 1) or minor not in (0, 1):
+if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -96,7 +107,7 @@ def bound_check(obj):
                 or "value" not in obj
                 or not shapes.check(root, obj["value"])
                 or not shapes.exposed(
-                    root, obj["value"], corpus["exposure"]["open_leaves"]
+                    root, obj["value"], runtime_open_leaves
                 )
             ):
                 raise ValueError("selected projection")
@@ -117,6 +128,15 @@ changed_acked = False
 telemetry_batches = 0
 telemetry_last_sequence = None
 telemetry_flushed = False
+resume_phase = 0
+resume_methods = (
+    "before_run", "before_request", "transform_context", "provider.invoke",
+    "after_response", "before_resume", "before_request", "provider.invoke",
+    "after_response", "before_run_end",
+)
+suspended_run_id = None
+suspended_provider_id = None
+deferred_provider_id = None
 
 
 def runtime_projection(value, projection):
@@ -129,6 +149,7 @@ def runtime_projection(value, projection):
 def validate_runtime(request, method, decoded):
     global runtime_index, runtime_run_id, runtime_provider_id
     global telemetry_batches, telemetry_last_sequence, telemetry_flushed
+    global resume_phase, suspended_run_id, suspended_provider_id, deferred_provider_id
     encoded = profile_codec.encode(method["request"], sorted_maps(decoded))
     again = profile_codec.decode(method["request"], encoded)
     bound_check(again)
@@ -139,6 +160,10 @@ def validate_runtime(request, method, decoded):
         if name != runtime_methods[runtime_index]:
             raise ValueError("runtime method order: " + name)
         runtime_index += 1
+    elif runtime_resume and telemetry_flushed:
+        if resume_phase >= len(resume_methods) or name != resume_methods[resume_phase]:
+            raise ValueError(f"runtime resume phase {resume_phase}: {name}")
+        resume_phase += 1
     elif not runtime_telemetry or telemetry_flushed or (
         name != "telemetry.emit_batch" and
         (name != "telemetry.flush" or telemetry_batches == 0)
@@ -157,6 +182,12 @@ def validate_runtime(request, method, decoded):
     runtime_ids.add(request_id)
     if name == "provider.invoke":
         runtime_provider_id = request_id
+        if runtime_resume and telemetry_flushed:
+            kind = request.get("effect_key", {}).get("effect_kind")
+            if kind == "assistant":
+                suspended_provider_id = request_id
+            if kind == "deferred":
+                deferred_provider_id = request_id
     capability_name = (
         "resources" if method["profile"] == "resource.v1" else
         "remote" if method["profile"] == "provider.v1" else name
@@ -225,13 +256,24 @@ def validate_runtime(request, method, decoded):
             ):
                 raise ValueError("runtime before_run fields")
             runtime_run_id = run_id
+            if runtime_resume and telemetry_flushed:
+                suspended_run_id = run_id
         elif event.get("runId") != runtime_run_id:
             raise ValueError("runtime hook run")
+        if name == "before_resume" and (
+            event.get("kind") != "run" or event.get("runId") != suspended_run_id
+            or "native profile peer dynamic run deferred source" not in json.dumps(event.get("prompt"))
+            or event.get("resumeData") != {"marker": "peer-before-resume"}
+            or suspended_provider_id is None or "effect_key" in request
+        ):
+            raise ValueError("runtime before_resume fields")
         if name == "before_request" and (
             event.get("model", {}).get("id") != "m"
             or event["model"].get("provider") != "remote"
             or event["model"].get("api") != "openai-completions"
-            or event.get("step") != "assistant"
+            or event.get("step") != (
+                "deferred" if runtime_resume and resume_phase == 7 else "assistant"
+            )
             or type(event.get("attempt")) is not int or event["attempt"] < 1
         ):
             raise ValueError("runtime before_request fields")
@@ -260,11 +302,27 @@ def validate_runtime(request, method, decoded):
         model.get("id") != "m" or model.get("provider") != "remote"
         or model.get("api") != "openai-completions"
         or not isinstance(context.get("messages"), list)
-        or "native profile peer dynamic run" not in json.dumps(context["messages"])
+        or not (
+            "native-source-handle" in json.dumps(context["messages"])
+            if runtime_resume and request.get("effect_key", {}).get("effect_kind") == "deferred"
+            else "native profile peer dynamic run" in json.dumps(context["messages"])
+        )
         or not isinstance(options, dict)
         or not isinstance(tools, list) or tools
     ):
         raise ValueError("runtime provider fields")
+    if runtime_resume and telemetry_flushed:
+        key = request.get("effect_key", {})
+        if (
+            key.get("operation_id") != suspended_run_id
+            or key.get("effect_kind") not in ("assistant", "deferred")
+            or key.get("effect_kind") == "deferred" and (
+                suspended_provider_id is None
+                or "native-source-handle" not in json.dumps(context["messages"])
+                or options.get("deferred") is not False
+            )
+        ):
+            raise ValueError("runtime deferred provider binding")
 
 
 hooks = [
@@ -436,6 +494,22 @@ def terminal(request, decoded=None):
     global once_done
     m = profile_codec.methods[request["method"]]
     obj = result_for(request["method"])
+    if runtime_resume and telemetry_flushed and request["method"] == "before_run":
+        obj["output"] = payload_object(corpus["methods"]["before_run"]["positive_terminal"]["output"])
+        obj["output"]["value"] = wire_value({
+            "name": "before_run", "result": {"resumeData": {"marker": "peer-before-resume"}}
+        })
+    if (
+        runtime_resume and telemetry_flushed and request["method"] == "provider.invoke"
+        and request.get("effect_key", {}).get("effect_kind") == "assistant"
+    ):
+        message = json_value(obj["assistant_message"]["value"])
+        message["stopReason"] = "deferred"
+        message["deferred"] = {
+            "provider": "remote", "api": "openai-completions", "modelId": "m",
+            "id": "native-source-handle",
+        }
+        obj["assistant_message"]["value"] = wire_value(message)
     if runtime_telemetry and request["method"] == "telemetry.emit_batch":
         if decoded is None:
             raise ValueError("runtime telemetry payload")
@@ -487,6 +561,11 @@ def terminal(request, decoded=None):
             }
         }
     payload = profile_codec.encode(m["terminal"], obj)
+    if runtime_resume:
+        round_trip = profile_codec.decode(m["terminal"], payload)
+        bound_check(round_trip)
+        if profile_codec.encode(m["terminal"], round_trip) != payload:
+            raise ValueError("runtime terminal DTO round trip")
     end = {"request_id": request["request_id"]}
     if scenario in ("error", "unknown-enum"):
         end["error"] = {
@@ -756,6 +835,12 @@ while not once_done:
         break
     else:
         raise ValueError("unexpected envelope")
+if runtime_resume and (
+    runtime_index != len(runtime_methods) or not changed_acked or not telemetry_flushed
+    or resume_phase != len(resume_methods) or suspended_run_id is None
+    or suspended_provider_id is None or deferred_provider_id is None
+):
+    raise ValueError("incomplete native resume history")
 sys.stderr.write(
     json.dumps(
         {
