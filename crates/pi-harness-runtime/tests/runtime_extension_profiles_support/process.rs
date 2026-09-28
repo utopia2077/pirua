@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "af511acde35e36bf1155cd3089380a1573039b3e93066fdbaf50fc9f65022971",
+            "65dcd78394d69bf4d2bcbba9a65ebc993a1756172ace41c5db6cc5f2fcec823b",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "a39dbfbe2ff35c0a582e47ba24838529f48c8131759edb80b0dfa5f6c5465b9a",
+            "d23579b9d634a44a6e078140c2c02b64f447309983a45ed4cb8133b0ee0e641e",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -131,6 +131,7 @@ pub struct Channel {
     read_wake: Arc<Mutex<Option<Waker>>>,
     write: mpsc::SyncSender<(Vec<u8>, Reply)>,
     writes: Arc<Mutex<Vec<Vec<u8>>>>,
+    incoming: Arc<Mutex<Vec<u8>>>,
     stderr: Arc<Mutex<Vec<u8>>>,
     done: Mutex<mpsc::Receiver<()>>,
     workers: Mutex<Vec<std::thread::JoinHandle<()>>>,
@@ -183,12 +184,18 @@ impl Channel {
         let closed = Arc::new(AtomicBool::new(false));
         let read_wake = Arc::new(Mutex::new(None::<Waker>));
         let writes = Arc::new(Mutex::new(vec![]));
+        let incoming = Arc::new(Mutex::new(vec![]));
         let stderr = Arc::new(Mutex::new(vec![]));
         let (read_tx, read_rx) = mpsc::sync_channel(1);
         let (write_tx, write_rx) = mpsc::sync_channel::<(Vec<u8>, Reply)>(1);
         let (done_tx, done_rx) = mpsc::channel();
         let mut workers = vec![];
-        let (stop, wake, done) = (closed.clone(), read_wake.clone(), done_tx.clone());
+        let (stop, wake, done, captured) = (
+            closed.clone(),
+            read_wake.clone(),
+            done_tx.clone(),
+            incoming.clone(),
+        );
         workers.push(std::thread::spawn(move || {
             let mut total = 0;
             loop {
@@ -196,6 +203,7 @@ impl Channel {
                 let count = output.read(&mut buffer).unwrap_or(0);
                 total += count;
                 assert!(total <= 1048576, "finite peer stdout budget");
+                captured.lock().unwrap().extend_from_slice(&buffer[..count]);
                 let mut data = buffer[..count].to_vec();
                 loop {
                     match read_tx.try_send(data) {
@@ -268,6 +276,7 @@ impl Channel {
             read_wake,
             write: write_tx,
             writes,
+            incoming,
             stderr,
             done: Mutex::new(done_rx),
             workers: Mutex::new(workers),
@@ -336,6 +345,38 @@ impl Channel {
                 }
             })
             .collect()
+    }
+    pub fn response_frames(&self) -> Vec<v1_1::Response> {
+        self.writes
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|bytes| {
+                let mut reader = FrameReader::<v1_1::Envelope>::new(nz(4096));
+                let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+                match envelope.frame {
+                    Some(v1_1::envelope::Frame::Response(response)) => Some(response),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+    pub fn peer_request_frames(&self) -> Vec<v1_1::Request> {
+        let bytes = self.incoming.lock().unwrap().clone();
+        let mut offset = 0;
+        let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+        let mut requests = Vec::new();
+        while offset < bytes.len() {
+            let step = reader.read_one(&bytes[offset..]).unwrap();
+            assert!(step.consumed > 0, "captured peer frame must advance");
+            offset += step.consumed;
+            if let Some(frame) = step.frame
+                && let Some(v1_1::envelope::Frame::Request(request)) = frame.envelope.frame
+            {
+                requests.push(request);
+            }
+        }
+        requests
     }
     pub fn finish(&self, success: bool) {
         self.closed.store(true, Ordering::SeqCst);

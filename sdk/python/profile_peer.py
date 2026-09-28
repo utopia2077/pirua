@@ -19,7 +19,8 @@ codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(rep
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
-if scenario not in (*corpus["scenarios"], "runtime-native") or core not in (0, 1) or minor not in (0, 1):
+runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope")
+if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -105,11 +106,13 @@ def bound_check(obj):
 runtime_methods = [
     "resource.list", "resource.read", "before_run", "before_request",
     "transform_context", "provider.invoke", "after_response", "before_run_end",
-]
+] + (["resource.list", "resource.read"] if runtime_changed else [])
 runtime_index = 0
 runtime_run_id = None
 runtime_provider_id = None
 runtime_ids = set()
+changed_list = None
+changed_acked = False
 
 
 def runtime_projection(value, projection):
@@ -353,6 +356,27 @@ def passive_request():
     send({"request": request})
 
 
+def native_changed_request():
+    method = "resource.changed"
+    ref = next(
+        (c for c in granted["selected_capabilities"]
+         if c["profile"]["name"] == "resource.v1" and c["name"] == "resources"),
+        None,
+    )
+    if ref is None or changed_list is None:
+        raise ValueError("native changed state")
+    request = payload_object(corpus["methods"][method]["request"])
+    if scenario == "runtime-native-changed-wrong-scope":
+        request["scope"] = "wrong-scope"
+    send({"request": {
+        "request_id": 2000,
+        "capability_ref": ref,
+        "method": method,
+        "initial_stream_credit_bytes": 0,
+        "payload": profile_codec.encode(profile_codec.methods[method]["request"], request),
+    }})
+
+
 if scenario in ("passive-origin", "event-gap"):
     passive_request()
 
@@ -365,7 +389,7 @@ def result_for(method):
     )
     return payload_object(
         v["default_terminal"]
-        if scenario in ("none", "runtime-native") and profile_codec.methods[method]["profile"] == "hook.v1"
+        if (scenario == "none" or scenario.startswith("runtime-native")) and profile_codec.methods[method]["profile"] == "hook.v1"
         else v.get("positive_terminal", v.get("terminal"))
     )
 
@@ -423,6 +447,9 @@ def terminal(request):
         end["result"] = payload
     arm = "stream_end" if m["mode"] == 2 else "response"
     send({arm: end})
+    if runtime_changed and request["method"] == "resource.read" and runtime_index == 10:
+        if not changed_acked:
+            raise ValueError("native changed acknowledgement missing")
     if scenario == "duplicate":
         send({arm: end})
     if scenario == "single-provider":
@@ -526,7 +553,7 @@ while not once_done:
         m = profile_codec.methods[request["method"]]
         decoded = profile_codec.decode(m["request"], request["payload"])
         bound_check(decoded)
-        if scenario == "runtime-native":
+        if scenario == "runtime-native" or runtime_changed:
             validate_runtime(request, m, decoded)
         else:
             expected = payload_object(
@@ -544,6 +571,10 @@ while not once_done:
             != profile_codec.digests[m["profile"]]
         ):
             raise ValueError("request reference")
+        if runtime_changed and runtime_index == 9 and request["method"] == "resource.list":
+            changed_list = request
+            native_changed_request()
+            continue
         if scenario.startswith("host-") and request["method"] == "provider.invoke":
             parent = request
             host_request()
@@ -583,6 +614,22 @@ while not once_done:
             else:
                 terminal(state["r"])
                 streams.pop(cr["request_id"], None)
+    elif runtime_changed and "response" in e and changed_list is not None:
+        response = e["response"]
+        method = "resource.changed"
+        m = profile_codec.methods[method]
+        if response["request_id"] != 2000 or "result" not in response:
+            raise ValueError("native changed response")
+        decoded = profile_codec.decode(m["terminal"], response["result"])
+        bound_check(decoded)
+        if profile_codec.encode(m["terminal"], sorted_maps(decoded)) != profile_codec.encode(
+            m["terminal"], result_for(method)
+        ):
+            raise ValueError("native changed acknowledgement")
+        changed_acked = True
+        pending = changed_list
+        changed_list = None
+        terminal(pending)
     elif "response" in e and parent:
         if scenario == "host-actions":
             response = e["response"]

@@ -26,8 +26,10 @@ const corpus = JSON.parse(
     "utf8",
   ),
 );
+const runtimeChanged = scenario === "runtime-native-changed" ||
+  scenario === "runtime-native-changed-wrong-scope";
 if (
-  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native") ||
+  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged) ||
   ![0, 1].includes(core) ||
   ![0, 1].includes(minor)
 )
@@ -109,10 +111,13 @@ function boundCheck(obj: any) {
 const runtimeMethods = [
   "resource.list", "resource.read", "before_run", "before_request",
   "transform_context", "provider.invoke", "after_response", "before_run_end",
+  ...(runtimeChanged ? ["resource.list", "resource.read"] : []),
 ];
 let runtimeIndex = 0;
 let runtimeRunId: string | null = null;
 let runtimeProviderId: number | null = null;
+let changedList: any = null;
+let changedAcked = false;
 const runtimeIds = new Set<number>();
 function runtimeProjection(value: any, id: string): any {
   if (value?.projection_id !== id || !value.value)
@@ -326,12 +331,28 @@ function passiveRequest() {
     },
   });
 }
+function nativeChangedRequest() {
+  const method = "resource.changed";
+  const ref = granted.selected_capabilities.find(
+    (c: any) => c.profile.name === "resource.v1" && c.name === "resources",
+  );
+  if (!ref || changedList === null) throw Error("native changed state");
+  const request = payloadObject(corpus.methods[method].request);
+  if (scenario === "runtime-native-changed-wrong-scope") request.scope = "wrong-scope";
+  send({ request: {
+    request_id: 2000,
+    capability_ref: ref,
+    method,
+    initial_stream_credit_bytes: 0,
+    payload: profileCodec.encode(profileCodec.methods[method].request, request),
+  } });
+}
 if (["passive-origin", "event-gap"].includes(scenario)) passiveRequest();
 function resultFor(method: string) {
   const v =
     corpus.scenario_payloads?.[scenario]?.[method] ?? corpus.methods[method];
   return payloadObject(
-    (scenario === "none" || scenario === "runtime-native") && profileCodec.methods[method].profile === "hook.v1"
+    (scenario === "none" || scenario.startsWith("runtime-native")) && profileCodec.methods[method].profile === "hook.v1"
       ? v.default_terminal
       : (v.positive_terminal ?? v.terminal),
   );
@@ -380,6 +401,9 @@ function terminal(r: any) {
   else end.result = payload;
   const arm = m.mode === 2 ? "stream_end" : "response";
   send({ [arm]: end });
+  if (runtimeChanged && r.method === "resource.read" && runtimeIndex === 10) {
+    if (!changedAcked) throw Error("native changed acknowledgement missing");
+  }
   if (scenario === "duplicate") send({ [arm]: end });
   if (scenario === "single-provider") onceDone = true;
 }
@@ -469,7 +493,7 @@ for (;;) {
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
     boundCheck(decoded);
-    if (scenario === "runtime-native") validateRuntime(r, m, decoded);
+    if (scenario === "runtime-native" || runtimeChanged) validateRuntime(r, m, decoded);
     else {
       const expected = payloadObject(
         (
@@ -490,6 +514,11 @@ for (;;) {
         profileCodec.digests[m.profile]
     )
       throw Error("request reference");
+    if (runtimeChanged && runtimeIndex === 9 && r.method === "resource.list") {
+      changedList = r;
+      nativeChangedRequest();
+      continue;
+    }
     if (scenario.startsWith("host-") && r.method === "provider.invoke") {
       parent = r;
       hostRequest();
@@ -527,6 +556,21 @@ for (;;) {
         streams.delete(s.r.request_id);
       }
     }
+  } else if (runtimeChanged && e.response && changedList) {
+    const response = e.response,
+      method = "resource.changed",
+      m = profileCodec.methods[method];
+    if (response.request_id !== 2000 || !("result" in response))
+      throw Error("native changed response");
+    const decoded = profileCodec.decode(m.terminal, response.result);
+    boundCheck(decoded);
+    if (!profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(
+      profileCodec.encode(m.terminal, resultFor(method)),
+    )) throw Error("native changed acknowledgement");
+    changedAcked = true;
+    const list = changedList;
+    changedList = null;
+    terminal(list);
   } else if (e.response && parent) {
     if (scenario === "host-actions") {
       if (!("result" in e.response)) throw Error("host-action denied");

@@ -2803,6 +2803,8 @@ enum ProcessMode {
     Resource,
     Native,
     InvalidLane,
+    Changed,
+    ChangedWrongScope,
 }
 fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     setup: &Setup,
@@ -2824,26 +2826,45 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     let invalid_lane = mode == ProcessMode::InvalidLane;
     let peer = if invalid_lane {
         Channel::spawn_invalid_lane(language, core, minor)
+    } else if mode == ProcessMode::Changed {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-changed")
+    } else if mode == ProcessMode::ChangedWrongScope {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-changed-wrong-scope")
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
         Channel::spawn(language, core, minor)
     };
     let clock = Arc::new(RealClock::default());
-    let connection = drive(
-        setup,
-        ProfileConnection::connect(
-            service_host(core, profiles),
-            peer.clone(),
-            clock,
-            PumpConfig {
-                max_read_chunk: NonZeroUsize::new(4096).unwrap(),
-                write_timeout_ms: NonZeroU64::new(5000).unwrap(),
-            },
-            reservations(),
-            20000,
-        ),
-    )
+    let config = PumpConfig {
+        max_read_chunk: NonZeroUsize::new(4096).unwrap(),
+        write_timeout_ms: NonZeroU64::new(5000).unwrap(),
+    };
+    let connection = if matches!(mode, ProcessMode::Changed | ProcessMode::ChangedWrongScope) {
+        drive(
+            setup,
+            harness.connect_profile_service(
+                service_host(core, profiles),
+                peer.clone(),
+                clock,
+                config,
+                reservations(),
+                20000,
+            ),
+        )
+    } else {
+        drive(
+            setup,
+            ProfileConnection::connect(
+                service_host(core, profiles),
+                peer.clone(),
+                clock,
+                config,
+                reservations(),
+                20000,
+            ),
+        )
+    }
     .unwrap();
     assert_eq!(connection.grant().profiles().len(), 17);
     assert_eq!(
@@ -3059,6 +3080,90 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 .expect("assistant-linked native usage");
             assert!(after.entries.iter().any(|entry| matches!(entry, Entry::Message(message) if &message.id == linked && matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
         }
+        if matches!(mode, ProcessMode::Changed | ProcessMode::ChangedWrongScope) {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            let baseline = setup.pump.drive(store.snapshot()).unwrap();
+            assert!(!catalog.refresh_pending());
+            let refreshed = drive(
+                setup,
+                harness.refresh_profile_resources(connection.clone(), cap.clone(), &catalog),
+            );
+            let peer_requests = peer.peer_request_frames();
+            assert_eq!(peer_requests.len(), 1);
+            let changed = &peer_requests[0];
+            assert_eq!(changed.method, "resource.changed");
+            assert_eq!(changed.request_id, 2000);
+            assert_eq!(changed.capability_ref.as_ref(), Some(&cap));
+            assert_eq!(changed.parent_request_id, None);
+            assert_eq!(changed.effect_key, None);
+            assert_eq!(changed.initial_stream_credit_bytes, Some(0));
+            let payload = dto::ResourceChanged::decode(changed.payload.as_slice()).unwrap();
+            assert_eq!(
+                payload.scope,
+                if mode == ProcessMode::Changed {
+                    "allowed"
+                } else {
+                    "wrong-scope"
+                }
+            );
+            if mode == ProcessMode::ChangedWrongScope {
+                assert!(refreshed.is_err(), "wrong scope cannot complete refresh");
+                assert!(!catalog.refresh_pending());
+                assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), baseline);
+                assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
+                connection.close();
+                peer.finish(false);
+                let _ = setup.pump.drive(harness.close());
+                return;
+            }
+            let second = refreshed.unwrap();
+            assert_eq!(second.revision(), "r1");
+            assert!(!Arc::ptr_eq(&revision, &second));
+            assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
+            assert!(Arc::ptr_eq(&catalog.capture().unwrap(), &second));
+            assert!(
+                catalog.refresh_pending(),
+                "changed during fetch survives install"
+            );
+            assert!(
+                connection.current(),
+                "selected service remains live through install"
+            );
+            assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), baseline);
+            let responses = peer.response_frames();
+            assert_eq!(responses.len(), 1);
+            assert_eq!(responses[0].request_id, 2000);
+            let Some(v1_1::response::Terminal::Result(body)) = &responses[0].terminal else {
+                panic!("selected changed acknowledgement")
+            };
+            dto::ResourceChangedAck::decode(body.as_slice()).unwrap();
+            let wire = peer.request_frames();
+            assert_eq!(
+                wire.iter().map(|r| r.method.as_str()).collect::<Vec<_>>(),
+                [
+                    "resource.list",
+                    "resource.read",
+                    "before_run",
+                    "before_request",
+                    "transform_context",
+                    "provider.invoke",
+                    "after_response",
+                    "before_run_end",
+                    "resource.list",
+                    "resource.read"
+                ]
+            );
+            let mut all_ids = std::collections::BTreeSet::new();
+            for request in &wire {
+                assert!(all_ids.insert(request.request_id));
+            }
+            for request in &wire[8..] {
+                assert_eq!(request.capability_ref.as_ref(), Some(&cap));
+                assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                assert_eq!(request.parent_request_id, None);
+            }
+        }
     }
     assert_eq!(connection.occupancy(), 0);
     peer.finish(true);
@@ -3160,6 +3265,80 @@ fn runtime_native_rejects_corrupted_before_run_lane() {
             language,
             ProcessMode::InvalidLane,
         );
+    }
+}
+#[test]
+fn runtime_native_changed_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Changed,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_changed_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Changed,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_changed_wrong_scope_memory_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        accepted_process_consumer(
+            &setup,
+            setup.session.clone(),
+            setup.store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::ChangedWrongScope,
+        );
+    }
+}
+#[test]
+fn runtime_native_changed_wrong_scope_sqlite_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        let (session, store, dir) = sqlite_case(&setup);
+        accepted_process_consumer(
+            &setup,
+            session,
+            store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::ChangedWrongScope,
+        );
+        drop(store);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }
 
