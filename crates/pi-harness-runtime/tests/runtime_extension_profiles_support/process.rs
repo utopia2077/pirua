@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "65dcd78394d69bf4d2bcbba9a65ebc993a1756172ace41c5db6cc5f2fcec823b",
+            "6ca53fda51203855bc7e490d455ce998c7cb8a660cbeeb2b8f9edca7168cf991",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "d23579b9d634a44a6e078140c2c02b64f447309983a45ed4cb8133b0ee0e641e",
+            "e0c47d0531427e26fd29ac29f460556c35a625be47e6ee8b5def4be5972aa34c",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -377,6 +377,23 @@ impl Channel {
             }
         }
         requests
+    }
+    pub fn peer_response_frames(&self) -> Vec<v1_1::Response> {
+        let bytes = self.incoming.lock().unwrap().clone();
+        let mut offset = 0;
+        let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+        let mut responses = Vec::new();
+        while offset < bytes.len() {
+            let step = reader.read_one(&bytes[offset..]).unwrap();
+            assert!(step.consumed > 0, "captured peer frame must advance");
+            offset += step.consumed;
+            if let Some(frame) = step.frame
+                && let Some(v1_1::envelope::Frame::Response(response)) = frame.envelope.frame
+            {
+                responses.push(response);
+            }
+        }
+        responses
     }
     pub fn finish(&self, success: bool) {
         self.closed.store(true, Ordering::SeqCst);

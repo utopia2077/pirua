@@ -26,8 +26,11 @@ const corpus = JSON.parse(
     "utf8",
   ),
 );
+const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
+  scenario === "runtime-native-telemetry-bad-ack" ||
+  scenario === "runtime-native-telemetry-bad-flush";
 const runtimeChanged = scenario === "runtime-native-changed" ||
-  scenario === "runtime-native-changed-wrong-scope";
+  scenario === "runtime-native-changed-wrong-scope" || runtimeTelemetry;
 if (
   !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged) ||
   ![0, 1].includes(core) ||
@@ -118,6 +121,9 @@ let runtimeRunId: string | null = null;
 let runtimeProviderId: number | null = null;
 let changedList: any = null;
 let changedAcked = false;
+let telemetryBatches = 0;
+let telemetryLastSequence: number | null = null;
+let telemetryFlushed = false;
 const runtimeIds = new Set<number>();
 function runtimeProjection(value: any, id: string): any {
   if (value?.projection_id !== id || !value.value)
@@ -130,8 +136,14 @@ function validateRuntime(r: any, m: any, decoded: any) {
   boundCheck(again);
   if (!profileCodec.encode(m.request, sortedMaps(again)).equals(encoded))
     throw Error("runtime DTO round trip");
-  if (r.method !== runtimeMethods[runtimeIndex++])
-    throw Error(`runtime method order: ${r.method}`);
+  if (runtimeIndex < runtimeMethods.length) {
+    if (r.method !== runtimeMethods[runtimeIndex++])
+      throw Error(`runtime method order: ${r.method}`);
+  } else if (!runtimeTelemetry || telemetryFlushed ||
+    (r.method !== "telemetry.emit_batch" &&
+      (r.method !== "telemetry.flush" || telemetryBatches === 0))) {
+    throw Error(`runtime telemetry order: ${r.method}`);
+  }
   if (
     !Number.isSafeInteger(r.request_id) || r.request_id <= 0 ||
     runtimeIds.has(r.request_id) ||
@@ -143,7 +155,8 @@ function validateRuntime(r: any, m: any, decoded: any) {
   runtimeIds.add(r.request_id);
   if (r.method === "provider.invoke") runtimeProviderId = r.request_id;
   const name = m.profile === "resource.v1" ? "resources" :
-    m.profile === "provider.v1" ? "remote" : r.method;
+    m.profile === "provider.v1" ? "remote" :
+    m.profile === "telemetry-sink.v1" ? "metrics" : r.method;
   const selected = granted.selected_capabilities.find(
     (c: any) => c.profile.name === m.profile && c.name === name,
   );
@@ -153,6 +166,30 @@ function validateRuntime(r: any, m: any, decoded: any) {
       codec.encode("CapabilityRef", selected),
     )
   ) throw Error("runtime selected reference");
+  if (m.profile === "telemetry-sink.v1") {
+    if (!runtimeTelemetry || r.effect_key !== undefined ||
+      !Number.isSafeInteger(r.deadline_after_ms) ||
+      r.deadline_after_ms <= 0 || r.deadline_after_ms > 5000)
+      throw Error("runtime telemetry binding");
+    if (r.method === "telemetry.emit_batch") {
+      if (decoded.schema_version !== 1 ||
+        decoded.sequence !== telemetryBatches ||
+        !Array.isArray(decoded.records) || decoded.records.length === 0)
+        throw Error("runtime telemetry batch");
+      for (const record of decoded.records) {
+        const value = runtimeProjection(record, "telemetry.record.v1");
+        if (JSON.stringify(value).includes("SENTINEL"))
+          throw Error("runtime telemetry exposure");
+      }
+      telemetryLastSequence = decoded.sequence;
+      telemetryBatches++;
+    } else {
+      if (decoded.through_sequence !== telemetryLastSequence)
+        throw Error("runtime telemetry flush sequence");
+      telemetryFlushed = true;
+    }
+    return;
+  }
   if (m.profile === "resource.v1") {
     const expected = payloadObject(corpus.methods[r.method].request);
     if (!profileCodec.encode(m.request, sortedMaps(decoded)).equals(
@@ -357,9 +394,21 @@ function resultFor(method: string) {
       : (v.positive_terminal ?? v.terminal),
   );
 }
-function terminal(r: any) {
+function terminal(r: any, decoded?: any) {
   const m = profileCodec.methods[r.method];
   let obj = resultFor(r.method);
+  if (runtimeTelemetry && r.method === "telemetry.emit_batch") {
+    if (!decoded) throw Error("runtime telemetry payload");
+    obj = { accepted: decoded.records.length, dropped: 0 };
+    if (scenario === "runtime-native-telemetry-bad-ack" && telemetryBatches === 1)
+      obj.accepted++;
+  }
+  if (runtimeTelemetry && r.method === "telemetry.flush") {
+    if (!decoded) throw Error("runtime telemetry flush payload");
+    obj = { flushed_through: decoded.through_sequence };
+    if (scenario === "runtime-native-telemetry-bad-flush")
+      obj.flushed_through++;
+  }
   if (scenario === "pending" && r.method === "provider.invoke")
     obj.assistant_message.value.map_value.entries.find(
       (e: any) => e.key === "stopReason",
@@ -538,7 +587,7 @@ for (;;) {
       streams.set(r.request_id, state);
       if (!["cancel", "cancel-progress", "loss"].includes(scenario))
         flush(state);
-    } else terminal(r);
+    } else terminal(r, decoded);
   } else if (e.credit) {
     const s = streams.get(e.credit.request_id);
     if (!s) throw Error("unowned Credit");

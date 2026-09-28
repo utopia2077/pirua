@@ -2805,6 +2805,9 @@ enum ProcessMode {
     InvalidLane,
     Changed,
     ChangedWrongScope,
+    Telemetry,
+    TelemetryBadAck,
+    TelemetryBadFlush,
 }
 fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     setup: &Setup,
@@ -2816,12 +2819,40 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     mode: ProcessMode,
 ) {
     use pi_harness_runtime::extensions::{
-        profiles::{connection::ProfileConnection, resources::ResourceCatalog},
+        profiles::{
+            connection::ProfileConnection, resources::ResourceCatalog,
+            telemetry::ProjectedTelemetry,
+        },
         transport::PumpConfig,
     };
     use runtime_extension_profiles_support::process::{Channel, RealClock, drive};
     use std::num::{NonZeroU64, NonZeroUsize};
-    let harness = create(setup, session);
+    let telemetry_mode = matches!(
+        mode,
+        ProcessMode::Telemetry | ProcessMode::TelemetryBadAck | ProcessMode::TelemetryBadFlush
+    );
+    let telemetry = telemetry_mode.then(|| {
+        ProjectedTelemetry::new(Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT), 1048576, 256)
+            .unwrap()
+    });
+    let harness = if let Some(sink) = &telemetry {
+        let factory = RuntimeFactory::new(
+            setup.time.clone(),
+            setup.pump.clone(),
+            setup.ids.clone(),
+            Arc::new(()),
+            Arc::new(Summary),
+        );
+        let mut options = setup.options_for::<(), _>(session, DriveMode::Automatic);
+        options.telemetry_context = Arc::new(sink.clone());
+        setup
+            .pump
+            .drive(factory.create_configured(options))
+            .unwrap()
+            .harness
+    } else {
+        create(setup, session)
+    };
     let profiles = accepted_profiles();
     let invalid_lane = mode == ProcessMode::InvalidLane;
     let peer = if invalid_lane {
@@ -2830,6 +2861,12 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-changed")
     } else if mode == ProcessMode::ChangedWrongScope {
         Channel::spawn_scenario(language, core, minor, "runtime-native-changed-wrong-scope")
+    } else if mode == ProcessMode::Telemetry {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-telemetry")
+    } else if mode == ProcessMode::TelemetryBadAck {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-telemetry-bad-ack")
+    } else if mode == ProcessMode::TelemetryBadFlush {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-telemetry-bad-flush")
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
@@ -2840,7 +2877,14 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         max_read_chunk: NonZeroUsize::new(4096).unwrap(),
         write_timeout_ms: NonZeroU64::new(5000).unwrap(),
     };
-    let connection = if matches!(mode, ProcessMode::Changed | ProcessMode::ChangedWrongScope) {
+    let connection = if matches!(
+        mode,
+        ProcessMode::Changed
+            | ProcessMode::ChangedWrongScope
+            | ProcessMode::Telemetry
+            | ProcessMode::TelemetryBadAck
+            | ProcessMode::TelemetryBadFlush
+    ) {
         drive(
             setup,
             harness.connect_profile_service(
@@ -3080,7 +3124,14 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 .expect("assistant-linked native usage");
             assert!(after.entries.iter().any(|entry| matches!(entry, Entry::Message(message) if &message.id == linked && matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
         }
-        if matches!(mode, ProcessMode::Changed | ProcessMode::ChangedWrongScope) {
+        if matches!(
+            mode,
+            ProcessMode::Changed
+                | ProcessMode::ChangedWrongScope
+                | ProcessMode::Telemetry
+                | ProcessMode::TelemetryBadAck
+                | ProcessMode::TelemetryBadFlush
+        ) {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
             let baseline = setup.pump.drive(store.snapshot()).unwrap();
@@ -3101,10 +3152,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             let payload = dto::ResourceChanged::decode(changed.payload.as_slice()).unwrap();
             assert_eq!(
                 payload.scope,
-                if mode == ProcessMode::Changed {
-                    "allowed"
-                } else {
+                if mode == ProcessMode::ChangedWrongScope {
                     "wrong-scope"
+                } else {
+                    "allowed"
                 }
             );
             if mode == ProcessMode::ChangedWrongScope {
@@ -3162,6 +3213,176 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 assert_eq!(request.capability_ref.as_ref(), Some(&cap));
                 assert_eq!(request.initial_stream_credit_bytes, Some(0));
                 assert_eq!(request.parent_request_id, None);
+            }
+            if let Some(sink) = &telemetry {
+                use pi_telemetry::TelemetryContext;
+                let metrics = connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| p.reference().name == "metrics")
+                    .unwrap()
+                    .reference()
+                    .clone();
+                let before_telemetry = setup.pump.drive(store.snapshot()).unwrap();
+                let mut attributes = pi_telemetry::SpanAttributes::new();
+                attributes.insert(
+                    "pi.operation.id".into(),
+                    pi_telemetry::AttributeValue::String("SENTINEL-telemetry-local".into()),
+                );
+                sink.start_span(pi_telemetry::SpanOptions {
+                    name: "pi.harness.run".into(),
+                    attributes,
+                })
+                .finish();
+                let mut delivered = 0;
+                loop {
+                    let before_requests = peer.requests();
+                    let ok = drive(
+                        setup,
+                        harness.deliver_profile_telemetry(
+                            connection.clone(),
+                            metrics.clone(),
+                            sink,
+                        ),
+                    );
+                    if mode == ProcessMode::TelemetryBadAck {
+                        assert!(!ok, "wrong telemetry count must disable sink");
+                        assert_eq!(peer.requests(), before_requests + 1);
+                        break;
+                    }
+                    assert!(ok, "selected telemetry batch acknowledgement");
+                    if peer.requests() == before_requests {
+                        break;
+                    }
+                    delivered += 1;
+                    assert!(delivered <= 256, "finite telemetry batch history");
+                }
+                let wire = peer.request_frames();
+                let batches = wire[10..]
+                    .iter()
+                    .filter(|r| r.method == "telemetry.emit_batch")
+                    .collect::<Vec<_>>();
+                assert!(!batches.is_empty(), "actual native telemetry batch");
+                assert_eq!(
+                    batches.len(),
+                    if mode == ProcessMode::TelemetryBadAck {
+                        1
+                    } else {
+                        delivered
+                    }
+                );
+                let child_replies = peer.peer_response_frames();
+                let mut request_ids = wire[..10]
+                    .iter()
+                    .map(|r| r.request_id)
+                    .collect::<std::collections::BTreeSet<_>>();
+                let mut through = None;
+                for (index, request) in batches.iter().enumerate() {
+                    assert!(request_ids.insert(request.request_id));
+                    assert_eq!(request.capability_ref.as_ref(), Some(&metrics));
+                    assert_eq!(request.parent_request_id, None);
+                    assert_eq!(request.effect_key, None);
+                    assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                    assert!(
+                        request
+                            .deadline_after_ms
+                            .is_some_and(|ms| ms > 0 && ms <= 5000)
+                    );
+                    let batch =
+                        dto::TelemetryEmitBatchRequest::decode(request.payload.as_slice()).unwrap();
+                    assert_eq!(batch.schema_version, 1);
+                    assert_eq!(batch.sequence, index as u64);
+                    assert!(!batch.records.is_empty());
+                    for record in &batch.records {
+                        assert_eq!(record.projection_id, "telemetry.record.v1");
+                        assert_eq!(
+                            record
+                                .schema_digest_sha256
+                                .iter()
+                                .map(|byte| format!("{byte:02x}"))
+                                .collect::<String>(),
+                            "f6bc4911e2cdcbaaa0e84b3d62f2b4aa8278afcb448c56a6971aec61a55bc91b"
+                        );
+                        let value = wire_value(record.value.clone().unwrap());
+                        assert!(!value.to_string().contains("SENTINEL"));
+                    }
+                    let replies = child_replies
+                        .iter()
+                        .filter(|r| r.request_id == request.request_id)
+                        .collect::<Vec<_>>();
+                    assert_eq!(replies.len(), 1);
+                    let Some(v1_1::response::Terminal::Result(body)) = &replies[0].terminal else {
+                        panic!("typed telemetry batch Result")
+                    };
+                    let ack = dto::TelemetryEmitBatchResult::decode(body.as_slice()).unwrap();
+                    assert_eq!(
+                        ack.accepted,
+                        batch.records.len() as u64
+                            + u64::from(mode == ProcessMode::TelemetryBadAck)
+                    );
+                    assert_eq!(ack.dropped, 0);
+                    through = Some(batch.sequence);
+                }
+                if mode == ProcessMode::TelemetryBadAck {
+                    assert!(sink.disabled());
+                    assert_eq!(wire.len(), 11, "bad ack cannot reach flush");
+                } else {
+                    let through = through.unwrap();
+                    let flushed = drive(
+                        setup,
+                        harness.flush_profile_telemetry(
+                            connection.clone(),
+                            metrics.clone(),
+                            sink,
+                            through,
+                        ),
+                    );
+                    assert_eq!(flushed, mode != ProcessMode::TelemetryBadFlush);
+                    let wire = peer.request_frames();
+                    assert_eq!(wire.len(), 10 + batches.len() + 1);
+                    let flush = wire.last().unwrap();
+                    assert_eq!(flush.method, "telemetry.flush");
+                    assert!(request_ids.insert(flush.request_id));
+                    assert_eq!(flush.capability_ref.as_ref(), Some(&metrics));
+                    assert_eq!(flush.parent_request_id, None);
+                    assert_eq!(flush.effect_key, None);
+                    assert_eq!(flush.initial_stream_credit_bytes, Some(0));
+                    assert!(
+                        flush
+                            .deadline_after_ms
+                            .is_some_and(|ms| ms > 0 && ms <= 5000)
+                    );
+                    let payload =
+                        dto::TelemetryFlushRequest::decode(flush.payload.as_slice()).unwrap();
+                    assert_eq!(payload.through_sequence, through);
+                    let replies = peer.peer_response_frames();
+                    let replies = replies
+                        .iter()
+                        .filter(|r| r.request_id == flush.request_id)
+                        .collect::<Vec<_>>();
+                    assert_eq!(replies.len(), 1);
+                    let Some(v1_1::response::Terminal::Result(body)) = &replies[0].terminal else {
+                        panic!("typed telemetry flush Result")
+                    };
+                    let ack = dto::TelemetryFlushResult::decode(body.as_slice()).unwrap();
+                    assert_eq!(
+                        ack.flushed_through,
+                        through + u64::from(mode == ProcessMode::TelemetryBadFlush)
+                    );
+                    assert_eq!(sink.disabled(), mode == ProcessMode::TelemetryBadFlush);
+                    if mode == ProcessMode::Telemetry {
+                        assert_eq!(sink.dropped(), 0);
+                    }
+                }
+                assert!(connection.current());
+                assert_eq!(connection.occupancy(), 0);
+                assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
+                assert!(catalog.refresh_pending());
+                assert_eq!(
+                    setup.pump.drive(store.snapshot()).unwrap(),
+                    before_telemetry
+                );
             }
         }
     }
@@ -3336,6 +3557,113 @@ fn runtime_native_changed_wrong_scope_sqlite_no_write() {
             0,
             language,
             ProcessMode::ChangedWrongScope,
+        );
+        drop(store);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+}
+#[test]
+fn runtime_native_telemetry_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Telemetry,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_telemetry_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::Telemetry,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_telemetry_bad_ack_memory_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        accepted_process_consumer(
+            &setup,
+            setup.session.clone(),
+            setup.store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::TelemetryBadAck,
+        );
+    }
+}
+#[test]
+fn runtime_native_telemetry_bad_ack_sqlite_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        let (session, store, dir) = sqlite_case(&setup);
+        accepted_process_consumer(
+            &setup,
+            session,
+            store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::TelemetryBadAck,
+        );
+        drop(store);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+}
+#[test]
+fn runtime_native_telemetry_bad_flush_memory_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        accepted_process_consumer(
+            &setup,
+            setup.session.clone(),
+            setup.store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::TelemetryBadFlush,
+        );
+    }
+}
+#[test]
+fn runtime_native_telemetry_bad_flush_sqlite_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        let (session, store, dir) = sqlite_case(&setup);
+        accepted_process_consumer(
+            &setup,
+            session,
+            store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::TelemetryBadFlush,
         );
         drop(store);
         std::fs::remove_dir_all(dir).unwrap();

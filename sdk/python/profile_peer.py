@@ -19,8 +19,9 @@ codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(rep
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
-runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope")
-if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope") or core not in (0, 1) or minor not in (0, 1):
+runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush")
+runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
+if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -113,6 +114,9 @@ runtime_provider_id = None
 runtime_ids = set()
 changed_list = None
 changed_acked = False
+telemetry_batches = 0
+telemetry_last_sequence = None
+telemetry_flushed = False
 
 
 def runtime_projection(value, projection):
@@ -124,15 +128,22 @@ def runtime_projection(value, projection):
 
 def validate_runtime(request, method, decoded):
     global runtime_index, runtime_run_id, runtime_provider_id
+    global telemetry_batches, telemetry_last_sequence, telemetry_flushed
     encoded = profile_codec.encode(method["request"], sorted_maps(decoded))
     again = profile_codec.decode(method["request"], encoded)
     bound_check(again)
     if profile_codec.encode(method["request"], sorted_maps(again)) != encoded:
         raise ValueError("runtime DTO round trip")
     name = request["method"]
-    if runtime_index >= len(runtime_methods) or name != runtime_methods[runtime_index]:
-        raise ValueError("runtime method order: " + name)
-    runtime_index += 1
+    if runtime_index < len(runtime_methods):
+        if name != runtime_methods[runtime_index]:
+            raise ValueError("runtime method order: " + name)
+        runtime_index += 1
+    elif not runtime_telemetry or telemetry_flushed or (
+        name != "telemetry.emit_batch" and
+        (name != "telemetry.flush" or telemetry_batches == 0)
+    ):
+        raise ValueError("runtime telemetry order: " + name)
     request_id = request["request_id"]
     if (
         not isinstance(request_id, int) or request_id <= 0
@@ -150,6 +161,8 @@ def validate_runtime(request, method, decoded):
         "resources" if method["profile"] == "resource.v1" else
         "remote" if method["profile"] == "provider.v1" else name
     )
+    if method["profile"] == "telemetry-sink.v1":
+        capability_name = "metrics"
     selected = next(
         (c for c in granted["selected_capabilities"]
          if c["profile"]["name"] == method["profile"]
@@ -161,6 +174,31 @@ def validate_runtime(request, method, decoded):
         != codec.encode("CapabilityRef", selected)
     ):
         raise ValueError("runtime selected reference")
+    if method["profile"] == "telemetry-sink.v1":
+        deadline = request.get("deadline_after_ms")
+        if (
+            not runtime_telemetry or "effect_key" in request or
+            not isinstance(deadline, int) or deadline <= 0 or deadline > 5000
+        ):
+            raise ValueError("runtime telemetry binding")
+        if name == "telemetry.emit_batch":
+            if (
+                decoded["schema_version"] != 1 or
+                decoded["sequence"] != telemetry_batches or
+                not decoded["records"]
+            ):
+                raise ValueError("runtime telemetry batch")
+            for record in decoded["records"]:
+                value = runtime_projection(record, "telemetry.record.v1")
+                if "SENTINEL" in json.dumps(value):
+                    raise ValueError("runtime telemetry exposure")
+            telemetry_last_sequence = decoded["sequence"]
+            telemetry_batches += 1
+        else:
+            if decoded["through_sequence"] != telemetry_last_sequence:
+                raise ValueError("runtime telemetry flush sequence")
+            telemetry_flushed = True
+        return
     if method["profile"] == "resource.v1":
         expected = payload_object(corpus["methods"][name]["request"])
         if profile_codec.encode(method["request"], sorted_maps(decoded)) != profile_codec.encode(
@@ -394,10 +432,22 @@ def result_for(method):
     )
 
 
-def terminal(request):
+def terminal(request, decoded=None):
     global once_done
     m = profile_codec.methods[request["method"]]
     obj = result_for(request["method"])
+    if runtime_telemetry and request["method"] == "telemetry.emit_batch":
+        if decoded is None:
+            raise ValueError("runtime telemetry payload")
+        obj = {"accepted": len(decoded["records"]), "dropped": 0}
+        if scenario == "runtime-native-telemetry-bad-ack" and telemetry_batches == 1:
+            obj["accepted"] += 1
+    if runtime_telemetry and request["method"] == "telemetry.flush":
+        if decoded is None:
+            raise ValueError("runtime telemetry flush payload")
+        obj = {"flushed_through": decoded["through_sequence"]}
+        if scenario == "runtime-native-telemetry-bad-flush":
+            obj["flushed_through"] += 1
     if scenario == "pending" and request["method"] == "provider.invoke":
         next(
             e
@@ -596,7 +646,7 @@ while not once_done:
             if scenario not in ("cancel", "cancel-progress", "loss"):
                 flush(state)
         else:
-            terminal(request)
+            terminal(request, decoded)
     elif "credit" in e:
         cr = e["credit"]
         state = streams[cr["request_id"]]
