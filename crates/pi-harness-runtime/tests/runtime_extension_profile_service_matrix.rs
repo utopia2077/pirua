@@ -26,11 +26,148 @@ use std::{
 };
 
 fn keyed_payload_schema() -> pi_extension_protocol::jcs::PortableSchema {
+    let tool = selected_tool_wire();
+    let schema = serde_json::json!({
+        "type":"object",
+        "properties":{
+            "model":{"type":"object"},
+            "context":{"type":"object"},
+            "tools":{"type":"array","items":{"type":"object","const":tool},"maxItems":1},
+            "options":{"type":"object"}
+        },
+        "required":["model","context","tools","options"],
+        "additionalProperties":false
+    });
     pi_extension_protocol::jcs::admit_schema(
-        br#"{"type":"object","properties":{"model":{"type":"object"},"context":{"type":"object"},"tools":{"type":"array","items":{"type":"null"},"maxItems":0},"options":{"type":"object"}},"required":["model","context","tools","options"],"additionalProperties":false}"#,
+        &serde_json::to_vec(&schema).unwrap(),
         Default::default(),
     )
     .unwrap()
+}
+
+fn selected_tool_descriptor() -> AgentTool {
+    AgentTool {
+        name: pi_ai_core::ToolName::new("matrix-tool").unwrap(),
+        label: "matrix".into(),
+        description: "native matrix tool".into(),
+        parameters: serde_json::from_value(
+            serde_json::json!({"type":"object","properties":{},"additionalProperties":false}),
+        )
+        .unwrap(),
+        constrained_sampling: None,
+        execution_mode: None,
+        replay: Some(ToolReplay::Safe),
+    }
+}
+
+fn selected_tool_wire() -> serde_json::Value {
+    let descriptor = selected_tool_descriptor();
+    serde_json::to_value(pi_ai_core::Tool {
+        name: descriptor.name,
+        description: descriptor.description,
+        parameters: descriptor.parameters,
+        constrained_sampling: descriptor.constrained_sampling,
+    })
+    .unwrap()
+}
+
+fn selected_provider_profile(
+    model: &pi_ai_core::Model,
+) -> pi_extension_protocol::profiles::ApprovedProfile {
+    use pi_extension_protocol::profiles::{ApprovedProfile, Exposure, ProfileApproval};
+    let empty = pi_extension_protocol::jcs::admit_schema(
+        br#"{"type":"object","properties":{},"additionalProperties":false}"#,
+        Default::default(),
+    )
+    .unwrap();
+    let null = pi_extension_protocol::jcs::admit_schema(br#"{"type":"null"}"#, Default::default())
+        .unwrap();
+    let tool = selected_tool_wire();
+    let parameters = pi_extension_protocol::jcs::admit_schema(
+        &serde_json::to_vec(&exact_schema(&tool["parameters"])).unwrap(),
+        Default::default(),
+    )
+    .unwrap();
+    let mut leaves = BTreeMap::from([
+        ("provider.tools.v1[].parameters".into(), parameters),
+        (
+            "provider.assistant_message.v1.content[].arguments".into(),
+            empty.clone(),
+        ),
+        (
+            "provider.assistant_event.v1.toolCall.arguments".into(),
+            empty.clone(),
+        ),
+        (
+            "provider.context.v1.messages[].content[].arguments".into(),
+            empty,
+        ),
+        ("provider.context.v1.messages[].details".into(), null),
+    ]);
+    let raw_model = serde_json::to_value(model).unwrap();
+    for part in ["compat", "samplingParams"] {
+        leaves.insert(
+            format!("provider.model.v1.{part}"),
+            pi_extension_protocol::jcs::admit_schema(
+                &serde_json::to_vec(&exact_schema(&raw_model[part])).unwrap(),
+                Default::default(),
+            )
+            .unwrap(),
+        );
+    }
+    ApprovedProfile::new(ProfileApproval {
+        principal: "peer-a".into(),
+        kind: "provider".into(),
+        name: model.provider.as_str().into(),
+        profile: "provider.v1".into(),
+        handler: "remote-handler".into(),
+        minors: BTreeSet::from([0, 1]),
+        replay: 1,
+        execution: 2,
+        scope: "main".into(),
+        permissions: BTreeSet::new(),
+        exposure: Exposure::new(leaves, BTreeSet::new()).unwrap(),
+    })
+    .unwrap()
+}
+
+struct MatrixTool {
+    descriptor: AgentTool,
+    calls: std::sync::atomic::AtomicUsize,
+}
+impl AgentHarnessTool<()> for MatrixTool {
+    fn descriptor(&self) -> &AgentTool {
+        &self.descriptor
+    }
+    fn prepare_arguments(
+        &self,
+        args: pi_ai_core::JsonValue,
+    ) -> Result<pi_ai_core::JsonObject, ToolExecutionError> {
+        let pi_ai_core::JsonValue::Object(args) = args else {
+            panic!("native tool arguments object")
+        };
+        Ok(args)
+    }
+    fn execute<'a>(
+        &'a self,
+        _: pi_ai_core::ToolCallId,
+        args: pi_ai_core::JsonObject,
+        _: &'a dyn Cancellation,
+        _: &'a dyn ToolProgressSink,
+        _: &'a (),
+    ) -> BoxFuture<'a, Result<AgentToolResult, ToolExecutionError>> {
+        Box::pin(async move {
+            assert!(args.as_map().is_empty());
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            Ok(AgentToolResult {
+                content: vec![],
+                details: pi_ai_core::JsonValue::Null,
+                usage: None,
+                added_tool_names: None,
+                terminate: None,
+            })
+        })
+    }
 }
 
 fn keyed_before_payload_profile(
@@ -69,6 +206,75 @@ fn keyed_before_payload_profile(
         scope: "main".into(),
         permissions: BTreeSet::new(),
         exposure: Exposure::new(leaves, BTreeSet::new()).unwrap(),
+    })
+    .unwrap()
+}
+
+fn selected_after_response_profile() -> pi_extension_protocol::profiles::ApprovedProfile {
+    use pi_extension_protocol::profiles::{ApprovedProfile, Exposure, ProfileApproval};
+    let arguments = pi_extension_protocol::jcs::admit_schema(
+        br#"{"type":"object","properties":{},"additionalProperties":false}"#,
+        Default::default(),
+    )
+    .unwrap();
+    ApprovedProfile::new(ProfileApproval {
+        principal: "peer-a".into(),
+        kind: "hook".into(),
+        name: "after_response".into(),
+        profile: "hook.v1".into(),
+        handler: "remote-handler".into(),
+        minors: BTreeSet::from([0, 1]),
+        replay: 1,
+        execution: 1,
+        scope: "main".into(),
+        permissions: BTreeSet::new(),
+        exposure: Exposure::new(
+            BTreeMap::from([(
+                "hook.input:after_response.event.message.content[].arguments".into(),
+                arguments,
+            )]),
+            BTreeSet::new(),
+        )
+        .unwrap(),
+    })
+    .unwrap()
+}
+
+fn selected_transform_context_profile() -> pi_extension_protocol::profiles::ApprovedProfile {
+    use pi_extension_protocol::profiles::{ApprovedProfile, Exposure, ProfileApproval};
+    let arguments = pi_extension_protocol::jcs::admit_schema(
+        br#"{"type":"object","properties":{},"additionalProperties":false}"#,
+        Default::default(),
+    )
+    .unwrap();
+    let details =
+        pi_extension_protocol::jcs::admit_schema(br#"{"type":"null"}"#, Default::default())
+            .unwrap();
+    ApprovedProfile::new(ProfileApproval {
+        principal: "peer-a".into(),
+        kind: "hook".into(),
+        name: "transform_context".into(),
+        profile: "hook.v1".into(),
+        handler: "remote-handler".into(),
+        minors: BTreeSet::from([0, 1]),
+        replay: 1,
+        execution: 1,
+        scope: "main".into(),
+        permissions: BTreeSet::new(),
+        exposure: Exposure::new(
+            BTreeMap::from([
+                (
+                    "hook.input:transform_context.event.messages[].content[].arguments".into(),
+                    arguments,
+                ),
+                (
+                    "hook.input:transform_context.event.messages[].details".into(),
+                    details,
+                ),
+            ]),
+            BTreeSet::new(),
+        )
+        .unwrap(),
     })
     .unwrap()
 }
@@ -153,6 +359,12 @@ fn run<S: RuntimeStorage + 'static>(
         Arc::new(Summary),
     );
     let mut options = setup.options_for::<(), _>(session, DriveMode::Automatic);
+    let tool = Arc::new(MatrixTool {
+        descriptor: selected_tool_descriptor(),
+        calls: std::sync::atomic::AtomicUsize::new(0),
+    });
+    options.tools = vec![tool.clone()];
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
     options.telemetry_context = Arc::new(sink.clone());
     let harness: Arc<RuntimeHarness<(), S, SessionMetadata>> = setup
         .pump
@@ -164,12 +376,16 @@ fn run<S: RuntimeStorage + 'static>(
         .map(|name| {
             if *name == "before_payload" {
                 keyed_before_payload_profile(&setup.faux.model)
+            } else if *name == "after_response" {
+                selected_after_response_profile()
+            } else if *name == "transform_context" {
+                selected_transform_context_profile()
             } else {
                 profile("hook.v1", name)
             }
         })
         .chain([
-            profile("provider.v1", setup.faux.model.provider.as_str()),
+            selected_provider_profile(&setup.faux.model),
             profile("resource.v1", "resources"),
             all_actions_profile(false),
             all_actions_profile(true),
@@ -475,6 +691,208 @@ fn run<S: RuntimeStorage + 'static>(
     }
     assert!(setup.faux.requests.lock().unwrap().is_empty());
     assert_eq!(setup.pump.drive(store.snapshot()).unwrap().usage.len(), 6);
+    let before_tool = setup.pump.drive(store.snapshot()).unwrap();
+    let first_new = peer.requests.lock().unwrap().len();
+    setup
+        .pump
+        .drive(harness.set_active_tools(vec![pi_ai_core::ToolName::new("matrix-tool").unwrap()]))
+        .unwrap();
+    peer.hold_provider.store(true, Ordering::SeqCst);
+    let mut tool_prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "same service native tool".into(),
+        images: vec![],
+    }));
+    assert!(poll(tool_prompt.as_mut()).is_pending());
+    let provider_request = (0..200)
+        .find_map(|_| {
+            setup.pump.tick();
+            if let std::task::Poll::Ready(result) = poll(tool_prompt.as_mut()) {
+                panic!(
+                    "tool prompt ended before provider: {result:?}; methods={:?}",
+                    peer.requests
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .skip(first_new)
+                        .map(|r| r.method.clone())
+                        .collect::<Vec<_>>()
+                );
+            }
+            peer.requests
+                .lock()
+                .unwrap()
+                .iter()
+                .skip(first_new)
+                .find(|r| r.method == "provider.invoke")
+                .cloned()
+        })
+        .expect("actual selected provider request");
+    assert_eq!(
+        provider_request.capability_ref.as_ref(),
+        Some(&cap(setup.faux.model.provider.as_str()))
+    );
+    let first_key = provider_request.effect_key.as_ref().unwrap().clone();
+    assert_eq!(first_key.session_id, "runtime-session");
+    assert_eq!(first_key.effect_kind, "assistant");
+    assert_eq!(provider_request.initial_stream_credit_bytes, Some(0));
+    let actual_provider =
+        dto::InvokeProviderRequest::decode(provider_request.payload.as_slice()).unwrap();
+    assert_eq!(
+        wire_value(actual_provider.tools.unwrap().value.unwrap()),
+        serde_json::json!([selected_tool_wire()])
+    );
+    let mut tool_use = assistant(&setup.faux.model, pi_ai_core::StopReason::ToolUse);
+    tool_use.content = vec![pi_ai_core::AssistantContent::ToolCall(
+        pi_ai_core::ToolCall {
+            content_type: Default::default(),
+            id: pi_ai_core::ToolCallId::new("matrix-call").unwrap(),
+            name: pi_ai_core::ToolName::new("matrix-tool").unwrap(),
+            arguments: Default::default(),
+            thought_signature: None,
+            namespace: None,
+        },
+    )];
+    let message = serde_json::to_value(&tool_use).unwrap();
+    let registry = pi_extension_protocol::profiles::Registry::bundled().unwrap();
+    let result = dto::InvokeProviderResult {
+        assistant_message: Some(
+            pi_harness_runtime::extensions::profiles::bound(
+                &registry,
+                "provider.assistant_message.v1",
+                &message,
+            )
+            .unwrap(),
+        ),
+        usage: Some(
+            pi_harness_runtime::extensions::profiles::bound(
+                &registry,
+                "provider.usage.v1",
+                &message["usage"],
+            )
+            .unwrap(),
+        ),
+    }
+    .encode_to_vec();
+    for _ in 0..20 {
+        setup.pump.tick();
+    }
+    assert!(connection.current());
+    peer.hold_provider.store(false, Ordering::SeqCst);
+    peer.push(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+        request_id: provider_request.request_id,
+        terminal: Some(v1_1::stream_end::Terminal::Result(result)),
+    }));
+    let tool_outcome = setup
+        .pump
+        .drive(tool_prompt)
+        .unwrap_or_else(|error| {
+            panic!(
+                "native tool prompt {error:?} display={error}; methods={:?}; calls={} occupancy={} current={} peer_closed={}",
+                peer.requests
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .skip(first_new)
+                    .map(|r| r.method.clone())
+                    .collect::<Vec<_>>(),
+                tool.calls.load(Ordering::SeqCst),
+                connection.occupancy(),
+                connection.current(),
+                peer.closed.load(Ordering::SeqCst)
+            )
+        })
+        .unwrap();
+    assert!(matches!(
+        tool_outcome.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    assert_eq!(tool_outcome.run_id.as_str(), first_key.operation_id);
+    assert_eq!(tool.calls.load(Ordering::SeqCst), 1);
+    let tool_requests = peer.requests.lock().unwrap();
+    let new_requests = &tool_requests[first_new..];
+    let providers = new_requests
+        .iter()
+        .filter(|r| r.method == "provider.invoke")
+        .collect::<Vec<_>>();
+    assert_eq!(providers.len(), 2);
+    assert_eq!(providers[0].request_id, provider_request.request_id);
+    let first_after_response = new_requests
+        .iter()
+        .find(|r| {
+            r.method == "after_response" && r.parent_request_id == Some(provider_request.request_id)
+        })
+        .unwrap();
+    assert_eq!(first_after_response.effect_key.as_ref(), Some(&first_key));
+    for (method, kind) in [("before_tool", "hook"), ("after_tool", "tool")] {
+        let hooks = new_requests
+            .iter()
+            .filter(|r| r.method == method)
+            .collect::<Vec<_>>();
+        assert_eq!(hooks.len(), 1, "{method}");
+        let request = hooks[0];
+        assert_eq!(request.capability_ref.as_ref(), Some(&cap(method)));
+        assert_eq!(
+            request.parent_request_id, None,
+            "local native Tool has no wire Tool parent"
+        );
+        assert_eq!(request.initial_stream_credit_bytes, Some(0));
+        let key = request.effect_key.as_ref().unwrap();
+        assert_eq!(key.operation_id, first_key.operation_id);
+        assert_eq!(key.step_or_task_id, first_key.step_or_task_id);
+        assert_eq!(key.effect_kind, kind);
+        assert_eq!(key.item_index, Some(0));
+        let invocation = dto::InvokeHookRequest::decode(request.payload.as_slice()).unwrap();
+        assert_eq!(invocation.handler_id, "remote-handler");
+        let value = wire_value(invocation.input.unwrap().value.unwrap());
+        assert_eq!(value["event"]["toolCallId"], "matrix-call");
+        assert_eq!(value["event"]["toolName"], "matrix-tool");
+        assert_eq!(value["event"]["args"], serde_json::json!({}));
+        if method == "after_tool" {
+            assert!(value["event"]["details"].is_null());
+        }
+    }
+    drop(tool_requests);
+    let after_tool = setup.pump.drive(store.snapshot()).unwrap();
+    let new_entries = &after_tool.entries[before_tool.entries.len()..];
+    let tool_results = new_entries
+        .iter()
+        .filter_map(|entry| match entry {
+            Entry::Message(entry) => match &entry.message {
+                AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result)) => Some(result),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(tool_results.len(), 1);
+    assert_eq!(tool_results[0].tool_call_id.as_str(), "matrix-call");
+    assert_eq!(tool_results[0].tool_name.as_str(), "matrix-tool");
+    assert!(!tool_results[0].is_error);
+    let assistant_ids = new_entries
+        .iter()
+        .filter_map(|entry| match entry {
+            Entry::Message(entry)
+                if matches!(
+                    entry.message,
+                    AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))
+                ) =>
+            {
+                Some(entry.id.clone())
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    assert_eq!(assistant_ids.len(), 2);
+    let new_usage = &after_tool.usage[before_tool.usage.len()..];
+    assert_eq!(new_usage.len(), 2);
+    assert_eq!(
+        new_usage
+            .iter()
+            .filter_map(|usage| usage.entry_id.clone())
+            .collect::<BTreeSet<_>>(),
+        assistant_ids
+    );
+    assert_eq!(connection.occupancy(), 0);
     connection.close();
     setup.pump.drive(harness.close()).unwrap();
 }
