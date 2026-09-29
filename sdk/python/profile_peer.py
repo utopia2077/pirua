@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 from profiles.wire import Codec, varint, payload_object, sha, wire_value, json_value
-from profiles.shapes import Shapes, probe
+from profiles.shapes import Shapes, probe, canonical
 
 mode, repo = sys.argv[1:3]
 if mode == "--probe":
@@ -24,6 +24,28 @@ runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-
 runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot") or runtime_event
 runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_event
 runtime_resume = scenario == "runtime-native-before-resume"
+runtime_payload = scenario in ("runtime-native-before-payload", "runtime-native-before-payload-malformed")
+payload_schema = {
+    "type": "object", "properties": {
+        "model": {"type": "object"}, "context": {"type": "object"},
+        "tools": {"type": "array", "items": {"type": "object"}, "maxItems": 0},
+        "options": {"type": "object"},
+    }, "required": ["model", "context", "tools", "options"], "additionalProperties": False,
+}
+if runtime_payload and sha(canonical(payload_schema).encode()) != "beccbba37a9f577ac7013fe76c88177e09a61858a91ed098076972629707643f":
+    raise ValueError("payload schema digest")
+
+
+def exact_schema(value):
+    if value is None:
+        return {"type": "null"}
+    if isinstance(value, dict):
+        return {"type": "object", "properties": {k: exact_schema(v) for k, v in value.items()}, "required": list(value), "additionalProperties": False}
+    if isinstance(value, list):
+        return {"type": "array", "items": exact_schema(value[0] if value else None), "minItems": len(value), "maxItems": len(value)}
+    return {"type": "boolean" if isinstance(value, bool) else "number" if isinstance(value, (int, float)) else "string", "enum": [value]}
+
+
 runtime_open_leaves = dict(corpus["exposure"]["open_leaves"])
 if runtime_resume:
     saved_schema = {
@@ -34,8 +56,31 @@ if runtime_resume:
     }
     runtime_open_leaves["hook.output:before_run.result.resumeData"] = saved_schema
     runtime_open_leaves["hook.input:before_resume.event.resumeData"] = saved_schema
+if runtime_payload:
+    runtime_open_leaves["hook.input:before_payload.event.payload"] = payload_schema
+    runtime_open_leaves["hook.output:before_payload.result.payload"] = payload_schema
+    model = corpus["methods"]["provider.invoke"]["request"]["model"]["value"]
+    for part in ("compat", "samplingParams"):
+        runtime_open_leaves[f"hook.input:before_payload.event.model.{part}"] = exact_schema(model.get(part))
+
+
+def payload_shape(value):
+    return (isinstance(value, dict) and set(value) == {"model", "context", "tools", "options"}
+            and all(isinstance(value[part], dict) for part in ("model", "context", "options"))
+            and value["tools"] == [])
+
+
+def payload_exposure(root, wire):
+    value = json_value(wire)
+    if root == "hook.input:before_payload":
+        event = value["event"]
+        model = corpus["methods"]["provider.invoke"]["request"]["model"]["value"]
+        return (payload_shape(event.get("payload"))
+                and event["model"].get("compat") == model.get("compat")
+                and event["model"].get("samplingParams") == model.get("samplingParams"))
+    return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id") or core not in (0, 1) or minor not in (0, 1):
+if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -109,9 +154,9 @@ def bound_check(obj):
                 != shapes.registry["projections"][root]["proposed_digest_sha256"]
                 or "value" not in obj
                 or not shapes.check(root, obj["value"])
-                or not shapes.exposed(
-                    root, obj["value"], runtime_open_leaves
-                )
+                or not (payload_exposure(root, obj["value"])
+                        if runtime_payload and root in ("hook.input:before_payload", "hook.output:before_payload")
+                        else shapes.exposed(root, obj["value"], runtime_open_leaves))
             ):
                 raise ValueError("selected projection")
         for x in obj.values():
@@ -120,7 +165,8 @@ def bound_check(obj):
 
 runtime_methods = [
     "resource.list", "resource.read", "before_run", "before_request",
-    "transform_context", "provider.invoke", "after_response", "before_run_end",
+    "transform_context", *(["before_payload"] if runtime_payload else []),
+    "provider.invoke", "after_response", "before_run_end",
 ] + (["resource.list", "resource.read"] if runtime_changed else [])
 runtime_index = 0
 runtime_run_id = None
@@ -342,6 +388,24 @@ def validate_runtime(request, method, decoded):
             or type(event.get("attempt")) is not int or event["attempt"] < 1
         ):
             raise ValueError("runtime before_request fields")
+        if name == "before_payload":
+            payload = event.get("payload")
+            key = request.get("effect_key", {})
+            if (
+                event.get("model", {}).get("id") != "m"
+                or event["model"].get("provider") != "remote"
+                or not payload_shape(payload)
+                or payload.get("tools") != []
+                or not isinstance(payload.get("context", {}).get("messages"), list)
+                or payload["context"]["messages"][0].get("role") != "user"
+                or not isinstance(payload["context"]["messages"][0].get("content"), str)
+                or "native profile peer dynamic run" not in json.dumps(payload["context"]["messages"])
+                or not isinstance(request.get("deadline_after_ms"), int)
+                or not 0 < request["deadline_after_ms"] <= 5000
+                or key.get("operation_id") != runtime_run_id
+                or key.get("effect_kind") != "assistant"
+            ):
+                raise ValueError("runtime before_payload fields")
         if name == "after_response" and (
             event.get("message", {}).get("role") != "assistant"
             or event["message"].get("provider") != "remote"
@@ -368,6 +432,8 @@ def validate_runtime(request, method, decoded):
         or model.get("api") != "openai-completions"
         or not isinstance(context.get("messages"), list)
         or not (
+            context["messages"][0].get("content") == "native payload replacement"
+            if runtime_payload else
             "native-source-handle" in json.dumps(context["messages"])
             if runtime_resume and request.get("effect_key", {}).get("effect_kind") == "deferred"
             else "native profile peer dynamic run" in json.dumps(context["messages"])
@@ -559,6 +625,15 @@ def terminal(request, decoded=None):
     global once_done
     m = profile_codec.methods[request["method"]]
     obj = result_for(request["method"])
+    if runtime_payload and request["method"] == "before_payload":
+        value = runtime_projection(decoded["input"], "hook.input:before_payload")
+        replacement = json.loads(json.dumps(value["event"]["payload"]))
+        replacement["context"]["messages"][0]["content"] = "native payload replacement"
+        obj = {"output": payload_object(corpus["methods"]["before_payload"]["positive_terminal"]["output"])}
+        obj["output"]["value"] = wire_value({
+            "name": "before_payload", "result": {"payload":
+                {"request": "malformed"} if scenario == "runtime-native-before-payload-malformed" else replacement},
+        })
     if runtime_resume and telemetry_flushed and request["method"] == "before_run":
         obj["output"] = payload_object(corpus["methods"]["before_run"]["positive_terminal"]["output"])
         obj["output"]["value"] = wire_value({
@@ -626,9 +701,10 @@ def terminal(request, decoded=None):
             }
         }
     payload = profile_codec.encode(m["terminal"], obj)
-    if runtime_resume:
+    if runtime_resume or runtime_payload:
         round_trip = profile_codec.decode(m["terminal"], payload)
-        bound_check(round_trip)
+        if scenario != "runtime-native-before-payload-malformed" or request["method"] != "before_payload":
+            bound_check(round_trip)
         if profile_codec.encode(m["terminal"], round_trip) != payload:
             raise ValueError("runtime terminal DTO round trip")
     end = {"request_id": request["request_id"]}
@@ -750,7 +826,7 @@ while not once_done:
         m = profile_codec.methods[request["method"]]
         decoded = profile_codec.decode(m["request"], request["payload"])
         bound_check(decoded)
-        if scenario == "runtime-native" or runtime_changed:
+        if scenario == "runtime-native" or runtime_changed or runtime_payload:
             validate_runtime(request, m, decoded)
         else:
             expected = payload_object(

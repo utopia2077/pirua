@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "ddecede6ac0b2202ad62bedff5fd3dc5d5d3ffc0ef1ff56b2c6974720fc7c063",
+            "e03ed930a410866c8a406a1721df152de8f9c71233d0503fa9234926ffdf4c1e",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "a7ade31e98eaafde2f2a8d411c0dfe57f96f9da490d127789d5314b6b324230e",
+            "ee2cb8c00f75e9598eaea245fad342df9543dbff13ebc3fc509d5948bec64a5d",
         ),
         (
             "sdk/python/profiles/wire.py",

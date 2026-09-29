@@ -2809,9 +2809,31 @@ enum ProcessMode {
     TelemetryBadAck,
     TelemetryBadFlush,
     BeforeResume,
+    BeforePayload,
+    BeforePayloadMalformed,
     HostSnapshot,
     EventSink,
     EventSinkWrongId,
+}
+fn before_payload_schema() -> pi_extension_protocol::jcs::PortableSchema {
+    let schema = pi_extension_protocol::jcs::admit_schema(
+        br#"{"type":"object","properties":{"model":{"type":"object"},"context":{"type":"object"},"tools":{"type":"array","items":{"type":"object"},"maxItems":0},"options":{"type":"object"}},"required":["model","context","tools","options"],"additionalProperties":false}"#,
+        Default::default(),
+    ).unwrap();
+    assert_eq!(
+        schema.canonical().sha256_hex(),
+        "beccbba37a9f577ac7013fe76c88177e09a61858a91ed098076972629707643f"
+    );
+    schema
+}
+struct AcceptPayloadNative;
+impl pi_extension_protocol::profiles::NativeValidator for AcceptPayloadNative {
+    fn validate(
+        &mut self,
+        _: &pi_extension_protocol::profiles::ValidatedPayload,
+    ) -> Result<(), pi_extension_protocol::profiles::NativeError> {
+        Ok(())
+    }
 }
 struct EventWatch(std::sync::Mutex<Vec<HarnessEvent>>);
 impl EventListener for EventWatch {
@@ -2832,6 +2854,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     mode: ProcessMode,
 ) {
     let event_mode = matches!(mode, ProcessMode::EventSink | ProcessMode::EventSinkWrongId);
+    let payload_mode = matches!(
+        mode,
+        ProcessMode::BeforePayload | ProcessMode::BeforePayloadMalformed
+    );
     use pi_harness_runtime::extensions::{
         profiles::{
             connection::ProfileConnection, resources::ResourceCatalog,
@@ -2873,7 +2899,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     } else {
         create(setup, session)
     };
-    let profiles = if mode == ProcessMode::BeforeResume {
+    let profiles = if mode == ProcessMode::BeforeResume || payload_mode {
         use std::collections::{BTreeMap, BTreeSet};
         let corpus: serde_json::Value = serde_json::from_str(include_str!(
             "runtime_extension_profiles_support/profiles-runtime-v1.json"
@@ -2894,16 +2920,37 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 )
             })
             .collect::<BTreeMap<_, _>>();
-        let saved = pi_extension_protocol::jcs::admit_schema(
-            br#"{"type":"object","properties":{"marker":{"type":"string","enum":["peer-before-resume"]}},"required":["marker"],"additionalProperties":false}"#,
-            Default::default(),
-        )
-        .unwrap();
-        for path in [
-            "hook.output:before_run.result.resumeData",
-            "hook.input:before_resume.event.resumeData",
-        ] {
-            leaves.insert(path.into(), saved.clone());
+        if payload_mode {
+            let schema = before_payload_schema();
+            for path in [
+                "hook.input:before_payload.event.payload",
+                "hook.output:before_payload.result.payload",
+            ] {
+                leaves.insert(path.into(), schema.clone());
+            }
+            let model = corpus["methods"]["provider.invoke"]["request"]["model"]["value"].clone();
+            for part in ["compat", "samplingParams"] {
+                let schema = pi_extension_protocol::jcs::admit_schema(
+                    &serde_json::to_vec(&exact_schema(&model[part])).unwrap(),
+                    Default::default(),
+                )
+                .unwrap();
+                leaves.insert(
+                    format!("hook.input:before_payload.event.model.{part}"),
+                    schema,
+                );
+            }
+        } else {
+            let saved = pi_extension_protocol::jcs::admit_schema(
+                br#"{"type":"object","properties":{"marker":{"type":"string","enum":["peer-before-resume"]}},"required":["marker"],"additionalProperties":false}"#,
+                Default::default(),
+            ).unwrap();
+            for path in [
+                "hook.output:before_run.result.resumeData",
+                "hook.input:before_resume.event.resumeData",
+            ] {
+                leaves.insert(path.into(), saved.clone());
+            }
         }
         let exposure =
             pi_extension_protocol::profiles::Exposure::new(leaves, BTreeSet::new()).unwrap();
@@ -2952,6 +2999,15 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-event-sink")
     } else if mode == ProcessMode::EventSinkWrongId {
         Channel::spawn_scenario(language, core, minor, "runtime-native-event-sink-wrong-id")
+    } else if mode == ProcessMode::BeforePayload {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-before-payload")
+    } else if mode == ProcessMode::BeforePayloadMalformed {
+        Channel::spawn_scenario(
+            language,
+            core,
+            minor,
+            "runtime-native-before-payload-malformed",
+        )
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
@@ -3003,6 +3059,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::TelemetryBadAck
             | ProcessMode::TelemetryBadFlush
             | ProcessMode::BeforeResume
+            | ProcessMode::BeforePayload
+            | ProcessMode::BeforePayloadMalformed
             | ProcessMode::HostSnapshot
             | ProcessMode::EventSink
             | ProcessMode::EventSinkWrongId
@@ -3119,6 +3177,21 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 )
                 .unwrap();
         }
+        if payload_mode {
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|profile| profile.reference().name == "before_payload")
+                .unwrap()
+                .reference()
+                .clone();
+            harness
+                .register_profile_hook(
+                    RemoteHook::new(connection.clone(), selected, Default::default()).unwrap(),
+                )
+                .unwrap();
+        }
         let corpus: serde_json::Value = serde_json::from_str(include_str!(
             "runtime_extension_profiles_support/profiles-runtime-v1.json"
         ))
@@ -3142,11 +3215,15 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 provider,
                 vec![remote.clone()],
                 Default::default(),
-                None,
+                payload_mode.then(before_payload_schema),
             ),
         )
         .unwrap();
         drive(setup, harness.set_model(remote)).unwrap();
+        let before_payload = (mode == ProcessMode::BeforePayload)
+            .then(|| setup.pump.drive(store.snapshot()).unwrap());
+        let before_malformed = (mode == ProcessMode::BeforePayloadMalformed)
+            .then(|| setup.pump.drive(store.snapshot()).unwrap());
         let call = if mode == ProcessMode::HostSnapshot || event_mode {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
@@ -3296,6 +3373,101 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             let _ = setup.pump.drive(harness.close());
             return;
         }
+        if mode == ProcessMode::BeforePayloadMalformed {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            assert!(
+                !matches!(call, Ok(Ok(_))),
+                "malformed selected terminal cannot settle: {call:?}"
+            );
+            let wire = peer.request_frames();
+            assert_eq!(
+                wire.iter().map(|r| r.method.as_str()).collect::<Vec<_>>(),
+                [
+                    "resource.list",
+                    "resource.read",
+                    "before_run",
+                    "before_request",
+                    "transform_context",
+                    "before_payload",
+                ]
+            );
+            let request = wire.last().unwrap();
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "before_payload")
+                .unwrap()
+                .reference();
+            assert_eq!(request.capability_ref.as_ref(), Some(selected));
+            assert_eq!(request.initial_stream_credit_bytes, Some(0));
+            let replies = peer.peer_response_frames();
+            let reply = replies
+                .iter()
+                .find(|r| r.request_id == request.request_id)
+                .expect("malformed child terminal");
+            let Some(v1_1::response::Terminal::Result(body)) = &reply.terminal else {
+                panic!("typed malformed Result")
+            };
+            let result = dto::InvokeHookResult::decode(body.as_slice()).unwrap();
+            assert_eq!(
+                wire_value(result.output.unwrap().value.unwrap())["result"]["payload"],
+                serde_json::json!({"request":"malformed"})
+            );
+            assert_eq!(
+                connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| p.reference().name == "before_payload")
+                    .unwrap()
+                    .approved()
+                    .validate_payload(
+                        minor,
+                        "before_payload",
+                        pi_extension_protocol::profiles::Stage::Terminal,
+                        body,
+                        Default::default(),
+                        Default::default(),
+                        &mut AcceptPayloadNative,
+                    ),
+                Err(pi_extension_protocol::profiles::Error::Exposure),
+                "actual child terminal is rejected by selected host exposure"
+            );
+            let before = before_malformed.unwrap();
+            let after = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(
+                after.usage, before.usage,
+                "no new Usage after host exposure refusal"
+            );
+            assert_eq!(
+                &after.entries[..before.entries.len()],
+                before.entries.as_slice()
+            );
+            assert!(
+                after.entries.len() > before.entries.len(),
+                "accepted prompt is durable"
+            );
+            assert!(after.entries[before.entries.len()..].iter().any(|entry| matches!(entry, Entry::Message(message)
+                if matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::User(_))))));
+            assert!(!after.entries[before.entries.len()..].iter().any(|entry| matches!(entry, Entry::Message(message)
+                if matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
+            eprintln!(
+                "malformed exposure boundary: call={call:?} occupancy={} current={} new_entries={} new_usage=0",
+                connection.occupancy(),
+                connection.current(),
+                after.entries.len() - before.entries.len()
+            );
+            connection.close();
+            peer.finish(false);
+            let close = setup.pump.drive(harness.close());
+            eprintln!(
+                "malformed close: {close:?}; occupancy={}",
+                connection.occupancy()
+            );
+            return;
+        }
         if call.is_err() {
             peer.finish(false);
             panic!(
@@ -3313,21 +3485,111 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             RunOutcome::CompletedWithAssistant(_)
         ));
         let wire = peer.request_frames();
+        let provider_index = if payload_mode { 6 } else { 5 };
         assert_eq!(
             wire.iter()
                 .map(|request| request.method.as_str())
                 .collect::<Vec<_>>(),
-            [
-                "resource.list",
-                "resource.read",
-                "before_run",
-                "before_request",
-                "transform_context",
-                "provider.invoke",
-                "after_response",
-                "before_run_end"
-            ]
+            if payload_mode {
+                vec![
+                    "resource.list",
+                    "resource.read",
+                    "before_run",
+                    "before_request",
+                    "transform_context",
+                    "before_payload",
+                    "provider.invoke",
+                    "after_response",
+                    "before_run_end",
+                ]
+            } else {
+                vec![
+                    "resource.list",
+                    "resource.read",
+                    "before_run",
+                    "before_request",
+                    "transform_context",
+                    "provider.invoke",
+                    "after_response",
+                    "before_run_end",
+                ]
+            }
         );
+        if payload_mode {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            let hook = &wire[5];
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "before_payload")
+                .unwrap()
+                .reference();
+            assert_eq!(hook.capability_ref.as_ref(), Some(selected));
+            assert_eq!(hook.parent_request_id, None);
+            assert_eq!(hook.initial_stream_credit_bytes, Some(0));
+            assert!(
+                hook.deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            let key = hook
+                .effect_key
+                .as_ref()
+                .expect("selected payload EffectKey");
+            assert_eq!(key.operation_id, completion.run_id.as_str());
+            assert_eq!(key.effect_kind, "assistant");
+            assert_eq!(key.lane, "main");
+            assert_eq!(key.session_id, "runtime-session");
+            let request = dto::InvokeHookRequest::decode(hook.payload.as_slice()).unwrap();
+            assert_eq!(request.handler_id, "qualified_handler");
+            let event = wire_value(request.input.unwrap().value.unwrap());
+            assert_eq!(event["event"]["runId"], completion.run_id.as_str());
+            assert_eq!(event["event"]["payload"]["tools"], serde_json::json!([]));
+            assert!(
+                event["event"]["payload"]["context"]["messages"]
+                    .to_string()
+                    .contains("native profile peer dynamic run")
+            );
+            let reply = peer
+                .peer_response_frames()
+                .into_iter()
+                .find(|r| r.request_id == hook.request_id)
+                .expect("same child selected payload Result");
+            let Some(v1_1::response::Terminal::Result(body)) = reply.terminal else {
+                panic!("typed before_payload Result")
+            };
+            let output = dto::InvokeHookResult::decode(body.as_slice()).unwrap();
+            let replacement = wire_value(output.output.unwrap().value.unwrap());
+            assert_eq!(
+                replacement["result"]["payload"]["context"]["messages"][0]["content"],
+                "native payload replacement"
+            );
+            let provider = dto::InvokeProviderRequest::decode(wire[6].payload.as_slice()).unwrap();
+            assert_eq!(
+                wire_value(provider.context.unwrap().value.unwrap())["messages"][0]["content"],
+                "native payload replacement"
+            );
+            assert_eq!(
+                wire[6].effect_key.as_ref().unwrap().effect_kind,
+                "assistant"
+            );
+            assert_eq!(wire[6].effect_key, hook.effect_key);
+            let end = peer
+                .peer_stream_end_frames()
+                .into_iter()
+                .find(|end| end.request_id == wire[6].request_id)
+                .expect("same child selected provider StreamEnd");
+            let Some(v1_1::stream_end::Terminal::Result(body)) = end.terminal else {
+                panic!("typed selected provider Result")
+            };
+            let result = dto::InvokeProviderResult::decode(body.as_slice()).unwrap();
+            assert_eq!(
+                wire_value(result.assistant_message.unwrap().value.unwrap())["role"],
+                "assistant"
+            );
+            assert!(result.usage.is_some());
+        }
         let mut ids = std::collections::BTreeSet::new();
         for request in &wire {
             assert!(ids.insert(request.request_id));
@@ -3345,15 +3607,27 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             assert_eq!(request.capability_ref.as_ref(), Some(selected));
             assert_eq!(
                 request.parent_request_id,
-                (request.method == "after_response").then_some(wire[5].request_id)
+                (request.method == "after_response").then_some(wire[provider_index].request_id)
             );
         }
         assert_eq!(
-            wire[5].effect_key.as_ref().unwrap().operation_id,
+            wire[provider_index]
+                .effect_key
+                .as_ref()
+                .unwrap()
+                .operation_id,
             completion.run_id.as_str()
         );
         assert_eq!(setup.faux.requests.lock().unwrap().len(), 1);
         let after = setup.pump.drive(store.snapshot()).unwrap();
+        if let Some(before) = before_payload {
+            assert_eq!(
+                &after.entries[..before.entries.len()],
+                before.entries.as_slice()
+            );
+            assert_eq!(&after.usage[..before.usage.len()], before.usage.as_slice());
+            assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
+        }
         assert_eq!(after.usage.len(), 2);
         assert_ne!(after.usage[0].entry_id, after.usage[1].entry_id);
         for usage in &after.usage {
@@ -4546,6 +4820,88 @@ fn runtime_native_telemetry_sqlite_all_pairs() {
                     minor,
                     language,
                     ProcessMode::Telemetry,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_before_payload_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::BeforePayload,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_before_payload_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::BeforePayload,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_before_payload_malformed_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::BeforePayloadMalformed,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_before_payload_malformed_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::BeforePayloadMalformed,
                 );
                 drop(store);
                 std::fs::remove_dir_all(dir).unwrap();

@@ -37,8 +37,26 @@ const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeEvent;
 const runtimeResume = scenario === "runtime-native-before-resume";
-const runtimeOpenLeaves = runtimeResume ? {
-  ...corpus.exposure.open_leaves,
+const runtimePayload = scenario === "runtime-native-before-payload" ||
+  scenario === "runtime-native-before-payload-malformed";
+const payloadSchema = {
+  type: "object", properties: {
+    model: { type: "object" }, context: { type: "object" },
+    tools: { type: "array", items: { type: "object" }, maxItems: 0 },
+    options: { type: "object" },
+  }, required: ["model", "context", "tools", "options"], additionalProperties: false,
+};
+if (runtimePayload && sha(Buffer.from(canonical(payloadSchema))) !==
+  "beccbba37a9f577ac7013fe76c88177e09a61858a91ed098076972629707643f")
+  throw Error("payload schema digest");
+function exactSchema(value: any): any {
+  if (value === null) return { type: "null" };
+  if (Array.isArray(value)) return { type: "array", items: exactSchema(value[0] ?? null), minItems: value.length, maxItems: value.length };
+  if (typeof value === "object") return { type: "object", properties: Object.fromEntries(Object.entries(value).map(([key, item]) => [key, exactSchema(item)])), required: Object.keys(value), additionalProperties: false };
+  return { type: typeof value === "number" ? "number" : typeof value, enum: [value] };
+}
+const runtimeOpenLeaves: any = { ...corpus.exposure.open_leaves };
+if (runtimeResume) Object.assign(runtimeOpenLeaves, {
   "hook.output:before_run.result.resumeData": {
     type: "object", properties: { marker: { type: "string", enum: ["peer-before-resume"] } },
     required: ["marker"], additionalProperties: false,
@@ -47,11 +65,36 @@ const runtimeOpenLeaves = runtimeResume ? {
     type: "object", properties: { marker: { type: "string", enum: ["peer-before-resume"] } },
     required: ["marker"], additionalProperties: false,
   },
-} : corpus.exposure.open_leaves;
+});
+if (runtimePayload) {
+  runtimeOpenLeaves["hook.input:before_payload.event.payload"] = payloadSchema;
+  runtimeOpenLeaves["hook.output:before_payload.result.payload"] = payloadSchema;
+  const model = corpus.methods["provider.invoke"].request.model.value;
+  for (const part of ["compat", "samplingParams"])
+    runtimeOpenLeaves[`hook.input:before_payload.event.model.${part}`] = exactSchema(model[part] ?? null);
+}
+function payloadShape(value: any): boolean {
+  return !!value && typeof value === "object" && !Array.isArray(value) &&
+    canonical(Object.keys(value).sort()) === canonical(["context", "model", "options", "tools"]) &&
+    [value.context, value.model, value.options].every((part: any) =>
+      !!part && typeof part === "object" && !Array.isArray(part)) &&
+    Array.isArray(value.tools) && value.tools.length === 0;
+}
+function payloadExposure(root: string, wire: any): boolean {
+  const value = jsonValue(wire);
+  if (root === "hook.input:before_payload") {
+    const event = value.event;
+    const model = corpus.methods["provider.invoke"].request.model.value;
+    return payloadShape(event?.payload) &&
+      canonical(event.model?.compat) === canonical(model.compat) &&
+      canonical(event.model?.samplingParams) === canonical(model.samplingParams);
+  }
+  return payloadShape(value.result?.payload);
+}
 const runtimeChanged = scenario === "runtime-native-changed" ||
   scenario === "runtime-native-changed-wrong-scope" || runtimeTelemetry;
 if (
-  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged) ||
+  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload) ||
   ![0, 1].includes(core) ||
   ![0, 1].includes(minor)
 )
@@ -124,7 +167,9 @@ function boundCheck(obj: any) {
         shapes.registry.projections[root].proposed_digest_sha256 ||
       !obj.value ||
       !shapes.check(root, obj.value) ||
-      !shapes.exposed(root, obj.value, runtimeOpenLeaves)
+      !(runtimePayload && ["hook.input:before_payload", "hook.output:before_payload"].includes(root)
+        ? payloadExposure(root, obj.value)
+        : shapes.exposed(root, obj.value, runtimeOpenLeaves))
     )
       throw Error("selected projection");
   }
@@ -132,7 +177,8 @@ function boundCheck(obj: any) {
 }
 const runtimeMethods = [
   "resource.list", "resource.read", "before_run", "before_request",
-  "transform_context", "provider.invoke", "after_response", "before_run_end",
+  "transform_context", ...(runtimePayload ? ["before_payload"] : []),
+  "provider.invoke", "after_response", "before_run_end",
   ...(runtimeChanged ? ["resource.list", "resource.read"] : []),
 ];
 let runtimeIndex = 0;
@@ -328,6 +374,20 @@ function validateRuntime(r: any, m: any, decoded: any) {
       !Number.isSafeInteger(event.attempt) ||
       event.attempt < 1
     )) throw Error("runtime before_request fields");
+    if (r.method === "before_payload") {
+      const payload = event.payload;
+      if (event.model?.id !== "m" || event.model.provider !== "remote" ||
+          !payloadShape(payload) ||
+          !Array.isArray(payload.tools) || payload.tools.length !== 0 ||
+          !Array.isArray(payload.context?.messages) ||
+          payload.context.messages[0]?.role !== "user" ||
+          typeof payload.context.messages[0]?.content !== "string" ||
+          !JSON.stringify(payload.context.messages).includes("native profile peer dynamic run") ||
+          !Number.isSafeInteger(r.deadline_after_ms) || r.deadline_after_ms <= 0 ||
+          r.deadline_after_ms > 5000 || r.effect_key?.operation_id !== runtimeRunId ||
+          r.effect_key.effect_kind !== "assistant")
+        throw Error("runtime before_payload fields");
+    }
     if (r.method === "after_response" && (
       event.message?.role !== "assistant" ||
       event.message.provider !== "remote" || event.message.model !== "m"
@@ -346,7 +406,9 @@ function validateRuntime(r: any, m: any, decoded: any) {
     model.id !== "m" || model.provider !== "remote" ||
     model.api !== "openai-completions" ||
     !Array.isArray(context.messages) ||
-    !(runtimeResume && r.effect_key?.effect_kind === "deferred"
+    !(runtimePayload
+      ? JSON.stringify(context.messages[0]?.content) === JSON.stringify("native payload replacement")
+      : runtimeResume && r.effect_key?.effect_kind === "deferred"
       ? JSON.stringify(context.messages).includes("native-source-handle")
       : JSON.stringify(context.messages).includes("native profile peer dynamic run")) ||
     !options || typeof options !== "object" || Array.isArray(options) ||
@@ -514,6 +576,16 @@ function resultFor(method: string) {
 function terminal(r: any, decoded?: any) {
   const m = profileCodec.methods[r.method];
   let obj = resultFor(r.method);
+  if (runtimePayload && r.method === "before_payload") {
+    const input = runtimeProjection(decoded.input, "hook.input:before_payload");
+    const payload = structuredClone(input.event.payload);
+    payload.context.messages[0].content = "native payload replacement";
+    obj = { output: payloadObject(corpus.methods.before_payload.positive_terminal.output) };
+    obj.output.value = wireValue({ name: "before_payload", result: {
+      payload: scenario === "runtime-native-before-payload-malformed"
+        ? { request: "malformed" } : payload,
+    } });
+  }
   if (runtimeResume && telemetryFlushed && r.method === "before_run") {
     obj = resultFor(r.method);
     obj.output = payloadObject(corpus.methods.before_run.positive_terminal.output);
@@ -575,9 +647,10 @@ function terminal(r: any, decoded?: any) {
       },
     };
   const payload = profileCodec.encode(m.terminal, obj);
-  if (runtimeResume) {
+  if (runtimeResume || runtimePayload) {
     const roundTrip = profileCodec.decode(m.terminal, payload);
-    boundCheck(roundTrip);
+    if (scenario !== "runtime-native-before-payload-malformed" || r.method !== "before_payload")
+      boundCheck(roundTrip);
     if (!profileCodec.encode(m.terminal, roundTrip).equals(payload))
       throw Error("runtime terminal DTO round trip");
   }
@@ -686,7 +759,7 @@ for (;;) {
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
     boundCheck(decoded);
-    if (scenario === "runtime-native" || runtimeChanged) {
+    if (scenario === "runtime-native" || runtimeChanged || runtimePayload) {
       validateRuntime(r, m, decoded);
     } else {
       const expected = payloadObject(
