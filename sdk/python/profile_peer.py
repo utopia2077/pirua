@@ -20,8 +20,9 @@ codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(rep
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
-runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot")
-runtime_snapshot = scenario == "runtime-native-host-snapshot"
+runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-sink-wrong-id")
+runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot") or runtime_event
+runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_event
 runtime_resume = scenario == "runtime-native-before-resume"
 runtime_open_leaves = dict(corpus["exposure"]["open_leaves"])
 if runtime_resume:
@@ -34,7 +35,7 @@ if runtime_resume:
     runtime_open_leaves["hook.output:before_run.result.resumeData"] = saved_schema
     runtime_open_leaves["hook.input:before_resume.event.resumeData"] = saved_schema
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot") or core not in (0, 1) or minor not in (0, 1):
+if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -141,6 +142,10 @@ suspended_provider_id = None
 deferred_provider_id = None
 snapshot_parent = None
 snapshot_phase = 0
+event_subscription_id = None
+event_phase = 0
+event_credit = 0
+event_gap_last = -1
 
 
 def await_signal(phase):
@@ -176,6 +181,27 @@ def native_snapshot_request(with_parent):
     if with_parent:
         request["parent_request_id"] = snapshot_parent["request_id"]
     send({"request": request})
+
+
+def native_event_request(method):
+    global event_credit
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "event-sink.v1" and c["name"] == "events"), None)
+    if (ref is None or ref["handler_id"] != "qualified_handler"
+            or ref["schema_digest_sha256"].hex() != profile_codec.digests["event-sink.v1"]):
+        raise ValueError("selected event grant")
+    request = ({"scope": "captured_scope"} if method == "event.subscribe"
+               else {"subscription_id": event_subscription_id + ("-wrong" if scenario.endswith("wrong-id") else "")})
+    send({"request": {
+        "request_id": 3000 if method == "event.subscribe" else 3001,
+        "capability_ref": ref, "method": method, "deadline_after_ms": 5000,
+        "initial_stream_credit_bytes": 0,
+        "payload": profile_codec.encode(profile_codec.methods[method]["request"], request),
+    }})
+    if method == "event.subscribe":
+        await_signal("event-credit")
+        event_credit = 1048576
+        send({"credit": {"request_id": 3000, "additional_bytes": event_credit}})
 
 
 def runtime_projection(value, projection):
@@ -615,6 +641,9 @@ def terminal(request, decoded=None):
         end["result"] = payload
     arm = "stream_end" if m["mode"] == 2 else "response"
     send({arm: end})
+    if runtime_event and request["method"] == "telemetry.flush":
+        await_signal("event-subscribe")
+        native_event_request("event.subscribe")
     if runtime_changed and request["method"] == "resource.read" and runtime_index == 10:
         if not changed_acked:
             raise ValueError("native changed acknowledgement missing")
@@ -814,6 +843,69 @@ while not once_done:
             await_signal("provider")
             terminal(snapshot_parent)
             snapshot_parent = None
+    elif runtime_event and "stream_item" in e:
+        item = e["stream_item"]
+        charge = len(codec.encode("Envelope", e))
+        if (item["request_id"] != 3000 or item["sequence"] != event_phase
+                or event_credit < charge):
+            raise ValueError("event sequence or charged credit")
+        event_credit -= charge
+        m = profile_codec.methods["event.subscribe"]
+        decoded = profile_codec.decode(m["progress"], item["payload"])
+        bound_check(decoded)
+        if profile_codec.encode(m["progress"], sorted_maps(decoded)) != item["payload"]:
+            raise ValueError("event item DTO round trip")
+        if event_phase == 0:
+            snapshot = decoded.get("snapshot")
+            if (not snapshot or not snapshot.get("subscription_id")
+                    or snapshot["next_event_sequence"] != 0
+                    or not isinstance(snapshot["snapshot_revision"], int)
+                    or runtime_projection(snapshot["filtered_snapshot"], "event.filtered_snapshot.v1").get("lane") != "main"):
+                raise ValueError("native event initial snapshot")
+            event_subscription_id = snapshot["subscription_id"]
+            sys.stderr.write(json.dumps({"stage": "event-snapshot", "subscription_id": event_subscription_id}) + "\n")
+            sys.stderr.flush()
+        elif event_phase == 1:
+            gap = decoded.get("gap")
+            if (not gap or gap["subscription_id"] != event_subscription_id
+                    or gap["first_dropped"] > gap["last_dropped"]
+                    or gap["first_dropped"] < 0):
+                raise ValueError("native reserved Gap")
+            event_gap_last = gap["last_dropped"]
+            sys.stderr.write(json.dumps({"stage": "event-gap", "last_dropped": event_gap_last}) + "\n")
+            sys.stderr.flush()
+            await_signal("event-resync")
+            native_event_request("event.resync")
+        else:
+            raise ValueError("stale event after Gap")
+        event_phase += 1
+    elif runtime_event and "response" in e and e["response"]["request_id"] == 3001:
+        response = e["response"]
+        if event_phase != 2:
+            raise ValueError("event resync before Gap")
+        if scenario.endswith("wrong-id"):
+            if (response.get("error", {}).get("code") != 8
+                    or response["error"].get("safe_message") != "request failed"
+                    or "result" in response):
+                raise ValueError("wrong subscription refusal")
+        else:
+            if "result" not in response:
+                raise ValueError("native event resync Result")
+            m = profile_codec.methods["event.resync"]
+            decoded = profile_codec.decode(m["terminal"], response["result"])
+            bound_check(decoded)
+            if profile_codec.encode(m["terminal"], sorted_maps(decoded)) != response["result"]:
+                raise ValueError("event resync DTO round trip")
+            snapshot = decoded["snapshot"]
+            value = runtime_projection(snapshot["filtered_snapshot"], "event.filtered_snapshot.v1")
+            if (snapshot["subscription_id"] != event_subscription_id
+                    or snapshot["next_event_sequence"] <= event_gap_last
+                    or not isinstance(value.get("queues", {}).get("nextRun"), list)
+                    or len(value["queues"]["nextRun"]) != 2):
+                raise ValueError("atomic event baseline")
+        event_phase = 3
+        sys.stderr.write(json.dumps({"stage": "event-resync-result"}) + "\n")
+        sys.stderr.flush()
     elif runtime_changed and "response" in e and changed_list is not None:
         response = e["response"]
         method = "resource.changed"
@@ -912,6 +1004,11 @@ if runtime_resume and (
     or suspended_provider_id is None or deferred_provider_id is None
 ):
     raise ValueError("incomplete native resume history")
+if runtime_event and (
+    event_phase != 3 or not changed_acked or not telemetry_flushed
+    or snapshot_phase != 2 or runtime_index != len(runtime_methods)
+):
+    raise ValueError("incomplete native event history")
 sys.stderr.write(
     json.dumps(
         {

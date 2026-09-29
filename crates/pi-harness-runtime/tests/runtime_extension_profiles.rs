@@ -2810,6 +2810,17 @@ enum ProcessMode {
     TelemetryBadFlush,
     BeforeResume,
     HostSnapshot,
+    EventSink,
+    EventSinkWrongId,
+}
+struct EventWatch(std::sync::Mutex<Vec<HarnessEvent>>);
+impl EventListener for EventWatch {
+    fn on_event(&self, event: HarnessEvent) -> BoxFuture<'_, Result<(), HandlerError>> {
+        Box::pin(async move {
+            self.0.lock().unwrap().push(event);
+            Ok(())
+        })
+    }
 }
 fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     setup: &Setup,
@@ -2820,6 +2831,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     language: &str,
     mode: ProcessMode,
 ) {
+    let event_mode = matches!(mode, ProcessMode::EventSink | ProcessMode::EventSinkWrongId);
     use pi_harness_runtime::extensions::{
         profiles::{
             connection::ProfileConnection, resources::ResourceCatalog,
@@ -2836,6 +2848,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::TelemetryBadFlush
             | ProcessMode::BeforeResume
             | ProcessMode::HostSnapshot
+            | ProcessMode::EventSink
+            | ProcessMode::EventSinkWrongId
     );
     let telemetry = telemetry_mode.then(|| {
         ProjectedTelemetry::new(Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT), 1048576, 256)
@@ -2934,6 +2948,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-before-resume")
     } else if mode == ProcessMode::HostSnapshot {
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-snapshot")
+    } else if mode == ProcessMode::EventSink {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-event-sink")
+    } else if mode == ProcessMode::EventSinkWrongId {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-event-sink-wrong-id")
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
@@ -2944,6 +2962,39 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         max_read_chunk: NonZeroUsize::new(4096).unwrap(),
         write_timeout_ms: NonZeroU64::new(5000).unwrap(),
     };
+    let host = if event_mode {
+        let mut limits = *service_host(core, profiles.clone()).limits();
+        limits.passive_queue_bytes = 128;
+        let permissions = profiles
+            .iter()
+            .flat_map(|profile| {
+                profile.permissions().iter().map(|(name, scope)| {
+                    pi_extension_protocol::wire::v1_1::PermissionGrant {
+                        name: name.clone(),
+                        scope: scope.clone(),
+                    }
+                })
+            })
+            .collect();
+        pi_extension_protocol::activation::HostAuthority::new(
+            "peer-a".into(),
+            7,
+            core,
+            1,
+            limits,
+            vec![],
+            permissions,
+        )
+        .unwrap()
+        .with_profiles(profiles)
+        .unwrap()
+    } else {
+        service_host(core, profiles)
+    };
+    let mut reservation = reservations();
+    if event_mode {
+        reservation.passive_bytes = 128;
+    }
     let connection = if matches!(
         mode,
         ProcessMode::Changed
@@ -2953,32 +3004,31 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::TelemetryBadFlush
             | ProcessMode::BeforeResume
             | ProcessMode::HostSnapshot
+            | ProcessMode::EventSink
+            | ProcessMode::EventSinkWrongId
     ) {
         drive(
             setup,
-            harness.connect_profile_service(
-                service_host(core, profiles),
-                peer.clone(),
-                clock,
-                config,
-                reservations(),
-                20000,
-            ),
+            harness.connect_profile_service(host, peer.clone(), clock, config, reservation, 20000),
         )
     } else {
         drive(
             setup,
-            ProfileConnection::connect(
-                service_host(core, profiles),
-                peer.clone(),
-                clock,
-                config,
-                reservations(),
-                20000,
-            ),
+            ProfileConnection::connect(host, peer.clone(), clock, config, reservation, 20000),
         )
     }
     .unwrap();
+    if event_mode {
+        assert_eq!(
+            connection
+                .grant()
+                .wire()
+                .limits
+                .unwrap()
+                .passive_queue_bytes,
+            128
+        );
+    }
     assert_eq!(connection.grant().profiles().len(), 17);
     assert_eq!(
         connection
@@ -3097,7 +3147,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         )
         .unwrap();
         drive(setup, harness.set_model(remote)).unwrap();
-        let call = if mode == ProcessMode::HostSnapshot {
+        let call = if mode == ProcessMode::HostSnapshot || event_mode {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
             use std::time::{Duration, Instant};
@@ -3323,6 +3373,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 | ProcessMode::TelemetryBadFlush
                 | ProcessMode::BeforeResume
                 | ProcessMode::HostSnapshot
+                | ProcessMode::EventSink
+                | ProcessMode::EventSinkWrongId
         ) {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
@@ -3335,7 +3387,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             let peer_requests = peer.peer_request_frames();
             assert_eq!(
                 peer_requests.len(),
-                if mode == ProcessMode::HostSnapshot {
+                if mode == ProcessMode::HostSnapshot || event_mode {
                     3
                 } else {
                     1
@@ -3384,7 +3436,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             let responses = peer.response_frames();
             assert_eq!(
                 responses.len(),
-                if mode == ProcessMode::HostSnapshot {
+                if mode == ProcessMode::HostSnapshot || event_mode {
                     3
                 } else {
                     1
@@ -3583,6 +3635,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                         ProcessMode::Telemetry
                             | ProcessMode::BeforeResume
                             | ProcessMode::HostSnapshot
+                            | ProcessMode::EventSink
+                            | ProcessMode::EventSinkWrongId
                     ) {
                         assert_eq!(sink.dropped(), 0);
                     }
@@ -3595,7 +3649,296 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                     setup.pump.drive(store.snapshot()).unwrap(),
                     before_telemetry
                 );
+                if event_mode {
+                    assert!(
+                        peer.peer_request_frames()
+                            .iter()
+                            .all(|request| request.method != "event.subscribe"),
+                        "event subscribe waits until the shared prefix is settled"
+                    );
+                    peer.signal("event-subscribe");
+                }
             }
+        }
+        if event_mode {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            use std::time::{Duration, Instant};
+            let event = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "events")
+                .unwrap()
+                .reference()
+                .clone();
+            assert_eq!(event.profile.as_ref().unwrap().minor, minor);
+            assert_eq!(event.schema_digest_sha256.len(), 32);
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let subscribe = loop {
+                setup.pump.tick();
+                if let Some(request) = peer
+                    .peer_request_frames()
+                    .into_iter()
+                    .find(|r| r.method == "event.subscribe")
+                {
+                    break request;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite peer subscribe: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            assert_eq!(subscribe.request_id, 3000);
+            assert_eq!(subscribe.capability_ref.as_ref(), Some(&event));
+            assert_eq!(subscribe.parent_request_id, None);
+            assert_eq!(subscribe.effect_key, None);
+            assert_eq!(subscribe.initial_stream_credit_bytes, Some(0));
+            assert!(
+                subscribe
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            assert_eq!(
+                dto::SubscribeRequest::decode(subscribe.payload.as_slice())
+                    .unwrap()
+                    .scope,
+                "captured_scope"
+            );
+            for _ in 0..30 {
+                setup.pump.tick();
+            }
+            assert!(peer.peer_credit_frames().is_empty());
+            assert!(
+                peer.stream_item_frames().is_empty(),
+                "zero credit gates actual Snapshot"
+            );
+            peer.signal("event-credit");
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let initial = loop {
+                setup.pump.tick();
+                let captured = peer.stream_item_frames();
+                if peer.stage("event-snapshot").is_some() && !captured.is_empty() {
+                    break captured;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite native Snapshot capture: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            let credit = peer.peer_credit_frames();
+            assert_eq!(credit.len(), 1);
+            assert_eq!(credit[0].request_id, subscribe.request_id);
+            assert_eq!(credit[0].additional_bytes, 1048576);
+            assert_eq!(initial.len(), 1);
+            assert_eq!(initial[0].request_id, subscribe.request_id);
+            assert_eq!(initial[0].sequence, 0);
+            let dto::event_sink_item::Item::Snapshot(snapshot) =
+                dto::EventSinkItem::decode(initial[0].payload.as_slice())
+                    .unwrap()
+                    .item
+                    .unwrap()
+            else {
+                panic!("typed native initial Snapshot")
+            };
+            assert!(!snapshot.subscription_id.is_empty());
+            assert_eq!(snapshot.next_event_sequence, 0);
+            assert_eq!(
+                peer.stage("event-snapshot").unwrap()["subscription_id"],
+                snapshot.subscription_id
+            );
+            let projection = snapshot.filtered_snapshot.as_ref().unwrap();
+            assert_eq!(projection.projection_id, "event.filtered_snapshot.v1");
+            assert_eq!(
+                wire_value(projection.value.clone().unwrap())["lane"],
+                "main"
+            );
+            assert_eq!(
+                connection
+                    .grant()
+                    .wire()
+                    .limits
+                    .unwrap()
+                    .max_stream_credit_bytes,
+                1048576
+            );
+            let watch = drive(setup, harness.watch()).unwrap();
+            let listener = Arc::new(EventWatch(std::sync::Mutex::new(vec![])));
+            watch.start(listener.clone());
+            let message = |text: &str| {
+                AgentMessage::BuiltIn(pi_ai_core::Message::User(pi_ai_core::UserMessage {
+                    role: Default::default(),
+                    content: pi_ai_core::UserContent::Text(text.into()),
+                    timestamp: n(7),
+                }))
+            };
+            let first = drive(setup, harness.next_run(message("actual bounded first")))
+                .unwrap()
+                .unwrap();
+            let second = drive(setup, harness.next_run(message("second while paused")))
+                .unwrap()
+                .unwrap();
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let items = loop {
+                setup.pump.tick();
+                let captured = peer.stream_item_frames();
+                if peer.stage("event-gap").is_some()
+                    && captured.len() >= 2
+                    && listener
+                        .0
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .filter(|e| matches!(e, HarnessEvent::QueueUpdate(_)))
+                        .count()
+                        >= 2
+                {
+                    break captured;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite native Gap/watch capture: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            assert_eq!(items.len(), 2, "paused remote stream has no ordinary event");
+            assert_eq!(items[1].request_id, subscribe.request_id);
+            assert_eq!(items[1].sequence, 1);
+            let dto::event_sink_item::Item::Gap(gap) =
+                dto::EventSinkItem::decode(items[1].payload.as_slice())
+                    .unwrap()
+                    .item
+                    .unwrap()
+            else {
+                panic!("reserved native Gap")
+            };
+            assert_eq!(gap.subscription_id, snapshot.subscription_id);
+            assert_eq!((gap.first_dropped, gap.last_dropped), (0, 0));
+            assert_eq!(
+                watch.snapshot().queues.next_run.len(),
+                0,
+                "trusted initial watch snapshot remains captured"
+            );
+            assert_eq!(
+                listener
+                    .0
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .filter(|e| matches!(e, HarnessEvent::QueueUpdate(_)))
+                    .count(),
+                2,
+                "local watch retains both native queue publications"
+            );
+            let after_publication = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(after_publication.usage.len(), 2);
+            peer.signal("event-resync");
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let response = loop {
+                setup.pump.tick();
+                let captured = peer
+                    .response_frames()
+                    .into_iter()
+                    .find(|response| response.request_id == 3001);
+                if peer.stage("event-resync-result").is_some()
+                    && let Some(response) = captured
+                {
+                    break response;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite native resync Response capture: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            let resync = peer
+                .peer_request_frames()
+                .into_iter()
+                .find(|r| r.method == "event.resync")
+                .unwrap();
+            assert_eq!(resync.request_id, 3001);
+            assert_eq!(resync.capability_ref.as_ref(), Some(&event));
+            assert_eq!(resync.parent_request_id, None);
+            assert_eq!(resync.effect_key, None);
+            assert_eq!(resync.initial_stream_credit_bytes, Some(0));
+            assert!(
+                resync
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            let requested = dto::ResyncRequest::decode(resync.payload.as_slice()).unwrap();
+            assert_eq!(response.request_id, resync.request_id);
+            if mode == ProcessMode::EventSinkWrongId {
+                assert_eq!(
+                    requested.subscription_id,
+                    format!("{}-wrong", snapshot.subscription_id)
+                );
+                let Some(v1_1::response::Terminal::Error(error)) = response.terminal else {
+                    panic!("typed wrong subscription refusal")
+                };
+                assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
+                assert_eq!(error.safe_message, "request failed");
+                assert_eq!(
+                    peer.stream_item_frames().len(),
+                    2,
+                    "wrong ID leaves actual subscription paused without baseline"
+                );
+            } else {
+                assert_eq!(requested.subscription_id, snapshot.subscription_id);
+                let Some(v1_1::response::Terminal::Result(body)) = response.terminal else {
+                    panic!("typed native resync Result")
+                };
+                let baseline = dto::ResyncResult::decode(body.as_slice())
+                    .unwrap()
+                    .snapshot
+                    .unwrap();
+                assert_eq!(baseline.subscription_id, snapshot.subscription_id);
+                assert!(baseline.snapshot_revision >= snapshot.snapshot_revision);
+                assert_eq!(
+                    baseline.next_event_sequence, 2,
+                    "both real next_run publications advance the paused cursor"
+                );
+                let filtered = baseline.filtered_snapshot.unwrap();
+                assert_eq!(filtered.projection_id, "event.filtered_snapshot.v1");
+                let value = wire_value(filtered.value.unwrap());
+                assert_eq!(
+                    value["queues"]["nextRun"][0]["entryId"],
+                    first.entry_id.as_str()
+                );
+                assert_eq!(
+                    value["queues"]["nextRun"][1]["entryId"],
+                    second.entry_id.as_str()
+                );
+            }
+            let deadline = Instant::now() + Duration::from_secs(4);
+            while connection.occupancy() != 1 {
+                setup.pump.tick();
+                assert!(
+                    Instant::now() < deadline,
+                    "finite resync Request retirement: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            assert_eq!(
+                connection.occupancy(),
+                1,
+                "live passive subscription remains owned"
+            );
+            assert_eq!(
+                setup.pump.drive(store.snapshot()).unwrap(),
+                after_publication,
+                "resync and wrong-ID refusal make no Session write"
+            );
+            assert_eq!(peer.stream_item_frames().len(), 2);
+            assert!(connection.current());
+            watch.unsubscribe();
         }
         if mode == ProcessMode::BeforeResume {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
@@ -3864,9 +4207,23 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             assert_eq!(peer.peer_stream_end_frames().len(), no_work_ends);
         }
     }
-    assert_eq!(connection.occupancy(), 0);
+    if !event_mode {
+        assert_eq!(connection.occupancy(), 0);
+    }
     peer.finish(true);
     connection.close();
+    if event_mode {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(4);
+        while connection.occupancy() != 0 {
+            setup.pump.tick();
+            assert!(
+                std::time::Instant::now() < deadline,
+                "finite passive retirement"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+    }
+    assert_eq!(connection.occupancy(), 0);
     setup.pump.drive(harness.close()).unwrap();
 }
 #[test]
@@ -4079,6 +4436,80 @@ fn runtime_native_host_snapshot_sqlite_all_pairs() {
                 std::fs::remove_dir_all(dir).unwrap();
             }
         }
+    }
+}
+#[test]
+fn runtime_native_event_sink_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::EventSink,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_event_sink_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::EventSink,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_event_sink_wrong_id_memory_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        accepted_process_consumer(
+            &setup,
+            setup.session.clone(),
+            setup.store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::EventSinkWrongId,
+        );
+    }
+}
+#[test]
+fn runtime_native_event_sink_wrong_id_sqlite_no_write() {
+    for language in ["typescript", "python"] {
+        let setup = Setup::new();
+        let (session, store, dir) = sqlite_case(&setup);
+        accepted_process_consumer(
+            &setup,
+            session,
+            store.clone(),
+            0,
+            0,
+            language,
+            ProcessMode::EventSinkWrongId,
+        );
+        drop(store);
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }
 #[test]

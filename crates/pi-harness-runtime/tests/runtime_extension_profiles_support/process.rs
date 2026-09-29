@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "cda188f1aa947e82061de4dbb58005c9a6a1dd6b1c0818e13fe469376de4b94a",
+            "ddecede6ac0b2202ad62bedff5fd3dc5d5d3ffc0ef1ff56b2c6974720fc7c063",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "511dcfc59bf97ab8fa3168c7b11f6630ed0d313833d76bd21f25ff705b77a898",
+            "a7ade31e98eaafde2f2a8d411c0dfe57f96f9da490d127789d5314b6b324230e",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -294,8 +294,17 @@ impl Channel {
         String::from_utf8_lossy(&self.stderr.lock().unwrap()).into_owned()
     }
     pub fn signal(&self, phase: &str) {
-        assert!(matches!(phase, "actions" | "provider"));
+        assert!(matches!(
+            phase,
+            "actions" | "provider" | "event-subscribe" | "event-credit" | "event-resync"
+        ));
         std::fs::write(&self.release, phase).unwrap();
+    }
+    pub fn stage(&self, stage: &str) -> Option<Value> {
+        String::from_utf8_lossy(&self.stderr.lock().unwrap())
+            .lines()
+            .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+            .find(|record| record["stage"] == stage)
     }
     fn request(&self) -> Option<v1_1::Request> {
         self.writes.lock().unwrap().iter().find_map(|bytes| {
@@ -365,6 +374,38 @@ impl Channel {
                 }
             })
             .collect()
+    }
+    pub fn stream_item_frames(&self) -> Vec<v1_1::StreamItem> {
+        self.writes
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|bytes| {
+                let mut reader = FrameReader::<v1_1::Envelope>::new(nz(4096));
+                let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+                match envelope.frame {
+                    Some(v1_1::envelope::Frame::StreamItem(item)) => Some(item),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+    pub fn peer_credit_frames(&self) -> Vec<v1_1::Credit> {
+        let bytes = self.incoming.lock().unwrap().clone();
+        let mut offset = 0;
+        let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+        let mut credits = Vec::new();
+        while offset < bytes.len() {
+            let step = reader.read_one(&bytes[offset..]).unwrap();
+            assert!(step.consumed > 0, "captured peer frame must advance");
+            offset += step.consumed;
+            if let Some(frame) = step.frame
+                && let Some(v1_1::envelope::Frame::Credit(credit)) = frame.envelope.frame
+            {
+                credits.push(credit);
+            }
+        }
+        credits
     }
     pub fn peer_request_frames(&self) -> Vec<v1_1::Request> {
         let bytes = self.incoming.lock().unwrap().clone();

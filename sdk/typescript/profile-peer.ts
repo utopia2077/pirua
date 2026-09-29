@@ -30,8 +30,12 @@ const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
   scenario === "runtime-native-telemetry-bad-ack" ||
   scenario === "runtime-native-telemetry-bad-flush" ||
   scenario === "runtime-native-before-resume" ||
-  scenario === "runtime-native-host-snapshot";
-const runtimeSnapshot = scenario === "runtime-native-host-snapshot";
+  scenario === "runtime-native-host-snapshot" ||
+  scenario === "runtime-native-event-sink" ||
+  scenario === "runtime-native-event-sink-wrong-id";
+const runtimeEvent = scenario === "runtime-native-event-sink" ||
+  scenario === "runtime-native-event-sink-wrong-id";
+const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeEvent;
 const runtimeResume = scenario === "runtime-native-before-resume";
 const runtimeOpenLeaves = runtimeResume ? {
   ...corpus.exposure.open_leaves,
@@ -150,6 +154,10 @@ let suspendedProviderId: number | null = null;
 let deferredProviderId: number | null = null;
 let snapshotParent: any = null;
 let snapshotPhase = 0;
+let eventSubscriptionId: string | null = null;
+let eventPhase = 0;
+let eventCredit = 0;
+let eventGapLast = -1;
 function awaitSignal(phase: string) {
   const path = process.env.PI_PROFILE_PEER_SIGNAL;
   if (!path) throw Error("snapshot signal missing");
@@ -181,6 +189,28 @@ function nativeSnapshotRequest(withParent: boolean) {
   };
   if (withParent) request.parent_request_id = snapshotParent.request_id;
   send({ request });
+}
+function nativeEventRequest(method: "event.subscribe" | "event.resync") {
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "event-sink.v1" && c.name === "events");
+  if (!ref || ref.handler_id !== "qualified_handler" ||
+      ref.schema_digest_sha256.toString("hex") !== profileCodec.digests["event-sink.v1"])
+    throw Error("selected event grant");
+  const request = method === "event.subscribe"
+    ? { scope: "captured_scope" }
+    : { subscription_id: scenario.endsWith("wrong-id")
+      ? `${eventSubscriptionId}-wrong` : eventSubscriptionId };
+  send({ request: {
+    request_id: method === "event.subscribe" ? 3000 : 3001,
+    capability_ref: ref, method, deadline_after_ms: 5000,
+    initial_stream_credit_bytes: 0,
+    payload: profileCodec.encode(profileCodec.methods[method].request, request),
+  } });
+  if (method === "event.subscribe") {
+    awaitSignal("event-credit");
+    eventCredit = 1048576;
+    send({ credit: { request_id: 3000, additional_bytes: eventCredit } });
+  }
 }
 const runtimeIds = new Set<number>();
 function runtimeProjection(value: any, id: string): any {
@@ -560,6 +590,10 @@ function terminal(r: any, decoded?: any) {
   else end.result = payload;
   const arm = m.mode === 2 ? "stream_end" : "response";
   send({ [arm]: end });
+  if (runtimeEvent && r.method === "telemetry.flush") {
+    awaitSignal("event-subscribe");
+    nativeEventRequest("event.subscribe");
+  }
   if (runtimeChanged && r.method === "resource.read" && runtimeIndex === 10) {
     if (!changedAcked) throw Error("native changed acknowledgement missing");
   }
@@ -750,6 +784,58 @@ for (;;) {
       terminal(snapshotParent);
       snapshotParent = null;
     }
+  } else if (runtimeEvent && e.stream_item) {
+    const item = e.stream_item;
+    if (item.request_id !== 3000 || item.sequence !== eventPhase ||
+        eventCredit < codec.encode("Envelope", e).length)
+      throw Error("event sequence or charged credit");
+    eventCredit -= codec.encode("Envelope", e).length;
+    const m = profileCodec.methods["event.subscribe"];
+    const decoded = profileCodec.decode(m.progress, item.payload);
+    boundCheck(decoded);
+    if (!profileCodec.encode(m.progress, sortedMaps(decoded)).equals(item.payload))
+      throw Error("event item DTO round trip");
+    if (eventPhase === 0) {
+      const snapshot = decoded.snapshot;
+      if (!snapshot?.subscription_id || snapshot.next_event_sequence !== 0 ||
+          !Number.isSafeInteger(snapshot.snapshot_revision) ||
+          runtimeProjection(snapshot.filtered_snapshot, "event.filtered_snapshot.v1").lane !== "main")
+        throw Error("native event initial snapshot");
+      eventSubscriptionId = snapshot.subscription_id;
+      writeSync(2, JSON.stringify({ stage: "event-snapshot", subscription_id: eventSubscriptionId }) + "\n");
+    } else if (eventPhase === 1) {
+      const gap = decoded.gap;
+      if (!gap || gap.subscription_id !== eventSubscriptionId ||
+          gap.first_dropped > gap.last_dropped || gap.first_dropped < 0)
+        throw Error("native reserved Gap");
+      eventGapLast = gap.last_dropped;
+      writeSync(2, JSON.stringify({ stage: "event-gap", last_dropped: eventGapLast }) + "\n");
+      awaitSignal("event-resync");
+      nativeEventRequest("event.resync");
+    } else throw Error("stale event after Gap");
+    eventPhase++;
+  } else if (runtimeEvent && e.response && e.response.request_id === 3001) {
+    const response = e.response;
+    if (eventPhase !== 2) throw Error("event resync before Gap");
+    if (scenario.endsWith("wrong-id")) {
+      if (response.error?.code !== 8 || response.error.safe_message !== "request failed" ||
+          "result" in response) throw Error("wrong subscription refusal");
+    } else {
+      if (!("result" in response)) throw Error("native event resync Result");
+      const m = profileCodec.methods["event.resync"];
+      const decoded = profileCodec.decode(m.terminal, response.result);
+      boundCheck(decoded);
+      if (!profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(response.result))
+        throw Error("event resync DTO round trip");
+      const snapshot = decoded.snapshot;
+      const value = runtimeProjection(snapshot?.filtered_snapshot, "event.filtered_snapshot.v1");
+      if (snapshot.subscription_id !== eventSubscriptionId ||
+          snapshot.next_event_sequence <= eventGapLast ||
+          !Array.isArray(value.queues?.nextRun) || value.queues.nextRun.length !== 2)
+        throw Error("atomic event baseline");
+    }
+    eventPhase = 3;
+    writeSync(2, JSON.stringify({ stage: "event-resync-result" }) + "\n");
   } else if (runtimeChanged && e.response && changedList) {
     const response = e.response,
       method = "resource.changed",
@@ -855,6 +941,9 @@ if (runtimeResume && (
   resumePhase !== resumeMethods.length || !suspendedRunId ||
   !suspendedProviderId || !deferredProviderId
 )) throw Error("incomplete native resume history");
+if (runtimeEvent && (eventPhase !== 3 || !changedAcked || !telemetryFlushed ||
+    snapshotPhase !== 2 || runtimeIndex !== runtimeMethods.length))
+  throw Error("incomplete native event history");
 writeSync(
   2,
   JSON.stringify({
