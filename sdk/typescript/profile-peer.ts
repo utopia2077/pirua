@@ -18,7 +18,7 @@ if (mode !== "--serve") throw Error("peer mode");
 const core = Number(coreText),
   minor = Number(minorText),
   codec = new Codec(repo, core),
-  profileCodec = new Codec(repo, minor),
+  profileCodec = new Codec(repo, minor, scenario === "runtime-native-tool-hook" || scenario === "runtime-native-tool-hook-block"),
   shapes = new Shapes(repo);
 const corpus = JSON.parse(
   readFileSync(
@@ -38,6 +38,9 @@ const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeQueue = scenario === "runtime-native-host-queue";
 const runtimeStructural = scenario.startsWith("runtime-native-structural");
+const runtimeTool = scenario === "runtime-native-tool-hook" || scenario === "runtime-native-tool-hook-block";
+const toolBlocked = scenario === "runtime-native-tool-hook-block";
+const toolCatalog = runtimeTool ? JSON.parse(readFileSync(`${repo}/crates/pi-extension-protocol/schema/fixtures/host-catalog.json`, "utf8")).entries[0] : null;
 const structuralCase = scenario.slice("runtime-native-structural".length).replace(/^-/, "") || "positive";
 const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeQueue || runtimeEvent;
 const runtimeResource = scenario.startsWith("runtime-native-host-resource-get");
@@ -80,6 +83,21 @@ if (runtimePayload) {
   for (const part of ["compat", "samplingParams"])
     runtimeOpenLeaves[`hook.input:before_payload.event.model.${part}`] = exactSchema(model[part] ?? null);
 }
+if (runtimeTool) {
+  const args = toolCatalog.agentTool.parameters;
+  const empty = { type: "object", properties: {}, additionalProperties: false };
+  Object.assign(runtimeOpenLeaves, {
+    "hook.input:before_tool.event.args": args,
+    "hook.output:before_tool.result.args": args,
+    "hook.input:after_tool.event.args": args,
+    "hook.input:after_tool.event.details": empty,
+    "provider.tools.v1[].parameters": { type: "object", properties: {}, additionalProperties: true },
+    "provider.assistant_message.v1.content[].arguments": args,
+    "provider.assistant_event.v1.content[].arguments": args,
+    "provider.context.v1.messages[].content[].arguments": args,
+    "provider.context.v1.messages[].details": empty,
+  });
+}
 function payloadShape(value: any): boolean {
   return !!value && typeof value === "object" && !Array.isArray(value) &&
     canonical(Object.keys(value).sort()) === canonical(["context", "model", "options", "tools"]) &&
@@ -101,7 +119,7 @@ function payloadExposure(root: string, wire: any): boolean {
 const runtimeChanged = scenario === "runtime-native-changed" ||
   scenario === "runtime-native-changed-wrong-scope" || runtimeTelemetry;
 if (
-  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload ||
+  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeTool ||
     runtimeResourceR2 ||
     (runtimeStructural && ["positive", "compaction-decline", "navigation-decline"].includes(structuralCase)) ||
     (runtimeResource && ["positive", "missing", "scope", "version", "parent"].includes(resourceCase))) ||
@@ -341,6 +359,74 @@ function nativeEventRequest(method: "event.subscribe" | "event.resync") {
   }
 }
 const runtimeIds = new Set<number>();
+let toolPhase = 0;
+let toolProviderKey: any = null;
+let toolBeforeKey: any = null;
+let toolRequest: any = null;
+const toolCallId = "native-hook-call";
+const sourceText = "native source text";
+const effectiveText = "native effective text";
+const patchedText = "native after patch";
+function toolProjection(part: string, value: any) {
+  const selected = toolCatalog.selected_minor_schema_sets[`1.${minor}`][part];
+  return { projection_id: selected.projection_id,
+    schema_digest_sha256: Buffer.from(selected.schema_digest_sha256, "hex"), value: wireValue(value) };
+}
+function validateToolRuntime(r: any, m: any, decoded: any) {
+  const methods = toolBlocked ? ["provider.invoke", "before_tool", "provider.invoke"] :
+    ["provider.invoke", "before_tool", "tool.invoke", "after_tool", "provider.invoke"];
+  if (r.method !== methods[toolPhase++]) throw Error(`tool method order: ${r.method}`);
+  if (!Number.isSafeInteger(r.request_id) || r.request_id <= 0 || runtimeIds.has(r.request_id) ||
+      r.initial_stream_credit_bytes !== 0 || !Number.isSafeInteger(r.deadline_after_ms) ||
+      r.deadline_after_ms <= 0 || r.deadline_after_ms > 5000)
+    throw Error("tool request bounds");
+  runtimeIds.add(r.request_id);
+  const selected = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === m.profile && c.name === (m.profile === "provider.v1" ? "remote" :
+      m.profile === "tool.v1" ? "echo" : r.method));
+  if (!selected || selected.handler_id !== "qualified_handler" ||
+      !codec.encode("CapabilityRef", selected).equals(codec.encode("CapabilityRef", r.capability_ref)))
+    throw Error("tool selected reference");
+  const k = r.effect_key;
+  if (r.method === "provider.invoke") {
+    const tools = runtimeProjection(decoded.tools, "provider.tools.v1");
+    if (!Array.isArray(tools) || tools.length !== 1 || tools[0].name !== "echo" ||
+        canonical(tools[0].parameters) !== canonical(toolCatalog.agentTool.parameters))
+      throw Error("actual provider echo tools");
+    if (toolPhase === 1) {
+      if (!k || k.effect_kind !== "assistant" || k.lane !== "main") throw Error("source provider key");
+      toolProviderKey = k;
+    } else if (!JSON.stringify(runtimeProjection(decoded.context, "provider.context.v1")).includes(toolCallId))
+      throw Error("followup provider context");
+  } else if (r.method === "before_tool") {
+    const event = runtimeProjection(decoded.input, "hook.input:before_tool").event;
+    if (decoded.handler_id !== "qualified_handler" || event.toolCallId !== toolCallId ||
+        event.toolName !== "echo" || event.args.text !== sourceText ||
+        !k || k.effect_kind !== "hook" || k.operation_id !== toolProviderKey.operation_id ||
+        k.item_index !== 0 || r.parent_request_id !== undefined)
+      throw Error("source-derived before Tool key");
+    toolBeforeKey = k;
+  } else if (r.method === "tool.invoke") {
+    const args = jsonValue(decoded.arguments.value);
+    if (decoded.tool_id !== "echo" || decoded.tool_call_id !== toolCallId ||
+        decoded.arguments.projection_id !== "tool.arguments:echo" ||
+        decoded.arguments.schema_digest_sha256.toString("hex") !== toolCatalog.selected_minor_schema_sets[`1.${minor}`].arguments.schema_digest_sha256 ||
+        canonical(args) !== canonical({text:effectiveText}) ||
+        !k || k.effect_kind !== "tool" || k.operation_id !== toolBeforeKey.operation_id ||
+        k.step_or_task_id !== toolBeforeKey.step_or_task_id || k.item_index !== toolBeforeKey.item_index ||
+        r.parent_request_id !== undefined)
+      throw Error("effective selected Tool request");
+    toolRequest = r;
+  } else {
+    const event = runtimeProjection(decoded.input, "hook.input:after_tool").event;
+    if (decoded.handler_id !== "qualified_handler" || !toolRequest ||
+        r.parent_request_id !== toolRequest.request_id ||
+        canonical(k) !== canonical(toolRequest.effect_key) ||
+        event.toolCallId !== toolCallId || event.args.text !== effectiveText ||
+        event.content[0]?.text !== effectiveText || event.isError !== false)
+      throw Error("same Tool parent after hook");
+  }
+}
 function runtimeProjection(value: any, id: string): any {
   if (value?.projection_id !== id || !value.value)
     throw Error("runtime projection identity");
@@ -586,6 +672,7 @@ const hooks = Object.keys(corpus.methods).filter(
   (n) => profileCodec.methods[n].profile === "hook.v1",
 );
 const entries = [
+  ...(runtimeTool ? [{ profile: "tool.v1", name: "echo" }] : []),
   { profile: "host-action.v1", name: "actions-resource" },
   ...hooks.map((name) => ({ profile: "hook.v1", name })),
   ...[
@@ -627,7 +714,7 @@ const caps = entries.map((e) => ({
   handler_id: "qualified_handler",
   replay: 1,
   execution:
-    e.profile === "provider.v1"
+    e.profile === "provider.v1" || e.profile === "tool.v1"
       ? 2
       : ["event-sink.v1", "telemetry-sink.v1"].includes(e.profile)
         ? 3
@@ -642,6 +729,13 @@ const caps = entries.map((e) => ({
       ),
     },
   ],
+  ...(e.profile === "tool.v1" ? { tool_schema_sets: [{
+    tool_name: "echo", minor,
+    ...Object.fromEntries(["arguments", "progress", "raw_result"].map((part) => [part, {
+      projection_id: toolCatalog.selected_minor_schema_sets[`1.${minor}`][part].projection_id,
+      schema_digest_sha256: Buffer.from(toolCatalog.selected_minor_schema_sets[`1.${minor}`][part].schema_digest_sha256, "hex"),
+    }])),
+  }] } : {}),
 }));
 send({
   manifest: {
@@ -733,7 +827,27 @@ function resultFor(method: string) {
 }
 function terminal(r: any, decoded?: any) {
   const m = profileCodec.methods[r.method];
-  let obj = resultFor(r.method);
+  let obj = runtimeTool && r.method === "tool.invoke" ? {
+    raw_result: toolProjection("raw_result", {
+      content: [{type:"text",text:effectiveText}], details: {},
+      usage: {input:3, output:0, cacheRead:0, cacheWrite:0, totalTokens:3,
+        cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},
+    }),
+  } : runtimeTool && ["before_tool", "after_tool"].includes(r.method) ?
+    payloadObject(corpus.methods[r.method].positive_terminal) : resultFor(r.method);
+  if (runtimeTool && r.method === "provider.invoke" && toolPhase === 1) {
+    const message = jsonValue(obj.assistant_message.value);
+    message.stopReason = "toolUse";
+    message.content = [{type:"toolCall",id:toolCallId,name:"echo",arguments:{text:sourceText}}];
+    obj.assistant_message.value = wireValue(message);
+  }
+  if (runtimeTool && r.method === "before_tool") {
+    obj.output.value = wireValue({name:"before_tool",result: toolBlocked ?
+      {block:{reason:"native blocked"}} : {args:{text:effectiveText}}});
+  }
+  if (runtimeTool && r.method === "after_tool") {
+    obj.output.value = wireValue({name:"after_tool",result:{content:[{type:"text",text:patchedText}]}});
+  }
   if (runtimeStructural && ["before_compaction", "before_navigation"].includes(r.method)) {
     obj = { output: payloadObject(corpus.methods[r.method].positive_terminal.output) };
     if ((r.method === "before_compaction" && structuralCase === "compaction-decline") ||
@@ -820,9 +934,9 @@ function terminal(r: any, decoded?: any) {
       },
     };
   const payload = profileCodec.encode(m.terminal, obj);
-  if (runtimeResume || runtimePayload || runtimeStructural) {
+  if (runtimeResume || runtimePayload || runtimeStructural || runtimeTool) {
     const roundTrip = profileCodec.decode(m.terminal, payload);
-    if (scenario !== "runtime-native-before-payload-malformed" || r.method !== "before_payload")
+    if ((scenario !== "runtime-native-before-payload-malformed" || r.method !== "before_payload") && !(runtimeTool && r.method === "tool.invoke"))
       boundCheck(roundTrip);
     if (!profileCodec.encode(m.terminal, roundTrip).equals(payload))
       throw Error("runtime terminal DTO round trip");
@@ -932,8 +1046,10 @@ for (;;) {
       m = profileCodec.methods[r.method];
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
-    boundCheck(decoded);
-    if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2 || runtimeStructural) {
+    if (!(runtimeTool && r.method === "tool.invoke")) boundCheck(decoded);
+    if (runtimeTool) {
+      validateToolRuntime(r, m, decoded);
+    } else if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2 || runtimeStructural) {
       validateRuntime(r, m, decoded);
     } else {
       const expected = payloadObject(
@@ -982,6 +1098,11 @@ for (;;) {
       continue;
     }
     if (scenario === "silence") continue;
+    if (runtimeTool && r.method === "tool.invoke") {
+      awaitSignal("tool");
+      terminal(r, decoded);
+      continue;
+    }
     if (m.mode === 2) {
       const state = {
         r,

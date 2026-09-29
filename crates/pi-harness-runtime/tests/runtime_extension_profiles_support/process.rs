@@ -80,11 +80,11 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "4b798540eb3a727e38ba59fde16e241d4c9dc15c71e54596a0b5e603c54e8ed2",
+            "2bb44ec74e0cc905d8b3b5e57293add23d96e3718f9ee11ce784c899fa1d951d",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
-            "195fbfa6810902639e428207c60443d02baa331543523f59463e7bc8013f0a9c",
+            "b16ca93b977c550499cb0f2397b3cd3ed34684a58961e40f407e2a6394093366",
         ),
         (
             "sdk/typescript/profiles/shapes.ts",
@@ -92,11 +92,11 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "c9a5ec8cb8fe6eaf1265c165c36af0d9cc407972301c5e6a762b3b62f807ee55",
+            "a3b9aa460dfccd2c1376efbdc135ac73290a1d5e4bef27e63ccf6f5b8dbbc721",
         ),
         (
             "sdk/python/profiles/wire.py",
-            "feb928833a07a3c375cd039f5806750d3b25001c650e4c381bf0021c1e5aa571",
+            "4065df088d15bf674ebf5991f647767caf7152029660ffba686d4407b14ad392",
         ),
         (
             "sdk/python/profiles/shapes.py",
@@ -305,6 +305,7 @@ impl Channel {
                 | "event-subscribe"
                 | "event-credit"
                 | "event-resync"
+                | "tool"
         ));
         std::fs::write(&self.release, phase).unwrap();
     }

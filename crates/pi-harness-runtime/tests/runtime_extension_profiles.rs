@@ -5757,6 +5757,565 @@ fn runtime_native_memory_profile_peer_all_pairs() {
         }
     }
 }
+
+fn native_tool_hook_pair<S: RuntimeStorage + 'static>(
+    setup: &Setup,
+    session: Arc<RuntimeSession<S>>,
+    store: Arc<S>,
+    language: &str,
+    core: u32,
+    minor: u32,
+    blocked: bool,
+) {
+    use pi_extension_protocol::activation::HostAuthority;
+    use pi_extension_protocol::profiles::{ApprovedProfile, Exposure, ProfileApproval};
+    use pi_harness_runtime::extensions::{
+        tool_driver::{EchoRouteTiming, OwnerLimits, SingleToolOwner},
+        transport::{OrderedByteChannel, PumpConfig},
+    };
+    use runtime_extension_profiles_support::process::{Channel, RealClock, drive};
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::num::{NonZeroU64, NonZeroUsize};
+    let corpus: serde_json::Value = serde_json::from_str(include_str!(
+        "runtime_extension_profiles_support/profiles-runtime-v1.json"
+    ))
+    .unwrap();
+    let catalog = echo_catalog();
+    let metadata = &catalog["entries"][0]["agentTool"];
+    let descriptor = AgentTool {
+        name: pi_ai_core::ToolName::new("echo").unwrap(),
+        label: metadata["label"].as_str().unwrap().into(),
+        description: metadata["description"].as_str().unwrap().into(),
+        parameters: serde_json::from_value(metadata["parameters"].clone()).unwrap(),
+        constrained_sampling: None,
+        execution_mode: Some(ToolExecutionMode::Sequential),
+        replay: Some(ToolReplay::Safe),
+    };
+    let tool = Arc::new(ActualTool {
+        descriptor,
+        calls: std::sync::atomic::AtomicUsize::new(0),
+    });
+    let factory = RuntimeFactory::new(
+        setup.time.clone(),
+        setup.pump.clone(),
+        setup.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let mut options = setup.options_for::<(), _>(session, DriveMode::Automatic);
+    options.tools = vec![tool.clone()];
+    options.tool_context = Some(AgentHarnessToolContextSource::Static(()));
+    let harness = setup
+        .pump
+        .drive(factory.create_configured(options))
+        .unwrap()
+        .harness;
+    let mut leaves = corpus["exposure"]["open_leaves"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(key, schema)| {
+            (
+                key.clone(),
+                pi_extension_protocol::jcs::admit_schema(
+                    &serde_json::to_vec(schema).unwrap(),
+                    Default::default(),
+                )
+                .unwrap(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let args = pi_extension_protocol::jcs::admit_schema(
+        &serde_json::to_vec(&metadata["parameters"]).unwrap(),
+        Default::default(),
+    )
+    .unwrap();
+    let parameters = pi_extension_protocol::jcs::admit_schema(
+        &serde_json::to_vec(&exact_schema(&metadata["parameters"])).unwrap(),
+        Default::default(),
+    )
+    .unwrap();
+    let empty = pi_extension_protocol::jcs::admit_schema(
+        br#"{"type":"object","properties":{},"additionalProperties":false}"#,
+        Default::default(),
+    )
+    .unwrap();
+    for path in [
+        "hook.input:before_tool.event.args",
+        "hook.output:before_tool.result.args",
+        "hook.input:after_tool.event.args",
+        "provider.assistant_message.v1.content[].arguments",
+        "provider.assistant_event.v1.content[].arguments",
+        "provider.context.v1.messages[].content[].arguments",
+    ] {
+        leaves.insert(path.into(), args.clone());
+    }
+    leaves.insert("provider.tools.v1[].parameters".into(), parameters);
+    leaves.insert("hook.input:after_tool.event.details".into(), empty);
+    leaves.insert(
+        "provider.context.v1.messages[].details".into(),
+        pi_extension_protocol::jcs::admit_schema(
+            br#"{"type":"object","properties":{},"additionalProperties":false}"#,
+            Default::default(),
+        )
+        .unwrap(),
+    );
+    let exposure = Exposure::new(leaves, BTreeSet::new()).unwrap();
+    let profiles = accepted_profiles()
+        .into_iter()
+        .map(|profile| {
+            ApprovedProfile::new(ProfileApproval {
+                principal: profile.principal().into(),
+                kind: profile.kind().into(),
+                name: profile.name().into(),
+                profile: profile.profile().into(),
+                handler: profile.handler().into(),
+                minors: profile.minors().clone(),
+                replay: profile.replay(),
+                execution: profile.execution(),
+                scope: profile.scope().into(),
+                permissions: profile.permissions().clone(),
+                exposure: exposure.clone(),
+            })
+            .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let baseline = service_host(core, profiles.clone());
+    let permissions = profiles
+        .iter()
+        .flat_map(|profile| {
+            profile.permissions().iter().map(|(name, scope)| {
+                pi_extension_protocol::wire::v1_1::PermissionGrant {
+                    name: name.clone(),
+                    scope: scope.clone(),
+                }
+            })
+        })
+        .collect();
+    let host = HostAuthority::new(
+        "peer-a".into(),
+        7,
+        core,
+        1,
+        *baseline.limits(),
+        vec![echo_approval()],
+        permissions,
+    )
+    .unwrap()
+    .with_profiles(profiles)
+    .unwrap();
+    let peer = Channel::spawn_scenario(
+        language,
+        core,
+        minor,
+        if blocked {
+            "runtime-native-tool-hook-block"
+        } else {
+            "runtime-native-tool-hook"
+        },
+    );
+    let owner = SingleToolOwner::new(
+        setup.pump.clone(),
+        OwnerLimits {
+            outbound_bytes: NonZeroUsize::new(1048576).unwrap(),
+            receipt_bytes: NonZeroUsize::new(262144).unwrap(),
+            write_timeout_ms: NonZeroU64::new(5000).unwrap(),
+        },
+    );
+    let (connection, route) = drive(
+        setup,
+        harness.connect_profile_tool(
+            &owner,
+            host,
+            peer.clone(),
+            Arc::new(RealClock::default()),
+            PumpConfig {
+                max_read_chunk: NonZeroUsize::new(4096).unwrap(),
+                write_timeout_ms: NonZeroU64::new(5000).unwrap(),
+            },
+            reservations(),
+            20000,
+        ),
+    )
+    .unwrap();
+    assert!(
+        connection
+            .grant()
+            .tools()
+            .iter()
+            .any(|tool| tool.descriptor().name == "echo")
+    );
+    assert_eq!(
+        connection
+            .grant()
+            .wire()
+            .selected_protocol
+            .as_ref()
+            .unwrap()
+            .minor,
+        core
+    );
+    assert!(
+        connection.grant().profiles().iter().all(|profile| profile
+            .reference()
+            .profile
+            .as_ref()
+            .unwrap()
+            .minor
+            == minor)
+    );
+    let selected_tool = connection
+        .grant()
+        .tools()
+        .iter()
+        .find(|tool| tool.descriptor().name == "echo")
+        .unwrap()
+        .reference()
+        .clone();
+    assert_eq!(selected_tool.profile.as_ref().unwrap().minor, minor);
+    assert_eq!(selected_tool.authenticated_extension_id, "peer-a");
+    assert_eq!(
+        selected_tool.handler_id.as_deref(),
+        Some("qualified_handler")
+    );
+    assert_eq!(selected_tool.schema_digest_sha256.len(), 32);
+    drive(
+        setup,
+        harness.register_ready_echo_tool(
+            tool.clone(),
+            Arc::new(route),
+            EchoRouteTiming {
+                method_limit_ms: NonZeroU64::new(5000).unwrap(),
+                connection_deadline_ms: 20000,
+            },
+        ),
+    )
+    .unwrap()
+    .unwrap();
+    drive(
+        setup,
+        harness.set_active_tools(vec![pi_ai_core::ToolName::new("echo").unwrap()]),
+    )
+    .unwrap();
+    for name in ["before_tool", "after_tool"] {
+        let selected = connection
+            .grant()
+            .profiles()
+            .iter()
+            .find(|profile| profile.reference().name == name)
+            .unwrap();
+        harness
+            .register_profile_hook(
+                RemoteHook::new(
+                    connection.clone(),
+                    selected.reference().clone(),
+                    Default::default(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+    }
+    let model: pi_ai_core::Model = serde_json::from_value(
+        corpus["methods"]["provider.invoke"]["request"]["model"]["value"].clone(),
+    )
+    .unwrap();
+    let provider = connection
+        .grant()
+        .profiles()
+        .iter()
+        .find(|profile| profile.reference().name == "remote")
+        .unwrap()
+        .reference()
+        .clone();
+    drive(
+        setup,
+        harness.register_profile_provider(
+            connection.clone(),
+            provider,
+            vec![model.clone()],
+            Default::default(),
+            None,
+        ),
+    )
+    .unwrap();
+    drive(setup, harness.set_model(model)).unwrap();
+    let mut prompt = Box::pin(harness.prompt(PromptInput::Text {
+        text: "native hook Tool run".into(),
+        images: vec![],
+    }));
+    if !blocked {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(8);
+        loop {
+            if let std::task::Poll::Ready(result) = poll(prompt.as_mut()) {
+                panic!(
+                    "prompt completed before selected Tool: {result:?}; methods={:?}; ends={}; peer={}",
+                    peer.request_frames()
+                        .iter()
+                        .map(|r| &r.method)
+                        .collect::<Vec<_>>(),
+                    peer.peer_stream_end_frames().len(),
+                    peer.stderr_text()
+                );
+            }
+            setup.pump.tick();
+            if peer
+                .request_frames()
+                .iter()
+                .any(|request| request.method == "tool.invoke")
+            {
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "actual selected Tool Request before terminal; peer={}",
+                peer.stderr_text()
+            );
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        let before_terminal = setup.pump.drive(store.snapshot()).unwrap();
+        assert_eq!(before_terminal.entries.iter().filter(|entry| matches!(entry, Entry::Message(entry) if matches!(entry.message, AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))))).count(), 0);
+        assert!(
+            before_terminal
+                .usage
+                .iter()
+                .all(|usage| usage.usage.input.get() != 3)
+        );
+        let binding = owner.retained_binding().expect("live Tool owner B");
+        let tool_request = peer
+            .request_frames()
+            .into_iter()
+            .find(|request| request.method == "tool.invoke")
+            .unwrap();
+        assert_eq!(binding.request_id(), tool_request.request_id);
+        assert_eq!(
+            binding.effect_key(),
+            tool_request.effect_key.as_ref().unwrap()
+        );
+        assert_eq!(binding.capability_ref(), &selected_tool);
+        assert_eq!(
+            binding.generation(),
+            connection.grant().wire().connection_generation
+        );
+        assert_eq!(tool_request.initial_stream_credit_bytes, Some(0));
+        assert!(
+            tool_request
+                .deadline_after_ms
+                .is_some_and(|ms| ms > 0 && ms <= 5000)
+        );
+        assert_eq!(tool_request.parent_request_id, None);
+        peer.signal("tool");
+    }
+    let result = drive(setup, prompt).unwrap_or_else(|error| panic!("native Tool pair run: {error:?}/{error}; methods={:?}; ends={}; responses={}; snapshot={:?}; peer={}", peer.request_frames().iter().map(|r| &r.method).collect::<Vec<_>>(), peer.peer_stream_end_frames().len(), peer.peer_response_frames().len(), setup.pump.drive(store.snapshot()).unwrap(), peer.stderr_text())).unwrap();
+    assert!(matches!(
+        result.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    assert_eq!(
+        tool.calls.load(Ordering::SeqCst),
+        0,
+        "selected process executes Tool"
+    );
+    let requests = peer.request_frames();
+    let expected = if blocked {
+        vec!["provider.invoke", "before_tool", "provider.invoke"]
+    } else {
+        vec![
+            "provider.invoke",
+            "before_tool",
+            "tool.invoke",
+            "after_tool",
+            "provider.invoke",
+        ]
+    };
+    assert_eq!(
+        requests
+            .iter()
+            .map(|request| request.method.as_str())
+            .collect::<Vec<_>>(),
+        expected
+    );
+    let snapshot = setup.pump.drive(store.snapshot()).unwrap();
+    let results = snapshot
+        .entries
+        .iter()
+        .filter_map(|entry| match entry {
+            Entry::Message(entry) => match &entry.message {
+                AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(result)) => Some(result),
+                _ => None,
+            },
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].tool_call_id.as_str(), "native-hook-call");
+    assert_eq!(results[0].tool_name.as_str(), "echo");
+    let assistant = snapshot
+        .entries
+        .iter()
+        .find_map(|entry| match entry {
+            Entry::Message(entry) => match &entry.message {
+                AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(message))
+                    if message.stop_reason == pi_ai_core::StopReason::ToolUse =>
+                {
+                    Some((entry, message))
+                }
+                _ => None,
+            },
+            _ => None,
+        })
+        .unwrap();
+    let source_index = assistant.1.content.iter().position(|content| matches!(content, pi_ai_core::AssistantContent::ToolCall(call) if call.id.as_str() == "native-hook-call" && call.name.as_str() == "echo")).unwrap() as u64;
+    let before = requests
+        .iter()
+        .find(|request| request.method == "before_tool")
+        .unwrap();
+    let before_key = before.effect_key.as_ref().unwrap();
+    assert_eq!(before_key.effect_kind, "hook");
+    assert_eq!(before_key.item_index, Some(source_index));
+    assert_eq!(before_key.operation_id, result.run_id.as_str());
+    assert_eq!(before.parent_request_id, None);
+    assert_eq!(before.initial_stream_credit_bytes, Some(0));
+    assert!(
+        before
+            .deadline_after_ms
+            .is_some_and(|ms| ms > 0 && ms <= 5000)
+    );
+    if blocked {
+        assert!(results[0].is_error);
+        assert_eq!(
+            peer.peer_stream_end_frames().len(),
+            2,
+            "provider terminals only"
+        );
+        assert!(
+            snapshot
+                .usage
+                .iter()
+                .all(|usage| usage.usage.input.get() != 3)
+        );
+        assert!(
+            !requests
+                .iter()
+                .any(|request| request.method == "tool.invoke")
+        );
+    } else {
+        assert!(!results[0].is_error);
+        assert!(
+            matches!(&results[0].content[0], pi_ai_core::InputContent::Text(text) if text.text == "native after patch")
+        );
+        let tool_request = requests
+            .iter()
+            .find(|request| request.method == "tool.invoke")
+            .unwrap();
+        let after = requests
+            .iter()
+            .find(|request| request.method == "after_tool")
+            .unwrap();
+        let tool_key = tool_request.effect_key.as_ref().unwrap();
+        assert_eq!(tool_key.effect_kind, "tool");
+        assert_eq!(tool_key.item_index, before_key.item_index);
+        assert_eq!(tool_key.operation_id, before_key.operation_id);
+        assert_eq!(tool_key.step_or_task_id, before_key.step_or_task_id);
+        assert_eq!(tool_request.capability_ref.as_ref(), Some(&selected_tool));
+        assert_eq!(after.parent_request_id, Some(tool_request.request_id));
+        assert_eq!(after.effect_key, tool_request.effect_key);
+        assert_eq!(after.initial_stream_credit_bytes, Some(0));
+        assert!(
+            after
+                .deadline_after_ms
+                .is_some_and(|ms| ms > 0 && ms <= 5000)
+        );
+        assert_eq!(tool_request.initial_stream_credit_bytes, Some(0));
+        assert_eq!(
+            peer.peer_stream_end_frames()
+                .iter()
+                .filter(|end| end.request_id == tool_request.request_id)
+                .count(),
+            1
+        );
+        let result_entry = snapshot
+            .entries
+            .iter()
+            .find_map(|entry| match entry {
+                Entry::Message(entry)
+                    if matches!(
+                        entry.message,
+                        AgentMessage::BuiltIn(pi_ai_core::Message::ToolResult(_))
+                    ) =>
+                {
+                    Some(entry)
+                }
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(
+            snapshot
+                .usage
+                .iter()
+                .filter(|usage| usage.entry_id.as_ref() == Some(&result_entry.id)
+                    && usage.usage.input.get() == 3)
+                .count(),
+            1
+        );
+    }
+    assert_eq!(
+        requests
+            .iter()
+            .map(|request| request.request_id)
+            .collect::<BTreeSet<_>>()
+            .len(),
+        requests.len()
+    );
+    assert_eq!(connection.occupancy(), 0);
+    connection.close();
+    peer.close();
+    drive(setup, harness.close()).unwrap();
+}
+#[test]
+fn runtime_native_tool_hook_pair_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                for blocked in [false, true] {
+                    let setup = Setup::new();
+                    native_tool_hook_pair(
+                        &setup,
+                        setup.session.clone(),
+                        setup.store.clone(),
+                        language,
+                        core,
+                        minor,
+                        blocked,
+                    );
+                }
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_tool_hook_pair_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                for blocked in [false, true] {
+                    let setup = Setup::new();
+                    let (session, store, dir) = sqlite_case(&setup);
+                    native_tool_hook_pair(
+                        &setup,
+                        session,
+                        store.clone(),
+                        language,
+                        core,
+                        minor,
+                        blocked,
+                    );
+                    drop(store);
+                    std::fs::remove_dir_all(dir).unwrap();
+                }
+            }
+        }
+    }
+}
 #[test]
 fn runtime_native_sqlite_profile_peer_all_pairs() {
     for language in ["typescript", "python"] {

@@ -60,11 +60,12 @@ export class Codec {
   enums = new Map<string, number[]>();
   digests: Record<string, string> = {};
   methods: Record<string, any> = {};
-  constructor(repo: string, minor: number) {
+  constructor(repo: string, minor: number, includeTool = false) {
     for (const file of [
       "common",
       "hook",
       "provider",
+      ...(includeTool ? ["tool"] : []),
       "resource",
       "host_action",
       "event_sink",

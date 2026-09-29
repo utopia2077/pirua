@@ -16,7 +16,7 @@ if mode != "--serve":
     raise ValueError("peer mode")
 core, minor = map(int, sys.argv[3:5])
 scenario = sys.argv[5]
-codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(repo)
+codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor, scenario in ("runtime-native-tool-hook", "runtime-native-tool-hook-block")), Shapes(repo)
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
@@ -24,6 +24,9 @@ runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-
 runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue") or runtime_event
 runtime_queue = scenario == "runtime-native-host-queue"
 runtime_structural = scenario.startswith("runtime-native-structural")
+runtime_tool = scenario in ("runtime-native-tool-hook", "runtime-native-tool-hook-block")
+tool_blocked = scenario == "runtime-native-tool-hook-block"
+tool_catalog = (json.loads((Path(repo) / "crates/pi-extension-protocol/schema/fixtures/host-catalog.json").read_text())["entries"][0] if runtime_tool else None)
 structural_case = scenario.removeprefix("runtime-native-structural").removeprefix("-") or "positive"
 runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_queue or runtime_event
 runtime_resource = scenario.startswith("runtime-native-host-resource-get")
@@ -68,6 +71,20 @@ if runtime_payload:
     model = corpus["methods"]["provider.invoke"]["request"]["model"]["value"]
     for part in ("compat", "samplingParams"):
         runtime_open_leaves[f"hook.input:before_payload.event.model.{part}"] = exact_schema(model.get(part))
+if runtime_tool:
+    args = tool_catalog["agentTool"]["parameters"]
+    empty = {"type": "object", "properties": {}, "additionalProperties": False}
+    runtime_open_leaves.update({
+        "hook.input:before_tool.event.args": args,
+        "hook.output:before_tool.result.args": args,
+        "hook.input:after_tool.event.args": args,
+        "hook.input:after_tool.event.details": empty,
+        "provider.tools.v1[].parameters": {"type": "object", "properties": {}, "additionalProperties": True},
+        "provider.assistant_message.v1.content[].arguments": args,
+        "provider.assistant_event.v1.content[].arguments": args,
+        "provider.context.v1.messages[].content[].arguments": args,
+        "provider.context.v1.messages[].details": empty,
+    })
 
 
 def payload_shape(value):
@@ -86,7 +103,7 @@ def payload_exposure(root, wire):
                 and event["model"].get("samplingParams") == model.get("samplingParams"))
     return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
+if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_tool or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -187,6 +204,87 @@ structural_summaries_left = 0
 structural_compaction_summaries = 0
 structural_navigation_summaries = 0
 runtime_ids = set()
+tool_phase = 0
+tool_provider_key = None
+tool_before_key = None
+tool_request = None
+tool_call_id = "native-hook-call"
+source_text = "native source text"
+effective_text = "native effective text"
+patched_text = "native after patch"
+
+
+def tool_projection(part, value):
+    selected = tool_catalog["selected_minor_schema_sets"][f"1.{minor}"][part]
+    return {"projection_id": selected["projection_id"],
+            "schema_digest_sha256": bytes.fromhex(selected["schema_digest_sha256"]),
+            "value": wire_value(value)}
+
+
+def validate_tool_runtime(request, method, decoded):
+    global tool_phase, tool_provider_key, tool_before_key, tool_request
+    sequence = (["provider.invoke", "before_tool", "provider.invoke"] if tool_blocked else
+                ["provider.invoke", "before_tool", "tool.invoke", "after_tool", "provider.invoke"])
+    name = request["method"]
+    if tool_phase >= len(sequence) or name != sequence[tool_phase]:
+        raise ValueError("tool method order: " + name)
+    tool_phase += 1
+    rid = request["request_id"]
+    deadline = request.get("deadline_after_ms")
+    if (type(rid) is not int or rid <= 0 or rid in runtime_ids or
+            request.get("initial_stream_credit_bytes") != 0 or
+            type(deadline) is not int or not 0 < deadline <= 5000):
+        raise ValueError("tool request bounds")
+    runtime_ids.add(rid)
+    cap_name = "remote" if method["profile"] == "provider.v1" else "echo" if method["profile"] == "tool.v1" else name
+    selected = next((c for c in granted["selected_capabilities"]
+                     if c["profile"]["name"] == method["profile"] and c["name"] == cap_name), None)
+    if (selected is None or selected["handler_id"] != "qualified_handler" or
+            codec.encode("CapabilityRef", selected) != codec.encode("CapabilityRef", request["capability_ref"])):
+        raise ValueError("tool selected reference")
+    key = request.get("effect_key")
+    if name == "provider.invoke":
+        tools = runtime_projection(decoded["tools"], "provider.tools.v1")
+        if (len(tools) != 1 or tools[0]["name"] != "echo" or
+                canonical(tools[0]["parameters"]) != canonical(tool_catalog["agentTool"]["parameters"])):
+            raise ValueError("actual provider echo tools")
+        if tool_phase == 1:
+            if not key or key["effect_kind"] != "assistant" or key["lane"] != "main":
+                raise ValueError("source provider key")
+            tool_provider_key = key
+        elif tool_call_id not in json.dumps(runtime_projection(decoded["context"], "provider.context.v1")):
+            raise ValueError("followup provider context")
+    elif name == "before_tool":
+        event = runtime_projection(decoded["input"], "hook.input:before_tool")["event"]
+        if (decoded["handler_id"] != "qualified_handler" or event["toolCallId"] != tool_call_id or
+                event["toolName"] != "echo" or event["args"]["text"] != source_text or
+                not key or key["effect_kind"] != "hook" or
+                key["operation_id"] != tool_provider_key["operation_id"] or
+                key.get("item_index") != 0 or "parent_request_id" in request):
+            raise ValueError("source-derived before Tool key")
+        tool_before_key = key
+    elif name == "tool.invoke":
+        args = json_value(decoded["arguments"]["value"])
+        selected_digest = tool_catalog["selected_minor_schema_sets"][f"1.{minor}"]["arguments"]["schema_digest_sha256"]
+        if (decoded["tool_id"] != "echo" or decoded["tool_call_id"] != tool_call_id or
+                decoded["arguments"]["projection_id"] != "tool.arguments:echo" or
+                decoded["arguments"]["schema_digest_sha256"].hex() != selected_digest or
+                args != {"text": effective_text} or not key or key["effect_kind"] != "tool" or
+                key["operation_id"] != tool_before_key["operation_id"] or
+                key["step_or_task_id"] != tool_before_key["step_or_task_id"] or
+                key.get("item_index") != tool_before_key.get("item_index") or
+                "parent_request_id" in request):
+            raise ValueError("effective selected Tool request")
+        tool_request = request
+    else:
+        event = runtime_projection(decoded["input"], "hook.input:after_tool")["event"]
+        if (decoded["handler_id"] != "qualified_handler" or tool_request is None or
+                request.get("parent_request_id") != tool_request["request_id"] or
+                key != tool_request["effect_key"] or event["toolCallId"] != tool_call_id or
+                event["args"]["text"] != effective_text or
+                event["content"][0]["text"] != effective_text or event["isError"] is not False):
+            raise ValueError("same Tool parent after hook")
+
 changed_list = None
 changed_acked = False
 telemetry_batches = 0
@@ -644,7 +742,8 @@ hooks = [
     if profile_codec.methods[name]["profile"] == "hook.v1"
 ]
 entries = (
-    [{"profile": "host-action.v1", "name": "actions-resource"}]
+    ([{"profile": "tool.v1", "name": "echo"}] if runtime_tool else [])
+    + [{"profile": "host-action.v1", "name": "actions-resource"}]
     + [{"profile": "hook.v1", "name": name} for name in hooks]
     + [
         {"profile": p + ".v1", "name": n}
@@ -685,7 +784,7 @@ caps = [
         "replay": 1,
         "execution": (
             2
-            if e["profile"] == "provider.v1"
+            if e["profile"] in ("provider.v1", "tool.v1")
             else 3 if e["profile"] in ("event-sink.v1", "telemetry-sink.v1") else 1
         ),
         "required": True,
@@ -700,6 +799,15 @@ caps = [
     }
     for e in entries
 ]
+if runtime_tool:
+    selected_set = tool_catalog["selected_minor_schema_sets"][f"1.{minor}"]
+    caps[0]["tool_schema_sets"] = [{
+        "tool_name": "echo", "minor": minor,
+        **{part: {
+            "projection_id": selected_set[part]["projection_id"],
+            "schema_digest_sha256": bytes.fromhex(selected_set[part]["schema_digest_sha256"]),
+        } for part in ("arguments", "progress", "raw_result")},
+    }]
 send(
     {
         "manifest": {
@@ -806,7 +914,28 @@ def result_for(method):
 def terminal(request, decoded=None):
     global once_done, resource_phase
     m = profile_codec.methods[request["method"]]
-    obj = result_for(request["method"])
+    obj = ({"raw_result": tool_projection("raw_result", {
+        "content": [{"type": "text", "text": effective_text}], "details": {},
+        "usage": {"input": 3, "output": 0, "cacheRead": 0, "cacheWrite": 0,
+                  "totalTokens": 3, "cost": {"input": 0, "output": 0,
+                  "cacheRead": 0, "cacheWrite": 0, "total": 0}},
+    })} if runtime_tool and request["method"] == "tool.invoke" else
+           payload_object(corpus["methods"][request["method"]]["positive_terminal"])
+           if runtime_tool and request["method"] in ("before_tool", "after_tool") else
+           result_for(request["method"]))
+    if runtime_tool and request["method"] == "provider.invoke" and tool_phase == 1:
+        message = json_value(obj["assistant_message"]["value"])
+        message["stopReason"] = "toolUse"
+        message["content"] = [{"type": "toolCall", "id": tool_call_id,
+                               "name": "echo", "arguments": {"text": source_text}}]
+        obj["assistant_message"]["value"] = wire_value(message)
+    if runtime_tool and request["method"] == "before_tool":
+        obj["output"]["value"] = wire_value({"name": "before_tool", "result":
+            {"block": {"reason": "native blocked"}} if tool_blocked else
+            {"args": {"text": effective_text}}})
+    if runtime_tool and request["method"] == "after_tool":
+        obj["output"]["value"] = wire_value({"name": "after_tool", "result":
+            {"content": [{"type": "text", "text": patched_text}]}})
     if runtime_structural and request["method"] in ("before_compaction", "before_navigation"):
         obj = {"output": payload_object(corpus["methods"][request["method"]]["positive_terminal"]["output"])}
         if (request["method"] == "before_compaction" and structural_case == "compaction-decline"
@@ -895,9 +1024,9 @@ def terminal(request, decoded=None):
             }
         }
     payload = profile_codec.encode(m["terminal"], obj)
-    if runtime_resume or runtime_payload or runtime_structural:
+    if runtime_resume or runtime_payload or runtime_structural or runtime_tool:
         round_trip = profile_codec.decode(m["terminal"], payload)
-        if scenario != "runtime-native-before-payload-malformed" or request["method"] != "before_payload":
+        if (scenario != "runtime-native-before-payload-malformed" or request["method"] != "before_payload") and not (runtime_tool and request["method"] == "tool.invoke"):
             bound_check(round_trip)
         if profile_codec.encode(m["terminal"], round_trip) != payload:
             raise ValueError("runtime terminal DTO round trip")
@@ -1021,8 +1150,11 @@ while not once_done:
         request = e["request"]
         m = profile_codec.methods[request["method"]]
         decoded = profile_codec.decode(m["request"], request["payload"])
-        bound_check(decoded)
-        if scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2 or runtime_structural:
+        if not runtime_tool or request["method"] != "tool.invoke":
+            bound_check(decoded)
+        if runtime_tool:
+            validate_tool_runtime(request, m, decoded)
+        elif scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2 or runtime_structural:
             validate_runtime(request, m, decoded)
         else:
             expected = payload_object(
@@ -1063,6 +1195,10 @@ while not once_done:
             host_request()
             continue
         if scenario == "silence":
+            continue
+        if runtime_tool and request["method"] == "tool.invoke":
+            await_signal("tool")
+            terminal(request, decoded)
             continue
         if m["mode"] == 2:
             state = {

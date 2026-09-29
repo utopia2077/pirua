@@ -63,12 +63,13 @@ def field(raw, n, default=None):
 
 
 class Codec:
-    def __init__(self, repo, minor):
+    def __init__(self, repo, minor, include_tool=False):
         self.messages, self.enums, self.methods, self.digests = {}, {}, {}, {}
         for file in (
             "common",
             "hook",
             "provider",
+            *(("tool",) if include_tool else ()),
             "resource",
             "host_action",
             "event_sink",
