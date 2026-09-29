@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "e03ed930a410866c8a406a1721df152de8f9c71233d0503fa9234926ffdf4c1e",
+            "c8517d1e8b565e7e256189df9435da1a8789c77f15d2774bc1a54d795a6f9413",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "ee2cb8c00f75e9598eaea245fad342df9543dbff13ebc3fc509d5948bec64a5d",
+            "0715e61604e44475b236c58877860b594f84382d953d1b9bcbd6e5e3858e83ba",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -296,7 +296,13 @@ impl Channel {
     pub fn signal(&self, phase: &str) {
         assert!(matches!(
             phase,
-            "actions" | "provider" | "event-subscribe" | "event-credit" | "event-resync"
+            "actions"
+                | "provider"
+                | "resource-changed"
+                | "resource-second"
+                | "event-subscribe"
+                | "event-credit"
+                | "event-resync"
         ));
         std::fs::write(&self.release, phase).unwrap();
     }

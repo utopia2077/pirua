@@ -2812,6 +2812,11 @@ enum ProcessMode {
     BeforePayload,
     BeforePayloadMalformed,
     HostSnapshot,
+    HostResource,
+    HostResourceMissing,
+    HostResourceScope,
+    HostResourceVersion,
+    HostResourceParent,
     EventSink,
     EventSinkWrongId,
 }
@@ -2854,6 +2859,14 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     mode: ProcessMode,
 ) {
     let event_mode = matches!(mode, ProcessMode::EventSink | ProcessMode::EventSinkWrongId);
+    let resource_mode = matches!(
+        mode,
+        ProcessMode::HostResource
+            | ProcessMode::HostResourceMissing
+            | ProcessMode::HostResourceScope
+            | ProcessMode::HostResourceVersion
+            | ProcessMode::HostResourceParent
+    );
     let payload_mode = matches!(
         mode,
         ProcessMode::BeforePayload | ProcessMode::BeforePayloadMalformed
@@ -2995,6 +3008,16 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-before-resume")
     } else if mode == ProcessMode::HostSnapshot {
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-snapshot")
+    } else if resource_mode {
+        let scenario = match mode {
+            ProcessMode::HostResource => "runtime-native-host-resource-get",
+            ProcessMode::HostResourceMissing => "runtime-native-host-resource-get-missing",
+            ProcessMode::HostResourceScope => "runtime-native-host-resource-get-scope",
+            ProcessMode::HostResourceVersion => "runtime-native-host-resource-get-version",
+            ProcessMode::HostResourceParent => "runtime-native-host-resource-get-parent",
+            _ => unreachable!(),
+        };
+        Channel::spawn_scenario(language, core, minor, scenario)
     } else if mode == ProcessMode::EventSink {
         Channel::spawn_scenario(language, core, minor, "runtime-native-event-sink")
     } else if mode == ProcessMode::EventSinkWrongId {
@@ -3062,6 +3085,11 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::BeforePayload
             | ProcessMode::BeforePayloadMalformed
             | ProcessMode::HostSnapshot
+            | ProcessMode::HostResource
+            | ProcessMode::HostResourceMissing
+            | ProcessMode::HostResourceScope
+            | ProcessMode::HostResourceVersion
+            | ProcessMode::HostResourceParent
             | ProcessMode::EventSink
             | ProcessMode::EventSinkWrongId
     ) {
@@ -3224,7 +3252,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
         let before_malformed = (mode == ProcessMode::BeforePayloadMalformed)
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
-        let call = if mode == ProcessMode::HostSnapshot || event_mode {
+        let call = if mode == ProcessMode::HostSnapshot || resource_mode || event_mode {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
             use std::time::{Duration, Instant};
@@ -3263,86 +3291,398 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             assert_eq!(peer.peer_request_frames().len(), 0, "actions await release");
             let before_actions = setup.pump.drive(store.snapshot()).unwrap();
             assert_eq!(before_actions.usage.len(), 1);
-            peer.signal("actions");
-            let deadline = Instant::now() + Duration::from_secs(4);
-            loop {
-                assert!(
-                    runtime_r1_r4_support::poll(future.as_mut()).is_pending(),
-                    "provider must remain Open: {}",
-                    peer.stderr_text()
-                );
-                setup.pump.tick();
-                if peer.response_frames().len() == 2 {
-                    break;
+            if resource_mode {
+                let selected = connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| {
+                        p.reference().name == "actions-resource"
+                            && p.reference().profile.as_ref().unwrap().name == "host-action.v1"
+                    })
+                    .unwrap()
+                    .reference();
+                let check_result = |response: &v1_1::Response| {
+                    let Some(v1_1::response::Terminal::Result(body)) = &response.terminal else {
+                        panic!("real resource action Result: {:?}", response.terminal);
+                    };
+                    let result = dto::ResourceGetResult::decode(body.as_slice()).unwrap();
+                    let snapshot = result.snapshot.unwrap();
+                    assert_eq!(snapshot.projection_id, "host.resource_snapshot.v1");
+                    assert_eq!(
+                        snapshot
+                            .schema_digest_sha256
+                            .iter()
+                            .map(|byte| format!("{byte:02x}"))
+                            .collect::<String>(),
+                        "a2a4403093db407c6cd2efbe7d9c47689ebdd5c065fdb70bc8b43d90337e4a7f"
+                    );
+                    assert_eq!(
+                        wire_value(snapshot.value.unwrap()),
+                        serde_json::json!({
+                            "id":"s", "version":"1", "kind":"skill", "value":"x",
+                            "digest":"2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+                        })
+                    );
+                };
+                peer.signal("actions");
+                let deadline = Instant::now() + Duration::from_secs(4);
+                loop {
+                    assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                    setup.pump.tick();
+                    if peer.response_frames().len() == 1 {
+                        break;
+                    }
+                    assert!(
+                        Instant::now() < deadline,
+                        "first resource action: {}",
+                        peer.stderr_text()
+                    );
+                    std::thread::sleep(Duration::from_millis(1));
                 }
+                let actions = peer.peer_request_frames();
+                assert_eq!(actions.len(), 1);
+                let first = &actions[0];
+                assert_eq!(first.method, "resource.get", "real child Request");
+                assert_eq!(first.request_id, 1000);
+                assert!(first.request_id > parent.request_id && first.request_id < 2000);
+                assert_eq!(first.capability_ref.as_ref(), Some(selected));
+                assert_eq!(first.parent_request_id, Some(parent.request_id));
+                assert_eq!(first.effect_key, None);
+                assert_eq!(first.initial_stream_credit_bytes, Some(0));
                 assert!(
-                    Instant::now() < deadline,
-                    "finite child action replies: {}",
-                    peer.stderr_text()
-                );
-                std::thread::sleep(Duration::from_millis(1));
-            }
-            let actions = peer.peer_request_frames();
-            assert_eq!(actions.len(), 2);
-            let selected = connection
-                .grant()
-                .profiles()
-                .iter()
-                .find(|p| {
-                    p.reference().name == "actions"
-                        && p.reference().profile.as_ref().unwrap().name == "host-action.v1"
-                })
-                .unwrap()
-                .reference();
-            for (index, request) in actions.iter().enumerate() {
-                assert_eq!(request.request_id, 1000 + index as u64);
-                assert!(request.request_id > parent.request_id && request.request_id < 2000);
-                assert_eq!(request.method, "snapshot.get");
-                assert_eq!(request.capability_ref.as_ref(), Some(selected));
-                assert_eq!(
-                    request.parent_request_id,
-                    (index == 0).then_some(parent.request_id)
-                );
-                assert_eq!(request.effect_key, None);
-                assert_eq!(request.initial_stream_credit_bytes, Some(0));
-                assert!(
-                    request
+                    first
                         .deadline_after_ms
                         .is_some_and(|ms| ms > 0 && ms <= 2000)
                 );
                 assert_eq!(
-                    dto::SnapshotGetRequest::decode(request.payload.as_slice()).unwrap(),
-                    dto::SnapshotGetRequest {
-                        lane: "main".into(),
-                        visibility: "captured_policy".into()
+                    dto::ResourceGetRequest::decode(first.payload.as_slice()).unwrap(),
+                    dto::ResourceGetRequest {
+                        scope: "allowed".into(),
+                        id: "s".into(),
+                        version: Some("1".into())
                     }
                 );
+                let responses = peer.response_frames();
+                assert_eq!(responses[0].request_id, 1000);
+                check_result(&responses[0]);
+                assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+                assert!(connection.current());
+                assert_eq!(revision.revision(), "r1");
+                peer.signal("resource-changed");
+                let deadline = Instant::now() + Duration::from_secs(4);
+                loop {
+                    assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                    setup.pump.tick();
+                    if peer.response_frames().len() == 2 {
+                        break;
+                    }
+                    assert!(
+                        Instant::now() < deadline,
+                        "resource.changed Ack: {}",
+                        peer.stderr_text()
+                    );
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                let changed = &peer.peer_request_frames()[1];
+                assert_eq!(changed.request_id, 1500);
+                assert_eq!(changed.method, "resource.changed");
+                assert_eq!(changed.capability_ref.as_ref(), Some(&cap));
+                assert_eq!(changed.parent_request_id, None);
+                assert_eq!(changed.effect_key, None);
+                assert_eq!(changed.initial_stream_credit_bytes, Some(0));
+                assert_eq!(
+                    dto::ResourceChanged::decode(changed.payload.as_slice())
+                        .unwrap()
+                        .scope,
+                    "allowed"
+                );
+                let responses = peer.response_frames();
+                assert_eq!(responses[1].request_id, 1500);
+                let Some(v1_1::response::Terminal::Result(body)) = &responses[1].terminal else {
+                    panic!("typed resource.changed Ack");
+                };
+                dto::ResourceChangedAck::decode(body.as_slice()).unwrap();
+                assert!(catalog.refresh_pending());
+                // The first connection's provider owns its serial outgoing-call slot.
+                // A distinct selected resource process supplies the complete refresh
+                // while the original child and provider parent remain live.
+                let refresh_peer =
+                    Channel::spawn_scenario(language, core, minor, "runtime-native-resource-r2");
+                let refresh_connection = drive(
+                    setup,
+                    harness.connect_profile_service(
+                        service_host(core, accepted_profiles()),
+                        refresh_peer.clone(),
+                        Arc::new(RealClock::default()),
+                        config,
+                        reservations(),
+                        20000,
+                    ),
+                )
+                .unwrap();
+                let refresh_cap = refresh_connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| p.reference().name == "resources")
+                    .unwrap()
+                    .reference()
+                    .clone();
+                assert_eq!(refresh_cap, cap);
+                let refreshed = drive(setup, harness.refresh_profile_resources(refresh_connection.clone(), refresh_cap.clone(), &catalog))
+                    .unwrap_or_else(|error| panic!(
+                        "independent selected refresh: {error:?}; current={}; requests={:?}; stderr={}",
+                        refresh_connection.current(),
+                        refresh_peer.request_frames().iter().map(|r| (&r.method, r.request_id)).collect::<Vec<_>>(),
+                        refresh_peer.stderr_text()
+                    ));
+                let refresh_requests = refresh_peer.request_frames();
+                assert_eq!(
+                    refresh_requests
+                        .iter()
+                        .map(|r| r.method.as_str())
+                        .collect::<Vec<_>>(),
+                    ["resource.list", "resource.read"]
+                );
+                assert!(
+                    refresh_requests
+                        .iter()
+                        .all(|r| r.capability_ref.as_ref() == Some(&refresh_cap)
+                            && r.initial_stream_credit_bytes == Some(0))
+                );
+                let refresh_replies = refresh_peer.peer_response_frames();
+                assert_eq!(refresh_replies.len(), 2);
+                let Some(v1_1::response::Terminal::Result(list_body)) =
+                    &refresh_replies[0].terminal
+                else {
+                    panic!("selected r2 resource.list Result");
+                };
+                let list = dto::ResourceListResult::decode(list_body.as_slice()).unwrap();
+                assert_eq!(list.revision, "r2");
+                assert_eq!(list.resources.len(), 1);
+                assert_eq!(
+                    (
+                        list.resources[0].id.as_str(),
+                        list.resources[0].version.as_str(),
+                        list.resources[0].kind.as_str()
+                    ),
+                    ("s", "2", "skill")
+                );
+                let Some(v1_1::response::Terminal::Result(read_body)) =
+                    &refresh_replies[1].terminal
+                else {
+                    panic!("selected r2 resource.read Result");
+                };
+                let read = dto::ResourceReadResult::decode(read_body.as_slice()).unwrap();
+                assert_eq!(read.digest_sha256, list.resources[0].digest_sha256);
+                assert_eq!(
+                    read.value,
+                    Some(dto::resource_read_result::Value::Text("y".into()))
+                );
+                refresh_peer.finish(true);
+                refresh_connection.close();
+                assert_eq!(refreshed.revision(), "r2");
+                assert_eq!(refreshed.get("s", Some("2")).unwrap().value, "y");
+                assert_eq!(
+                    refreshed.get("s", Some("2")).unwrap().digest,
+                    "a1fce4363854ff888cff4b8e7875d600c2682390412a8cf79b37d0b11148b0fa"
+                );
+                assert!(Arc::ptr_eq(&catalog.capture().unwrap(), &refreshed));
+                assert!(!catalog.refresh_pending());
+                assert!(!Arc::ptr_eq(&revision, &refreshed));
+                assert_eq!(revision.get("s", Some("1")).unwrap().value, "x");
+                assert_eq!(
+                    revision.get("s", Some("1")).unwrap().digest,
+                    "2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881"
+                );
+                assert!(connection.current());
+                assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                let before_second = setup.pump.drive(store.snapshot()).unwrap();
+                peer.signal("resource-second");
+                let deadline = Instant::now() + Duration::from_secs(4);
+                loop {
+                    if let std::task::Poll::Ready(result) =
+                        runtime_r1_r4_support::poll(future.as_mut())
+                    {
+                        panic!(
+                            "provider settled before second action: {result:?}; current={}; responses={:?}; requests={:?}; stderr={}",
+                            connection.current(),
+                            peer.response_frames()
+                                .iter()
+                                .map(|r| r.request_id)
+                                .collect::<Vec<_>>(),
+                            peer.peer_request_frames()
+                                .iter()
+                                .map(|r| (&r.method, r.request_id))
+                                .collect::<Vec<_>>(),
+                            peer.stderr_text()
+                        );
+                    }
+                    setup.pump.tick();
+                    if peer.response_frames().len() == 3 {
+                        break;
+                    }
+                    assert!(
+                        Instant::now() < deadline,
+                        "second resource action: {}",
+                        peer.stderr_text()
+                    );
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                let actions = peer.peer_request_frames();
+                assert_eq!(actions.len(), 3);
+                let second = &actions[2];
+                assert_eq!(second.request_id, 1501);
+                assert_eq!(second.method, "resource.get");
+                if second.capability_ref.as_ref() != Some(selected) {
+                    let responses = peer.response_frames();
+                    let Some(v1_1::response::Terminal::Error(error)) = &responses[2].terminal
+                    else {
+                        panic!("wrong capability must be refused");
+                    };
+                    assert_eq!(error.code, v1_1::ErrorCode::Forbidden as i32);
+                    assert_eq!(error.safe_message, "request failed");
+                    assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_second);
+                    panic!("second resource.get lost its selected resource.read capability");
+                }
+                assert_eq!(second.capability_ref.as_ref(), Some(selected));
+                assert_eq!(
+                    second.parent_request_id,
+                    (mode != ProcessMode::HostResourceParent).then_some(parent.request_id)
+                );
+                assert_eq!(second.effect_key, None);
+                assert_eq!(second.initial_stream_credit_bytes, Some(0));
+                assert!(
+                    second
+                        .deadline_after_ms
+                        .is_some_and(|ms| ms > 0 && ms <= 2000)
+                );
+                let expected = match mode {
+                    ProcessMode::HostResourceMissing => ("allowed", "missing-s", None),
+                    ProcessMode::HostResourceScope => ("wrong-scope", "s", Some("1".into())),
+                    ProcessMode::HostResourceVersion => ("allowed", "s", Some("2".into())),
+                    _ => ("allowed", "s", Some("1".into())),
+                };
+                assert_eq!(
+                    dto::ResourceGetRequest::decode(second.payload.as_slice()).unwrap(),
+                    dto::ResourceGetRequest {
+                        scope: expected.0.into(),
+                        id: expected.1.into(),
+                        version: expected.2
+                    }
+                );
+                let responses = peer.response_frames();
+                assert_eq!(responses[2].request_id, 1501);
+                if mode == ProcessMode::HostResource {
+                    check_result(&responses[2]);
+                } else {
+                    let code = match mode {
+                        ProcessMode::HostResourceMissing => v1_1::ErrorCode::NotFound,
+                        ProcessMode::HostResourceScope => v1_1::ErrorCode::Forbidden,
+                        ProcessMode::HostResourceVersion => v1_1::ErrorCode::VersionMismatch,
+                        ProcessMode::HostResourceParent => v1_1::ErrorCode::InvalidParent,
+                        _ => unreachable!(),
+                    };
+                    let Some(v1_1::response::Terminal::Error(error)) = &responses[2].terminal
+                    else {
+                        panic!("typed resource refusal: {:?}", responses[2].terminal);
+                    };
+                    assert_eq!(error.code, code as i32);
+                    assert_eq!(error.safe_message, "request failed");
+                }
+                assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_second);
+                assert_eq!(
+                    setup.pump.drive(store.snapshot()).unwrap().usage,
+                    before_second.usage
+                );
+                assert!(connection.current());
+                assert_eq!(catalog.capture().unwrap().revision(), "r2");
+                assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                peer.signal("provider");
+                drive(setup, future)
+            } else {
+                peer.signal("actions");
+                let deadline = Instant::now() + Duration::from_secs(4);
+                loop {
+                    assert!(
+                        runtime_r1_r4_support::poll(future.as_mut()).is_pending(),
+                        "provider must remain Open: {}",
+                        peer.stderr_text()
+                    );
+                    setup.pump.tick();
+                    if peer.response_frames().len() == 2 {
+                        break;
+                    }
+                    assert!(
+                        Instant::now() < deadline,
+                        "finite child action replies: {}",
+                        peer.stderr_text()
+                    );
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                let actions = peer.peer_request_frames();
+                assert_eq!(actions.len(), 2);
+                let selected = connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| {
+                        p.reference().name == "actions"
+                            && p.reference().profile.as_ref().unwrap().name == "host-action.v1"
+                    })
+                    .unwrap()
+                    .reference();
+                for (index, request) in actions.iter().enumerate() {
+                    assert_eq!(request.request_id, 1000 + index as u64);
+                    assert!(request.request_id > parent.request_id && request.request_id < 2000);
+                    assert_eq!(request.method, "snapshot.get");
+                    assert_eq!(request.capability_ref.as_ref(), Some(selected));
+                    assert_eq!(
+                        request.parent_request_id,
+                        (index == 0).then_some(parent.request_id)
+                    );
+                    assert_eq!(request.effect_key, None);
+                    assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                    assert!(
+                        request
+                            .deadline_after_ms
+                            .is_some_and(|ms| ms > 0 && ms <= 2000)
+                    );
+                    assert_eq!(
+                        dto::SnapshotGetRequest::decode(request.payload.as_slice()).unwrap(),
+                        dto::SnapshotGetRequest {
+                            lane: "main".into(),
+                            visibility: "captured_policy".into()
+                        }
+                    );
+                }
+                let responses = peer.response_frames();
+                let Some(v1_1::response::Terminal::Result(body)) = &responses[0].terminal else {
+                    panic!("real snapshot action Result: {:?}", responses[0].terminal);
+                };
+                assert_eq!(responses[0].request_id, 1000);
+                let snapshot_result = dto::SnapshotGetResult::decode(body.as_slice()).unwrap();
+                let filtered = snapshot_result.filtered_snapshot.unwrap();
+                assert_eq!(filtered.projection_id, "host.filtered_snapshot.v1");
+                let value = wire_value(filtered.value.unwrap());
+                assert_eq!(value["lane"], "main");
+                assert_eq!(
+                    value["operation"]["id"],
+                    parent.effect_key.as_ref().unwrap().operation_id
+                );
+                assert!(!value.to_string().contains("SENTINEL"));
+                assert_eq!(responses[1].request_id, 1001);
+                let Some(v1_1::response::Terminal::Error(error)) = &responses[1].terminal else {
+                    panic!("typed missing-parent refusal");
+                };
+                assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
+                assert_eq!(error.safe_message, "request failed");
+                assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+                assert!(connection.current());
+                peer.signal("provider");
+                drive(setup, future)
             }
-            let responses = peer.response_frames();
-            let Some(v1_1::response::Terminal::Result(body)) = &responses[0].terminal else {
-                panic!("real snapshot action Result: {:?}", responses[0].terminal);
-            };
-            assert_eq!(responses[0].request_id, 1000);
-            let snapshot_result = dto::SnapshotGetResult::decode(body.as_slice()).unwrap();
-            let filtered = snapshot_result.filtered_snapshot.unwrap();
-            assert_eq!(filtered.projection_id, "host.filtered_snapshot.v1");
-            let value = wire_value(filtered.value.unwrap());
-            assert_eq!(value["lane"], "main");
-            assert_eq!(
-                value["operation"]["id"],
-                parent.effect_key.as_ref().unwrap().operation_id
-            );
-            assert!(!value.to_string().contains("SENTINEL"));
-            assert_eq!(responses[1].request_id, 1001);
-            let Some(v1_1::response::Terminal::Error(error)) = &responses[1].terminal else {
-                panic!("typed missing-parent refusal");
-            };
-            assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
-            assert_eq!(error.safe_message, "request failed");
-            assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
-            assert!(connection.current());
-            peer.signal("provider");
-            drive(setup, future)
         } else {
             drive(
                 setup,
@@ -4670,6 +5010,94 @@ fn runtime_native_changed_wrong_scope_sqlite_no_write() {
         drop(store);
         std::fs::remove_dir_all(dir).unwrap();
     }
+}
+#[test]
+fn runtime_native_host_resource_get_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostResource,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_resource_get_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostResource,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+fn host_resource_refusal_all_pairs(mode: ProcessMode) {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    mode,
+                );
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    mode,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_resource_get_missing_catalog_id_refusal() {
+    host_resource_refusal_all_pairs(ProcessMode::HostResourceMissing);
+}
+#[test]
+fn runtime_native_host_resource_get_wrong_scope_refusal() {
+    host_resource_refusal_all_pairs(ProcessMode::HostResourceScope);
+}
+#[test]
+fn runtime_native_host_resource_get_wrong_version_refusal() {
+    host_resource_refusal_all_pairs(ProcessMode::HostResourceVersion);
+}
+#[test]
+fn runtime_native_host_resource_get_missing_parent_refusal() {
+    host_resource_refusal_all_pairs(ProcessMode::HostResourceParent);
 }
 #[test]
 fn runtime_native_host_snapshot_memory_all_pairs() {

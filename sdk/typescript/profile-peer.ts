@@ -36,6 +36,9 @@ const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
 const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeEvent;
+const runtimeResource = scenario.startsWith("runtime-native-host-resource-get");
+const runtimeResourceR2 = scenario === "runtime-native-resource-r2";
+const resourceCase = scenario.slice("runtime-native-host-resource-get".length).replace(/^-/, "") || "positive";
 const runtimeResume = scenario === "runtime-native-before-resume";
 const runtimePayload = scenario === "runtime-native-before-payload" ||
   scenario === "runtime-native-before-payload-malformed";
@@ -94,7 +97,9 @@ function payloadExposure(root: string, wire: any): boolean {
 const runtimeChanged = scenario === "runtime-native-changed" ||
   scenario === "runtime-native-changed-wrong-scope" || runtimeTelemetry;
 if (
-  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload) ||
+  !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload ||
+    runtimeResourceR2 ||
+    (runtimeResource && ["positive", "missing", "scope", "version", "parent"].includes(resourceCase))) ||
   ![0, 1].includes(core) ||
   ![0, 1].includes(minor)
 )
@@ -175,7 +180,7 @@ function boundCheck(obj: any) {
   }
   for (const x of Object.values(obj)) boundCheck(x);
 }
-const runtimeMethods = [
+const runtimeMethods = runtimeResourceR2 ? ["resource.list", "resource.read"] : [
   "resource.list", "resource.read", "before_run", "before_request",
   "transform_context", ...(runtimePayload ? ["before_payload"] : []),
   "provider.invoke", "after_response", "before_run_end",
@@ -200,6 +205,8 @@ let suspendedProviderId: number | null = null;
 let deferredProviderId: number | null = null;
 let snapshotParent: any = null;
 let snapshotPhase = 0;
+let resourcePhase = 0;
+let resourceParent: any = null;
 let eventSubscriptionId: string | null = null;
 let eventPhase = 0;
 let eventCredit = 0;
@@ -235,6 +242,39 @@ function nativeSnapshotRequest(withParent: boolean) {
   };
   if (withParent) request.parent_request_id = snapshotParent.request_id;
   send({ request });
+}
+function nativeResourceRequest(id: 1000 | 1501) {
+  const method = "resource.get";
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "host-action.v1" && c.name === "actions-resource");
+  if (!ref || ref.handler_id !== "qualified_handler" ||
+      ref.schema_digest_sha256.toString("hex") !== profileCodec.digests["host-action.v1"])
+    throw Error("selected resource action grant");
+  const payload: any = { scope: "allowed", id: "s", version: "1" };
+  if (id === 1501) {
+    if (resourceCase === "missing") { payload.id = "missing-s"; delete payload.version; }
+    if (resourceCase === "scope") payload.scope = "wrong-scope";
+    if (resourceCase === "version") payload.version = "2";
+  }
+  const request: any = {
+    request_id: id, capability_ref: ref, method,
+    deadline_after_ms: 2000, initial_stream_credit_bytes: 0,
+    payload: profileCodec.encode(profileCodec.methods[method].request, payload),
+  };
+  if (id === 1000 || resourceCase !== "parent")
+    request.parent_request_id = resourceParent.request_id;
+  send({ request });
+}
+function nativeResourceChanged() {
+  const method = "resource.changed";
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "resource.v1" && c.name === "resources");
+  if (!ref) throw Error("selected resource changed grant");
+  send({ request: {
+    request_id: 1500, capability_ref: ref, method,
+    deadline_after_ms: 2000, initial_stream_credit_bytes: 0,
+    payload: profileCodec.encode(profileCodec.methods[method].request, { scope: "allowed" }),
+  } });
 }
 function nativeEventRequest(method: "event.subscribe" | "event.resync") {
   const ref = granted.selected_capabilities.find((c: any) =>
@@ -336,6 +376,10 @@ function validateRuntime(r: any, m: any, decoded: any) {
   }
   if (m.profile === "resource.v1") {
     const expected = payloadObject(corpus.methods[r.method].request);
+    if (runtimeResourceR2 && r.method === "resource.read") {
+      expected.version = "2";
+      expected.expected_digest_sha256 = Buffer.from(sha(Buffer.from("y")), "hex");
+    }
     if (!profileCodec.encode(m.request, sortedMaps(decoded)).equals(
       profileCodec.encode(m.request, expected),
     )) throw Error("runtime resource request");
@@ -576,6 +620,15 @@ function resultFor(method: string) {
 function terminal(r: any, decoded?: any) {
   const m = profileCodec.methods[r.method];
   let obj = resultFor(r.method);
+  if (runtimeResourceR2 && r.method === "resource.list") {
+    obj.revision = "r2";
+    obj.resources[0].version = "2";
+    obj.resources[0].digest_sha256 = Buffer.from(sha(Buffer.from("y")), "hex");
+  }
+  if (runtimeResourceR2 && r.method === "resource.read") {
+    obj.digest_sha256 = Buffer.from(sha(Buffer.from("y")), "hex");
+    obj.text = "y";
+  }
   if (runtimePayload && r.method === "before_payload") {
     const input = runtimeProjection(decoded.input, "hook.input:before_payload");
     const payload = structuredClone(input.event.payload);
@@ -663,6 +716,7 @@ function terminal(r: any, decoded?: any) {
   else end.result = payload;
   const arm = m.mode === 2 ? "stream_end" : "response";
   send({ [arm]: end });
+  if (runtimeResourceR2 && r.method === "resource.read") onceDone = true;
   if (runtimeEvent && r.method === "telemetry.flush") {
     awaitSignal("event-subscribe");
     nativeEventRequest("event.subscribe");
@@ -759,7 +813,7 @@ for (;;) {
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
     boundCheck(decoded);
-    if (scenario === "runtime-native" || runtimeChanged || runtimePayload) {
+    if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2) {
       validateRuntime(r, m, decoded);
     } else {
       const expected = payloadObject(
@@ -792,6 +846,14 @@ for (;;) {
       snapshotParent = r;
       awaitSignal("actions");
       nativeSnapshotRequest(true);
+      continue;
+    }
+    if (runtimeResource && r.method === "provider.invoke") {
+      if (resourceParent || runtimeIndex !== 6 || !r.effect_key?.operation_id)
+        throw Error("resource provider parent");
+      resourceParent = r;
+      awaitSignal("actions");
+      nativeResourceRequest(1000);
       continue;
     }
     if (scenario.startsWith("host-") && r.method === "provider.invoke") {
@@ -831,6 +893,51 @@ for (;;) {
         streams.delete(s.r.request_id);
       }
     }
+  } else if (runtimeResource && e.response && resourceParent) {
+    const response = e.response;
+    if (resourcePhase === 0 || resourcePhase === 4) {
+      const expectedId = resourcePhase === 0 ? 1000 : 1501;
+      if (response.request_id !== expectedId) throw Error("resource action response identity");
+      if (resourcePhase === 4 && resourceCase !== "positive") {
+        const code = { missing: 11, scope: 10, version: 12, parent: 8 }[resourceCase];
+        if (response.error?.code !== code || response.error.safe_message !== "request failed" ||
+            "result" in response) throw Error("resource action typed refusal");
+      } else {
+        if (!("result" in response)) throw Error("resource action denied");
+        const m = profileCodec.methods["resource.get"];
+        const decoded = profileCodec.decode(m.terminal, response.result);
+        boundCheck(decoded);
+        if (!profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(response.result))
+          throw Error("resource Result DTO round trip");
+        const value = runtimeProjection(decoded.snapshot, "host.resource_snapshot.v1");
+        if (value.id !== "s" || value.version !== "1" || value.kind !== "skill" ||
+            value.value !== "x" || value.digest !== sha(Buffer.from("x")))
+          throw Error("captured r1 resource content");
+      }
+      if (resourcePhase === 0) {
+        resourcePhase = 1;
+        awaitSignal("resource-changed");
+        nativeResourceChanged();
+        resourcePhase = 2;
+      } else {
+        resourcePhase = 5;
+        awaitSignal("provider");
+        terminal(resourceParent);
+        resourceParent = null;
+      }
+    } else if (resourcePhase === 2) {
+      if (response.request_id !== 1500 || !("result" in response))
+        throw Error("resource.changed response identity");
+      const m = profileCodec.methods["resource.changed"];
+      const decoded = profileCodec.decode(m.terminal, response.result);
+      boundCheck(decoded);
+      if (!profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(response.result))
+        throw Error("resource.changed Ack round trip");
+      resourcePhase = 3;
+      awaitSignal("resource-second");
+      nativeResourceRequest(1501);
+      resourcePhase = 4;
+    } else throw Error("resource response phase");
   } else if (runtimeSnapshot && e.response && snapshotParent && snapshotPhase < 2) {
     const response = e.response;
     if (response.request_id !== 1000 + snapshotPhase)
@@ -1017,6 +1124,9 @@ if (runtimeResume && (
 if (runtimeEvent && (eventPhase !== 3 || !changedAcked || !telemetryFlushed ||
     snapshotPhase !== 2 || runtimeIndex !== runtimeMethods.length))
   throw Error("incomplete native event history");
+if (runtimeResource && (resourcePhase !== 5 || resourceParent !== null ||
+    runtimeIndex !== runtimeMethods.length))
+  throw Error("incomplete native resource history");
 writeSync(
   2,
   JSON.stringify({

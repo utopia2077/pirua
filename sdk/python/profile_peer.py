@@ -23,6 +23,9 @@ corpus = json.loads(
 runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-sink-wrong-id")
 runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot") or runtime_event
 runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_event
+runtime_resource = scenario.startswith("runtime-native-host-resource-get")
+runtime_resource_r2 = scenario == "runtime-native-resource-r2"
+resource_case = scenario.removeprefix("runtime-native-host-resource-get").removeprefix("-") or "positive"
 runtime_resume = scenario == "runtime-native-before-resume"
 runtime_payload = scenario in ("runtime-native-before-payload", "runtime-native-before-payload-malformed")
 payload_schema = {
@@ -80,7 +83,7 @@ def payload_exposure(root, wire):
                 and event["model"].get("samplingParams") == model.get("samplingParams"))
     return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or core not in (0, 1) or minor not in (0, 1):
+if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent")) or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -163,7 +166,7 @@ def bound_check(obj):
             bound_check(x)
 
 
-runtime_methods = [
+runtime_methods = ["resource.list", "resource.read"] if runtime_resource_r2 else [
     "resource.list", "resource.read", "before_run", "before_request",
     "transform_context", *(["before_payload"] if runtime_payload else []),
     "provider.invoke", "after_response", "before_run_end",
@@ -188,6 +191,8 @@ suspended_provider_id = None
 deferred_provider_id = None
 snapshot_parent = None
 snapshot_phase = 0
+resource_phase = 0
+resource_parent = None
 event_subscription_id = None
 event_phase = 0
 event_credit = 0
@@ -227,6 +232,45 @@ def native_snapshot_request(with_parent):
     if with_parent:
         request["parent_request_id"] = snapshot_parent["request_id"]
     send({"request": request})
+
+
+def native_resource_request(request_id):
+    method = "resource.get"
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "host-action.v1" and c["name"] == "actions-resource"), None)
+    if (ref is None or ref["handler_id"] != "qualified_handler"
+            or ref["schema_digest_sha256"].hex() != profile_codec.digests["host-action.v1"]):
+        raise ValueError("selected resource action grant")
+    payload = {"scope": "allowed", "id": "s", "version": "1"}
+    if request_id == 1501:
+        if resource_case == "missing":
+            payload["id"] = "missing-s"
+            del payload["version"]
+        if resource_case == "scope":
+            payload["scope"] = "wrong-scope"
+        if resource_case == "version":
+            payload["version"] = "2"
+    request = {
+        "request_id": request_id, "capability_ref": ref, "method": method,
+        "deadline_after_ms": 2000, "initial_stream_credit_bytes": 0,
+        "payload": profile_codec.encode(profile_codec.methods[method]["request"], payload),
+    }
+    if request_id == 1000 or resource_case != "parent":
+        request["parent_request_id"] = resource_parent["request_id"]
+    send({"request": request})
+
+
+def native_resource_changed():
+    method = "resource.changed"
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "resource.v1" and c["name"] == "resources"), None)
+    if ref is None:
+        raise ValueError("selected resource changed grant")
+    send({"request": {
+        "request_id": 1500, "capability_ref": ref, "method": method,
+        "deadline_after_ms": 2000, "initial_stream_credit_bytes": 0,
+        "payload": profile_codec.encode(profile_codec.methods[method]["request"], {"scope": "allowed"}),
+    }})
 
 
 def native_event_request(method):
@@ -343,6 +387,9 @@ def validate_runtime(request, method, decoded):
         return
     if method["profile"] == "resource.v1":
         expected = payload_object(corpus["methods"][name]["request"])
+        if runtime_resource_r2 and name == "resource.read":
+            expected["version"] = "2"
+            expected["expected_digest_sha256"] = bytes.fromhex(sha(b"y"))
         if profile_codec.encode(method["request"], sorted_maps(decoded)) != profile_codec.encode(
             method["request"], expected
         ):
@@ -622,9 +669,16 @@ def result_for(method):
 
 
 def terminal(request, decoded=None):
-    global once_done
+    global once_done, resource_phase
     m = profile_codec.methods[request["method"]]
     obj = result_for(request["method"])
+    if runtime_resource_r2 and request["method"] == "resource.list":
+        obj["revision"] = "r2"
+        obj["resources"][0]["version"] = "2"
+        obj["resources"][0]["digest_sha256"] = bytes.fromhex(sha(b"y"))
+    if runtime_resource_r2 and request["method"] == "resource.read":
+        obj["digest_sha256"] = bytes.fromhex(sha(b"y"))
+        obj["text"] = "y"
     if runtime_payload and request["method"] == "before_payload":
         value = runtime_projection(decoded["input"], "hook.input:before_payload")
         replacement = json.loads(json.dumps(value["event"]["payload"]))
@@ -717,6 +771,8 @@ def terminal(request, decoded=None):
         end["result"] = payload
     arm = "stream_end" if m["mode"] == 2 else "response"
     send({arm: end})
+    if runtime_resource_r2 and request["method"] == "resource.read":
+        once_done = True
     if runtime_event and request["method"] == "telemetry.flush":
         await_signal("event-subscribe")
         native_event_request("event.subscribe")
@@ -826,7 +882,7 @@ while not once_done:
         m = profile_codec.methods[request["method"]]
         decoded = profile_codec.decode(m["request"], request["payload"])
         bound_check(decoded)
-        if scenario == "runtime-native" or runtime_changed or runtime_payload:
+        if scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2:
             validate_runtime(request, m, decoded)
         else:
             expected = payload_object(
@@ -854,6 +910,13 @@ while not once_done:
             snapshot_parent = request
             await_signal("actions")
             native_snapshot_request(True)
+            continue
+        if runtime_resource and request["method"] == "provider.invoke":
+            if resource_parent is not None or runtime_index != 6 or not request.get("effect_key", {}).get("operation_id"):
+                raise ValueError("resource provider parent")
+            resource_parent = request
+            await_signal("actions")
+            native_resource_request(1000)
             continue
         if scenario.startswith("host-") and request["method"] == "provider.invoke":
             parent = request
@@ -894,6 +957,53 @@ while not once_done:
             else:
                 terminal(state["r"])
                 streams.pop(cr["request_id"], None)
+    elif runtime_resource and "response" in e and resource_parent is not None:
+        response = e["response"]
+        if resource_phase in (0, 4):
+            expected_id = 1000 if resource_phase == 0 else 1501
+            if response["request_id"] != expected_id:
+                raise ValueError("resource action response identity")
+            if resource_phase == 4 and resource_case != "positive":
+                code = {"missing": 11, "scope": 10, "version": 12, "parent": 8}[resource_case]
+                if (response.get("error", {}).get("code") != code
+                        or response.get("error", {}).get("safe_message") != "request failed"
+                        or "result" in response):
+                    raise ValueError("resource action typed refusal")
+            else:
+                if "result" not in response:
+                    raise ValueError("resource action denied")
+                m = profile_codec.methods["resource.get"]
+                decoded = profile_codec.decode(m["terminal"], response["result"])
+                bound_check(decoded)
+                if profile_codec.encode(m["terminal"], sorted_maps(decoded)) != response["result"]:
+                    raise ValueError("resource Result DTO round trip")
+                value = runtime_projection(decoded["snapshot"], "host.resource_snapshot.v1")
+                if value != {"id": "s", "version": "1", "kind": "skill", "value": "x", "digest": sha(b"x")}:
+                    raise ValueError("captured r1 resource content")
+            if resource_phase == 0:
+                resource_phase = 1
+                await_signal("resource-changed")
+                native_resource_changed()
+                resource_phase = 2
+            else:
+                resource_phase = 5
+                await_signal("provider")
+                terminal(resource_parent)
+                resource_parent = None
+        elif resource_phase == 2:
+            if response["request_id"] != 1500 or "result" not in response:
+                raise ValueError("resource.changed response identity")
+            m = profile_codec.methods["resource.changed"]
+            decoded = profile_codec.decode(m["terminal"], response["result"])
+            bound_check(decoded)
+            if profile_codec.encode(m["terminal"], sorted_maps(decoded)) != response["result"]:
+                raise ValueError("resource.changed Ack round trip")
+            resource_phase = 3
+            await_signal("resource-second")
+            native_resource_request(1501)
+            resource_phase = 4
+        else:
+            raise ValueError("resource response phase")
     elif runtime_snapshot and "response" in e and snapshot_parent is not None and snapshot_phase < 2:
         response = e["response"]
         if response["request_id"] != 1000 + snapshot_phase:
@@ -1085,6 +1195,9 @@ if runtime_event and (
     or snapshot_phase != 2 or runtime_index != len(runtime_methods)
 ):
     raise ValueError("incomplete native event history")
+if runtime_resource and (resource_phase != 5 or resource_parent is not None
+                         or runtime_index != len(runtime_methods)):
+    raise ValueError("incomplete native resource history")
 sys.stderr.write(
     json.dumps(
         {
