@@ -21,8 +21,9 @@ corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
 runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-sink-wrong-id")
-runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot") or runtime_event
-runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_event
+runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue") or runtime_event
+runtime_queue = scenario == "runtime-native-host-queue"
+runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_queue or runtime_event
 runtime_resource = scenario.startswith("runtime-native-host-resource-get")
 runtime_resource_r2 = scenario == "runtime-native-resource-r2"
 resource_case = scenario.removeprefix("runtime-native-host-resource-get").removeprefix("-") or "positive"
@@ -83,7 +84,7 @@ def payload_exposure(root, wire):
                 and event["model"].get("samplingParams") == model.get("samplingParams"))
     return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent")) or core not in (0, 1) or minor not in (0, 1):
+if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent")) or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -193,6 +194,7 @@ snapshot_parent = None
 snapshot_phase = 0
 resource_phase = 0
 resource_parent = None
+queue_phase = 0
 event_subscription_id = None
 event_phase = 0
 event_credit = 0
@@ -271,6 +273,35 @@ def native_resource_changed():
         "deadline_after_ms": 2000, "initial_stream_credit_bytes": 0,
         "payload": profile_codec.encode(profile_codec.methods[method]["request"], {"scope": "allowed"}),
     }})
+
+
+def native_queue_request(request_id, lane, with_parent):
+    method = "queue.next_run"
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "host-action.v1" and c["name"] == "actions"), None)
+    if (ref is None or ref["handler_id"] != "qualified_handler"
+            or ref["schema_digest_sha256"].hex() != profile_codec.digests["host-action.v1"]):
+        raise ValueError("selected queue grant")
+    projection = shapes.registry["projections"]["host.queue_item.v1"]
+    item = {
+        "projection_id": "host.queue_item.v1",
+        "schema_digest_sha256": bytes.fromhex(projection["proposed_digest_sha256"]),
+        "value": wire_value({"role": "user", "content": "native queued item", "timestamp": 7}),
+    }
+    bound_check(item)
+    method_codec = profile_codec.methods[method]
+    payload = profile_codec.encode(method_codec["request"], {"lane": lane, "item": item})
+    decoded = profile_codec.decode(method_codec["request"], payload)
+    bound_check(decoded)
+    if profile_codec.encode(method_codec["request"], sorted_maps(decoded)) != payload:
+        raise ValueError("queue request DTO round trip")
+    request = {
+        "request_id": request_id, "capability_ref": ref, "method": method,
+        "deadline_after_ms": 2000, "initial_stream_credit_bytes": 0, "payload": payload,
+    }
+    if with_parent:
+        request["parent_request_id"] = snapshot_parent["request_id"]
+    send({"request": request})
 
 
 def native_event_request(method):
@@ -1026,9 +1057,46 @@ while not once_done:
             if response.get("error", {}).get("code") != 8 or response["error"].get("safe_message") != "request failed" or "result" in response:
                 raise ValueError("snapshot missing-parent refusal")
             snapshot_phase = 2
-            await_signal("provider")
-            terminal(snapshot_parent)
-            snapshot_parent = None
+            if runtime_queue:
+                queue_phase = 1
+                native_queue_request(1002, "main", True)
+            else:
+                await_signal("provider")
+                terminal(snapshot_parent)
+                snapshot_parent = None
+    elif runtime_queue and "response" in e and snapshot_parent is not None and 0 < queue_phase < 5:
+        response = e["response"]
+        expected_id = 1002 + (0 if queue_phase == 1 else 1 if queue_phase == 3 else 2)
+        if response["request_id"] != expected_id:
+            raise ValueError("queue response identity")
+        if queue_phase == 1:
+            if "result" not in response:
+                raise ValueError("native queue action denied")
+            method = profile_codec.methods["queue.next_run"]
+            decoded = profile_codec.decode(method["terminal"], response["result"])
+            bound_check(decoded)
+            if (not decoded["accepted"] or not decoded["item_id"]
+                    or profile_codec.encode(method["terminal"], sorted_maps(decoded)) != response["result"]):
+                raise ValueError("native queue result DTO round trip")
+            queue_phase = 2
+            await_signal("queue-denials")
+            queue_phase = 3
+            native_queue_request(1003, "main", False)
+        else:
+            code = 8 if queue_phase == 3 else 10
+            if (response.get("error", {}).get("code") != code
+                    or response["error"].get("safe_message") != "request failed"
+                    or "result" in response):
+                raise ValueError("native queue refusal")
+            if queue_phase == 3:
+                await_signal("queue-wrong-lane")
+                queue_phase = 4
+                native_queue_request(1004, "other", True)
+            else:
+                queue_phase = 5
+                await_signal("provider")
+                terminal(snapshot_parent)
+                snapshot_parent = None
     elif runtime_event and "stream_item" in e:
         item = e["stream_item"]
         charge = len(codec.encode("Envelope", e))
@@ -1198,6 +1266,9 @@ if runtime_event and (
 if runtime_resource and (resource_phase != 5 or resource_parent is not None
                          or runtime_index != len(runtime_methods)):
     raise ValueError("incomplete native resource history")
+if runtime_queue and (queue_phase != 5 or snapshot_phase != 2
+                      or runtime_index != len(runtime_methods)):
+    raise ValueError("incomplete native queue history")
 sys.stderr.write(
     json.dumps(
         {

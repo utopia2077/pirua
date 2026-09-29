@@ -31,11 +31,13 @@ const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
   scenario === "runtime-native-telemetry-bad-flush" ||
   scenario === "runtime-native-before-resume" ||
   scenario === "runtime-native-host-snapshot" ||
+  scenario === "runtime-native-host-queue" ||
   scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
-const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeEvent;
+const runtimeQueue = scenario === "runtime-native-host-queue";
+const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeQueue || runtimeEvent;
 const runtimeResource = scenario.startsWith("runtime-native-host-resource-get");
 const runtimeResourceR2 = scenario === "runtime-native-resource-r2";
 const resourceCase = scenario.slice("runtime-native-host-resource-get".length).replace(/^-/, "") || "positive";
@@ -207,6 +209,7 @@ let snapshotParent: any = null;
 let snapshotPhase = 0;
 let resourcePhase = 0;
 let resourceParent: any = null;
+let queuePhase = 0;
 let eventSubscriptionId: string | null = null;
 let eventPhase = 0;
 let eventCredit = 0;
@@ -275,6 +278,33 @@ function nativeResourceChanged() {
     deadline_after_ms: 2000, initial_stream_credit_bytes: 0,
     payload: profileCodec.encode(profileCodec.methods[method].request, { scope: "allowed" }),
   } });
+}
+function nativeQueueRequest(requestId: number, lane: string, withParent: boolean) {
+  const method = "queue.next_run";
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "host-action.v1" && c.name === "actions");
+  if (!ref || ref.handler_id !== "qualified_handler" ||
+      ref.schema_digest_sha256.toString("hex") !== profileCodec.digests["host-action.v1"])
+    throw Error("selected queue grant");
+  const projection = shapes.registry.projections["host.queue_item.v1"];
+  const item = {
+    projection_id: "host.queue_item.v1",
+    schema_digest_sha256: Buffer.from(projection.proposed_digest_sha256, "hex"),
+    value: wireValue({ role: "user", content: "native queued item", timestamp: 7 }),
+  };
+  boundCheck(item);
+  const m = profileCodec.methods[method];
+  const payload = profileCodec.encode(m.request, { lane, item });
+  const decoded = profileCodec.decode(m.request, payload);
+  boundCheck(decoded);
+  if (!profileCodec.encode(m.request, sortedMaps(decoded)).equals(payload))
+    throw Error("queue request DTO round trip");
+  const request: any = {
+    request_id: requestId, capability_ref: ref, method,
+    deadline_after_ms: 2000, initial_stream_credit_bytes: 0, payload,
+  };
+  if (withParent) request.parent_request_id = snapshotParent.request_id;
+  send({ request });
 }
 function nativeEventRequest(method: "event.subscribe" | "event.resync") {
   const ref = granted.selected_capabilities.find((c: any) =>
@@ -960,9 +990,46 @@ for (;;) {
           "result" in response)
         throw Error("snapshot missing-parent refusal");
       snapshotPhase = 2;
-      awaitSignal("provider");
-      terminal(snapshotParent);
-      snapshotParent = null;
+      if (runtimeQueue) {
+        queuePhase = 1;
+        nativeQueueRequest(1002, "main", true);
+      } else {
+        awaitSignal("provider");
+        terminal(snapshotParent);
+        snapshotParent = null;
+      }
+    }
+  } else if (runtimeQueue && e.response && snapshotParent && queuePhase > 0 && queuePhase < 5) {
+    const response = e.response;
+    if (response.request_id !== 1002 + (queuePhase === 1 ? 0 : queuePhase === 3 ? 1 : 2))
+      throw Error("queue response identity");
+    if (queuePhase === 1) {
+      if (!("result" in response)) throw Error("native queue action denied");
+      const m = profileCodec.methods["queue.next_run"];
+      const decoded = profileCodec.decode(m.terminal, response.result);
+      boundCheck(decoded);
+      if (!decoded.accepted || !decoded.item_id ||
+          !profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(response.result))
+        throw Error("native queue result DTO round trip");
+      queuePhase = 2;
+      awaitSignal("queue-denials");
+      queuePhase = 3;
+      nativeQueueRequest(1003, "main", false);
+    } else {
+      const code = queuePhase === 3 ? 8 : 10;
+      if (response.error?.code !== code || response.error.safe_message !== "request failed" ||
+          "result" in response)
+        throw Error("native queue refusal");
+      if (queuePhase === 3) {
+        awaitSignal("queue-wrong-lane");
+        queuePhase = 4;
+        nativeQueueRequest(1004, "other", true);
+      } else {
+        queuePhase = 5;
+        awaitSignal("provider");
+        terminal(snapshotParent);
+        snapshotParent = null;
+      }
     }
   } else if (runtimeEvent && e.stream_item) {
     const item = e.stream_item;
@@ -1127,6 +1194,9 @@ if (runtimeEvent && (eventPhase !== 3 || !changedAcked || !telemetryFlushed ||
 if (runtimeResource && (resourcePhase !== 5 || resourceParent !== null ||
     runtimeIndex !== runtimeMethods.length))
   throw Error("incomplete native resource history");
+if (runtimeQueue && (queuePhase !== 5 || snapshotPhase !== 2 ||
+    runtimeIndex !== runtimeMethods.length))
+  throw Error("incomplete native queue history");
 writeSync(
   2,
   JSON.stringify({

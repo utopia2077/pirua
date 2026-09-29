@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "c8517d1e8b565e7e256189df9435da1a8789c77f15d2774bc1a54d795a6f9413",
+            "a67a3879fb6fbfe5831418b339ec64095340c57dda207bdbc6122502f4bddcda",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "0715e61604e44475b236c58877860b594f84382d953d1b9bcbd6e5e3858e83ba",
+            "fd1c0ce9dee553acf063b90cc0ff745cebbb2acf43d5626a80e272fcee295af0",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -300,6 +300,8 @@ impl Channel {
                 | "provider"
                 | "resource-changed"
                 | "resource-second"
+                | "queue-denials"
+                | "queue-wrong-lane"
                 | "event-subscribe"
                 | "event-credit"
                 | "event-resync"

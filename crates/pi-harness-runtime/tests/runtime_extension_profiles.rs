@@ -2812,6 +2812,7 @@ enum ProcessMode {
     BeforePayload,
     BeforePayloadMalformed,
     HostSnapshot,
+    HostQueue,
     HostResource,
     HostResourceMissing,
     HostResourceScope,
@@ -2887,6 +2888,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::TelemetryBadFlush
             | ProcessMode::BeforeResume
             | ProcessMode::HostSnapshot
+            | ProcessMode::HostQueue
             | ProcessMode::EventSink
             | ProcessMode::EventSinkWrongId
     );
@@ -3008,6 +3010,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-before-resume")
     } else if mode == ProcessMode::HostSnapshot {
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-snapshot")
+    } else if mode == ProcessMode::HostQueue {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-host-queue")
     } else if resource_mode {
         let scenario = match mode {
             ProcessMode::HostResource => "runtime-native-host-resource-get",
@@ -3085,6 +3089,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::BeforePayload
             | ProcessMode::BeforePayloadMalformed
             | ProcessMode::HostSnapshot
+            | ProcessMode::HostQueue
             | ProcessMode::HostResource
             | ProcessMode::HostResourceMissing
             | ProcessMode::HostResourceScope
@@ -3252,7 +3257,11 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
         let before_malformed = (mode == ProcessMode::BeforePayloadMalformed)
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
-        let call = if mode == ProcessMode::HostSnapshot || resource_mode || event_mode {
+        let mut queued_item_id = None;
+        let call = if matches!(mode, ProcessMode::HostSnapshot | ProcessMode::HostQueue)
+            || resource_mode
+            || event_mode
+        {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
             use std::time::{Duration, Instant};
@@ -3611,7 +3620,9 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                         peer.stderr_text()
                     );
                     setup.pump.tick();
-                    if peer.response_frames().len() == 2 {
+                    if peer.response_frames().len()
+                        == if mode == ProcessMode::HostQueue { 3 } else { 2 }
+                    {
                         break;
                     }
                     assert!(
@@ -3622,7 +3633,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                     std::thread::sleep(Duration::from_millis(1));
                 }
                 let actions = peer.peer_request_frames();
-                assert_eq!(actions.len(), 2);
+                assert_eq!(
+                    actions.len(),
+                    if mode == ProcessMode::HostQueue { 3 } else { 2 }
+                );
                 let selected = connection
                     .grant()
                     .profiles()
@@ -3633,7 +3647,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                     })
                     .unwrap()
                     .reference();
-                for (index, request) in actions.iter().enumerate() {
+                for (index, request) in actions.iter().take(2).enumerate() {
                     assert_eq!(request.request_id, 1000 + index as u64);
                     assert!(request.request_id > parent.request_id && request.request_id < 2000);
                     assert_eq!(request.method, "snapshot.get");
@@ -3678,7 +3692,221 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 };
                 assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
                 assert_eq!(error.safe_message, "request failed");
-                assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+                if mode == ProcessMode::HostQueue {
+                    let queue = &actions[2];
+                    assert_eq!(queue.request_id, 1002);
+                    assert!(queue.request_id > parent.request_id && queue.request_id < 2000);
+                    assert_eq!(queue.method, "queue.next_run");
+                    assert_eq!(queue.capability_ref.as_ref(), Some(selected));
+                    if queue.parent_request_id.is_none() {
+                        let Some(v1_1::response::Terminal::Error(error)) =
+                            &peer.response_frames()[2].terminal
+                        else {
+                            panic!("missing queue parent must be denied")
+                        };
+                        assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
+                        assert_eq!(error.safe_message, "request failed");
+                        assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+                    }
+                    assert_eq!(queue.parent_request_id, Some(parent.request_id));
+                    assert_eq!(queue.effect_key, None);
+                    assert_eq!(queue.initial_stream_credit_bytes, Some(0));
+                    assert!(
+                        queue
+                            .deadline_after_ms
+                            .is_some_and(|ms| ms > 0 && ms <= 2000)
+                    );
+                    let queued =
+                        dto::QueueNextRunRequest::decode(queue.payload.as_slice()).unwrap();
+                    assert_eq!(queued.lane, "main");
+                    let item = queued.item.expect("selected bound queue item");
+                    assert_eq!(item.projection_id, "host.queue_item.v1");
+                    assert_eq!(
+                        item.schema_digest_sha256,
+                        pi_extension_protocol::profiles::Registry::bundled()
+                            .unwrap()
+                            .digest("host.queue_item.v1")
+                            .unwrap()
+                    );
+                    let queued_message = serde_json::json!({
+                        "role": "user", "content": "native queued item", "timestamp": 7
+                    });
+                    assert_eq!(wire_value(item.value.unwrap()), queued_message);
+                    let Some(v1_1::response::Terminal::Result(body)) = &responses[2].terminal
+                    else {
+                        if let Some(v1_1::response::Terminal::Error(error)) = &responses[2].terminal
+                        {
+                            assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
+                            assert_eq!(error.safe_message, "request failed");
+                            assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+                        }
+                        panic!("real queue.next_run Result: {:?}", responses[2].terminal);
+                    };
+                    assert_eq!(responses[2].request_id, 1002);
+                    let result = dto::QueueResult::decode(body.as_slice()).unwrap();
+                    assert!(result.accepted && !result.item_id.is_empty());
+                    assert_eq!(
+                        result.encode_to_vec(),
+                        *body,
+                        "typed queue Result round trip"
+                    );
+                    queued_item_id = Some(result.item_id.clone());
+                    let after_queue = setup.pump.drive(store.snapshot()).unwrap();
+                    assert_eq!(after_queue.entries, before_actions.entries);
+                    assert_eq!(after_queue.usage, before_actions.usage);
+                    assert_eq!(after_queue.stats, before_actions.stats);
+                    assert_eq!(after_queue.storage_version, before_actions.storage_version);
+                    assert_eq!(
+                        after_queue.store_generation,
+                        before_actions.store_generation
+                    );
+                    assert_eq!(
+                        after_queue.next_seq.unwrap().get(),
+                        before_actions.next_seq.unwrap().get() + 2,
+                        "queue admission writes only PendingEntry and LaneState"
+                    );
+                    let pending_before = before_actions
+                        .registers
+                        .iter()
+                        .filter(|r| matches!(r, Register::PendingEntry { .. }))
+                        .count();
+                    assert_eq!(pending_before, 0, "selected queue starts empty");
+                    let pending = after_queue
+                        .registers
+                        .iter()
+                        .filter_map(|r| match r {
+                            Register::PendingEntry { key, value, .. } => Some((key, value)),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>();
+                    assert_eq!(pending.len(), pending_before + 1);
+                    let (key, value) = pending
+                        .iter()
+                        .find(|(key, _)| *key == &result.item_id)
+                        .expect("minted pending item");
+                    assert_eq!(*key, &result.item_id);
+                    assert_eq!(value.entry_type, PendingEntryType::Message);
+                    let pi_ai_core::Presence::Value(payload) = &value.payload else {
+                        panic!("pending message payload")
+                    };
+                    assert_eq!(serde_json::to_value(payload).unwrap(), queued_message);
+                    let before_lane = before_actions
+                        .registers
+                        .iter()
+                        .find_map(|r| match r {
+                            Register::LaneState { key, value, .. } if key == "main" => Some(value),
+                            _ => None,
+                        })
+                        .unwrap();
+                    let after_lane = after_queue
+                        .registers
+                        .iter()
+                        .find_map(|r| match r {
+                            Register::LaneState { key, value, .. } if key == "main" => Some(value),
+                            _ => None,
+                        })
+                        .unwrap();
+                    assert_eq!(
+                        after_lane.current_operation_id,
+                        before_lane.current_operation_id
+                    );
+                    assert_eq!(
+                        after_lane.pending_next_run.len(),
+                        before_lane.pending_next_run.len() + 1
+                    );
+                    assert_eq!(
+                        &after_lane.pending_next_run[..before_lane.pending_next_run.len()],
+                        before_lane.pending_next_run.as_slice()
+                    );
+                    assert_eq!(
+                        after_lane.pending_next_run.last().unwrap().as_str(),
+                        result.item_id
+                    );
+                    let other = |registers: &Vec<Register>| {
+                        registers
+                            .iter()
+                            .filter(|r| match r {
+                                Register::PendingEntry { .. } => false,
+                                Register::LaneState { key, .. } if key == "main" => false,
+                                _ => true,
+                            })
+                            .cloned()
+                            .collect::<Vec<_>>()
+                    };
+                    assert_eq!(
+                        other(&after_queue.registers),
+                        other(&before_actions.registers)
+                    );
+                    for (request_id, with_parent, lane, expected) in [
+                        (1003, false, "main", v1_1::ErrorCode::InvalidParent),
+                        (1004, true, "other", v1_1::ErrorCode::Forbidden),
+                    ] {
+                        peer.signal(if request_id == 1003 {
+                            "queue-denials"
+                        } else {
+                            "queue-wrong-lane"
+                        });
+                        let deadline = Instant::now() + Duration::from_secs(4);
+                        loop {
+                            assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                            setup.pump.tick();
+                            if peer.response_frames().len() == (request_id - 999) as usize {
+                                break;
+                            }
+                            assert!(
+                                Instant::now() < deadline,
+                                "finite queue refusal: {}",
+                                peer.stderr_text()
+                            );
+                            std::thread::sleep(Duration::from_millis(1));
+                        }
+                        let requests = peer.peer_request_frames();
+                        assert_eq!(requests.len(), (request_id - 999) as usize);
+                        let request = requests.last().unwrap();
+                        assert_eq!(request.request_id, request_id);
+                        assert_eq!(request.method, "queue.next_run");
+                        assert_eq!(request.capability_ref.as_ref(), Some(selected));
+                        assert_eq!(
+                            request.parent_request_id,
+                            with_parent.then_some(parent.request_id)
+                        );
+                        assert_eq!(request.effect_key, None);
+                        assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                        assert!(
+                            request
+                                .deadline_after_ms
+                                .is_some_and(|ms| ms > 0 && ms <= 2000)
+                        );
+                        let payload =
+                            dto::QueueNextRunRequest::decode(request.payload.as_slice()).unwrap();
+                        assert_eq!(payload.lane, lane);
+                        assert_eq!(
+                            payload.item.as_ref().unwrap().projection_id,
+                            "host.queue_item.v1"
+                        );
+                        assert_eq!(
+                            wire_value(payload.item.unwrap().value.unwrap()),
+                            queued_message
+                        );
+                        let responses = peer.response_frames();
+                        let response = responses.last().unwrap();
+                        assert_eq!(response.request_id, request_id);
+                        let Some(v1_1::response::Terminal::Error(error)) = &response.terminal
+                        else {
+                            panic!("typed queue refusal")
+                        };
+                        assert_eq!(error.code, expected as i32);
+                        assert_eq!(error.safe_message, "request failed");
+                        assert_eq!(
+                            setup.pump.drive(store.snapshot()).unwrap(),
+                            after_queue,
+                            "queue refusal is a full Session no-write"
+                        );
+                        assert!(connection.current());
+                    }
+                } else {
+                    assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+                }
                 assert!(connection.current());
                 peer.signal("provider");
                 drive(setup, future)
@@ -3960,6 +4188,44 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         );
         assert_eq!(setup.faux.requests.lock().unwrap().len(), 1);
         let after = setup.pump.drive(store.snapshot()).unwrap();
+        if let Some(item_id) = &queued_item_id {
+            assert!(
+                after
+                    .registers
+                    .iter()
+                    .any(|r| matches!(r, Register::PendingEntry { key, .. } if key == item_id))
+            );
+            let lane = after
+                .registers
+                .iter()
+                .find_map(|r| match r {
+                    Register::LaneState { key, value, .. } if key == "main" => Some(value),
+                    _ => None,
+                })
+                .unwrap();
+            assert!(
+                lane.pending_next_run
+                    .iter()
+                    .any(|id| id.as_str() == item_id)
+            );
+            assert!(!after.entries.iter().any(|entry| matches!(entry, Entry::Message(message)
+                if matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::User(user))
+                    if matches!(&user.content, pi_ai_core::UserContent::Text(text) if text == "native queued item")))));
+            let provider_end = peer
+                .peer_stream_end_frames()
+                .into_iter()
+                .find(|end| end.request_id == wire[provider_index].request_id)
+                .expect("original provider terminal");
+            let Some(pi_extension_protocol::wire::v1_1::stream_end::Terminal::Result(body)) =
+                provider_end.terminal
+            else {
+                panic!("original provider Result")
+            };
+            pi_extension_protocol::profiles::wire_v1_1::InvokeProviderResult::decode(
+                body.as_slice(),
+            )
+            .unwrap();
+        }
         if let Some(before) = before_payload {
             assert_eq!(
                 &after.entries[..before.entries.len()],
@@ -3987,6 +4253,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 | ProcessMode::TelemetryBadFlush
                 | ProcessMode::BeforeResume
                 | ProcessMode::HostSnapshot
+                | ProcessMode::HostQueue
                 | ProcessMode::EventSink
                 | ProcessMode::EventSinkWrongId
         ) {
@@ -4001,7 +4268,9 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             let peer_requests = peer.peer_request_frames();
             assert_eq!(
                 peer_requests.len(),
-                if mode == ProcessMode::HostSnapshot || event_mode {
+                if mode == ProcessMode::HostQueue {
+                    6
+                } else if mode == ProcessMode::HostSnapshot || event_mode {
                     3
                 } else {
                     1
@@ -4050,7 +4319,9 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             let responses = peer.response_frames();
             assert_eq!(
                 responses.len(),
-                if mode == ProcessMode::HostSnapshot || event_mode {
+                if mode == ProcessMode::HostQueue {
+                    6
+                } else if mode == ProcessMode::HostSnapshot || event_mode {
                     3
                 } else {
                     1
@@ -4249,6 +4520,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                         ProcessMode::Telemetry
                             | ProcessMode::BeforeResume
                             | ProcessMode::HostSnapshot
+                            | ProcessMode::HostQueue
                             | ProcessMode::EventSink
                             | ProcessMode::EventSinkWrongId
                     ) {
@@ -5133,6 +5405,47 @@ fn runtime_native_host_snapshot_sqlite_all_pairs() {
                     minor,
                     language,
                     ProcessMode::HostSnapshot,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_queue_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostQueue,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_queue_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostQueue,
                 );
                 drop(store);
                 std::fs::remove_dir_all(dir).unwrap();
