@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from profiles.wire import Codec, varint, payload_object, sha, wire_value, json_value
 from profiles.shapes import Shapes, probe
@@ -19,7 +20,8 @@ codec, profile_codec, shapes = Codec(repo, core), Codec(repo, minor), Shapes(rep
 corpus = json.loads(
     (Path(repo) / "conformance/extension-protocol/profiles-runtime-v1.json").read_text()
 )
-runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume")
+runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot")
+runtime_snapshot = scenario == "runtime-native-host-snapshot"
 runtime_resume = scenario == "runtime-native-before-resume"
 runtime_open_leaves = dict(corpus["exposure"]["open_leaves"])
 if runtime_resume:
@@ -32,7 +34,7 @@ if runtime_resume:
     runtime_open_leaves["hook.output:before_run.result.resumeData"] = saved_schema
     runtime_open_leaves["hook.input:before_resume.event.resumeData"] = saved_schema
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume") or core not in (0, 1) or minor not in (0, 1):
+if scenario not in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot") or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -137,6 +139,43 @@ resume_methods = (
 suspended_run_id = None
 suspended_provider_id = None
 deferred_provider_id = None
+snapshot_parent = None
+snapshot_phase = 0
+
+
+def await_signal(phase):
+    path = os.environ.get("PI_PROFILE_PEER_SIGNAL")
+    if not path:
+        raise ValueError("snapshot signal missing")
+    deadline = time.monotonic() + 4
+    while time.monotonic() < deadline:
+        try:
+            if Path(path).read_text() == phase:
+                return
+        except FileNotFoundError:
+            pass
+        time.sleep(.002)
+    raise ValueError("snapshot signal timeout: " + phase)
+
+
+def native_snapshot_request(with_parent):
+    method = "snapshot.get"
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "host-action.v1" and c["name"] == "actions"), None)
+    if ref is None or ref["handler_id"] != "qualified_handler":
+        raise ValueError("selected snapshot grant")
+    request = {
+        "request_id": 1000 if with_parent else 1001,
+        "capability_ref": ref,
+        "method": method,
+        "deadline_after_ms": 2000,
+        "initial_stream_credit_bytes": 0,
+        "payload": profile_codec.encode(profile_codec.methods[method]["request"],
+                                        {"lane": "main", "visibility": "captured_policy"}),
+    }
+    if with_parent:
+        request["parent_request_id"] = snapshot_parent["request_id"]
+    send({"request": request})
 
 
 def runtime_projection(value, projection):
@@ -704,6 +743,13 @@ while not once_done:
             changed_list = request
             native_changed_request()
             continue
+        if runtime_snapshot and request["method"] == "provider.invoke":
+            if snapshot_parent is not None or runtime_index != 6 or not request.get("effect_key", {}).get("operation_id"):
+                raise ValueError("snapshot provider parent")
+            snapshot_parent = request
+            await_signal("actions")
+            native_snapshot_request(True)
+            continue
         if scenario.startswith("host-") and request["method"] == "provider.invoke":
             parent = request
             host_request()
@@ -743,6 +789,31 @@ while not once_done:
             else:
                 terminal(state["r"])
                 streams.pop(cr["request_id"], None)
+    elif runtime_snapshot and "response" in e and snapshot_parent is not None and snapshot_phase < 2:
+        response = e["response"]
+        if response["request_id"] != 1000 + snapshot_phase:
+            raise ValueError("snapshot response identity")
+        if snapshot_phase == 0:
+            if "result" not in response:
+                raise ValueError("snapshot action denied")
+            m = profile_codec.methods["snapshot.get"]
+            decoded = profile_codec.decode(m["terminal"], response["result"])
+            bound_check(decoded)
+            if profile_codec.encode(m["terminal"], sorted_maps(decoded)) != response["result"]:
+                raise ValueError("snapshot result DTO round trip")
+            value = runtime_projection(decoded["filtered_snapshot"], "host.filtered_snapshot.v1")
+            if (value.get("operation", {}).get("id") != snapshot_parent["effect_key"]["operation_id"]
+                    or value.get("lane") != "main" or "SENTINEL" in json.dumps(value)):
+                raise ValueError("snapshot live filtered operation")
+            snapshot_phase = 1
+            native_snapshot_request(False)
+        else:
+            if response.get("error", {}).get("code") != 8 or response["error"].get("safe_message") != "request failed" or "result" in response:
+                raise ValueError("snapshot missing-parent refusal")
+            snapshot_phase = 2
+            await_signal("provider")
+            terminal(snapshot_parent)
+            snapshot_parent = None
     elif runtime_changed and "response" in e and changed_list is not None:
         response = e["response"]
         method = "resource.changed"

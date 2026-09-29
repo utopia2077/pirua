@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "858a32c413ebcb2ddd4a3f8705b610e4634510e8ba16307259379392e5a245c8",
+            "cda188f1aa947e82061de4dbb58005c9a6a1dd6b1c0818e13fe469376de4b94a",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "f1be2c4a4e5e9be453ec7243e9e3e54de9c9635ecadb5d61a99b0cb58b5e3a3a",
+            "511dcfc59bf97ab8fa3168c7b11f6630ed0d313833d76bd21f25ff705b77a898",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -167,6 +167,7 @@ impl Channel {
             .env_clear()
             .env("PATH", "/usr/local/bin:/usr/bin:/bin")
             .env("LANG", "C.UTF-8")
+            .env("PI_PROFILE_PEER_SIGNAL", &release)
             .arg("--serve")
             .arg(&repo)
             .arg(core.to_string())
@@ -291,6 +292,10 @@ impl Channel {
     }
     pub fn stderr_text(&self) -> String {
         String::from_utf8_lossy(&self.stderr.lock().unwrap()).into_owned()
+    }
+    pub fn signal(&self, phase: &str) {
+        assert!(matches!(phase, "actions" | "provider"));
+        std::fs::write(&self.release, phase).unwrap();
     }
     fn request(&self) -> Option<v1_1::Request> {
         self.writes.lock().unwrap().iter().find_map(|bytes| {

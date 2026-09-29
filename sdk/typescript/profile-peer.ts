@@ -29,7 +29,9 @@ const corpus = JSON.parse(
 const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
   scenario === "runtime-native-telemetry-bad-ack" ||
   scenario === "runtime-native-telemetry-bad-flush" ||
-  scenario === "runtime-native-before-resume";
+  scenario === "runtime-native-before-resume" ||
+  scenario === "runtime-native-host-snapshot";
+const runtimeSnapshot = scenario === "runtime-native-host-snapshot";
 const runtimeResume = scenario === "runtime-native-before-resume";
 const runtimeOpenLeaves = runtimeResume ? {
   ...corpus.exposure.open_leaves,
@@ -146,6 +148,40 @@ const resumeMethods = [
 let suspendedRunId: string | null = null;
 let suspendedProviderId: number | null = null;
 let deferredProviderId: number | null = null;
+let snapshotParent: any = null;
+let snapshotPhase = 0;
+function awaitSignal(phase: string) {
+  const path = process.env.PI_PROFILE_PEER_SIGNAL;
+  if (!path) throw Error("snapshot signal missing");
+  const deadline = Date.now() + 4000;
+  while (Date.now() < deadline) {
+    try {
+      if (readFileSync(path, "utf8") === phase) return;
+    } catch (error: any) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+  }
+  throw Error(`snapshot signal timeout: ${phase}`);
+}
+function nativeSnapshotRequest(withParent: boolean) {
+  const method = "snapshot.get";
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "host-action.v1" && c.name === "actions");
+  if (!ref || ref.handler_id !== "qualified_handler")
+    throw Error("selected snapshot grant");
+  const request: any = {
+    request_id: withParent ? 1000 : 1001,
+    capability_ref: ref,
+    method,
+    deadline_after_ms: 2000,
+    initial_stream_credit_bytes: 0,
+    payload: profileCodec.encode(profileCodec.methods[method].request,
+      { lane: "main", visibility: "captured_policy" }),
+  };
+  if (withParent) request.parent_request_id = snapshotParent.request_id;
+  send({ request });
+}
 const runtimeIds = new Set<number>();
 function runtimeProjection(value: any, id: string): any {
   if (value?.projection_id !== id || !value.value)
@@ -643,6 +679,14 @@ for (;;) {
       nativeChangedRequest();
       continue;
     }
+    if (runtimeSnapshot && r.method === "provider.invoke") {
+      if (snapshotParent || runtimeIndex !== 6 || !r.effect_key?.operation_id)
+        throw Error("snapshot provider parent");
+      snapshotParent = r;
+      awaitSignal("actions");
+      nativeSnapshotRequest(true);
+      continue;
+    }
     if (scenario.startsWith("host-") && r.method === "provider.invoke") {
       parent = r;
       hostRequest();
@@ -679,6 +723,32 @@ for (;;) {
         terminal(s.r);
         streams.delete(s.r.request_id);
       }
+    }
+  } else if (runtimeSnapshot && e.response && snapshotParent && snapshotPhase < 2) {
+    const response = e.response;
+    if (response.request_id !== 1000 + snapshotPhase)
+      throw Error("snapshot response identity");
+    if (snapshotPhase === 0) {
+      if (!("result" in response)) throw Error("snapshot action denied");
+      const m = profileCodec.methods["snapshot.get"];
+      const decoded = profileCodec.decode(m.terminal, response.result);
+      boundCheck(decoded);
+      if (!profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(response.result))
+        throw Error("snapshot result DTO round trip");
+      const value = runtimeProjection(decoded.filtered_snapshot, "host.filtered_snapshot.v1");
+      if (value.operation?.id !== snapshotParent.effect_key.operation_id ||
+          value.lane !== "main" || JSON.stringify(value).includes("SENTINEL"))
+        throw Error("snapshot live filtered operation");
+      snapshotPhase = 1;
+      nativeSnapshotRequest(false);
+    } else {
+      if (response.error?.code !== 8 || response.error.safe_message !== "request failed" ||
+          "result" in response)
+        throw Error("snapshot missing-parent refusal");
+      snapshotPhase = 2;
+      awaitSignal("provider");
+      terminal(snapshotParent);
+      snapshotParent = null;
     }
   } else if (runtimeChanged && e.response && changedList) {
     const response = e.response,

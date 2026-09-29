@@ -2809,6 +2809,7 @@ enum ProcessMode {
     TelemetryBadAck,
     TelemetryBadFlush,
     BeforeResume,
+    HostSnapshot,
 }
 fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     setup: &Setup,
@@ -2834,6 +2835,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::TelemetryBadAck
             | ProcessMode::TelemetryBadFlush
             | ProcessMode::BeforeResume
+            | ProcessMode::HostSnapshot
     );
     let telemetry = telemetry_mode.then(|| {
         ProjectedTelemetry::new(Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT), 1048576, 256)
@@ -2930,6 +2932,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-telemetry-bad-flush")
     } else if mode == ProcessMode::BeforeResume {
         Channel::spawn_scenario(language, core, minor, "runtime-native-before-resume")
+    } else if mode == ProcessMode::HostSnapshot {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-host-snapshot")
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
@@ -2948,6 +2952,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::TelemetryBadAck
             | ProcessMode::TelemetryBadFlush
             | ProcessMode::BeforeResume
+            | ProcessMode::HostSnapshot
     ) {
         drive(
             setup,
@@ -3092,13 +3097,134 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         )
         .unwrap();
         drive(setup, harness.set_model(remote)).unwrap();
-        let call = drive(
-            setup,
-            harness.prompt(PromptInput::Text {
+        let call = if mode == ProcessMode::HostSnapshot {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            use std::time::{Duration, Instant};
+            let future = harness.prompt(PromptInput::Text {
                 text: "native profile peer dynamic run".into(),
                 images: vec![],
-            }),
-        );
+            });
+            let mut future = std::pin::pin!(future);
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let parent = loop {
+                assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                setup.pump.tick();
+                if let Some(request) = peer
+                    .request_frames()
+                    .into_iter()
+                    .find(|r| r.method == "provider.invoke")
+                {
+                    break request;
+                }
+                assert!(Instant::now() < deadline, "finite live provider parent");
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            let parent_key = parent
+                .effect_key
+                .as_ref()
+                .expect("selected provider EffectKey");
+            assert_eq!(parent_key.effect_kind, "assistant");
+            assert_eq!(parent_key.lane, "main");
+            assert_eq!(parent_key.session_id, "runtime-session");
+            assert_eq!(parent.initial_stream_credit_bytes, Some(0));
+            assert!(
+                parent
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            assert_eq!(peer.peer_request_frames().len(), 0, "actions await release");
+            let before_actions = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(before_actions.usage.len(), 1);
+            peer.signal("actions");
+            let deadline = Instant::now() + Duration::from_secs(4);
+            loop {
+                assert!(
+                    runtime_r1_r4_support::poll(future.as_mut()).is_pending(),
+                    "provider must remain Open: {}",
+                    peer.stderr_text()
+                );
+                setup.pump.tick();
+                if peer.response_frames().len() == 2 {
+                    break;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite child action replies: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            }
+            let actions = peer.peer_request_frames();
+            assert_eq!(actions.len(), 2);
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| {
+                    p.reference().name == "actions"
+                        && p.reference().profile.as_ref().unwrap().name == "host-action.v1"
+                })
+                .unwrap()
+                .reference();
+            for (index, request) in actions.iter().enumerate() {
+                assert_eq!(request.request_id, 1000 + index as u64);
+                assert!(request.request_id > parent.request_id && request.request_id < 2000);
+                assert_eq!(request.method, "snapshot.get");
+                assert_eq!(request.capability_ref.as_ref(), Some(selected));
+                assert_eq!(
+                    request.parent_request_id,
+                    (index == 0).then_some(parent.request_id)
+                );
+                assert_eq!(request.effect_key, None);
+                assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                assert!(
+                    request
+                        .deadline_after_ms
+                        .is_some_and(|ms| ms > 0 && ms <= 2000)
+                );
+                assert_eq!(
+                    dto::SnapshotGetRequest::decode(request.payload.as_slice()).unwrap(),
+                    dto::SnapshotGetRequest {
+                        lane: "main".into(),
+                        visibility: "captured_policy".into()
+                    }
+                );
+            }
+            let responses = peer.response_frames();
+            let Some(v1_1::response::Terminal::Result(body)) = &responses[0].terminal else {
+                panic!("real snapshot action Result: {:?}", responses[0].terminal);
+            };
+            assert_eq!(responses[0].request_id, 1000);
+            let snapshot_result = dto::SnapshotGetResult::decode(body.as_slice()).unwrap();
+            let filtered = snapshot_result.filtered_snapshot.unwrap();
+            assert_eq!(filtered.projection_id, "host.filtered_snapshot.v1");
+            let value = wire_value(filtered.value.unwrap());
+            assert_eq!(value["lane"], "main");
+            assert_eq!(
+                value["operation"]["id"],
+                parent.effect_key.as_ref().unwrap().operation_id
+            );
+            assert!(!value.to_string().contains("SENTINEL"));
+            assert_eq!(responses[1].request_id, 1001);
+            let Some(v1_1::response::Terminal::Error(error)) = &responses[1].terminal else {
+                panic!("typed missing-parent refusal");
+            };
+            assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
+            assert_eq!(error.safe_message, "request failed");
+            assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_actions);
+            assert!(connection.current());
+            peer.signal("provider");
+            drive(setup, future)
+        } else {
+            drive(
+                setup,
+                harness.prompt(PromptInput::Text {
+                    text: "native profile peer dynamic run".into(),
+                    images: vec![],
+                }),
+            )
+        };
         if invalid_lane {
             assert!(
                 !matches!(call, Ok(Ok(_))),
@@ -3196,6 +3322,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 | ProcessMode::TelemetryBadAck
                 | ProcessMode::TelemetryBadFlush
                 | ProcessMode::BeforeResume
+                | ProcessMode::HostSnapshot
         ) {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
@@ -3206,8 +3333,15 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 harness.refresh_profile_resources(connection.clone(), cap.clone(), &catalog),
             );
             let peer_requests = peer.peer_request_frames();
-            assert_eq!(peer_requests.len(), 1);
-            let changed = &peer_requests[0];
+            assert_eq!(
+                peer_requests.len(),
+                if mode == ProcessMode::HostSnapshot {
+                    3
+                } else {
+                    1
+                }
+            );
+            let changed = peer_requests.last().unwrap();
             assert_eq!(changed.method, "resource.changed");
             assert_eq!(changed.request_id, 2000);
             assert_eq!(changed.capability_ref.as_ref(), Some(&cap));
@@ -3248,9 +3382,17 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             );
             assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), baseline);
             let responses = peer.response_frames();
-            assert_eq!(responses.len(), 1);
-            assert_eq!(responses[0].request_id, 2000);
-            let Some(v1_1::response::Terminal::Result(body)) = &responses[0].terminal else {
+            assert_eq!(
+                responses.len(),
+                if mode == ProcessMode::HostSnapshot {
+                    3
+                } else {
+                    1
+                }
+            );
+            let changed_response = responses.last().unwrap();
+            assert_eq!(changed_response.request_id, 2000);
+            let Some(v1_1::response::Terminal::Result(body)) = &changed_response.terminal else {
                 panic!("selected changed acknowledgement")
             };
             dto::ResourceChangedAck::decode(body.as_slice()).unwrap();
@@ -3436,7 +3578,12 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                         through + u64::from(mode == ProcessMode::TelemetryBadFlush)
                     );
                     assert_eq!(sink.disabled(), mode == ProcessMode::TelemetryBadFlush);
-                    if matches!(mode, ProcessMode::Telemetry | ProcessMode::BeforeResume) {
+                    if matches!(
+                        mode,
+                        ProcessMode::Telemetry
+                            | ProcessMode::BeforeResume
+                            | ProcessMode::HostSnapshot
+                    ) {
                         assert_eq!(sink.dropped(), 0);
                     }
                 }
@@ -3891,6 +4038,47 @@ fn runtime_native_changed_wrong_scope_sqlite_no_write() {
         );
         drop(store);
         std::fs::remove_dir_all(dir).unwrap();
+    }
+}
+#[test]
+fn runtime_native_host_snapshot_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostSnapshot,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_snapshot_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostSnapshot,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
     }
 }
 #[test]
