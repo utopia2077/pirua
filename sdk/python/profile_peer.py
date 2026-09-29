@@ -23,6 +23,8 @@ corpus = json.loads(
 runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-sink-wrong-id")
 runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue") or runtime_event
 runtime_queue = scenario == "runtime-native-host-queue"
+runtime_structural = scenario.startswith("runtime-native-structural")
+structural_case = scenario.removeprefix("runtime-native-structural").removeprefix("-") or "positive"
 runtime_snapshot = scenario == "runtime-native-host-snapshot" or runtime_queue or runtime_event
 runtime_resource = scenario.startswith("runtime-native-host-resource-get")
 runtime_resource_r2 = scenario == "runtime-native-resource-r2"
@@ -84,7 +86,7 @@ def payload_exposure(root, wire):
                 and event["model"].get("samplingParams") == model.get("samplingParams"))
     return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent")) or core not in (0, 1) or minor not in (0, 1):
+if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -175,6 +177,15 @@ runtime_methods = ["resource.list", "resource.read"] if runtime_resource_r2 else
 runtime_index = 0
 runtime_run_id = None
 runtime_provider_id = None
+structural_expected = "before_compaction"
+structural_kind = None
+structural_run_id = None
+structural_last_provider_id = None
+structural_compaction_id = None
+structural_navigation_id = None
+structural_summaries_left = 0
+structural_compaction_summaries = 0
+structural_navigation_summaries = 0
 runtime_ids = set()
 changed_list = None
 changed_acked = False
@@ -332,8 +343,44 @@ def runtime_projection(value, projection):
     return json_value(value["value"])
 
 
+def advance_structural(name, event=None):
+    global structural_expected, structural_kind, structural_summaries_left
+    global structural_compaction_summaries, structural_navigation_summaries
+    if name == "before_compaction":
+        p = event["preparation"]
+        split = p["isSplitTurn"] and len(p["turnPrefixMessages"]) > 0
+        structural_summaries_left = (int(not split or len(p["messagesToSummarize"]) > 0)
+                                     + int(split))
+        if not 1 <= structural_summaries_left <= 2:
+            raise ValueError("finite compaction summary selection")
+        structural_kind = "compaction"
+        structural_expected = None if structural_case == "compaction-decline" else "transform_context"
+    elif name == "before_navigation":
+        structural_kind = "navigation"
+        structural_summaries_left = 1
+        structural_expected = None if structural_case == "navigation-decline" else "transform_context"
+    elif name == "transform_context":
+        structural_expected = "before_request"
+    elif name == "before_request":
+        structural_expected = "provider.invoke"
+    elif name == "provider.invoke":
+        structural_expected = "after_response"
+    elif name == "after_response":
+        structural_summaries_left -= 1
+        if structural_kind == "compaction":
+            structural_compaction_summaries += 1
+        else:
+            structural_navigation_summaries += 1
+        structural_expected = ("transform_context" if structural_summaries_left > 0 else
+                               "before_navigation" if structural_kind == "compaction" else None)
+    else:
+        raise ValueError("structural phase method")
+
+
 def validate_runtime(request, method, decoded):
     global runtime_index, runtime_run_id, runtime_provider_id
+    global structural_run_id, structural_compaction_id, structural_navigation_id
+    global structural_last_provider_id
     global telemetry_batches, telemetry_last_sequence, telemetry_flushed
     global resume_phase, suspended_run_id, suspended_provider_id, deferred_provider_id
     encoded = profile_codec.encode(method["request"], sorted_maps(decoded))
@@ -342,7 +389,11 @@ def validate_runtime(request, method, decoded):
     if profile_codec.encode(method["request"], sorted_maps(again)) != encoded:
         raise ValueError("runtime DTO round trip")
     name = request["method"]
-    if runtime_index < len(runtime_methods):
+    structural_tail = runtime_structural and runtime_index >= len(runtime_methods)
+    if structural_tail:
+        if name != structural_expected:
+            raise ValueError(f"structural method order: {name}, wanted {structural_expected}")
+    elif runtime_index < len(runtime_methods):
         if name != runtime_methods[runtime_index]:
             raise ValueError("runtime method order: " + name)
         runtime_index += 1
@@ -356,18 +407,21 @@ def validate_runtime(request, method, decoded):
     ):
         raise ValueError("runtime telemetry order: " + name)
     request_id = request["request_id"]
+    expected_parent = (runtime_provider_id if name == "after_response" else
+                       structural_last_provider_id if structural_tail and name in ("transform_context", "before_request") else None)
+    parent_invalid = (request.get("parent_request_id") != expected_parent
+                      if structural_tail or name == "after_response" else "parent_request_id" in request)
     if (
         not isinstance(request_id, int) or request_id <= 0
-        or request_id in runtime_ids or (
-            request.get("parent_request_id") != runtime_provider_id
-            if name == "after_response" else "parent_request_id" in request
-        )
+        or request_id in runtime_ids or parent_invalid
         or request.get("initial_stream_credit_bytes") != 0
     ):
         raise ValueError("runtime request identity")
     runtime_ids.add(request_id)
     if name == "provider.invoke":
         runtime_provider_id = request_id
+        if structural_tail:
+            structural_last_provider_id = request_id
         if runtime_resume and telemetry_flushed:
             kind = request.get("effect_key", {}).get("effect_kind")
             if kind == "assistant":
@@ -447,8 +501,46 @@ def validate_runtime(request, method, decoded):
             runtime_run_id = run_id
             if runtime_resume and telemetry_flushed:
                 suspended_run_id = run_id
-        elif event.get("runId") != runtime_run_id:
+        elif not structural_tail and event.get("runId") != runtime_run_id:
             raise ValueError("runtime hook run")
+        if structural_tail:
+            key = request.get("effect_key", {})
+            expected_kind = "hook" if name in ("before_compaction", "before_navigation") else "summary"
+            deadline = request.get("deadline_after_ms")
+            if (key.get("operation_id") != event.get("runId")
+                    or key.get("effect_kind") != expected_kind
+                    or key.get("lane") != "main" or key.get("session_id") != "runtime-session"
+                    or not isinstance(deadline, int) or not 0 < deadline <= 5000):
+                raise ValueError("structural hook key/deadline")
+            if name == "before_compaction":
+                p = event.get("preparation", {})
+                if (not isinstance(event.get("runId"), str)
+                        or not event["runId"].startswith("runtime-id-")
+                        or event["runId"] == runtime_run_id or event.get("reason") != "manual"
+                        or not all(isinstance(p.get(k), list) for k in
+                                   ("messagesToSummarize", "turnPrefixMessages", "retainedTail"))
+                        or not isinstance(p.get("fileOps"), dict)
+                        or not isinstance(p.get("settings"), dict)):
+                    raise ValueError("real compaction preparation")
+                structural_compaction_id = event["runId"]
+                structural_run_id = event["runId"]
+                structural_last_provider_id = None
+            elif name == "before_navigation":
+                p = event.get("preparation", {})
+                if (not isinstance(event.get("runId"), str)
+                        or not event["runId"].startswith("runtime-id-")
+                        or event["runId"] == structural_compaction_id
+                        or not isinstance(event.get("targetId"), str)
+                        or not event["targetId"].startswith("runtime-id-")
+                        or not isinstance(p.get("messages"), list) or not p["messages"]
+                        or not isinstance(p.get("fileOps"), dict)
+                        or not isinstance(p.get("totalTokens"), int)):
+                    raise ValueError("real navigation preparation")
+                structural_navigation_id = event["runId"]
+                structural_run_id = event["runId"]
+                structural_last_provider_id = None
+            elif event.get("runId") != structural_run_id:
+                raise ValueError("structural summary callback run")
         if name == "before_resume" and (
             event.get("kind") != "run" or event.get("runId") != suspended_run_id
             or "native profile peer dynamic run deferred source" not in json.dumps(event.get("prompt"))
@@ -461,6 +553,8 @@ def validate_runtime(request, method, decoded):
             or event["model"].get("provider") != "remote"
             or event["model"].get("api") != "openai-completions"
             or event.get("step") != (
+                "compaction" if structural_tail and structural_kind == "compaction" else
+                "branch_summary" if structural_tail else
                 "deferred" if runtime_resume and resume_phase == 7 else "assistant"
             )
             or type(event.get("attempt")) is not int or event["attempt"] < 1
@@ -494,6 +588,8 @@ def validate_runtime(request, method, decoded):
             event.get("messages"), list
         ):
             raise ValueError("runtime hook messages")
+        if structural_tail:
+            advance_structural(name, event)
         return
     if (
         method["profile"] != "provider.v1"
@@ -510,6 +606,12 @@ def validate_runtime(request, method, decoded):
         or model.get("api") != "openai-completions"
         or not isinstance(context.get("messages"), list)
         or not (
+            isinstance(context["messages"][0].get("content"), str)
+            and bool(context["messages"][0]["content"])
+            and context["messages"][0].get("role") == "user"
+            and request.get("effect_key", {}).get("effect_kind") == "summary"
+            and request["effect_key"].get("operation_id") == structural_run_id
+            if structural_tail else
             context["messages"][0].get("content") == "native payload replacement"
             if runtime_payload else
             "native-source-handle" in json.dumps(context["messages"])
@@ -532,6 +634,8 @@ def validate_runtime(request, method, decoded):
             )
         ):
             raise ValueError("runtime deferred provider binding")
+    if structural_tail:
+        advance_structural(name)
 
 
 hooks = [
@@ -703,6 +807,11 @@ def terminal(request, decoded=None):
     global once_done, resource_phase
     m = profile_codec.methods[request["method"]]
     obj = result_for(request["method"])
+    if runtime_structural and request["method"] in ("before_compaction", "before_navigation"):
+        obj = {"output": payload_object(corpus["methods"][request["method"]]["positive_terminal"]["output"])}
+        if (request["method"] == "before_compaction" and structural_case == "compaction-decline"
+                or request["method"] == "before_navigation" and structural_case == "navigation-decline"):
+            obj["output"]["value"] = wire_value({"name": request["method"], "result": {"decline": True}})
     if runtime_resource_r2 and request["method"] == "resource.list":
         obj["revision"] = "r2"
         obj["resources"][0]["version"] = "2"
@@ -786,7 +895,7 @@ def terminal(request, decoded=None):
             }
         }
     payload = profile_codec.encode(m["terminal"], obj)
-    if runtime_resume or runtime_payload:
+    if runtime_resume or runtime_payload or runtime_structural:
         round_trip = profile_codec.decode(m["terminal"], payload)
         if scenario != "runtime-native-before-payload-malformed" or request["method"] != "before_payload":
             bound_check(round_trip)
@@ -913,7 +1022,7 @@ while not once_done:
         m = profile_codec.methods[request["method"]]
         decoded = profile_codec.decode(m["request"], request["payload"])
         bound_check(decoded)
-        if scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2:
+        if scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2 or runtime_structural:
             validate_runtime(request, m, decoded)
         else:
             expected = payload_object(
@@ -1269,6 +1378,12 @@ if runtime_resource and (resource_phase != 5 or resource_parent is not None
 if runtime_queue and (queue_phase != 5 or snapshot_phase != 2
                       or runtime_index != len(runtime_methods)):
     raise ValueError("incomplete native queue history")
+if runtime_structural and (runtime_index != len(runtime_methods)
+                           or structural_expected is not None or structural_compaction_id is None
+                           or structural_case != "compaction-decline" and
+                           (structural_navigation_id is None or structural_compaction_summaries < 1)
+                           or structural_case == "positive" and structural_navigation_summaries != 1):
+    raise ValueError("incomplete native structural history")
 sys.stderr.write(
     json.dumps(
         {

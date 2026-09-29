@@ -37,6 +37,8 @@ const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
 const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeQueue = scenario === "runtime-native-host-queue";
+const runtimeStructural = scenario.startsWith("runtime-native-structural");
+const structuralCase = scenario.slice("runtime-native-structural".length).replace(/^-/, "") || "positive";
 const runtimeSnapshot = scenario === "runtime-native-host-snapshot" || runtimeQueue || runtimeEvent;
 const runtimeResource = scenario.startsWith("runtime-native-host-resource-get");
 const runtimeResourceR2 = scenario === "runtime-native-resource-r2";
@@ -101,6 +103,7 @@ const runtimeChanged = scenario === "runtime-native-changed" ||
 if (
   !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload ||
     runtimeResourceR2 ||
+    (runtimeStructural && ["positive", "compaction-decline", "navigation-decline"].includes(structuralCase)) ||
     (runtimeResource && ["positive", "missing", "scope", "version", "parent"].includes(resourceCase))) ||
   ![0, 1].includes(core) ||
   ![0, 1].includes(minor)
@@ -191,6 +194,15 @@ const runtimeMethods = runtimeResourceR2 ? ["resource.list", "resource.read"] : 
 let runtimeIndex = 0;
 let runtimeRunId: string | null = null;
 let runtimeProviderId: number | null = null;
+let structuralExpected: string | null = "before_compaction";
+let structuralKind: "compaction" | "navigation" | null = null;
+let structuralRunId: string | null = null;
+let structuralLastProviderId: number | null = null;
+let structuralCompactionId: string | null = null;
+let structuralNavigationId: string | null = null;
+let structuralSummariesLeft = 0;
+let structuralCompactionSummaries = 0;
+let structuralNavigationSummaries = 0;
 let changedList: any = null;
 let changedAcked = false;
 let telemetryBatches = 0;
@@ -334,13 +346,44 @@ function runtimeProjection(value: any, id: string): any {
     throw Error("runtime projection identity");
   return jsonValue(value.value);
 }
+function advanceStructural(method: string, event?: any) {
+  if (method === "before_compaction") {
+    const p = event.preparation;
+    const split = p.isSplitTurn && p.turnPrefixMessages.length > 0;
+    structuralSummariesLeft = (!split || p.messagesToSummarize.length > 0 ? 1 : 0) + (split ? 1 : 0);
+    if (structuralSummariesLeft < 1 || structuralSummariesLeft > 2)
+      throw Error("finite compaction summary selection");
+    structuralKind = "compaction";
+    structuralExpected = structuralCase === "compaction-decline" ? null : "transform_context";
+  } else if (method === "before_navigation") {
+    structuralKind = "navigation";
+    structuralSummariesLeft = 1;
+    structuralExpected = structuralCase === "navigation-decline" ? null : "transform_context";
+  } else if (method === "transform_context") {
+    structuralExpected = "before_request";
+  } else if (method === "before_request") {
+    structuralExpected = "provider.invoke";
+  } else if (method === "provider.invoke") {
+    structuralExpected = "after_response";
+  } else if (method === "after_response") {
+    structuralSummariesLeft--;
+    if (structuralKind === "compaction") structuralCompactionSummaries++;
+    else structuralNavigationSummaries++;
+    structuralExpected = structuralSummariesLeft > 0 ? "transform_context" :
+      structuralKind === "compaction" ? "before_navigation" : null;
+  } else throw Error("structural phase method");
+}
 function validateRuntime(r: any, m: any, decoded: any) {
   const encoded = profileCodec.encode(m.request, sortedMaps(decoded));
   const again = profileCodec.decode(m.request, encoded);
   boundCheck(again);
   if (!profileCodec.encode(m.request, sortedMaps(again)).equals(encoded))
     throw Error("runtime DTO round trip");
-  if (runtimeIndex < runtimeMethods.length) {
+  const structuralTail = runtimeStructural && runtimeIndex >= runtimeMethods.length;
+  if (structuralTail) {
+    if (r.method !== structuralExpected)
+      throw Error(`structural method order: ${r.method}, wanted ${structuralExpected}`);
+  } else if (runtimeIndex < runtimeMethods.length) {
     if (r.method !== runtimeMethods[runtimeIndex++])
       throw Error(`runtime method order: ${r.method}`);
   } else if (runtimeResume && telemetryFlushed) {
@@ -355,14 +398,18 @@ function validateRuntime(r: any, m: any, decoded: any) {
   if (
     !Number.isSafeInteger(r.request_id) || r.request_id <= 0 ||
     runtimeIds.has(r.request_id) ||
-    (r.method === "after_response"
-      ? r.parent_request_id !== runtimeProviderId
-      : r.parent_request_id !== undefined) ||
+    (structuralTail
+      ? r.parent_request_id !== (r.method === "after_response" ? runtimeProviderId :
+          ["transform_context", "before_request"].includes(r.method) ? structuralLastProviderId ?? undefined : undefined)
+      : r.method === "after_response"
+        ? r.parent_request_id !== runtimeProviderId
+        : r.parent_request_id !== undefined) ||
     r.initial_stream_credit_bytes !== 0
   ) throw Error("runtime request identity");
   runtimeIds.add(r.request_id);
   if (r.method === "provider.invoke") {
     runtimeProviderId = r.request_id;
+    if (structuralTail) structuralLastProviderId = r.request_id;
     if (runtimeResume && telemetryFlushed) {
       if (r.effect_key?.effect_kind === "assistant") suspendedProviderId = r.request_id;
       if (r.effect_key?.effect_kind === "deferred") deferredProviderId = r.request_id;
@@ -432,8 +479,38 @@ function validateRuntime(r: any, m: any, decoded: any) {
       ) throw Error("runtime before_run fields");
       runtimeRunId = event.runId;
       if (runtimeResume && telemetryFlushed) suspendedRunId = event.runId;
-    } else if (event.runId !== runtimeRunId) {
+    } else if (!structuralTail && event.runId !== runtimeRunId) {
       throw Error("runtime hook run");
+    }
+    if (structuralTail) {
+      const key = r.effect_key;
+      if (!key || key.operation_id !== event.runId ||
+          key.effect_kind !== (["before_compaction", "before_navigation"].includes(r.method) ? "hook" : "summary") ||
+          key.lane !== "main" || key.session_id !== "runtime-session" ||
+          !Number.isSafeInteger(r.deadline_after_ms) || r.deadline_after_ms <= 0 || r.deadline_after_ms > 5000)
+        throw Error("structural hook key/deadline");
+      if (r.method === "before_compaction") {
+        if (!/^runtime-id-[0-9]+$/.test(event.runId) || event.runId === runtimeRunId ||
+            event.reason !== "manual" || !Array.isArray(event.preparation?.messagesToSummarize) ||
+            !Array.isArray(event.preparation?.turnPrefixMessages) ||
+            !Array.isArray(event.preparation?.retainedTail) ||
+            !event.preparation?.fileOps || !event.preparation?.settings)
+          throw Error("real compaction preparation");
+        structuralCompactionId = event.runId;
+        structuralRunId = event.runId;
+        structuralLastProviderId = null;
+      } else if (r.method === "before_navigation") {
+        if (!/^runtime-id-[0-9]+$/.test(event.runId) || event.runId === structuralCompactionId ||
+            !/^runtime-id-[0-9]+$/.test(event.targetId) ||
+            !Array.isArray(event.preparation?.messages) || event.preparation.messages.length === 0 ||
+            !event.preparation?.fileOps || !Number.isSafeInteger(event.preparation?.totalTokens))
+          throw Error("real navigation preparation");
+        structuralNavigationId = event.runId;
+        structuralRunId = event.runId;
+        structuralLastProviderId = null;
+      } else if (event.runId !== structuralRunId) {
+        throw Error("structural summary callback run");
+      }
     }
     if (r.method === "before_resume" && (
       event.kind !== "run" || event.runId !== suspendedRunId ||
@@ -444,7 +521,8 @@ function validateRuntime(r: any, m: any, decoded: any) {
     if (r.method === "before_request" && (
       event.model?.id !== "m" || event.model.provider !== "remote" ||
       event.model.api !== "openai-completions" ||
-      event.step !== (runtimeResume && resumePhase === 7 ? "deferred" : "assistant") ||
+      event.step !== (structuralTail ? structuralKind === "compaction" ? "compaction" : "branch_summary" :
+        runtimeResume && resumePhase === 7 ? "deferred" : "assistant") ||
       !Number.isSafeInteger(event.attempt) ||
       event.attempt < 1
     )) throw Error("runtime before_request fields");
@@ -468,6 +546,7 @@ function validateRuntime(r: any, m: any, decoded: any) {
     )) throw Error("runtime after_response fields");
     if (["transform_context", "before_run_end"].includes(r.method) &&
         !Array.isArray(event.messages)) throw Error("runtime hook messages");
+    if (structuralTail) advanceStructural(r.method, event);
     return;
   }
   if (m.profile !== "provider.v1" || decoded.model_id !== "m" ||
@@ -480,7 +559,11 @@ function validateRuntime(r: any, m: any, decoded: any) {
     model.id !== "m" || model.provider !== "remote" ||
     model.api !== "openai-completions" ||
     !Array.isArray(context.messages) ||
-    !(runtimePayload
+    !(structuralTail
+      ? typeof context.messages[0]?.content === "string" && context.messages[0].content.length > 0 &&
+        context.messages[0].role === "user" && r.effect_key?.effect_kind === "summary" &&
+        r.effect_key.operation_id === structuralRunId
+      : runtimePayload
       ? JSON.stringify(context.messages[0]?.content) === JSON.stringify("native payload replacement")
       : runtimeResume && r.effect_key?.effect_kind === "deferred"
       ? JSON.stringify(context.messages).includes("native-source-handle")
@@ -497,6 +580,7 @@ function validateRuntime(r: any, m: any, decoded: any) {
         options.deferred !== false
       ))) throw Error("runtime deferred provider binding");
   }
+  if (structuralTail) advanceStructural(r.method);
 }
 const hooks = Object.keys(corpus.methods).filter(
   (n) => profileCodec.methods[n].profile === "hook.v1",
@@ -650,6 +734,12 @@ function resultFor(method: string) {
 function terminal(r: any, decoded?: any) {
   const m = profileCodec.methods[r.method];
   let obj = resultFor(r.method);
+  if (runtimeStructural && ["before_compaction", "before_navigation"].includes(r.method)) {
+    obj = { output: payloadObject(corpus.methods[r.method].positive_terminal.output) };
+    if ((r.method === "before_compaction" && structuralCase === "compaction-decline") ||
+        (r.method === "before_navigation" && structuralCase === "navigation-decline"))
+      obj.output.value = wireValue({ name: r.method, result: { decline: true } });
+  }
   if (runtimeResourceR2 && r.method === "resource.list") {
     obj.revision = "r2";
     obj.resources[0].version = "2";
@@ -730,7 +820,7 @@ function terminal(r: any, decoded?: any) {
       },
     };
   const payload = profileCodec.encode(m.terminal, obj);
-  if (runtimeResume || runtimePayload) {
+  if (runtimeResume || runtimePayload || runtimeStructural) {
     const roundTrip = profileCodec.decode(m.terminal, payload);
     if (scenario !== "runtime-native-before-payload-malformed" || r.method !== "before_payload")
       boundCheck(roundTrip);
@@ -843,7 +933,7 @@ for (;;) {
     if (!m) throw Error("unknown selected method");
     const decoded = profileCodec.decode(m.request, r.payload);
     boundCheck(decoded);
-    if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2) {
+    if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2 || runtimeStructural) {
       validateRuntime(r, m, decoded);
     } else {
       const expected = payloadObject(
@@ -1197,6 +1287,11 @@ if (runtimeResource && (resourcePhase !== 5 || resourceParent !== null ||
 if (runtimeQueue && (queuePhase !== 5 || snapshotPhase !== 2 ||
     runtimeIndex !== runtimeMethods.length))
   throw Error("incomplete native queue history");
+if (runtimeStructural && (runtimeIndex !== runtimeMethods.length ||
+    structuralExpected !== null || !structuralCompactionId ||
+    (structuralCase !== "compaction-decline" && (!structuralNavigationId || structuralCompactionSummaries < 1)) ||
+    (structuralCase === "positive" && structuralNavigationSummaries !== 1)))
+  throw Error("incomplete native structural history");
 writeSync(
   2,
   JSON.stringify({

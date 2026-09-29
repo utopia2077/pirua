@@ -2813,6 +2813,9 @@ enum ProcessMode {
     BeforePayloadMalformed,
     HostSnapshot,
     HostQueue,
+    Structural,
+    StructuralCompactionDecline,
+    StructuralNavigationDecline,
     HostResource,
     HostResourceMissing,
     HostResourceScope,
@@ -2867,6 +2870,12 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::HostResourceScope
             | ProcessMode::HostResourceVersion
             | ProcessMode::HostResourceParent
+    );
+    let structural_mode = matches!(
+        mode,
+        ProcessMode::Structural
+            | ProcessMode::StructuralCompactionDecline
+            | ProcessMode::StructuralNavigationDecline
     );
     let payload_mode = matches!(
         mode,
@@ -3035,6 +3044,22 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             minor,
             "runtime-native-before-payload-malformed",
         )
+    } else if structural_mode {
+        Channel::spawn_scenario(
+            language,
+            core,
+            minor,
+            match mode {
+                ProcessMode::Structural => "runtime-native-structural",
+                ProcessMode::StructuralCompactionDecline => {
+                    "runtime-native-structural-compaction-decline"
+                }
+                ProcessMode::StructuralNavigationDecline => {
+                    "runtime-native-structural-navigation-decline"
+                }
+                _ => unreachable!(),
+            },
+        )
     } else if mode == ProcessMode::Native {
         Channel::spawn_scenario(language, core, minor, "runtime-native")
     } else {
@@ -3090,6 +3115,9 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::BeforePayloadMalformed
             | ProcessMode::HostSnapshot
             | ProcessMode::HostQueue
+            | ProcessMode::Structural
+            | ProcessMode::StructuralCompactionDecline
+            | ProcessMode::StructuralNavigationDecline
             | ProcessMode::HostResource
             | ProcessMode::HostResourceMissing
             | ProcessMode::HostResourceScope
@@ -3209,6 +3237,23 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                     RemoteHook::new(connection.clone(), selected, Default::default()).unwrap(),
                 )
                 .unwrap();
+        }
+        if structural_mode {
+            for name in ["before_compaction", "before_navigation"] {
+                let selected = connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|profile| profile.reference().name == name)
+                    .unwrap()
+                    .reference()
+                    .clone();
+                harness
+                    .register_profile_hook(
+                        RemoteHook::new(connection.clone(), selected, Default::default()).unwrap(),
+                    )
+                    .unwrap();
+            }
         }
         if payload_mode {
             let selected = connection
@@ -4243,6 +4288,546 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 .as_ref()
                 .expect("assistant-linked native usage");
             assert!(after.entries.iter().any(|entry| matches!(entry, Entry::Message(message) if &message.id == linked && matches!(&message.message, AgentMessage::BuiltIn(pi_ai_core::Message::Assistant(_))))));
+        }
+        if structural_mode {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            let target = after
+                .entries
+                .iter()
+                .find_map(|entry| match entry {
+                    Entry::Message(message) => Some(message.id.clone()),
+                    _ => None,
+                })
+                .expect("real navigation target");
+            let before_wire = peer.requests();
+            let compact = drive(setup, harness.compact(CompactOptions::default()))
+                .unwrap_or_else(|error| {
+                    panic!(
+                        "selected compact: {error:?}; wire={:?}; stderr={}",
+                        peer.request_frames()
+                            .iter()
+                            .map(|r| (
+                                &r.method,
+                                r.request_id,
+                                r.parent_request_id,
+                                r.effect_key
+                                    .as_ref()
+                                    .map(|k| (&k.effect_kind, &k.operation_id))
+                            ))
+                            .collect::<Vec<_>>(),
+                        peer.stderr_text()
+                    )
+                })
+                .unwrap();
+            let compact_wire = peer.request_frames();
+            assert!(compact_wire.len() > before_wire);
+            let compact_hook = compact_wire
+                .iter()
+                .find(|r| r.method == "before_compaction")
+                .expect("real selected before_compaction Request");
+            let compact_selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "before_compaction")
+                .unwrap()
+                .reference();
+            assert_eq!(compact_hook.capability_ref.as_ref(), Some(compact_selected));
+            assert_eq!(compact_hook.parent_request_id, None);
+            assert_eq!(compact_hook.initial_stream_credit_bytes, Some(0));
+            assert!(
+                compact_hook
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            let compact_key = compact_hook
+                .effect_key
+                .as_ref()
+                .expect("structural Hook EffectKey");
+            assert_eq!(compact_key.operation_id, compact.run_id.as_str());
+            assert_eq!(compact_key.effect_kind, "hook");
+            assert_eq!(compact_key.lane, "main");
+            assert_eq!(compact_key.session_id, "runtime-session");
+            let compact_payload =
+                dto::InvokeHookRequest::decode(compact_hook.payload.as_slice()).unwrap();
+            assert_eq!(compact_payload.handler_id, "qualified_handler");
+            let input = compact_payload.input.unwrap();
+            assert_eq!(input.projection_id, "hook.input:before_compaction");
+            assert_eq!(
+                input
+                    .schema_digest_sha256
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>(),
+                "bcd551ff0bed9117d6269ca978babcfe7f4a0b1c27a7d7398d5e2b8be8b3bd6c"
+            );
+            let event = wire_value(input.value.unwrap());
+            assert_eq!(event["name"], "before_compaction");
+            assert_eq!(event["event"]["runId"], compact.run_id.as_str());
+            assert_eq!(event["event"]["reason"], "manual");
+            assert_eq!(event["event"]["lane"], "main");
+            assert_eq!(event["event"]["preparation"]["settings"]["enabled"], false);
+            let reply = peer
+                .peer_response_frames()
+                .into_iter()
+                .find(|r| r.request_id == compact_hook.request_id)
+                .expect("selected before_compaction Result");
+            let Some(v1_1::response::Terminal::Result(body)) = reply.terminal else {
+                panic!("typed before_compaction Result")
+            };
+            let output = dto::InvokeHookResult::decode(body.as_slice())
+                .unwrap()
+                .output
+                .unwrap();
+            assert_eq!(output.projection_id, "hook.output:before_compaction");
+            assert_eq!(
+                output
+                    .schema_digest_sha256
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>(),
+                "a78500c3a2b4801c3be727e378f1047606e2793c714c1f69a8bd605773e51ea9"
+            );
+            let compact_output_value = wire_value(output.value.unwrap());
+            if mode == ProcessMode::StructuralCompactionDecline {
+                assert_eq!(
+                    compact_output_value,
+                    serde_json::json!({"name":"before_compaction","result":{"decline":true}})
+                );
+                assert!(matches!(compact.outcome, CompactionOutcome::Declined(_)));
+                let declined = setup.pump.drive(store.snapshot()).unwrap();
+                assert_eq!(declined.entries, after.entries);
+                assert_eq!(declined.usage, after.usage);
+                assert_ne!(
+                    declined.registers, after.registers,
+                    "accepted structural lifecycle is durable"
+                );
+                let leaf = |registers: &[Register]| {
+                    registers.iter().find_map(|r| match r {
+                        Register::LaneLeaf { key, value, .. } if key == "main" => {
+                            Some(value.clone())
+                        }
+                        _ => None,
+                    })
+                };
+                assert_eq!(leaf(&declined.registers), leaf(&after.registers));
+                assert!(declined.registers.iter().any(|r| matches!(
+                    r,
+                    Register::LaneLastResult {
+                        value: LaneLastResult::CompactionDeclined(_),
+                        ..
+                    }
+                )));
+                assert!(declined.registers.iter().all(|r| !matches!(
+                    r,
+                    Register::OperationMeta { .. }
+                        | Register::OperationState { .. }
+                        | Register::OperationPreparation { .. }
+                )));
+                let unrelated = |registers: &[Register]| {
+                    registers
+                        .iter()
+                        .filter(|r| {
+                            !matches!(
+                                r,
+                                Register::LaneState { .. } | Register::LaneLastResult { .. }
+                            )
+                        })
+                        .cloned()
+                        .collect::<Vec<_>>()
+                };
+                assert_eq!(unrelated(&declined.registers), unrelated(&after.registers));
+                assert_eq!(
+                    compact_wire
+                        .iter()
+                        .filter(|r| r.method == "before_compaction")
+                        .count(),
+                    1
+                );
+                assert!(!compact_wire.iter().any(|r| {
+                    r.effect_key
+                        .as_ref()
+                        .is_some_and(|k| k.effect_kind == "summary")
+                }));
+                assert_eq!(connection.occupancy(), 0);
+                peer.finish(true);
+                connection.close();
+                setup.pump.drive(harness.close()).unwrap();
+                return;
+            }
+            let CompactionOutcome::Completed(completed) = &compact.outcome else {
+                panic!(
+                    "selected compaction did not complete: {:?}; stderr={}",
+                    compact.outcome,
+                    peer.stderr_text()
+                );
+            };
+            assert_eq!(
+                compact_output_value,
+                serde_json::json!({"name":"before_compaction","result":{}})
+            );
+            let compact_snapshot = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(compact_snapshot.entries.len(), after.entries.len() + 1);
+            assert_eq!(compact_snapshot.usage.len(), after.usage.len() + 2);
+            assert_eq!(
+                &compact_snapshot.entries[..after.entries.len()],
+                after.entries.as_slice()
+            );
+            assert_eq!(
+                &compact_snapshot.usage[..after.usage.len()],
+                after.usage.as_slice()
+            );
+            assert_eq!(
+                compact_snapshot.entries.last(),
+                Some(&Entry::Compaction(completed.entry.clone()))
+            );
+            assert!(!completed.entry.from_hook);
+            assert_eq!(
+                completed.entry.parent_id,
+                after.entries.last().and_then(|entry| match entry {
+                    Entry::Message(m) => Some(m.id.clone()),
+                    _ => None,
+                })
+            );
+            assert!(
+                compact_snapshot.usage[after.usage.len()..]
+                    .iter()
+                    .all(|u| u.entry_id.is_none() && !u.adjustment)
+            );
+            assert!(compact_snapshot.registers.iter().any(|r| matches!(r,
+                Register::LaneLeaf { key, value, .. } if key == "main" && value.as_ref() == Some(&completed.entry.id))));
+            let repeat_before = setup.pump.drive(store.snapshot()).unwrap();
+            let repeat_wire = peer.requests();
+            assert!(matches!(
+                drive(setup, harness.compact(CompactOptions::default())),
+                Ok(Err(CompactionExpectedError::NothingToCompact(_)))
+            ));
+            assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), repeat_before);
+            assert_eq!(peer.requests(), repeat_wire);
+            let navigation = drive(
+                setup,
+                harness.navigate_tree(
+                    Some(target.clone()),
+                    NavigateOptions {
+                        summarize: Some(true),
+                        ..Default::default()
+                    },
+                ),
+            )
+            .unwrap_or_else(|error| {
+                panic!(
+                    "selected navigation: {error:?}; stderr={}",
+                    peer.stderr_text()
+                )
+            })
+            .unwrap();
+            let nav_wire = peer.request_frames();
+            let nav_hook = nav_wire
+                .iter()
+                .find(|r| r.method == "before_navigation")
+                .expect("real selected before_navigation Request");
+            let nav_selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "before_navigation")
+                .unwrap()
+                .reference();
+            assert_eq!(nav_hook.capability_ref.as_ref(), Some(nav_selected));
+            assert_eq!(nav_hook.parent_request_id, None);
+            assert_eq!(nav_hook.initial_stream_credit_bytes, Some(0));
+            assert!(
+                nav_hook
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 5000)
+            );
+            let nav_key = nav_hook
+                .effect_key
+                .as_ref()
+                .expect("navigation Hook EffectKey");
+            assert_eq!(nav_key.effect_kind, "hook");
+            assert_eq!(nav_key.operation_id, navigation.run_id.as_str());
+            assert_eq!(nav_key.lane, "main");
+            assert_eq!(nav_key.session_id, "runtime-session");
+            let nav_payload = dto::InvokeHookRequest::decode(nav_hook.payload.as_slice()).unwrap();
+            assert_eq!(nav_payload.handler_id, "qualified_handler");
+            let input = nav_payload.input.unwrap();
+            assert_eq!(input.projection_id, "hook.input:before_navigation");
+            assert_eq!(
+                input
+                    .schema_digest_sha256
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>(),
+                "9e27ffecbb33bde8f6c6be8ff44696929150ad9e46df81d0addc3acf3a83f563"
+            );
+            let event = wire_value(input.value.unwrap());
+            assert_eq!(event["name"], "before_navigation");
+            assert_eq!(event["event"]["targetId"], target.as_str());
+            assert_eq!(event["event"]["runId"], navigation.run_id.as_str());
+            assert_eq!(event["event"]["lane"], "main");
+            assert!(
+                event["event"]["preparation"]["messages"]
+                    .as_array()
+                    .is_some_and(|m| !m.is_empty())
+            );
+            let reply = peer
+                .peer_response_frames()
+                .into_iter()
+                .find(|r| r.request_id == nav_hook.request_id)
+                .expect("selected before_navigation Result");
+            let Some(v1_1::response::Terminal::Result(body)) = reply.terminal else {
+                panic!("typed before_navigation Result")
+            };
+            let output = dto::InvokeHookResult::decode(body.as_slice())
+                .unwrap()
+                .output
+                .unwrap();
+            assert_eq!(output.projection_id, "hook.output:before_navigation");
+            assert_eq!(
+                output
+                    .schema_digest_sha256
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>(),
+                "17508eba0470ed4018aa682417ba09e2998e62fdc3b4b534a95e88e9a73bd848"
+            );
+            assert_eq!(
+                wire_value(output.value.unwrap()),
+                if mode == ProcessMode::StructuralNavigationDecline {
+                    serde_json::json!({"name":"before_navigation","result":{"decline":true}})
+                } else {
+                    serde_json::json!({"name":"before_navigation","result":{}})
+                }
+            );
+            if mode == ProcessMode::StructuralNavigationDecline {
+                assert!(matches!(navigation.outcome, NavigationOutcome::Declined(_)));
+                let declined = setup.pump.drive(store.snapshot()).unwrap();
+                assert_eq!(declined.entries, compact_snapshot.entries);
+                assert_eq!(declined.usage, compact_snapshot.usage);
+                assert_ne!(declined.registers, compact_snapshot.registers);
+                let leaf = |registers: &[Register]| {
+                    registers.iter().find_map(|r| match r {
+                        Register::LaneLeaf { key, value, .. } if key == "main" => {
+                            Some(value.clone())
+                        }
+                        _ => None,
+                    })
+                };
+                assert_eq!(leaf(&declined.registers), leaf(&compact_snapshot.registers));
+                assert!(declined.registers.iter().any(|r| matches!(
+                    r,
+                    Register::LaneLastResult {
+                        value: LaneLastResult::NavigationDeclined(_),
+                        ..
+                    }
+                )));
+                assert!(declined.registers.iter().all(|r| !matches!(
+                    r,
+                    Register::OperationMeta { .. }
+                        | Register::OperationState { .. }
+                        | Register::OperationPreparation { .. }
+                )));
+                let unrelated = |registers: &[Register]| {
+                    registers
+                        .iter()
+                        .filter(|r| {
+                            !matches!(
+                                r,
+                                Register::LaneState { .. } | Register::LaneLastResult { .. }
+                            )
+                        })
+                        .cloned()
+                        .collect::<Vec<_>>()
+                };
+                assert_eq!(
+                    unrelated(&declined.registers),
+                    unrelated(&compact_snapshot.registers)
+                );
+                assert_eq!(
+                    nav_wire
+                        .iter()
+                        .filter(|r| r.method == "before_navigation")
+                        .count(),
+                    1
+                );
+                assert_eq!(
+                    nav_wire
+                        .iter()
+                        .filter(|r| r
+                            .effect_key
+                            .as_ref()
+                            .is_some_and(|k| k.effect_kind == "summary")
+                            && r.method == "provider.invoke")
+                        .count(),
+                    2
+                );
+                assert_eq!(connection.occupancy(), 0);
+                peer.finish(true);
+                connection.close();
+                setup.pump.drive(harness.close()).unwrap();
+                return;
+            }
+            let NavigationOutcome::Completed(navigated) = &navigation.outcome else {
+                panic!(
+                    "selected navigation did not complete: {:?}; stderr={}",
+                    navigation.outcome,
+                    peer.stderr_text()
+                );
+            };
+            let branch = navigated
+                .summary_entry
+                .as_ref()
+                .expect("real branch summary");
+            let navigation_snapshot = setup.pump.drive(store.snapshot()).unwrap();
+            assert_eq!(
+                navigation_snapshot.entries.len(),
+                compact_snapshot.entries.len() + 1
+            );
+            assert_eq!(
+                navigation_snapshot.usage.len(),
+                compact_snapshot.usage.len() + 1
+            );
+            assert_eq!(
+                &navigation_snapshot.entries[..compact_snapshot.entries.len()],
+                compact_snapshot.entries.as_slice()
+            );
+            assert_eq!(
+                &navigation_snapshot.usage[..compact_snapshot.usage.len()],
+                compact_snapshot.usage.as_slice()
+            );
+            assert_eq!(
+                navigation_snapshot.entries.last(),
+                Some(&Entry::BranchSummary(branch.clone()))
+            );
+            assert_eq!(branch.parent_id, Some(target.clone()));
+            assert_eq!(branch.from_id, completed.entry.id);
+            assert!(!branch.from_hook);
+            assert!(navigation_snapshot.usage.last().unwrap().entry_id.is_none());
+            assert!(navigation_snapshot.registers.iter().any(|r| matches!(r,
+                Register::LaneLeaf { key, value, .. } if key == "main" && value.as_ref() == Some(&branch.id))));
+            let wire = peer.request_frames();
+            let summaries = wire
+                .iter()
+                .filter(|r| {
+                    r.method == "provider.invoke"
+                        && r.effect_key
+                            .as_ref()
+                            .is_some_and(|k| k.effect_kind == "summary")
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(summaries.len(), 3);
+            assert_eq!(
+                summaries
+                    .iter()
+                    .filter(
+                        |r| r.effect_key.as_ref().unwrap().operation_id == compact.run_id.as_str()
+                    )
+                    .count(),
+                2
+            );
+            assert_eq!(
+                summaries
+                    .iter()
+                    .filter(|r| r.effect_key.as_ref().unwrap().operation_id
+                        == navigation.run_id.as_str())
+                    .count(),
+                1
+            );
+            let provider_selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "remote")
+                .unwrap()
+                .reference();
+            let after_selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| p.reference().name == "after_response")
+                .unwrap()
+                .reference();
+            for request in summaries {
+                let key = request.effect_key.as_ref().unwrap();
+                assert!(
+                    key.operation_id == compact.run_id.as_str()
+                        || key.operation_id == navigation.run_id.as_str()
+                );
+                assert_eq!(key.lane, "main");
+                assert_eq!(key.session_id, "runtime-session");
+                assert_eq!(request.capability_ref.as_ref(), Some(provider_selected));
+                assert_eq!(request.parent_request_id, None);
+                assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                assert!(
+                    request
+                        .deadline_after_ms
+                        .is_some_and(|ms| ms > 0 && ms <= 5000)
+                );
+                let invoked =
+                    dto::InvokeProviderRequest::decode(request.payload.as_slice()).unwrap();
+                assert_eq!(invoked.model_id, "m");
+                assert_eq!(invoked.auth_mode, "none");
+                let tools = invoked.tools.unwrap();
+                assert_eq!(tools.projection_id, "provider.tools.v1");
+                assert_eq!(wire_value(tools.value.unwrap()), serde_json::json!([]));
+                let response = wire
+                    .iter()
+                    .find(|r| {
+                        r.method == "after_response"
+                            && r.parent_request_id == Some(request.request_id)
+                    })
+                    .expect("selected summary after_response");
+                assert_eq!(response.effect_key, request.effect_key);
+                assert_eq!(response.capability_ref.as_ref(), Some(after_selected));
+                assert_eq!(response.initial_stream_credit_bytes, Some(0));
+                assert!(
+                    response
+                        .deadline_after_ms
+                        .is_some_and(|ms| ms > 0 && ms <= 5000)
+                );
+                let hook = dto::InvokeHookRequest::decode(response.payload.as_slice()).unwrap();
+                assert_eq!(hook.handler_id, "qualified_handler");
+                assert_eq!(
+                    wire_value(hook.input.unwrap().value.unwrap())["event"]["message"]["role"],
+                    "assistant"
+                );
+                let end = peer
+                    .peer_stream_end_frames()
+                    .into_iter()
+                    .find(|end| end.request_id == request.request_id)
+                    .expect("selected summary provider terminal");
+                let Some(v1_1::stream_end::Terminal::Result(body)) = end.terminal else {
+                    panic!("typed summary Result")
+                };
+                let result = dto::InvokeProviderResult::decode(body.as_slice()).unwrap();
+                let usage = result.usage.unwrap();
+                assert_eq!(usage.projection_id, "provider.usage.v1");
+                let assistant = result.assistant_message.unwrap();
+                assert_eq!(assistant.projection_id, "provider.assistant_message.v1");
+                assert_eq!(wire_value(assistant.value.unwrap())["role"], "assistant");
+            }
+            let before_unknown = setup.pump.drive(store.snapshot()).unwrap();
+            let unknown_requests = peer.requests();
+            assert!(matches!(
+                drive(
+                    setup,
+                    harness.navigate_tree(
+                        Some(EntryId::new("missing-native-target").unwrap()),
+                        NavigateOptions {
+                            summarize: Some(true),
+                            ..Default::default()
+                        }
+                    )
+                ),
+                Ok(Err(NavigationExpectedError::UnknownTarget(_)))
+            ));
+            assert_eq!(setup.pump.drive(store.snapshot()).unwrap(), before_unknown);
+            assert_eq!(peer.requests(), unknown_requests);
+            assert_eq!(setup.faux.requests.lock().unwrap().len(), 1);
+            assert!(connection.current());
+            assert_eq!(connection.occupancy(), 0);
         }
         if matches!(
             mode,
@@ -5370,6 +5955,49 @@ fn runtime_native_host_resource_get_wrong_version_refusal() {
 #[test]
 fn runtime_native_host_resource_get_missing_parent_refusal() {
     host_resource_refusal_all_pairs(ProcessMode::HostResourceParent);
+}
+#[test]
+fn runtime_native_structural_positive_all_pairs() {
+    structural_case_all_pairs(ProcessMode::Structural);
+}
+#[test]
+fn runtime_native_structural_compaction_decline_all_pairs() {
+    structural_case_all_pairs(ProcessMode::StructuralCompactionDecline);
+}
+#[test]
+fn runtime_native_structural_navigation_decline_all_pairs() {
+    structural_case_all_pairs(ProcessMode::StructuralNavigationDecline);
+}
+fn structural_case_all_pairs(mode: ProcessMode) {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    mode,
+                );
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    mode,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
 }
 #[test]
 fn runtime_native_host_snapshot_memory_all_pairs() {
