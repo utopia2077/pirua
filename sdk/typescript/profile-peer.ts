@@ -38,7 +38,8 @@ const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeQueue = scenario === "runtime-native-host-queue";
 const runtimeHostInbox = scenario === "runtime-native-host-inbox";
-const runtimeHostAbort = scenario === "runtime-native-host-abort-old";
+const runtimeHostAbort = scenario === "runtime-native-host-abort-old" ||
+  scenario === "runtime-native-host-abort-current";
 const runtimeStructural = scenario.startsWith("runtime-native-structural");
 const runtimeTool = scenario === "runtime-native-tool-hook" || scenario === "runtime-native-tool-hook-block";
 const toolBlocked = scenario === "runtime-native-tool-hook-block";
@@ -1215,6 +1216,12 @@ for (;;) {
     flush(s);
   } else if (e.cancel) {
     codec.selectedEnum("CancelReason", e.cancel.reason);
+    if (runtimeHostAbort && scenario.endsWith("-current") &&
+        hostAbortReplied && e.cancel.request_id === hostAbortParent?.request_id) {
+      hostAbortParent = null;
+      onceDone = true;
+      continue;
+    }
     const s = streams.get(e.cancel.request_id);
     if (s) {
       if (scenario === "cancel-progress") flush(s);

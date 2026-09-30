@@ -25,6 +25,7 @@ struct State {
     request_wake: Option<Waker>,
     reply_wake: Option<Waker>,
     writes: BTreeMap<u64, Arc<PendingWrite>>,
+    cancel_ack: Option<u64>,
 }
 pub(crate) struct ToolInbox {
     state: Mutex<State>,
@@ -46,6 +47,7 @@ impl ToolInbox {
                 request_wake: None,
                 reply_wake: None,
                 writes: BTreeMap::new(),
+                cancel_ack: None,
             }),
             connection: Mutex::new(Weak::new()),
             max_bytes,
@@ -54,6 +56,22 @@ impl ToolInbox {
     }
     pub(crate) fn attach(&self, connection: &Arc<ProfileConnection>) {
         *self.connection.lock().unwrap_or_else(|p| p.into_inner()) = Arc::downgrade(connection);
+    }
+    pub(crate) fn is_cancel(&self, id: u64) -> bool {
+        self.state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .writes
+            .get(&id)
+            .is_some_and(|write| write.cancel)
+    }
+    pub(crate) fn take_cancel_ack(&self, id: u64) -> bool {
+        self.state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .cancel_ack
+            .take_if(|ack| *ack == id)
+            .is_some()
     }
     pub(crate) async fn next(&self, requests: bool) -> Result<Option<ActiveFrame>, PumpError> {
         std::future::poll_fn(|cx| {
@@ -122,17 +140,20 @@ impl ToolInbox {
             done.as_mut().poll(cx).map(|_| true)
         })
         .await;
-        if !completed
-            || pending
-                .result
-                .lock()
-                .unwrap_or_else(|p| p.into_inner())
-                .as_ref()
-                != Some(&true)
-        {
-            return Err(super::fault());
+        Self::classify_write(
+            completed,
+            *pending.result.lock().unwrap_or_else(|p| p.into_inner()),
+        )
+    }
+    fn classify_write(
+        completed: bool,
+        result: Option<bool>,
+    ) -> Result<(), pi_agent_schema::HarnessRuntimeError> {
+        if completed && result == Some(true) {
+            Ok(())
+        } else {
+            Err(super::fault())
         }
-        Ok(())
     }
 }
 impl ToolProfileIngress for ToolInbox {
@@ -191,12 +212,14 @@ impl ToolProfileIngress for ToolInbox {
         })
     }
     fn written(&self, id: u64, completed: bool) {
-        let pending = self
-            .state
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .writes
-            .remove(&id);
+        let pending = {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            let pending = state.writes.remove(&id);
+            if completed && pending.as_ref().is_some_and(|pending| pending.cancel) {
+                state.cancel_ack = Some(id);
+            }
+            pending
+        };
         if let Some(pending) = pending {
             *pending.result.lock().unwrap_or_else(|p| p.into_inner()) = Some(completed);
             pending.done.cancel();
@@ -227,6 +250,53 @@ impl ToolProfileIngress for ToolInbox {
         }
         if let Some(wake) = reply {
             wake.wake();
+        }
+    }
+}
+
+#[cfg(test)]
+impl ToolInbox {
+    pub(crate) fn insert_test_pending(&self, id: u64, cancel: bool) {
+        let pending = Arc::new(PendingWrite {
+            done: CancellationToken::new(),
+            result: Mutex::new(None),
+            cancel,
+            response: false,
+        });
+        self.state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .writes
+            .insert(id, pending);
+    }
+
+    pub(crate) fn has_test_pending(&self, id: u64) -> bool {
+        self.state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .writes
+            .contains_key(&id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ToolInbox;
+    use pi_agent_schema::HarnessRuntimeError;
+
+    #[test]
+    fn service_write_failure_and_timeout_stay_generic_faults() {
+        for (label, completed, result) in [
+            ("write failure", true, Some(false)),
+            ("write timeout", false, None),
+        ] {
+            assert!(
+                matches!(
+                    ToolInbox::classify_write(completed, result),
+                    Err(HarnessRuntimeError::Fault(_))
+                ),
+                "{label}"
+            );
         }
     }
 }

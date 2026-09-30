@@ -1,6 +1,6 @@
 //! One native-owned profile route, using the existing framed byte pump.
 use crate::extensions::transport::{
-    ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig,
+    ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, PumpError,
 };
 use pi_agent_schema::{BoxFuture, EffectKey, HarnessRuntimeError};
 use pi_extension_protocol::profiles::NativeValidator;
@@ -17,7 +17,7 @@ use std::{
     num::NonZeroUsize,
     sync::{
         Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     task::Poll,
 };
@@ -28,6 +28,54 @@ pub trait HostActions: Send + Sync {
         invocation: ActionInvocation,
         payload: ValidatedPayload,
     ) -> BoxFuture<'a, Result<Vec<u8>, v1_1::ErrorCode>>;
+}
+struct DeferredCloseChannel {
+    inner: Arc<dyn OrderedByteChannel>,
+    armed: AtomicBool,
+}
+impl DeferredCloseChannel {
+    fn new(inner: Arc<dyn OrderedByteChannel>) -> Self {
+        Self {
+            inner,
+            armed: AtomicBool::new(false),
+        }
+    }
+    fn arm(&self) {
+        self.armed.store(true, Ordering::Release);
+    }
+}
+impl OrderedByteChannel for DeferredCloseChannel {
+    fn max_read_scratch_bytes(&self) -> usize {
+        self.inner.max_read_scratch_bytes()
+    }
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, crate::extensions::transport::ChannelError>> {
+        self.inner.read_chunk(buffer)
+    }
+    fn write_frame(
+        &self,
+        frame: framing::EncodedFrame,
+    ) -> BoxFuture<'_, Result<(), crate::extensions::transport::ChannelError>> {
+        self.inner.write_frame(frame)
+    }
+    fn close(&self) {
+        if !self.armed.load(Ordering::Acquire) {
+            self.inner.close();
+        }
+    }
+}
+#[derive(Default)]
+struct PeerCloseFence {
+    clean_eof: bool,
+    deferred_cancel_id: Option<u64>,
+}
+fn peer_close_fence_matches(fence: &PeerCloseFence, id: u64) -> bool {
+    fence.clean_eof
+        && fence
+            .deferred_cancel_id
+            .is_none_or(|deferred| deferred == id)
 }
 #[derive(Clone)]
 pub struct ActionInvocation {
@@ -64,6 +112,7 @@ pub struct ProfileConnection {
     timeout_ms: u64,
     slot_line: crate::scheduler::MutationLine,
     waiting: AtomicUsize,
+    peer_close: Mutex<PeerCloseFence>,
 }
 pub(crate) trait DispatchScope: Send + Sync {
     fn prepare(
@@ -121,6 +170,7 @@ impl ProfileConnection {
             timeout_ms: config.write_timeout_ms.get(),
             slot_line: crate::scheduler::MutationLine::new(crate::scheduler::Admission::new()),
             waiting: AtomicUsize::new(0),
+            peer_close: Mutex::new(PeerCloseFence::default()),
         }))
     }
     pub(crate) async fn connect_tool(
@@ -171,6 +221,7 @@ impl ProfileConnection {
             timeout_ms: config.write_timeout_ms.get(),
             slot_line: crate::scheduler::MutationLine::new(crate::scheduler::Admission::new()),
             waiting: AtomicUsize::new(0),
+            peer_close: Mutex::new(PeerCloseFence::default()),
         });
         inbox.attach(&connection);
         Ok((connection, route))
@@ -220,6 +271,41 @@ impl ProfileConnection {
             Some(v1_1::envelope::Frame::StreamEnd(end)) => Ok((end.request_id, true, false)),
             _ => Err(super::fault()),
         }
+    }
+    fn request_peer_close(&self) {
+        let deferred_cancel_id = {
+            let mut fence = self.peer_close.lock().unwrap_or_else(|p| p.into_inner());
+            // Publish clean EOF before asking the Writer to retire queued
+            // work. The same fence is held until the exact active Cancel ID
+            // is recorded, so a writer close cannot race publication.
+            fence.clean_eof = true;
+            fence.deferred_cancel_id = None;
+            match (&self.service, &self.inbox) {
+                (Some(service), Some(inbox)) => {
+                    let deferred = service.request_peer_close(inbox);
+                    fence.deferred_cancel_id = deferred;
+                    deferred
+                }
+                _ => None,
+            }
+        };
+        if deferred_cancel_id.is_none() {
+            self.close();
+        }
+    }
+    fn clean_peer_close_after_cancel(&self, id: u64) -> bool {
+        let mut fence = self.peer_close.lock().unwrap_or_else(|p| p.into_inner());
+        if !peer_close_fence_matches(&fence, id) {
+            return false;
+        }
+        let acknowledged = self
+            .inbox
+            .as_ref()
+            .is_some_and(|inbox| inbox.take_cancel_ack(id));
+        if acknowledged {
+            *fence = PeerCloseFence::default();
+        }
+        acknowledged
     }
     pub(crate) async fn admit_tool_write(&self, id: u64, response: bool, cancel: bool) -> bool {
         let dispatch = self
@@ -602,9 +688,13 @@ impl ProfileConnection {
                     self.write(frame, deadline).await?;
                     cancel_sent = true;
                 }
-                ReadOutcome::Frame(Err(_) | Ok(None)) => {
+                ReadOutcome::Frame(event @ (Err(_) | Ok(None))) => {
+                    let error = Self::peer_terminal_error(
+                        event,
+                        self.clean_peer_close_after_cancel(binding.id()),
+                    );
                     self.close();
-                    return Err(super::fault());
+                    return Err(error);
                 }
                 ReadOutcome::Frame(Ok(Some(frame))) => {
                     if let Some(request) = peer_request(&frame.envelope) {
@@ -1371,6 +1461,16 @@ impl ProfileConnection {
         }
         Ok(())
     }
+
+    fn peer_terminal_error(
+        event: Result<Option<pi_extension_protocol::endpoint::ActiveFrame>, PumpError>,
+        exact_cancel_ack: bool,
+    ) -> HarnessRuntimeError {
+        match event {
+            Ok(None) if exact_cancel_ack => HarnessRuntimeError::PeerLost,
+            _ => super::fault(),
+        }
+    }
 }
 struct PumpGuard {
     connection: Arc<ProfileConnection>,
@@ -1431,6 +1531,7 @@ enum ReadOutcome {
         >,
     ),
 }
+
 pub(crate) fn peer_request(frame: &SelectedEnvelope) -> Option<v1_1::Request> {
     match frame {
         SelectedEnvelope::V1_1(e) => match &e.frame {
@@ -1709,9 +1810,11 @@ impl<
         reservations: Reservations,
         remaining_ms: u64,
     ) -> Result<Arc<ProfileConnection>, HarnessRuntimeError> {
-        let mut pump = ConnectionPump::new(host, channel.clone(), clock.clone(), config)
+        let pump_channel = Arc::new(DeferredCloseChannel::new(channel.clone()));
+        let mut pump = ConnectionPump::new(host, pump_channel.clone(), clock.clone(), config)
             .map_err(|_| super::fault())?;
         let grant = pump.drive_until_ready().await.map_err(|_| super::fault())?;
+        pump_channel.arm();
         let max_jobs = grant
             .wire()
             .limits
@@ -1743,6 +1846,7 @@ impl<
             timeout_ms: config.write_timeout_ms.get(),
             slot_line: crate::scheduler::MutationLine::new(crate::scheduler::Admission::new()),
             waiting: AtomicUsize::new(0),
+            peer_close: Mutex::new(PeerCloseFence::default()),
         });
         inbox.attach(&connection);
         let weak = Arc::downgrade(&connection);
@@ -1766,7 +1870,13 @@ impl<
                                 break;
                             }
                         }
-                        _ => {
+                        Ok(None) => {
+                            if let Some(connection) = weak.upgrade() {
+                                connection.request_peer_close();
+                            }
+                            break;
+                        }
+                        Err(_) => {
                             if let Some(connection) = weak.upgrade() {
                                 connection.close();
                             }
@@ -1878,5 +1988,310 @@ fn encode_stream_end(
             cap,
         )
         .map_err(|_| super::fault())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PeerCloseFence, ProfileConnection, peer_close_fence_matches};
+    use crate::extensions::transport::{
+        ChannelError, ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, PumpError,
+    };
+    use pi_agent_schema::HarnessRuntimeError;
+    use pi_extension_protocol::{
+        activation::HostAuthority,
+        wire::{
+            framing::{self, EncodedFrame},
+            v1_1,
+        },
+    };
+    use std::{
+        collections::VecDeque,
+        future::poll_fn,
+        num::{NonZeroU64, NonZeroUsize},
+        sync::{
+            Arc, Mutex,
+            atomic::{AtomicBool, AtomicU64, Ordering},
+        },
+        task::{Context, Poll, Waker},
+    };
+
+    #[test]
+    fn read_write_and_clock_faults_stay_generic_after_cancel() {
+        for error in [
+            PumpError::Closed,
+            PumpError::ReadFailed,
+            PumpError::MalformedInput,
+            PumpError::TruncatedEof,
+            PumpError::ClockFault,
+            PumpError::WriteTimeout,
+        ] {
+            assert!(
+                matches!(
+                    ProfileConnection::peer_terminal_error(Err(error), true),
+                    HarnessRuntimeError::Fault(_)
+                ),
+                "{error:?}"
+            );
+        }
+        assert!(matches!(
+            ProfileConnection::peer_terminal_error(Ok(None), false),
+            HarnessRuntimeError::Fault(_)
+        ));
+        assert!(matches!(
+            ProfileConnection::peer_terminal_error(Ok(None), true),
+            HarnessRuntimeError::PeerLost
+        ));
+    }
+
+    #[test]
+    fn peer_close_fence_rejects_other_cancel_and_retires_exact_id() {
+        let mut fence = PeerCloseFence {
+            clean_eof: true,
+            deferred_cancel_id: Some(17),
+        };
+        assert!(peer_close_fence_matches(&fence, 17));
+        assert!(!peer_close_fence_matches(&fence, 18));
+        fence.deferred_cancel_id = Some(18);
+        assert!(!peer_close_fence_matches(&fence, 17));
+        assert!(peer_close_fence_matches(&fence, 18));
+    }
+
+    struct ProbeChannel {
+        reads: Mutex<VecDeque<ProbeRead>>,
+        stall_writes: AtomicBool,
+        closed: AtomicBool,
+        write_wake: Mutex<Option<Waker>>,
+    }
+
+    enum ProbeRead {
+        Bytes(Vec<u8>),
+        Eof,
+        Failed,
+    }
+
+    impl ProbeChannel {
+        fn new(read: ProbeRead) -> Arc<Self> {
+            Self::from_reads(VecDeque::from([read]))
+        }
+
+        fn from_reads(reads: VecDeque<ProbeRead>) -> Arc<Self> {
+            Arc::new(Self {
+                reads: Mutex::new(reads),
+                stall_writes: AtomicBool::new(false),
+                closed: AtomicBool::new(false),
+                write_wake: Mutex::new(None),
+            })
+        }
+    }
+
+    impl OrderedByteChannel for ProbeChannel {
+        fn max_read_scratch_bytes(&self) -> usize {
+            0
+        }
+
+        fn read_chunk<'a>(
+            &'a self,
+            buffer: &'a mut [u8],
+        ) -> pi_agent_schema::BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+            Box::pin(poll_fn(move |_| {
+                match self.reads.lock().unwrap().pop_front() {
+                    Some(ProbeRead::Bytes(bytes)) => {
+                        buffer[..bytes.len()].copy_from_slice(&bytes);
+                        Poll::Ready(Ok(Some(bytes.len())))
+                    }
+                    Some(ProbeRead::Eof) => Poll::Ready(Ok(None)),
+                    Some(ProbeRead::Failed) => Poll::Ready(Err(ChannelError::Failed)),
+                    None if self.closed.load(Ordering::SeqCst) => {
+                        Poll::Ready(Err(ChannelError::Closed))
+                    }
+                    None => Poll::Pending,
+                }
+            }))
+        }
+
+        fn write_frame(
+            &self,
+            _: EncodedFrame,
+        ) -> pi_agent_schema::BoxFuture<'_, Result<(), ChannelError>> {
+            Box::pin(poll_fn(move |cx| {
+                if self.stall_writes.load(Ordering::SeqCst) {
+                    *self.write_wake.lock().unwrap() = Some(cx.waker().clone());
+                    Poll::Pending
+                } else {
+                    Poll::Ready(Ok(()))
+                }
+            }))
+        }
+
+        fn close(&self) {
+            self.closed.store(true, Ordering::SeqCst);
+            if let Some(waker) = self.write_wake.lock().unwrap().take() {
+                waker.wake();
+            }
+        }
+    }
+
+    struct ProbeClock(AtomicU64);
+
+    impl MonotonicClock for ProbeClock {
+        fn now_ms(&self) -> u64 {
+            self.0.load(Ordering::SeqCst)
+        }
+
+        fn sleep_until(&self, deadline: u64) -> pi_agent_schema::BoxFuture<'_, ()> {
+            Box::pin(poll_fn(move |_| {
+                (self.now_ms() >= deadline)
+                    .then_some(())
+                    .map_or(Poll::Pending, Poll::Ready)
+            }))
+        }
+    }
+
+    fn poll_once<F: std::future::Future>(future: std::pin::Pin<&mut F>) -> Poll<F::Output> {
+        let waker = Waker::noop();
+        let mut context = Context::from_waker(waker);
+        future.poll(&mut context)
+    }
+
+    fn probe_host() -> HostAuthority {
+        HostAuthority::new(
+            "peer-a".into(),
+            7,
+            1,
+            1,
+            v1_1::ProtocolLimits {
+                pre_handshake_frame_bytes: 4096,
+                frame_bytes: 4096,
+                aggregate_decoded_bytes: 8192,
+                value_depth: 32,
+                value_elements: 1024,
+                string_bytes: 4096,
+                bytes_length: 4096,
+                in_flight_requests: 8,
+                blocking_queue_bytes: 4096,
+                progress_queue_bytes: 4096,
+                passive_queue_bytes: 4096,
+                telemetry_queue_bytes: 4096,
+                nesting_depth: 8,
+                requests_per_second: 32,
+                handshake_ms: 100,
+                cancellation_grace_ms: 10,
+                max_stream_credit_bytes: 4096,
+            },
+            vec![],
+            vec![],
+        )
+        .unwrap()
+    }
+
+    fn hello_frame() -> Vec<u8> {
+        framing::encode(
+            &v1_1::Envelope {
+                frame: Some(v1_1::envelope::Frame::Hello(v1_1::Hello {
+                    protocol: Some(v1_1::VersionRange {
+                        major: 1,
+                        min_minor: 1,
+                        max_minor: 1,
+                    }),
+                    supported_profiles: vec![],
+                })),
+            },
+            NonZeroUsize::new(4096).unwrap(),
+        )
+        .unwrap()
+        .bytes
+    }
+
+    fn physical_probe_error(reads: VecDeque<ProbeRead>) -> PumpError {
+        let channel = ProbeChannel::from_reads(reads);
+        let clock = Arc::new(ProbeClock(AtomicU64::new(0)));
+        let mut pump = ConnectionPump::new(
+            probe_host(),
+            channel,
+            clock,
+            PumpConfig {
+                max_read_chunk: NonZeroUsize::new(4096).unwrap(),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        )
+        .unwrap();
+        let mut future = Box::pin(pump.next_active());
+        match poll_once(future.as_mut()) {
+            Poll::Ready(Err(error)) => error,
+            Poll::Ready(Ok(_)) => panic!("probe unexpectedly produced an active frame"),
+            Poll::Pending => panic!("probe unexpectedly remained pending"),
+        }
+    }
+
+    #[test]
+    fn physical_transport_negative_probes_remain_generic_faults() {
+        for (name, reads) in [
+            ("read", VecDeque::from([ProbeRead::Failed])),
+            ("eof", VecDeque::from([ProbeRead::Eof])),
+            (
+                "malformed",
+                VecDeque::from([ProbeRead::Bytes(vec![0x02, 0x7a, 0x00])]),
+            ),
+            (
+                "truncated",
+                VecDeque::from([ProbeRead::Bytes(vec![0x02, 0x0a]), ProbeRead::Eof]),
+            ),
+        ] {
+            let error = physical_probe_error(reads);
+            eprintln!("physical probe {name}: {error:?}");
+            assert!(
+                matches!(
+                    ProfileConnection::peer_terminal_error(Err(error), true),
+                    HarnessRuntimeError::Fault(_)
+                ),
+                "{name}: {error:?}"
+            );
+        }
+
+        let channel = ProbeChannel::new(ProbeRead::Bytes(hello_frame()));
+        channel.stall_writes.store(true, Ordering::SeqCst);
+        let clock = Arc::new(ProbeClock(AtomicU64::new(0)));
+        let mut pump = ConnectionPump::new(
+            probe_host(),
+            channel,
+            clock.clone(),
+            PumpConfig {
+                max_read_chunk: NonZeroUsize::new(4096).unwrap(),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        )
+        .unwrap();
+        let mut future = Box::pin(pump.next_active());
+        assert!(poll_once(future.as_mut()).is_pending());
+        clock.0.store(20, Ordering::SeqCst);
+        let error = match poll_once(future.as_mut()) {
+            Poll::Ready(Err(error)) => error,
+            other => panic!("physical write timeout probe: {other:?}"),
+        };
+        assert_eq!(error, PumpError::WriteTimeout);
+        assert!(matches!(
+            ProfileConnection::peer_terminal_error(Err(error), true),
+            HarnessRuntimeError::Fault(_)
+        ));
+
+        let clock_fault = match ConnectionPump::new(
+            probe_host(),
+            ProbeChannel::new(ProbeRead::Eof),
+            Arc::new(ProbeClock(AtomicU64::new(u64::MAX))),
+            PumpConfig {
+                max_read_chunk: NonZeroUsize::new(4096).unwrap(),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        ) {
+            Err(PumpError::ClockFault) => PumpError::ClockFault,
+            Ok(_) => panic!("clock overflow unexpectedly constructed a pump"),
+            Err(error) => panic!("unexpected clock probe error: {error:?}"),
+        };
+        assert_eq!(clock_fault, PumpError::ClockFault);
+        assert!(matches!(
+            ProfileConnection::peer_terminal_error(Err(clock_fault), true),
+            HarnessRuntimeError::Fault(_)
+        ));
     }
 }

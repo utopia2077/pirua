@@ -15,7 +15,7 @@ use std::{
     process::{Child, Command, Stdio},
     sync::{
         Arc, Mutex,
-        atomic::{AtomicBool, AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
         mpsc,
     },
     task::{Poll, Waker},
@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "3fed2d1036091261f47d91aab3fdb53f65dc867305c7d5bd11099dd7df359876",
+            "ae7c79933bbc474692da34c948aa54a1dd9243358229a87b5e4a528c6a056440",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "0432520b6cd6c11b41fc2ef9afeba575aecfb77ac4376a03db2f4604355dcc1b",
+            "02be004c6cc76c4fb4e636c22089a63fda27f5e07ea96b90f5d0115fed3f5419",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -137,6 +137,96 @@ pub struct Channel {
     workers: Mutex<Vec<std::thread::JoinHandle<()>>>,
     release: PathBuf,
     corrupt_lane: AtomicBool,
+    fail_cancel_write: AtomicBool,
+}
+
+/// A process-backed channel that turns the first Cancel write into a real
+/// held future and publishes clean EOF to the reader while that future is
+/// pending. It is used only by the physical cancellation boundary test.
+pub struct HeldCancelChannel {
+    inner: Arc<Channel>,
+    expected_cancel_id: AtomicU64,
+    gate_claimed: AtomicBool,
+    released: AtomicBool,
+    release_permits: AtomicUsize,
+    eof: AtomicBool,
+    eof_read: AtomicBool,
+    closes: AtomicUsize,
+    early_close: AtomicBool,
+    cancel_complete: AtomicBool,
+    pending_cancel: AtomicUsize,
+    cancel_count: AtomicUsize,
+    cancel_id: Mutex<Option<u64>>,
+    cancel_bytes: Mutex<Option<Vec<u8>>>,
+    write_wake: Mutex<Option<Waker>>,
+    read_wake: Mutex<Option<Waker>>,
+}
+
+impl HeldCancelChannel {
+    pub fn new(inner: Arc<Channel>) -> Arc<Self> {
+        Arc::new(Self {
+            inner,
+            expected_cancel_id: AtomicU64::new(0),
+            gate_claimed: AtomicBool::new(false),
+            released: AtomicBool::new(false),
+            release_permits: AtomicUsize::new(0),
+            eof: AtomicBool::new(false),
+            eof_read: AtomicBool::new(false),
+            closes: AtomicUsize::new(0),
+            early_close: AtomicBool::new(false),
+            cancel_complete: AtomicBool::new(false),
+            pending_cancel: AtomicUsize::new(0),
+            cancel_count: AtomicUsize::new(0),
+            cancel_id: Mutex::new(None),
+            cancel_bytes: Mutex::new(None),
+            write_wake: Mutex::new(None),
+            read_wake: Mutex::new(None),
+        })
+    }
+
+    pub fn set_expected_cancel_id(&self, id: u64) {
+        self.expected_cancel_id.store(id, Ordering::SeqCst);
+    }
+
+    pub fn cancel_id(&self) -> Option<u64> {
+        *self.cancel_id.lock().unwrap()
+    }
+
+    pub fn cancel_count(&self) -> usize {
+        self.cancel_count.load(Ordering::SeqCst)
+    }
+
+    pub fn cancel_bytes(&self) -> Option<Vec<u8>> {
+        self.cancel_bytes.lock().unwrap().clone()
+    }
+
+    pub fn close_count(&self) -> usize {
+        self.closes.load(Ordering::SeqCst)
+    }
+
+    pub fn early_close(&self) -> bool {
+        self.early_close.load(Ordering::SeqCst)
+    }
+
+    pub fn cancel_complete(&self) -> bool {
+        self.cancel_complete.load(Ordering::SeqCst)
+    }
+
+    pub fn reader_eof_published(&self) -> bool {
+        self.eof.load(Ordering::SeqCst)
+    }
+
+    pub fn reader_eof_read(&self) -> bool {
+        self.eof_read.load(Ordering::SeqCst)
+    }
+
+    pub fn release(&self) {
+        self.released.store(true, Ordering::SeqCst);
+        self.release_permits.fetch_add(1, Ordering::SeqCst);
+        if let Some(waker) = self.write_wake.lock().unwrap().take() {
+            waker.wake();
+        }
+    }
 }
 impl Channel {
     pub fn spawn(language: &str, core: u32, minor: u32) -> Arc<Self> {
@@ -283,7 +373,13 @@ impl Channel {
             workers: Mutex::new(workers),
             release,
             corrupt_lane: AtomicBool::new(false),
+            fail_cancel_write: AtomicBool::new(false),
         })
+    }
+    pub fn spawn_cancel_write_failure(language: &str, core: u32, minor: u32) -> Arc<Self> {
+        let peer = Self::spawn_scenario(language, core, minor, "runtime-native-host-abort-current");
+        peer.fail_cancel_write.store(true, Ordering::SeqCst);
+        peer
     }
     pub fn spawn_invalid_lane(language: &str, core: u32, minor: u32) -> Arc<Self> {
         let peer = Self::spawn_scenario(language, core, minor, "runtime-native");
@@ -585,6 +681,20 @@ impl OrderedByteChannel for Channel {
     fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
         let reply: Reply = Arc::new(Mutex::new((None, None)));
         let mut bytes = frame.bytes;
+        let cancel = {
+            let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+            matches!(
+                reader
+                    .read_one(&bytes)
+                    .ok()
+                    .and_then(|step| step.frame)
+                    .and_then(|frame| frame.envelope.frame),
+                Some(v1_1::envelope::Frame::Cancel(_))
+            )
+        };
+        if cancel && self.fail_cancel_write.load(Ordering::SeqCst) {
+            return Box::pin(std::future::ready(Err(ChannelError::Failed)));
+        }
         if self.corrupt_lane.load(Ordering::SeqCst) {
             let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
             let mut envelope = reader.read_one(&bytes).unwrap().frame.unwrap().envelope;
@@ -639,6 +749,114 @@ impl OrderedByteChannel for Channel {
             if let Some(w) = self.read_wake.lock().unwrap().take() {
                 w.wake();
             }
+        }
+    }
+}
+
+impl OrderedByteChannel for HeldCancelChannel {
+    fn max_read_scratch_bytes(&self) -> usize {
+        self.inner.max_read_scratch_bytes()
+    }
+
+    fn read_chunk<'a>(
+        &'a self,
+        buffer: &'a mut [u8],
+    ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+        let mut read = self.inner.read_chunk(buffer);
+        Box::pin(poll_fn(move |cx| {
+            if self.eof.load(Ordering::SeqCst) {
+                self.eof_read.store(true, Ordering::SeqCst);
+                return Poll::Ready(Ok(None));
+            }
+            *self.read_wake.lock().unwrap() = Some(cx.waker().clone());
+            read.as_mut().poll(cx)
+        }))
+    }
+
+    fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
+        let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+        let cancel_id = reader
+            .read_one(&frame.bytes)
+            .ok()
+            .and_then(|step| step.frame)
+            .and_then(|frame| match frame.envelope.frame {
+                Some(v1_1::envelope::Frame::Cancel(cancel)) => Some(cancel.request_id),
+                _ => None,
+            });
+        let Some(cancel_id) = cancel_id else {
+            return self.inner.write_frame(frame);
+        };
+        let expected = self.expected_cancel_id.load(Ordering::SeqCst);
+        let should_hold = expected != 0
+            && expected == cancel_id
+            && !self.gate_claimed.swap(true, Ordering::SeqCst);
+        if !should_hold {
+            return self.inner.write_frame(frame);
+        }
+        {
+            *self.cancel_id.lock().unwrap() = Some(cancel_id);
+            *self.cancel_bytes.lock().unwrap() = Some(frame.bytes.clone());
+            self.eof.store(true, Ordering::SeqCst);
+            if let Some(waker) = self.read_wake.lock().unwrap().take() {
+                waker.wake();
+            }
+        }
+        self.cancel_count.fetch_add(1, Ordering::SeqCst);
+        let mut pending_frame = Some(frame);
+        let mut delegated: Option<BoxFuture<'_, Result<(), ChannelError>>> = None;
+        let mut waiting = false;
+        Box::pin(poll_fn(move |cx| {
+            if let Some(delegate) = delegated.as_mut() {
+                return match delegate.as_mut().poll(cx) {
+                    Poll::Ready(result) => {
+                        self.cancel_complete.store(true, Ordering::SeqCst);
+                        Poll::Ready(result)
+                    }
+                    Poll::Pending => Poll::Pending,
+                };
+            }
+            if self
+                .release_permits
+                .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |permits| {
+                    if permits > 0 { Some(permits - 1) } else { None }
+                })
+                .is_err()
+            {
+                if !waiting {
+                    self.pending_cancel.fetch_add(1, Ordering::SeqCst);
+                    waiting = true;
+                }
+                *self.write_wake.lock().unwrap() = Some(cx.waker().clone());
+                return Poll::Pending;
+            }
+            if waiting {
+                self.pending_cancel.fetch_sub(1, Ordering::SeqCst);
+                waiting = false;
+            }
+            if delegated.is_none() {
+                delegated = Some(self.inner.write_frame(pending_frame.take().unwrap()));
+            }
+            match delegated.as_mut().unwrap().as_mut().poll(cx) {
+                Poll::Ready(result) => {
+                    self.cancel_complete.store(true, Ordering::SeqCst);
+                    Poll::Ready(result)
+                }
+                Poll::Pending => Poll::Pending,
+            }
+        }))
+    }
+
+    fn close(&self) {
+        if !self.released.load(Ordering::SeqCst) || self.pending_cancel.load(Ordering::SeqCst) > 0 {
+            self.early_close.store(true, Ordering::SeqCst);
+            return;
+        }
+        if self
+            .closes
+            .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
+            .is_ok()
+        {
+            self.inner.close();
         }
     }
 }

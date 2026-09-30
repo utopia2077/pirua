@@ -24,7 +24,7 @@ runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-
 runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue") or runtime_event
 runtime_queue = scenario == "runtime-native-host-queue"
 runtime_host_inbox = scenario == "runtime-native-host-inbox"
-runtime_host_abort = scenario == "runtime-native-host-abort-old"
+runtime_host_abort = scenario in ("runtime-native-host-abort-old", "runtime-native-host-abort-current")
 runtime_structural = scenario.startswith("runtime-native-structural")
 runtime_tool = scenario in ("runtime-native-tool-hook", "runtime-native-tool-hook-block")
 tool_blocked = scenario == "runtime-native-tool-hook-block"
@@ -105,7 +105,7 @@ def payload_exposure(root, wire):
                 and event["model"].get("samplingParams") == model.get("samplingParams"))
     return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-host-inbox", "runtime-native-host-abort-old", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_tool or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
+if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-host-inbox", "runtime-native-host-abort-old", "runtime-native-host-abort-current", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_tool or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -1326,6 +1326,11 @@ while not once_done:
     elif "cancel" in e:
         cr = e["cancel"]
         codec.selected_enum("CancelReason", cr["reason"])
+        if (runtime_host_abort and scenario.endswith("-current") and host_abort_replied
+                and cr["request_id"] == host_abort_parent["request_id"]):
+            host_abort_parent = None
+            once_done = True
+            continue
         state = streams.get(cr["request_id"])
         if state:
             if scenario == "cancel-progress":

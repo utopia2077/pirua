@@ -2815,6 +2815,9 @@ enum ProcessMode {
     HostQueue,
     HostInbox,
     HostAbortOld,
+    HostAbortCurrent,
+    HostAbortCurrentPhysicalHeld,
+    HostAbortCurrentWriteFailure,
     Structural,
     StructuralCompactionDecline,
     StructuralNavigationDecline,
@@ -2888,7 +2891,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             connection::ProfileConnection, resources::ResourceCatalog,
             telemetry::ProjectedTelemetry,
         },
-        transport::PumpConfig,
+        transport::{OrderedByteChannel, PumpConfig},
     };
     use runtime_extension_profiles_support::process::{Channel, RealClock, drive};
     use std::num::{NonZeroU64, NonZeroUsize};
@@ -3025,8 +3028,24 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-queue")
     } else if mode == ProcessMode::HostInbox {
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-inbox")
-    } else if mode == ProcessMode::HostAbortOld {
-        Channel::spawn_scenario(language, core, minor, "runtime-native-host-abort-old")
+    } else if matches!(
+        mode,
+        ProcessMode::HostAbortOld
+            | ProcessMode::HostAbortCurrent
+            | ProcessMode::HostAbortCurrentPhysicalHeld
+    ) {
+        Channel::spawn_scenario(
+            language,
+            core,
+            minor,
+            if mode == ProcessMode::HostAbortOld {
+                "runtime-native-host-abort-old"
+            } else {
+                "runtime-native-host-abort-current"
+            },
+        )
+    } else if mode == ProcessMode::HostAbortCurrentWriteFailure {
+        Channel::spawn_cancel_write_failure(language, core, minor)
     } else if resource_mode {
         let scenario = match mode {
             ProcessMode::HostResource => "runtime-native-host-resource-get",
@@ -3109,6 +3128,19 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     if event_mode {
         reservation.passive_bytes = 128;
     }
+    let held_channel = (mode == ProcessMode::HostAbortCurrentPhysicalHeld)
+        .then(|| runtime_extension_profiles_support::process::HeldCancelChannel::new(peer.clone()));
+    let channel: Arc<dyn pi_harness_runtime::extensions::transport::OrderedByteChannel> =
+        held_channel
+            .as_ref()
+            .map(|held| {
+                held.clone()
+                    as Arc<dyn pi_harness_runtime::extensions::transport::OrderedByteChannel>
+            })
+            .unwrap_or_else(|| {
+                peer.clone()
+                    as Arc<dyn pi_harness_runtime::extensions::transport::OrderedByteChannel>
+            });
     let connection = if matches!(
         mode,
         ProcessMode::Changed
@@ -3123,6 +3155,9 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::HostQueue
             | ProcessMode::HostInbox
             | ProcessMode::HostAbortOld
+            | ProcessMode::HostAbortCurrent
+            | ProcessMode::HostAbortCurrentPhysicalHeld
+            | ProcessMode::HostAbortCurrentWriteFailure
             | ProcessMode::Structural
             | ProcessMode::StructuralCompactionDecline
             | ProcessMode::StructuralNavigationDecline
@@ -3136,7 +3171,7 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
     ) {
         drive(
             setup,
-            harness.connect_profile_service(host, peer.clone(), clock, config, reservation, 20000),
+            harness.connect_profile_service(host, channel, clock, config, reservation, 20000),
         )
     } else {
         drive(
@@ -3306,7 +3341,13 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         )
         .unwrap();
         drive(setup, harness.set_model(remote)).unwrap();
-        if mode == ProcessMode::HostAbortOld {
+        if matches!(
+            mode,
+            ProcessMode::HostAbortOld
+                | ProcessMode::HostAbortCurrent
+                | ProcessMode::HostAbortCurrentPhysicalHeld
+                | ProcessMode::HostAbortCurrentWriteFailure
+        ) {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
             use pi_extension_protocol::wire::v1_1;
             use std::time::{Duration, Instant};
@@ -3399,6 +3440,9 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             );
             let payload = dto::OperationAbortRequest::decode(action.payload.as_slice()).unwrap();
             assert_eq!(payload.lane, "main");
+            if let Some(held) = held_channel.as_ref() {
+                held.set_expected_cancel_id(parent.request_id);
+            }
             if mode == ProcessMode::HostAbortOld && payload.operation_id == parent_key.operation_id
             {
                 let deadline = Instant::now() + Duration::from_secs(4);
@@ -3426,7 +3470,14 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 );
                 panic!("old-ID no-write witness rejects current-ID abort");
             }
-            assert_eq!(payload.operation_id, old_id.as_str());
+            assert_eq!(
+                payload.operation_id,
+                if mode == ProcessMode::HostAbortOld {
+                    old_id.as_str()
+                } else {
+                    parent_key.operation_id.as_str()
+                }
+            );
             if mode == ProcessMode::HostAbortOld {
                 let deadline = Instant::now() + Duration::from_secs(4);
                 loop {
@@ -3469,6 +3520,203 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 setup.pump.drive(harness.close()).unwrap();
                 return;
             }
+            let mut cancel_marker_seqs = Vec::new();
+            let mut cancel_requested_at = None;
+            let write_fault_mode = mode == ProcessMode::HostAbortCurrentWriteFailure;
+            let mut held_cancel_released = false;
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let call = loop {
+                setup.pump.tick();
+                if let Some(held) = held_channel.as_ref()
+                    && !held_cancel_released
+                    && held.cancel_id().is_some()
+                {
+                    let bytes = held.cancel_bytes().expect("captured Cancel bytes");
+                    assert!(!bytes.is_empty(), "physical Cancel frame bytes");
+                    assert_eq!(held.cancel_id(), Some(parent.request_id));
+                    assert!(
+                        held.reader_eof_published(),
+                        "reader clean EOF is delivered while Cancel write is held"
+                    );
+                    for _ in 0..50 {
+                        setup.pump.tick();
+                        if held.reader_eof_read() {
+                            break;
+                        }
+                    }
+                    assert!(held.reader_eof_read(), "reader consumed clean EOF");
+                    assert_eq!(
+                        held.close_count(),
+                        0,
+                        "reader clean EOF cannot close a held physical Cancel"
+                    );
+                    assert!(
+                        connection.current(),
+                        "active owner binding survives reader EOF during held Cancel"
+                    );
+                    held.release();
+                    held_cancel_released = true;
+                }
+                let state = setup.pump.drive(store.snapshot()).unwrap();
+                for register in &state.registers {
+                    if let Register::OperationState { key, value, seq } = register
+                        && key == &parent_key.operation_id
+                        && let OperationState::Run(run) = value.as_ref()
+                        && let Control::CancelRequested(marker) = &run.control
+                    {
+                        assert!(marker.drained_steer.is_empty());
+                        assert!(marker.drained_follow_up.is_empty());
+                        assert!(run.inbox.steer.is_empty());
+                        assert!(run.inbox.follow_up.is_empty());
+                        match cancel_requested_at {
+                            Some(time) => assert_eq!(
+                                marker.requested_at.get(),
+                                time,
+                                "one stable abort request timestamp through reconciliation"
+                            ),
+                            None => cancel_requested_at = Some(marker.requested_at.get()),
+                        }
+                        if !cancel_marker_seqs.contains(&seq.get()) {
+                            cancel_marker_seqs.push(seq.get());
+                        }
+                    }
+                }
+                if let std::task::Poll::Ready(result) = runtime_r1_r4_support::poll(future.as_mut())
+                {
+                    break result;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite exact-current abort: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            if mode == ProcessMode::HostAbortCurrentPhysicalHeld {
+                assert!(
+                    held_cancel_released,
+                    "held physical Cancel write was exercised and released"
+                );
+                let close_deadline = Instant::now() + Duration::from_secs(4);
+                while held_channel.as_ref().unwrap().close_count() == 0 {
+                    setup.pump.tick();
+                    if Instant::now() >= close_deadline {
+                        break;
+                    }
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                eprintln!(
+                    "PHYSICAL_HELD cancel_id={:?} close_count={} call={call:?}",
+                    held_channel.as_ref().unwrap().cancel_id(),
+                    held_channel.as_ref().unwrap().close_count(),
+                );
+                assert_eq!(
+                    held_channel.as_ref().unwrap().cancel_count(),
+                    1,
+                    "exact admitted parent Cancel is the sole held physical write"
+                );
+                assert!(
+                    !held_channel.as_ref().unwrap().early_close(),
+                    "final close is deferred until physical Cancel publication"
+                );
+                assert!(
+                    held_channel.as_ref().unwrap().close_count() == 1,
+                    "exactly one final close occurs after physical Cancel publication"
+                );
+                assert!(
+                    held_channel.as_ref().unwrap().cancel_complete(),
+                    "physical Cancel write completed before acknowledgement publication"
+                );
+            }
+            if write_fault_mode {
+                peer.close();
+                peer.finish(false);
+                connection.close();
+                let close = setup.pump.drive(harness.close());
+                assert!(
+                    matches!(close, Err(HarnessRuntimeError::Fault(_))),
+                    "write fault mode result: {call:?}, close: {close:?}"
+                );
+                return;
+            }
+            let after = setup.pump.drive(store.snapshot()).unwrap();
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let order = loop {
+                setup.pump.tick();
+                let order = peer.action_control_order(action.request_id, parent.request_id);
+                if order.len() >= 2 {
+                    break order;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite child Response/parent Cancel order: {order:?}; {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            eprintln!(
+                "EXACT_CURRENT_ABORT language={language} core={core} minor={minor} old={old_id} current={} marker_seqs={cancel_marker_seqs:?} order={order:?} call={call:?} response_count={} before_seq={} after_seq={} peer={}",
+                parent_key.operation_id,
+                peer.response_frames().len(),
+                before.next_seq.unwrap().get(),
+                after.next_seq.unwrap().get(),
+                peer.stderr_text()
+            );
+            assert!(
+                cancel_requested_at.is_some(),
+                "durable CancelRequested observed"
+            );
+            assert_eq!(
+                order.len(),
+                2,
+                "one child Response precedes one parent Cancel"
+            );
+            assert!(order[0].starts_with("action-response:"));
+            assert!(order[1].starts_with("parent-cancel:"));
+            let response = &peer.response_frames()[0];
+            assert_eq!(response.request_id, action.request_id);
+            let Some(v1_1::response::Terminal::Result(body)) = &response.terminal else {
+                panic!("exact-current typed abort Result: {:?}", response.terminal)
+            };
+            let result = dto::OperationAbortResult::decode(body.as_slice()).unwrap();
+            assert!(result.aborted);
+            assert_eq!(result.encode_to_vec(), *body);
+            assert_ne!(
+                after, before,
+                "exact-current abort must write native cancellation state"
+            );
+            assert!(
+                matches!(call, Ok(Ok(ref completion)) if matches!(completion.outcome,
+                RunOutcome::AbortedWithAssistant(_) | RunOutcome::AbortedWithoutAssistant(_)))
+            );
+            assert_eq!(
+                after
+                    .registers
+                    .iter()
+                    .filter(|r| matches!(r,
+                Register::LaneLastResult { key, value: LaneLastResult::RunAborted(last), .. }
+                    if key == "main" && last.operation_id.as_str() == parent_key.operation_id))
+                    .count(),
+                1
+            );
+            if matches!(
+                mode,
+                ProcessMode::HostAbortCurrentWriteFailure
+                    | ProcessMode::HostAbortCurrentPhysicalHeld
+            ) {
+                peer.close();
+                peer.finish(false);
+            } else {
+                peer.finish(true);
+            }
+            connection.close();
+            let close = setup.pump.drive(harness.close());
+            if matches!(mode, ProcessMode::HostAbortCurrentWriteFailure) {
+                assert!(matches!(close, Err(HarnessRuntimeError::Fault(_))));
+            } else {
+                close.unwrap();
+            }
+            return;
         }
         let before_payload = (mode == ProcessMode::BeforePayload)
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
@@ -7115,6 +7363,75 @@ fn runtime_native_host_abort_old_sqlite_all_pairs() {
             }
         }
     }
+}
+#[test]
+fn runtime_native_host_abort_current_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostAbortCurrent,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_abort_current_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostAbortCurrent,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+
+#[test]
+fn runtime_native_host_abort_current_physical_held_write_close_fence() {
+    let setup = Setup::new();
+    accepted_process_consumer(
+        &setup,
+        setup.session.clone(),
+        setup.store.clone(),
+        0,
+        0,
+        "typescript",
+        ProcessMode::HostAbortCurrentPhysicalHeld,
+    );
+}
+
+#[test]
+fn runtime_native_host_abort_current_write_failure_generic_fault() {
+    let setup = Setup::new();
+    accepted_process_consumer(
+        &setup,
+        setup.session.clone(),
+        setup.store.clone(),
+        0,
+        0,
+        "typescript",
+        ProcessMode::HostAbortCurrentWriteFailure,
+    );
 }
 #[test]
 fn runtime_native_event_sink_memory_all_pairs() {
