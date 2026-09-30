@@ -74,6 +74,34 @@ pub struct CheckedEchoFrame {
     pub value: Option<AgentToolResult>,
 }
 
+/// A receive caller's measured body. The length is captured before indexed
+/// scanning so credit and queue reservations cannot be based on metadata or a
+/// later normalized representation.
+pub(crate) struct StagedIndexedBody<'a> {
+    bytes: &'a [u8],
+    body_len: usize,
+}
+
+impl<'a> StagedIndexedBody<'a> {
+    pub(crate) fn new(bytes: &'a [u8]) -> Result<Self, DomainHostError> {
+        if bytes.is_empty() {
+            return Err(DomainHostError::Binding);
+        }
+        Ok(Self {
+            bytes,
+            body_len: bytes.len(),
+        })
+    }
+
+    pub(crate) fn bytes(&self) -> &'a [u8] {
+        self.bytes
+    }
+
+    pub(crate) fn body_len(&self) -> usize {
+        self.body_len
+    }
+}
+
 /// Immutable per-invocation mapping from the active host grant to the Rust
 /// `AgentToolResult`/`AgentToolUpdate` shape.
 pub struct EchoDomainBinding {

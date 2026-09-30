@@ -25,11 +25,13 @@ use pi_extension_protocol::wire::{v1_0, v1_1};
 
 use crate::extensions::domain::{DomainReceiveError, EchoDomainBinding};
 use crate::extensions::key::encode_tool_effect_key;
+use crate::extensions::receive_host8192::StagedReceive8192;
 use crate::extensions::transport::{
-    ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig,
+    ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, RetainedOrderedByteChannel,
 };
 use crate::extensions::value::encode_arguments;
 use crate::scheduler::Supervisor;
+use crate::tools::{CapturedArguments, OriginFence};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DriverError {
@@ -358,6 +360,39 @@ struct LiveSlot {
     cancel_deadline_ms: Option<u64>,
 }
 
+#[derive(Clone)]
+struct CapturedCaller8192 {
+    binding: Option<InvocationBinding>,
+    key: pi_agent_schema::EffectKey,
+    arguments: CapturedArguments,
+    source_call_id: String,
+    epoch: u64,
+    origin: Arc<dyn OriginFence>,
+}
+
+impl CapturedCaller8192 {
+    fn matches<C>(
+        &self,
+        route: &Route,
+        plan: &ToolEffectPlan<C>,
+        captured: &CapturedArguments,
+        source_call_id: &str,
+        epoch: u64,
+        origin: &Arc<dyn OriginFence>,
+    ) -> bool {
+        self.key == plan.key
+            && self.arguments.key == plan.args_key
+            && self.arguments.key == captured.key
+            && self.arguments.value == captured.value
+            && self.arguments.seq == captured.seq
+            && self.source_call_id == source_call_id
+            && self.epoch == epoch
+            && self.epoch != 0
+            && Arc::ptr_eq(&self.origin, origin)
+            && route.generation != 0
+    }
+}
+
 struct OwnerState {
     active: Option<Arc<Route>>,
     live: Option<LiveSlot>,
@@ -555,7 +590,8 @@ impl SingleToolOwner {
         clock: Arc<dyn MonotonicClock>,
         config: PumpConfig,
     ) -> Result<ReadyToolRoute, DriverError> {
-        self.connect_inner(host, channel, clock, config, None).await
+        self.connect_inner(host, channel, None, clock, config, None)
+            .await
     }
     pub(crate) async fn connect_profiles(
         &self,
@@ -565,13 +601,33 @@ impl SingleToolOwner {
         config: PumpConfig,
         profiles: Arc<dyn ToolProfileIngress>,
     ) -> Result<ReadyToolRoute, DriverError> {
-        self.connect_inner(host, channel, clock, config, Some(profiles))
+        self.connect_inner(host, channel, None, clock, config, Some(profiles))
             .await
+    }
+    pub(crate) async fn connect_profiles_retained(
+        &self,
+        host: HostAuthority,
+        channel: Arc<dyn OrderedByteChannel>,
+        retained_channel: Arc<dyn RetainedOrderedByteChannel>,
+        clock: Arc<dyn MonotonicClock>,
+        config: PumpConfig,
+        profiles: Arc<dyn ToolProfileIngress>,
+    ) -> Result<ReadyToolRoute, DriverError> {
+        self.connect_inner(
+            host,
+            channel,
+            Some(retained_channel),
+            clock,
+            config,
+            Some(profiles),
+        )
+        .await
     }
     async fn connect_inner(
         &self,
         host: HostAuthority,
         channel: Arc<dyn OrderedByteChannel>,
+        retained_channel: Option<Arc<dyn RetainedOrderedByteChannel>>,
         clock: Arc<dyn MonotonicClock>,
         config: PumpConfig,
         profiles: Option<Arc<dyn ToolProfileIngress>>,
@@ -640,12 +696,20 @@ impl SingleToolOwner {
         {
             return Err(DriverError::InvalidHost);
         }
+        let staged_receive = retained_channel
+            .as_ref()
+            .map(|channel| StagedReceive8192::stage(channel.clone(), generation))
+            .transpose()
+            .map_err(|_| DriverError::InvalidHost)?;
         let route = Arc::new(Route {
             generation,
             grant,
             connection: pi_extension_protocol::profile_live::ConnectionIdentity::new(),
             profiles,
             channel,
+            retained_channel,
+            staged_receive: Mutex::new(staged_receive.map(Arc::new)),
+            caller: Mutex::new(None),
             clock,
             supervisor: Supervisor::new(self.0.host.clone()),
             status: std::sync::atomic::AtomicU8::new(0),
@@ -657,6 +721,8 @@ impl SingleToolOwner {
             timeout_ms: self.0.limits.write_timeout_ms.get(),
             timing: OnceLock::new(),
             writes: Mutex::new(WriteState::default()),
+            #[cfg(test)]
+            force_rollback_failure: std::sync::atomic::AtomicBool::new(false),
         });
         let prior = {
             let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
@@ -795,7 +861,9 @@ impl SingleToolOwner {
         {
             return Err(DriverError::WrongBinding);
         }
+        let route = slot.route.clone();
         state.live = None;
+        route.clear_caller(binding);
         Ok(())
     }
 
@@ -806,7 +874,9 @@ impl SingleToolOwner {
         if !slot.invocation.binding().same_live_identity(binding) || !slot.local_fault {
             return Err(DriverError::WrongBinding);
         }
+        let route = slot.route.clone();
         state.live = None;
+        route.clear_caller(binding);
         Ok(())
     }
 
@@ -825,7 +895,9 @@ impl SingleToolOwner {
             slot.route
                 .mark_retired_cancel_if_pending(binding.request_id());
         }
+        let route = slot.route.clone();
         state.live = None;
+        route.clear_caller(binding);
         Ok(())
     }
 
@@ -848,6 +920,7 @@ impl SingleToolOwner {
             let close = route.prepare_fenced_route(binding.request_id());
             let completion = slot.completion.clone();
             state.live = None;
+            route.clear_caller(binding);
             if !matches!(close, FenceRouteDecision::PreserveDenial(_))
                 && state
                     .active
@@ -902,6 +975,7 @@ impl SingleToolOwner {
                 let close = route.prepare_fenced_route(binding.request_id());
                 state.last_local_abort = Some(binding.clone());
                 state.live = None;
+                route.clear_caller(binding);
                 if !matches!(close, FenceRouteDecision::PreserveDenial(_))
                     && state
                         .active
@@ -990,6 +1064,8 @@ impl SingleToolOwner {
                     } else {
                         slot.invocation.peer_lost();
                     }
+                    let binding = slot.invocation.binding().clone();
+                    slot.route.clear_caller(&binding);
                     Some(slot.completion.clone())
                 } else {
                     None
@@ -1029,6 +1105,7 @@ impl SingleToolOwner {
             let completion = slot.completion.clone();
             let decision = route.prepare_fenced_route(binding.request_id());
             state.live = None;
+            route.clear_caller(binding);
             if !matches!(decision, FenceRouteDecision::PreserveDenial(_))
                 && state
                     .active
@@ -1065,6 +1142,8 @@ impl SingleToolOwner {
                     // one owner→queue admission order. An admitted Q remains
                     // irrevocable through its original write deadline.
                     let decision = route.prepare_fenced_route(binding.request_id());
+                    let binding = slot.invocation.binding().clone();
+                    route.clear_caller(&binding);
                     Some((slot.completion.clone(), decision))
                 } else {
                     None
@@ -1324,6 +1403,38 @@ impl ReadyToolRoute {
             && self.route.status() == RouteStatus::Active
     }
 
+    #[cfg(test)]
+    fn install_staged_receive_for_test(&self, channel: Arc<dyn RetainedOrderedByteChannel>) {
+        let staged = StagedReceive8192::stage(channel, self.route.generation)
+            .expect("staged receive fixture");
+        let mut slot = self
+            .route
+            .staged_receive
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        *slot = Some(Arc::new(staged));
+    }
+
+    #[cfg(test)]
+    fn force_staged_bind_failure_for_test(&self) {
+        let staged = self
+            .route
+            .staged_receive
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        staged
+            .as_ref()
+            .expect("staged receive fixture")
+            .force_next_bind_failure();
+    }
+
+    #[cfg(test)]
+    fn force_rollback_failure_for_test(&self) {
+        self.route
+            .force_rollback_failure
+            .store(true, Ordering::Release);
+    }
+
     pub(crate) fn has_echo_domain_projections(&self) -> bool {
         EchoDomainBinding::check_ready_echo_projections(self.grant()).is_ok()
     }
@@ -1362,7 +1473,7 @@ impl ReadyToolRoute {
         source_call_id: &str,
         timing: CallTiming,
     ) -> Result<CallHandle, DriverError> {
-        self.prepare_planned_inner(plan, saved, source_call_id, StartTiming::Raw(timing))?
+        self.prepare_planned_inner(plan, saved, source_call_id, None, StartTiming::Raw(timing))?
             .activate()
     }
 
@@ -1375,7 +1486,7 @@ impl ReadyToolRoute {
         source_call_id: &str,
         timing: CallTiming,
     ) -> Result<PreparedCall, DriverError> {
-        self.prepare_planned_inner(plan, saved, source_call_id, StartTiming::Raw(timing))
+        self.prepare_planned_inner(plan, saved, source_call_id, None, StartTiming::Raw(timing))
     }
 
     /// Claim using the policy bound at registration and invocation-scoped
@@ -1413,9 +1524,47 @@ impl ReadyToolRoute {
             plan,
             saved,
             source_call_id,
+            None,
             StartTiming::Absolute {
                 requested_deadline_ms,
                 parent_deadline_ms,
+            },
+        )
+    }
+
+    /// Commit a caller-captured echo claim. The captured key, arguments,
+    /// sequence, source ID, route epoch, and origin remain one tuple under the
+    /// same owner lock as the ordinary Request claim. Production credit stays
+    /// at zero until native admission is separately accepted.
+    pub(crate) fn prepare_planned_with_captured_bounds<C>(
+        &self,
+        plan: &ToolEffectPlan<C>,
+        captured: &CapturedArguments,
+        source_call_id: &str,
+        epoch: u64,
+        origin: Option<&Arc<dyn OriginFence>>,
+    ) -> Result<PreparedCall, DriverError> {
+        let caller = if self.route.retained_channel.is_some() || origin.is_some() {
+            let origin = origin.ok_or(DriverError::WrongBinding)?;
+            Some(CapturedCaller8192 {
+                binding: None,
+                key: plan.key.clone(),
+                arguments: captured.clone(),
+                source_call_id: source_call_id.to_owned(),
+                epoch,
+                origin: origin.clone(),
+            })
+        } else {
+            None
+        };
+        self.prepare_planned_inner(
+            plan,
+            &captured.value,
+            source_call_id,
+            caller,
+            StartTiming::Absolute {
+                requested_deadline_ms: None,
+                parent_deadline_ms: None,
             },
         )
     }
@@ -1425,6 +1574,7 @@ impl ReadyToolRoute {
         plan: &ToolEffectPlan<C>,
         saved: &JsonObject,
         source_call_id: &str,
+        mut caller: Option<CapturedCaller8192>,
         timing: StartTiming,
     ) -> Result<PreparedCall, DriverError> {
         let key = encode_tool_effect_key(plan).map_err(|_| DriverError::InvalidHost)?;
@@ -1444,6 +1594,35 @@ impl ReadyToolRoute {
         }
         if self.route.frame_cap > self.owner.0.limits.receipt_bytes.get() {
             return Err(DriverError::Overloaded);
+        }
+        if let Some(caller) = caller.as_ref() {
+            if caller.key != plan.key
+                || caller.arguments.key != plan.args_key
+                || caller.arguments.value != *saved
+                || caller.source_call_id != source_call_id
+                || caller.epoch == 0
+            {
+                return Err(DriverError::WrongBinding);
+            }
+            if self
+                .route
+                .caller
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+                .is_some_and(|existing| {
+                    !existing.matches(
+                        &self.route,
+                        plan,
+                        &caller.arguments,
+                        source_call_id,
+                        caller.epoch,
+                        &caller.origin,
+                    )
+                })
+            {
+                return Err(DriverError::WrongBinding);
+            }
         }
         // One sample under the owner admission lock sets every remaining bound
         // and the invocation's own deadline. No preflight duration can extend
@@ -1502,6 +1681,30 @@ impl ReadyToolRoute {
             .checked_add(self.route.timeout_ms)
             .ok_or(DriverError::Deadline)?;
         let completion = Arc::new(Completion::new());
+        let staged_caller =
+            caller.as_ref().map(
+                |caller| crate::extensions::receive_host8192::CallerIdentity8192 {
+                    arguments: caller.arguments.clone(),
+                    source_call_id: caller.source_call_id.clone(),
+                    epoch: caller.epoch,
+                    origin: caller.origin.clone(),
+                },
+            );
+        let staged_receive = self
+            .route
+            .staged_receive
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        if let (Some(staged_caller), Some(staged)) = (staged_caller.as_ref(), staged_receive) {
+            staged
+                .validate_caller(&binding, staged_caller)
+                .map_err(|_| DriverError::WrongBinding)?;
+        }
+        if let Some(caller) = caller.as_mut() {
+            caller.binding = Some(binding.clone());
+        }
+        let mut previous_route_caller = None;
         // This is the claim commit: queue reservation, live slot and ID move
         // together under owner then queue. A peer denial that reserved first
         // has already moved this route out of Active.
@@ -1538,7 +1741,76 @@ impl ReadyToolRoute {
                 local_fault: false,
                 cancel_deadline_ms: None,
             });
+            if let Some(caller) = caller {
+                previous_route_caller = self
+                    .route
+                    .caller
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .replace(caller);
+            }
             self.route.next_id.store(id + 1, Ordering::SeqCst);
+        }
+        let staged_bind_failed = if let Some(staged_caller) = staged_caller.as_ref() {
+            let staged_receive = self
+                .route
+                .staged_receive
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            staged_receive.as_ref().is_some_and(|staged| {
+                staged
+                    .bind_caller(binding.clone(), staged_caller.clone())
+                    .is_err()
+            })
+        } else {
+            false
+        };
+        if staged_bind_failed {
+            let rollback_succeeded = {
+                let mut writes = self.route.writes.lock().unwrap_or_else(|p| p.into_inner());
+                #[cfg(test)]
+                if self
+                    .route
+                    .force_rollback_failure
+                    .swap(false, Ordering::AcqRel)
+                {
+                    false
+                } else {
+                    writes.rollback_request(id)
+                }
+                #[cfg(not(test))]
+                {
+                    writes.rollback_request(id)
+                }
+            };
+            state.live = None;
+            self.route.next_id.store(id, Ordering::SeqCst);
+            if previous_route_caller.is_some() {
+                *self.route.caller.lock().unwrap_or_else(|p| p.into_inner()) =
+                    previous_route_caller;
+            } else {
+                self.route
+                    .caller
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .take();
+            }
+            if rollback_succeeded {
+                return Err(DriverError::WrongBinding);
+            }
+            if state
+                .active
+                .as_ref()
+                .is_some_and(|active| Arc::ptr_eq(active, &self.route))
+            {
+                // The owner state is already held by this function; this
+                // branch is unreachable after a successful tail rollback.
+                // Route closure below must not leave a closed route published.
+                state.active = None;
+            }
+            drop(state);
+            self.route.close();
+            return Err(DriverError::HostFault);
         }
         Ok(PreparedCall {
             owner: self.owner.clone(),
@@ -1583,6 +1855,9 @@ struct Route {
     connection: pi_extension_protocol::profile_live::ConnectionIdentity,
     profiles: Option<Arc<dyn ToolProfileIngress>>,
     channel: Arc<dyn OrderedByteChannel>,
+    retained_channel: Option<Arc<dyn RetainedOrderedByteChannel>>,
+    staged_receive: Mutex<Option<Arc<StagedReceive8192>>>,
+    caller: Mutex<Option<CapturedCaller8192>>,
     clock: Arc<dyn MonotonicClock>,
     supervisor: Supervisor,
     status: std::sync::atomic::AtomicU8,
@@ -1594,6 +1869,8 @@ struct Route {
     timeout_ms: u64,
     timing: OnceLock<EchoRouteTiming>,
     writes: Mutex<WriteState>,
+    #[cfg(test)]
+    force_rollback_failure: std::sync::atomic::AtomicBool,
 }
 
 impl Route {
@@ -1609,11 +1886,62 @@ impl Route {
             .status
             .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst);
     }
+    fn clear_caller(&self, binding: &InvocationBinding) {
+        let route_matches = self
+            .caller
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .as_ref()
+            .is_some_and(|caller| {
+                caller
+                    .binding
+                    .as_ref()
+                    .is_some_and(|existing| existing.same_live_identity(binding))
+            });
+        if route_matches {
+            self.caller.lock().unwrap_or_else(|p| p.into_inner()).take();
+        }
+        let staged_receive = self
+            .staged_receive
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        if let Some(staged_receive) = staged_receive {
+            staged_receive.clear_caller(binding);
+        }
+    }
+
+    fn clear_any_caller(&self) {
+        self.caller.lock().unwrap_or_else(|p| p.into_inner()).take();
+        let staged_receive = self
+            .staged_receive
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        if let Some(staged_receive) = staged_receive {
+            staged_receive.clear_any_caller();
+        }
+    }
+    fn finish_staged_receive_close(&self) {
+        let staged_receive = self
+            .staged_receive
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone();
+        if let Some(staged_receive) = staged_receive {
+            let _ = staged_receive.run_preopened();
+            staged_receive.finish_close();
+        }
+    }
     fn close(&self) {
         if self.status.swap(2, Ordering::SeqCst) == 2 {
+            self.clear_any_caller();
+            self.finish_staged_receive_close();
             return;
         }
+        self.clear_any_caller();
         self.channel.close();
+        self.finish_staged_receive_close();
         if let Some(profiles) = &self.profiles {
             profiles.close();
         }
@@ -1655,7 +1983,9 @@ impl Route {
             writes.retired_cancel_id = None;
             wake
         };
+        self.clear_any_caller();
         self.channel.close();
+        self.finish_staged_receive_close();
         if let Some(waker) = wake {
             waker.wake();
         }
@@ -1693,7 +2023,9 @@ impl Route {
     }
 
     fn finish_prepared_close(&self, waker: Option<Waker>) {
+        self.clear_any_caller();
         self.channel.close();
+        self.finish_staged_receive_close();
         if let Some(waker) = waker {
             waker.wake();
         }
@@ -1708,7 +2040,10 @@ impl Route {
                 }
             }
             FenceRouteDecision::Close(waker) => self.finish_prepared_close(waker),
-            FenceRouteDecision::AlreadyClosed => {}
+            FenceRouteDecision::AlreadyClosed => {
+                self.clear_any_caller();
+                self.finish_staged_receive_close();
+            }
         }
     }
     fn enqueue(
@@ -1937,6 +2272,22 @@ impl WriteState {
             .filter(|next| *next <= cap)
             .ok_or(DriverError::Overloaded)?;
         Ok(())
+    }
+
+    fn rollback_request(&mut self, request_id: u64) -> bool {
+        let Some(job) = self.jobs.back() else {
+            return false;
+        };
+        if !matches!(job.kind, WriteKind::Request(id) if id == request_id) {
+            return false;
+        }
+        let bytes = job.frame.bytes.len();
+        if bytes > self.normal_bytes {
+            return false;
+        }
+        self.jobs.pop_back();
+        self.normal_bytes -= bytes;
+        true
     }
 }
 
@@ -2599,6 +2950,401 @@ fn denial_frame(
 #[cfg(test)]
 mod local_cancel_queue_tests {
     use super::*;
+    use std::collections::VecDeque;
+    use std::future::{Future, poll_fn};
+    use std::num::{NonZeroU64, NonZeroUsize};
+    use std::sync::atomic::{AtomicBool, AtomicU64};
+    use std::task::{Context, Poll};
+
+    use crate::extensions::transport::ChannelError;
+    use pi_ai_core::{BoxFuture, SafeUnsigned, SpawnError, TaskSpawner};
+    use pi_extension_protocol::activation::{
+        AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolReplay, ToolSchemaInputs,
+    };
+    use pi_extension_protocol::jcs::Limits as JsonLimits;
+    use pi_extension_protocol::wire::framing::EncodedFrame;
+    use pi_extension_protocol::wire::v1_1;
+    use serde_json::Value;
+
+    const CATALOG: &str =
+        include_str!("../../../pi-extension-protocol/schema/fixtures/host-catalog.json");
+    const VECTORS: &str =
+        include_str!("../../../pi-extension-protocol/schema/fixtures/activation-vectors.json");
+    const RAW: &str =
+        include_str!("../../../pi-extension-protocol/schema/fixtures/raw-vectors.json");
+
+    #[derive(Default)]
+    struct LifecycleSpawner {
+        tasks: Mutex<Vec<BoxFuture<'static, ()>>>,
+    }
+
+    impl LifecycleSpawner {
+        fn drive<F: Future>(&self, future: F) -> F::Output {
+            let mut future = Box::pin(future);
+            for _ in 0..128 {
+                match future
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                {
+                    Poll::Ready(value) => return value,
+                    Poll::Pending => {}
+                }
+            }
+            panic!("lifecycle fixture future did not complete");
+        }
+
+        fn tick(&self) {
+            let tasks = std::mem::take(&mut *self.tasks.lock().unwrap());
+            for mut task in tasks {
+                if task
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending()
+                {
+                    self.tasks.lock().unwrap().push(task);
+                }
+            }
+        }
+    }
+
+    impl TaskSpawner for LifecycleSpawner {
+        fn spawn(&self, task: BoxFuture<'static, ()>) -> Result<(), SpawnError> {
+            self.tasks.lock().unwrap().push(task);
+            Ok(())
+        }
+    }
+
+    struct LifecycleClock {
+        now: AtomicU64,
+    }
+
+    impl LifecycleClock {
+        fn new(now: u64) -> Self {
+            Self {
+                now: AtomicU64::new(now),
+            }
+        }
+        fn set(&self, now: u64) {
+            self.now.store(now, Ordering::SeqCst);
+        }
+    }
+
+    impl MonotonicClock for LifecycleClock {
+        fn now_ms(&self) -> u64 {
+            self.now.load(Ordering::SeqCst)
+        }
+
+        fn sleep_until(&self, deadline: u64) -> BoxFuture<'_, ()> {
+            Box::pin(poll_fn(move |_| {
+                if self.now_ms() >= deadline {
+                    Poll::Ready(())
+                } else {
+                    Poll::Pending
+                }
+            }))
+        }
+    }
+
+    struct LifecycleChannel {
+        reads: Mutex<VecDeque<Option<Vec<u8>>>>,
+        writes: Mutex<Vec<Vec<u8>>>,
+        closed: AtomicBool,
+    }
+
+    impl LifecycleChannel {
+        fn new() -> Self {
+            Self {
+                reads: Mutex::new(VecDeque::new()),
+                writes: Mutex::new(Vec::new()),
+                closed: AtomicBool::new(false),
+            }
+        }
+
+        fn push(&self, bytes: Vec<u8>) {
+            self.reads.lock().unwrap().push_back(Some(bytes));
+        }
+    }
+
+    impl OrderedByteChannel for LifecycleChannel {
+        fn max_read_scratch_bytes(&self) -> usize {
+            0
+        }
+
+        fn read_chunk<'a>(
+            &'a self,
+            buffer: &'a mut [u8],
+        ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+            Box::pin(poll_fn(move |_| {
+                if self.closed.load(Ordering::SeqCst) {
+                    return Poll::Ready(Err(ChannelError::Closed));
+                }
+                match self.reads.lock().unwrap().pop_front() {
+                    Some(Some(bytes)) if bytes.len() <= buffer.len() => {
+                        buffer[..bytes.len()].copy_from_slice(&bytes);
+                        Poll::Ready(Ok(Some(bytes.len())))
+                    }
+                    Some(Some(_)) => Poll::Ready(Err(ChannelError::Failed)),
+                    Some(None) => Poll::Ready(Ok(None)),
+                    None => Poll::Pending,
+                }
+            }))
+        }
+
+        fn write_frame(&self, frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
+            Box::pin(async move {
+                if self.closed.load(Ordering::SeqCst) {
+                    return Err(ChannelError::Closed);
+                }
+                self.writes.lock().unwrap().push(frame.bytes);
+                Ok(())
+            })
+        }
+
+        fn close(&self) {
+            self.closed.store(true, Ordering::SeqCst);
+        }
+    }
+
+    impl RetainedOrderedByteChannel for LifecycleChannel {
+        fn take_notifications(&self) -> [Option<Waker>; 2] {
+            [None, None]
+        }
+
+        fn close_retained(&self) -> [Option<Waker>; 2] {
+            self.close();
+            [None, None]
+        }
+    }
+
+    struct LifecycleOrigin;
+
+    impl OriginFence for LifecycleOrigin {
+        fn begin_failure(&self, _drive_only: bool) {}
+        fn finish_failure(&self) {}
+        fn token(&self) -> Arc<()> {
+            Arc::new(())
+        }
+        fn transfer_to_work(&self) {}
+        fn disarm(&self) {}
+        fn defer_release(&self, release: Box<dyn FnOnce() + Send>) {
+            release();
+        }
+        fn belongs_to_drive(&self, _stamp: &Arc<()>) -> bool {
+            false
+        }
+        fn return_to_drive(&self) {}
+        fn is_work(&self) -> bool {
+            true
+        }
+        fn is_active(&self) -> bool {
+            true
+        }
+    }
+
+    fn nz(value: usize) -> NonZeroUsize {
+        NonZeroUsize::new(value).unwrap()
+    }
+
+    fn hex(value: &str) -> Vec<u8> {
+        value
+            .as_bytes()
+            .chunks_exact(2)
+            .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect()
+    }
+
+    fn varint(mut value: usize) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        loop {
+            let mut byte = (value & 0x7f) as u8;
+            value >>= 7;
+            if value != 0 {
+                byte |= 0x80;
+            }
+            bytes.push(byte);
+            if value == 0 {
+                return bytes;
+            }
+        }
+    }
+
+    fn field(number: u8, value: &[u8]) -> Vec<u8> {
+        [(number << 3) | 2]
+            .into_iter()
+            .chain(varint(value.len()))
+            .chain(value.iter().copied())
+            .collect()
+    }
+
+    fn frame(number: u8, value: &[u8]) -> Vec<u8> {
+        let envelope = field(number, value);
+        [varint(envelope.len()), envelope].concat()
+    }
+
+    fn hello() -> Vec<u8> {
+        let version = [0x08, 0x01, 0x18, 0x01];
+        let profile = [field(1, b"tool.v1"), vec![0x10, 0x01, 0x20, 0x01]].concat();
+        frame(1, &[field(1, &version), field(2, &profile)].concat())
+    }
+
+    fn manifest() -> Vec<u8> {
+        let vectors: Value = serde_json::from_str(VECTORS).unwrap();
+        frame(
+            3,
+            &hex(vectors["cases"]["valid_1_1"]["manifest_pb_hex"]
+                .as_str()
+                .unwrap()),
+        )
+    }
+
+    fn host(generation: u64) -> HostAuthority {
+        let catalog: Value = serde_json::from_str(CATALOG).unwrap();
+        let entry = &catalog["entries"][0];
+        let agent = &entry["agentTool"];
+        let descriptor = AgentTool {
+            name: agent["name"].as_str().unwrap().into(),
+            label: agent["label"].as_str().unwrap().into(),
+            description: agent["description"].as_str().unwrap().into(),
+            parameters: agent["parameters"].clone(),
+            execution_mode: AgentToolMode::Sequential,
+            replay: ToolReplay::Safe,
+        };
+        let inputs = [0, 1]
+            .into_iter()
+            .map(|minor| {
+                let set = &entry["selected_minor_schema_sets"][format!("1.{minor}")];
+                ToolSchemaInputs {
+                    minor,
+                    arguments: serde_json::to_vec(&set["arguments"]["schema"]).unwrap(),
+                    progress: serde_json::to_vec(&set["progress"]["schema"]).unwrap(),
+                    raw_result: serde_json::to_vec(&set["raw_result"]["schema"]).unwrap(),
+                }
+            })
+            .collect();
+        let tool =
+            ApprovedTool::new("peer-a".into(), descriptor, inputs, JsonLimits::default()).unwrap();
+        HostAuthority::new(
+            "peer-a".into(),
+            generation,
+            1,
+            1,
+            v1_1::ProtocolLimits {
+                pre_handshake_frame_bytes: 4096,
+                frame_bytes: 8192,
+                aggregate_decoded_bytes: 8192,
+                value_depth: 32,
+                value_elements: 1024,
+                string_bytes: 4096,
+                bytes_length: 4096,
+                in_flight_requests: 8,
+                blocking_queue_bytes: 4096,
+                progress_queue_bytes: 4096,
+                passive_queue_bytes: 4096,
+                telemetry_queue_bytes: 4096,
+                nesting_depth: 8,
+                requests_per_second: 32,
+                handshake_ms: 1000,
+                cancellation_grace_ms: 100,
+                max_stream_credit_bytes: 4096,
+            },
+            vec![tool],
+            vec![],
+        )
+        .unwrap()
+    }
+
+    fn owner_and_route() -> (
+        Arc<LifecycleSpawner>,
+        SingleToolOwner,
+        ReadyToolRoute,
+        Arc<LifecycleChannel>,
+        Arc<LifecycleClock>,
+    ) {
+        owner_and_route_at(7)
+    }
+
+    fn owner_and_route_at(
+        generation: u64,
+    ) -> (
+        Arc<LifecycleSpawner>,
+        SingleToolOwner,
+        ReadyToolRoute,
+        Arc<LifecycleChannel>,
+        Arc<LifecycleClock>,
+    ) {
+        let spawner = Arc::new(LifecycleSpawner::default());
+        let owner = SingleToolOwner::new(
+            spawner.clone(),
+            OwnerLimits {
+                outbound_bytes: nz(8192),
+                receipt_bytes: nz(8192),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        );
+        let channel = Arc::new(LifecycleChannel::new());
+        channel.push(hello());
+        channel.push(manifest());
+        channel.push(frame(5, &[]));
+        let clock = Arc::new(LifecycleClock::new(100));
+        let route = spawner
+            .drive(owner.connect(
+                host(generation),
+                channel.clone(),
+                clock.clone(),
+                PumpConfig {
+                    max_read_chunk: nz(8192),
+                    write_timeout_ms: NonZeroU64::new(10).unwrap(),
+                },
+            ))
+            .unwrap();
+        route
+            .bind_timing(EchoRouteTiming {
+                method_limit_ms: NonZeroU64::new(1000).unwrap(),
+                connection_deadline_ms: 10_000,
+            })
+            .unwrap();
+        (spawner, owner, route, channel, clock)
+    }
+
+    fn plan() -> ToolEffectPlan<()> {
+        let index = SafeUnsigned::new(0).unwrap();
+        ToolEffectPlan {
+            key: pi_agent_schema::EffectKey {
+                session_id: pi_agent_schema::SessionId::new("session").unwrap(),
+                lane: pi_agent_schema::LaneId::new("main").unwrap(),
+                operation_id: pi_agent_schema::OperationId::new("op").unwrap(),
+                kind: pi_agent_schema::EffectKind::Tool,
+                step_or_task_id: pi_agent_schema::EffectStepId::new("step").unwrap(),
+                logical_attempt: index,
+                item_index: Some(index),
+            },
+            assistant_entry_id: pi_agent_schema::EntryId::new("assistant-entry").unwrap(),
+            source_index: index,
+            args_key: "op.tool_args".into(),
+            telemetry_context: (),
+        }
+    }
+
+    fn captured(_source: &str) -> CapturedArguments {
+        CapturedArguments {
+            key: "op.tool_args".into(),
+            value: serde_json::from_str(r#"{"text":"ping"}"#).unwrap(),
+            seq: SafeUnsigned::new(0).unwrap(),
+        }
+    }
+
+    fn install(route: &ReadyToolRoute) {
+        route.install_staged_receive_for_test(Arc::new(LifecycleChannel::new()));
+    }
+
+    fn raw(name: &str, request_id: u8) -> Vec<u8> {
+        let vectors: Value = serde_json::from_str(RAW).unwrap();
+        let mut bytes = hex(vectors[name]["frame_hex"].as_str().unwrap());
+        assert_eq!(bytes[5], 0x08);
+        assert_eq!(bytes[6], 17);
+        bytes[6] = request_id;
+        bytes
+    }
 
     #[test]
     fn popped_unadmitted_request_releases_only_its_exact_reservation() {
@@ -2645,5 +3391,395 @@ mod local_cancel_queue_tests {
             writes.reserve(WriteKind::Denial, 1, 1, 3, 3),
             Err(DriverError::Overloaded)
         );
+    }
+
+    #[test]
+    fn rollback_request_removes_only_the_unpublished_tail_and_restores_capacity() {
+        let first = EncodedFrame {
+            bytes: vec![0; 3],
+            body_len: 3,
+        };
+        let second = EncodedFrame {
+            bytes: vec![0; 5],
+            body_len: 5,
+        };
+        let mut writes = WriteState::default();
+        writes
+            .reserve(WriteKind::Request(1), first.bytes.len(), 16, 16, 16)
+            .unwrap();
+        writes.jobs.push_back(WriteJob {
+            frame: first,
+            kind: WriteKind::Request(1),
+            deadline: 10,
+            active: false,
+        });
+        writes
+            .reserve(WriteKind::Request(2), second.bytes.len(), 16, 16, 16)
+            .unwrap();
+        writes.jobs.push_back(WriteJob {
+            frame: second,
+            kind: WriteKind::Request(2),
+            deadline: 10,
+            active: false,
+        });
+        assert!(writes.rollback_request(2));
+        assert_eq!(writes.normal_bytes, 3);
+        assert_eq!(writes.jobs.len(), 1);
+        assert!(!writes.rollback_request(2));
+        assert!(writes.rollback_request(1));
+        assert_eq!(writes.normal_bytes, 0);
+        assert!(writes.jobs.is_empty());
+    }
+
+    #[test]
+    fn route_forced_bind_and_tail_failure_closes_without_self_deadlock() {
+        let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+        install(&route);
+        route.force_staged_bind_failure_for_test();
+        route.force_rollback_failure_for_test();
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let route_for_call = route.clone();
+        let owner_for_call = owner.clone();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let result = route_for_call.prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("rollback"),
+                "rollback",
+                1,
+                Some(&origin),
+            );
+            done_tx.send(result).unwrap();
+            drop(owner_for_call);
+        });
+        let result = done_rx
+            .recv_timeout(std::time::Duration::from_secs(1))
+            .expect("forced rollback fallback must be bounded");
+        assert!(matches!(result, Err(DriverError::HostFault)));
+        assert!(matches!(route.route.status(), RouteStatus::Closed));
+        assert!(owner.retained_binding().is_none());
+        assert!(owner.0.state.lock().unwrap().active.is_none());
+        assert!(route.route.caller.lock().unwrap().is_none());
+        let staged = route.route.staged_receive.lock().unwrap().clone().unwrap();
+        assert!(staged.is_cleaned_for_test());
+        assert!(!staged.has_caller_for_test());
+        let writes = route.route.writes.lock().unwrap();
+        assert!(writes.jobs.is_empty());
+        assert_eq!(writes.normal_bytes, 0);
+        assert_eq!(route.route.next_id.load(Ordering::SeqCst), 1);
+        let after_close_origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        assert!(matches!(
+            route.prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("after-close"),
+                "after-close",
+                1,
+                Some(&after_close_origin),
+            ),
+            Err(DriverError::Closed)
+        ));
+    }
+
+    #[test]
+    fn same_route_distinct_claim_after_terminal_clears_staged_caller() {
+        let (spawner, owner, route, channel, _clock) = owner_and_route();
+        install(&route);
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let first = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("first"),
+                "first",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let first_binding = first.binding().clone();
+        let first_handle = first.activate().unwrap();
+        spawner.tick();
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(&first_binding).unwrap(),
+            LivePhase::TerminalReceived
+        );
+        owner
+            .retire(&first_binding, RetireReason::Committed)
+            .unwrap();
+        assert!(owner.retained_binding().is_none());
+        assert!(route.route.caller.lock().unwrap().is_none());
+        let staged = route.route.staged_receive.lock().unwrap().clone().unwrap();
+        assert!(!staged.has_caller_for_test());
+
+        let second = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("second"),
+                "second",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        assert_eq!(second.binding().request_id(), 2);
+        let second_binding = second.binding().clone();
+        let _second_handle = second.activate().unwrap();
+        owner.fence_no_longer_expected(&second_binding).unwrap();
+        drop(first_handle);
+        route.close();
+    }
+
+    #[test]
+    fn same_route_captured_tuple_mismatch_rejects_before_queue_or_id_mutation() {
+        let (spawner, owner, route, channel, _clock) = owner_and_route();
+        install(&route);
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let first = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("first"),
+                "first",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let first_binding = first.binding().clone();
+        let _first_handle = first.activate().unwrap();
+        spawner.tick();
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(&first_binding).unwrap(),
+            LivePhase::TerminalReceived
+        );
+        owner
+            .retire(&first_binding, RetireReason::Committed)
+            .unwrap();
+        route
+            .route
+            .caller
+            .lock()
+            .unwrap()
+            .replace(CapturedCaller8192 {
+                binding: Some(first_binding),
+                key: plan().key,
+                arguments: captured("stale"),
+                source_call_id: "stale".into(),
+                epoch: 1,
+                origin: origin.clone(),
+            });
+        let next_id = route.route.next_id.load(Ordering::SeqCst);
+        let writes = route.route.writes.lock().unwrap();
+        let before = (writes.jobs.len(), writes.normal_bytes);
+        drop(writes);
+        let result = route.prepare_planned_with_captured_bounds(
+            &plan(),
+            &captured("second"),
+            "second",
+            1,
+            Some(&origin),
+        );
+        assert!(matches!(result, Err(DriverError::WrongBinding)));
+        assert_eq!(route.route.next_id.load(Ordering::SeqCst), next_id);
+        let writes = route.route.writes.lock().unwrap();
+        assert_eq!((writes.jobs.len(), writes.normal_bytes), before);
+        drop(writes);
+        route.close();
+    }
+
+    #[test]
+    fn route_close_matrix_clears_owner_and_staged_custody_once() {
+        {
+            let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+            install(&route);
+            owner.close_route(&route.route, DriverError::PeerLost);
+            assert!(matches!(route.route.status(), RouteStatus::Closed));
+            assert!(owner.0.state.lock().unwrap().active.is_none());
+            let staged = route.route.staged_receive.lock().unwrap().clone().unwrap();
+            assert!(staged.is_cleaned_for_test());
+            route.close();
+        }
+
+        {
+            let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+            install(&route);
+            let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+            let prepared = route
+                .prepare_planned_with_captured_bounds(
+                    &plan(),
+                    &captured("fence"),
+                    "fence",
+                    1,
+                    Some(&origin),
+                )
+                .unwrap();
+            let binding = prepared.binding().clone();
+            let _handle = prepared.activate().unwrap();
+            owner.fence_no_longer_expected(&binding).unwrap();
+            assert!(matches!(route.route.status(), RouteStatus::Closed));
+            assert!(owner.retained_binding().is_none());
+            assert!(
+                route
+                    .route
+                    .staged_receive
+                    .lock()
+                    .unwrap()
+                    .clone()
+                    .unwrap()
+                    .is_cleaned_for_test()
+            );
+        }
+
+        {
+            let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+            install(&route);
+            let prepared = route
+                .prepare_planned_with_bounds(&plan(), &captured("abort").value, "abort", None, None)
+                .unwrap();
+            drop(prepared);
+            assert!(matches!(route.route.status(), RouteStatus::Closed));
+            assert!(owner.retained_binding().is_none());
+        }
+
+        {
+            let (_spawner, owner, route, _channel, clock) = owner_and_route();
+            install(&route);
+            let prepared = route
+                .prepare_planned_with_bounds(
+                    &plan(),
+                    &captured("expiry").value,
+                    "expiry",
+                    None,
+                    None,
+                )
+                .unwrap();
+            let binding = prepared.binding().clone();
+            let _handle = prepared.activate().unwrap();
+            clock.set(5_000);
+            owner.expire(&route.route, &binding);
+            assert!(matches!(route.route.status(), RouteStatus::Closed));
+            assert_eq!(owner.binding_phase(&binding).unwrap(), LivePhase::PeerLost);
+            owner.acknowledge_peer_lost(&binding).unwrap();
+            assert!(owner.retained_binding().is_none());
+        }
+
+        {
+            let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+            install(&route);
+            route.route.mark_draining();
+            assert!(owner.close_drained_after_cancel(&route.route));
+            assert!(matches!(route.route.status(), RouteStatus::Closed));
+            assert!(owner.0.state.lock().unwrap().active.is_none());
+        }
+
+        {
+            let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+            install(&route);
+            route.close();
+            let decision = route.route.prepare_fenced_route(99);
+            route.route.finish_fence_decision(decision);
+            owner.close_route(&route.route, DriverError::PeerLost);
+            route.close();
+            assert!(matches!(route.route.status(), RouteStatus::Closed));
+            assert!(
+                route
+                    .route
+                    .staged_receive
+                    .lock()
+                    .unwrap()
+                    .clone()
+                    .unwrap()
+                    .is_cleaned_for_test()
+            );
+        }
+    }
+
+    #[test]
+    fn route_reader_cleanup_defers_and_refuses_until_guard_drop() {
+        let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+        install(&route);
+        let staged = route.route.staged_receive.lock().unwrap().clone().unwrap();
+        let reader = staged.claim_reader().unwrap();
+        route.close();
+        assert!(!staged.is_cleaned_for_test());
+        assert!(matches!(
+            staged.claim_reader(),
+            Err(crate::extensions::receive_host8192::Receive8192Error::Occupied)
+        ));
+        drop(reader);
+        assert!(staged.is_cleaned_for_test());
+        assert!(matches!(
+            staged.claim_reader(),
+            Err(crate::extensions::receive_host8192::Receive8192Error::Closed)
+        ));
+        owner.close_route(&route.route, DriverError::PeerLost);
+    }
+
+    #[test]
+    fn route_preserve_denial_clears_invocation_caller_before_deferred_cleanup() {
+        let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+        install(&route);
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("denial"),
+                "denial",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let binding = prepared.binding().clone();
+        let _handle = prepared.activate().unwrap();
+        let denial = denial_frame(&route.route, 17, v1_1::ErrorCode::Forbidden).unwrap();
+        let denial_size = denial.bytes.len();
+        route.route.enqueue(denial, WriteKind::Denial).unwrap();
+        owner.fence_no_longer_expected(&binding).unwrap();
+        assert!(matches!(route.route.status(), RouteStatus::Draining));
+        assert!(owner.retained_binding().is_none());
+        assert!(route.route.caller.lock().unwrap().is_none());
+        let staged = route.route.staged_receive.lock().unwrap().clone().unwrap();
+        assert!(!staged.has_caller_for_test());
+        assert!(!staged.is_cleaned_for_test());
+        route.route.release_write(WriteKind::Denial, denial_size);
+        assert!(owner.close_drained_after_cancel(&route.route));
+        assert!(matches!(route.route.status(), RouteStatus::Closed));
+        assert!(staged.is_cleaned_for_test());
+    }
+
+    #[test]
+    fn route_replacement_closes_old_owner_and_preserves_new_route() {
+        let (spawner, owner, old, _channel, _clock) = owner_and_route();
+        install(&old);
+        let prepared = old
+            .prepare_planned_with_bounds(
+                &plan(),
+                &captured("replacement").value,
+                "replacement",
+                None,
+                None,
+            )
+            .unwrap();
+        let _handle = prepared.activate().unwrap();
+        let new_channel = Arc::new(LifecycleChannel::new());
+        new_channel.push(hello());
+        new_channel.push(manifest());
+        new_channel.push(frame(5, &[]));
+        let new_clock = Arc::new(LifecycleClock::new(200));
+        let new_route = spawner
+            .drive(owner.connect(
+                host(8),
+                new_channel,
+                new_clock,
+                PumpConfig {
+                    max_read_chunk: nz(8192),
+                    write_timeout_ms: NonZeroU64::new(10).unwrap(),
+                },
+            ))
+            .unwrap();
+        assert!(matches!(old.route.status(), RouteStatus::Draining));
+        owner.close_route(&old.route, DriverError::PeerLost);
+        assert!(matches!(old.route.status(), RouteStatus::Closed));
+        assert!(new_route.is_current());
+        new_route.close();
     }
 }

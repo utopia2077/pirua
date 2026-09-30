@@ -11,6 +11,8 @@ pub mod key;
 // Paired caller backing only; warmup and whole-receive certification are pending.
 #[allow(dead_code)]
 mod receive_backing;
+mod receive_backing8192;
+mod receive_host8192;
 pub mod tool_driver;
 pub mod transport;
 pub mod value;

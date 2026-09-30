@@ -472,12 +472,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .disposition = Some(RoutedDisposition::PeerLost);
                 return Err(route_error("extension tool route was replaced"));
             }
-            let prepared = self.snapshot.route.prepare_planned_with_bounds(
+            let origin = self
+                .fx
+                .origin_consumers
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .get(&self.plan.key)
+                .cloned();
+            let prepared = self.snapshot.route.prepare_planned_with_captured_bounds(
                 &self.plan,
-                &self.saved.value,
+                &self.saved,
                 self.source_id.as_str(),
-                None,
-                None,
+                self.snapshot.epoch,
+                origin.as_ref(),
             );
             if let Ok(prepared) = &prepared {
                 self.state.lock().unwrap_or_else(|p| p.into_inner()).binding =

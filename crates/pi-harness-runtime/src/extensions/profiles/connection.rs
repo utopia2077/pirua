@@ -1,6 +1,7 @@
 //! One native-owned profile route, using the existing framed byte pump.
 use crate::extensions::transport::{
     ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, PumpError,
+    RetainedOrderedByteChannel,
 };
 use pi_agent_schema::{BoxFuture, EffectKey, HarnessRuntimeError};
 use pi_extension_protocol::profiles::NativeValidator;
@@ -183,15 +184,79 @@ impl ProfileConnection {
         remaining_ms: u64,
     ) -> Result<(Arc<Self>, crate::extensions::tool_driver::ReadyToolRoute), HarnessRuntimeError>
     {
+        Self::connect_tool_inner(
+            owner,
+            host,
+            channel,
+            None,
+            clock,
+            config,
+            reservations,
+            remaining_ms,
+        )
+        .await
+    }
+
+    pub(crate) async fn connect_tool_retained(
+        owner: &crate::extensions::tool_driver::SingleToolOwner,
+        host: HostAuthority,
+        channel: Arc<dyn RetainedOrderedByteChannel>,
+        clock: Arc<dyn MonotonicClock>,
+        config: PumpConfig,
+        reservations: Reservations,
+        remaining_ms: u64,
+    ) -> Result<(Arc<Self>, crate::extensions::tool_driver::ReadyToolRoute), HarnessRuntimeError>
+    {
+        let ordered: Arc<dyn OrderedByteChannel> = channel.clone();
+        Self::connect_tool_inner(
+            owner,
+            host,
+            ordered,
+            Some(channel),
+            clock,
+            config,
+            reservations,
+            remaining_ms,
+        )
+        .await
+    }
+
+    async fn connect_tool_inner(
+        owner: &crate::extensions::tool_driver::SingleToolOwner,
+        host: HostAuthority,
+        channel: Arc<dyn OrderedByteChannel>,
+        retained_channel: Option<Arc<dyn RetainedOrderedByteChannel>>,
+        clock: Arc<dyn MonotonicClock>,
+        config: PumpConfig,
+        reservations: Reservations,
+        remaining_ms: u64,
+    ) -> Result<(Arc<Self>, crate::extensions::tool_driver::ReadyToolRoute), HarnessRuntimeError>
+    {
         let max = usize::try_from(reservations.blocking_bytes).map_err(|_| super::fault())?;
         let inbox = super::tool_route::ToolInbox::new(max, 256).map_err(|_| super::fault())?;
-        let route = owner
-            .connect_profiles(host, channel.clone(), clock.clone(), config, inbox.clone())
-            .await
-            .map_err(|error| {
-                let _ = error;
-                super::fault()
-            })?;
+        let route = match retained_channel {
+            Some(retained) => {
+                owner
+                    .connect_profiles_retained(
+                        host,
+                        channel.clone(),
+                        retained,
+                        clock.clone(),
+                        config,
+                        inbox.clone(),
+                    )
+                    .await
+            }
+            None => {
+                owner
+                    .connect_profiles(host, channel.clone(), clock.clone(), config, inbox.clone())
+                    .await
+            }
+        }
+        .map_err(|error| {
+            let _ = error;
+            super::fault()
+        })?;
         let grant = route.grant().clone();
         let identity = route.connection_identity();
         let live = profile_live::Owner::new_with_connection(
@@ -1756,6 +1821,64 @@ impl<
         HarnessRuntimeError,
     > {
         let (connection, route) = ProfileConnection::connect_tool(
+            owner,
+            host,
+            channel,
+            clock,
+            config,
+            reservations,
+            remaining_ms,
+        )
+        .await?;
+        let inbox = connection.inbox.as_ref().expect("Tool inbox").clone();
+        let lane = self.main.clone();
+        let weak = Arc::downgrade(&connection);
+        self.main
+            .owner
+            .host
+            .spawn(Box::pin(async move {
+                loop {
+                    let frame = match inbox.next(true).await {
+                        Ok(Some(frame)) => frame,
+                        _ => break,
+                    };
+                    let Some(connection) = weak.upgrade() else {
+                        break;
+                    };
+                    let result = connection.serve_peer_frame(&lane, frame).await;
+                    if result.is_err() {
+                        connection.close();
+                        break;
+                    }
+                }
+            }))
+            .map_err(|_| {
+                connection.close();
+                super::fault()
+            })?;
+        Ok((connection, route))
+    }
+
+    /// Internal retained-capability ingress for the staged 8192 receive path.
+    /// The ordinary Tool entry above remains source-compatible for channels
+    /// that advertise only `OrderedByteChannel`.
+    pub(crate) async fn connect_profile_tool_retained(
+        &self,
+        owner: &crate::extensions::tool_driver::SingleToolOwner,
+        host: HostAuthority,
+        channel: Arc<dyn RetainedOrderedByteChannel>,
+        clock: Arc<dyn MonotonicClock>,
+        config: PumpConfig,
+        reservations: Reservations,
+        remaining_ms: u64,
+    ) -> Result<
+        (
+            Arc<ProfileConnection>,
+            crate::extensions::tool_driver::ReadyToolRoute,
+        ),
+        HarnessRuntimeError,
+    > {
+        let (connection, route) = ProfileConnection::connect_tool_retained(
             owner,
             host,
             channel,
