@@ -12,7 +12,8 @@ use prost::Message;
 use serde_json::Value;
 
 use crate::descriptor::canonical_profile_digest;
-use crate::jcs::{self, Limits as JsonLimits, PortableSchema};
+use crate::jcs::{self, Limits as JsonLimits, OwnedInventoryMeter, PortableSchema};
+pub use crate::jcs::{OwnedInventory, OwnedInventoryCaps, ParameterMapRecipe};
 use crate::profiles::ApprovedProfile;
 use crate::wire::{v1_0, v1_1};
 
@@ -129,7 +130,7 @@ pub struct ApprovedTool {
 impl ApprovedTool {
     pub fn new(
         principal: String,
-        descriptor: AgentTool,
+        mut descriptor: AgentTool,
         schema_inputs: Vec<ToolSchemaInputs>,
         json_limits: JsonLimits,
     ) -> Result<Self> {
@@ -157,6 +158,10 @@ impl ApprovedTool {
             if descriptor.parameters != parameters {
                 return Err(ActivationError::new("host_parameters_invalid"));
             }
+            // Only the canonical parse that passed the existing semantic
+            // equality becomes owned. This disposes caller reservations and
+            // establishes fresh immutable map provenance for both map families.
+            descriptor.parameters = parameters;
             if minors
                 .insert(
                     input.minor,
@@ -179,6 +184,33 @@ impl ApprovedTool {
             descriptor,
             minors,
         })
+    }
+
+    fn accumulate_owned_inventory(&self, meter: &mut OwnedInventoryMeter<'_>) -> Result<()> {
+        let checked = (|| {
+            if self.minors.len() > meter.caps.minors_per_tool {
+                return Err(jcs::Error::Limit);
+            }
+            meter.visit(self.minors.len())?;
+            meter.string(&self.principal)?;
+            meter.string(&self.descriptor.name)?;
+            meter.string(&self.descriptor.label)?;
+            meter.string(&self.descriptor.description)?;
+            meter.parameters(&self.descriptor.parameters, 0)?;
+            meter.btree::<u32, ApprovedMinor>(self.minors.len())?;
+            for minor in self.minors.values() {
+                for projection in [
+                    &minor.projections.arguments,
+                    &minor.projections.progress,
+                    &minor.projections.raw_result,
+                ] {
+                    meter.string(&projection.id)?;
+                    projection.schema.accumulate_owned_inventory(meter)?;
+                }
+            }
+            Ok(())
+        })();
+        checked.map_err(|_| ActivationError::new("owned_inventory_capacity"))
     }
 
     pub fn descriptor(&self) -> &AgentTool {
@@ -280,6 +312,54 @@ impl HostAuthority {
     }
     pub fn limits(&self) -> &v1_1::ProtocolLimits {
         &self.limits
+    }
+
+    /// Borrow actual owned capacities before any closed receive clone.
+    /// Other profiles are outside this finite inventory recipe.
+    pub fn bounded_owned_inventory(&self, caps: &OwnedInventoryCaps) -> Result<OwnedInventory> {
+        if !self.profiles.is_empty() {
+            return Err(ActivationError::new("owned_inventory_profile"));
+        }
+        if self.principal.capacity() > caps.principal_capacity
+            || self.tools.len() > caps.tool_count
+            || self.permissions.len() > caps.permission_count
+        {
+            return Err(ActivationError::new("owned_inventory_capacity"));
+        }
+        let mut meter = OwnedInventoryMeter::new(caps)
+            .map_err(|_| ActivationError::new("owned_inventory_capacity"))?;
+        meter.inventory.tool_count = self.tools.len();
+        meter.inventory.permission_count = self.permissions.len();
+        meter.inventory.grant_element_bytes = std::mem::size_of::<GrantedTool>();
+        meter.inventory.echo_family = self.tools.len() == 1
+            && self.tools.values().all(|tool| {
+                tool.principal == self.principal
+                    && tool.descriptor.name == "echo"
+                    && tool.descriptor.execution_mode == AgentToolMode::Sequential
+                    && tool.descriptor.replay == ToolReplay::Safe
+            });
+        let checked = (|| {
+            meter.visit(
+                self.tools
+                    .len()
+                    .checked_add(self.permissions.len())
+                    .ok_or(jcs::Error::Limit)?,
+            )?;
+            meter.string(&self.principal)?;
+            meter.btree::<String, ApprovedTool>(self.tools.len())?;
+            meter.btree::<(String, String), ()>(self.permissions.len())?;
+            for (key, tool) in &self.tools {
+                meter.string(key)?;
+                tool.accumulate_owned_inventory(&mut meter)
+                    .map_err(|_| jcs::Error::Limit)?;
+            }
+            for (name, scope) in &self.permissions {
+                meter.string(name)?;
+                meter.string(scope)?;
+            }
+            meter.finish()
+        })();
+        checked.map_err(|_| ActivationError::new("owned_inventory_capacity"))
     }
 
     /// JSON work ceilings derived from the same finite host frame/value budget.
@@ -416,6 +496,7 @@ pub struct Activation {
     phase: ActivationPhase,
     selected: Option<v1_1::Version>,
     hello_profiles: BTreeMap<String, v1_1::ProfileRange>,
+    receive_grant_cap: Option<usize>,
     grant: Option<ActiveGrant>,
 }
 
@@ -424,11 +505,24 @@ impl Activation {
         Self {
             host,
             started_ms,
+            receive_grant_cap: None,
             phase: ActivationPhase::AwaitHello,
             selected: None,
             hello_profiles: BTreeMap::new(),
             grant: None,
         }
+    }
+
+    /// Optional closed8192 receive construction. Borrowed inventory precedes
+    /// the first ownership clone; ordinary Endpoint construction stays general.
+    pub fn new_bounded_receive(host: &HostAuthority, started_ms: u64) -> Result<Self> {
+        if host.limits.pre_handshake_frame_bytes > 4096 || host.limits.frame_bytes > 8192 {
+            return Err(ActivationError::new("owned_receive_frame_capacity"));
+        }
+        host.bounded_owned_inventory(&OwnedInventoryCaps::default())?;
+        let mut activation = Self::new(host.clone(), started_ms);
+        activation.receive_grant_cap = Some(4096);
+        Ok(activation)
     }
 
     pub fn phase(&self) -> ActivationPhase {
@@ -496,7 +590,17 @@ impl Activation {
     }
 
     pub fn receive_manifest(&mut self, bytes: &[u8], now_ms: u64) -> Result<WireGrant> {
-        let result = self.receive_manifest_inner(bytes, now_ms);
+        let result = self
+            .receive_manifest_inner(bytes, now_ms)
+            .and_then(|grant| {
+                if self
+                    .receive_grant_cap
+                    .is_some_and(|cap| grant.wire.encoded_len() > cap)
+                {
+                    return Err(ActivationError::new("owned_receive_grant_capacity"));
+                }
+                Ok(grant)
+            });
         match result {
             Ok(grant) => {
                 let wire = if grant

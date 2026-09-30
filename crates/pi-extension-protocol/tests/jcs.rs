@@ -1,4 +1,8 @@
-use pi_extension_protocol::jcs::{Error, Limits, admit_schema, canonical_json, canonical_number};
+use pi_extension_protocol::jcs::{
+    Error, Limits, admit_schema, canonical_json, canonical_number, verify_root_build_signature,
+};
+use ring::rand::SystemRandom;
+use ring::signature::{Ed25519KeyPair, KeyPair};
 use serde_json::Value;
 
 const VECTORS: &str = include_str!("fixtures/jcs-vectors.json");
@@ -59,6 +63,46 @@ fn all_38_saved_rfc_and_node_vectors_match() {
             }
         }
     }
+}
+
+#[test]
+fn e1421_signed_expected_receipt_rejects_mutations_and_wrong_keys() {
+    let rng = SystemRandom::new();
+    let key_document = Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
+    let key_pair = Ed25519KeyPair::from_pkcs8(key_document.as_ref()).unwrap();
+    let public_key: [u8; 32] = key_pair.public_key().as_ref().try_into().unwrap();
+    let message = b"root-build-receipt";
+    let signed = key_pair.sign(message);
+    let signature: [u8; 64] = signed.as_ref().try_into().unwrap();
+
+    assert!(verify_root_build_signature(
+        &public_key,
+        message,
+        &signature
+    ));
+
+    let mut bit_flip = signature;
+    bit_flip[0] ^= 1;
+    assert!(!verify_root_build_signature(
+        &public_key,
+        message,
+        &bit_flip
+    ));
+
+    let wrong_key_document = Ed25519KeyPair::generate_pkcs8(&rng).unwrap();
+    let wrong_key_pair = Ed25519KeyPair::from_pkcs8(wrong_key_document.as_ref()).unwrap();
+    let wrong_public_key: [u8; 32] = wrong_key_pair.public_key().as_ref().try_into().unwrap();
+    assert!(!verify_root_build_signature(
+        &wrong_public_key,
+        message,
+        &signature
+    ));
+
+    let truncated = &signature[..63];
+    assert!(<[u8; 64]>::try_from(truncated).is_err());
+    let mut trailing = Vec::from(signature);
+    trailing.push(0);
+    assert!(<[u8; 64]>::try_from(trailing.as_slice()).is_err());
 }
 
 #[test]

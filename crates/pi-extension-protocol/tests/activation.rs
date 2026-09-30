@@ -1,6 +1,6 @@
 use pi_extension_protocol::activation::{
-    Activation, ActivationPhase, AgentTool, AgentToolMode, ApprovedTool, HostAuthority, ToolReplay,
-    ToolSchemaInputs, WireGrant,
+    Activation, ActivationPhase, AgentTool, AgentToolMode, ApprovedTool, HostAuthority,
+    OwnedInventoryCaps, ParameterMapRecipe, ToolReplay, ToolSchemaInputs, WireGrant,
 };
 use pi_extension_protocol::jcs::Limits as JsonLimits;
 use pi_extension_protocol::wire::v1_1;
@@ -953,4 +953,293 @@ fn bundled_profile_digest_lookup_matches_selected_tool_vectors() {
     assert!(canonical_profile_digest("tool.v1", 1, 999).is_none());
     assert!(canonical_profile_digest("host-action.v1", 2, 0).is_none());
     assert!(canonical_profile_digest("future.v1", 1, 0).is_none());
+}
+
+fn inventory_tool(
+    parameters: Value,
+    argument: &[u8],
+    label: String,
+    minors: &[u32],
+) -> ApprovedTool {
+    ApprovedTool::new(
+        "peer-a".into(),
+        AgentTool {
+            name: "echo".into(),
+            label,
+            description: "Echo".into(),
+            parameters,
+            execution_mode: AgentToolMode::Sequential,
+            replay: ToolReplay::Safe,
+        },
+        minors
+            .iter()
+            .map(|minor| ToolSchemaInputs {
+                minor: *minor,
+                arguments: argument.to_vec(),
+                progress: br#"{"type":"null"}"#.to_vec(),
+                raw_result: br#"{"type":"null"}"#.to_vec(),
+            })
+            .collect(),
+        JsonLimits::default(),
+    )
+    .unwrap()
+}
+
+fn inventory_host(principal: String, label: String) -> HostAuthority {
+    let argument = br#"{"type":"object","properties":{},"additionalProperties":false}"#;
+    HostAuthority::new(
+        principal,
+        7,
+        1,
+        1,
+        limits(),
+        vec![inventory_tool(
+            serde_json::from_slice(argument).unwrap(),
+            argument,
+            label,
+            &[0, 1],
+        )],
+        vec![],
+    )
+    .unwrap()
+}
+
+#[test]
+fn exact_capacities_and_all_six_private_projection_trees_are_borrowed() {
+    let host = inventory_host("peer-a".into(), "Echo".into());
+    let caps = OwnedInventoryCaps::default();
+    let inventory = host.bounded_owned_inventory(&caps).unwrap();
+    assert!(inventory.echo_family);
+    assert!(inventory.byte_vec_capacity >= 6 * 15);
+    assert!(inventory.other_vec_requested_bytes > 0);
+    assert!(inventory.btree_entries >= 3);
+    for field in 0..6 {
+        let mut cap = caps;
+        match field {
+            0 => cap.string_capacity = inventory.string_capacity - 1,
+            1 => cap.byte_vec_capacity = inventory.byte_vec_capacity - 1,
+            2 => cap.other_vec_requested_bytes = inventory.other_vec_requested_bytes - 1,
+            3 => cap.btree_entries = inventory.btree_entries - 1,
+            4 => cap.nodes = inventory.nodes - 1,
+            _ => cap.visits = inventory.visits - 1,
+        }
+        assert_eq!(
+            host.bounded_owned_inventory(&cap).unwrap_err().reason,
+            "owned_inventory_capacity"
+        );
+        assert_eq!(host.bounded_owned_inventory(&caps).unwrap(), inventory);
+    }
+    let mut exact = caps;
+    exact.string_capacity = inventory.string_capacity;
+    exact.byte_vec_capacity = inventory.byte_vec_capacity;
+    exact.other_vec_requested_bytes = inventory.other_vec_requested_bytes;
+    exact.btree_entries = inventory.btree_entries;
+    exact.nodes = inventory.nodes;
+    exact.visits = inventory.visits;
+    assert_eq!(host.bounded_owned_inventory(&exact).unwrap(), inventory);
+}
+
+#[test]
+fn short_strings_with_surplus_capacity_refuse_before_owned_activation() {
+    let mut principal = String::with_capacity(257);
+    principal.push_str("peer-a");
+    let surplus_host = inventory_host(principal, "Echo".into());
+    assert_eq!(
+        surplus_host
+            .bounded_owned_inventory(&OwnedInventoryCaps::default())
+            .unwrap_err()
+            .reason,
+        "owned_inventory_capacity"
+    );
+    assert_eq!(
+        Activation::new_bounded_receive(&surplus_host, 0)
+            .err()
+            .unwrap()
+            .reason,
+        "owned_inventory_capacity"
+    );
+    let mut label = String::with_capacity(65_537);
+    label.push_str("Echo");
+    let host = inventory_host("peer-a".into(), label);
+    assert_eq!(
+        host.bounded_owned_inventory(&OwnedInventoryCaps::default())
+            .unwrap_err()
+            .reason,
+        "owned_inventory_capacity"
+    );
+}
+
+#[test]
+fn canonical_parameters_replace_surplus_map_and_array_reservations_for_both_minors() {
+    let argument = br#"{"type":"object","properties":{},"additionalProperties":false}"#;
+    let canonical: Value = serde_json::from_slice(argument).unwrap();
+    let mut map = serde_json::Map::with_capacity(65_536);
+    for (key, value) in canonical.as_object().unwrap() {
+        map.insert(key.clone(), value.clone());
+    }
+    let approved = inventory_tool(Value::Object(map), argument, "Echo".into(), &[0, 1]);
+    assert_eq!(approved.descriptor().parameters, canonical);
+    let host =
+        HostAuthority::new("peer-a".into(), 7, 1, 1, limits(), vec![approved], vec![]).unwrap();
+    let inventory = host
+        .bounded_owned_inventory(&OwnedInventoryCaps::default())
+        .unwrap();
+    assert!(inventory.requested_bytes < 100_000);
+
+    let argument = br#"{"const":[]}"#;
+    let mut surplus = Vec::with_capacity(65_536);
+    surplus.clear();
+    let parameters = serde_json::json!({"const": Value::Array(surplus)});
+    let approved = inventory_tool(parameters, argument, "Echo".into(), &[0, 1]);
+    let host =
+        HostAuthority::new("peer-a".into(), 7, 1, 1, limits(), vec![approved], vec![]).unwrap();
+    assert!(
+        host.bounded_owned_inventory(&OwnedInventoryCaps::default())
+            .unwrap()
+            .other_vec_requested_bytes
+            < 100_000
+    );
+}
+
+#[test]
+fn local_canonical_order_and_wrong_parameters_preserve_schema_semantics() {
+    let argument = br#"{"type":"object","properties":{"z":{"type":"null"},"a":{"type":"null"}}}"#;
+    let caller: Value = serde_json::from_slice(argument).unwrap();
+    let approved = inventory_tool(caller.clone(), argument, "Echo".into(), &[0, 1]);
+    assert_eq!(approved.descriptor().parameters, caller);
+    let normalized = serde_json::to_string(&approved.descriptor().parameters).unwrap();
+    assert!(normalized.find("\"a\"").unwrap() < normalized.find("\"z\"").unwrap());
+    let mut descriptor = approved.descriptor().clone();
+    descriptor.parameters = Value::Null;
+    for minor in [0, 1] {
+        assert_eq!(
+            ApprovedTool::new(
+                "peer-a".into(),
+                descriptor.clone(),
+                vec![ToolSchemaInputs {
+                    minor,
+                    arguments: argument.to_vec(),
+                    progress: br#"{"type":"null"}"#.to_vec(),
+                    raw_result: br#"{"type":"null"}"#.to_vec(),
+                }],
+                JsonLimits::default(),
+            )
+            .unwrap_err()
+            .reason,
+            "host_parameters_invalid"
+        );
+    }
+    let host = inventory_host("peer-a".into(), "Echo".into());
+    let inventory = host
+        .bounded_owned_inventory(&OwnedInventoryCaps::default())
+        .unwrap();
+    match inventory.parameter_map {
+        ParameterMapRecipe::BTreeFresh => assert_eq!(std::mem::size_of::<Value>(), 32),
+        ParameterMapRecipe::IndexMapFreshSse2 => assert_eq!(std::mem::size_of::<Value>(), 72),
+    }
+}
+
+#[test]
+fn pre4096_is_optional_and_checked_before_receive_clone() {
+    let mut protocol_limits = limits();
+    protocol_limits.pre_handshake_frame_bytes = 4097;
+    let host =
+        HostAuthority::new("peer-a".into(), 7, 1, 1, protocol_limits, vec![], vec![]).unwrap();
+    assert_eq!(
+        Activation::new_bounded_receive(&host, 0)
+            .err()
+            .unwrap()
+            .reason,
+        "owned_receive_frame_capacity"
+    );
+    assert_eq!(
+        Activation::new(host, 0).phase(),
+        ActivationPhase::AwaitHello
+    );
+}
+
+#[test]
+fn grant4096_precedes_old_minor_reencode_and_new_minor_clone() {
+    let permissions = (0..79)
+        .map(|i| v1_1::PermissionGrant {
+            name: format!("n{i}"),
+            scope: "s".repeat(40),
+        })
+        .collect::<Vec<_>>();
+    let manifest = v1_1::Manifest {
+        protocol: Some(v1_1::VersionRange {
+            major: 1,
+            min_minor: 0,
+            max_minor: 1,
+        }),
+        declared_extension_id: "x".into(),
+        extension_version: "x".into(),
+        permissions: permissions
+            .iter()
+            .map(|permission| v1_1::PermissionRequest {
+                name: permission.name.clone(),
+                scope: permission.scope.clone(),
+                required: true,
+            })
+            .collect(),
+        ..v1_1::Manifest::default()
+    };
+    for minor in [0, 1] {
+        let host = HostAuthority::new(
+            "p".repeat(256),
+            7,
+            minor,
+            minor,
+            limits(),
+            vec![],
+            permissions.clone(),
+        )
+        .unwrap();
+        let offered = v1_1::Hello {
+            protocol: Some(v1_1::VersionRange {
+                major: 1,
+                min_minor: 0,
+                max_minor: 1,
+            }),
+            supported_profiles: vec![],
+        };
+        let input = manifest.encode_to_vec();
+        assert!(input.len() <= 4096);
+        let mut ordinary = Activation::new(host.clone(), 0);
+        ordinary.receive_hello(&offered.encode_to_vec(), 1).unwrap();
+        let grant = ordinary.receive_manifest(&input, 2).unwrap();
+        let size = match grant {
+            WireGrant::V1_0(grant) => grant.encoded_len(),
+            WireGrant::V1_1(grant) => grant.encoded_len(),
+        };
+        assert!(size > 4096);
+        let mut bounded = Activation::new_bounded_receive(&host, 0).unwrap();
+        bounded.receive_hello(&offered.encode_to_vec(), 1).unwrap();
+        assert_eq!(
+            bounded.receive_manifest(&input, 2).unwrap_err().reason,
+            "owned_receive_grant_capacity"
+        );
+        assert!(bounded.active_grant().is_none());
+    }
+}
+
+#[test]
+fn e1421_hpre_inventory_capacity_minus_one_precedes_root_or_clone() {
+    let host = inventory_host("peer-a".into(), "Echo".into());
+    let inventory = host
+        .bounded_owned_inventory(&OwnedInventoryCaps::default())
+        .unwrap();
+    let mut caps = OwnedInventoryCaps::default();
+    caps.visits = inventory.visits - 1;
+    assert_eq!(
+        host.bounded_owned_inventory(&caps).unwrap_err().reason,
+        "owned_inventory_capacity"
+    );
+    let bounded = Activation::new_bounded_receive(&host, 0).unwrap();
+    assert_eq!(bounded.phase(), ActivationPhase::AwaitHello);
+    assert!(bounded.active_grant().is_none());
+    assert_eq!(
+        Activation::new(host, 0).phase(),
+        ActivationPhase::AwaitHello
+    );
 }

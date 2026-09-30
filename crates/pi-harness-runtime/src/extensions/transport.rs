@@ -60,6 +60,20 @@ pub trait OrderedByteChannel: Send + Sync {
     fn close(&self);
 }
 
+/// Private admission for a retained receive caller. After an in-scope read or
+/// write future is dropped, `take_notifications` detaches every Waker the
+/// channel retained for that operation. `close_retained` physically closes the
+/// channel and detaches the same finite two seats. Neither method invokes or
+/// drops a Waker, waits, allocates, or retains a borrowed read buffer. The
+/// caller destroys the returned owner-created Wakers before clock client zero.
+/// An arbitrary `OrderedByteChannel` does not satisfy this contract.
+#[allow(dead_code)]
+pub(crate) trait RetainedOrderedByteChannel: OrderedByteChannel {
+    fn take_notifications(&self) -> [Option<Waker>; 2];
+
+    fn close_retained(&self) -> [Option<Waker>; 2];
+}
+
 /// Notifications detached by an opt-in physical quiet close. The channel must
 /// already be closed when this value is returned. The caller transfers both
 /// notifications to independently serviced, reserved posts before exposing a
@@ -482,5 +496,59 @@ fn write_error(error: ChannelError) -> PumpError {
     match error {
         ChannelError::Closed => PumpError::Closed,
         ChannelError::Failed => PumpError::WriteFailed,
+    }
+}
+
+#[cfg(test)]
+mod retained_channel_tests {
+    use super::*;
+
+    struct RetainedProbe;
+
+    impl OrderedByteChannel for RetainedProbe {
+        fn max_read_scratch_bytes(&self) -> usize {
+            0
+        }
+
+        fn read_chunk<'a>(
+            &'a self,
+            _buffer: &'a mut [u8],
+        ) -> BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+            Box::pin(async { Ok(None) })
+        }
+
+        fn write_frame(&self, _frame: EncodedFrame) -> BoxFuture<'_, Result<(), ChannelError>> {
+            Box::pin(async { Ok(()) })
+        }
+
+        fn close(&self) {}
+    }
+
+    impl RetainedOrderedByteChannel for RetainedProbe {
+        fn take_notifications(&self) -> [Option<Waker>; 2] {
+            [None, None]
+        }
+
+        fn close_retained(&self) -> [Option<Waker>; 2] {
+            [None, None]
+        }
+    }
+
+    #[test]
+    fn retained_channel_capability_is_opt_in_and_detaches_two_slots() {
+        let channel = RetainedProbe;
+        assert!(
+            channel
+                .take_notifications()
+                .into_iter()
+                .all(|notification| notification.is_none())
+        );
+        assert!(
+            channel
+                .close_retained()
+                .into_iter()
+                .all(|notification| notification.is_none())
+        );
+        channel.close();
     }
 }

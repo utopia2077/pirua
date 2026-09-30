@@ -21,19 +21,22 @@ pub(super) enum IndexPoolError {
     Exhausted,
 }
 
-struct PoolState {
-    free: [Option<Box<IndexSlot>>; SLOT_COUNT],
+struct PoolState<const F: usize, const N: usize> {
+    free: [Option<Box<IndexStorage<F, N>>>; SLOT_COUNT],
 }
 
 /// A non-cloneable handle. A lease retains the backing after this handle is
 /// dropped, and an occupied slot cannot be issued a second time.
-pub(super) struct IndexPool {
-    state: Arc<Mutex<PoolState>>,
+pub(super) type IndexPool = ProfileIndexPool<4096, 4097>;
+pub(super) type IndexLease = ProfileIndexLease<4096, 4097>;
+
+pub(super) struct ProfileIndexPool<const F: usize, const N: usize> {
+    state: Arc<Mutex<PoolState<F, N>>>,
     slot_bytes: usize,
     total_slot_bytes: usize,
 }
 
-impl IndexPool {
+impl<const F: usize, const N: usize> ProfileIndexPool<F, N> {
     /// Call only during trusted startup, before accepting peer-controlled work.
     /// Both ceilings are checked before requesting either slot's backing.
     pub(super) fn prewarm(
@@ -41,17 +44,20 @@ impl IndexPool {
         max_total_slot_backing_bytes: usize,
     ) -> Result<Self, IndexPoolError> {
         Self::prewarm_with(max_slot_backing_bytes, max_total_slot_backing_bytes, || {
-            Box::new(IndexSlot::new())
+            Box::new(IndexStorage::<F, N>::new())
         })
     }
 
     fn prewarm_with(
         max_slot_backing_bytes: usize,
         max_total_slot_backing_bytes: usize,
-        mut make_slot: impl FnMut() -> Box<IndexSlot>,
+        mut make_slot: impl FnMut() -> Box<IndexStorage<F, N>>,
     ) -> Result<Self, IndexPoolError> {
-        let slot_bytes = IndexSlot::checked_slot_bytes(MAX_FRAME_BYTES, max_slot_backing_bytes)
-            .map_err(|_| IndexPoolError::Limit)?;
+        let slot_bytes = IndexStorage::<F, N>::checked_slot_bytes(
+            NonZeroUsize::new(F).ok_or(IndexPoolError::Limit)?,
+            max_slot_backing_bytes,
+        )
+        .map_err(|_| IndexPoolError::Limit)?;
         let total_slot_bytes = slot_bytes
             .checked_mul(SLOT_COUNT)
             .filter(|total| *total <= max_total_slot_backing_bytes)
@@ -63,6 +69,10 @@ impl IndexPool {
             slot_bytes,
             total_slot_bytes,
         })
+    }
+
+    pub(super) fn state_layout() -> std::alloc::Layout {
+        std::alloc::Layout::new::<Mutex<PoolState<F, N>>>()
     }
 
     pub(super) fn slot_bytes(&self) -> usize {
@@ -78,8 +88,8 @@ impl IndexPool {
     pub(super) fn checkout(
         &self,
         selected_frame_bytes: NonZeroUsize,
-    ) -> Result<IndexLease, IndexPoolError> {
-        IndexSlot::checked_slot_bytes(selected_frame_bytes, self.slot_bytes)
+    ) -> Result<ProfileIndexLease<F, N>, IndexPoolError> {
+        IndexStorage::<F, N>::checked_slot_bytes(selected_frame_bytes, self.slot_bytes)
             .map_err(|_| IndexPoolError::Limit)?;
         let mut state = self
             .state
@@ -91,7 +101,7 @@ impl IndexPool {
             .enumerate()
             .find_map(|(number, entry)| entry.take().map(|slot| (number, slot)))
             .ok_or(IndexPoolError::Exhausted)?;
-        Ok(IndexLease {
+        Ok(ProfileIndexLease {
             state: Arc::clone(&self.state),
             slot_number,
             slot: Some(slot),
@@ -101,19 +111,19 @@ impl IndexPool {
 
 /// Exclusive ownership lasts until actual Drop, including after pool-handle
 /// destruction. Borrowed views cannot outlive a mutable borrow of this lease.
-pub(super) struct IndexLease {
-    state: Arc<Mutex<PoolState>>,
+pub(super) struct ProfileIndexLease<const F: usize, const N: usize> {
+    state: Arc<Mutex<PoolState<F, N>>>,
     slot_number: usize,
-    slot: Option<Box<IndexSlot>>,
+    slot: Option<Box<IndexStorage<F, N>>>,
 }
 
-impl IndexLease {
-    pub(super) fn storage_mut(&mut self) -> &mut IndexSlot {
+impl<const F: usize, const N: usize> ProfileIndexLease<F, N> {
+    pub(super) fn storage_mut(&mut self) -> &mut IndexStorage<F, N> {
         self.slot.as_deref_mut().expect("lease owns its slot")
     }
 }
 
-impl Drop for IndexLease {
+impl<const F: usize, const N: usize> Drop for ProfileIndexLease<F, N> {
     fn drop(&mut self) {
         let Some(slot) = self.slot.take() else {
             return;
@@ -262,5 +272,48 @@ mod tests {
         }
         drop(lease);
         assert!(weak.upgrade().is_none());
+    }
+
+    #[test]
+    fn actual8192_layout_two_leases_third_refuses_and_old_profile_is_distinct() {
+        std::thread::Builder::new()
+            .name("generic-8192-index-pool".into())
+            .stack_size(64 * 1024 * 1024)
+            .spawn(|| {
+                type WideStorage = IndexStorage<8192, 8193>;
+                type WidePool = ProfileIndexPool<8192, 8193>;
+
+                let wide_slot = Layout::new::<WideStorage>().size();
+                let wide_total = wide_slot.checked_mul(SLOT_COUNT).unwrap();
+                let pool = WidePool::prewarm(wide_slot, wide_total).unwrap();
+                assert_eq!(pool.slot_bytes(), wide_slot);
+                assert_eq!(pool.total_slot_bytes(), wide_total);
+                assert_ne!(
+                    pool.slot_bytes(),
+                    IndexPool::prewarm(
+                        Layout::new::<IndexSlot>().size(),
+                        Layout::new::<IndexSlot>().size() * SLOT_COUNT
+                    )
+                    .unwrap()
+                    .slot_bytes()
+                );
+
+                let first = pool.checkout(nz(8192)).unwrap();
+                let second = pool.checkout(nz(137)).unwrap();
+                assert!(matches!(
+                    pool.checkout(nz(1)),
+                    Err(IndexPoolError::Exhausted)
+                ));
+                assert!(matches!(
+                    pool.checkout(nz(8193)),
+                    Err(IndexPoolError::Limit)
+                ));
+                drop(first);
+                drop(second);
+                assert!(pool.checkout(nz(8192)).is_ok());
+            })
+            .unwrap()
+            .join()
+            .unwrap();
     }
 }

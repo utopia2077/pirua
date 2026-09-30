@@ -53,6 +53,274 @@ impl Default for Limits {
     }
 }
 
+/// Finite borrowed ownership ceilings for the optional closed receive family.
+/// These count requested capacities and source visits, never resource admission.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct OwnedInventoryCaps {
+    pub principal_capacity: usize,
+    pub tool_count: usize,
+    pub permission_count: usize,
+    pub minors_per_tool: usize,
+    pub string_capacity: usize,
+    pub byte_vec_capacity: usize,
+    pub other_vec_requested_bytes: usize,
+    pub btree_entries: usize,
+    pub nodes: usize,
+    pub depth: usize,
+    pub visits: usize,
+}
+
+impl Default for OwnedInventoryCaps {
+    fn default() -> Self {
+        Self {
+            principal_capacity: 256,
+            tool_count: 256,
+            permission_count: 256,
+            minors_per_tool: 2,
+            string_capacity: 65_536,
+            byte_vec_capacity: 65_536,
+            other_vec_requested_bytes: 1_048_576,
+            btree_entries: 8192,
+            nodes: 8192,
+            depth: 128,
+            visits: 16_384,
+        }
+    }
+}
+
+/// Observed borrowed ownership plus a selected container request envelope.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct OwnedInventory {
+    pub string_capacity: usize,
+    pub byte_vec_capacity: usize,
+    pub other_vec_requested_bytes: usize,
+    pub btree_entries: usize,
+    pub tool_count: usize,
+    pub permission_count: usize,
+    pub grant_element_bytes: usize,
+    pub echo_family: bool,
+    pub fresh_json_object_entries: usize,
+    pub container_requested_bytes: usize,
+    pub nodes: usize,
+    pub visits: usize,
+    pub max_depth: usize,
+    pub requested_bytes: usize,
+    /// Source-selected parameter map family; hidden capacity is not observed.
+    pub parameter_map: ParameterMapRecipe,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ParameterMapRecipe {
+    #[default]
+    BTreeFresh,
+    IndexMapFreshSse2,
+}
+
+pub(crate) struct OwnedInventoryMeter<'a> {
+    pub(crate) caps: &'a OwnedInventoryCaps,
+    pub(crate) inventory: OwnedInventory,
+}
+
+impl<'a> OwnedInventoryMeter<'a> {
+    pub(crate) fn new(caps: &'a OwnedInventoryCaps) -> Result<Self, Error> {
+        // Pins the selected source recipes and ABI. Feature unification is read
+        // from actual types, never inferred from a dependency's cfg flag.
+        if !cfg!(all(target_arch = "x86_64", target_feature = "sse2"))
+            || std::mem::size_of::<serde_json::Number>() != 16
+        {
+            return Err(Error::Limit);
+        }
+        let parameter_map = match (
+            std::mem::size_of::<serde_json::Map<String, serde_json::Value>>(),
+            std::mem::size_of::<serde_json::Value>(),
+        ) {
+            (24, 32) => ParameterMapRecipe::BTreeFresh,
+            (72, 72) => ParameterMapRecipe::IndexMapFreshSse2,
+            _ => return Err(Error::Limit),
+        };
+        Ok(Self {
+            caps,
+            inventory: OwnedInventory {
+                parameter_map,
+                ..OwnedInventory::default()
+            },
+        })
+    }
+
+    fn add(value: &mut usize, amount: usize, cap: usize) -> Result<(), Error> {
+        let next = value
+            .checked_add(amount)
+            .filter(|n| *n <= cap)
+            .ok_or(Error::Limit)?;
+        *value = next;
+        Ok(())
+    }
+
+    pub(crate) fn visit(&mut self, amount: usize) -> Result<(), Error> {
+        Self::add(&mut self.inventory.visits, amount, self.caps.visits)
+    }
+
+    pub(crate) fn node(&mut self, depth: usize) -> Result<(), Error> {
+        if depth > self.caps.depth {
+            return Err(Error::Limit);
+        }
+        self.visit(1)?;
+        Self::add(&mut self.inventory.nodes, 1, self.caps.nodes)?;
+        self.inventory.max_depth = self.inventory.max_depth.max(depth);
+        Ok(())
+    }
+
+    pub(crate) fn children(&self, count: usize, depth: usize) -> Result<(), Error> {
+        if count > self.caps.nodes.saturating_sub(self.inventory.nodes)
+            || count > self.caps.visits.saturating_sub(self.inventory.visits)
+            || count != 0 && depth >= self.caps.depth
+        {
+            return Err(Error::Limit);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn string(&mut self, value: &String) -> Result<(), Error> {
+        self.visit(1)?;
+        Self::add(
+            &mut self.inventory.string_capacity,
+            value.capacity(),
+            self.caps.string_capacity,
+        )
+    }
+
+    pub(crate) fn bytes(&mut self, value: &Vec<u8>) -> Result<(), Error> {
+        self.visit(1)?;
+        Self::add(
+            &mut self.inventory.byte_vec_capacity,
+            value.capacity(),
+            self.caps.byte_vec_capacity,
+        )
+    }
+
+    pub(crate) fn vector<T>(&mut self, value: &Vec<T>) -> Result<(), Error> {
+        let bytes = value
+            .capacity()
+            .checked_mul(std::mem::size_of::<T>())
+            .ok_or(Error::Limit)?;
+        Self::add(
+            &mut self.inventory.other_vec_requested_bytes,
+            bytes,
+            self.caps.other_vec_requested_bytes,
+        )
+    }
+
+    pub(crate) fn btree<K, V>(&mut self, count: usize) -> Result<(), Error> {
+        self.visit(1)?;
+        Self::add(
+            &mut self.inventory.btree_entries,
+            count,
+            self.caps.btree_entries,
+        )?;
+        // std's selected B=6 node: header16 +11 key/value slots +12 edges.
+        // Fresh immutable maps have no retained empty root; nodes <= entries.
+        let slots = std::mem::size_of::<K>()
+            .checked_add(std::mem::size_of::<V>())
+            .ok_or(Error::Limit)?;
+        let leaf = 16usize
+            .checked_add(11usize.checked_mul(slots).ok_or(Error::Limit)?)
+            .ok_or(Error::Limit)?;
+        let alignment = std::mem::align_of::<K>()
+            .max(std::mem::align_of::<V>())
+            .max(8);
+        let node = leaf.checked_add(alignment - 1).ok_or(Error::Limit)? / alignment * alignment;
+        let node = node.checked_add(12 * 8).ok_or(Error::Limit)?;
+        let bytes = count.checked_mul(node).ok_or(Error::Limit)?;
+        Self::add(
+            &mut self.inventory.container_requested_bytes,
+            bytes,
+            usize::MAX,
+        )
+    }
+
+    pub(crate) fn parameters(
+        &mut self,
+        value: &serde_json::Value,
+        depth: usize,
+    ) -> Result<(), Error> {
+        self.node(depth)?;
+        match value {
+            serde_json::Value::String(value) => self.string(value)?,
+            serde_json::Value::Array(values) => {
+                self.vector(values)?;
+                self.children(values.len(), depth)?;
+                for value in values {
+                    self.parameters(value, depth + 1)?;
+                }
+            }
+            serde_json::Value::Object(values) => {
+                self.children(values.len(), depth)?;
+                Self::add(
+                    &mut self.inventory.fresh_json_object_entries,
+                    values.len(),
+                    self.caps.btree_entries,
+                )?;
+                match self.inventory.parameter_map {
+                    ParameterMapRecipe::BTreeFresh => {
+                        self.btree::<String, serde_json::Value>(values.len())?
+                    }
+                    ParameterMapRecipe::IndexMapFreshSse2 => {
+                        // Immutable canonical parse and clones: b<=4N, table
+                        // 9b+16, dense Bucket104*b; aggregate <=468N.
+                        let bytes = values.len().checked_mul(468).ok_or(Error::Limit)?;
+                        Self::add(
+                            &mut self.inventory.container_requested_bytes,
+                            bytes,
+                            usize::MAX,
+                        )?;
+                    }
+                }
+                for (key, value) in values {
+                    self.string(key)?;
+                    self.parameters(value, depth + 1)?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn schema_value(&mut self, value: &Value, depth: usize) -> Result<(), Error> {
+        self.node(depth)?;
+        match value {
+            Value::String(value) => self.string(value)?,
+            Value::Array(values) => {
+                self.vector(values)?;
+                self.children(values.len(), depth)?;
+                for value in values {
+                    self.schema_value(value, depth + 1)?;
+                }
+            }
+            Value::Object(values) => {
+                self.vector(values)?;
+                self.children(values.len(), depth)?;
+                for (key, value) in values {
+                    self.string(key)?;
+                    self.schema_value(value, depth + 1)?;
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    pub(crate) fn finish(mut self) -> Result<OwnedInventory, Error> {
+        self.inventory.requested_bytes = self
+            .inventory
+            .string_capacity
+            .checked_add(self.inventory.byte_vec_capacity)
+            .and_then(|n| n.checked_add(self.inventory.other_vec_requested_bytes))
+            .and_then(|n| n.checked_add(self.inventory.container_requested_bytes))
+            .ok_or(Error::Limit)?;
+        Ok(self.inventory)
+    }
+}
+
 /// Errors intentionally carry no rejected JSON or property names.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -744,6 +1012,14 @@ pub struct PortableSchema {
 }
 
 impl PortableSchema {
+    pub(crate) fn accumulate_owned_inventory(
+        &self,
+        meter: &mut OwnedInventoryMeter<'_>,
+    ) -> Result<(), Error> {
+        meter.bytes(&self.canonical.bytes)?;
+        meter.schema_value(&self.root, 0)
+    }
+
     pub fn canonical(&self) -> &CanonicalJson {
         &self.canonical
     }
@@ -921,4 +1197,16 @@ fn within_count(members: &[(String, Value)], count: usize, min: &str, max: &str)
             .ok()
             .flatten()
             .is_none_or(|limit| count <= limit)
+}
+
+/// Verify only the signature primitive used by the private Root build gate.
+/// Key selection, fixed record validation and authority remain with the host.
+pub fn verify_root_build_signature(
+    public_key: &[u8; 32],
+    message: &[u8],
+    signature: &[u8; 64],
+) -> bool {
+    ring::signature::UnparsedPublicKey::new(&ring::signature::ED25519, public_key)
+        .verify(message, signature)
+        .is_ok()
 }
