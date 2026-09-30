@@ -67,7 +67,6 @@ pub trait OrderedByteChannel: Send + Sync {
 /// drops a Waker, waits, allocates, or retains a borrowed read buffer. The
 /// caller destroys the returned owner-created Wakers before clock client zero.
 /// An arbitrary `OrderedByteChannel` does not satisfy this contract.
-#[allow(dead_code)]
 pub(crate) trait RetainedOrderedByteChannel: OrderedByteChannel {
     fn take_notifications(&self) -> [Option<Waker>; 2];
 
