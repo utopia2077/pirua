@@ -37,6 +37,8 @@ const runtimeTelemetry = scenario === "runtime-native-telemetry" ||
 const runtimeEvent = scenario === "runtime-native-event-sink" ||
   scenario === "runtime-native-event-sink-wrong-id";
 const runtimeQueue = scenario === "runtime-native-host-queue";
+const runtimeHostInbox = scenario === "runtime-native-host-inbox";
+const runtimeHostAbort = scenario === "runtime-native-host-abort-old";
 const runtimeStructural = scenario.startsWith("runtime-native-structural");
 const runtimeTool = scenario === "runtime-native-tool-hook" || scenario === "runtime-native-tool-hook-block";
 const toolBlocked = scenario === "runtime-native-tool-hook-block";
@@ -122,7 +124,7 @@ if (
   !(corpus.scenarios.includes(scenario) || scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeTool ||
     runtimeResourceR2 ||
     (runtimeStructural && ["positive", "compaction-decline", "navigation-decline"].includes(structuralCase)) ||
-    (runtimeResource && ["positive", "missing", "scope", "version", "parent"].includes(resourceCase))) ||
+    (runtimeResource && ["positive", "missing", "scope", "version", "parent"].includes(resourceCase)) || runtimeHostInbox || runtimeHostAbort) ||
   ![0, 1].includes(core) ||
   ![0, 1].includes(minor)
 )
@@ -207,6 +209,8 @@ const runtimeMethods = runtimeResourceR2 ? ["resource.list", "resource.read"] : 
   "resource.list", "resource.read", "before_run", "before_request",
   "transform_context", ...(runtimePayload ? ["before_payload"] : []),
   "provider.invoke", "after_response", "before_run_end",
+  ...(runtimeHostAbort ? ["before_run", "before_request", "transform_context",
+    "provider.invoke", "after_response", "before_run_end"] : []),
   ...(runtimeChanged ? ["resource.list", "resource.read"] : []),
 ];
 let runtimeIndex = 0;
@@ -240,6 +244,13 @@ let snapshotPhase = 0;
 let resourcePhase = 0;
 let resourceParent: any = null;
 let queuePhase = 0;
+let hostInboxPhase = 0;
+let hostInboxExpected = "before_request";
+let hostInboxExtraProviders = 0;
+let hostInboxEnded = false;
+let hostAbortOldId: string | null = null;
+let hostAbortParent: any = null;
+let hostAbortReplied = false;
 let eventSubscriptionId: string | null = null;
 let eventPhase = 0;
 let eventCredit = 0;
@@ -335,6 +346,53 @@ function nativeQueueRequest(requestId: number, lane: string, withParent: boolean
   };
   if (withParent) request.parent_request_id = snapshotParent.request_id;
   send({ request });
+}
+function nativeInboxRequest(phase: number) {
+  const method = phase === 0 || phase === 2 ? "queue.steer" : "queue.follow_up";
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "host-action.v1" && c.name === "actions");
+  if (!ref || ref.handler_id !== "qualified_handler" ||
+      ref.schema_digest_sha256.toString("hex") !== profileCodec.digests["host-action.v1"])
+    throw Error("selected inbox grant");
+  const projection = shapes.registry.projections["host.queue_item.v1"];
+  const item = {
+    projection_id: "host.queue_item.v1",
+    schema_digest_sha256: Buffer.from(projection.proposed_digest_sha256, "hex"),
+    value: wireValue({ role: "user", content: phase % 2 === 0 ? "native steer item" : "native follow-up item", timestamp: 7 + phase }),
+  };
+  boundCheck(item);
+  const m = profileCodec.methods[method];
+  const payload = profileCodec.encode(m.request, { lane: phase === 3 ? "other" : "main", item });
+  const decoded = profileCodec.decode(m.request, payload);
+  boundCheck(decoded);
+  if (!profileCodec.encode(m.request, sortedMaps(decoded)).equals(payload))
+    throw Error("inbox request DTO round trip");
+  const request: any = {
+    request_id: 1002 + phase, capability_ref: ref, method,
+    deadline_after_ms: 2000, initial_stream_credit_bytes: 0, payload,
+  };
+  if (phase !== 2) request.parent_request_id = snapshotParent.request_id;
+  send({ request });
+}
+function nativeAbortRequest() {
+  const method = "operation.abort";
+  const ref = granted.selected_capabilities.find((c: any) =>
+    c.profile.name === "host-action.v1" && c.name === "actions");
+  if (!ref || ref.handler_id !== "qualified_handler" ||
+      ref.schema_digest_sha256.toString("hex") !== profileCodec.digests["host-action.v1"])
+    throw Error("selected abort grant");
+  const operation_id = scenario.endsWith("-old") ? hostAbortOldId : hostAbortParent.effect_key.operation_id;
+  if (!operation_id || operation_id === "current") throw Error("actual abort operation ID");
+  const m = profileCodec.methods[method];
+  const payload = profileCodec.encode(m.request, { lane: "main", operation_id });
+  const decoded = profileCodec.decode(m.request, payload);
+  if (!profileCodec.encode(m.request, sortedMaps(decoded)).equals(payload))
+    throw Error("abort request DTO round trip");
+  send({ request: {
+    request_id: 1000, capability_ref: ref, method,
+    parent_request_id: hostAbortParent.request_id,
+    deadline_after_ms: 2000, initial_stream_credit_bytes: 0, payload,
+  } });
 }
 function nativeEventRequest(method: "event.subscribe" | "event.resync") {
   const ref = granted.selected_capabilities.find((c: any) =>
@@ -469,9 +527,23 @@ function validateRuntime(r: any, m: any, decoded: any) {
   if (structuralTail) {
     if (r.method !== structuralExpected)
       throw Error(`structural method order: ${r.method}, wanted ${structuralExpected}`);
+  } else if (runtimeHostInbox && runtimeIndex >= 7) {
+    if (hostInboxExpected === "continuation") {
+      if (r.method === "before_request") hostInboxExpected = "transform_context";
+      else if (r.method === "before_run_end" && hostInboxExtraProviders > 0) hostInboxEnded = true;
+      else throw Error(`inbox continuation order: ${r.method}`);
+    } else {
+      if (r.method !== hostInboxExpected) throw Error(`inbox method order: ${r.method}, wanted ${hostInboxExpected}`);
+      hostInboxExpected = r.method === "before_request" ? "transform_context" :
+        r.method === "transform_context" ? "provider.invoke" :
+        r.method === "provider.invoke" ? "after_response" : "continuation";
+      if (r.method === "provider.invoke") hostInboxExtraProviders++;
+    }
   } else if (runtimeIndex < runtimeMethods.length) {
     if (r.method !== runtimeMethods[runtimeIndex++])
       throw Error(`runtime method order: ${r.method}`);
+    if (runtimeHostAbort && runtimeIndex === 8)
+      hostAbortOldId = runtimeRunId;
   } else if (runtimeResume && telemetryFlushed) {
     if (r.method !== resumeMethods[resumePhase])
       throw Error(`runtime resume phase ${resumePhase}: ${r.method}`);
@@ -1049,7 +1121,7 @@ for (;;) {
     if (!(runtimeTool && r.method === "tool.invoke")) boundCheck(decoded);
     if (runtimeTool) {
       validateToolRuntime(r, m, decoded);
-    } else if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2 || runtimeStructural) {
+    } else if (scenario === "runtime-native" || runtimeChanged || runtimePayload || runtimeResource || runtimeResourceR2 || runtimeStructural || runtimeHostInbox || runtimeHostAbort) {
       validateRuntime(r, m, decoded);
     } else {
       const expected = payloadObject(
@@ -1074,6 +1146,23 @@ for (;;) {
     if (runtimeChanged && runtimeIndex === 9 && r.method === "resource.list") {
       changedList = r;
       nativeChangedRequest();
+      continue;
+    }
+    if (runtimeHostInbox && r.method === "provider.invoke" && runtimeIndex === 6) {
+      if (snapshotParent || runtimeIndex !== 6 || !r.effect_key?.operation_id)
+        throw Error("inbox provider parent");
+      snapshotParent = r;
+      awaitSignal("actions");
+      nativeInboxRequest(0);
+      continue;
+    }
+    if (runtimeHostAbort && r.method === "provider.invoke" && runtimeIndex === 12) {
+      if (hostAbortParent || !hostAbortOldId || !r.effect_key?.operation_id ||
+          r.effect_key.operation_id === hostAbortOldId)
+        throw Error("successor abort provider parent");
+      hostAbortParent = r;
+      awaitSignal("actions");
+      nativeAbortRequest();
       continue;
     }
     if (runtimeSnapshot && r.method === "provider.invoke") {
@@ -1210,6 +1299,43 @@ for (;;) {
         snapshotParent = null;
       }
     }
+  } else if (runtimeHostAbort && e.response && hostAbortParent && !hostAbortReplied) {
+    const response = e.response;
+    if (response.request_id !== 1000 || !("result" in response))
+      throw Error("abort response identity");
+    const m = profileCodec.methods["operation.abort"];
+    const decoded = profileCodec.decode(m.terminal, response.result);
+    if (!profileCodec.encode(m.terminal, sortedMaps(decoded)).equals(response.result))
+      throw Error("abort Result DTO round trip");
+    if (scenario.endsWith("-old") && decoded.aborted !== false)
+      throw Error("old-ID abort must be false");
+    hostAbortReplied = true;
+    if (scenario.endsWith("-old")) {
+      awaitSignal("provider");
+      terminal(hostAbortParent);
+      hostAbortParent = null;
+    }
+  } else if (runtimeHostInbox && e.response && snapshotParent && hostInboxPhase < 4) {
+    const response = e.response;
+    if (response.request_id !== 1002 + hostInboxPhase)
+      throw Error("inbox response identity");
+    if (hostInboxPhase < 2) {
+      if (!("result" in response)) throw Error("inbox action denied");
+      const method = profileCodec.methods[hostInboxPhase === 0 ? "queue.steer" : "queue.follow_up"];
+      const decoded = profileCodec.decode(method.terminal, response.result);
+      boundCheck(decoded);
+      if (!decoded.accepted || !decoded.item_id ||
+          !profileCodec.encode(method.terminal, sortedMaps(decoded)).equals(response.result))
+        throw Error("inbox Result DTO round trip");
+    } else if (response.error?.code !== (hostInboxPhase === 2 ? 8 : 10) ||
+               response.error.safe_message !== "request failed" || "result" in response) {
+      throw Error("inbox typed refusal");
+    }
+    const signals = ["inbox-follow-up", "inbox-denials", "inbox-wrong-lane", "provider"];
+    awaitSignal(signals[hostInboxPhase]);
+    hostInboxPhase++;
+    if (hostInboxPhase < 4) nativeInboxRequest(hostInboxPhase);
+    else { terminal(snapshotParent); snapshotParent = null; }
   } else if (runtimeQueue && e.response && snapshotParent && queuePhase > 0 && queuePhase < 5) {
     const response = e.response;
     if (response.request_id !== 1002 + (queuePhase === 1 ? 0 : queuePhase === 3 ? 1 : 2))
@@ -1408,6 +1534,12 @@ if (runtimeResource && (resourcePhase !== 5 || resourceParent !== null ||
 if (runtimeQueue && (queuePhase !== 5 || snapshotPhase !== 2 ||
     runtimeIndex !== runtimeMethods.length))
   throw Error("incomplete native queue history");
+if (runtimeHostInbox && (hostInboxPhase !== 4 || snapshotParent !== null ||
+    !hostInboxEnded || runtimeIndex !== 7))
+  throw Error("incomplete native inbox history");
+if (runtimeHostAbort && scenario.endsWith("-old") &&
+    (!hostAbortReplied || hostAbortParent !== null || runtimeIndex !== runtimeMethods.length))
+  throw Error("incomplete native abort successor history");
 if (runtimeStructural && (runtimeIndex !== runtimeMethods.length ||
     structuralExpected !== null || !structuralCompactionId ||
     (structuralCase !== "compaction-decline" && (!structuralNavigationId || structuralCompactionSummaries < 1)) ||

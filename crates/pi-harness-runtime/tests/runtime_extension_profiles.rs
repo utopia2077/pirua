@@ -2813,6 +2813,8 @@ enum ProcessMode {
     BeforePayloadMalformed,
     HostSnapshot,
     HostQueue,
+    HostInbox,
+    HostAbortOld,
     Structural,
     StructuralCompactionDecline,
     StructuralNavigationDecline,
@@ -3021,6 +3023,10 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-snapshot")
     } else if mode == ProcessMode::HostQueue {
         Channel::spawn_scenario(language, core, minor, "runtime-native-host-queue")
+    } else if mode == ProcessMode::HostInbox {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-host-inbox")
+    } else if mode == ProcessMode::HostAbortOld {
+        Channel::spawn_scenario(language, core, minor, "runtime-native-host-abort-old")
     } else if resource_mode {
         let scenario = match mode {
             ProcessMode::HostResource => "runtime-native-host-resource-get",
@@ -3115,6 +3121,8 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             | ProcessMode::BeforePayloadMalformed
             | ProcessMode::HostSnapshot
             | ProcessMode::HostQueue
+            | ProcessMode::HostInbox
+            | ProcessMode::HostAbortOld
             | ProcessMode::Structural
             | ProcessMode::StructuralCompactionDecline
             | ProcessMode::StructuralNavigationDecline
@@ -3298,13 +3306,179 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
         )
         .unwrap();
         drive(setup, harness.set_model(remote)).unwrap();
+        if mode == ProcessMode::HostAbortOld {
+            use pi_extension_protocol::profiles::wire_v1_1 as dto;
+            use pi_extension_protocol::wire::v1_1;
+            use std::time::{Duration, Instant};
+            let first = drive(
+                setup,
+                harness.prompt(PromptInput::Text {
+                    text: "native profile peer dynamic run first".into(),
+                    images: vec![],
+                }),
+            )
+            .unwrap()
+            .unwrap();
+            assert!(matches!(
+                first.outcome,
+                RunOutcome::CompletedWithAssistant(_)
+            ));
+            let old_id = first.run_id.as_str().to_owned();
+            let future = harness.prompt(PromptInput::Text {
+                text: "native profile peer dynamic run successor".into(),
+                images: vec![],
+            });
+            let mut future = std::pin::pin!(future);
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let parent = loop {
+                assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                setup.pump.tick();
+                if let Some(request) = peer
+                    .request_frames()
+                    .into_iter()
+                    .filter(|r| r.method == "provider.invoke")
+                    .nth(1)
+                {
+                    break request;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "finite successor provider parent: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            let parent_key = parent
+                .effect_key
+                .as_ref()
+                .expect("successor assistant EffectKey");
+            assert_eq!(parent_key.effect_kind, "assistant");
+            assert_eq!(parent_key.session_id, "runtime-session");
+            assert_eq!(parent_key.lane, "main");
+            assert_ne!(parent_key.operation_id, old_id);
+            let before = setup.pump.drive(store.snapshot()).unwrap();
+            peer.signal("actions");
+            let deadline = Instant::now() + Duration::from_secs(4);
+            let action = loop {
+                assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                setup.pump.tick();
+                if let Some(request) = peer
+                    .peer_request_frames()
+                    .into_iter()
+                    .find(|r| r.method == "operation.abort")
+                {
+                    break request;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "selected abort child missing: {}",
+                    peer.stderr_text()
+                );
+                std::thread::sleep(Duration::from_millis(1));
+            };
+            let selected = connection
+                .grant()
+                .profiles()
+                .iter()
+                .find(|p| {
+                    p.reference().name == "actions"
+                        && p.reference().profile.as_ref().unwrap().name == "host-action.v1"
+                })
+                .unwrap()
+                .reference();
+            assert_eq!(action.request_id, 1000);
+            assert!(action.request_id > parent.request_id);
+            assert_eq!(action.capability_ref.as_ref(), Some(selected));
+            assert_eq!(action.parent_request_id, Some(parent.request_id));
+            assert_eq!(action.effect_key, None);
+            assert_eq!(action.initial_stream_credit_bytes, Some(0));
+            assert!(
+                action
+                    .deadline_after_ms
+                    .is_some_and(|ms| ms > 0 && ms <= 2000)
+            );
+            let payload = dto::OperationAbortRequest::decode(action.payload.as_slice()).unwrap();
+            assert_eq!(payload.lane, "main");
+            if mode == ProcessMode::HostAbortOld && payload.operation_id == parent_key.operation_id
+            {
+                let deadline = Instant::now() + Duration::from_secs(4);
+                loop {
+                    setup.pump.tick();
+                    if peer.response_frames().len() == 1 {
+                        break;
+                    }
+                    assert!(Instant::now() < deadline, "finite current-ID mutant reply");
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                let response = &peer.response_frames()[0];
+                let Some(v1_1::response::Terminal::Result(body)) = &response.terminal else {
+                    panic!("current-ID mutant typed Result")
+                };
+                assert!(
+                    dto::OperationAbortResult::decode(body.as_slice())
+                        .unwrap()
+                        .aborted
+                );
+                assert_ne!(
+                    setup.pump.drive(store.snapshot()).unwrap(),
+                    before,
+                    "current-ID mutant must write cancellation state"
+                );
+                panic!("old-ID no-write witness rejects current-ID abort");
+            }
+            assert_eq!(payload.operation_id, old_id.as_str());
+            if mode == ProcessMode::HostAbortOld {
+                let deadline = Instant::now() + Duration::from_secs(4);
+                loop {
+                    assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                    setup.pump.tick();
+                    if peer.response_frames().len() == 1 {
+                        break;
+                    }
+                    assert!(
+                        Instant::now() < deadline,
+                        "old-ID abort reply missing: {}",
+                        peer.stderr_text()
+                    );
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                let response = &peer.response_frames()[0];
+                assert_eq!(response.request_id, action.request_id);
+                let Some(v1_1::response::Terminal::Result(body)) = &response.terminal else {
+                    panic!("old-ID typed abort Result: {:?}", response.terminal)
+                };
+                let result = dto::OperationAbortResult::decode(body.as_slice()).unwrap();
+                assert!(!result.aborted);
+                assert_eq!(result.encode_to_vec(), *body);
+                assert_eq!(
+                    setup.pump.drive(store.snapshot()).unwrap(),
+                    before,
+                    "old-ID abort is full Session no-write"
+                );
+                assert!(connection.current());
+                peer.signal("provider");
+                let second = drive(setup, future).unwrap().unwrap();
+                assert_eq!(second.run_id.as_str(), parent_key.operation_id);
+                assert!(matches!(
+                    second.outcome,
+                    RunOutcome::CompletedWithAssistant(_)
+                ));
+                assert_eq!(connection.occupancy(), 0);
+                peer.finish(true);
+                connection.close();
+                setup.pump.drive(harness.close()).unwrap();
+                return;
+            }
+        }
         let before_payload = (mode == ProcessMode::BeforePayload)
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
         let before_malformed = (mode == ProcessMode::BeforePayloadMalformed)
             .then(|| setup.pump.drive(store.snapshot()).unwrap());
         let mut queued_item_id = None;
-        let call = if matches!(mode, ProcessMode::HostSnapshot | ProcessMode::HostQueue)
-            || resource_mode
+        let call = if matches!(
+            mode,
+            ProcessMode::HostSnapshot | ProcessMode::HostQueue | ProcessMode::HostInbox
+        ) || resource_mode
             || event_mode
         {
             use pi_extension_protocol::profiles::wire_v1_1 as dto;
@@ -3345,6 +3519,226 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
             assert_eq!(peer.peer_request_frames().len(), 0, "actions await release");
             let before_actions = setup.pump.drive(store.snapshot()).unwrap();
             assert_eq!(before_actions.usage.len(), 1);
+            if mode == ProcessMode::HostInbox {
+                let selected = connection
+                    .grant()
+                    .profiles()
+                    .iter()
+                    .find(|p| {
+                        p.reference().name == "actions"
+                            && p.reference().profile.as_ref().unwrap().name == "host-action.v1"
+                    })
+                    .unwrap()
+                    .reference();
+                let mut before = before_actions;
+                peer.signal("actions");
+                for phase in 0..4 {
+                    let deadline = Instant::now() + Duration::from_secs(4);
+                    loop {
+                        assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                        setup.pump.tick();
+                        if peer.response_frames().len() == phase + 1 {
+                            break;
+                        }
+                        assert!(
+                            Instant::now() < deadline,
+                            "selected inbox child reply missing at {phase}: {}",
+                            peer.stderr_text()
+                        );
+                        std::thread::sleep(Duration::from_millis(1));
+                    }
+                    let requests = peer.peer_request_frames();
+                    assert_eq!(requests.len(), phase + 1);
+                    let request = &requests[phase];
+                    let response = &peer.response_frames()[phase];
+                    let method = if phase % 2 == 0 {
+                        "queue.steer"
+                    } else {
+                        "queue.follow_up"
+                    };
+                    let lane = if phase == 3 { "other" } else { "main" };
+                    let content = if phase % 2 == 0 {
+                        "native steer item"
+                    } else {
+                        "native follow-up item"
+                    };
+                    assert_eq!(request.request_id, 1002 + phase as u64);
+                    assert!(request.request_id > parent.request_id && request.request_id < 2000);
+                    assert_eq!(request.method, method);
+                    assert_eq!(request.capability_ref.as_ref(), Some(selected));
+                    if phase == 0 && request.parent_request_id.is_none() {
+                        let Some(v1_1::response::Terminal::Error(error)) = &response.terminal
+                        else {
+                            panic!("missing steer parent must be refused")
+                        };
+                        assert_eq!(error.code, v1_1::ErrorCode::InvalidParent as i32);
+                        assert_eq!(
+                            setup.pump.drive(store.snapshot()).unwrap(),
+                            before,
+                            "missing steer parent is full Session no-write"
+                        );
+                        panic!("positive steer admission requires selected live parent");
+                    }
+                    assert_eq!(
+                        request.parent_request_id,
+                        (phase != 2).then_some(parent.request_id)
+                    );
+                    assert_eq!(request.effect_key, None);
+                    assert_eq!(request.initial_stream_credit_bytes, Some(0));
+                    assert!(
+                        request
+                            .deadline_after_ms
+                            .is_some_and(|ms| ms > 0 && ms <= 2000)
+                    );
+                    let (actual_lane, item) = if phase % 2 == 0 {
+                        let p = dto::QueueSteerRequest::decode(request.payload.as_slice()).unwrap();
+                        (p.lane, p.item.unwrap())
+                    } else {
+                        let p =
+                            dto::QueueFollowUpRequest::decode(request.payload.as_slice()).unwrap();
+                        (p.lane, p.item.unwrap())
+                    };
+                    assert_eq!(actual_lane, lane);
+                    assert_eq!(item.projection_id, "host.queue_item.v1");
+                    assert_eq!(
+                        item.schema_digest_sha256,
+                        pi_extension_protocol::profiles::Registry::bundled()
+                            .unwrap()
+                            .digest("host.queue_item.v1")
+                            .unwrap()
+                    );
+                    let message = serde_json::json!({
+                        "role":"user", "content":content, "timestamp":7 + phase
+                    });
+                    assert_eq!(wire_value(item.value.unwrap()), message);
+                    assert_eq!(response.request_id, request.request_id);
+                    let after = setup.pump.drive(store.snapshot()).unwrap();
+                    if phase < 2 {
+                        let Some(v1_1::response::Terminal::Result(body)) = &response.terminal
+                        else {
+                            panic!("selected {method} Result: {:?}", response.terminal)
+                        };
+                        let result = dto::QueueResult::decode(body.as_slice()).unwrap();
+                        assert!(result.accepted && !result.item_id.is_empty());
+                        assert_eq!(result.encode_to_vec(), *body);
+                        assert_eq!(after.entries, before.entries);
+                        assert_eq!(after.usage, before.usage);
+                        assert_eq!(after.stats, before.stats);
+                        assert_eq!(after.storage_version, before.storage_version);
+                        assert_eq!(after.store_generation, before.store_generation);
+                        assert_eq!(
+                            after.next_seq.unwrap().get(),
+                            before.next_seq.unwrap().get() + 2
+                        );
+                        let prior = before
+                            .registers
+                            .iter()
+                            .filter(|r| matches!(r, Register::PendingEntry { .. }))
+                            .count();
+                        let pending = after
+                            .registers
+                            .iter()
+                            .filter_map(|r| match r {
+                                Register::PendingEntry { key, value, .. } => Some((key, value)),
+                                _ => None,
+                            })
+                            .collect::<Vec<_>>();
+                        assert_eq!(pending.len(), prior + 1);
+                        let (_, value) = pending
+                            .iter()
+                            .find(|(key, _)| *key == &result.item_id)
+                            .expect("minted pending item");
+                        assert_eq!(value.entry_type, PendingEntryType::Message);
+                        let pi_ai_core::Presence::Value(payload) = &value.payload else {
+                            panic!("pending message payload")
+                        };
+                        assert_eq!(serde_json::to_value(payload).unwrap(), message);
+                        let run = |registers: &Vec<Register>| {
+                            registers
+                                .iter()
+                                .find_map(|r| match r {
+                                    Register::OperationState { key, value, .. }
+                                        if key == &parent_key.operation_id =>
+                                    {
+                                        match value.as_ref() {
+                                            OperationState::Run(run) => Some(run.as_ref().clone()),
+                                            _ => None,
+                                        }
+                                    }
+                                    _ => None,
+                                })
+                                .unwrap()
+                        };
+                        let old_run = run(&before.registers);
+                        let new_run = run(&after.registers);
+                        let mut expected = old_run.clone();
+                        if phase == 0 {
+                            expected
+                                .inbox
+                                .steer
+                                .push(EntryId::new(result.item_id.clone()).unwrap());
+                        } else {
+                            expected
+                                .inbox
+                                .follow_up
+                                .push(EntryId::new(result.item_id.clone()).unwrap());
+                        }
+                        assert_eq!(new_run, expected);
+                        let other = |registers: &Vec<Register>| {
+                            registers.iter().filter(|r|
+                            !matches!(r, Register::PendingEntry { .. }) &&
+                            !matches!(r, Register::OperationState { key, .. } if key == &parent_key.operation_id)
+                        ).cloned().collect::<Vec<_>>()
+                        };
+                        assert_eq!(other(&after.registers), other(&before.registers));
+                    } else {
+                        let Some(v1_1::response::Terminal::Error(error)) = &response.terminal
+                        else {
+                            panic!("typed {method} refusal")
+                        };
+                        assert_eq!(
+                            error.code,
+                            if phase == 2 {
+                                v1_1::ErrorCode::InvalidParent as i32
+                            } else {
+                                v1_1::ErrorCode::Forbidden as i32
+                            }
+                        );
+                        assert_eq!(error.safe_message, "request failed");
+                        assert_eq!(after, before, "refusal is full Session no-write");
+                    }
+                    before = after;
+                    peer.signal(
+                        [
+                            "inbox-follow-up",
+                            "inbox-denials",
+                            "inbox-wrong-lane",
+                            "provider",
+                        ][phase],
+                    );
+                }
+                let completion = drive(setup, future)
+                    .unwrap_or_else(|error| {
+                        panic!(
+                            "inbox prompt fault: {error:?}; peer={}; wire={:?}",
+                            peer.stderr_text(),
+                            peer.request_frames()
+                                .iter()
+                                .map(|r| r.method.as_str())
+                                .collect::<Vec<_>>()
+                        )
+                    })
+                    .unwrap();
+                assert!(matches!(
+                    completion.outcome,
+                    RunOutcome::CompletedWithAssistant(_)
+                ));
+                assert_eq!(connection.occupancy(), 0);
+                peer.finish(true);
+                connection.close();
+                setup.pump.drive(harness.close()).unwrap();
+                return;
+            }
             if resource_mode {
                 let selected = connection
                     .grant()
@@ -6633,6 +7027,88 @@ fn runtime_native_host_queue_sqlite_all_pairs() {
                     minor,
                     language,
                     ProcessMode::HostQueue,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_inbox_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostInbox,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_inbox_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostInbox,
+                );
+                drop(store);
+                std::fs::remove_dir_all(dir).unwrap();
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_abort_old_memory_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                accepted_process_consumer(
+                    &setup,
+                    setup.session.clone(),
+                    setup.store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostAbortOld,
+                );
+            }
+        }
+    }
+}
+#[test]
+fn runtime_native_host_abort_old_sqlite_all_pairs() {
+    for language in ["typescript", "python"] {
+        for core in 0..=1 {
+            for minor in 0..=1 {
+                let setup = Setup::new();
+                let (session, store, dir) = sqlite_case(&setup);
+                accepted_process_consumer(
+                    &setup,
+                    session,
+                    store.clone(),
+                    core,
+                    minor,
+                    language,
+                    ProcessMode::HostAbortOld,
                 );
                 drop(store);
                 std::fs::remove_dir_all(dir).unwrap();

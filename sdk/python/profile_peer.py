@@ -23,6 +23,8 @@ corpus = json.loads(
 runtime_event = scenario in ("runtime-native-event-sink", "runtime-native-event-sink-wrong-id")
 runtime_telemetry = scenario in ("runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue") or runtime_event
 runtime_queue = scenario == "runtime-native-host-queue"
+runtime_host_inbox = scenario == "runtime-native-host-inbox"
+runtime_host_abort = scenario == "runtime-native-host-abort-old"
 runtime_structural = scenario.startswith("runtime-native-structural")
 runtime_tool = scenario in ("runtime-native-tool-hook", "runtime-native-tool-hook-block")
 tool_blocked = scenario == "runtime-native-tool-hook-block"
@@ -103,7 +105,7 @@ def payload_exposure(root, wire):
                 and event["model"].get("samplingParams") == model.get("samplingParams"))
     return payload_shape(value.get("result", {}).get("payload"))
 runtime_changed = scenario in ("runtime-native-changed", "runtime-native-changed-wrong-scope") or runtime_telemetry
-if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_tool or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
+if not (scenario in (*corpus["scenarios"], "runtime-native", "runtime-native-changed", "runtime-native-changed-wrong-scope", "runtime-native-telemetry", "runtime-native-telemetry-bad-ack", "runtime-native-telemetry-bad-flush", "runtime-native-before-resume", "runtime-native-host-snapshot", "runtime-native-host-queue", "runtime-native-host-inbox", "runtime-native-host-abort-old", "runtime-native-event-sink", "runtime-native-event-sink-wrong-id", "runtime-native-before-payload", "runtime-native-before-payload-malformed") or runtime_tool or runtime_resource_r2 or runtime_resource and resource_case in ("positive", "missing", "scope", "version", "parent") or runtime_structural and structural_case in ("positive", "compaction-decline", "navigation-decline")) or core not in (0, 1) or minor not in (0, 1):
     raise ValueError("selection")
 inbound, outbound = 0, 0
 once_done = False
@@ -191,6 +193,8 @@ runtime_methods = ["resource.list", "resource.read"] if runtime_resource_r2 else
     "transform_context", *(["before_payload"] if runtime_payload else []),
     "provider.invoke", "after_response", "before_run_end",
 ] + (["resource.list", "resource.read"] if runtime_changed else [])
+if runtime_host_abort:
+    runtime_methods += ["before_run", "before_request", "transform_context", "provider.invoke", "after_response", "before_run_end"]
 runtime_index = 0
 runtime_run_id = None
 runtime_provider_id = None
@@ -304,6 +308,13 @@ snapshot_phase = 0
 resource_phase = 0
 resource_parent = None
 queue_phase = 0
+host_inbox_phase = 0
+host_inbox_expected = "before_request"
+host_inbox_extra_providers = 0
+host_inbox_ended = False
+host_abort_old_id = None
+host_abort_parent = None
+host_abort_replied = False
 event_subscription_id = None
 event_phase = 0
 event_credit = 0
@@ -413,6 +424,59 @@ def native_queue_request(request_id, lane, with_parent):
     send({"request": request})
 
 
+def native_inbox_request(phase):
+    method = "queue.steer" if phase in (0, 2) else "queue.follow_up"
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "host-action.v1" and c["name"] == "actions"), None)
+    if (ref is None or ref["handler_id"] != "qualified_handler"
+            or ref["schema_digest_sha256"].hex() != profile_codec.digests["host-action.v1"]):
+        raise ValueError("selected inbox grant")
+    projection = shapes.registry["projections"]["host.queue_item.v1"]
+    item = {
+        "projection_id": "host.queue_item.v1",
+        "schema_digest_sha256": bytes.fromhex(projection["proposed_digest_sha256"]),
+        "value": wire_value({"role": "user", "content": "native steer item" if phase % 2 == 0 else "native follow-up item", "timestamp": 7 + phase}),
+    }
+    bound_check(item)
+    m = profile_codec.methods[method]
+    payload = profile_codec.encode(m["request"], {"lane": "other" if phase == 3 else "main", "item": item})
+    decoded = profile_codec.decode(m["request"], payload)
+    bound_check(decoded)
+    if profile_codec.encode(m["request"], sorted_maps(decoded)) != payload:
+        raise ValueError("inbox request DTO round trip")
+    request = {
+        "request_id": 1002 + phase, "capability_ref": ref, "method": method,
+        "deadline_after_ms": 2000, "initial_stream_credit_bytes": 0, "payload": payload,
+    }
+    if phase != 2:
+        request["parent_request_id"] = snapshot_parent["request_id"]
+    send({"request": request})
+
+
+def native_abort_request():
+    method = "operation.abort"
+    ref = next((c for c in granted["selected_capabilities"]
+                if c["profile"]["name"] == "host-action.v1" and c["name"] == "actions"), None)
+    if (ref is None or ref["handler_id"] != "qualified_handler"
+            or ref["schema_digest_sha256"].hex() != profile_codec.digests["host-action.v1"]):
+        raise ValueError("selected abort grant")
+    operation_id = (host_abort_old_id if scenario.endswith("-old")
+                    else host_abort_parent["effect_key"]["operation_id"])
+    if not operation_id or operation_id == "current":
+        raise ValueError("actual abort operation ID")
+    m = profile_codec.methods[method]
+    payload = profile_codec.encode(m["request"], {"lane": "main", "operation_id": operation_id})
+    decoded = profile_codec.decode(m["request"], payload)
+    if profile_codec.encode(m["request"], sorted_maps(decoded)) != payload:
+        raise ValueError("abort request DTO round trip")
+    send({"request": {
+        "request_id": 1000, "capability_ref": ref, "method": method,
+        "parent_request_id": host_abort_parent["request_id"],
+        "deadline_after_ms": 2000, "initial_stream_credit_bytes": 0,
+        "payload": payload,
+    }})
+
+
 def native_event_request(method):
     global event_credit
     ref = next((c for c in granted["selected_capabilities"]
@@ -481,6 +545,8 @@ def validate_runtime(request, method, decoded):
     global structural_last_provider_id
     global telemetry_batches, telemetry_last_sequence, telemetry_flushed
     global resume_phase, suspended_run_id, suspended_provider_id, deferred_provider_id
+    global host_inbox_expected, host_inbox_extra_providers, host_inbox_ended
+    global host_abort_old_id
     encoded = profile_codec.encode(method["request"], sorted_maps(decoded))
     again = profile_codec.decode(method["request"], encoded)
     bound_check(again)
@@ -491,10 +557,28 @@ def validate_runtime(request, method, decoded):
     if structural_tail:
         if name != structural_expected:
             raise ValueError(f"structural method order: {name}, wanted {structural_expected}")
+    elif runtime_host_inbox and runtime_index >= 7:
+        if host_inbox_expected == "continuation":
+            if name == "before_request":
+                host_inbox_expected = "transform_context"
+            elif name == "before_run_end" and host_inbox_extra_providers > 0:
+                host_inbox_ended = True
+            else:
+                raise ValueError("inbox continuation order: " + name)
+        else:
+            if name != host_inbox_expected:
+                raise ValueError("inbox method order: " + name + ", wanted " + host_inbox_expected)
+            host_inbox_expected = ("transform_context" if name == "before_request" else
+                                   "provider.invoke" if name == "transform_context" else
+                                   "after_response" if name == "provider.invoke" else "continuation")
+            if name == "provider.invoke":
+                host_inbox_extra_providers += 1
     elif runtime_index < len(runtime_methods):
         if name != runtime_methods[runtime_index]:
             raise ValueError("runtime method order: " + name)
         runtime_index += 1
+        if runtime_host_abort and runtime_index == 8:
+            host_abort_old_id = runtime_run_id
     elif runtime_resume and telemetry_flushed:
         if resume_phase >= len(resume_methods) or name != resume_methods[resume_phase]:
             raise ValueError(f"runtime resume phase {resume_phase}: {name}")
@@ -1154,7 +1238,7 @@ while not once_done:
             bound_check(decoded)
         if runtime_tool:
             validate_tool_runtime(request, m, decoded)
-        elif scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2 or runtime_structural:
+        elif scenario == "runtime-native" or runtime_changed or runtime_payload or runtime_resource or runtime_resource_r2 or runtime_structural or runtime_host_inbox or runtime_host_abort:
             validate_runtime(request, m, decoded)
         else:
             expected = payload_object(
@@ -1175,6 +1259,22 @@ while not once_done:
         if runtime_changed and runtime_index == 9 and request["method"] == "resource.list":
             changed_list = request
             native_changed_request()
+            continue
+        if runtime_host_inbox and request["method"] == "provider.invoke" and runtime_index == 6:
+            if snapshot_parent is not None or runtime_index != 6 or not request.get("effect_key", {}).get("operation_id"):
+                raise ValueError("inbox provider parent")
+            snapshot_parent = request
+            await_signal("actions")
+            native_inbox_request(0)
+            continue
+        if runtime_host_abort and request["method"] == "provider.invoke" and runtime_index == 12:
+            if (host_abort_parent is not None or not host_abort_old_id
+                    or not request.get("effect_key", {}).get("operation_id")
+                    or request["effect_key"]["operation_id"] == host_abort_old_id):
+                raise ValueError("successor abort provider parent")
+            host_abort_parent = request
+            await_signal("actions")
+            native_abort_request()
             continue
         if runtime_snapshot and request["method"] == "provider.invoke":
             if snapshot_parent is not None or runtime_index != 6 or not request.get("effect_key", {}).get("operation_id"):
@@ -1309,6 +1409,44 @@ while not once_done:
                 await_signal("provider")
                 terminal(snapshot_parent)
                 snapshot_parent = None
+    elif runtime_host_abort and "response" in e and host_abort_parent is not None and not host_abort_replied:
+        response = e["response"]
+        if response["request_id"] != 1000 or "result" not in response:
+            raise ValueError("abort response identity")
+        m = profile_codec.methods["operation.abort"]
+        decoded = profile_codec.decode(m["terminal"], response["result"])
+        if profile_codec.encode(m["terminal"], sorted_maps(decoded)) != response["result"]:
+            raise ValueError("abort Result DTO round trip")
+        if scenario.endswith("-old") and decoded["aborted"] is not False:
+            raise ValueError("old-ID abort must be false")
+        host_abort_replied = True
+        if scenario.endswith("-old"):
+            await_signal("provider")
+            terminal(host_abort_parent)
+            host_abort_parent = None
+    elif runtime_host_inbox and "response" in e and snapshot_parent is not None and host_inbox_phase < 4:
+        response = e["response"]
+        if response["request_id"] != 1002 + host_inbox_phase:
+            raise ValueError("inbox response identity")
+        if host_inbox_phase < 2:
+            if "result" not in response:
+                raise ValueError("inbox action denied")
+            m = profile_codec.methods["queue.steer" if host_inbox_phase == 0 else "queue.follow_up"]
+            decoded = profile_codec.decode(m["terminal"], response["result"])
+            bound_check(decoded)
+            if (not decoded["accepted"] or not decoded["item_id"]
+                    or profile_codec.encode(m["terminal"], sorted_maps(decoded)) != response["result"]):
+                raise ValueError("inbox Result DTO round trip")
+        elif (response.get("error", {}).get("code") != (8 if host_inbox_phase == 2 else 10)
+              or response["error"].get("safe_message") != "request failed" or "result" in response):
+            raise ValueError("inbox typed refusal")
+        await_signal(("inbox-follow-up", "inbox-denials", "inbox-wrong-lane", "provider")[host_inbox_phase])
+        host_inbox_phase += 1
+        if host_inbox_phase < 4:
+            native_inbox_request(host_inbox_phase)
+        else:
+            terminal(snapshot_parent)
+            snapshot_parent = None
     elif runtime_queue and "response" in e and snapshot_parent is not None and 0 < queue_phase < 5:
         response = e["response"]
         expected_id = 1002 + (0 if queue_phase == 1 else 1 if queue_phase == 3 else 2)
@@ -1514,6 +1652,13 @@ if runtime_resource and (resource_phase != 5 or resource_parent is not None
 if runtime_queue and (queue_phase != 5 or snapshot_phase != 2
                       or runtime_index != len(runtime_methods)):
     raise ValueError("incomplete native queue history")
+if runtime_host_inbox and (host_inbox_phase != 4 or snapshot_parent is not None
+                           or not host_inbox_ended or runtime_index != 7):
+    raise ValueError("incomplete native inbox history")
+if runtime_host_abort and scenario.endswith("-old") and (
+    not host_abort_replied or host_abort_parent is not None or runtime_index != len(runtime_methods)
+):
+    raise ValueError("incomplete native abort successor history")
 if runtime_structural and (runtime_index != len(runtime_methods)
                            or structural_expected is not None or structural_compaction_id is None
                            or structural_case != "compaction-decline" and

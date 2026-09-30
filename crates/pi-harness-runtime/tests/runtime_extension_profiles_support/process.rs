@@ -80,7 +80,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "2bb44ec74e0cc905d8b3b5e57293add23d96e3718f9ee11ce784c899fa1d951d",
+            "3fed2d1036091261f47d91aab3fdb53f65dc867305c7d5bd11099dd7df359876",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -92,7 +92,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "a3b9aa460dfccd2c1376efbdc135ac73290a1d5e4bef27e63ccf6f5b8dbbc721",
+            "0432520b6cd6c11b41fc2ef9afeba575aecfb77ac4376a03db2f4604355dcc1b",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -302,6 +302,9 @@ impl Channel {
                 | "resource-second"
                 | "queue-denials"
                 | "queue-wrong-lane"
+                | "inbox-follow-up"
+                | "inbox-denials"
+                | "inbox-wrong-lane"
                 | "event-subscribe"
                 | "event-credit"
                 | "event-resync"
@@ -379,6 +382,30 @@ impl Channel {
                 let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
                 match envelope.frame {
                     Some(v1_1::envelope::Frame::Response(response)) => Some(response),
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+    pub fn action_control_order(&self, action_id: u64, parent_id: u64) -> Vec<String> {
+        self.writes
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|bytes| {
+                let mut reader = FrameReader::<v1_1::Envelope>::new(nz(4096));
+                let envelope = reader.read_one(bytes).unwrap().frame.unwrap().envelope;
+                match envelope.frame {
+                    Some(v1_1::envelope::Frame::Response(response))
+                        if response.request_id == action_id =>
+                    {
+                        Some(format!("action-response:{:?}", response.terminal))
+                    }
+                    Some(v1_1::envelope::Frame::Cancel(cancel))
+                        if cancel.request_id == parent_id =>
+                    {
+                        Some(format!("parent-cancel:{}", cancel.reason))
+                    }
                     _ => None,
                 }
             })
@@ -486,7 +513,7 @@ impl Channel {
         if success {
             assert!(
                 status.success(),
-                "actor failed: {}",
+                "actor failed ({status}): {}",
                 String::from_utf8_lossy(&self.stderr.lock().unwrap())
             );
         }
