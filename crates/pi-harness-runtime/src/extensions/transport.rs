@@ -60,14 +60,20 @@ pub trait OrderedByteChannel: Send + Sync {
     fn close(&self);
 }
 
-/// Private admission for a retained receive caller. After an in-scope read or
-/// write future is dropped, `take_notifications` detaches every Waker the
-/// channel retained for that operation. `close_retained` physically closes the
-/// channel and detaches the same finite two seats. Neither method invokes or
-/// drops a Waker, waits, allocates, or retains a borrowed read buffer. The
-/// caller destroys the returned owner-created Wakers before clock client zero.
-/// An arbitrary `OrderedByteChannel` does not satisfy this contract.
-pub(crate) trait RetainedOrderedByteChannel: OrderedByteChannel {
+/// Host-owned admission capability for the retained receive path. After an
+/// in-scope read or write future is dropped, `take_notifications` detaches
+/// every Waker the channel retained for that operation. `close_retained`
+/// physically closes the channel and detaches the same finite two seats.
+/// Neither method invokes or drops a Waker, waits, allocates, or retains a
+/// borrowed read buffer. The caller destroys the returned owner-created
+/// Wakers before clock client zero. An arbitrary `OrderedByteChannel` does not
+/// satisfy this contract.
+///
+/// The ordinary Tool ingress remains available for channels that implement only
+/// [`OrderedByteChannel`]. Hosts that provide this stronger capability may opt
+/// into [`crate::owner::RuntimeHarness::connect_profile_tool_retained`] before
+/// the channel is erased to the ordinary view.
+pub trait RetainedOrderedByteChannel: OrderedByteChannel {
     fn take_notifications(&self) -> [Option<Waker>; 2];
 
     fn close_retained(&self) -> [Option<Waker>; 2];

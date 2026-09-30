@@ -4,17 +4,39 @@ mod runtime_r1_r4_support;
 use pi_agent_schema::*;
 use pi_agent_session::{
     codec::SessionCodec,
+    memory::MemoryStorage,
     session::RuntimeSession,
     storage::{AtomicStorage, RuntimeStorage},
 };
 use pi_harness_runtime::{
     extensions::profiles::hooks::RemoteHook,
+    extensions::transport::{OrderedByteChannel, RetainedOrderedByteChannel},
     owner::{RuntimeFactory, RuntimeHarness},
 };
 use prost::Message;
 use runtime_extension_profiles_support::*;
 use runtime_r1_r4_support::*;
 use std::sync::{Arc, atomic::Ordering};
+
+fn retained_ingress_api_is_public<
+    C: Send + Sync + 'static,
+    S: RuntimeStorage + 'static,
+    M: SessionMetadataRecord,
+>() {
+    let _ = RuntimeHarness::<C, S, M>::connect_profile_tool_retained;
+
+    fn accepts_ordinary_channel<T: OrderedByteChannel + ?Sized>() {}
+    fn accepts_retained_channel<T: RetainedOrderedByteChannel + ?Sized>() {}
+
+    accepts_ordinary_channel::<dyn OrderedByteChannel>();
+    accepts_retained_channel::<dyn RetainedOrderedByteChannel>();
+}
+
+#[test]
+fn retained_ingress_api_is_additive_and_reachable_from_external_host_code() {
+    retained_ingress_api_is_public::<(), MemoryStorage, SessionMetadata>();
+}
+
 fn create<S: RuntimeStorage + 'static>(
     setup: &Setup,
     session: Arc<RuntimeSession<S>>,

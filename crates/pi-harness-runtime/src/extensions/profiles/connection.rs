@@ -1859,10 +1859,12 @@ impl<
         Ok((connection, route))
     }
 
-    /// Internal retained-capability ingress for the staged 8192 receive path.
-    /// The ordinary Tool entry above remains source-compatible for channels
-    /// that advertise only `OrderedByteChannel`.
-    pub(crate) async fn connect_profile_tool_retained(
+    /// Host-owned retained-capability ingress for the staged 8192 receive
+    /// path. The ordinary Tool entry above remains source-compatible for
+    /// channels that advertise only [`OrderedByteChannel`]. This additive
+    /// entry preserves the existing pump as the sole reader and carries the
+    /// retained capability into the route before ordinary trait erasure.
+    pub async fn connect_profile_tool_retained(
         &self,
         owner: &crate::extensions::tool_driver::SingleToolOwner,
         host: HostAuthority,
