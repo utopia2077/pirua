@@ -34,6 +34,11 @@ pub(super) struct CallerIdentity8192 {
     pub(super) origin: Arc<dyn OriginFence>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct RefusalDecision8192 {
+    pub(super) body_len: usize,
+}
+
 impl CallerIdentity8192 {
     pub(super) fn matches(&self, other: &Self) -> bool {
         self.arguments.key == other.arguments.key
@@ -154,6 +159,31 @@ impl StagedReceive8192 {
 
     pub(super) fn clear_any_caller(&self) {
         self.caller.lock().unwrap_or_else(|p| p.into_inner()).take();
+    }
+
+    /// Validate one already-bound caller and retain only the measured wire
+    /// length for an explicit refusal. This is the inert boundary before any
+    /// indexed body handoff, credit debit, terminal admission, or settlement.
+    pub(super) fn prepare_refusal(
+        &self,
+        binding: &InvocationBinding,
+        caller: &CallerIdentity8192,
+        body_len: usize,
+    ) -> Result<RefusalDecision8192, Receive8192Error> {
+        if body_len == 0 || body_len > super::receive_backing8192::FRAME {
+            return Err(Receive8192Error::Capacity);
+        }
+        if self.close_requested.load(Ordering::Acquire) || self.cleaned.load(Ordering::Acquire) {
+            return Err(Receive8192Error::Closed);
+        }
+        let slot = self.caller.lock().unwrap_or_else(|p| p.into_inner());
+        let Some((existing_binding, existing_caller)) = slot.as_ref() else {
+            return Err(Receive8192Error::InvalidCaller);
+        };
+        if !existing_binding.same_live_identity(binding) || !existing_caller.matches(caller) {
+            return Err(Receive8192Error::InvalidCaller);
+        }
+        Ok(RefusalDecision8192 { body_len })
     }
 
     #[cfg(test)]
