@@ -127,17 +127,62 @@ def feature_activates_dependency(
 
 
 def validate_local_packages(
-    metadata: dict[str, Any], crate_names: set[str], profile: str, errors: list[str]
+    metadata: dict[str, Any],
+    crate_names: set[str],
+    test_only_package: dict[str, str],
+    root: Path,
+    profile: str,
+    errors: list[str],
 ) -> list[dict[str, Any]]:
     packages_by_id = {package["id"]: package for package in metadata["packages"]}
     workspace_packages = [packages_by_id[package_id] for package_id in metadata["workspace_members"]]
     workspace_names = {package["name"] for package in workspace_packages}
-    if workspace_names != crate_names or len(workspace_packages) != len(crate_names):
+    expected_workspace_names = crate_names | {test_only_package["name"]}
+    if (
+        workspace_names != expected_workspace_names
+        or len(workspace_packages) != len(expected_workspace_names)
+    ):
         errors.append(
             f"{profile} Cargo workspace package inventory mismatch: "
-            f"expected [{', '.join(sorted(crate_names))}], "
+            f"expected [{', '.join(sorted(expected_workspace_names))}], "
             f"actual [{', '.join(sorted(workspace_names))}]"
         )
+    production_packages = [
+        package for package in workspace_packages if package["name"] in crate_names
+    ]
+    if {package["name"] for package in production_packages} != crate_names or len(
+        production_packages
+    ) != len(crate_names):
+        errors.append(
+            f"{profile} production package inventory must remain exactly "
+            f"{len(crate_names)} crates"
+        )
+    test_only_packages = [
+        package
+        for package in workspace_packages
+        if package["name"] == test_only_package["name"]
+    ]
+    expected_manifest = (
+        root / test_only_package["path"] / "Cargo.toml"
+    ).resolve()
+    if len(test_only_packages) != 1:
+        errors.append(
+            f"{profile} must contain exactly one authorized test-only package "
+            f"{test_only_package['name']}"
+        )
+    else:
+        package = test_only_packages[0]
+        if package.get("source") is not None:
+            errors.append(
+                f"{profile} authorized test-only package must be a local path package"
+            )
+        if package.get("manifest_path") is None or Path(
+            package["manifest_path"]
+        ).resolve() != expected_manifest:
+            errors.append(
+                f"{profile} authorized test-only package must resolve to "
+                f"{expected_manifest}"
+            )
     workspace_ids = set(metadata["workspace_members"])
     hidden_local_packages = sorted(
         (
@@ -154,10 +199,52 @@ def validate_local_packages(
     return workspace_packages
 
 
+def validate_test_only_package_policy(
+    root: Path,
+    topology: dict[str, Any],
+    crate_names: set[str],
+    errors: list[str],
+) -> dict[str, str] | None:
+    package = topology.get("test_only_package")
+    if not isinstance(package, dict):
+        errors.append("workspace-topology.toml must define one test_only_package")
+        return None
+    expected_keys = {"name", "path", "consumer"}
+    if set(package) != expected_keys:
+        errors.append(
+            "test_only_package must contain exactly name, path, and consumer"
+        )
+        return None
+    if not all(isinstance(package.get(key), str) for key in expected_keys):
+        errors.append("test_only_package fields must be strings")
+        return None
+    path = Path(package["path"])
+    if path.is_absolute() or ".." in path.parts:
+        errors.append("test_only_package path must be a fixed repository-relative path")
+    expected_path = (root / path).resolve()
+    authorized_path = (
+        root / "crates/pi-harness-runtime/tests/runtime_extension_profiles_alloc"
+    ).resolve()
+    if expected_path != authorized_path:
+        errors.append("test_only_package path is not the authorized allocator package")
+    if package["name"] != "runtime-extension-profiles-alloc":
+        errors.append("test_only_package name is not the authorized allocator package")
+    if package["consumer"] != "pi-harness-runtime":
+        errors.append("test_only_package consumer must be pi-harness-runtime")
+    if package["consumer"] not in crate_names:
+        errors.append("test_only_package consumer must be a production crate")
+    return {
+        "name": package["name"],
+        "path": package["path"],
+        "consumer": package["consumer"],
+    }
+
+
 def validate_dependency_declarations(
     root: Path,
     workspace_packages: list[dict[str, Any]],
     crate_names: set[str],
+    test_only_package: dict[str, str],
     expected_edges: dict[tuple[str, str], dict[str, Any]],
     expected_dev_edges: set[tuple[str, str]],
     errors: list[str],
@@ -166,17 +253,36 @@ def validate_dependency_declarations(
         crate: (root / "crates" / crate).resolve() for crate in crate_names
     }
     paths_to_crates = {path: crate for crate, path in expected_paths.items()}
+    test_only_path = (root / test_only_package["path"]).resolve()
     declarations: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for package in workspace_packages:
         consumer = package["name"]
         for dependency_record in package["dependencies"]:
+            dependency = dependency_record["name"]
             dependency_path = dependency_record.get("path")
+            if dependency == test_only_package["name"] or (
+                dependency_path is not None
+                and Path(dependency_path).resolve() == test_only_path
+            ):
+                if (
+                    consumer != test_only_package["consumer"]
+                    or dependency != test_only_package["name"]
+                    or dependency_record.get("kind") != "dev"
+                    or dependency_path is None
+                    or Path(dependency_path).resolve() != test_only_path
+                    or dependency_record.get("target") is not None
+                    or dependency_record.get("rename") is not None
+                ):
+                    errors.append(
+                        f"{consumer} -> {test_only_package['name']} must be the "
+                        "exact untargeted dev dependency of the authorized test package"
+                    )
+                continue
             path_crate = (
                 paths_to_crates.get(Path(dependency_path).resolve())
                 if dependency_path is not None
                 else None
             )
-            dependency = dependency_record["name"]
             if dependency not in crate_names and path_crate is None:
                 continue
             canonical_dependency = dependency if dependency in crate_names else path_crate
@@ -229,6 +335,42 @@ def validate_dependency_declarations(
                 errors.append(
                     f"internal edge optionality mismatch: {consumer} -> {dependency} "
                     f"expected optional={expected_optional}"
+                )
+
+
+def validate_test_only_package_edges(
+    metadata: dict[str, Any],
+    crate_names: set[str],
+    test_only_package: dict[str, str],
+    errors: list[str],
+) -> None:
+    packages_by_id = {package["id"]: package for package in metadata["packages"]}
+    support = next(
+        (
+            package
+            for package in metadata["packages"]
+            if package["name"] == test_only_package["name"]
+        ),
+        None,
+    )
+    if support is None:
+        return
+    support_id = support["id"]
+    for node in metadata["resolve"]["nodes"]:
+        consumer = packages_by_id[node["id"]]["name"]
+        if consumer not in crate_names:
+            continue
+        for dependency in node["deps"]:
+            if dependency["pkg"] != support_id:
+                continue
+            kinds = {
+                (entry.get("kind"), entry.get("target"))
+                for entry in dependency.get("dep_kinds", [])
+            }
+            if consumer != test_only_package["consumer"] or kinds != {("dev", None)}:
+                errors.append(
+                    f"{consumer} -> {test_only_package['name']} is a production "
+                    "dependency edge; only the authorized dev edge is allowed"
                 )
 
 
@@ -347,6 +489,11 @@ def validate_workspace(
         errors.append("workspace-topology.toml must name exactly 15 unique production crates")
         return errors
     crate_names = set(crates)
+    test_only_package = validate_test_only_package_policy(
+        root, topology, crate_names, errors
+    )
+    if test_only_package is None:
+        return errors
 
     root_manifest = load_toml(root / "Cargo.toml")
     workspace = root_manifest.get("workspace", {})
@@ -420,11 +567,30 @@ def validate_workspace(
         errors.append(f"topology graph contains a cycle involving: {', '.join(cycle)}")
 
     workspace_packages = validate_local_packages(
-        default_metadata, crate_names, "default", errors
+        default_metadata, crate_names, test_only_package, root, "default", errors
     )
-    validate_local_packages(all_feature_metadata, crate_names, "all-feature", errors)
+    validate_local_packages(
+        all_feature_metadata,
+        crate_names,
+        test_only_package,
+        root,
+        "all-feature",
+        errors,
+    )
     validate_dependency_declarations(
-        root, workspace_packages, crate_names, expected_edges, expected_dev_edges, errors
+        root,
+        workspace_packages,
+        crate_names,
+        test_only_package,
+        expected_edges,
+        expected_dev_edges,
+        errors,
+    )
+    validate_test_only_package_edges(
+        default_metadata, crate_names, test_only_package, errors
+    )
+    validate_test_only_package_edges(
+        all_feature_metadata, crate_names, test_only_package, errors
     )
 
     groups = {group["id"]: group["members"] for group in topology.get("feature_group", [])}

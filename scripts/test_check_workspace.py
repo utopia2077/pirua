@@ -44,6 +44,140 @@ class WorkspaceCheckerTests(unittest.TestCase):
             record for record in package["dependencies"] if record["name"] == dependency
         )
 
+    @staticmethod
+    def package(metadata: dict[str, Any], name: str) -> dict[str, Any]:
+        return next(package for package in metadata["packages"] if package["name"] == name)
+
+    @staticmethod
+    def resolve_node(metadata: dict[str, Any], package_id: str) -> dict[str, Any]:
+        return next(node for node in metadata["resolve"]["nodes"] if node["id"] == package_id)
+
+    @staticmethod
+    def add_workspace_package(
+        metadata: dict[str, Any], name: str, manifest_path: str
+    ) -> str:
+        package_id = f"path+file://{manifest_path}#{name}@0.0.0"
+        metadata["packages"].append(
+            {
+                "name": name,
+                "id": package_id,
+                "source": None,
+                "manifest_path": manifest_path,
+                "dependencies": [],
+                "features": {},
+            }
+        )
+        metadata["workspace_members"].append(package_id)
+        metadata["resolve"]["nodes"].append(
+            {"id": package_id, "dependencies": [], "deps": [], "features": []}
+        )
+        return package_id
+
+    def test_exact_test_only_package_is_accepted_in_both_metadata_profiles(self):
+        errors = self.validate_metadata(self.default_metadata, self.all_feature_metadata)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(self.topology["production_crates"]), 15)
+        expected_path = (
+            ROOT / self.topology["test_only_package"]["path"] / "Cargo.toml"
+        ).resolve()
+        for metadata in (self.default_metadata, self.all_feature_metadata):
+            production = [
+                package
+                for package in metadata["packages"]
+                if package["name"] in self.topology["production_crates"]
+                and package["id"] in metadata["workspace_members"]
+            ]
+            self.assertEqual(len(production), 15)
+            support = self.package(metadata, self.topology["test_only_package"]["name"])
+            self.assertEqual(Path(support["manifest_path"]).resolve(), expected_path)
+
+    def test_second_renamed_moved_and_unauthorized_local_packages_are_rejected(self):
+        scenarios = ("second", "renamed", "moved", "unauthorized")
+        for scenario in scenarios:
+            with self.subTest(scenario=scenario):
+                default_metadata = copy.deepcopy(self.default_metadata)
+                all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
+                for metadata in (default_metadata, all_feature_metadata):
+                    support = self.package(
+                        metadata, self.topology["test_only_package"]["name"]
+                    )
+                    if scenario == "second":
+                        self.add_workspace_package(
+                            metadata,
+                            "runtime-extension-profiles-alloc-second",
+                            "/tmp/runtime-extension-profiles-alloc-second/Cargo.toml",
+                        )
+                    elif scenario == "renamed":
+                        support["name"] = "runtime-extension-profiles-alloc-renamed"
+                    elif scenario == "moved":
+                        support["manifest_path"] = (
+                            "/tmp/moved-runtime-extension-profiles-alloc/Cargo.toml"
+                        )
+                    else:
+                        rogue_id = self.add_workspace_package(
+                            metadata,
+                            "runtime-extension-profiles-alloc-rogue",
+                            "/tmp/runtime-extension-profiles-alloc-rogue/Cargo.toml",
+                        )
+                        metadata["workspace_members"].remove(rogue_id)
+                        core = self.package(metadata, "pi-ai-core")
+                        core_node = self.resolve_node(metadata, core["id"])
+                        core_node["deps"].append(
+                            {
+                                "name": "runtime_extension_profiles_alloc_rogue",
+                                "pkg": rogue_id,
+                                "dep_kinds": [{"kind": None, "target": None}],
+                            }
+                        )
+                errors = self.validate_metadata(default_metadata, all_feature_metadata)
+                if scenario == "moved":
+                    self.assertTrue(
+                        any("authorized test-only package must resolve" in error for error in errors),
+                        errors,
+                    )
+                elif scenario == "unauthorized":
+                    self.assertTrue(
+                        any(
+                            "metadata has reachable local path package outside workspace"
+                            in error
+                            for error in errors
+                        ),
+                        errors,
+                    )
+                else:
+                    self.assertTrue(
+                        any("Cargo workspace package inventory mismatch" in error for error in errors),
+                        errors,
+                    )
+
+    def test_production_edge_to_test_only_package_is_rejected(self):
+        default_metadata = copy.deepcopy(self.default_metadata)
+        all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
+        support_name = self.topology["test_only_package"]["name"]
+        for metadata in (default_metadata, all_feature_metadata):
+            support = self.package(metadata, support_name)
+            runtime = self.package(metadata, "pi-harness-runtime")
+            declaration = copy.deepcopy(self.dependency(metadata, "pi-harness-runtime", support_name))
+            declaration["kind"] = None
+            core = self.package(metadata, "pi-ai-core")
+            core["dependencies"].append(declaration)
+            core_node = self.resolve_node(metadata, core["id"])
+            core_node["deps"].append(
+                {
+                    "name": "runtime_extension_profiles_alloc",
+                    "pkg": support["id"],
+                    "dep_kinds": [{"kind": None, "target": None}],
+                }
+            )
+            self.assertEqual(runtime["name"], "pi-harness-runtime")
+        errors = self.validate_metadata(default_metadata, all_feature_metadata)
+        self.assertTrue(
+            any("production dependency edge" in error for error in errors), errors
+        )
+        self.assertTrue(
+            any("exact untargeted dev dependency" in error for error in errors), errors
+        )
+
     def test_s05_oauth_cli_dependency_target_and_activation_controls(self):
         original = next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai")
         errors = []
