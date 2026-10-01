@@ -1,0 +1,9 @@
+[package]
+name = "runtime-extension-profiles-alloc"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.98.0"
+publish = false
+
+[lints.rust]
+unsafe_code = "allow"

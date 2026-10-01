@@ -1,4 +1,9 @@
 #![allow(dead_code)]
+use runtime_extension_profiles_alloc::TestAlloc;
+
+#[global_allocator]
+static GLOBAL: TestAlloc = TestAlloc;
+
 use pi_extension_protocol::{
     activation::*,
     profiles::{self, wire_v1_1 as dto},

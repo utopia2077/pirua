@@ -1313,6 +1313,7 @@ dependencies = [
  "pi-harness-core",
  "pi-telemetry",
  "prost",
+ "runtime-extension-profiles-alloc",
  "rusqlite",
  "ryu-js",
  "serde_json",
@@ -1520,6 +1521,10 @@ dependencies = [
  "untrusted 0.9.0",
  "windows-sys 0.52.0",
 ]
+
+[[package]]
+name = "runtime-extension-profiles-alloc"
+version = "0.0.0"
 
 [[package]]
 name = "rusqlite"

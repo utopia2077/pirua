@@ -28,3 +28,4 @@ serde_json.workspace = true
 pi-agent-sqlite.workspace = true
 prost.workspace = true
 rusqlite.workspace = true
+runtime-extension-profiles-alloc = { path = "tests/runtime_extension_profiles_alloc" }
