@@ -347,6 +347,99 @@ mod tests {
         }
     }
 
+    fn measured_trace() -> serde_json::Value {
+        let receive = StagedReceive8192::stage(Arc::new(Probe), 17).unwrap();
+        let mut events = Vec::new();
+        events.push(serde_json::json!({
+            "event": "staged",
+            "generation": 17,
+            "probe_max_read_scratch_bytes": 0,
+        }));
+
+        let first_reader = receive.claim_reader().unwrap();
+        events.push(serde_json::json!({
+            "event": "reader_claimed",
+            "reader_claimed": true,
+        }));
+        let occupied = receive.claim_reader();
+        assert!(matches!(occupied, Err(Receive8192Error::Occupied)));
+        events.push(serde_json::json!({
+            "event": "second_reader_refused",
+            "result": "Occupied",
+            "reader_claimed": true,
+        }));
+        drop(first_reader);
+        events.push(serde_json::json!({
+            "event": "reader_released",
+            "reader_claimed": false,
+        }));
+
+        let refusal = receive.run_preopened();
+        assert!(matches!(refusal, Err(Receive8192Error::NativeRefused)));
+        events.push(serde_json::json!({
+            "event": "run_preopened",
+            "result": "NativeRefused",
+            "reader_claimed": false,
+            "refusal_before_close": true,
+        }));
+
+        let final_reader = receive.claim_reader().unwrap();
+        receive.finish_close();
+        assert!(!receive.is_cleaned_for_test());
+        events.push(serde_json::json!({
+            "event": "close_requested",
+            "result": "deferred",
+            "reader_claimed": true,
+            "cleaned": false,
+        }));
+        drop(final_reader);
+        assert!(receive.is_cleaned_for_test());
+        events.push(serde_json::json!({
+            "event": "reader_drop_cleanup",
+            "reader_claimed": false,
+            "cleaned": true,
+        }));
+
+        serde_json::json!({
+            "trace_kind": "refusal",
+            "outcomes": {
+                "normal": "not_executed",
+                "partial": "not_executed",
+                "error": "not_executed",
+                "cancel": "not_executed",
+                "refusal": "NativeRefused",
+            },
+            "events": events,
+            "ordering": [
+                "staged",
+                "reader_claimed",
+                "second_reader_refused",
+                "reader_released",
+                "run_preopened",
+                "close_requested",
+                "reader_drop_cleanup",
+            ],
+            "backing": super::super::receive_backing8192::measured_snapshot_for_test(),
+        })
+    }
+
+    #[test]
+    fn native_measurement_trace() {
+        std::thread::Builder::new()
+            .name("receive8192-native-measurement".into())
+            .stack_size(64 * 1024 * 1024)
+            .spawn(|| {
+                let trace = measured_trace();
+                println!(
+                    "NATIVE_MEASUREMENT {}",
+                    serde_json::to_string(&trace).unwrap()
+                );
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
     #[test]
     fn staged_receive_keeps_one_reader_and_refuses_native_activation() {
         std::thread::Builder::new()

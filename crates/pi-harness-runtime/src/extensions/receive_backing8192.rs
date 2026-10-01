@@ -132,6 +132,51 @@ impl ReceiveLease8192 {
 }
 
 #[cfg(test)]
+pub(super) fn measured_snapshot_for_test() -> serde_json::Value {
+    let backing = ReceiveBacking8192::construct().unwrap();
+    let layout = backing.layout();
+    let selected = NonZeroUsize::new(FRAME).unwrap();
+    let mut first = backing.lease(selected).unwrap();
+    let _second = backing.lease(selected).unwrap();
+    let third = backing.lease(selected);
+    let body = [1_u8, 2, 3, 5, 8, 13];
+    let body_len = first.measured_body_len(&body).unwrap();
+    let overflow = vec![0_u8; FRAME + 1];
+    let overflow_result = first.measured_body_len(&overflow);
+    let body_capacity = first.body_mut().unwrap().len();
+    let selected_frame_bytes = first.selected().get();
+
+    serde_json::json!({
+        "layout": {
+            "slot_bytes": layout.slot_bytes,
+            "total_slot_bytes": layout.total_slot_bytes,
+            "body_bytes": layout.body_bytes,
+        },
+        "pool": {
+            "configured_slots": 2,
+            "leases_acquired": 2,
+            "third_lease": match third {
+                Err(Backing8192Error::Exhausted) => "refused",
+                Err(Backing8192Error::Capacity) => "capacity_refused",
+                Ok(_) => "accepted",
+            },
+        },
+        "lease": {
+            "selected_frame_bytes": selected_frame_bytes,
+            "body_capacity": body_capacity,
+            "body_len": body_len,
+            "body_sample_len": body.len(),
+            "overflow_len": overflow.len(),
+            "overflow": match overflow_result {
+                Err(Backing8192Error::Capacity) => "refused",
+                Err(Backing8192Error::Exhausted) => "exhausted",
+                Ok(_) => "accepted",
+            },
+        },
+    })
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
