@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Capture one bounded, test-only native measurement walking skeleton.
+"""Capture a bounded, test-only current-native measurement.
 
 The capture is deliberately limited to the current pi-harness-runtime library
-test executable and the 8192 retained-route measurement test.  It records
-actual test output and /usr/bin/time -v observations, then checks that the
-trace, resource record, and executable remain bound by a small hash chain.
+test executable and the 8192 retained-route measurement test.  It records one
+real Cargo compiler-artifact invocation for each supported profile, actual test
+output and /usr/bin/time -v observations, then checks that the trace, resource
+record, inspected image and copied image remain bound by a hash chain.
 """
 from __future__ import annotations
 
@@ -14,12 +15,40 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-PROFILE = "default-debug"
+PROFILES = (
+    "default-debug",
+    "default-release",
+    "unified-debug",
+    "unified-release",
+)
+PROFILE_CONFIG: dict[str, dict[str, Any]] = {
+    "default-debug": {
+        "features": ["--features", "extensions"],
+        "release": False,
+        "cargo_profile": "debug",
+    },
+    "default-release": {
+        "features": ["--features", "extensions"],
+        "release": True,
+        "cargo_profile": "release",
+    },
+    "unified-debug": {
+        "features": ["--all-features"],
+        "release": False,
+        "cargo_profile": "debug",
+    },
+    "unified-release": {
+        "features": ["--all-features"],
+        "release": True,
+        "cargo_profile": "release",
+    },
+}
 TRACE_PREFIX = "NATIVE_MEASUREMENT "
 SOURCE_FILES = (
     "Cargo.toml",
@@ -37,7 +66,7 @@ SOURCE_FILES = (
     "tools/native_profile_capture.py",
 )
 TEST_NAME = "extensions::receive_host8192::tests::native_measurement_trace"
-SCHEMA_VERSION = "s12-d-native-measurement-v1"
+SCHEMA_VERSION = "s12-d-native-measurement-v2"
 
 
 class Refused(Exception):
@@ -54,6 +83,22 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def sha256_directory(path: Path) -> str:
+    """Hash the current contents of a directory by relative file and digest."""
+    require(path.is_dir(), f"directory is missing: {path}")
+    entries: list[dict[str, str]] = []
+    for item in sorted(path.rglob("*")):
+        if item.is_file():
+            entries.append(
+                {
+                    "path": item.relative_to(path).as_posix(),
+                    "sha256": sha256_file(item),
+                }
+            )
+    require(entries, f"directory has no files: {path}")
+    return sha256_bytes(canonical_json(entries))
 
 
 def canonical_json(value: Any) -> bytes:
@@ -115,23 +160,50 @@ def source_record(source: Path) -> dict[str, Any]:
 def toolchain_record(source: Path) -> dict[str, Any]:
     rustc = run_child(["rustc", "-vV"], cwd=source, timeout=30)
     cargo = run_child(["cargo", "-V"], cwd=source, timeout=30)
-    if rustc.returncode != 0 or cargo.returncode != 0:
+    sysroot = run_child(["rustc", "--print", "sysroot"], cwd=source, timeout=30)
+    target_libdir = run_child(
+        ["rustc", "--print", "target-libdir"], cwd=source, timeout=30
+    )
+    if (
+        rustc.returncode != 0
+        or cargo.returncode != 0
+        or sysroot.returncode != 0
+        or target_libdir.returncode != 0
+    ):
         raise Refused("rustc/cargo version probe failed")
     rustc_lines = dict(
         line.split(": ", 1)
         for line in rustc.stdout.splitlines()
         if ": " in line
     )
+    rustc_path = Path(shutil.which("rustc") or "").resolve()
+    cargo_path = Path(shutil.which("cargo") or "").resolve()
+    require(rustc_path.is_file(), "rustc executable path is unavailable")
+    require(cargo_path.is_file(), "cargo executable path is unavailable")
+    sysroot_path = Path(sysroot.stdout.strip()).resolve()
+    target_libdir_path = Path(target_libdir.stdout.strip()).resolve()
+    require(sysroot_path.is_dir(), "rustc sysroot is unavailable")
+    require(target_libdir_path.is_dir(), "rustc target libdir is unavailable")
     return {
         "rustc": rustc.stdout.strip(),
         "cargo": cargo.stdout.strip(),
         "rustc_release": rustc_lines.get("release"),
         "llvm_version": rustc_lines.get("LLVM version"),
         "host": rustc_lines.get("host"),
+        "rustc_path": str(rustc_path),
+        "rustc_sha256": sha256_file(rustc_path),
+        "cargo_path": str(cargo_path),
+        "cargo_sha256": sha256_file(cargo_path),
+        "sysroot": str(sysroot_path),
+        "sysroot_sha256": sha256_directory(sysroot_path),
+        "target_libdir": str(target_libdir_path),
+        "target_libdir_sha256": sha256_directory(target_libdir_path),
     }
 
 
-def parse_artifact(cargo_stdout: str) -> tuple[Path, dict[str, Any]]:
+def parse_artifact(
+    cargo_stdout: str, profile_name: str
+) -> tuple[Path, dict[str, Any]]:
     artifacts: list[dict[str, Any]] = []
     for line in cargo_stdout.splitlines():
         try:
@@ -158,11 +230,143 @@ def parse_artifact(cargo_stdout: str) -> tuple[Path, dict[str, Any]]:
     executable = Path(artifact["executable"]).resolve()
     if not executable.is_file():
         raise Refused(f"Cargo reported a missing test executable: {executable}")
+    expected = PROFILE_CONFIG[profile_name]["cargo_profile"]
+    artifact_profile = artifact.get("profile")
+    require(
+        isinstance(artifact_profile, dict),
+        "Cargo compiler artifact profile is missing",
+    )
+    if expected == "debug":
+        require(
+            artifact_profile.get("debug_assertions") is True,
+            "debug profile artifact lacks debug assertions",
+        )
+    else:
+        require(
+            artifact_profile.get("debug_assertions") is False,
+            "release profile artifact retains debug assertions",
+        )
     return executable, {
         "target": artifact["target"],
-        "profile": artifact.get("profile"),
+        "profile": artifact_profile,
         "filenames": artifact.get("filenames"),
         "executable": str(executable),
+    }
+
+
+def run_probe(
+    command: list[str], *, cwd: Path, timeout: float, required: bool = True
+) -> dict[str, Any]:
+    result = run_child(command, cwd=cwd, timeout=timeout)
+    if required and result.returncode != 0:
+        raise Refused(
+            f"required image probe failed ({result.returncode}): {' '.join(command)}"
+        )
+    return {
+        "command": command,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "exit_code": result.returncode,
+    }
+
+
+def write_probe(path: Path, probe: dict[str, Any]) -> str:
+    write_json(path, probe)
+    return sha256_file(path)
+
+
+def inspect_image(
+    source: Path,
+    evidence: Path,
+    profile: str,
+    executable: Path,
+    timeout: float,
+) -> dict[str, Any]:
+    """Persist actual ELF/linker/allocator inspection for one captured image."""
+    image_dir = evidence / "image-inspection" / profile
+    image_dir.mkdir(parents=True, exist_ok=True)
+    commands = {
+        "file": ["file", "-b", str(executable)],
+        "elf_header": ["readelf", "-h", str(executable)],
+        "program_headers": ["readelf", "-l", str(executable)],
+        "dynamic": ["readelf", "-d", str(executable)],
+        "symbols": ["readelf", "-Ws", str(executable)],
+        "dependencies": ["ldd", str(executable)],
+    }
+    probes: dict[str, Any] = {}
+    for name, command in commands.items():
+        probe = run_probe(
+            command,
+            cwd=source,
+            timeout=timeout,
+            required=name != "dependencies",
+        )
+        probe_path = image_dir / f"{name}.json"
+        probe["path"] = str(probe_path.relative_to(evidence))
+        probe["sha256"] = write_probe(probe_path, probe)
+        probes[name] = probe
+    symbols = probes["symbols"]["stdout"].splitlines()
+    allocator_symbol_names = (
+        "__rust_alloc",
+        "__rust_dealloc",
+        "__rust_realloc",
+        "__rust_alloc_zeroed",
+        "__rust_no_alloc_shim_is_unstable",
+    )
+    allocator_matches = [
+        line
+        for line in symbols
+        if any(name in line for name in allocator_symbol_names)
+    ]
+    dynamic_lines = probes["dynamic"]["stdout"].splitlines()
+    provider_matches = [
+        line
+        for line in dynamic_lines
+        if "NEEDED" in line or "RUNPATH" in line or "RPATH" in line
+    ]
+    provider_files: list[dict[str, str]] = []
+    for line in probes["dependencies"]["stdout"].splitlines():
+        match = re.search(r"=>\s+(/[^\s]+)", line)
+        if match is None:
+            match = re.match(r"\s*(/[^\s]+)", line)
+        if match is None:
+            continue
+        path = Path(match.group(1))
+        if path.is_file():
+            provider_files.append(
+                {"path": str(path), "sha256": sha256_file(path)}
+            )
+    allocator_probe = probes["symbols"]["path"]
+    dynamic_probe = probes["dynamic"]["path"]
+    dependency_probe = probes["dependencies"]["path"]
+    return {
+        "image_sha256": sha256_file(executable),
+        "probes": {
+            name: {
+                "path": value["path"],
+                "sha256": value["sha256"],
+                "exit_code": value["exit_code"],
+            }
+            for name, value in probes.items()
+        },
+        "allocator": {
+            "symbol_names": list(allocator_symbol_names),
+            "matched_symbols": allocator_matches,
+            "matched_symbols_sha256": sha256_bytes(canonical_json(allocator_matches)),
+            "source_probe": allocator_probe,
+            "source_probe_sha256": probes["symbols"]["sha256"],
+        },
+        "provider": {
+            "dynamic_dependency_lines": provider_matches,
+            "dynamic_dependency_sha256": sha256_bytes(
+                canonical_json(provider_matches)
+            ),
+            "provider_files": provider_files,
+            "source_probe": dynamic_probe,
+            "source_probe_sha256": probes["dynamic"]["sha256"],
+            "ldd_probe": dependency_probe,
+            "ldd_probe_sha256": probes["dependencies"]["sha256"],
+        },
     }
 
 
@@ -292,9 +496,11 @@ def load_json(path: Path, label: str) -> dict[str, Any]:
 def verify_capture(source: Path, evidence: Path) -> None:
     capture = load_json(evidence / "capture.json", "capture")
     require(capture.get("schema_version") == SCHEMA_VERSION, "capture schema is unsupported")
-    require(capture.get("profile") == PROFILE, "capture profile is unsupported")
+    profile = capture.get("profile")
+    require(profile in PROFILES, "capture profile is unsupported")
     expected_source = source_record(source)
     require(capture.get("source") == expected_source, "capture source provenance mismatch")
+    require(capture.get("profile_config") == PROFILE_CONFIG[profile], "profile configuration mismatch")
     trace_meta = capture.get("trace")
     resource_meta = capture.get("resource")
     image_meta = capture.get("image")
@@ -304,12 +510,30 @@ def verify_capture(source: Path, evidence: Path) -> None:
     trace_path = evidence / str(trace_meta.get("path"))
     resource_path = evidence / str(resource_meta.get("path"))
     image_path = Path(str(image_meta.get("path"))).resolve()
+    artifact_path = Path(str(image_meta.get("artifact_path"))).resolve()
     require(trace_path.is_file(), "trace file is missing")
     require(resource_path.is_file(), "resource file is missing")
     require(image_path.is_file(), "compiler artifact is missing")
+    require(artifact_path.is_file(), "Cargo compiler artifact is missing")
     require(trace_meta.get("sha256") == sha256_file(trace_path), "trace hash mismatch")
     require(resource_meta.get("sha256") == sha256_file(resource_path), "resource hash mismatch")
     require(image_meta.get("sha256") == sha256_file(image_path), "image hash mismatch")
+    require(
+        image_meta.get("artifact_sha256") == sha256_file(artifact_path),
+        "Cargo artifact hash mismatch",
+    )
+    require(
+        image_meta.get("sha256") == image_meta.get("artifact_sha256"),
+        "captured image differs from Cargo artifact",
+    )
+    require(
+        capture.get("artifact", {}).get("executable") == str(artifact_path),
+        "artifact executable binding mismatch",
+    )
+    require(
+        capture.get("inspection", {}).get("image_sha256") == image_meta.get("sha256"),
+        "image inspection binding mismatch",
+    )
     trace = load_json(trace_path, "trace")
     resource = load_json(resource_path, "resource")
     require_trace(trace)
@@ -322,6 +546,40 @@ def verify_capture(source: Path, evidence: Path) -> None:
     require(isinstance(process.get("max_rss_kbytes"), int) and process["max_rss_kbytes"] > 0, "RSS was not measured")
     require(isinstance(process.get("user_seconds"), float), "user CPU was not measured")
     require(isinstance(process.get("system_seconds"), float), "system CPU was not measured")
+    require(resource.get("profile") == profile, "resource profile mismatch")
+    require(resource.get("invocation") == capture.get("invocation"), "resource invocation mismatch")
+    require(isinstance(capture.get("toolchain"), dict), "toolchain provenance is missing")
+    for key in (
+        "rustc_sha256",
+        "cargo_sha256",
+        "sysroot_sha256",
+        "target_libdir_sha256",
+    ):
+        require(
+            isinstance(capture["toolchain"].get(key), str)
+            and capture["toolchain"][key],
+            f"toolchain hash is missing: {key}",
+        )
+    artifact_profile = capture.get("artifact", {}).get("profile")
+    require(
+        artifact_profile == capture.get("codegen"),
+        "compiler artifact/codegen profile binding mismatch",
+    )
+    target_provenance = capture.get("target_provenance")
+    require(isinstance(target_provenance, dict), "target provenance is missing")
+    require(
+        target_provenance.get("triple") == capture["toolchain"].get("host"),
+        "target triple binding mismatch",
+    )
+    require(
+        target_provenance.get("libdir_sha256")
+        == capture["toolchain"].get("target_libdir_sha256"),
+        "target libdir hash binding mismatch",
+    )
+    require(
+        resource.get("image_sha256") == image_meta.get("sha256"),
+        "resource image binding mismatch",
+    )
     chain = capture.get("hash_chain")
     require(isinstance(chain, dict), "hash chain is missing")
     require(chain.get("trace_sha256") == trace_meta.get("sha256"), "hash chain trace mismatch")
@@ -336,6 +594,13 @@ def verify_capture(source: Path, evidence: Path) -> None:
         chain.get("root_sha256") == sha256_bytes(canonical_json(root_payload)),
         "hash chain root mismatch",
     )
+    inspection = capture.get("inspection")
+    require(isinstance(inspection, dict), "image inspection is missing")
+    for probe in inspection.get("probes", {}).values():
+        require(isinstance(probe, dict), "image inspection probe is invalid")
+        probe_path = evidence / str(probe.get("path"))
+        require(probe_path.is_file(), "image inspection evidence is missing")
+        require(probe.get("sha256") == sha256_file(probe_path), "image probe hash mismatch")
 
 
 def write_log(path: Path, command: list[str], result: subprocess.CompletedProcess[str]) -> None:
@@ -390,8 +655,10 @@ def mutate_and_check(
         pass
 
 
-def capture(source: Path, evidence: Path, timeout: float) -> int:
-    evidence.mkdir(parents=True, exist_ok=True)
+def capture_profile(
+    source: Path, evidence: Path, profile: str, timeout: float
+) -> int:
+    require(profile in PROFILES, f"unsupported current profile: {profile}")
     provenance = source_record(source)
     toolchain = toolchain_record(source)
     cargo_command = [
@@ -399,21 +666,27 @@ def capture(source: Path, evidence: Path, timeout: float) -> int:
         "test",
         "-p",
         "pi-harness-runtime",
-        "--features",
-        "extensions",
+        *PROFILE_CONFIG[profile]["features"],
+    ]
+    if PROFILE_CONFIG[profile]["release"]:
+        cargo_command.append("--release")
+    cargo_command.extend(
+        [
         "--lib",
         "--no-run",
         "--message-format=json",
         "--locked",
         "--offline",
-    ]
+        ]
+    )
     build = run_child(cargo_command, cwd=source, timeout=timeout)
+    evidence.mkdir(parents=True, exist_ok=True)
     write_log(evidence / "cargo-build.log", cargo_command, build)
     if build.returncode != 0:
         print("REFUSED: Cargo test executable build failed", file=sys.stderr)
         return 2
     try:
-        executable, artifact = parse_artifact(build.stdout)
+        executable, artifact = parse_artifact(build.stdout, profile)
     except Refused as error:
         print(f"REFUSED: {error}", file=sys.stderr)
         return 2
@@ -441,21 +714,37 @@ def capture(source: Path, evidence: Path, timeout: float) -> int:
     trace_path = evidence / "trace.json"
     resource_path = evidence / "resource-bound.json"
     write_json(trace_path, trace)
+    image_dir = evidence / "images"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    image_copy = image_dir / f"pi_harness_runtime-{profile}.bin"
+    shutil.copy2(executable, image_copy)
+    image_hash = sha256_file(executable)
+    require(image_hash == sha256_file(image_copy), "Cargo artifact copy hash mismatch")
+    inspection = inspect_image(source, evidence, profile, image_copy, timeout)
+    codegen = artifact["profile"]
     resource = {
         "schema_version": SCHEMA_VERSION,
         "status": "measured",
-        "profile": PROFILE,
+        "profile": profile,
         "source": provenance,
         "trace_sha256": sha256_file(trace_path),
         "measurements": trace["backing"],
         "process": process,
         "trace_kind": trace["trace_kind"],
         "observed_outcomes": trace["outcomes"],
+        "invocation": exact_command,
+        "image_sha256": image_hash,
+        "codegen": codegen,
+        "target": artifact["target"],
+        "target_provenance": {
+            "triple": toolchain["host"],
+            "libdir": toolchain["target_libdir"],
+            "libdir_sha256": toolchain["target_libdir_sha256"],
+        },
     }
     write_json(resource_path, resource)
     trace_hash = sha256_file(trace_path)
     resource_hash = sha256_file(resource_path)
-    image_hash = sha256_file(executable)
     chain_payload = {
         "trace_sha256": trace_hash,
         "resource_sha256": resource_hash,
@@ -463,13 +752,27 @@ def capture(source: Path, evidence: Path, timeout: float) -> int:
     }
     capture_record = {
         "schema_version": SCHEMA_VERSION,
-        "profile": PROFILE,
+        "profile": profile,
+        "profile_config": PROFILE_CONFIG[profile],
         "invocation": exact_command,
+        "cargo_invocation": cargo_command,
         "source": provenance,
         "toolchain": toolchain,
         "artifact": artifact,
         "target": artifact["target"],
-        "image": {"path": str(executable), "sha256": image_hash},
+        "target_provenance": {
+            "triple": toolchain["host"],
+            "libdir": toolchain["target_libdir"],
+            "libdir_sha256": toolchain["target_libdir_sha256"],
+        },
+        "codegen": codegen,
+        "image": {
+            "path": str(image_copy),
+            "artifact_path": str(executable),
+            "sha256": image_hash,
+            "artifact_sha256": image_hash,
+        },
+        "inspection": inspection,
         "trace": {"path": "trace.json", "sha256": trace_hash},
         "resource": {"path": "resource-bound.json", "sha256": resource_hash},
         "hash_chain": {
@@ -542,7 +845,7 @@ def capture(source: Path, evidence: Path, timeout: float) -> int:
         json.dumps(
             {
                 "status": "captured",
-                "profile": PROFILE,
+                "profile": profile,
                 "executable": str(executable),
                 "trace_sha256": trace_hash,
                 "resource_sha256": resource_hash,
@@ -560,13 +863,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--evidence-dir", type=Path, required=True)
-    parser.add_argument("--profile", default=PROFILE)
+    parser.add_argument("--profile", choices=PROFILES, default=PROFILES[0])
     parser.add_argument("--timeout", type=float, default=1800.0)
     parser.add_argument("--verify", action="store_true")
     args = parser.parse_args()
-    if args.profile != PROFILE:
-        print(f"REFUSED: only {PROFILE} is allowed in this walking skeleton")
-        return 2
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         print("REFUSED: --timeout must be positive")
         return 2
@@ -577,7 +877,7 @@ def main() -> int:
             verify_capture(source, evidence)
             print("ACCEPTED: current measurement hash chain is valid")
             return 0
-        return capture(source, evidence, args.timeout)
+        return capture_profile(source, evidence, args.profile, args.timeout)
     except Refused as error:
         print(f"REFUSED: {error}", file=sys.stderr)
         return 2

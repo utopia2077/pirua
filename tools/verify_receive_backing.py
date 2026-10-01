@@ -21,6 +21,7 @@ SOURCE_FILES = (
     "crates/pi-harness-runtime/src/extensions/profiles/connection.rs",
 )
 REQUIRED_PROFILES = ("default-debug", "default-release", "unified-debug", "unified-release")
+CAPTURE_SCHEMA_VERSION = "s12-d-native-measurement-v2"
 NATIVE_SCHEMA_VERSION = "s12-d-native-proof-v3"
 RESOURCE_SCHEMA_VERSION = "s12-d-resource-v3"
 MARKER_PATH = "current-evidence-marker.json"
@@ -64,6 +65,69 @@ def run_child(command: list[str], timeout: float) -> tuple[subprocess.CompletedP
         return subprocess.run(command, text=True, capture_output=True, check=False, timeout=timeout), None
     except subprocess.TimeoutExpired as error:
         return None, f"child timeout after {timeout:g}s: {' '.join(command)} ({error})"
+
+
+def read_profile_capture(evidence: Path, profile: str) -> dict | None:
+    """Project one independently verified capture into the aggregate status.
+
+    The aggregate checker still refuses support without resource/oracle/
+    adoption review.  These records make the four real image runs visible to
+    that refusal path instead of replacing them with ``missing`` placeholders.
+    """
+    path = evidence / profile / "capture.json"
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(value, dict) or value.get("schema_version") != CAPTURE_SCHEMA_VERSION:
+        return None
+    if value.get("profile") != profile:
+        return None
+    source = value.get("source")
+    image = value.get("image")
+    toolchain = value.get("toolchain")
+    artifact = value.get("artifact")
+    codegen = value.get("codegen")
+    invocation = value.get("cargo_invocation")
+    if not all(
+        isinstance(item, dict)
+        for item in (source, image, toolchain, artifact, codegen)
+    ):
+        return None
+    if not isinstance(invocation, list) or not invocation:
+        return None
+    image_path = image.get("path")
+    image_sha256 = image.get("sha256")
+    if not isinstance(image_path, str) or not isinstance(image_sha256, str):
+        return None
+    return {
+        "status": "measured",
+        "image_path": image_path,
+        "image_sha256": image_sha256,
+        "invocation": invocation + list(value.get("invocation", [])),
+        "profile_identity": profile,
+        "source_tree": source.get("tree"),
+        "source_commit": source.get("commit"),
+        "toolchain": {
+            "rustc": toolchain.get("rustc"),
+            "cargo": toolchain.get("cargo"),
+            "llvm": toolchain.get("llvm_version"),
+            "rustc_sha256": toolchain.get("rustc_sha256"),
+            "cargo_sha256": toolchain.get("cargo_sha256"),
+            "sysroot_sha256": toolchain.get("sysroot_sha256"),
+            "target_libdir_sha256": toolchain.get("target_libdir_sha256"),
+        },
+        "target": toolchain.get("host"),
+        "profile": profile,
+        "codegen": codegen,
+        "artifact_path": artifact.get("executable"),
+        "artifact_sha256": image.get("artifact_sha256"),
+        "trace": value.get("trace"),
+        "resource": value.get("resource"),
+        "inspection": value.get("inspection"),
+    }
 
 
 def main() -> int:
@@ -143,6 +207,19 @@ def main() -> int:
         ],
         "reason": "current four-image/resource/oracle evidence is absent; no supported image is recognized",
     }
+    captured_profiles = []
+    for profile in REQUIRED_PROFILES:
+        capture = read_profile_capture(evidence, profile)
+        if capture is None:
+            continue
+        status["profiles"][profile] = capture
+        captured_profiles.append(profile)
+    if captured_profiles:
+        status["captured_profiles"] = captured_profiles
+        status["reason"] = (
+            "four current profile images and refusal traces are measured; "
+            "independent resource/oracle/adoption review is absent"
+        )
     (evidence / "native-proof-status.json").write_text(
         json.dumps(status, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
