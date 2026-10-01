@@ -73,7 +73,29 @@ fn combined(output: &Output) -> String {
 fn copy_source(root: &Path, label: &str) -> PathBuf {
     let copy_root = evidence_dir(label).join("source-copy");
     fs::create_dir_all(&copy_root).expect("source copy root");
-    fs::copy(root.join(".git"), copy_root.join(".git")).expect("git worktree metadata");
+    let git_entry = root.join(".git");
+    let gitdir = if git_entry.is_dir() {
+        git_entry.canonicalize().expect("checkout git directory")
+    } else {
+        let contents = fs::read_to_string(&git_entry).expect("worktree git file");
+        let raw = contents
+            .lines()
+            .find_map(|line| line.strip_prefix("gitdir:"))
+            .map(str::trim)
+            .expect("gitdir entry");
+        let path = PathBuf::from(raw);
+        let path = if path.is_absolute() {
+            path
+        } else {
+            git_entry.parent().unwrap().join(path)
+        };
+        path.canonicalize().expect("worktree git directory")
+    };
+    fs::write(
+        copy_root.join(".git"),
+        format!("gitdir: {}\n", gitdir.display()),
+    )
+    .expect("copied git metadata");
     let mut files = SOURCE_FILES.to_vec();
     files.push("tools/receive_backing_order.py");
     for relative in files {
