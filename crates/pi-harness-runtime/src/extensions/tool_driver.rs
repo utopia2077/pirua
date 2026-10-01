@@ -1887,7 +1887,7 @@ impl Route {
         &self,
         binding: &InvocationBinding,
         caller: &crate::extensions::receive_host8192::CallerIdentity8192,
-        body_len: usize,
+        frame: &ActiveFrame,
     ) -> Result<usize, DriverError> {
         let staged = self
             .staged_receive
@@ -1895,24 +1895,31 @@ impl Route {
             .unwrap_or_else(|p| p.into_inner())
             .clone()
             .ok_or(DriverError::WrongBinding)?;
-        let decision = staged
-            .prepare_refusal(binding, caller, body_len)
-            .map_err(|error| match error {
-                crate::extensions::receive_host8192::Receive8192Error::InvalidCaller => {
-                    DriverError::WrongBinding
-                }
-                crate::extensions::receive_host8192::Receive8192Error::Capacity => {
-                    DriverError::Overloaded
-                }
-                crate::extensions::receive_host8192::Receive8192Error::Closed => {
-                    DriverError::Closed
-                }
-                crate::extensions::receive_host8192::Receive8192Error::NativeRefused
-                | crate::extensions::receive_host8192::Receive8192Error::Occupied
-                | crate::extensions::receive_host8192::Receive8192Error::InvalidGeneration => {
-                    DriverError::HostFault
-                }
-            })?;
+        let decision =
+            staged
+                .prepare_refusal(binding, caller, frame)
+                .map_err(|error| match error {
+                    crate::extensions::receive_host8192::Receive8192Error::InvalidCaller => {
+                        DriverError::WrongBinding
+                    }
+                    crate::extensions::receive_host8192::Receive8192Error::Capacity => {
+                        DriverError::Overloaded
+                    }
+                    crate::extensions::receive_host8192::Receive8192Error::Closed => {
+                        DriverError::Closed
+                    }
+                    crate::extensions::receive_host8192::Receive8192Error::UnsupportedFrame => {
+                        DriverError::HostFault
+                    }
+                    crate::extensions::receive_host8192::Receive8192Error::NativeRefused
+                    | crate::extensions::receive_host8192::Receive8192Error::Occupied
+                    | crate::extensions::receive_host8192::Receive8192Error::InvalidGeneration => {
+                        DriverError::HostFault
+                    }
+                })?;
+        if !decision.binding.same_live_identity(binding) {
+            return Err(DriverError::WrongBinding);
+        }
         Ok(decision.body_len)
     }
 
@@ -2616,7 +2623,7 @@ fn check_live_frame(
             .as_ref()
             .ok_or(DriverError::WrongBinding)?
             .staged_identity();
-        route.prepare_retained_refusal(slot.invocation.binding(), &caller, frame.body_len)?;
+        route.prepare_retained_refusal(slot.invocation.binding(), &caller, frame)?;
         return Ok((
             Some((
                 slot.completion.clone(),
@@ -3396,6 +3403,25 @@ mod local_cancel_queue_tests {
         route.install_staged_receive_for_test(Arc::new(LifecycleChannel::new()));
     }
 
+    fn refusal_frame(body_len: usize, supported: bool) -> ActiveFrame {
+        ActiveFrame {
+            envelope: SelectedEnvelope::V1_1(v1_1::Envelope {
+                frame: Some(if supported {
+                    v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
+                        request_id: 1,
+                        ..Default::default()
+                    })
+                } else {
+                    v1_1::envelope::Frame::Credit(v1_1::Credit {
+                        request_id: 1,
+                        additional_bytes: 37,
+                    })
+                }),
+            }),
+            body_len,
+        }
+    }
+
     #[test]
     fn retained_refusal_keeps_exact_binding_and_measured_length_without_mutation() {
         let (_spawner, owner, route, _channel, _clock) = owner_and_route();
@@ -3425,20 +3451,22 @@ mod local_cancel_queue_tests {
         assert_eq!(
             route
                 .route
-                .prepare_retained_refusal(&binding, &wrong_caller, 37),
+                .prepare_retained_refusal(&binding, &wrong_caller, &refusal_frame(37, true)),
             Err(DriverError::WrongBinding),
             "a mismatched caller tuple is refused before any debit"
         );
         assert_eq!(
             route
                 .route
-                .prepare_retained_refusal(&binding, &caller, 37)
+                .prepare_retained_refusal(&binding, &caller, &refusal_frame(37, true))
                 .unwrap(),
             37,
             "the inert witness keeps the transmitted length"
         );
         assert_eq!(
-            route.route.prepare_retained_refusal(&binding, &caller, 0),
+            route
+                .route
+                .prepare_retained_refusal(&binding, &caller, &refusal_frame(0, true)),
             Err(DriverError::Overloaded),
             "an empty measured body is refused before any debit"
         );
@@ -3446,6 +3474,126 @@ mod local_cancel_queue_tests {
             owner.binding_phase(&binding),
             Ok(LivePhase::Open),
             "refusal does not advance or retire the live binding"
+        );
+    }
+
+    #[test]
+    fn retained_refusal_checks_caller_frame_and_closed_custody_before_mutation() {
+        let (_spawner, owner, route, _channel, _clock) = owner_and_route();
+        install(&route);
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("staging"),
+                "staging",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let binding = prepared.binding().clone();
+        let _handle = prepared.activate().unwrap();
+        let caller = route
+            .route
+            .caller
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .staged_identity();
+        let before = {
+            let state = owner.0.state.lock().unwrap();
+            let slot = state.live.as_ref().unwrap();
+            let writes = route.route.writes.lock().unwrap();
+            (
+                slot.invocation.credit(),
+                slot.invocation.next_sequence(),
+                slot.invocation.phase(),
+                slot.invocation.receipt().is_some(),
+                route.route.next_id.load(Ordering::SeqCst),
+                writes.jobs.len(),
+                writes.normal_bytes,
+            )
+        };
+        for axis in 0..6 {
+            let mut wrong = caller.clone();
+            match axis {
+                0 => wrong.arguments.key.push_str("-wrong"),
+                1 => {
+                    wrong.arguments.value = serde_json::from_str(r#"{"text":"changed"}"#).unwrap();
+                }
+                2 => wrong.arguments.seq = SafeUnsigned::new(1).unwrap(),
+                3 => wrong.source_call_id.push_str("-wrong"),
+                4 => wrong.epoch = 0,
+                5 => wrong.origin = Arc::new(LifecycleOrigin),
+                _ => unreachable!(),
+            }
+            assert_eq!(
+                route
+                    .route
+                    .prepare_retained_refusal(&binding, &wrong, &refusal_frame(37, true)),
+                Err(DriverError::WrongBinding),
+                "caller axis {axis} must be refused"
+            );
+        }
+        for (frame, error) in [
+            (refusal_frame(0, true), DriverError::Overloaded),
+            (refusal_frame(8193, true), DriverError::Overloaded),
+            (refusal_frame(37, false), DriverError::HostFault),
+        ] {
+            assert_eq!(
+                route
+                    .route
+                    .prepare_retained_refusal(&binding, &caller, &frame),
+                Err(error)
+            );
+        }
+        let staged = route
+            .route
+            .staged_receive
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .clone();
+        let decision = staged
+            .prepare_refusal(&binding, &caller, &refusal_frame(37, true))
+            .unwrap();
+        assert!(decision.binding.same_live_identity(&binding));
+        assert_eq!(decision.binding.effect_key(), binding.effect_key());
+        assert_eq!(decision.body_len, 37);
+        let reader = staged.claim_reader().unwrap();
+        staged.finish_close();
+        assert_eq!(
+            route
+                .route
+                .prepare_retained_refusal(&binding, &caller, &refusal_frame(37, true)),
+            Err(DriverError::Closed)
+        );
+        assert!(!staged.is_cleaned_for_test());
+        drop(reader);
+        assert!(staged.is_cleaned_for_test());
+        assert_eq!(
+            route
+                .route
+                .prepare_retained_refusal(&binding, &caller, &refusal_frame(37, true)),
+            Err(DriverError::Closed)
+        );
+        let state = owner.0.state.lock().unwrap();
+        let slot = state.live.as_ref().unwrap();
+        let writes = route.route.writes.lock().unwrap();
+        assert_eq!(
+            (
+                slot.invocation.credit(),
+                slot.invocation.next_sequence(),
+                slot.invocation.phase(),
+                slot.invocation.receipt().is_some(),
+                route.route.next_id.load(Ordering::SeqCst),
+                writes.jobs.len(),
+                writes.normal_bytes,
+            ),
+            before,
+            "refusal preparation must not debit, retain a receipt or move the queue/ID"
         );
     }
 

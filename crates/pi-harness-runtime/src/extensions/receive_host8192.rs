@@ -9,10 +9,12 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+use pi_extension_protocol::endpoint::{ActiveFrame, SelectedEnvelope};
 use pi_extension_protocol::tool_live::InvocationBinding;
+use pi_extension_protocol::wire::{v1_0, v1_1};
 
 use super::domain::StagedIndexedBody;
-use super::receive_backing8192::{Backing8192Error, ReceiveBacking8192};
+use super::receive_backing8192::{Backing8192Error, ReceiveBacking8192, ReceiveLease8192};
 use super::transport::RetainedOrderedByteChannel;
 use crate::tools::{CapturedArguments, OriginFence};
 
@@ -23,6 +25,7 @@ pub(super) enum Receive8192Error {
     Occupied,
     Capacity,
     Closed,
+    UnsupportedFrame,
     NativeRefused,
 }
 
@@ -34,9 +37,17 @@ pub(super) struct CallerIdentity8192 {
     pub(super) origin: Arc<dyn OriginFence>,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub(super) struct RefusalDecision8192 {
+    pub(super) binding: InvocationBinding,
     pub(super) body_len: usize,
+}
+
+/// Lease before owner gives the current body/index custody a fixed lifetime.
+/// This storage remains empty while the pump supplies only a measured frame.
+struct StagedBacking8192 {
+    lease: ReceiveLease8192,
+    owner: ReceiveBacking8192,
 }
 
 impl CallerIdentity8192 {
@@ -56,7 +67,7 @@ impl CallerIdentity8192 {
 pub(super) struct StagedReceive8192 {
     channel: Arc<dyn RetainedOrderedByteChannel>,
     generation: u64,
-    backing: Mutex<Option<ReceiveBacking8192>>,
+    backing: Mutex<Option<StagedBacking8192>>,
     caller: Mutex<Option<(InvocationBinding, CallerIdentity8192)>>,
     reader_claimed: AtomicBool,
     close_requested: AtomicBool,
@@ -97,7 +108,10 @@ impl StagedReceive8192 {
         Ok(Self {
             channel,
             generation,
-            backing: Mutex::new(Some(backing)),
+            backing: Mutex::new(Some(StagedBacking8192 {
+                lease,
+                owner: backing,
+            })),
             caller: Mutex::new(None),
             reader_claimed: AtomicBool::new(false),
             close_requested: AtomicBool::new(false),
@@ -168,8 +182,9 @@ impl StagedReceive8192 {
         &self,
         binding: &InvocationBinding,
         caller: &CallerIdentity8192,
-        body_len: usize,
+        frame: &ActiveFrame,
     ) -> Result<RefusalDecision8192, Receive8192Error> {
+        let body_len = frame.body_len;
         if body_len == 0 || body_len > super::receive_backing8192::FRAME {
             return Err(Receive8192Error::Capacity);
         }
@@ -183,7 +198,30 @@ impl StagedReceive8192 {
         if !existing_binding.same_live_identity(binding) || !existing_caller.matches(caller) {
             return Err(Receive8192Error::InvalidCaller);
         }
-        Ok(RefusalDecision8192 { body_len })
+        if !matches!(
+            &frame.envelope,
+            SelectedEnvelope::V1_0(v1_0::Envelope {
+                frame: Some(
+                    v1_0::envelope::Frame::StreamItem(_) | v1_0::envelope::Frame::StreamEnd(_)
+                ),
+            }) | SelectedEnvelope::V1_1(v1_1::Envelope {
+                frame: Some(
+                    v1_1::envelope::Frame::StreamItem(_) | v1_1::envelope::Frame::StreamEnd(_)
+                ),
+            })
+        ) {
+            return Err(Receive8192Error::UnsupportedFrame);
+        }
+        let backing = self.backing.lock().unwrap_or_else(|p| p.into_inner());
+        let backing = backing.as_ref().ok_or(Receive8192Error::Closed)?;
+        if body_len > backing.lease.selected().get() || body_len > backing.owner.layout().body_bytes
+        {
+            return Err(Receive8192Error::Capacity);
+        }
+        Ok(RefusalDecision8192 {
+            binding: existing_binding.clone(),
+            body_len,
+        })
     }
 
     #[cfg(test)]
@@ -365,6 +403,40 @@ mod tests {
                 ));
                 receive.finish_close();
                 assert!(receive.cleaned.load(Ordering::Acquire));
+            })
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    #[test]
+    fn staged_receive_retains_one_finite_lease_until_cleanup() {
+        std::thread::Builder::new()
+            .name("receive8192-lease-custody-test".into())
+            .stack_size(64 * 1024 * 1024)
+            .spawn(|| {
+                let receive = StagedReceive8192::stage(Arc::new(Probe), 9).unwrap();
+                let selected =
+                    std::num::NonZeroUsize::new(super::super::receive_backing8192::FRAME).unwrap();
+                let extra = {
+                    let staged = receive.backing.lock().unwrap();
+                    let backing = staged.as_ref().unwrap();
+                    assert_eq!(backing.lease.selected(), selected);
+                    let extra = backing.owner.lease(selected).unwrap();
+                    assert!(matches!(
+                        backing.owner.lease(selected),
+                        Err(Backing8192Error::Exhausted)
+                    ));
+                    extra
+                };
+                drop(extra);
+                let reader = receive.claim_reader().unwrap();
+                receive.finish_close();
+                assert!(receive.backing.lock().unwrap().is_some());
+                drop(reader);
+                assert!(receive.backing.lock().unwrap().is_none());
+                receive.finish_close();
+                assert!(receive.backing.lock().unwrap().is_none());
             })
             .unwrap()
             .join()
