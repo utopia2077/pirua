@@ -80,7 +80,7 @@ TEST_NAME = "extensions::receive_host8192::tests::native_measurement_trace"
 SCHEMA_VERSION = "s12-d-native-measurement-v2"
 FIELD_EVENT_KINDS = {
     "Hboot": {"resource", "cleanup"},
-    "Hpre": {"phase", "read", "body_capture"},
+    "Hpre": {"phase", "read", "body_capture", "native_validation"},
     "Qread": {"resource", "read", "queue"},
     "Qreceive": {"queue"},
     "overlap": {"interval"},
