@@ -50,6 +50,7 @@ PROFILE_CONFIG: dict[str, dict[str, Any]] = {
     },
 }
 TRACE_PREFIX = "NATIVE_MEASUREMENT "
+RESOURCE_PREFIX = "SOURCE_RESOURCE "
 SOURCE_FILES = (
     "Cargo.toml",
     "Cargo.lock",
@@ -63,10 +64,40 @@ SOURCE_FILES = (
     "crates/pi-harness-runtime/src/extensions/domain.rs",
     "crates/pi-harness-runtime/src/extensions/transport.rs",
     "crates/pi-harness-runtime/src/extensions/profiles/connection.rs",
+    "crates/pi-harness-runtime/src/extensions/profiles/service.rs",
+    "crates/pi-harness-runtime/src/extensions/profiles/tool_route.rs",
+    "crates/pi-harness-runtime/src/extensions/profiles/native.rs",
+    "crates/pi-harness-runtime/src/extensions/profiles/provider.rs",
+    "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs",
+    "crates/pi-harness-runtime/tests/runtime_extension_profiles_support/mod.rs",
+    "crates/pi-harness-runtime/tests/runtime_extension_profiles_support/process.rs",
+    "tools/receive_resource_bound.py",
+    "tools/verify_receive_backing.py",
+    "tools/receive_backing_order.py",
     "tools/native_profile_capture.py",
 )
 TEST_NAME = "extensions::receive_host8192::tests::native_measurement_trace"
 SCHEMA_VERSION = "s12-d-native-measurement-v2"
+FIELD_EVENT_KINDS = {
+    "Hboot": {"resource", "cleanup"},
+    "Hpre": {"phase", "read", "body_capture"},
+    "Qread": {"resource", "read", "queue"},
+    "Qreceive": {"queue"},
+    "overlap": {"interval"},
+    "D_req": {"body_capture", "provider", "native_validation", "source_current", "phase"},
+    "P_req": {"queue"},
+    "whole_stack": {"stack"},
+    "allocator_peak": {"allocator"},
+    "work_cpu_headroom": {"cpu"},
+    "Memory_SQLite_peer_parity": {"peer_parity"},
+    "EH_inline_target_provider_allocator": {
+        "role",
+        "provider",
+        "allocator",
+        "cleanup",
+        "refusal",
+    },
+}
 
 
 class Refused(Exception):
@@ -417,6 +448,84 @@ def extract_trace(output: str) -> dict[str, Any]:
     return trace
 
 
+def extract_resource_observation(output: str) -> dict[str, Any]:
+    records = []
+    for line in output.splitlines():
+        marker = line.find(RESOURCE_PREFIX)
+        if marker < 0:
+            continue
+        payload = line[marker + len(RESOURCE_PREFIX) :].strip()
+        try:
+            records.append(json.loads(payload))
+        except json.JSONDecodeError as error:
+            raise Refused(f"source resource marker is not JSON: {error}") from error
+    if len(records) != 1:
+        raise Refused(f"expected one source resource marker, found {len(records)}")
+    resource = records[0]
+    if not isinstance(resource, dict):
+        raise Refused("source resource observation must be a JSON object")
+    require(
+        resource.get("schema_version") == "s12-d-resource-observations-v1",
+        "source resource observation schema is unsupported",
+    )
+    fields = resource.get("fields")
+    require(isinstance(fields, dict), "source resource fields are missing")
+    required = {
+        "Hboot",
+        "Hpre",
+        "Qread",
+        "Qreceive",
+        "overlap",
+        "D_req",
+        "P_req",
+        "whole_stack",
+        "allocator_peak",
+        "work_cpu_headroom",
+        "Memory_SQLite_peer_parity",
+        "EH_inline_target_provider_allocator",
+    }
+    require(set(fields) == required, "source resource field set is incomplete")
+    for field, value in fields.items():
+        require(isinstance(value, dict), f"source resource field is invalid: {field}")
+        require(
+            value.get("status") in {"observed", "unresolved"},
+            f"source resource field status is invalid: {field}",
+        )
+        evidence = value.get("evidence")
+        require(isinstance(evidence, dict), f"source resource evidence is missing: {field}")
+        require(
+            isinstance(evidence.get("event_ids"), list),
+            f"source resource event IDs are missing: {field}",
+        )
+        event_ids = evidence["event_ids"]
+        events = evidence.get("events")
+        require(isinstance(evidence.get("source_owned"), bool), f"source resource ownership is missing: {field}")
+        require(isinstance(events, list), f"source resource event records are missing: {field}")
+        require(
+            len(event_ids) == len(events),
+            f"source resource event IDs do not match event records: {field}",
+        )
+        require(
+            all(
+                isinstance(event_id, str) and event_id
+                for event_id in event_ids
+            ),
+            f"source resource event IDs are invalid: {field}",
+        )
+        for event in events:
+            require(isinstance(event, dict), f"source resource event record is invalid: {field}")
+            require(
+                event.get("kind") in FIELD_EVENT_KINDS[field],
+                f"source resource event kind is incompatible: {field}",
+            )
+        if value["status"] == "observed":
+            require(
+                evidence["source_owned"] and event_ids and events,
+                f"observed source resource field lacks owned evidence: {field}",
+            )
+    return resource
+
+
 def require(condition: bool, reason: str) -> None:
     if not condition:
         raise Refused(reason)
@@ -513,6 +622,17 @@ def verify_capture(source: Path, evidence: Path) -> None:
     artifact_path = Path(str(image_meta.get("artifact_path"))).resolve()
     require(trace_path.is_file(), "trace file is missing")
     require(resource_path.is_file(), "resource file is missing")
+    source_resource_meta = capture.get("source_resource_observation")
+    require(
+        isinstance(source_resource_meta, dict),
+        "source resource observation binding is missing",
+    )
+    source_resource_path = evidence / str(source_resource_meta.get("path"))
+    require(source_resource_path.is_file(), "source resource observation is missing")
+    require(
+        source_resource_meta.get("sha256") == sha256_file(source_resource_path),
+        "source resource observation hash mismatch",
+    )
     require(image_path.is_file(), "compiler artifact is missing")
     require(artifact_path.is_file(), "Cargo compiler artifact is missing")
     require(trace_meta.get("sha256") == sha256_file(trace_path), "trace hash mismatch")
@@ -536,11 +656,21 @@ def verify_capture(source: Path, evidence: Path) -> None:
     )
     trace = load_json(trace_path, "trace")
     resource = load_json(resource_path, "resource")
+    source_resource = load_json(source_resource_path, "source resource observation")
     require_trace(trace)
     require(resource.get("schema_version") == SCHEMA_VERSION, "resource schema is unsupported")
     require(resource.get("source") == expected_source, "resource source provenance mismatch")
     require(resource.get("trace_sha256") == trace_meta.get("sha256"), "resource trace binding mismatch")
     require(resource.get("measurements") == trace["backing"], "resource measurement is not test output")
+    require(
+        resource.get("source_resource_observation", {}).get("sha256")
+        == source_resource_meta.get("sha256"),
+        "resource/source resource observation binding mismatch",
+    )
+    require(
+        source_resource.get("schema_version") == "s12-d-resource-observations-v1",
+        "source resource observation schema is unsupported",
+    )
     process = resource.get("process")
     require(isinstance(process, dict), "process measurement is missing")
     require(isinstance(process.get("max_rss_kbytes"), int) and process["max_rss_kbytes"] > 0, "RSS was not measured")
@@ -584,10 +714,15 @@ def verify_capture(source: Path, evidence: Path) -> None:
     require(isinstance(chain, dict), "hash chain is missing")
     require(chain.get("trace_sha256") == trace_meta.get("sha256"), "hash chain trace mismatch")
     require(chain.get("resource_sha256") == resource_meta.get("sha256"), "hash chain resource mismatch")
+    require(
+        chain.get("source_resource_sha256") == source_resource_meta.get("sha256"),
+        "hash chain source resource mismatch",
+    )
     require(chain.get("image_sha256") == image_meta.get("sha256"), "hash chain image mismatch")
     root_payload = {
         "trace_sha256": chain.get("trace_sha256"),
         "resource_sha256": chain.get("resource_sha256"),
+        "source_resource_sha256": chain.get("source_resource_sha256"),
         "image_sha256": chain.get("image_sha256"),
     }
     require(
@@ -711,9 +846,42 @@ def capture_profile(
     except Refused as error:
         print(f"REFUSED: {error}", file=sys.stderr)
         return 2
+    resource_command = [
+        "cargo",
+        "test",
+        "-p",
+        "pi-harness-runtime",
+        *PROFILE_CONFIG[profile]["features"],
+    ]
+    if PROFILE_CONFIG[profile]["release"]:
+        resource_command.append("--release")
+    resource_command.extend(
+        [
+            "--test",
+            "runtime_extension_profiles",
+            "runtime_extension_profiles::source_root_structured_events_bind_real_resources",
+            "--",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1",
+        ]
+    )
+    resource_run = run_child(resource_command, cwd=source, timeout=timeout)
+    write_log(evidence / "resource-measurement-run.log", resource_command, resource_run)
+    try:
+        require(resource_run.returncode == 0, "source resource measurement test failed")
+        source_resource = extract_resource_observation(
+            resource_run.stdout + "\n" + resource_run.stderr
+        )
+    except Refused as error:
+        print(f"REFUSED: {error}", file=sys.stderr)
+        return 2
     trace_path = evidence / "trace.json"
     resource_path = evidence / "resource-bound.json"
     write_json(trace_path, trace)
+    source_resource_path = evidence / "source-resource-observation.json"
+    write_json(source_resource_path, source_resource)
     image_dir = evidence / "images"
     image_dir.mkdir(parents=True, exist_ok=True)
     image_copy = image_dir / f"pi_harness_runtime-{profile}.bin"
@@ -729,6 +897,11 @@ def capture_profile(
         "source": provenance,
         "trace_sha256": sha256_file(trace_path),
         "measurements": trace["backing"],
+        "source_resource_observation": {
+            "path": "source-resource-observation.json",
+            "sha256": sha256_file(source_resource_path),
+            "schema_version": source_resource["schema_version"],
+        },
         "process": process,
         "trace_kind": trace["trace_kind"],
         "observed_outcomes": trace["outcomes"],
@@ -748,6 +921,7 @@ def capture_profile(
     chain_payload = {
         "trace_sha256": trace_hash,
         "resource_sha256": resource_hash,
+        "source_resource_sha256": sha256_file(source_resource_path),
         "image_sha256": image_hash,
     }
     capture_record = {
@@ -774,6 +948,10 @@ def capture_profile(
         },
         "inspection": inspection,
         "trace": {"path": "trace.json", "sha256": trace_hash},
+        "source_resource_observation": {
+            "path": "source-resource-observation.json",
+            "sha256": sha256_file(source_resource_path),
+        },
         "resource": {"path": "resource-bound.json", "sha256": resource_hash},
         "hash_chain": {
             **chain_payload,

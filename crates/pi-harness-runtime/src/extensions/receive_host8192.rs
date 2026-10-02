@@ -107,6 +107,24 @@ impl StagedReceive8192 {
         let measured = StagedIndexedBody::new(&[0_u8]).map_err(|_| Receive8192Error::Capacity)?;
         let _ = measured.bytes();
         let _ = measured.body_len();
+        #[cfg(test)]
+        {
+            let layout = backing.layout();
+            let mut event = super::transport::source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "StagedReceive8192::stage",
+            );
+            event.field = Some("Hboot");
+            event.owner = Some("StagedReceive8192");
+            event.generation = Some(generation);
+            event.capacity = Some(layout.slot_bytes);
+            event.bound_bytes = Some(layout.total_slot_bytes);
+            event.body_len = Some(layout.body_bytes);
+            event.outcome = Some("staged");
+            super::transport::source_observer::record(event);
+        }
         Ok(Self {
             channel,
             generation,
@@ -286,6 +304,21 @@ impl StagedReceive8192 {
                 .unwrap_or_else(|p| p.into_inner())
                 .take();
             self.caller.lock().unwrap_or_else(|p| p.into_inner()).take();
+            #[cfg(test)]
+            {
+                let mut event = super::transport::source_observer::SourceEvent::new(
+                    "cleanup",
+                    file!(),
+                    line!(),
+                    "StagedReceive8192::cleanup",
+                );
+                event.field = Some("Hboot");
+                event.owner = Some("StagedReceive8192");
+                event.cleanup = Some(true);
+                event.outcome = Some("complete");
+                event.generation = Some(self.generation);
+                super::transport::source_observer::record(event);
+            }
         }
     }
 
@@ -315,6 +348,8 @@ impl StagedReceive8192 {
             );
             event.outcome = Some("NativeRefused");
             event.generation = Some(self.generation);
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("StagedReceive8192");
             super::transport::source_observer::record(event);
         }
         Err(Receive8192Error::NativeRefused)
@@ -381,6 +416,7 @@ mod tests {
     }
 
     fn measured_trace() -> serde_json::Value {
+        super::super::transport::source_observer::reset();
         let receive = StagedReceive8192::stage(Arc::new(Probe), 17).unwrap();
         let mut events = Vec::new();
         events.push(serde_json::json!({
@@ -453,6 +489,7 @@ mod tests {
                 "reader_drop_cleanup",
             ],
             "backing": super::super::receive_backing8192::measured_snapshot_for_test(),
+            "resource_observation": super::super::transport::source_observer::resource_observation(),
         })
     }
 

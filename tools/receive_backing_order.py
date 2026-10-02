@@ -49,6 +49,26 @@ REQUIRED_MEASURED_FIELDS = (
     "EH_inline_target_provider_allocator",
 )
 RESOURCE_UNKNOWN = list(REQUIRED_MEASURED_FIELDS)
+FIELD_EVENT_KINDS = {
+    "Hboot": {"resource", "cleanup"},
+    "Hpre": {"phase", "read", "body_capture"},
+    "Qread": {"resource", "read", "queue"},
+    "Qreceive": {"queue"},
+    "overlap": {"interval"},
+    "D_req": {"body_capture", "provider", "native_validation", "source_current", "phase"},
+    "P_req": {"queue"},
+    "whole_stack": {"stack"},
+    "allocator_peak": {"allocator"},
+    "work_cpu_headroom": {"cpu"},
+    "Memory_SQLite_peer_parity": {"peer_parity"},
+    "EH_inline_target_provider_allocator": {
+        "role",
+        "provider",
+        "allocator",
+        "cleanup",
+        "refusal",
+    },
+}
 
 
 class Refused(Exception):
@@ -175,6 +195,54 @@ def check_resource(evidence: Path, commit: str, tree: str, files: dict[str, str]
     require_source_record(resource.get("source"), commit, tree, files, "resource")
     require(resource.get("declared") == DECLARED, "resource declarations are not the current schema")
     require(isinstance(resource.get("measured"), dict), "resource measured schema is invalid")
+    observations = resource.get("observations")
+    require(isinstance(observations, dict), "resource observations schema is missing")
+    require(
+        observations.get("schema_version") == "s12-d-resource-observations-v1",
+        "resource observations schema is unsupported",
+    )
+    require(
+        observations.get("field_set") == list(REQUIRED_MEASURED_FIELDS),
+        "resource observations field set is incomplete",
+    )
+    require(
+        isinstance(observations.get("profiles"), list),
+        "resource observation profiles are missing",
+    )
+    for profile in observations["profiles"]:
+        require(isinstance(profile, dict), "resource observation profile is invalid")
+        require(
+            isinstance(profile.get("fields"), dict)
+            and set(profile["fields"]) == set(REQUIRED_MEASURED_FIELDS),
+            "resource observation profile field set is incomplete",
+        )
+        for field, record in profile["fields"].items():
+            require(isinstance(record, dict), f"resource observation field is invalid: {field}")
+            require(
+                record.get("status") in {"observed", "unresolved"},
+                f"resource observation field status is invalid: {field}",
+            )
+            evidence = record.get("evidence")
+            require(isinstance(evidence, dict), f"resource observation evidence is missing: {field}")
+            event_ids = evidence.get("event_ids")
+            events = evidence.get("events")
+            require(isinstance(event_ids, list), f"resource observation event IDs are missing: {field}")
+            require(isinstance(events, list) and len(event_ids) == len(events), f"resource observation events are invalid: {field}")
+            require(isinstance(evidence.get("source_owned"), bool), f"resource observation ownership is missing: {field}")
+            require(
+                all(isinstance(event_id, str) and event_id for event_id in event_ids),
+                f"resource observation event IDs are invalid: {field}",
+            )
+            for event in events:
+                require(
+                    isinstance(event, dict) and event.get("kind") in FIELD_EVENT_KINDS[field],
+                    f"resource observation event kind is incompatible: {field}",
+                )
+            if record["status"] == "observed":
+                require(
+                    evidence["source_owned"] and event_ids and events,
+                    f"observed resource field lacks owned evidence: {field}",
+                )
     require(isinstance(resource.get("unknown"), list), "resource unknown schema is invalid")
     require(isinstance(resource.get("missing_source_files"), list), "resource missing-source schema is invalid")
     require(resource.get("status") in {"refused", "supported"}, "resource status is invalid")

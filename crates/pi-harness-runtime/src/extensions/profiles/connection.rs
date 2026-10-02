@@ -606,6 +606,9 @@ impl ProfileConnection {
                 "ProfileConnection::close",
             );
             event.outcome = Some("close");
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("ProfileConnection");
+            event.cleanup = Some(true);
             event.generation = Some(self.grant.wire().connection_generation);
             source_observer::record(event);
         }
@@ -691,6 +694,8 @@ impl ProfileConnection {
                 "ProfileConnection::call",
             );
             event.outcome = Some("start");
+            event.field = Some("overlap");
+            event.owner = Some("ProfileConnection");
             event.role = Some(observed_role(observed_role_value));
             event.parent_present = Some(observed_parent);
             event.native_parent_present = Some(observed_native_parent);
@@ -732,6 +737,8 @@ impl ProfileConnection {
                 "ProfileConnection::call",
             );
             event.outcome = Some("started");
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("ProfileConnection");
             event.role = Some(observed_role(observed_role_value));
             event.parent_present = Some(observed_parent);
             event.native_parent_present = Some(observed_native_parent);
@@ -888,6 +895,8 @@ impl ProfileConnection {
                                     "ProfileConnection::call",
                                 );
                                 event.outcome = Some("accepted");
+                                event.field = Some("overlap");
+                                event.owner = Some("ProfileConnection");
                                 event.method = Some(method.to_owned());
                                 event.request_id = Some(binding.id());
                                 event.role = Some(observed_role(observed_role_value));
@@ -1629,6 +1638,9 @@ impl Drop for PumpGuard {
             let mut event =
                 source_observer::SourceEvent::new("cleanup", file!(), line!(), "PumpGuard::drop");
             event.outcome = Some("start");
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("PumpGuard");
+            event.cleanup = Some(false);
             event.request_id = self.id;
             event.generation = Some(self.connection.grant.wire().connection_generation);
             source_observer::record(event);
@@ -1675,6 +1687,9 @@ impl Drop for PumpGuard {
             let mut event =
                 source_observer::SourceEvent::new("cleanup", file!(), line!(), "PumpGuard::drop");
             event.outcome = Some("complete");
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("PumpGuard");
+            event.cleanup = Some(true);
             event.request_id = self.id;
             event.generation = Some(self.connection.grant.wire().connection_generation);
             source_observer::record(event);

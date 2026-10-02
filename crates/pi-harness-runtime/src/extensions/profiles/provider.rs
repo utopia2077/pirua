@@ -72,6 +72,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 "RuntimeHarness::register_profile_provider",
             );
             event.outcome = Some("start");
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("ProviderRegistry");
             event.provider = Some(observed_provider_name.clone());
             event.model = observed_model_name.clone();
             source_observer::record(event);
@@ -133,6 +135,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 "RuntimeHarness::register_profile_provider",
             );
             event.outcome = Some("ok");
+            event.field = Some("EH_inline_target_provider_allocator");
+            event.owner = Some("ProviderRegistry");
             event.provider = Some(observed_provider_name);
             event.model = observed_model_name;
             source_observer::record(event);
@@ -237,6 +241,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     "ProviderDispatch::prepare",
                 );
                 event.outcome = Some("check");
+                event.field = Some("D_req");
+                event.owner = Some("ProviderDispatch");
                 event.provider = Some(self.provider.as_str().to_owned());
                 source_observer::record(event);
             }
@@ -274,6 +280,8 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         let mut event =
             source_observer::SourceEvent::new("provider", file!(), line!(), "provider::invoke");
         event.outcome = Some("start");
+        event.field = Some("D_req");
+        event.owner = Some("ProviderDispatch");
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());
         source_observer::record(event);
@@ -340,6 +348,8 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         let mut event =
             source_observer::SourceEvent::new("provider", file!(), line!(), "provider::invoke");
         event.outcome = Some("payload_encoded");
+        event.field = Some("D_req");
+        event.owner = Some("ProviderDispatch");
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());
         event.body_len = Some(payload.len());
@@ -369,6 +379,8 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
             "provider::invoke",
         );
         event.outcome = Some("check");
+        event.field = Some("D_req");
+        event.owner = Some("ProviderDispatch");
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());
         source_observer::record(event);
@@ -425,6 +437,8 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         let mut event =
             source_observer::SourceEvent::new("terminal", file!(), line!(), "provider::invoke");
         event.outcome = Some("ok");
+        event.field = Some("EH_inline_target_provider_allocator");
+        event.owner = Some("ProviderDispatch");
         event.operation = Some("provider.invoke");
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());

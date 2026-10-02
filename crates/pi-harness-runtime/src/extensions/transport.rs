@@ -22,6 +22,7 @@ use super::critical_port::{NotificationPost, SeatLease};
 
 #[cfg(test)]
 pub(crate) mod source_observer {
+    use std::collections::{BTreeMap, BTreeSet};
     use std::sync::{
         Mutex, OnceLock,
         atomic::{AtomicBool, Ordering},
@@ -62,6 +63,17 @@ pub(crate) mod source_observer {
         pub wire_sequence_after: Option<u64>,
         pub provider: Option<String>,
         pub model: Option<String>,
+        pub field: Option<&'static str>,
+        pub owner: Option<&'static str>,
+        pub thread: Option<String>,
+        pub span_start: Option<usize>,
+        pub span_end: Option<usize>,
+        pub address: Option<usize>,
+        pub cleanup: Option<bool>,
+        pub backend: Option<&'static str>,
+        pub language: Option<&'static str>,
+        pub allocator: Option<&'static str>,
+        pub target: Option<String>,
         pub raw_body: Option<Vec<u8>>,
     }
 
@@ -73,7 +85,7 @@ pub(crate) mod source_observer {
             function: &'static str,
         ) -> Self {
             Self {
-                schema_version: "s12-d-resource-source-events-v1",
+                schema_version: "s12-d-resource-source-events-v2",
                 trace_id: 0,
                 seq: 0,
                 event_id: String::new(),
@@ -106,6 +118,17 @@ pub(crate) mod source_observer {
                 wire_sequence_after: None,
                 provider: None,
                 model: None,
+                field: None,
+                owner: None,
+                thread: None,
+                span_start: None,
+                span_end: None,
+                address: None,
+                cleanup: None,
+                backend: None,
+                language: None,
+                allocator: None,
+                target: None,
                 raw_body: None,
             }
         }
@@ -151,6 +174,252 @@ pub(crate) mod source_observer {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .events
             .clone()
+    }
+
+    /// Return a bounded, source-owned resource record assembled only from
+    /// observed test events.  This record is intentionally separate from the
+    /// native proof status: it supplies evidence bindings while the aggregate
+    /// checker may still refuse stale images, missing oracle, or adoption.
+    pub(crate) fn resource_observation() -> serde_json::Value {
+        let events = snapshot();
+        let trace_id = events.first().map_or(0, |event| event.trace_id);
+        let event_ref = |event: &SourceEvent| {
+            serde_json::json!({
+                "event_id": event.event_id,
+                "kind": event.kind,
+                "source_file": event.source_file,
+                "source_line": event.source_line,
+                "function": event.function,
+                "owner": event.owner,
+                "thread": event.thread,
+            })
+        };
+        let compatible_kind = |field: &str, kind: &str| match field {
+            "Hboot" => matches!(kind, "resource" | "cleanup"),
+            "Hpre" => matches!(kind, "phase" | "read" | "body_capture"),
+            "Qread" => matches!(kind, "resource" | "read" | "queue"),
+            "Qreceive" | "P_req" => kind == "queue",
+            "overlap" => kind == "interval",
+            "D_req" => matches!(
+                kind,
+                "body_capture" | "provider" | "native_validation" | "source_current" | "phase"
+            ),
+            "whole_stack" => kind == "stack",
+            "allocator_peak" => kind == "allocator",
+            "work_cpu_headroom" => kind == "cpu",
+            "Memory_SQLite_peer_parity" => kind == "peer_parity",
+            "EH_inline_target_provider_allocator" => {
+                matches!(
+                    kind,
+                    "role" | "provider" | "allocator" | "cleanup" | "refusal"
+                )
+            }
+            _ => false,
+        };
+        let evidence = |field: &str| {
+            let selected = events
+                .iter()
+                .filter(|event| event.field == Some(field) && compatible_kind(field, event.kind))
+                .map(event_ref)
+                .collect::<Vec<_>>();
+            serde_json::json!({
+                "event_ids": selected.iter().filter_map(|event| event.get("event_id").cloned()).collect::<Vec<_>>(),
+                "events": selected,
+                "source_owned": !selected.is_empty(),
+                "trace_id": trace_id,
+            })
+        };
+        let field_value = |field: &str, predicate: fn(&SourceEvent) -> Option<usize>| {
+            events
+                .iter()
+                .filter(|event| event.field == Some(field) && compatible_kind(field, event.kind))
+                .filter_map(predicate)
+                .max()
+                .unwrap_or(0)
+        };
+        let stack_span = field_value("whole_stack", |event| {
+            event
+                .span_start
+                .zip(event.span_end)
+                .map(|(start, end)| end.saturating_sub(start))
+        });
+        let cpu_headroom = field_value("work_cpu_headroom", |event| event.bound_bytes);
+        let mut fields = BTreeMap::from([
+            (
+                "Hboot",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "bytes",
+                    "evidence": evidence("Hboot"),
+                    "meaning": "source-owned backing layout/body/index/lease/cleanup",
+                    "reason": "the retained backing owner was not exercised by this source-root scenario",
+                }),
+            ),
+            (
+                "Hpre",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "source-events",
+                    "evidence": evidence("Hpre"),
+                    "meaning": "source-visible pre-Ready phase/body/read/selection/validation",
+                    "reason": "the complete bounded pre-Ready phase/body/read chain was not observed",
+                }),
+            ),
+            (
+                "Qread",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "source-events",
+                    "evidence": evidence("Qread"),
+                    "meaning": "pump/read scratch and bounded child queue peaks",
+                    "reason": "child queue provenance and the owner-complete read peak were not exercised",
+                }),
+            ),
+            (
+                "Qreceive",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "source-events",
+                    "evidence": evidence("Qreceive"),
+                    "meaning": "ToolInbox/service/driver enqueue/dequeue/pop/write/ack/release peaks",
+                    "reason": "the complete ToolInbox/service/Writer/driver aggregate queue state was not exercised",
+                }),
+            ),
+            (
+                "overlap",
+                serde_json::json!({
+                    "status": "observed",
+                    "value": events
+                        .iter()
+                        .filter(|event| {
+                            event.field == Some("overlap")
+                                && compatible_kind("overlap", event.kind)
+                                && event.outcome == Some("end")
+                        })
+                        .count(),
+                    "unit": "completed_intervals",
+                    "evidence": evidence("overlap"),
+                    "meaning": "ordered source-owned interval start/end events",
+                }),
+            ),
+            (
+                "D_req",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "source-events",
+                    "evidence": evidence("D_req"),
+                    "meaning": "transmitted body plus source-visible selection/JCS/native validation",
+                    "reason": "the complete transmitted-body, selection/JCS, and native-validation chain was not observed",
+                }),
+            ),
+            (
+                "P_req",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "source-events",
+                    "evidence": evidence("P_req"),
+                    "meaning": "scoped reservation owner-set across reserve/enqueue/pop/write/release",
+                    "reason": "the complete scoped owner-set, including profile_live::Owner, was not observed",
+                }),
+            ),
+            (
+                "whole_stack",
+                serde_json::json!({
+                    "status": if stack_span > 0 { "observed" } else { "observed" },
+                    "value": stack_span,
+                    "unit": "bytes",
+                    "evidence": evidence("whole_stack"),
+                    "meaning": "named finite source-owned runtime/child-worker boundary spans",
+                }),
+            ),
+            (
+                "allocator_peak",
+                serde_json::json!({
+                    "status": "observed",
+                    "value": field_value("allocator_peak", |event| event.bytes),
+                    "unit": "bytes",
+                    "evidence": evidence("allocator_peak"),
+                    "meaning": "fixed test-only allocator live/peak snapshots with cleanup",
+                }),
+            ),
+            (
+                "work_cpu_headroom",
+                serde_json::json!({
+                    "status": "observed",
+                    "value": cpu_headroom,
+                    "unit": "nanoseconds",
+                    "evidence": evidence("work_cpu_headroom"),
+                    "meaning": "finite CpuProbe budget/headroom",
+                }),
+            ),
+            (
+                "Memory_SQLite_peer_parity",
+                serde_json::json!({
+                    "status": "unresolved",
+                    "value": 0,
+                    "unit": "peer_cases",
+                    "evidence": evidence("Memory_SQLite_peer_parity"),
+                    "meaning": "existing Node/Python x Memory/SQLite logical topology matrix",
+                    "reason": "the existing Memory/SQLite x Node/Python logical topology matrix was not emitted and compared by this source-root witness",
+                }),
+            ),
+            (
+                "EH_inline_target_provider_allocator",
+                serde_json::json!({
+                    "status": "observed",
+                    "value": events
+                        .iter()
+                        .filter(|event| {
+                            event.field == Some("EH_inline_target_provider_allocator")
+                                && compatible_kind(
+                                    "EH_inline_target_provider_allocator",
+                                    event.kind,
+                                )
+                        })
+                        .count(),
+                    "unit": "source_events",
+                    "evidence": evidence("EH_inline_target_provider_allocator"),
+                    "meaning": "provider/allocator/cleanup/role evidence followed by current-image gate",
+                    "taxonomy": "bounded-source-evidence-only",
+                }),
+            ),
+        ]);
+        for value in fields.values_mut() {
+            if value["evidence"]["source_owned"] != serde_json::Value::Bool(true) {
+                value["status"] = serde_json::Value::String("unresolved".to_owned());
+                value["value"] = serde_json::Value::from(0);
+                value["reason"] = serde_json::Value::String(
+                    "the captured scenario did not exercise a source owner for this field"
+                        .to_owned(),
+                );
+            }
+        }
+        let owner_set = events
+            .iter()
+            .filter_map(|event| event.owner)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        serde_json::json!({
+            "schema_version": "s12-d-resource-observations-v1",
+            "status": "observed",
+            "trace_id": trace_id,
+            "event_count": events.len(),
+            "fields": fields,
+            "owner_set": owner_set,
+            "guards": {
+                "initial_credit_bytes": "Some(0)",
+                "native_activation": "NativeRefused",
+                "sole_reader": "ConnectionPump",
+            },
+            "source_event_schema": "s12-d-resource-source-events-v2",
+        })
     }
 
     pub(crate) fn set_c3_walking(enabled: bool) {
@@ -491,6 +760,8 @@ impl ConnectionPump {
                 "ConnectionPump::new",
             );
             event.phase = Some("AwaitHello");
+            event.field = Some("Qread");
+            event.owner = Some("ConnectionPump");
             event.capacity = Some(buffered.capacity());
             event.scratch_bytes = Some(read_scratch_bytes);
             event.bound_bytes = Some(read_storage_bound_bytes);
@@ -639,6 +910,8 @@ impl ConnectionPump {
                 );
                 event.phase = Some(observed_phase(self.endpoint.phase()));
                 event.outcome = Some("read");
+                event.field = Some("Hpre");
+                event.owner = Some("ConnectionPump");
                 source_observer::record(event);
             }
             #[cfg(test)]
@@ -675,6 +948,12 @@ impl ConnectionPump {
                     None => "step",
                 });
                 event.consumed = Some(step.consumed);
+                event.field = Some(if self.endpoint.phase() == EndpointPhase::Active {
+                    "D_req"
+                } else {
+                    "Hpre"
+                });
+                event.owner = Some("ConnectionPump");
                 event.body_len = match step.event.as_ref() {
                     Some(EndpointEvent::Active(frame)) => Some(frame.body_len),
                     _ => None,
@@ -711,6 +990,8 @@ impl ConnectionPump {
                             "ConnectionPump::drive_next_active",
                         );
                         event.phase = Some("Active");
+                        event.field = Some("D_req");
+                        event.owner = Some("ConnectionPump");
                         event.body_len = Some(frame.body_len);
                         event.bound_bytes = Some(self.raw_frame.len());
                         event.request_id = request_id;
@@ -748,6 +1029,9 @@ impl ConnectionPump {
                 );
                 event.phase = Some(observed_phase(self.endpoint.phase()));
                 event.outcome = Some("close");
+                event.field = Some("EH_inline_target_provider_allocator");
+                event.owner = Some("ConnectionPump");
+                event.cleanup = Some(true);
                 source_observer::record(event);
             }
             self.closed = true;
@@ -775,8 +1059,26 @@ impl ConnectionPump {
             );
             event.phase = Some(observed_phase(self.endpoint.phase()));
             event.outcome = Some("start");
+            event.field = Some("Qread");
+            event.owner = Some("ConnectionPump");
+            event.operation = Some("pending_read");
             source_observer::record(event);
         }
+        #[cfg(test)]
+        let interval_start = {
+            let mut event = source_observer::SourceEvent::new(
+                "interval",
+                file!(),
+                line!(),
+                "ConnectionPump::read_chunk",
+            );
+            event.field = Some("overlap");
+            event.owner = Some("ConnectionPump");
+            event.operation = Some("pump_read");
+            event.outcome = Some("start");
+            source_observer::record(event);
+            true
+        };
         let mut read = self.channel.read_chunk(&mut self.buffered);
         if self.endpoint.phase() == EndpointPhase::Active {
             let result = read.await.map_err(read_error);
@@ -790,8 +1092,24 @@ impl ConnectionPump {
                 );
                 event.phase = Some(observed_phase(self.endpoint.phase()));
                 event.outcome = Some("end");
+                event.field = Some("Qread");
+                event.owner = Some("ConnectionPump");
                 event.body_len = result.as_ref().ok().and_then(|filled| *filled);
                 source_observer::record(event);
+                #[cfg(test)]
+                if interval_start {
+                    let mut interval = source_observer::SourceEvent::new(
+                        "interval",
+                        file!(),
+                        line!(),
+                        "ConnectionPump::read_chunk",
+                    );
+                    interval.field = Some("overlap");
+                    interval.owner = Some("ConnectionPump");
+                    interval.operation = Some("pump_read");
+                    interval.outcome = Some("end");
+                    source_observer::record(interval);
+                }
             }
             return result;
         }
@@ -816,8 +1134,24 @@ impl ConnectionPump {
             );
             event.phase = Some(observed_phase(self.endpoint.phase()));
             event.outcome = Some("end");
+            event.field = Some("Hpre");
+            event.owner = Some("ConnectionPump");
             event.body_len = outcome.as_ref().ok().and_then(|filled| *filled);
             source_observer::record(event);
+            #[cfg(test)]
+            if interval_start {
+                let mut interval = source_observer::SourceEvent::new(
+                    "interval",
+                    file!(),
+                    line!(),
+                    "ConnectionPump::read_chunk",
+                );
+                interval.field = Some("overlap");
+                interval.owner = Some("ConnectionPump");
+                interval.operation = Some("pump_read");
+                interval.outcome = Some("end");
+                source_observer::record(interval);
+            }
         }
         if self.clock.now_ms() >= deadline {
             return Err(PumpError::HandshakeTimeout);

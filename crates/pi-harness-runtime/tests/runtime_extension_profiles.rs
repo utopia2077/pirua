@@ -202,8 +202,66 @@ fn source_root_structured_events_bind_real_resources() {
     );
     let cpu_measurement = cpu.finish();
     let stack = last_stack_snapshot().expect("process source workers publish stack samples");
+    for worker in &stack.worker_snapshots {
+        let mut event = source_observer::SourceEvent::new(
+            "stack",
+            file!(),
+            line!(),
+            "source_root_structured_events_bind_real_resources",
+        );
+        event.field = Some("whole_stack");
+        event.owner = Some("child-worker");
+        event.thread = Some(worker.worker.clone());
+        event.span_start = Some(worker.minimum_address);
+        event.span_end = Some(worker.maximum_address);
+        event.address = Some(worker.maximum_address);
+        event.operation = Some("stack_sample");
+        source_observer::record(event);
+    }
+    for (snapshot, phase) in [(before_close, "snapshot"), (allocation, "finish")] {
+        let mut event = source_observer::SourceEvent::new(
+            "allocator",
+            file!(),
+            line!(),
+            "source_root_structured_events_bind_real_resources",
+        );
+        event.field = Some("allocator_peak");
+        event.owner = Some("TestAlloc");
+        event.allocator = Some(snapshot.allocator);
+        event.operation = Some(phase);
+        event.bytes = Some(snapshot.peak_bytes.min(usize::MAX as u64) as usize);
+        event.bound_bytes = Some(snapshot.live_bytes.max(0).min(usize::MAX as i64) as usize);
+        event.capacity = Some(snapshot.allocations.min(usize::MAX as u64) as usize);
+        event.cleanup = Some(snapshot.deallocations > 0);
+        source_observer::record(event);
+        let mut composite = source_observer::SourceEvent::new(
+            "allocator",
+            file!(),
+            line!(),
+            "source_root_structured_events_bind_real_resources",
+        );
+        composite.field = Some("EH_inline_target_provider_allocator");
+        composite.owner = Some("TestAlloc");
+        composite.allocator = Some(snapshot.allocator);
+        composite.operation = Some(phase);
+        composite.bytes = Some(snapshot.peak_bytes.min(usize::MAX as u64) as usize);
+        composite.cleanup = Some(snapshot.deallocations > 0);
+        source_observer::record(composite);
+    }
+    let mut cpu_event = source_observer::SourceEvent::new(
+        "cpu",
+        file!(),
+        line!(),
+        "source_root_structured_events_bind_real_resources",
+    );
+    cpu_event.field = Some("work_cpu_headroom");
+    cpu_event.owner = Some("CpuProbe");
+    cpu_event.operation = Some("budget_headroom");
+    cpu_event.bytes = Some(cpu_measurement.cpu_ns.min(usize::MAX as u128) as usize);
+    cpu_event.bound_bytes = Some(cpu_measurement.headroom_ns.min(usize::MAX as u128) as usize);
+    cpu_event.capacity = Some(cpu_measurement.budget_ns.min(usize::MAX as u128) as usize);
+    source_observer::record(cpu_event);
     let events = source_observer::snapshot();
-
     assert!(
         events.len() > 20,
         "real owners must emit a nontrivial trace"
@@ -211,7 +269,7 @@ fn source_root_structured_events_bind_real_resources() {
     assert!(
         events
             .iter()
-            .all(|event| event.schema_version == "s12-d-resource-source-events-v1"),
+            .all(|event| event.schema_version == "s12-d-resource-source-events-v2"),
         "all source records must use the accepted schema version"
     );
     assert!(
@@ -346,6 +404,86 @@ fn source_root_structured_events_bind_real_resources() {
             && cpu_measurement.budget_ns == LIMIT.as_nanos()
             && cpu_measurement.headroom_ns > 0,
         "CPU evidence must be finite and tied to the accepted budget: {cpu_measurement:?}"
+    );
+    let observation = source_observer::resource_observation();
+    let fields = observation["fields"]
+        .as_object()
+        .expect("all twelve resource fields are present");
+    assert_eq!(fields.len(), 12);
+    for field in [
+        "Hboot",
+        "Hpre",
+        "Qread",
+        "Qreceive",
+        "overlap",
+        "D_req",
+        "P_req",
+        "whole_stack",
+        "allocator_peak",
+        "work_cpu_headroom",
+        "Memory_SQLite_peer_parity",
+        "EH_inline_target_provider_allocator",
+    ] {
+        let record = &fields[field];
+        assert!(
+            record["status"] == "observed" || record["status"] == "unresolved",
+            "resource field status is explicit: {field}"
+        );
+        assert!(
+            record["evidence"]["event_ids"].is_array(),
+            "resource field evidence is source-bound: {field}"
+        );
+    }
+    for field in [
+        "Hboot",
+        "Hpre",
+        "Qread",
+        "Qreceive",
+        "D_req",
+        "P_req",
+        "Memory_SQLite_peer_parity",
+    ] {
+        assert_eq!(
+            fields[field]["status"], "unresolved",
+            "incomplete resource owner or bounded meaning must remain unresolved: {field}"
+        );
+        assert_eq!(fields[field]["value"], 0);
+        assert!(
+            fields[field]["reason"]
+                .as_str()
+                .is_some_and(|reason| !reason.is_empty()),
+            "unresolved field must explain its missing evidence: {field}"
+        );
+    }
+    for field in ["Hboot", "Memory_SQLite_peer_parity"] {
+        assert!(
+            fields[field]["evidence"]["event_ids"]
+                .as_array()
+                .is_some_and(Vec::is_empty),
+            "unexercised owner must have no invented source evidence: {field}"
+        );
+    }
+    for field in [
+        "overlap",
+        "whole_stack",
+        "allocator_peak",
+        "work_cpu_headroom",
+        "EH_inline_target_provider_allocator",
+    ] {
+        assert_eq!(
+            fields[field]["status"], "observed",
+            "resource field must have a source observation: {field}"
+        );
+        assert!(
+            fields[field]["evidence"]["event_ids"]
+                .as_array()
+                .is_some_and(|ids| !ids.is_empty()),
+            "resource field must bind at least one source event: {field}"
+        );
+    }
+    println!(
+        "SOURCE_RESOURCE {}",
+        serde_json::to_string(&observation).unwrap()
     );
 }
 

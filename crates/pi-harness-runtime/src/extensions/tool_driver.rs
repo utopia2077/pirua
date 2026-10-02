@@ -2143,6 +2143,8 @@ impl Route {
             {
                 let mut event =
                     source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
+                event.field = Some("P_req");
+                event.owner = Some("Route");
                 event.operation = Some("reserve");
                 event.lane = Some(match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
@@ -2176,6 +2178,8 @@ impl Route {
             {
                 let mut event =
                     source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
+                event.field = Some("Qreceive");
+                event.owner = Some("Route");
                 event.operation = Some("enqueue");
                 event.lane = Some(match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
@@ -2301,6 +2305,8 @@ impl Route {
                 line!(),
                 "Route::release_write",
             );
+            event.field = Some("P_req");
+            event.owner = Some("Route");
             event.operation = Some("release");
             event.lane = Some(match kind {
                 WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
@@ -2444,6 +2450,24 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 return Poll::Pending;
             }
             if let Some(job) = writes.jobs.pop_front() {
+                #[cfg(test)]
+                {
+                    let mut event =
+                        source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+                    event.field = Some("P_req");
+                    event.owner = Some("Route");
+                    event.operation = Some("pop");
+                    event.bytes = Some(job.frame.bytes.len());
+                    event.jobs = Some(writes.jobs.len());
+                    event.request_id = match job.kind {
+                        WriteKind::Request(id)
+                        | WriteKind::Cancel(id)
+                        | WriteKind::ProfileRequest(id)
+                        | WriteKind::ProfileResponse(id) => Some(id),
+                        WriteKind::Denial => None,
+                    };
+                    source_observer::record(event);
+                }
                 if matches!(job.kind, WriteKind::Request(_) | WriteKind::Cancel(_)) {
                     writes.popped_unadmitted = Some((job.kind, job.frame.bytes.len()));
                 }
@@ -2509,6 +2533,24 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             }
         }
         let size = job.frame.bytes.len();
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("interval", file!(), line!(), "writer_loop");
+            event.field = Some("overlap");
+            event.owner = Some("Route");
+            event.operation = Some("physical_write");
+            event.outcome = Some("start");
+            event.bytes = Some(size);
+            event.request_id = match job.kind {
+                WriteKind::Request(id)
+                | WriteKind::Cancel(id)
+                | WriteKind::ProfileRequest(id)
+                | WriteKind::ProfileResponse(id) => Some(id),
+                WriteKind::Denial => None,
+            };
+            source_observer::record(event);
+        }
         if route.clock.now_ms() >= job.deadline {
             route.release_write(job.kind, size);
             owner.close_route(&route, DriverError::PeerLost);
@@ -2530,6 +2572,17 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             && let Some(profiles) = &route.profiles
         {
             profiles.written(id, completed);
+        }
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("interval", file!(), line!(), "writer_loop");
+            event.field = Some("overlap");
+            event.owner = Some("Route");
+            event.operation = Some("physical_write");
+            event.outcome = Some("end");
+            event.bytes = Some(size);
+            source_observer::record(event);
         }
         if !completed {
             owner.close_route(&route, DriverError::PeerLost);

@@ -1,5 +1,7 @@
 //! Opt-in bounded sole writer for an actual native profile connection.
 use super::{connection::ProfileConnection, tool_route::ToolInbox};
+#[cfg(test)]
+use crate::extensions::transport::source_observer;
 use crate::extensions::{
     tool_driver::{DriverError, ToolProfileIngress},
     transport::{MonotonicClock, OrderedByteChannel},
@@ -38,6 +40,17 @@ impl Writer {
         if max_bytes == 0 || max_bytes == usize::MAX || max_jobs == 0 || max_jobs > 256 {
             return Err(DriverError::InvalidHost);
         }
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::new");
+            event.field = Some("Qreceive");
+            event.owner = Some("Writer");
+            event.capacity = Some(max_bytes);
+            event.jobs = Some(max_jobs);
+            event.operation = Some("capacity");
+            source_observer::record(event);
+        }
         Ok(Arc::new(Self {
             state: Mutex::new(State {
                 jobs: VecDeque::new(),
@@ -72,6 +85,18 @@ impl Writer {
                 id,
                 deadline,
             });
+            #[cfg(test)]
+            {
+                let mut event =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::enqueue");
+                event.field = Some("Qreceive");
+                event.owner = Some("Writer");
+                event.operation = Some("enqueue");
+                event.bytes = Some(state.bytes);
+                event.jobs = Some(state.jobs.len());
+                event.request_id = Some(id);
+                source_observer::record(event);
+            }
             state.wake.take()
         };
         if let Some(wake) = wake {
@@ -161,6 +186,22 @@ impl Writer {
                     return Poll::Ready(None);
                 }
                 if let Some(job) = state.jobs.pop_front() {
+                    #[cfg(test)]
+                    {
+                        let mut event = source_observer::SourceEvent::new(
+                            "queue",
+                            file!(),
+                            line!(),
+                            "Writer::run",
+                        );
+                        event.field = Some("Qreceive");
+                        event.owner = Some("Writer");
+                        event.operation = Some("pop");
+                        event.bytes = Some(job.frame.bytes.len());
+                        event.jobs = Some(state.jobs.len());
+                        event.request_id = Some(job.id);
+                        source_observer::record(event);
+                    }
                     return Poll::Ready(Some(job));
                 }
                 if state.closed {
@@ -213,6 +254,21 @@ impl Writer {
                 }
             };
             let completed = if admitted {
+                #[cfg(test)]
+                {
+                    let mut event = source_observer::SourceEvent::new(
+                        "interval",
+                        file!(),
+                        line!(),
+                        "Writer::run",
+                    );
+                    event.field = Some("overlap");
+                    event.owner = Some("Writer");
+                    event.operation = Some("physical_write");
+                    event.outcome = Some("start");
+                    event.request_id = Some(job.id);
+                    source_observer::record(event);
+                }
                 let mut write = channel.write_frame(job.frame);
                 let mut timer = clock.sleep_until(job.deadline);
                 std::future::poll_fn(|cx| {
@@ -226,6 +282,18 @@ impl Writer {
             } else {
                 false
             };
+            #[cfg(test)]
+            if admitted {
+                let mut event =
+                    source_observer::SourceEvent::new("interval", file!(), line!(), "Writer::run");
+                event.field = Some("overlap");
+                event.owner = Some("Writer");
+                event.operation = Some("physical_write");
+                event.outcome = Some("end");
+                event.request_id = Some(job.id);
+                event.bytes = Some(bytes);
+                source_observer::record(event);
+            }
             let close_after_ack = self.publish_and_finish(job.id, bytes, completed, |_| {
                 inbox.written(job.id, completed)
             });

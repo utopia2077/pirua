@@ -9,6 +9,8 @@ use std::alloc::Layout;
 use std::num::NonZeroUsize;
 
 #[cfg(test)]
+use super::transport::source_observer;
+#[cfg(test)]
 use pi_extension_protocol::wire::echo_bounded::BorrowedIndexArena;
 use pi_extension_protocol::wire::echo_bounded::IndexStorage;
 
@@ -66,6 +68,22 @@ pub(super) struct ReceiveBacking8192 {
 impl ReceiveBacking8192 {
     pub(super) fn construct() -> Result<Self, Backing8192Error> {
         let layout = BackingLayout8192::checked()?;
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "ReceiveBacking8192::construct",
+            );
+            event.field = Some("Hboot");
+            event.owner = Some("ReceiveBacking8192");
+            event.capacity = Some(layout.slot_bytes);
+            event.bound_bytes = Some(layout.total_slot_bytes);
+            event.body_len = Some(layout.body_bytes);
+            event.outcome = Some("layout");
+            source_observer::record(event);
+        }
         let pool =
             Pool::prewarm(layout.slot_bytes, layout.total_slot_bytes).map_err(
                 |error| match error {
@@ -73,6 +91,22 @@ impl ReceiveBacking8192 {
                     IndexPoolError::Exhausted => Backing8192Error::Exhausted,
                 },
             )?;
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "ReceiveBacking8192::construct",
+            );
+            event.field = Some("Hboot");
+            event.owner = Some("ReceiveBacking8192");
+            event.capacity = Some(layout.slot_bytes);
+            event.bound_bytes = Some(layout.total_slot_bytes);
+            event.body_len = Some(layout.body_bytes);
+            event.outcome = Some("prewarmed");
+            source_observer::record(event);
+        }
         Ok(Self { pool, layout })
     }
 
@@ -94,11 +128,28 @@ impl ReceiveBacking8192 {
                 IndexPoolError::Limit => Backing8192Error::Capacity,
                 IndexPoolError::Exhausted => Backing8192Error::Exhausted,
             })?;
-        Ok(ReceiveLease8192 {
+        let lease = ReceiveLease8192 {
             index: Some(index),
             body: Some(Box::new([0; FRAME])),
             selected: selected_frame_bytes,
-        })
+        };
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "ReceiveBacking8192::lease",
+            );
+            event.field = Some("Hboot");
+            event.owner = Some("ReceiveLease8192");
+            event.capacity = Some(self.layout.slot_bytes);
+            event.body_len = Some(self.layout.body_bytes);
+            event.bytes = Some(selected_frame_bytes.get());
+            event.outcome = Some("lease_acquired");
+            source_observer::record(event);
+        }
+        Ok(lease)
     }
 }
 
@@ -158,7 +209,24 @@ impl ReceiveLease8192 {
 }
 
 #[cfg(test)]
-pub(super) fn measured_snapshot_for_test() -> serde_json::Value {
+impl Drop for ReceiveLease8192 {
+    fn drop(&mut self) {
+        let mut event = source_observer::SourceEvent::new(
+            "cleanup",
+            file!(),
+            line!(),
+            "ReceiveLease8192::drop",
+        );
+        event.field = Some("Hboot");
+        event.owner = Some("ReceiveLease8192");
+        event.cleanup = Some(true);
+        event.outcome = Some("complete");
+        source_observer::record(event);
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn measured_snapshot_for_test() -> serde_json::Value {
     let backing = ReceiveBacking8192::construct().unwrap();
     let layout = backing.layout();
     let selected = NonZeroUsize::new(FRAME).unwrap();

@@ -1,5 +1,7 @@
 //! Construct native DTOs under the captured session and header policies before
 //! the protocol owner can publish progress or retain a first terminal.
+#[cfg(test)]
+use crate::extensions::transport::source_observer;
 use pi_agent_schema::*;
 use pi_agent_session::codec::SessionCodec;
 use pi_ai_core::{
@@ -108,6 +110,21 @@ impl<'a> NativeDomain<'a> {
 }
 impl NativeValidator for NativeDomain<'_> {
     fn validate(&mut self, candidate: &ValidatedPayload) -> Result<(), NativeError> {
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "native_validation",
+                file!(),
+                line!(),
+                "NativeDomain::validate",
+            );
+            event.field = Some("D_req");
+            event.owner = Some("NativeDomain");
+            event.operation = Some("native_validation");
+            event.outcome = Some("start");
+            event.jobs = Some(candidate.projections.len());
+            source_observer::record(event);
+        }
         macro_rules! decode {
             ($value:expr, $ty:ty) => {
                 serde_json::from_value::<$ty>($value.clone()).map_err(|_| NativeError::Rejected)?
@@ -245,6 +262,21 @@ impl NativeValidator for NativeDomain<'_> {
             if message.as_message().usage != usage {
                 return Err(NativeError::Rejected);
             }
+        }
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "native_validation",
+                file!(),
+                line!(),
+                "NativeDomain::validate",
+            );
+            event.field = Some("D_req");
+            event.owner = Some("NativeDomain");
+            event.operation = Some("native_validation");
+            event.outcome = Some("complete");
+            event.jobs = Some(candidate.projections.len());
+            source_observer::record(event);
         }
         Ok(())
     }

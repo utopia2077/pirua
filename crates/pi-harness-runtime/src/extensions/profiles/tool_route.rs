@@ -1,5 +1,7 @@
 //! Bounded demultiplexing behind the actual Tool route's sole reader/writer.
 use super::connection::ProfileConnection;
+#[cfg(test)]
+use crate::extensions::transport::source_observer;
 use crate::extensions::{
     tool_driver::{DriverError, ToolProfileIngress},
     transport::PumpError,
@@ -37,6 +39,17 @@ impl ToolInbox {
     pub(crate) fn new(max_bytes: usize, max_frames: usize) -> Result<Arc<Self>, DriverError> {
         if max_bytes == 0 || max_bytes == usize::MAX || max_frames == 0 || max_frames > 256 {
             return Err(DriverError::InvalidHost);
+        }
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::new");
+            event.field = Some("Qreceive");
+            event.owner = Some("ToolInbox");
+            event.capacity = Some(max_bytes);
+            event.jobs = Some(max_frames);
+            event.operation = Some("capacity");
+            source_observer::record(event);
         }
         Ok(Arc::new(Self {
             state: Mutex::new(State {
@@ -83,6 +96,21 @@ impl ToolInbox {
             };
             if let Some(frame) = frame {
                 state.bytes -= frame.body_len;
+                #[cfg(test)]
+                {
+                    let mut event = source_observer::SourceEvent::new(
+                        "queue",
+                        file!(),
+                        line!(),
+                        "ToolInbox::next",
+                    );
+                    event.field = Some("Qreceive");
+                    event.owner = Some("ToolInbox");
+                    event.operation = Some("pop");
+                    event.bytes = Some(frame.body_len);
+                    event.jobs = Some(state.requests.len() + state.replies.len());
+                    source_observer::record(event);
+                }
                 return Poll::Ready(Ok(Some(frame)));
             }
             if state.closed {
@@ -123,6 +151,21 @@ impl ToolInbox {
                 return Err(super::fault());
             }
             state.writes.insert(id, pending.clone());
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "queue",
+                    file!(),
+                    line!(),
+                    "ToolInbox::write",
+                );
+                event.field = Some("P_req");
+                event.owner = Some("ToolInbox");
+                event.operation = Some("reserve");
+                event.request_id = Some(id);
+                event.jobs = Some(state.writes.len());
+                source_observer::record(event);
+            }
         }
         if connection
             .enqueue_profile(frame, id, response, deadline)
@@ -178,6 +221,21 @@ impl ToolProfileIngress for ToolInbox {
                 return Err(DriverError::Overloaded);
             }
             state.bytes = bytes;
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "queue",
+                    file!(),
+                    line!(),
+                    "ToolInbox::incoming",
+                );
+                event.field = Some("Qreceive");
+                event.owner = Some("ToolInbox");
+                event.operation = Some("enqueue");
+                event.bytes = Some(state.bytes);
+                event.jobs = Some(state.requests.len() + state.replies.len() + 1);
+                source_observer::record(event);
+            }
             if requests {
                 state.requests.push_back(frame);
                 state.request_wake.take()
@@ -220,6 +278,17 @@ impl ToolProfileIngress for ToolInbox {
             }
             pending
         };
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::written");
+            event.field = Some("P_req");
+            event.owner = Some("ToolInbox");
+            event.operation = Some(if completed { "ack" } else { "release" });
+            event.request_id = Some(id);
+            event.outcome = Some(if completed { "complete" } else { "failed" });
+            source_observer::record(event);
+        }
         if let Some(pending) = pending {
             *pending.result.lock().unwrap_or_else(|p| p.into_inner()) = Some(completed);
             pending.done.cancel();
