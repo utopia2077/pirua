@@ -33,6 +33,62 @@ fn retained_ingress_api_is_public<
 }
 
 #[test]
+#[ignore = "explicit allocator evidence witness; run with --ignored --exact"]
+fn source_root_allocator_peak_is_measured_and_cleanup_is_observed() {
+    let setup = Setup::new();
+    let harness = create(&setup, setup.session.clone());
+    let (connection, peer) = install(&setup, &harness, 1, 1);
+
+    allocator_measurement_start();
+    let result = setup
+        .pump
+        .drive(harness.prompt(PromptInput::Text {
+            text: "allocator measurement".into(),
+            images: vec![],
+        }))
+        .unwrap()
+        .unwrap();
+
+    assert!(matches!(
+        result.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    let before_close = allocator_measurement_snapshot();
+    assert!(
+        peer.requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|request| request.method == "provider.invoke")
+    );
+
+    connection.close();
+    setup.pump.drive(harness.close()).unwrap();
+    let snapshot = allocator_measurement_finish();
+
+    assert!(
+        before_close.peak_bytes > 0,
+        "allocator peak must come from the real source-root scenario: {snapshot:?}"
+    );
+    assert!(
+        before_close.allocations > 0 && snapshot.deallocations > before_close.deallocations,
+        "allocator must observe both allocation and cleanup paths: {snapshot:?}"
+    );
+    assert!(
+        snapshot.live_bytes <= before_close.live_bytes,
+        "close cleanup must not increase measured live bytes: before={before_close:?} after={snapshot:?}"
+    );
+    assert_eq!(
+        snapshot.allocator,
+        "runtime-extension-profiles-alloc::TestAlloc"
+    );
+    assert!(
+        snapshot.live_bytes >= 0,
+        "measured live bytes must be finite and nonnegative: {snapshot:?}"
+    );
+}
+
+#[test]
 fn retained_ingress_api_is_additive_and_reachable_from_external_host_code() {
     retained_ingress_api_is_public::<(), MemoryStorage, SessionMetadata>();
 }

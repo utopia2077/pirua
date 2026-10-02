@@ -1,8 +1,22 @@
 #![allow(dead_code)]
-use runtime_extension_profiles_alloc::TestAlloc;
+use runtime_extension_profiles_alloc::{
+    AllocationSnapshot, TestAlloc, reset_measurement, snapshot_measurement,
+};
 
 #[global_allocator]
 static GLOBAL: TestAlloc = TestAlloc;
+
+pub fn allocator_measurement_start() {
+    reset_measurement();
+}
+
+pub fn allocator_measurement_snapshot() -> AllocationSnapshot {
+    snapshot_measurement()
+}
+
+pub fn allocator_measurement_finish() -> AllocationSnapshot {
+    runtime_extension_profiles_alloc::finish_measurement()
+}
 
 use pi_extension_protocol::{
     activation::*,
