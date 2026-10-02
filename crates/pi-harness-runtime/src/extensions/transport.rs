@@ -22,6 +22,7 @@ use super::critical_port::{NotificationPost, SeatLease};
 
 #[cfg(test)]
 pub(crate) mod source_observer {
+    use std::cell::Cell;
     use std::collections::{BTreeMap, BTreeSet};
     use std::sync::{
         Mutex, OnceLock,
@@ -72,8 +73,12 @@ pub(crate) mod source_observer {
         pub cleanup: Option<bool>,
         pub backend: Option<&'static str>,
         pub language: Option<&'static str>,
+        pub core: Option<u32>,
+        pub minor: Option<u32>,
+        pub case_id: Option<String>,
         pub allocator: Option<&'static str>,
         pub target: Option<String>,
+        pub topology: Option<Vec<String>>,
         pub raw_body: Option<Vec<u8>>,
     }
 
@@ -127,8 +132,12 @@ pub(crate) mod source_observer {
                 cleanup: None,
                 backend: None,
                 language: None,
+                core: None,
+                minor: None,
+                case_id: None,
                 allocator: None,
                 target: None,
+                topology: None,
                 raw_body: None,
             }
         }
@@ -143,6 +152,10 @@ pub(crate) mod source_observer {
 
     static STATE: OnceLock<Mutex<State>> = OnceLock::new();
     static C3_WALKING: AtomicBool = AtomicBool::new(false);
+    thread_local! {
+        static GENERATION: Cell<Option<u64>> = const { Cell::new(None) };
+        static CASE_ID: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
+    }
 
     fn state() -> &'static Mutex<State> {
         STATE.get_or_init(|| Mutex::new(State::default()))
@@ -157,7 +170,36 @@ pub(crate) mod source_observer {
         state.events.clear();
     }
 
+    pub(crate) fn with_generation<R>(generation: u64, f: impl FnOnce() -> R) -> R {
+        GENERATION.with(|current| {
+            let previous = current.replace((generation > 0).then_some(generation));
+            let result = f();
+            current.set(previous);
+            result
+        })
+    }
+
+    pub(crate) fn current_generation() -> Option<u64> {
+        GENERATION.with(Cell::get)
+    }
+
+    pub(crate) fn with_case_id<R>(case_id: impl Into<String>, f: impl FnOnce() -> R) -> R {
+        CASE_ID.with(|current| {
+            let previous = current.replace(Some(case_id.into()));
+            let result = f();
+            current.replace(previous);
+            result
+        })
+    }
+
+    pub(crate) fn current_case_id() -> Option<String> {
+        CASE_ID.with(|current| current.borrow().clone())
+    }
+
     pub(crate) fn record(mut event: SourceEvent) {
+        if event.case_id.is_none() {
+            event.case_id = current_case_id();
+        }
         let mut state = state()
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -190,13 +232,47 @@ pub(crate) mod source_observer {
                 "source_file": event.source_file,
                 "source_line": event.source_line,
                 "function": event.function,
+                "method": event.method,
                 "owner": event.owner,
                 "thread": event.thread,
+                "operation": event.operation,
+                "outcome": event.outcome,
+                "body_len": event.body_len,
+                "bytes": event.bytes,
+                "capacity": event.capacity,
+                "scratch_bytes": event.scratch_bytes,
+                "bound_bytes": event.bound_bytes,
+                "generation": event.generation,
+                "request_id": event.request_id,
+                "wire_sequence_before": event.wire_sequence_before,
+                "wire_sequence_after": event.wire_sequence_after,
+                "backend": event.backend,
+                "language": event.language,
+                "core": event.core,
+                "minor": event.minor,
+                "case_id": event.case_id,
+                "phase": event.phase,
+                "role": event.role,
+                "parent_present": event.parent_present,
+                "native_parent_present": event.native_parent_present,
+                "lane": event.lane,
+                "jobs": event.jobs,
+                "reserved_normal": event.reserved_normal,
+                "reserved_control": event.reserved_control,
+                "reserved_cancel": event.reserved_cancel,
+                "provider": event.provider,
+                "model": event.model,
+                "allocator": event.allocator,
+                "target": event.target,
+                "topology": event.topology,
             })
         };
         let compatible_kind = |field: &str, kind: &str| match field {
             "Hboot" => matches!(kind, "resource" | "cleanup"),
-            "Hpre" => matches!(kind, "phase" | "read" | "body_capture"),
+            "Hpre" => matches!(
+                kind,
+                "phase" | "read" | "body_capture" | "native_validation"
+            ),
             "Qread" => matches!(kind, "resource" | "read" | "queue"),
             "Qreceive" | "P_req" => kind == "queue",
             "overlap" => kind == "interval",
@@ -244,49 +320,488 @@ pub(crate) mod source_observer {
                 .map(|(start, end)| end.saturating_sub(start))
         });
         let cpu_headroom = field_value("work_cpu_headroom", |event| event.bound_bytes);
+        let hboot_events = events
+            .iter()
+            .filter(|event| event.field == Some("Hboot") && event.kind == "resource")
+            .collect::<Vec<_>>();
+        let hboot_generations = hboot_events
+            .iter()
+            .filter_map(|event| event.generation)
+            .filter(|generation| *generation > 0)
+            .collect::<BTreeSet<_>>();
+        let hboot_chain = hboot_generations.iter().find_map(|generation| {
+            let layout = hboot_events
+                .iter()
+                .filter(|event| event.generation == Some(*generation))
+                .any(|event| {
+                    event.owner == Some("ReceiveBacking8192")
+                        && event.operation == Some("layout")
+                        && event.capacity.is_some_and(|bytes| bytes > 0)
+                        && event
+                            .bound_bytes
+                            .is_some_and(|bytes| bytes >= event.capacity.unwrap())
+                        && event.body_len.is_some_and(|bytes| bytes > 0)
+                });
+            let prewarmed = hboot_events
+                .iter()
+                .filter(|event| event.generation == Some(*generation))
+                .any(|event| {
+                    event.owner == Some("ReceiveBacking8192")
+                        && event.operation == Some("prewarmed")
+                });
+            let leases = hboot_events
+                .iter()
+                .filter(|event| event.generation == Some(*generation))
+                .filter(|event| event.owner == Some("ReceiveLease8192"))
+                .filter(|event| event.operation == Some("lease_acquired"))
+                .count();
+            let refused = hboot_events
+                .iter()
+                .filter(|event| event.generation == Some(*generation))
+                .any(|event| {
+                    event.owner == Some("ReceiveBacking8192")
+                        && event.operation == Some("lease_refused")
+                });
+            let indexed = hboot_events
+                .iter()
+                .filter(|event| event.generation == Some(*generation))
+                .any(|event| {
+                    event.owner == Some("ReceiveLease8192")
+                        && event.operation == Some("index_body")
+                        && event.body_len.is_some_and(|bytes| bytes > 0)
+                        && event.bytes == event.body_len
+                });
+            let cleanup = events.iter().any(|event| {
+                event.field == Some("Hboot")
+                    && event.kind == "cleanup"
+                    && event.owner == Some("StagedReceive8192")
+                    && event.cleanup == Some(true)
+                    && event.outcome == Some("complete")
+                    && event.generation == Some(*generation)
+            });
+            (layout && prewarmed && leases >= 2 && refused && indexed && cleanup).then_some((
+                *generation,
+                leases,
+                refused,
+            ))
+        });
+        let (hboot_generation, hboot_leases, hboot_refused) = hboot_chain.unwrap_or((0, 0, false));
+        let hboot_complete = hboot_generation > 0;
+        let hpre_events = events
+            .iter()
+            .filter(|event| event.field == Some("Hpre"))
+            .collect::<Vec<_>>();
+        let phases = ["AwaitHello", "AwaitManifest", "AwaitReady"];
+        let hpre_generations = hpre_events
+            .iter()
+            .filter_map(|event| event.generation)
+            .filter(|generation| *generation > 0)
+            .collect::<BTreeSet<_>>();
+        let hpre_chain = hpre_generations.iter().find_map(|generation| {
+            let scoped = hpre_events
+                .iter()
+                .copied()
+                .filter(|event| event.generation == Some(*generation))
+                .collect::<Vec<_>>();
+            let identities = scoped
+                .iter()
+                .filter_map(|event| event.target.as_deref())
+                .collect::<BTreeSet<_>>();
+            let identity = identities.iter().next().copied();
+            let one_identity = identity.is_some() && identities.len() == 1;
+            let mut phase_cursor = 0usize;
+            for event in &scoped {
+                if event.kind == "phase"
+                    && event.owner == Some("ConnectionPump")
+                    && event.outcome == Some("read")
+                    && event.phase == Some(phases[phase_cursor])
+                    && event.target.as_deref() == identity
+                {
+                    phase_cursor += 1;
+                    if phase_cursor == phases.len() {
+                        break;
+                    }
+                }
+            }
+            let ready = scoped.iter().any(|event| event.operation == Some("ready"));
+            let active = scoped.iter().any(|event| {
+                event.kind == "phase"
+                    && event.owner == Some("ConnectionPump")
+                    && event.phase == Some("Active")
+                    && event.target.as_deref() == identity
+            });
+            let limit = scoped.iter().any(|event| {
+                event.owner == Some("ConnectionPump")
+                    && event.operation == Some("limit")
+                    && event.bound_bytes.is_some()
+                    && event.target.as_deref() == identity
+            });
+            let read = scoped.iter().any(|event| {
+                event.kind == "read"
+                    && event.owner == Some("ConnectionPump")
+                    && event.operation == Some("read")
+                    && event.target.as_deref() == identity
+            });
+            let body = scoped.iter().any(|event| {
+                event.kind == "phase"
+                    && event.owner == Some("ConnectionPump")
+                    && event.consumed.is_some_and(|consumed| consumed > 0)
+                    && event.phase != Some("Active")
+                    && event.target.as_deref() == identity
+            });
+            let validation = scoped.iter().any(|event| {
+                event.kind == "native_validation"
+                    && event.owner == Some("NativeDomain")
+                    && event.operation == Some("validation")
+                    && event.target.as_deref() == identity
+            });
+            (one_identity
+                && phase_cursor == phases.len()
+                && ready
+                && active
+                && limit
+                && read
+                && body
+                && validation)
+                .then_some((
+                    (*generation, phase_cursor),
+                    ready,
+                    active,
+                    limit,
+                    read,
+                    body,
+                    validation,
+                ))
+        });
+        let (
+            (hpre_generation, phase_cursor),
+            hpre_ready,
+            hpre_active,
+            hpre_limit,
+            hpre_read,
+            hpre_body,
+            hpre_validation,
+        ) = hpre_chain.unwrap_or(((0, 0), false, false, false, false, false, false));
+        let hpre_complete = hpre_generation > 0;
+        let qread_cases = events
+            .iter()
+            .filter(|event| {
+                event.field == Some("Qread")
+                    && event.kind == "resource"
+                    && event.operation == Some("pump_buffer")
+                    && event.capacity.is_some_and(|bytes| bytes > 0)
+                    && event.generation.is_some()
+                    && event.case_id.is_some()
+            })
+            .filter_map(|event| Some((event.generation?, event.case_id.as_deref()?)))
+            .collect::<BTreeSet<_>>();
+        let qread_chain = qread_cases.iter().find_map(|(generation, case_id)| {
+            let pump_buffer = events.iter().any(|event| {
+                event.field == Some("Qread")
+                    && event.kind == "resource"
+                    && event.operation == Some("pump_buffer")
+                    && event.generation == Some(*generation)
+                    && event.case_id.as_deref() == Some(*case_id)
+                    && event.capacity.is_some_and(|bytes| bytes > 0)
+            });
+            let pending_read = events.iter().any(|event| {
+                event.field == Some("Qread")
+                    && event.kind == "read"
+                    && event.operation == Some("pending_read")
+                    && event.generation == Some(*generation)
+                    && event.case_id.as_deref() == Some(*case_id)
+            });
+            let child = events.iter().any(|event| {
+                event.field == Some("Qread")
+                    && event.kind == "queue"
+                    && event.owner == Some("ChildTransport")
+                    && event.operation == Some("child_read_queue_peak")
+                    && event.generation == Some(*generation)
+                    && event.case_id.as_deref() == Some(*case_id)
+                    && event.capacity.is_some_and(|bytes| bytes > 0)
+                    && event.jobs.is_some_and(|jobs| jobs > 0)
+                    && event.language.is_some()
+                    && event.backend.is_some()
+                    && event.core.is_some()
+                    && event.minor.is_some()
+            });
+            (pump_buffer && pending_read && child).then_some((*generation, *case_id))
+        });
+        let (qread_generation, qread_case_id) = qread_chain.unwrap_or((0, ""));
+        let qread_complete = qread_generation > 0;
+        let qreceive_owners = ["ToolInbox", "Writer", "Route"];
+        let qreceive_operations = ["enqueue", "pop", "write", "ack", "release"];
+        let qreceive_generations = events
+            .iter()
+            .filter(|event| event.field == Some("Qreceive") && event.kind == "queue")
+            .filter_map(|event| event.generation)
+            .filter(|generation| *generation > 0)
+            .collect::<BTreeSet<_>>();
+        let qreceive_chain = qreceive_generations.iter().find_map(|generation| {
+            let vectors = qreceive_owners
+                .iter()
+                .map(|owner| {
+                    let owner_events = events
+                        .iter()
+                        .filter(|event| {
+                            event.field == Some("Qreceive")
+                                && event.kind == "queue"
+                                && event.owner == Some(*owner)
+                                && event.generation == Some(*generation)
+                        })
+                        .collect::<Vec<_>>();
+                    let request_ids = owner_events
+                        .iter()
+                        .filter_map(|event| event.request_id)
+                        .collect::<BTreeSet<_>>();
+                    let correlated = request_ids.iter().find(|request_id| {
+                        qreceive_operations.iter().all(|operation| {
+                            owner_events.iter().any(|event| {
+                                event.request_id == Some(**request_id)
+                                    && event.operation == Some(*operation)
+                                    && (matches!(*operation, "ack")
+                                        || event.bytes.is_some_and(|bytes| bytes > 0))
+                            })
+                        })
+                    });
+                    (
+                        *owner,
+                        (
+                            correlated.is_some(),
+                            correlated.copied().into_iter().collect::<BTreeSet<_>>(),
+                        ),
+                    )
+                })
+                .collect::<BTreeMap<_, _>>();
+            vectors
+                .values()
+                .all(|(complete, request_ids)| *complete && !request_ids.is_empty())
+                .then_some((*generation, vectors))
+        });
+        let (qreceive_generation, qreceive_vectors) =
+            qreceive_chain.unwrap_or((0, BTreeMap::new()));
+        let qreceive_complete = qreceive_generation > 0;
+        let dreq_chains = events
+            .iter()
+            .filter(|event| {
+                event.field == Some("D_req")
+                    && event.kind == "body_capture"
+                    && event.operation == Some("wire_body")
+                    && event.request_id.is_some()
+                    && event.generation.is_some()
+            })
+            .filter_map(|event| Some((event.request_id?, event.generation?)))
+            .collect::<BTreeSet<_>>();
+        let dreq_chain = dreq_chains.iter().find_map(|(request_id, generation)| {
+            let in_chain = |event: &&SourceEvent| {
+                event.field == Some("D_req")
+                    && event.request_id == Some(*request_id)
+                    && event.generation == Some(*generation)
+            };
+            let wire = events.iter().filter(in_chain).any(|event| {
+                event.kind == "body_capture"
+                    && event.operation == Some("wire_body")
+                    && event.body_len.is_some_and(|bytes| bytes > 0)
+            });
+            let indexed = events.iter().filter(in_chain).any(|event| {
+                event.kind == "body_capture"
+                    && event.operation == Some("indexed_selection")
+                    && event.wire_sequence_before.is_some()
+                    && event.wire_sequence_after.is_some()
+            });
+            let terminal = events.iter().filter(in_chain).any(|event| {
+                event.kind == "body_capture" && event.operation == Some("indexed_terminal")
+            });
+            let provider = events.iter().filter(in_chain).any(|event| {
+                event.kind == "provider"
+                    && event.operation == Some("payload_encoded")
+                    && event.body_len.is_some_and(|bytes| bytes > 0)
+            });
+            let source = events.iter().filter(in_chain).any(|event| {
+                event.kind == "source_current" && event.operation == Some("selection")
+            });
+            let validation = events.iter().filter(in_chain).any(|event| {
+                event.kind == "native_validation"
+                    && event.operation == Some("native_validation")
+                    && event.outcome == Some("complete")
+            });
+            (wire && indexed && terminal && provider && source && validation).then_some((
+                *request_id,
+                *generation,
+                wire,
+                indexed,
+                terminal,
+                provider,
+                source,
+                validation,
+            ))
+        });
+        let (
+            dreq_request_id,
+            dreq_generation,
+            dreq_wire,
+            dreq_indexed,
+            dreq_terminal,
+            dreq_provider,
+            dreq_source,
+            dreq_validation,
+        ) = dreq_chain.unwrap_or((0, 0, false, false, false, false, false, false));
+        let dreq_complete = dreq_request_id > 0 && dreq_generation > 0;
+        let parity_cases = events
+            .iter()
+            .filter(|event| {
+                event.field == Some("Memory_SQLite_peer_parity")
+                    && event.kind == "peer_parity"
+                    && event.operation == Some("matrix_case")
+                    && event.outcome == Some("complete")
+            })
+            .filter_map(|event| {
+                Some((
+                    event.backend?,
+                    event.language?,
+                    event.core?,
+                    event.minor?,
+                    event.case_id.as_deref()?,
+                    event.method.as_deref()?,
+                    event.target.as_deref()?,
+                    serde_json::to_string(event.topology.as_ref()?).ok()?,
+                ))
+            })
+            .collect::<BTreeSet<_>>();
+        let parity_topologies = parity_cases
+            .iter()
+            .map(|case| case.7.clone())
+            .collect::<BTreeSet<_>>();
+        let parity_commands = parity_cases
+            .iter()
+            .filter(|case| !case.4.is_empty() && !case.5.is_empty() && !case.6.is_empty())
+            .count();
+        let parity_complete =
+            parity_cases.len() == 16 && parity_topologies.len() == 1 && parity_commands == 16;
+        let hboot_value = hboot_events
+            .iter()
+            .filter(|event| event.generation == Some(hboot_generation))
+            .filter_map(|event| event.bound_bytes.or(event.body_len))
+            .max()
+            .unwrap_or(0);
+        let hpre_value = hpre_events
+            .iter()
+            .filter(|event| event.generation == Some(hpre_generation))
+            .filter_map(|event| event.consumed.or(event.body_len))
+            .max()
+            .unwrap_or(0);
+        let qread_value = events
+            .iter()
+            .filter(|event| event.field == Some("Qread"))
+            .filter(|event| {
+                event.owner == Some("ChildTransport")
+                    && event.operation == Some("child_read_queue_peak")
+                    && event.generation == Some(qread_generation)
+                    && event.case_id.as_deref() == Some(qread_case_id)
+            })
+            .filter_map(|event| event.jobs)
+            .max()
+            .unwrap_or(0);
+        let qreceive_value = qreceive_vectors
+            .values()
+            .map(|(_, request_ids)| {
+                events
+                    .iter()
+                    .filter(|event| {
+                        event.field == Some("Qreceive")
+                            && event.kind == "queue"
+                            && event.generation == Some(qreceive_generation)
+                            && event.request_id.is_some_and(|id| request_ids.contains(&id))
+                    })
+                    .filter_map(|event| event.bytes)
+                    .max()
+                    .unwrap_or(0)
+            })
+            .sum::<usize>();
+        let dreq_value = events
+            .iter()
+            .filter(|event| event.field == Some("D_req"))
+            .filter_map(|event| event.body_len.or(event.bytes))
+            .max()
+            .unwrap_or(0);
         let mut fields = BTreeMap::from([
             (
                 "Hboot",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
+                    "status": if hboot_complete { "observed" } else { "unresolved" },
+                    "value": hboot_value,
                     "unit": "bytes",
                     "evidence": evidence("Hboot"),
                     "meaning": "source-owned backing layout/body/index/lease/cleanup",
-                    "reason": "the retained backing owner was not exercised by this source-root scenario",
+                    "lease_count": hboot_leases,
+                    "third_lease_refused": hboot_refused,
+                    "reason": if hboot_complete { serde_json::Value::Null } else { serde_json::Value::String("the retained backing layout, indexed body, lease refusal, generation, and cleanup chain is incomplete".into()) },
                 }),
             ),
             (
                 "Hpre",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
+                    "status": if hpre_complete { "observed" } else { "unresolved" },
+                    "value": hpre_value,
                     "unit": "source-events",
                     "evidence": evidence("Hpre"),
                     "meaning": "source-visible pre-Ready phase/body/read/selection/validation",
-                    "reason": "the complete bounded pre-Ready phase/body/read chain was not observed",
+                    "checks": {
+                        "phase_cursor": phase_cursor,
+                        "ready": hpre_ready,
+                        "active": hpre_active,
+                        "limit": hpre_limit,
+                        "read": hpre_read,
+                        "body": hpre_body,
+                        "validation": hpre_validation,
+                    },
+                    "reason": if hpre_complete { serde_json::Value::Null } else { serde_json::Value::String("the complete bounded Hello/Manifest/Ready/Active phase, read, limit, body, and validation chain was not observed".into()) },
                 }),
             ),
             (
                 "Qread",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
-                    "unit": "source-events",
+                    "status": if qread_complete { "observed" } else { "unresolved" },
+                    "value": qread_value,
+                    "unit": "pending_jobs",
                     "evidence": evidence("Qread"),
                     "meaning": "pump/read scratch and bounded child queue peaks",
-                    "reason": "child queue provenance and the owner-complete read peak were not exercised",
+                    "provenance": {
+                        "pump_capacity_bytes": events.iter().filter(|event| event.field == Some("Qread") && event.operation == Some("pump_buffer")).filter_map(|event| event.capacity).max().unwrap_or(0),
+                        "child_capacity_jobs": events.iter().filter(|event| event.field == Some("Qread") && event.owner == Some("ChildTransport") && event.operation == Some("child_read_queue_peak")).filter_map(|event| event.capacity).max().unwrap_or(0),
+                    },
+                    "reason": if qread_complete { serde_json::Value::Null } else { serde_json::Value::String("the pump read chain and actual child transport occupancy peak were not both observed".into()) },
                 }),
             ),
             (
                 "Qreceive",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
-                    "unit": "source-events",
+                    "status": if qreceive_complete { "observed" } else { "unresolved" },
+                    "value": if qreceive_complete { qreceive_value } else { 0 },
+                    "unit": "bytes",
                     "evidence": evidence("Qreceive"),
                     "meaning": "ToolInbox/service/driver enqueue/dequeue/pop/write/ack/release peaks",
-                    "reason": "the complete ToolInbox/service/Writer/driver aggregate queue state was not exercised",
+                    "checks": {
+                        "generation": qreceive_generation,
+                        "owners": qreceive_owners.iter().map(|owner| {
+                            (
+                                *owner,
+                                qreceive_operations.iter().map(|operation| {
+                                    (*operation, qreceive_vectors.get(owner).is_some_and(|(complete, request_ids)| {
+                                        *complete && events.iter().any(|event| {
+                                            event.field == Some("Qreceive")
+                                                && event.kind == "queue"
+                                                && event.owner == Some(*owner)
+                                                && event.generation == Some(qreceive_generation)
+                                                && event.operation == Some(*operation)
+                                                && event.request_id.is_some_and(|id| request_ids.contains(&id))
+                                        })
+                                    }))
+                                }).collect::<BTreeMap<_, _>>()
+                            )
+                        }).collect::<BTreeMap<_, _>>()
+                    },
+                    "reason": if qreceive_complete { serde_json::Value::Null } else { serde_json::Value::String("the complete ToolInbox/Writer/Route enqueue/pop/write/ack/release owner set was not exercised".into()) },
                 }),
             ),
             (
@@ -309,12 +824,22 @@ pub(crate) mod source_observer {
             (
                 "D_req",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
-                    "unit": "source-events",
+                    "status": if dreq_complete { "observed" } else { "unresolved" },
+                    "value": if dreq_complete { dreq_value } else { 0 },
+                    "unit": "bytes",
                     "evidence": evidence("D_req"),
                     "meaning": "transmitted body plus source-visible selection/JCS/native validation",
-                    "reason": "the complete transmitted-body, selection/JCS, and native-validation chain was not observed",
+                    "checks": {
+                        "wire": dreq_wire,
+                        "indexed": dreq_indexed,
+                        "terminal": dreq_terminal,
+                        "provider": dreq_provider,
+                        "source_current": dreq_source,
+                        "validation": dreq_validation,
+                        "request_id": dreq_request_id,
+                        "generation": dreq_generation,
+                    },
+                    "reason": if dreq_complete { serde_json::Value::Null } else { serde_json::Value::String("the indexed body/selection/sequence/terminal witness is not joined to provider/source-current/native-validation events".into()) },
                 }),
             ),
             (
@@ -361,12 +886,15 @@ pub(crate) mod source_observer {
             (
                 "Memory_SQLite_peer_parity",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
+                    "status": if parity_complete { "observed" } else { "unresolved" },
+                    "value": parity_cases.len(),
                     "unit": "peer_cases",
                     "evidence": evidence("Memory_SQLite_peer_parity"),
                     "meaning": "existing Node/Python x Memory/SQLite logical topology matrix",
-                    "reason": "the existing Memory/SQLite x Node/Python logical topology matrix was not emitted and compared by this source-root witness",
+                    "case_count": parity_cases.len(),
+                    "topology_count": parity_topologies.len(),
+                    "command_identity_count": parity_commands,
+                    "reason": if parity_complete { serde_json::Value::Null } else { serde_json::Value::String("the complete 16-case Memory/SQLite x Node/Python x core/minor matrix was not emitted".into()) },
                 }),
             ),
             (
@@ -649,6 +1177,10 @@ pub struct ConnectionPump {
     read_storage_bound_bytes: usize,
     closed: bool,
     #[cfg(test)]
+    generation: u64,
+    #[cfg(test)]
+    identity: String,
+    #[cfg(test)]
     raw_frame: Vec<u8>,
 }
 
@@ -664,7 +1196,9 @@ fn observed_phase(phase: EndpointPhase) -> &'static str {
 }
 
 #[cfg(test)]
-fn active_request_id(envelope: &pi_extension_protocol::endpoint::SelectedEnvelope) -> Option<u64> {
+pub(crate) fn active_request_id(
+    envelope: &pi_extension_protocol::endpoint::SelectedEnvelope,
+) -> Option<u64> {
     match envelope {
         pi_extension_protocol::endpoint::SelectedEnvelope::V1_0(envelope) => {
             match envelope.frame.as_ref()? {
@@ -673,6 +1207,12 @@ fn active_request_id(envelope: &pi_extension_protocol::endpoint::SelectedEnvelop
                 }
                 pi_extension_protocol::wire::v1_0::envelope::Frame::StreamEnd(end) => {
                     Some(end.request_id)
+                }
+                pi_extension_protocol::wire::v1_0::envelope::Frame::Response(response) => {
+                    Some(response.request_id)
+                }
+                pi_extension_protocol::wire::v1_0::envelope::Frame::Request(request) => {
+                    Some(request.request_id)
                 }
                 _ => None,
             }
@@ -684,6 +1224,12 @@ fn active_request_id(envelope: &pi_extension_protocol::endpoint::SelectedEnvelop
                 }
                 pi_extension_protocol::wire::v1_1::envelope::Frame::StreamEnd(end) => {
                     Some(end.request_id)
+                }
+                pi_extension_protocol::wire::v1_1::envelope::Frame::Response(response) => {
+                    Some(response.request_id)
+                }
+                pi_extension_protocol::wire::v1_1::envelope::Frame::Request(request) => {
+                    Some(request.request_id)
                 }
                 _ => None,
             }
@@ -730,12 +1276,22 @@ impl Drop for InFlight<'_> {
 }
 
 impl ConnectionPump {
+    #[cfg(test)]
+    fn annotate_source_event(&self, event: &mut source_observer::SourceEvent) {
+        event.generation = Some(self.generation);
+        event.target = Some(self.identity.clone());
+    }
+
     pub fn new(
         host: HostAuthority,
         channel: Arc<dyn OrderedByteChannel>,
         clock: Arc<dyn MonotonicClock>,
         config: PumpConfig,
     ) -> Result<Self, PumpError> {
+        #[cfg(test)]
+        let generation = host.generation();
+        #[cfg(test)]
+        let identity = format!("{}:{}", host.principal(), host.generation());
         let read_scratch_bytes = channel.max_read_scratch_bytes();
         config
             .max_read_chunk
@@ -762,10 +1318,29 @@ impl ConnectionPump {
             event.phase = Some("AwaitHello");
             event.field = Some("Qread");
             event.owner = Some("ConnectionPump");
+            event.generation = Some(generation);
+            event.target = Some(identity.clone());
             event.capacity = Some(buffered.capacity());
             event.scratch_bytes = Some(read_scratch_bytes);
             event.bound_bytes = Some(read_storage_bound_bytes);
+            event.operation = Some("pump_buffer");
             source_observer::record(event);
+            let mut handshake = source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "ConnectionPump::new",
+            );
+            handshake.phase = Some("AwaitHello");
+            handshake.field = Some("Hpre");
+            handshake.owner = Some("ConnectionPump");
+            handshake.generation = Some(generation);
+            handshake.target = Some(identity.clone());
+            handshake.operation = Some("limit");
+            handshake.capacity = Some(host.limits().pre_handshake_frame_bytes as usize);
+            handshake.scratch_bytes = Some(read_scratch_bytes);
+            handshake.bound_bytes = Some(read_storage_bound_bytes);
+            source_observer::record(handshake);
         }
         let started_ms = clock.now_ms();
         let handshake_deadline_ms = started_ms
@@ -782,6 +1357,10 @@ impl ConnectionPump {
             offset: 0,
             read_storage_bound_bytes,
             closed: false,
+            #[cfg(test)]
+            generation,
+            #[cfg(test)]
+            identity,
             #[cfg(test)]
             raw_frame: Vec::new(),
         })
@@ -912,6 +1491,9 @@ impl ConnectionPump {
                 event.outcome = Some("read");
                 event.field = Some("Hpre");
                 event.owner = Some("ConnectionPump");
+                event.generation = Some(self.generation);
+                self.annotate_source_event(&mut event);
+                event.operation = Some("phase_read");
                 source_observer::record(event);
             }
             #[cfg(test)]
@@ -948,12 +1530,19 @@ impl ConnectionPump {
                     None => "step",
                 });
                 event.consumed = Some(step.consumed);
-                event.field = Some(if self.endpoint.phase() == EndpointPhase::Active {
-                    "D_req"
-                } else {
-                    "Hpre"
+                event.field = Some(match step.event.as_ref() {
+                    Some(EndpointEvent::Active(_)) => "D_req",
+                    _ => "Hpre",
                 });
                 event.owner = Some("ConnectionPump");
+                event.generation = Some(self.generation);
+                self.annotate_source_event(&mut event);
+                event.operation = Some(match step.event.as_ref() {
+                    Some(EndpointEvent::Ready) => "ready",
+                    Some(EndpointEvent::Send(_)) => "send",
+                    Some(EndpointEvent::Active(_)) => "active",
+                    None => "step",
+                });
                 event.body_len = match step.event.as_ref() {
                     Some(EndpointEvent::Active(frame)) => Some(frame.body_len),
                     _ => None,
@@ -999,7 +1588,9 @@ impl ConnectionPump {
                             .endpoint
                             .active_grant()
                             .map(|grant| grant.wire().connection_generation);
+                        self.annotate_source_event(&mut event);
                         event.wire_sequence_before = sequence;
+                        event.operation = Some("wire_body");
                         event.raw_body = self.raw_frame.len().checked_sub(frame.body_len).and_then(
                             |body_start| self.raw_frame.get(body_start..).map(ToOwned::to_owned),
                         );
@@ -1031,6 +1622,8 @@ impl ConnectionPump {
                 event.outcome = Some("close");
                 event.field = Some("EH_inline_target_provider_allocator");
                 event.owner = Some("ConnectionPump");
+                event.generation = Some(self.generation);
+                self.annotate_source_event(&mut event);
                 event.cleanup = Some(true);
                 source_observer::record(event);
             }
@@ -1050,6 +1643,10 @@ impl ConnectionPump {
 
     async fn read_chunk(&mut self) -> Result<Option<usize>, PumpError> {
         #[cfg(test)]
+        let source_generation = self.generation;
+        #[cfg(test)]
+        let source_identity = self.identity.clone();
+        #[cfg(test)]
         {
             let mut event = source_observer::SourceEvent::new(
                 "read",
@@ -1061,6 +1658,8 @@ impl ConnectionPump {
             event.outcome = Some("start");
             event.field = Some("Qread");
             event.owner = Some("ConnectionPump");
+            event.generation = Some(self.generation);
+            self.annotate_source_event(&mut event);
             event.operation = Some("pending_read");
             source_observer::record(event);
         }
@@ -1094,7 +1693,10 @@ impl ConnectionPump {
                 event.outcome = Some("end");
                 event.field = Some("Qread");
                 event.owner = Some("ConnectionPump");
+                event.generation = Some(source_generation);
+                event.target = Some(source_identity.clone());
                 event.body_len = result.as_ref().ok().and_then(|filled| *filled);
+                event.operation = Some("read");
                 source_observer::record(event);
                 #[cfg(test)]
                 if interval_start {
@@ -1136,7 +1738,10 @@ impl ConnectionPump {
             event.outcome = Some("end");
             event.field = Some("Hpre");
             event.owner = Some("ConnectionPump");
+            event.generation = Some(source_generation);
+            event.target = Some(source_identity.clone());
             event.body_len = outcome.as_ref().ok().and_then(|filled| *filled);
+            event.operation = Some("read");
             source_observer::record(event);
             #[cfg(test)]
             if interval_start {

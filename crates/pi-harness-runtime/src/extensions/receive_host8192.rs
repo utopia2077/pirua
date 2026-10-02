@@ -13,11 +13,15 @@ use pi_extension_protocol::endpoint::{ActiveFrame, SelectedEnvelope};
 use pi_extension_protocol::tool_live::InvocationBinding;
 #[cfg(test)]
 use pi_extension_protocol::wire::echo_bounded::BorrowedIndexArena;
+#[cfg(test)]
+use pi_extension_protocol::wire::framing::EncodedFrame;
 use pi_extension_protocol::wire::{v1_0, v1_1};
 
 use super::domain::StagedIndexedBody;
 use super::receive_backing8192::{Backing8192Error, ReceiveBacking8192, ReceiveLease8192};
 use super::transport::RetainedOrderedByteChannel;
+#[cfg(test)]
+use super::transport::{ChannelError, OrderedByteChannel};
 use crate::tools::{CapturedArguments, OriginFence};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -89,7 +93,19 @@ impl StagedReceive8192 {
         let backing = std::thread::Builder::new()
             .name("receive8192-staging".into())
             .stack_size(64 * 1024 * 1024)
-            .spawn(ReceiveBacking8192::construct)
+            .spawn(move || {
+                #[cfg(test)]
+                {
+                    return super::transport::source_observer::with_generation(
+                        generation,
+                        ReceiveBacking8192::construct,
+                    );
+                }
+                #[cfg(not(test))]
+                {
+                    ReceiveBacking8192::construct()
+                }
+            })
             .map_err(|_| Receive8192Error::Capacity)?
             .join()
             .map_err(|_| Receive8192Error::Capacity)?
@@ -122,6 +138,7 @@ impl StagedReceive8192 {
             event.capacity = Some(layout.slot_bytes);
             event.bound_bytes = Some(layout.total_slot_bytes);
             event.body_len = Some(layout.body_bytes);
+            event.operation = Some("stage");
             event.outcome = Some("staged");
             super::transport::source_observer::record(event);
         }
@@ -284,7 +301,24 @@ impl StagedReceive8192 {
     pub(super) fn claim_reader(&self) -> Result<ReaderClaim<'_>, Receive8192Error> {
         self.reader_claimed
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .map_err(|_| Receive8192Error::Occupied)?;
+            .map_err(|_| {
+                #[cfg(test)]
+                {
+                    let mut event = super::transport::source_observer::SourceEvent::new(
+                        "resource",
+                        file!(),
+                        line!(),
+                        "StagedReceive8192::claim_reader",
+                    );
+                    event.field = Some("Hboot");
+                    event.owner = Some("StagedReceive8192");
+                    event.operation = Some("reader_refused");
+                    event.outcome = Some("Occupied");
+                    event.generation = Some(self.generation);
+                    super::transport::source_observer::record(event);
+                }
+                Receive8192Error::Occupied
+            })?;
         if self.close_requested.load(Ordering::Acquire) || self.cleaned.load(Ordering::Acquire) {
             self.reader_claimed.store(false, Ordering::Release);
             self.cleanup();
@@ -374,6 +408,84 @@ fn map_backing_error(error: Backing8192Error) -> Receive8192Error {
         Backing8192Error::Capacity => Receive8192Error::Capacity,
         Backing8192Error::Exhausted => Receive8192Error::Occupied,
     }
+}
+
+#[cfg(test)]
+struct ScenarioProbe;
+
+#[cfg(test)]
+impl OrderedByteChannel for ScenarioProbe {
+    fn max_read_scratch_bytes(&self) -> usize {
+        0
+    }
+
+    fn read_chunk<'a>(
+        &'a self,
+        _buffer: &'a mut [u8],
+    ) -> pi_ai_core::BoxFuture<'a, Result<Option<usize>, ChannelError>> {
+        Box::pin(async { Ok(None) })
+    }
+
+    fn write_frame(
+        &self,
+        _frame: EncodedFrame,
+    ) -> pi_ai_core::BoxFuture<'_, Result<(), ChannelError>> {
+        Box::pin(async { Ok(()) })
+    }
+
+    fn close(&self) {}
+}
+
+#[cfg(test)]
+impl RetainedOrderedByteChannel for ScenarioProbe {
+    fn take_notifications(&self) -> [Option<std::task::Waker>; 2] {
+        [None, None]
+    }
+
+    fn close_retained(&self) -> [Option<std::task::Waker>; 2] {
+        [None, None]
+    }
+}
+
+/// Exercise the existing retained backing/custody fixture on the source-root
+/// collector. Every observation comes from the real lease, indexed body,
+/// reader, refusal, generation, and cleanup owners.
+#[cfg(test)]
+pub(crate) fn scenario_snapshot_for_test(generation: u64) {
+    super::transport::source_observer::with_generation(generation, || {
+        let receive = StagedReceive8192::stage(Arc::new(ScenarioProbe), generation).unwrap();
+        let selected = std::num::NonZeroUsize::new(super::receive_backing8192::FRAME).unwrap();
+        {
+            let staged = receive.backing.lock().unwrap();
+            let backing = staged.as_ref().expect("staged backing");
+            let extra = backing.owner.lease(selected).unwrap();
+            assert!(matches!(
+                backing.owner.lease(selected),
+                Err(Backing8192Error::Exhausted)
+            ));
+            drop(extra);
+        }
+        receive
+            .with_indexed_body(b"source-root-indexed-body", |body, _arena| {
+                assert_eq!(body, b"source-root-indexed-body");
+            })
+            .unwrap();
+        let first_reader = receive.claim_reader().unwrap();
+        assert!(matches!(
+            receive.claim_reader(),
+            Err(Receive8192Error::Occupied)
+        ));
+        drop(first_reader);
+        assert!(matches!(
+            receive.run_preopened(),
+            Err(Receive8192Error::NativeRefused)
+        ));
+        let final_reader = receive.claim_reader().unwrap();
+        receive.finish_close();
+        assert!(!receive.is_cleaned_for_test());
+        drop(final_reader);
+        assert!(receive.is_cleaned_for_test());
+    });
 }
 
 #[cfg(test)]

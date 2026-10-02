@@ -243,6 +243,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 event.outcome = Some("check");
                 event.field = Some("D_req");
                 event.owner = Some("ProviderDispatch");
+                event.operation = Some("selection");
                 event.provider = Some(self.provider.as_str().to_owned());
                 source_observer::record(event);
             }
@@ -350,6 +351,7 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         event.outcome = Some("payload_encoded");
         event.field = Some("D_req");
         event.owner = Some("ProviderDispatch");
+        event.operation = Some("payload_encoded");
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());
         event.body_len = Some(payload.len());
@@ -381,6 +383,7 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         event.outcome = Some("check");
         event.field = Some("D_req");
         event.owner = Some("ProviderDispatch");
+        event.operation = Some("selection");
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());
         source_observer::record(event);
@@ -388,6 +391,20 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
     let mut native = NativeDomain::new(fx.lane.owner.session.codec(), &provider.model_policy);
     native.expected_model = Some(model);
     native.expected_deferred_source = deferred_source.map(|(_, message)| message);
+    #[cfg(test)]
+    {
+        let generation = provider.connection.grant().wire().connection_generation;
+        native.observation_generation = Some(generation);
+        native.observation_identity = Some(format!(
+            "{}:{}",
+            provider
+                .connection
+                .grant()
+                .wire()
+                .authenticated_extension_id,
+            generation
+        ));
+    }
     let actions = super::actions::LaneActions {
         lane: fx.lane.clone(),
         resources: fx.profile_resources.clone(),
@@ -443,6 +460,7 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         event.provider = Some(model.provider.as_str().to_owned());
         event.model = Some(model.id.as_str().to_owned());
         event.request_id = Some(reply.binding.id());
+        event.generation = Some(provider.connection.grant().wire().connection_generation);
         source_observer::record(event);
     }
     fx.profile_receipts

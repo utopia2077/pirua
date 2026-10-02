@@ -43,7 +43,7 @@ OBSERVATION_SCHEMA_VERSION = "s12-d-resource-observations-v1"
 RESOURCE_FIELDS = tuple(RESOURCE_UNKNOWN)
 FIELD_EVENT_KINDS = {
     "Hboot": {"resource", "cleanup"},
-    "Hpre": {"phase", "read", "body_capture"},
+    "Hpre": {"phase", "read", "body_capture", "native_validation"},
     "Qread": {"resource", "read", "queue"},
     "Qreceive": {"queue"},
     "overlap": {"interval"},

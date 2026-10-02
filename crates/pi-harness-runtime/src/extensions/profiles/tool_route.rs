@@ -1,6 +1,8 @@
 //! Bounded demultiplexing behind the actual Tool route's sole reader/writer.
 use super::connection::ProfileConnection;
 #[cfg(test)]
+use crate::extensions::transport::active_request_id;
+#[cfg(test)]
 use crate::extensions::transport::source_observer;
 use crate::extensions::{
     tool_driver::{DriverError, ToolProfileIngress},
@@ -36,6 +38,15 @@ pub(crate) struct ToolInbox {
     max_frames: usize,
 }
 impl ToolInbox {
+    #[cfg(test)]
+    fn observed_generation(&self) -> Option<u64> {
+        self.connection
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .upgrade()
+            .map(|connection| connection.grant().wire().connection_generation)
+    }
+
     pub(crate) fn new(max_bytes: usize, max_frames: usize) -> Result<Arc<Self>, DriverError> {
         if max_bytes == 0 || max_bytes == usize::MAX || max_frames == 0 || max_frames > 256 {
             return Err(DriverError::InvalidHost);
@@ -106,9 +117,11 @@ impl ToolInbox {
                     );
                     event.field = Some("Qreceive");
                     event.owner = Some("ToolInbox");
+                    event.generation = self.observed_generation();
                     event.operation = Some("pop");
                     event.bytes = Some(frame.body_len);
                     event.jobs = Some(state.requests.len() + state.replies.len());
+                    event.request_id = active_request_id(&frame.envelope);
                     source_observer::record(event);
                 }
                 return Poll::Ready(Ok(Some(frame)));
@@ -165,6 +178,20 @@ impl ToolInbox {
                 event.request_id = Some(id);
                 event.jobs = Some(state.writes.len());
                 source_observer::record(event);
+                let mut queue = source_observer::SourceEvent::new(
+                    "queue",
+                    file!(),
+                    line!(),
+                    "ToolInbox::write",
+                );
+                queue.field = Some("Qreceive");
+                queue.owner = Some("ToolInbox");
+                queue.generation = self.observed_generation();
+                queue.operation = Some("write");
+                queue.bytes = Some(frame.bytes.len());
+                queue.jobs = Some(state.writes.len());
+                queue.request_id = Some(id);
+                source_observer::record(queue);
             }
         }
         if connection
@@ -231,9 +258,11 @@ impl ToolProfileIngress for ToolInbox {
                 );
                 event.field = Some("Qreceive");
                 event.owner = Some("ToolInbox");
+                event.generation = self.observed_generation();
                 event.operation = Some("enqueue");
                 event.bytes = Some(state.bytes);
                 event.jobs = Some(state.requests.len() + state.replies.len() + 1);
+                event.request_id = active_request_id(&frame.envelope);
                 source_observer::record(event);
             }
             if requests {
@@ -284,10 +313,20 @@ impl ToolProfileIngress for ToolInbox {
                 source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::written");
             event.field = Some("P_req");
             event.owner = Some("ToolInbox");
+            event.generation = self.observed_generation();
             event.operation = Some(if completed { "ack" } else { "release" });
             event.request_id = Some(id);
             event.outcome = Some(if completed { "complete" } else { "failed" });
             source_observer::record(event);
+            let mut queue =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::written");
+            queue.field = Some("Qreceive");
+            queue.owner = Some("ToolInbox");
+            queue.generation = self.observed_generation();
+            queue.operation = Some(if completed { "ack" } else { "release" });
+            queue.outcome = Some(if completed { "complete" } else { "failed" });
+            queue.request_id = Some(id);
+            source_observer::record(queue);
         }
         if let Some(pending) = pending {
             *pending.result.lock().unwrap_or_else(|p| p.into_inner()) = Some(completed);

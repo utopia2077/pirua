@@ -63,6 +63,8 @@ impl BackingLayout8192 {
 pub(super) struct ReceiveBacking8192 {
     pool: Pool,
     layout: BackingLayout8192,
+    #[cfg(test)]
+    generation: Option<u64>,
 }
 
 impl ReceiveBacking8192 {
@@ -78,9 +80,11 @@ impl ReceiveBacking8192 {
             );
             event.field = Some("Hboot");
             event.owner = Some("ReceiveBacking8192");
+            event.generation = source_observer::current_generation();
             event.capacity = Some(layout.slot_bytes);
             event.bound_bytes = Some(layout.total_slot_bytes);
             event.body_len = Some(layout.body_bytes);
+            event.operation = Some("layout");
             event.outcome = Some("layout");
             source_observer::record(event);
         }
@@ -101,13 +105,20 @@ impl ReceiveBacking8192 {
             );
             event.field = Some("Hboot");
             event.owner = Some("ReceiveBacking8192");
+            event.generation = source_observer::current_generation();
             event.capacity = Some(layout.slot_bytes);
             event.bound_bytes = Some(layout.total_slot_bytes);
             event.body_len = Some(layout.body_bytes);
+            event.operation = Some("prewarmed");
             event.outcome = Some("prewarmed");
             source_observer::record(event);
         }
-        Ok(Self { pool, layout })
+        Ok(Self {
+            pool,
+            layout,
+            #[cfg(test)]
+            generation: source_observer::current_generation(),
+        })
     }
 
     pub(super) fn layout(&self) -> BackingLayout8192 {
@@ -121,17 +132,42 @@ impl ReceiveBacking8192 {
         if selected_frame_bytes.get() > FRAME {
             return Err(Backing8192Error::Capacity);
         }
-        let index = self
-            .pool
-            .checkout(selected_frame_bytes)
-            .map_err(|error| match error {
-                IndexPoolError::Limit => Backing8192Error::Capacity,
-                IndexPoolError::Exhausted => Backing8192Error::Exhausted,
-            })?;
+        let index = match self.pool.checkout(selected_frame_bytes) {
+            Ok(index) => index,
+            Err(error) => {
+                #[cfg(test)]
+                {
+                    let mut event = source_observer::SourceEvent::new(
+                        "resource",
+                        file!(),
+                        line!(),
+                        "ReceiveBacking8192::lease",
+                    );
+                    event.field = Some("Hboot");
+                    event.owner = Some("ReceiveBacking8192");
+                    event.generation = self.generation;
+                    event.operation = Some("lease_refused");
+                    event.outcome = Some(match error {
+                        IndexPoolError::Limit => "capacity",
+                        IndexPoolError::Exhausted => "exhausted",
+                    });
+                    event.capacity = Some(self.layout.slot_bytes);
+                    event.body_len = Some(self.layout.body_bytes);
+                    event.bytes = Some(selected_frame_bytes.get());
+                    source_observer::record(event);
+                }
+                return Err(match error {
+                    IndexPoolError::Limit => Backing8192Error::Capacity,
+                    IndexPoolError::Exhausted => Backing8192Error::Exhausted,
+                });
+            }
+        };
         let lease = ReceiveLease8192 {
             index: Some(index),
             body: Some(Box::new([0; FRAME])),
             selected: selected_frame_bytes,
+            #[cfg(test)]
+            generation: self.generation,
         };
         #[cfg(test)]
         {
@@ -143,9 +179,11 @@ impl ReceiveBacking8192 {
             );
             event.field = Some("Hboot");
             event.owner = Some("ReceiveLease8192");
+            event.generation = self.generation;
             event.capacity = Some(self.layout.slot_bytes);
             event.body_len = Some(self.layout.body_bytes);
             event.bytes = Some(selected_frame_bytes.get());
+            event.operation = Some("lease_acquired");
             event.outcome = Some("lease_acquired");
             source_observer::record(event);
         }
@@ -158,6 +196,8 @@ pub(super) struct ReceiveLease8192 {
     index: Option<Index>,
     body: Option<Box<[u8; FRAME]>>,
     selected: NonZeroUsize,
+    #[cfg(test)]
+    generation: Option<u64>,
 }
 
 impl ReceiveLease8192 {
@@ -190,6 +230,7 @@ impl ReceiveLease8192 {
         max_retained_bytes: usize,
         callback: impl FnOnce(&[u8], &mut BorrowedIndexArena<'_>) -> R,
     ) -> Result<R, Backing8192Error> {
+        let generation = self.generation;
         let body_slot = self.body.as_deref_mut().ok_or(Backing8192Error::Capacity)?;
         if body.is_empty() || body.len() > self.selected.get() || body.len() > body_slot.len() {
             return Err(Backing8192Error::Capacity);
@@ -204,6 +245,22 @@ impl ReceiveLease8192 {
         let mut arena = storage
             .borrow(self.selected, max_retained_bytes)
             .map_err(|_| Backing8192Error::Capacity)?;
+        let mut event = source_observer::SourceEvent::new(
+            "resource",
+            file!(),
+            line!(),
+            "ReceiveLease8192::with_indexed_body",
+        );
+        event.field = Some("Hboot");
+        event.owner = Some("ReceiveLease8192");
+        event.generation = generation;
+        event.operation = Some("index_body");
+        event.outcome = Some("observed");
+        event.body_len = Some(body.len());
+        event.bytes = Some(body.len());
+        event.capacity = Some(self.selected.get());
+        event.bound_bytes = Some(max_retained_bytes);
+        source_observer::record(event);
         Ok(callback(body_view, &mut arena))
     }
 }
@@ -219,7 +276,9 @@ impl Drop for ReceiveLease8192 {
         );
         event.field = Some("Hboot");
         event.owner = Some("ReceiveLease8192");
+        event.generation = self.generation;
         event.cleanup = Some(true);
+        event.operation = Some("lease_cleanup");
         event.outcome = Some("complete");
         source_observer::record(event);
     }

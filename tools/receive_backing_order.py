@@ -51,7 +51,7 @@ REQUIRED_MEASURED_FIELDS = (
 RESOURCE_UNKNOWN = list(REQUIRED_MEASURED_FIELDS)
 FIELD_EVENT_KINDS = {
     "Hboot": {"resource", "cleanup"},
-    "Hpre": {"phase", "read", "body_capture"},
+    "Hpre": {"phase", "read", "body_capture", "native_validation"},
     "Qread": {"resource", "read", "queue"},
     "Qreceive": {"queue"},
     "overlap": {"interval"},

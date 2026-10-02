@@ -189,18 +189,80 @@ fn source_root_structured_events_bind_real_resources() {
     setup.pump.drive(harness.close()).unwrap();
     let allocation = allocator_measurement_finish();
 
-    let process_setup = Setup::new();
     let cpu = CpuProbe::start();
-    accepted_process_consumer(
-        &process_setup,
-        process_setup.session.clone(),
-        process_setup.store.clone(),
-        0,
-        0,
-        "python",
-        ProcessMode::Native,
-    );
+    let process_setup = Setup::new();
+    source_observer::with_case_id("memory/python/0/0", || {
+        accepted_process_consumer(
+            &process_setup,
+            process_setup.session.clone(),
+            process_setup.store.clone(),
+            0,
+            0,
+            "python",
+            ProcessMode::Resource,
+        );
+    });
     let cpu_measurement = cpu.finish();
+    source_observer::with_case_id("memory/python/0/0", || {
+        record_process_matrix_case("memory", "python", 0, 0);
+    });
+    for backend in ["memory", "sqlite"] {
+        for language in ["typescript", "python"] {
+            for core in 0..=1 {
+                for minor in 0..=1 {
+                    if backend == "memory" && language == "python" && core == 0 && minor == 0 {
+                        continue;
+                    }
+                    let setup = Setup::new();
+                    source_observer::with_case_id(
+                        format!("{backend}/{language}/{core}/{minor}"),
+                        || {
+                            if backend == "memory" {
+                                accepted_process_consumer(
+                                    &setup,
+                                    setup.session.clone(),
+                                    setup.store.clone(),
+                                    core,
+                                    minor,
+                                    language,
+                                    ProcessMode::Resource,
+                                );
+                            } else {
+                                let (session, store, dir) = sqlite_case(&setup);
+                                accepted_process_consumer(
+                                    &setup,
+                                    session,
+                                    store.clone(),
+                                    core,
+                                    minor,
+                                    language,
+                                    ProcessMode::Resource,
+                                );
+                                drop(store);
+                                std::fs::remove_dir_all(dir).unwrap();
+                            }
+                            record_process_matrix_case(backend, language, core, minor);
+                        },
+                    );
+                }
+            }
+        }
+    }
+    let queue_setup = Setup::new();
+    source_observer::with_case_id("memory/python/0/0/host-queue", || {
+        accepted_process_consumer(
+            &queue_setup,
+            queue_setup.session.clone(),
+            queue_setup.store.clone(),
+            0,
+            0,
+            "python",
+            ProcessMode::HostQueue,
+        );
+    });
+    pi_harness_runtime::extensions::tool_driver::retained_resource_snapshot_for_test(9001);
+    pi_harness_runtime::extensions::tool_driver::local_cancel_queue_tests::
+        retained_indexed_walking_branch_for_test();
     let stack = last_stack_snapshot().expect("process source workers publish stack samples");
     for worker in &stack.worker_snapshots {
         let mut event = source_observer::SourceEvent::new(
@@ -434,35 +496,44 @@ fn source_root_structured_events_bind_real_resources() {
             "resource field evidence is source-bound: {field}"
         );
     }
-    for field in [
-        "Hboot",
-        "Hpre",
-        "Qread",
-        "Qreceive",
-        "D_req",
-        "P_req",
-        "Memory_SQLite_peer_parity",
-    ] {
+    for field in ["Hboot", "Hpre", "Qread", "Memory_SQLite_peer_parity"] {
         assert_eq!(
-            fields[field]["status"], "unresolved",
-            "incomplete resource owner or bounded meaning must remain unresolved: {field}"
+            fields[field]["status"], "observed",
+            "scenario expansion must close the complete bounded field: {field}"
         );
-        assert_eq!(fields[field]["value"], 0);
         assert!(
-            fields[field]["reason"]
-                .as_str()
-                .is_some_and(|reason| !reason.is_empty()),
-            "unresolved field must explain its missing evidence: {field}"
+            fields[field]["value"]
+                .as_u64()
+                .is_some_and(|value| value > 0),
+            "scenario expansion must report a finite source value: {field}"
         );
-    }
-    for field in ["Hboot", "Memory_SQLite_peer_parity"] {
         assert!(
             fields[field]["evidence"]["event_ids"]
                 .as_array()
-                .is_some_and(Vec::is_empty),
-            "unexercised owner must have no invented source evidence: {field}"
+                .is_some_and(|ids| !ids.is_empty()),
+            "scenario expansion must bind source event IDs: {field}"
         );
     }
+    assert_eq!(
+        fields["D_req"]["status"], "unresolved",
+        "D_req must remain unresolved until one actual request joins all body/selection/provider/native edges"
+    );
+    assert_eq!(fields["D_req"]["value"], 0);
+    assert!(
+        fields["D_req"]["reason"]
+            .as_str()
+            .is_some_and(|reason| reason.contains("joined"))
+    );
+    assert_eq!(
+        fields["P_req"]["status"], "unresolved",
+        "profile_live::Owner remains outside the accepted observer boundary"
+    );
+    assert_eq!(fields["P_req"]["value"], 0);
+    assert!(
+        fields["P_req"]["reason"]
+            .as_str()
+            .is_some_and(|reason| !reason.is_empty())
+    );
     for field in [
         "overlap",
         "whole_stack",
@@ -580,6 +651,110 @@ fn install_named<S: RuntimeStorage + 'static>(
         .unwrap();
     (connection, peer)
 }
+
+fn record_process_matrix_case(
+    backend: &'static str,
+    language: &'static str,
+    core: u32,
+    minor: u32,
+) {
+    use pi_harness_runtime::extensions::transport::source_observer;
+    use runtime_extension_profiles_support::process::last_transport_snapshot;
+
+    let snapshot = last_transport_snapshot().expect("completed process channel publishes peaks");
+    assert_eq!(snapshot.language, language);
+    assert_eq!((snapshot.core, snapshot.minor), (core, minor));
+    assert!(!snapshot.command.is_empty());
+    assert!(
+        snapshot
+            .topology
+            .iter()
+            .any(|edge| edge.starts_with("ChildTransport/read"))
+            && snapshot
+                .topology
+                .iter()
+                .any(|edge| edge.starts_with("ChildTransport/write"))
+            && snapshot
+                .topology
+                .iter()
+                .any(|edge| edge == "PeerProcess/terminal")
+            && snapshot
+                .topology
+                .iter()
+                .any(|edge| edge == "PeerProcess/cleanup")
+    );
+    let generation = source_observer::snapshot()
+        .iter()
+        .rev()
+        .find(|event| {
+            event.field == Some("Qread")
+                && event.owner == Some("ConnectionPump")
+                && event.case_id.is_some()
+        })
+        .and_then(|event| event.generation);
+    let mut read =
+        source_observer::SourceEvent::new("queue", file!(), line!(), "Channel::transport");
+    read.field = Some("Qread");
+    read.owner = Some("ChildTransport");
+    read.operation = Some("child_read_queue_peak");
+    read.outcome = Some("observed");
+    read.capacity = Some(snapshot.read_capacity);
+    read.jobs = Some(snapshot.read_peak);
+    read.method = Some(snapshot.command.clone());
+    read.target = Some("ChildTransport::read_queue".into());
+    read.topology = Some(snapshot.topology.clone());
+    read.backend = Some(backend);
+    read.language = Some(language);
+    read.core = Some(core);
+    read.minor = Some(minor);
+    read.generation = generation;
+    source_observer::record(read);
+    let mut write =
+        source_observer::SourceEvent::new("queue", file!(), line!(), "Channel::transport");
+    write.field = Some("Qread");
+    write.owner = Some("ChildTransport");
+    write.operation = Some("child_write_queue_peak");
+    write.outcome = Some("observed");
+    write.capacity = Some(snapshot.write_capacity);
+    write.jobs = Some(snapshot.write_peak);
+    write.method = Some(snapshot.command.clone());
+    write.target = Some("ChildTransport::write_queue".into());
+    write.topology = Some(snapshot.topology.clone());
+    write.backend = Some(backend);
+    write.language = Some(language);
+    write.core = Some(core);
+    write.minor = Some(minor);
+    write.generation = generation;
+    source_observer::record(write);
+    let mut parity = source_observer::SourceEvent::new(
+        "peer_parity",
+        file!(),
+        line!(),
+        "accepted_process_consumer",
+    );
+    parity.field = Some("Memory_SQLite_peer_parity");
+    parity.owner = Some("PeerProcess");
+    parity.operation = Some("matrix_case");
+    parity.outcome = Some("complete");
+    parity.method = Some(snapshot.command);
+    parity.target = Some(
+        match backend {
+            "memory" => "MemoryStorage::new",
+            "sqlite" => "SqliteStorage::new",
+            _ => "unknown",
+        }
+        .into(),
+    );
+    parity.topology = Some(snapshot.topology);
+    parity.bytes = Some(snapshot.read_peak.saturating_add(snapshot.write_peak));
+    parity.backend = Some(backend);
+    parity.language = Some(language);
+    parity.core = Some(core);
+    parity.minor = Some(minor);
+    parity.generation = generation;
+    source_observer::record(parity);
+}
+
 fn run<S: RuntimeStorage + 'static>(
     setup: &Setup,
     session: Arc<RuntimeSession<S>>,

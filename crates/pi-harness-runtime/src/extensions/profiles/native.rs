@@ -19,6 +19,10 @@ pub struct NativeDomain<'a> {
     pub hook_result: Option<HookResult>,
     pub assistant_event: Option<AssistantMessageEvent>,
     pub assistant_message: Option<SettledAssistantMessage>,
+    #[cfg(test)]
+    pub(crate) observation_generation: Option<u64>,
+    #[cfg(test)]
+    pub(crate) observation_identity: Option<String>,
 }
 impl<'a> NativeDomain<'a> {
     pub fn new(codec: &'a SessionCodec, model_policy: &'a ModelHeaderPolicy) -> Self {
@@ -31,6 +35,10 @@ impl<'a> NativeDomain<'a> {
             hook_result: None,
             assistant_event: None,
             assistant_message: None,
+            #[cfg(test)]
+            observation_generation: None,
+            #[cfg(test)]
+            observation_identity: None,
         }
     }
     fn messages(&self, messages: &[AgentMessage]) -> Result<(), NativeError> {
@@ -123,7 +131,23 @@ impl NativeValidator for NativeDomain<'_> {
             event.operation = Some("native_validation");
             event.outcome = Some("start");
             event.jobs = Some(candidate.projections.len());
+            event.generation = self.observation_generation;
+            event.target = self.observation_identity.clone();
             source_observer::record(event);
+            let mut phase = source_observer::SourceEvent::new(
+                "native_validation",
+                file!(),
+                line!(),
+                "NativeDomain::validate",
+            );
+            phase.field = Some("Hpre");
+            phase.owner = Some("NativeDomain");
+            phase.operation = Some("validation");
+            phase.outcome = Some("start");
+            phase.jobs = Some(candidate.projections.len());
+            phase.generation = self.observation_generation;
+            phase.target = self.observation_identity.clone();
+            source_observer::record(phase);
         }
         macro_rules! decode {
             ($value:expr, $ty:ty) => {
@@ -276,7 +300,23 @@ impl NativeValidator for NativeDomain<'_> {
             event.operation = Some("native_validation");
             event.outcome = Some("complete");
             event.jobs = Some(candidate.projections.len());
+            event.generation = self.observation_generation;
+            event.target = self.observation_identity.clone();
             source_observer::record(event);
+            let mut phase = source_observer::SourceEvent::new(
+                "native_validation",
+                file!(),
+                line!(),
+                "NativeDomain::validate",
+            );
+            phase.field = Some("Hpre");
+            phase.owner = Some("NativeDomain");
+            phase.operation = Some("validation");
+            phase.outcome = Some("complete");
+            phase.jobs = Some(candidate.projections.len());
+            phase.generation = self.observation_generation;
+            phase.target = self.observation_identity.clone();
+            source_observer::record(phase);
         }
         Ok(())
     }

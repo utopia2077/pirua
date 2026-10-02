@@ -165,6 +165,18 @@ impl Writer {
         // publication, so a clean EOF cannot retire or close it early.
         publish(&state);
         state.active.take();
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::run");
+            event.field = Some("Qreceive");
+            event.owner = Some("Writer");
+            event.operation = Some(if completed { "ack" } else { "release" });
+            event.outcome = Some(if completed { "complete" } else { "failed" });
+            event.bytes = Some(bytes);
+            event.request_id = Some(id);
+            source_observer::record(event);
+        }
         if completed && active_matches && state.peer_close_requested {
             state.closed = true;
             true
@@ -201,6 +213,19 @@ impl Writer {
                         event.jobs = Some(state.jobs.len());
                         event.request_id = Some(job.id);
                         source_observer::record(event);
+                        let mut queue = source_observer::SourceEvent::new(
+                            "queue",
+                            file!(),
+                            line!(),
+                            "Writer::run",
+                        );
+                        queue.field = Some("Qreceive");
+                        queue.owner = Some("Writer");
+                        queue.operation = Some("write");
+                        queue.outcome = Some("start");
+                        queue.bytes = Some(job.frame.bytes.len());
+                        queue.request_id = Some(job.id);
+                        source_observer::record(queue);
                     }
                     return Poll::Ready(Some(job));
                 }
@@ -268,6 +293,15 @@ impl Writer {
                     event.outcome = Some("start");
                     event.request_id = Some(job.id);
                     source_observer::record(event);
+                    let mut queue =
+                        source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::run");
+                    queue.field = Some("Qreceive");
+                    queue.owner = Some("Writer");
+                    queue.operation = Some("write");
+                    queue.outcome = Some("start");
+                    queue.bytes = Some(bytes);
+                    queue.request_id = Some(job.id);
+                    source_observer::record(queue);
                 }
                 let mut write = channel.write_frame(job.frame);
                 let mut timer = clock.sleep_until(job.deadline);
@@ -293,6 +327,15 @@ impl Writer {
                 event.request_id = Some(job.id);
                 event.bytes = Some(bytes);
                 source_observer::record(event);
+                let mut queue =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::run");
+                queue.field = Some("Qreceive");
+                queue.owner = Some("Writer");
+                queue.operation = Some("write");
+                queue.outcome = Some("end");
+                queue.bytes = Some(bytes);
+                queue.request_id = Some(job.id);
+                source_observer::record(queue);
             }
             let close_after_ack = self.publish_and_finish(job.id, bytes, completed, |_| {
                 inbox.written(job.id, completed)

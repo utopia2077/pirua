@@ -136,6 +136,37 @@ pub fn last_stack_snapshot() -> Option<StackSnapshot> {
         .and_then(|value| value.lock().unwrap().clone())
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct TransportSnapshot {
+    pub language: String,
+    pub core: u32,
+    pub minor: u32,
+    pub command: String,
+    pub read_capacity: usize,
+    pub read_peak: usize,
+    pub write_capacity: usize,
+    pub write_peak: usize,
+    pub topology: Vec<String>,
+}
+
+static LAST_TRANSPORT_SNAPSHOT: OnceLock<Mutex<Option<TransportSnapshot>>> = OnceLock::new();
+
+fn publish_transport_snapshot(snapshot: TransportSnapshot) {
+    *LAST_TRANSPORT_SNAPSHOT
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = Some(snapshot);
+}
+
+/// Return actual occupancy peaks from the most recently completed process
+/// channel. Configured channel capacity is retained alongside observed
+/// occupancy so a declaration cannot stand in for a peak.
+pub fn last_transport_snapshot() -> Option<TransportSnapshot> {
+    LAST_TRANSPORT_SNAPSHOT
+        .get()
+        .and_then(|value| value.lock().unwrap().clone())
+}
+
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct CpuMeasurement {
     pub clock_hz: u64,
@@ -343,6 +374,15 @@ pub struct Channel {
     release: PathBuf,
     corrupt_lane: AtomicBool,
     fail_cancel_write: AtomicBool,
+    read_queued: Arc<AtomicUsize>,
+    read_peak: Arc<AtomicUsize>,
+    write_queued: Arc<AtomicUsize>,
+    write_peak: Arc<AtomicUsize>,
+    language: String,
+    core: u32,
+    minor: u32,
+    command: String,
+    topology: Arc<Mutex<Vec<String>>>,
 }
 
 /// A process-backed channel that turns the first Cancel write into a real
@@ -457,6 +497,23 @@ impl Channel {
             c
         };
         let repo = root();
+        let command_line = if language == "typescript" {
+            format!(
+                "node --experimental-strip-types sdk/typescript/profile-peer.ts --serve {} {} {} {}",
+                repo.display(),
+                core,
+                minor,
+                scenario
+            )
+        } else {
+            format!(
+                "python3 -B sdk/python/profile_peer.py --serve {} {} {} {}",
+                repo.display(),
+                core,
+                minor,
+                scenario
+            )
+        };
         command
             .current_dir(&repo)
             .env_clear()
@@ -487,6 +544,15 @@ impl Channel {
         let (done_tx, done_rx) = mpsc::channel();
         let mut workers = vec![];
         let stack = Arc::new(StackProbe::default());
+        let read_queued = Arc::new(AtomicUsize::new(0));
+        let read_peak = Arc::new(AtomicUsize::new(0));
+        let write_queued = Arc::new(AtomicUsize::new(0));
+        let write_peak = Arc::new(AtomicUsize::new(0));
+        let topology = Arc::new(Mutex::new(vec![
+            "ChildTransport/read".into(),
+            "ChildTransport/write".into(),
+            "ChildTransport/stderr".into(),
+        ]));
         let (stop, wake, done, captured) = (
             closed.clone(),
             read_wake.clone(),
@@ -494,6 +560,9 @@ impl Channel {
             incoming.clone(),
         );
         let stack_probe = stack.clone();
+        let read_queued_worker = read_queued.clone();
+        let read_peak_worker = read_peak.clone();
+        let topology_worker = topology.clone();
         workers.push(std::thread::spawn(move || {
             let mut total = 0;
             loop {
@@ -506,9 +575,19 @@ impl Channel {
                 captured.lock().unwrap().extend_from_slice(&buffer[..count]);
                 let mut data = buffer[..count].to_vec();
                 loop {
+                    let queued = read_queued_worker.fetch_add(1, Ordering::SeqCst) + 1;
+                    read_peak_worker.fetch_max(queued, Ordering::SeqCst);
                     match read_tx.try_send(data) {
-                        Ok(()) => break,
+                        Ok(()) => {
+                            read_peak_worker.fetch_max(1, Ordering::SeqCst);
+                            topology_worker
+                                .lock()
+                                .unwrap()
+                                .push("ChildTransport/read/enqueue".into());
+                            break;
+                        }
                         Err(mpsc::TrySendError::Full(value)) => {
+                            read_queued_worker.fetch_sub(1, Ordering::SeqCst);
                             data = value;
                             if stop.load(Ordering::SeqCst) {
                                 let _ = done.send(());
@@ -517,6 +596,7 @@ impl Channel {
                             std::thread::sleep(Duration::from_millis(1));
                         }
                         Err(mpsc::TrySendError::Disconnected(_)) => {
+                            read_queued_worker.fetch_sub(1, Ordering::SeqCst);
                             let _ = done.send(());
                             return;
                         }
@@ -533,11 +613,18 @@ impl Channel {
         }));
         let (stop, captured, done) = (closed.clone(), writes.clone(), done_tx.clone());
         let stack_probe = stack.clone();
+        let write_queued_worker = write_queued.clone();
+        let topology_worker = topology.clone();
         workers.push(std::thread::spawn(move || {
             while !stop.load(Ordering::SeqCst) {
                 sample_worker_stack(&stack_probe, "stdin", 2);
                 match write_rx.recv_timeout(Duration::from_millis(20)) {
                     Ok((data, reply)) => {
+                        topology_worker
+                            .lock()
+                            .unwrap()
+                            .push("ChildTransport/write/pop".into());
+                        write_queued_worker.fetch_sub(1, Ordering::SeqCst);
                         let result = input.write_all(&data).map_err(|_| ChannelError::Failed);
                         sample_worker_stack(&stack_probe, "stdin", 2);
                         if result.is_ok() {
@@ -590,6 +677,15 @@ impl Channel {
             release,
             corrupt_lane: AtomicBool::new(false),
             fail_cancel_write: AtomicBool::new(false),
+            read_queued,
+            read_peak,
+            write_queued,
+            write_peak,
+            language: language.to_owned(),
+            core,
+            minor,
+            command: command_line,
+            topology,
         })
     }
     pub fn spawn_cancel_write_failure(language: &str, core: u32, minor: u32) -> Arc<Self> {
@@ -806,6 +902,20 @@ impl Channel {
         }
         ends
     }
+    fn publish_transport_snapshot(&self) {
+        let topology = self.topology.lock().unwrap().clone();
+        publish_transport_snapshot(TransportSnapshot {
+            language: self.language.clone(),
+            core: self.core,
+            minor: self.minor,
+            command: self.command.clone(),
+            read_capacity: 1,
+            read_peak: self.read_peak.load(Ordering::SeqCst),
+            write_capacity: 1,
+            write_peak: self.write_peak.load(Ordering::SeqCst),
+            topology,
+        });
+    }
     pub fn finish(&self, success: bool) {
         self.closed.store(true, Ordering::SeqCst);
         let deadline = Instant::now() + LIMIT;
@@ -817,6 +927,10 @@ impl Channel {
                 .as_mut()
                 .and_then(|child| child.try_wait().unwrap());
             if let Some(status) = status {
+                self.topology
+                    .lock()
+                    .unwrap()
+                    .push("PeerProcess/terminal".into());
                 break status;
             }
             assert!(Instant::now() < deadline, "finite peer process wait");
@@ -839,8 +953,17 @@ impl Channel {
         }
         for worker in self.workers.lock().unwrap().drain(..) {
             join_worker(worker);
+            self.topology
+                .lock()
+                .unwrap()
+                .push("PeerProcess/worker_join".into());
         }
+        self.topology
+            .lock()
+            .unwrap()
+            .push("PeerProcess/cleanup".into());
         publish_stack_snapshot(self.stack.snapshot());
+        self.publish_transport_snapshot();
         let records = String::from_utf8(self.stderr.lock().unwrap().clone()).unwrap();
         println!("E1412_PROCESS {}", records.trim());
         self.child.lock().unwrap().take();
@@ -854,6 +977,10 @@ impl Drop for Channel {
             let deadline = Instant::now() + LIMIT;
             loop {
                 if child.try_wait().unwrap().is_some() {
+                    self.topology
+                        .lock()
+                        .unwrap()
+                        .push("PeerProcess/terminal".into());
                     break;
                 }
                 if Instant::now() >= deadline {
@@ -862,10 +989,23 @@ impl Drop for Channel {
                 std::thread::sleep(Duration::from_millis(1));
             }
         }
+        let mut joined = false;
         for worker in self.workers.lock().unwrap().drain(..) {
             join_worker(worker);
+            joined = true;
+            self.topology
+                .lock()
+                .unwrap()
+                .push("PeerProcess/worker_join".into());
+        }
+        if joined {
+            self.topology
+                .lock()
+                .unwrap()
+                .push("PeerProcess/cleanup".into());
         }
         publish_stack_snapshot(self.stack.snapshot());
+        self.publish_transport_snapshot();
         if self.release.exists() {
             std::fs::remove_file(&self.release).unwrap();
         }
@@ -887,6 +1027,11 @@ impl OrderedByteChannel for Channel {
             match self.read.lock().unwrap().try_recv() {
                 Ok(data) if data.is_empty() => Poll::Ready(Ok(None)),
                 Ok(data) if data.len() <= buffer.len() => {
+                    self.topology
+                        .lock()
+                        .unwrap()
+                        .push("ChildTransport/read/pop".into());
+                    self.read_queued.fetch_sub(1, Ordering::SeqCst);
                     buffer[..data.len()].copy_from_slice(&data);
                     Poll::Ready(Ok(Some(data.len())))
                 }
@@ -945,13 +1090,19 @@ impl OrderedByteChannel for Channel {
                 return Poll::Ready(Err(ChannelError::Closed));
             }
             if let Some(bytes) = data.take() {
+                let queued = self.write_queued.fetch_add(1, Ordering::SeqCst) + 1;
+                self.write_peak.fetch_max(queued, Ordering::SeqCst);
                 match self.write.try_send((bytes, reply.clone())) {
                     Ok(()) => {}
                     Err(mpsc::TrySendError::Full((bytes, _))) => {
+                        self.write_queued.fetch_sub(1, Ordering::SeqCst);
                         data = Some(bytes);
                         return Poll::Pending;
                     }
-                    Err(_) => return Poll::Ready(Err(ChannelError::Closed)),
+                    Err(_) => {
+                        self.write_queued.fetch_sub(1, Ordering::SeqCst);
+                        return Poll::Ready(Err(ChannelError::Closed));
+                    }
                 }
             }
             let mut state = reply.lock().unwrap();

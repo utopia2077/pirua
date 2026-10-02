@@ -49,6 +49,11 @@ pub enum DriverError {
     UnadmittedLocalAbort,
 }
 
+#[cfg(test)]
+pub(crate) fn retained_resource_snapshot_for_test(generation: u64) {
+    super::receive_host8192::scenario_snapshot_for_test(generation);
+}
+
 impl fmt::Display for DriverError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -2180,6 +2185,7 @@ impl Route {
                     source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
                 event.field = Some("Qreceive");
                 event.owner = Some("Route");
+                event.generation = Some(self.generation);
                 event.operation = Some("enqueue");
                 event.lane = Some(match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
@@ -2326,6 +2332,31 @@ impl Route {
             event.reserved_cancel = Some(writes.cancel_bytes);
             event.jobs = Some(writes.jobs.len());
             source_observer::record(event);
+            let mut queue = source_observer::SourceEvent::new(
+                "queue",
+                file!(),
+                line!(),
+                "Route::release_write",
+            );
+            queue.field = Some("Qreceive");
+            queue.owner = Some("Route");
+            queue.generation = Some(self.generation);
+            queue.operation = Some("release");
+            queue.lane = Some(match kind {
+                WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
+                WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                WriteKind::Cancel(_) => "cancel",
+            });
+            queue.bytes = Some(size);
+            queue.request_id = match kind {
+                WriteKind::Request(id)
+                | WriteKind::Cancel(id)
+                | WriteKind::ProfileRequest(id)
+                | WriteKind::ProfileResponse(id) => Some(id),
+                WriteKind::Denial => None,
+            };
+            queue.jobs = Some(writes.jobs.len());
+            source_observer::record(queue);
         }
     }
 
@@ -2467,6 +2498,22 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                         WriteKind::Denial => None,
                     };
                     source_observer::record(event);
+                    let mut queue =
+                        source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+                    queue.field = Some("Qreceive");
+                    queue.owner = Some("Route");
+                    queue.generation = Some(route.generation);
+                    queue.operation = Some("pop");
+                    queue.bytes = Some(job.frame.bytes.len());
+                    queue.jobs = Some(writes.jobs.len());
+                    queue.request_id = match job.kind {
+                        WriteKind::Request(id)
+                        | WriteKind::Cancel(id)
+                        | WriteKind::ProfileRequest(id)
+                        | WriteKind::ProfileResponse(id) => Some(id),
+                        WriteKind::Denial => None,
+                    };
+                    source_observer::record(queue);
                 }
                 if matches!(job.kind, WriteKind::Request(_) | WriteKind::Cancel(_)) {
                     writes.popped_unadmitted = Some((job.kind, job.frame.bytes.len()));
@@ -2550,6 +2597,22 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 WriteKind::Denial => None,
             };
             source_observer::record(event);
+            let mut queue =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+            queue.field = Some("Qreceive");
+            queue.owner = Some("Route");
+            queue.generation = Some(route.generation);
+            queue.operation = Some("write");
+            queue.outcome = Some("start");
+            queue.bytes = Some(size);
+            queue.request_id = match job.kind {
+                WriteKind::Request(id)
+                | WriteKind::Cancel(id)
+                | WriteKind::ProfileRequest(id)
+                | WriteKind::ProfileResponse(id) => Some(id),
+                WriteKind::Denial => None,
+            };
+            source_observer::record(queue);
         }
         if route.clock.now_ms() >= job.deadline {
             route.release_write(job.kind, size);
@@ -2583,6 +2646,40 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             event.outcome = Some("end");
             event.bytes = Some(size);
             source_observer::record(event);
+            let mut queue =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+            queue.field = Some("Qreceive");
+            queue.owner = Some("Route");
+            queue.generation = Some(route.generation);
+            queue.operation = Some("write");
+            queue.outcome = Some("end");
+            queue.bytes = Some(size);
+            queue.request_id = match job.kind {
+                WriteKind::Request(id)
+                | WriteKind::Cancel(id)
+                | WriteKind::ProfileRequest(id)
+                | WriteKind::ProfileResponse(id) => Some(id),
+                WriteKind::Denial => None,
+            };
+            source_observer::record(queue);
+            if completed {
+                let mut ack =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+                ack.field = Some("Qreceive");
+                ack.owner = Some("Route");
+                ack.generation = Some(route.generation);
+                ack.operation = Some("ack");
+                ack.outcome = Some("complete");
+                ack.bytes = Some(size);
+                ack.request_id = match job.kind {
+                    WriteKind::Request(id)
+                    | WriteKind::Cancel(id)
+                    | WriteKind::ProfileRequest(id)
+                    | WriteKind::ProfileResponse(id) => Some(id),
+                    WriteKind::Denial => None,
+                };
+                source_observer::record(ack);
+            }
         }
         if !completed {
             owner.close_route(&route, DriverError::PeerLost);
@@ -2855,6 +2952,40 @@ fn check_retained_indexed_for_test(
             receive_event.wire_sequence_before = Some(sequence_before);
             receive_event.wire_sequence_after = Some(sequence_after);
             source_observer::record(receive_event);
+            let mut selection_event = source_observer::SourceEvent::new(
+                "body_capture",
+                file!(),
+                line!(),
+                "check_retained_indexed_for_test",
+            );
+            selection_event.field = Some("D_req");
+            selection_event.owner = Some("StagedReceive8192");
+            selection_event.operation = Some("indexed_selection");
+            selection_event.outcome = Some("complete");
+            selection_event.bytes = Some(body_len);
+            selection_event.body_len = Some(body_len);
+            selection_event.request_id = Some(slot.invocation.binding().request_id());
+            selection_event.generation = Some(route.generation);
+            selection_event.wire_sequence_before = Some(sequence_before);
+            selection_event.wire_sequence_after = Some(sequence_after);
+            source_observer::record(selection_event);
+            let mut terminal_event = source_observer::SourceEvent::new(
+                "body_capture",
+                file!(),
+                line!(),
+                "check_retained_indexed_for_test",
+            );
+            terminal_event.field = Some("D_req");
+            terminal_event.owner = Some("StagedReceive8192");
+            terminal_event.operation = Some("indexed_terminal");
+            terminal_event.outcome = Some("complete");
+            terminal_event.bytes = Some(body_len);
+            terminal_event.body_len = Some(body_len);
+            terminal_event.request_id = Some(slot.invocation.binding().request_id());
+            terminal_event.generation = Some(route.generation);
+            terminal_event.wire_sequence_before = Some(sequence_before);
+            terminal_event.wire_sequence_after = Some(sequence_after);
+            source_observer::record(terminal_event);
 
             let terminal = match slot.invocation.receipt().expect("terminal retained").kind() {
                 TerminalKind::Result => match checked.value {
@@ -3306,7 +3437,7 @@ fn denial_frame(
 }
 
 #[cfg(test)]
-mod local_cancel_queue_tests {
+pub(crate) mod local_cancel_queue_tests {
     use super::*;
     use std::collections::VecDeque;
     use std::future::{Future, poll_fn};
@@ -3889,11 +4020,9 @@ mod local_cancel_queue_tests {
         );
     }
 
-    #[test]
-    fn retained_indexed_walking_branch_uses_body_lease_credit_and_terminal_receipt() {
+    pub(crate) fn retained_indexed_walking_branch_for_test() {
         let (spawner, owner, route, channel, _clock) = owner_and_route();
         route.install_walking_receive_for_test(channel.clone());
-        source_observer::reset();
         source_observer::set_c3_walking(true);
         let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
         let prepared = route
@@ -3944,6 +4073,12 @@ mod local_cancel_queue_tests {
             .retire(&binding, RetireReason::Committed)
             .expect("terminal receipt retires under the existing owner guard");
         route.close();
+    }
+
+    #[test]
+    fn retained_indexed_walking_branch_uses_body_lease_credit_and_terminal_receipt() {
+        source_observer::reset();
+        retained_indexed_walking_branch_for_test();
     }
 
     fn raw(name: &str, request_id: u8) -> Vec<u8> {
