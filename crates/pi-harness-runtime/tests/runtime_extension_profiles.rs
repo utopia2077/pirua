@@ -93,6 +93,56 @@ fn retained_ingress_api_is_additive_and_reachable_from_external_host_code() {
     retained_ingress_api_is_public::<(), MemoryStorage, SessionMetadata>();
 }
 
+#[test]
+#[ignore = "explicit stack/CPU evidence witness; run with --ignored --exact"]
+fn source_root_stack_high_water_and_finite_cpu_are_measured() {
+    use runtime_extension_profiles_support::process::{CpuProbe, LIMIT};
+
+    let cpu = CpuProbe::start();
+    let setup = Setup::new();
+    accepted_process_consumer(
+        &setup,
+        setup.session.clone(),
+        setup.store.clone(),
+        1,
+        1,
+        "python",
+        ProcessMode::Native,
+    );
+    let measurement = cpu.finish();
+    let stack = runtime_extension_profiles_support::process::last_stack_snapshot()
+        .expect("completed child-process support must publish stack samples");
+
+    assert!(
+        stack.worker_names.iter().any(|name| name == "stdout")
+            && stack.worker_names.iter().any(|name| name == "stdin")
+            && stack.worker_names.iter().any(|name| name == "stderr"),
+        "all source-owned child workers must contribute stack addresses: {stack:?}"
+    );
+    assert!(
+        stack.samples > 0
+            && stack.minimum_address > 0
+            && stack.maximum_address > stack.minimum_address
+            && stack.span_bytes > 0
+            && stack
+                .worker_snapshots
+                .iter()
+                .all(|worker| worker.samples > 0 && worker.span_bytes > 0),
+        "stack high-water/span must come from sampled worker addresses: {stack:?}"
+    );
+    assert!(measurement.clock_hz > 0);
+    assert!(
+        measurement.cpu_ns > 0,
+        "process CPU clock must advance: {measurement:?}"
+    );
+    assert_eq!(measurement.budget_ns, LIMIT.as_nanos());
+    assert!(
+        measurement.headroom_ns > 0 && measurement.cpu_ns < measurement.wall_ns,
+        "CPU must be measured against the finite envelope, separately from wall time: {measurement:?}"
+    );
+    println!("E1703_RESOURCE stack={stack:?} cpu={measurement:?}");
+}
+
 fn create<S: RuntimeStorage + 'static>(
     setup: &Setup,
     session: Arc<RuntimeSession<S>>,

@@ -8,13 +8,14 @@ use pi_harness_runtime::extensions::transport::{ChannelError, MonotonicClock, Or
 use prost::Message;
 use serde_json::Value;
 use std::{
+    collections::BTreeMap,
     future::{Future, poll_fn},
     io::{Read, Write},
     num::NonZeroUsize,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::{
-        Arc, Mutex,
+        Arc, Mutex, OnceLock,
         atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
         mpsc,
     },
@@ -22,6 +23,209 @@ use std::{
     time::{Duration, Instant},
 };
 pub const LIMIT: Duration = Duration::from_secs(15);
+
+/// A bounded source-owned stack probe for the existing child-process worker
+/// threads.  The addresses are sampled from actual stack locals at I/O phase
+/// boundaries; no configured stack size or process RSS is used.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct StackSnapshot {
+    pub workers: usize,
+    pub samples: usize,
+    pub minimum_address: usize,
+    pub maximum_address: usize,
+    pub span_bytes: usize,
+    pub worker_names: Vec<String>,
+    pub worker_snapshots: Vec<WorkerStackSnapshot>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct WorkerStackSnapshot {
+    pub worker: String,
+    pub samples: usize,
+    pub minimum_address: usize,
+    pub maximum_address: usize,
+    pub span_bytes: usize,
+}
+
+#[derive(Default)]
+struct StackProbe {
+    workers: Mutex<BTreeMap<&'static str, WorkerStack>>,
+}
+
+#[derive(Default)]
+struct WorkerStack {
+    samples: usize,
+    minimum_address: usize,
+    maximum_address: usize,
+}
+
+impl StackProbe {
+    fn sample(&self, worker: &'static str, address: usize) {
+        let mut workers = self.workers.lock().unwrap();
+        let state = workers.entry(worker).or_default();
+        state.samples += 1;
+        if state.minimum_address == 0 || address < state.minimum_address {
+            state.minimum_address = address;
+        }
+        state.maximum_address = state.maximum_address.max(address);
+    }
+
+    fn snapshot(&self) -> StackSnapshot {
+        let workers = self.workers.lock().unwrap();
+        let mut minimum_address = usize::MAX;
+        let mut maximum_address = 0;
+        let mut samples = 0;
+        let worker_snapshots = workers
+            .iter()
+            .map(|(name, worker)| WorkerStackSnapshot {
+                worker: (*name).to_owned(),
+                samples: worker.samples,
+                minimum_address: worker.minimum_address,
+                maximum_address: worker.maximum_address,
+                span_bytes: worker
+                    .maximum_address
+                    .saturating_sub(worker.minimum_address),
+            })
+            .collect::<Vec<_>>();
+        for worker in workers.values() {
+            samples += worker.samples;
+            minimum_address = minimum_address.min(worker.minimum_address);
+            maximum_address = maximum_address.max(worker.maximum_address);
+        }
+        if workers.is_empty() {
+            minimum_address = 0;
+        }
+        StackSnapshot {
+            workers: workers.len(),
+            samples,
+            minimum_address,
+            maximum_address,
+            span_bytes: maximum_address.saturating_sub(minimum_address),
+            worker_names: workers.keys().map(|name| (*name).to_owned()).collect(),
+            worker_snapshots,
+        }
+    }
+}
+
+/// Keep the sample in a real worker frame and descend a bounded number of
+/// frames.  This is a stack-address probe, not a synthetic stack-size value.
+#[inline(never)]
+fn sample_worker_stack(probe: &StackProbe, worker: &'static str, depth: u8) {
+    let marker = [0_u8; 128];
+    std::hint::black_box(&marker);
+    probe.sample(worker, marker.as_ptr() as usize);
+    if depth > 0 {
+        sample_worker_stack(probe, worker, depth - 1);
+    }
+    std::hint::black_box(marker[0]);
+}
+
+static LAST_STACK_SNAPSHOT: OnceLock<Mutex<Option<StackSnapshot>>> = OnceLock::new();
+
+fn publish_stack_snapshot(snapshot: StackSnapshot) {
+    *LAST_STACK_SNAPSHOT
+        .get_or_init(|| Mutex::new(None))
+        .lock()
+        .unwrap() = Some(snapshot);
+}
+
+/// Return the most recently completed child-process worker stack observation.
+pub fn last_stack_snapshot() -> Option<StackSnapshot> {
+    LAST_STACK_SNAPSHOT
+        .get()
+        .and_then(|value| value.lock().unwrap().clone())
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub struct CpuMeasurement {
+    pub clock_hz: u64,
+    pub start_cpu_ns: u128,
+    pub end_cpu_ns: u128,
+    pub cpu_ns: u128,
+    pub wall_ns: u128,
+    pub budget_ns: u128,
+    pub headroom_ns: u128,
+}
+
+/// A process CPU-clock sample paired with the existing finite worker deadline.
+pub struct CpuProbe {
+    start_cpu_ns: u128,
+    started: Instant,
+    budget_ns: u128,
+}
+
+impl CpuProbe {
+    pub fn start() -> Self {
+        Self {
+            start_cpu_ns: process_cpu_ns(),
+            started: Instant::now(),
+            budget_ns: LIMIT.as_nanos(),
+        }
+    }
+
+    pub fn finish(self) -> CpuMeasurement {
+        let end_cpu_ns = process_cpu_ns();
+        let wall_ns = self.started.elapsed().as_nanos();
+        let cpu_ns = end_cpu_ns.saturating_sub(self.start_cpu_ns);
+        CpuMeasurement {
+            clock_hz: cpu_clock_hz(),
+            start_cpu_ns: self.start_cpu_ns,
+            end_cpu_ns,
+            cpu_ns,
+            wall_ns,
+            budget_ns: self.budget_ns,
+            headroom_ns: self.budget_ns.saturating_sub(cpu_ns),
+        }
+    }
+}
+
+static CPU_CLOCK_HZ: OnceLock<u64> = OnceLock::new();
+
+fn cpu_clock_hz() -> u64 {
+    *CPU_CLOCK_HZ.get_or_init(|| {
+        let output = Command::new("getconf")
+            .arg("CLK_TCK")
+            .output()
+            .expect("host getconf for process CPU clock");
+        assert!(
+            output.status.success(),
+            "host getconf CLK_TCK failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout)
+            .expect("getconf CLK_TCK is UTF-8")
+            .trim()
+            .parse()
+            .expect("getconf CLK_TCK is an integer")
+    })
+}
+
+fn process_cpu_ticks() -> u64 {
+    let stat = std::fs::read_to_string("/proc/self/stat").expect("process CPU clock stat");
+    let fields = stat
+        .rsplit_once(')')
+        .expect("process CPU clock stat has comm field")
+        .1
+        .split_whitespace()
+        .collect::<Vec<_>>();
+    let user = fields
+        .get(11)
+        .expect("process CPU clock has utime")
+        .parse::<u64>()
+        .expect("process CPU utime is an integer");
+    let system = fields
+        .get(12)
+        .expect("process CPU clock has stime")
+        .parse::<u64>()
+        .expect("process CPU stime is an integer");
+    user.saturating_add(system)
+}
+
+fn process_cpu_ns() -> u128 {
+    let ticks = process_cpu_ticks() as u128;
+    ticks.saturating_mul(1_000_000_000) / cpu_clock_hz() as u128
+}
+
 fn nz(value: usize) -> NonZeroUsize {
     NonZeroUsize::new(value).unwrap()
 }
@@ -135,6 +339,7 @@ pub struct Channel {
     stderr: Arc<Mutex<Vec<u8>>>,
     done: Mutex<mpsc::Receiver<()>>,
     workers: Mutex<Vec<std::thread::JoinHandle<()>>>,
+    stack: Arc<StackProbe>,
     release: PathBuf,
     corrupt_lane: AtomicBool,
     fail_cancel_write: AtomicBool,
@@ -281,17 +486,21 @@ impl Channel {
         let (write_tx, write_rx) = mpsc::sync_channel::<(Vec<u8>, Reply)>(1);
         let (done_tx, done_rx) = mpsc::channel();
         let mut workers = vec![];
+        let stack = Arc::new(StackProbe::default());
         let (stop, wake, done, captured) = (
             closed.clone(),
             read_wake.clone(),
             done_tx.clone(),
             incoming.clone(),
         );
+        let stack_probe = stack.clone();
         workers.push(std::thread::spawn(move || {
             let mut total = 0;
             loop {
+                sample_worker_stack(&stack_probe, "stdout", 2);
                 let mut buffer = [0u8; 4096];
                 let count = output.read(&mut buffer).unwrap_or(0);
+                sample_worker_stack(&stack_probe, "stdout", 2);
                 total += count;
                 assert!(total <= 1048576, "finite peer stdout budget");
                 captured.lock().unwrap().extend_from_slice(&buffer[..count]);
@@ -323,11 +532,14 @@ impl Channel {
             let _ = done.send(());
         }));
         let (stop, captured, done) = (closed.clone(), writes.clone(), done_tx.clone());
+        let stack_probe = stack.clone();
         workers.push(std::thread::spawn(move || {
             while !stop.load(Ordering::SeqCst) {
+                sample_worker_stack(&stack_probe, "stdin", 2);
                 match write_rx.recv_timeout(Duration::from_millis(20)) {
                     Ok((data, reply)) => {
                         let result = input.write_all(&data).map_err(|_| ChannelError::Failed);
+                        sample_worker_stack(&stack_probe, "stdin", 2);
                         if result.is_ok() {
                             captured.lock().unwrap().push(data);
                         }
@@ -347,10 +559,13 @@ impl Channel {
             let _ = done.send(());
         }));
         let (captured, done) = (stderr.clone(), done_tx);
+        let stack_probe = stack.clone();
         workers.push(std::thread::spawn(move || {
             let mut buffer = [0u8; 1024];
             loop {
+                sample_worker_stack(&stack_probe, "stderr", 2);
                 let n = errors.read(&mut buffer).unwrap_or(0);
+                sample_worker_stack(&stack_probe, "stderr", 2);
                 if n == 0 {
                     break;
                 }
@@ -371,6 +586,7 @@ impl Channel {
             stderr,
             done: Mutex::new(done_rx),
             workers: Mutex::new(workers),
+            stack,
             release,
             corrupt_lane: AtomicBool::new(false),
             fail_cancel_write: AtomicBool::new(false),
@@ -624,6 +840,7 @@ impl Channel {
         for worker in self.workers.lock().unwrap().drain(..) {
             join_worker(worker);
         }
+        publish_stack_snapshot(self.stack.snapshot());
         let records = String::from_utf8(self.stderr.lock().unwrap().clone()).unwrap();
         println!("E1412_PROCESS {}", records.trim());
         self.child.lock().unwrap().take();
@@ -648,6 +865,7 @@ impl Drop for Channel {
         for worker in self.workers.lock().unwrap().drain(..) {
             join_worker(worker);
         }
+        publish_stack_snapshot(self.stack.snapshot());
         if self.release.exists() {
             std::fs::remove_file(&self.release).unwrap();
         }
