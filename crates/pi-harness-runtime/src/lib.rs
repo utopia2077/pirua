@@ -1,5 +1,12 @@
 //! Concrete Harness runtime components. Full driver and Effects composition are separate.
 
+#[cfg(test)]
+extern crate self as pi_harness_runtime;
+
+#[cfg(all(test, feature = "extensions"))]
+#[path = "../tests/runtime_extension_profiles.rs"]
+mod runtime_extension_profiles;
+
 #[cfg(feature = "extensions")]
 pub mod extensions;
 pub mod hooks;

@@ -20,6 +20,130 @@ use pi_extension_protocol::wire::framing::EncodedFrame;
 
 use super::critical_port::{NotificationPost, SeatLease};
 
+#[cfg(test)]
+pub(crate) mod source_observer {
+    use std::sync::{Mutex, OnceLock};
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    pub(crate) struct SourceEvent {
+        pub schema_version: &'static str,
+        pub trace_id: u64,
+        pub seq: u64,
+        pub event_id: String,
+        pub kind: &'static str,
+        pub source_file: &'static str,
+        pub source_line: u32,
+        pub function: &'static str,
+        pub phase: Option<&'static str>,
+        pub outcome: Option<&'static str>,
+        pub body_len: Option<usize>,
+        pub consumed: Option<usize>,
+        pub capacity: Option<usize>,
+        pub scratch_bytes: Option<usize>,
+        pub bound_bytes: Option<usize>,
+        pub role: Option<&'static str>,
+        pub parent_present: Option<bool>,
+        pub native_parent_present: Option<bool>,
+        pub operation: Option<&'static str>,
+        pub method: Option<String>,
+        pub lane: Option<&'static str>,
+        pub bytes: Option<usize>,
+        pub jobs: Option<usize>,
+        pub reserved_normal: Option<usize>,
+        pub reserved_control: Option<usize>,
+        pub reserved_cancel: Option<usize>,
+        pub request_id: Option<u64>,
+        pub parent_request_id: Option<u64>,
+        pub generation: Option<u64>,
+        pub provider: Option<String>,
+        pub model: Option<String>,
+    }
+
+    impl SourceEvent {
+        pub(crate) fn new(
+            kind: &'static str,
+            source_file: &'static str,
+            source_line: u32,
+            function: &'static str,
+        ) -> Self {
+            Self {
+                schema_version: "s12-d-resource-source-events-v1",
+                trace_id: 0,
+                seq: 0,
+                event_id: String::new(),
+                kind,
+                source_file,
+                source_line,
+                function,
+                phase: None,
+                outcome: None,
+                body_len: None,
+                consumed: None,
+                capacity: None,
+                scratch_bytes: None,
+                bound_bytes: None,
+                role: None,
+                parent_present: None,
+                native_parent_present: None,
+                operation: None,
+                method: None,
+                lane: None,
+                bytes: None,
+                jobs: None,
+                reserved_normal: None,
+                reserved_control: None,
+                reserved_cancel: None,
+                request_id: None,
+                parent_request_id: None,
+                generation: None,
+                provider: None,
+                model: None,
+            }
+        }
+    }
+
+    #[derive(Default)]
+    struct State {
+        trace_id: u64,
+        seq: u64,
+        events: Vec<SourceEvent>,
+    }
+
+    static STATE: OnceLock<Mutex<State>> = OnceLock::new();
+
+    fn state() -> &'static Mutex<State> {
+        STATE.get_or_init(|| Mutex::new(State::default()))
+    }
+
+    pub(crate) fn reset() {
+        let mut state = state()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.trace_id = state.trace_id.saturating_add(1);
+        state.seq = 0;
+        state.events.clear();
+    }
+
+    pub(crate) fn record(mut event: SourceEvent) {
+        let mut state = state()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.seq = state.seq.saturating_add(1);
+        event.trace_id = state.trace_id;
+        event.seq = state.seq;
+        event.event_id = format!("source/{}/{}", event.trace_id, event.seq);
+        state.events.push(event);
+    }
+
+    pub(crate) fn snapshot() -> Vec<SourceEvent> {
+        state()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .events
+            .clone()
+    }
+}
+
 /// Content-free host-channel failures. Implementations must not expose peer bytes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ChannelError {
@@ -217,6 +341,17 @@ pub struct ConnectionPump {
     closed: bool,
 }
 
+#[cfg(test)]
+fn observed_phase(phase: EndpointPhase) -> &'static str {
+    match phase {
+        EndpointPhase::AwaitHello => "AwaitHello",
+        EndpointPhase::AwaitManifest => "AwaitManifest",
+        EndpointPhase::AwaitReady => "AwaitReady",
+        EndpointPhase::Active => "Active",
+        EndpointPhase::Closed => "Closed",
+    }
+}
+
 /// Dropping a polled pump future may interrupt a partial host write or a read
 /// whose cancellation behavior is unknown. Close before the pump can be reused;
 /// only a completed return disarms this guard.
@@ -255,6 +390,20 @@ impl ConnectionPump {
             .capacity()
             .checked_add(read_scratch_bytes)
             .ok_or(PumpError::ReadBufferUnavailable)?;
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "ConnectionPump::new",
+            );
+            event.phase = Some("AwaitHello");
+            event.capacity = Some(buffered.capacity());
+            event.scratch_bytes = Some(read_scratch_bytes);
+            event.bound_bytes = Some(read_storage_bound_bytes);
+            source_observer::record(event);
+        }
         let started_ms = clock.now_ms();
         let handshake_deadline_ms = started_ms
             .checked_add(host.limits().handshake_ms)
@@ -386,6 +535,18 @@ impl ConnectionPump {
             {
                 return self.fail(PumpError::HandshakeTimeout);
             }
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "phase",
+                    file!(),
+                    line!(),
+                    "ConnectionPump::drive_next_active",
+                );
+                event.phase = Some(observed_phase(self.endpoint.phase()));
+                event.outcome = Some("read");
+                source_observer::record(event);
+            }
             let step = match self
                 .endpoint
                 .read_one(&self.buffered[self.offset..self.filled], now_ms)
@@ -398,6 +559,28 @@ impl ConnectionPump {
                 Err(_) => return self.fail(PumpError::MalformedInput),
             };
             self.offset += step.consumed;
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "phase",
+                    file!(),
+                    line!(),
+                    "ConnectionPump::drive_next_active",
+                );
+                event.phase = Some(observed_phase(self.endpoint.phase()));
+                event.outcome = Some(match step.event.as_ref() {
+                    Some(EndpointEvent::Send(_)) => "send",
+                    Some(EndpointEvent::Ready) => "ready",
+                    Some(EndpointEvent::Active(_)) => "active",
+                    None => "step",
+                });
+                event.consumed = Some(step.consumed);
+                event.body_len = match step.event.as_ref() {
+                    Some(EndpointEvent::Active(frame)) => Some(frame.body_len),
+                    _ => None,
+                };
+                source_observer::record(event);
+            }
             match step.event {
                 Some(EndpointEvent::Send(frame)) => {
                     if let Err(error) = self.write_frame(frame).await {
@@ -413,6 +596,18 @@ impl ConnectionPump {
 
     pub fn close(&mut self) {
         if !self.closed {
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "terminal",
+                    file!(),
+                    line!(),
+                    "ConnectionPump::close",
+                );
+                event.phase = Some(observed_phase(self.endpoint.phase()));
+                event.outcome = Some("close");
+                source_observer::record(event);
+            }
             self.closed = true;
             self.channel.close();
             self.filled = 0;
@@ -426,9 +621,35 @@ impl ConnectionPump {
     }
 
     async fn read_chunk(&mut self) -> Result<Option<usize>, PumpError> {
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "read",
+                file!(),
+                line!(),
+                "ConnectionPump::read_chunk",
+            );
+            event.phase = Some(observed_phase(self.endpoint.phase()));
+            event.outcome = Some("start");
+            source_observer::record(event);
+        }
         let mut read = self.channel.read_chunk(&mut self.buffered);
         if self.endpoint.phase() == EndpointPhase::Active {
-            return read.await.map_err(read_error);
+            let result = read.await.map_err(read_error);
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "read",
+                    file!(),
+                    line!(),
+                    "ConnectionPump::read_chunk",
+                );
+                event.phase = Some(observed_phase(self.endpoint.phase()));
+                event.outcome = Some("end");
+                event.body_len = result.as_ref().ok().and_then(|filled| *filled);
+                source_observer::record(event);
+            }
+            return result;
         }
         let deadline = self.handshake_deadline_ms;
         let mut timer = self.clock.sleep_until(deadline);
@@ -441,6 +662,19 @@ impl ConnectionPump {
                 .map(|result| result.map_err(read_error))
         })
         .await;
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "read",
+                file!(),
+                line!(),
+                "ConnectionPump::read_chunk",
+            );
+            event.phase = Some(observed_phase(self.endpoint.phase()));
+            event.outcome = Some("end");
+            event.body_len = outcome.as_ref().ok().and_then(|filled| *filled);
+            source_observer::record(event);
+        }
         if self.clock.now_ms() >= deadline {
             return Err(PumpError::HandshakeTimeout);
         }

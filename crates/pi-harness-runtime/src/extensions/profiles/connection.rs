@@ -1,4 +1,6 @@
 //! One native-owned profile route, using the existing framed byte pump.
+#[cfg(test)]
+use crate::extensions::transport::source_observer;
 use crate::extensions::transport::{
     ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, PumpError,
     RetainedOrderedByteChannel,
@@ -134,6 +136,18 @@ pub struct Reply {
     pub payload: Option<ValidatedPayload>,
     pub error: Option<v1_1::ErrorCode>,
 }
+
+#[cfg(test)]
+fn observed_role(role: Role) -> &'static str {
+    match role {
+        Role::Planned => "Planned",
+        Role::Inline => "Inline",
+        Role::Preaccept => "Preaccept",
+        Role::HostAction => "HostAction",
+        Role::Passive => "Passive",
+    }
+}
+
 impl ProfileConnection {
     pub async fn connect(
         host: HostAuthority,
@@ -583,6 +597,18 @@ impl ProfileConnection {
             .map_err(|_| super::fault())
     }
     pub fn close(&self) {
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "terminal",
+                file!(),
+                line!(),
+                "ProfileConnection::close",
+            );
+            event.outcome = Some("close");
+            event.generation = Some(self.grant.wire().connection_generation);
+            source_observer::record(event);
+        }
         self.owner
             .lock()
             .unwrap_or_else(|p| p.into_inner())
@@ -650,6 +676,28 @@ impl ProfileConnection {
             .ok_or_else(super::fault)?;
         let now = self.clock.now_ms();
         let deadline = now.checked_add(self.timeout_ms).ok_or_else(super::fault)?;
+        #[cfg(test)]
+        let observed_role_value = scope.role;
+        #[cfg(test)]
+        let observed_parent = scope.parent.is_some();
+        #[cfg(test)]
+        let observed_native_parent = scope.native_parent.is_some();
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "role",
+                file!(),
+                line!(),
+                "ProfileConnection::call",
+            );
+            event.outcome = Some("start");
+            event.role = Some(observed_role(observed_role_value));
+            event.parent_present = Some(observed_parent);
+            event.native_parent_present = Some(observed_native_parent);
+            event.method = Some(method.to_owned());
+            event.generation = Some(self.grant.wire().connection_generation);
+            source_observer::record(event);
+        }
         let start = Start {
             capability,
             method: method.into(),
@@ -675,6 +723,23 @@ impl ProfileConnection {
         };
         drop(scope.permit.take());
         let (binding, request) = started.map_err(|_| super::fault())?;
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "role",
+                file!(),
+                line!(),
+                "ProfileConnection::call",
+            );
+            event.outcome = Some("started");
+            event.role = Some(observed_role(observed_role_value));
+            event.parent_present = Some(observed_parent);
+            event.native_parent_present = Some(observed_native_parent);
+            event.method = Some(method.to_owned());
+            event.request_id = Some(binding.id());
+            event.generation = Some(self.grant.wire().connection_generation);
+            source_observer::record(event);
+        }
         guard.id = Some(binding.id());
         if let Some(dispatch) = scope.dispatch.take() {
             self.dispatch_scopes
@@ -814,6 +879,20 @@ impl ProfileConnection {
                     };
                     match accepted {
                         Accepted::Terminal => {
+                            #[cfg(test)]
+                            {
+                                let mut event = source_observer::SourceEvent::new(
+                                    "terminal",
+                                    file!(),
+                                    line!(),
+                                    "ProfileConnection::call",
+                                );
+                                event.outcome = Some("accepted");
+                                event.method = Some(method.to_owned());
+                                event.request_id = Some(binding.id());
+                                event.role = Some(observed_role(observed_role_value));
+                                source_observer::record(event);
+                            }
                             let owner = self.owner.lock().unwrap_or_else(|p| p.into_inner());
                             let receipt = owner.receipt(&binding).ok_or_else(super::fault)?;
                             let reply = Reply {
@@ -1545,6 +1624,15 @@ struct PumpGuard {
 }
 impl Drop for PumpGuard {
     fn drop(&mut self) {
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("cleanup", file!(), line!(), "PumpGuard::drop");
+            event.outcome = Some("start");
+            event.request_id = self.id;
+            event.generation = Some(self.connection.grant.wire().connection_generation);
+            source_observer::record(event);
+        }
         if !self.complete
             && let Some(id) = self.id
         {
@@ -1581,6 +1669,15 @@ impl Drop for PumpGuard {
         } else {
             self.connection.close();
             drop(self.pump.take());
+        }
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("cleanup", file!(), line!(), "PumpGuard::drop");
+            event.outcome = Some("complete");
+            event.request_id = self.id;
+            event.generation = Some(self.connection.grant.wire().connection_generation);
+            source_observer::record(event);
         }
     }
 }

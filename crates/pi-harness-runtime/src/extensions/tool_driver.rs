@@ -26,6 +26,8 @@ use pi_extension_protocol::wire::{v1_0, v1_1};
 use crate::extensions::domain::{DomainReceiveError, EchoDomainBinding};
 use crate::extensions::key::encode_tool_effect_key;
 use crate::extensions::receive_host8192::StagedReceive8192;
+#[cfg(test)]
+use crate::extensions::transport::source_observer;
 use crate::extensions::transport::{
     ConnectionPump, MonotonicClock, OrderedByteChannel, PumpConfig, RetainedOrderedByteChannel,
 };
@@ -2125,6 +2127,30 @@ impl Route {
                 self.control_cap,
                 self.cancel_cap,
             )?;
+            #[cfg(test)]
+            {
+                let mut event =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
+                event.operation = Some("reserve");
+                event.lane = Some(match kind {
+                    WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
+                    WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                    WriteKind::Cancel(_) => "cancel",
+                });
+                event.bytes = Some(bytes);
+                event.request_id = match kind {
+                    WriteKind::Request(id)
+                    | WriteKind::Cancel(id)
+                    | WriteKind::ProfileRequest(id)
+                    | WriteKind::ProfileResponse(id) => Some(id),
+                    WriteKind::Denial => None,
+                };
+                event.reserved_normal = Some(writes.normal_bytes);
+                event.reserved_control = Some(writes.control_bytes);
+                event.reserved_cancel = Some(writes.cancel_bytes);
+                event.jobs = Some(writes.jobs.len());
+                source_observer::record(event);
+            }
             if denial {
                 self.mark_draining();
             }
@@ -2134,6 +2160,30 @@ impl Route {
                 deadline,
                 active: true,
             });
+            #[cfg(test)]
+            {
+                let mut event =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
+                event.operation = Some("enqueue");
+                event.lane = Some(match kind {
+                    WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
+                    WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                    WriteKind::Cancel(_) => "cancel",
+                });
+                event.bytes = Some(bytes);
+                event.request_id = match kind {
+                    WriteKind::Request(id)
+                    | WriteKind::Cancel(id)
+                    | WriteKind::ProfileRequest(id)
+                    | WriteKind::ProfileResponse(id) => Some(id),
+                    WriteKind::Denial => None,
+                };
+                event.reserved_normal = Some(writes.normal_bytes);
+                event.reserved_control = Some(writes.control_bytes);
+                event.reserved_cancel = Some(writes.cancel_bytes);
+                event.jobs = Some(writes.jobs.len());
+                source_observer::record(event);
+            }
             writes.waker.take()
         };
         Ok((wake, deadline))
@@ -2230,6 +2280,34 @@ impl Route {
         *reserved = reserved.saturating_sub(size);
         if matches!(kind, WriteKind::Cancel(_)) && writes.cancel_bytes == 0 {
             writes.retired_cancel_id = None;
+        }
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "queue",
+                file!(),
+                line!(),
+                "Route::release_write",
+            );
+            event.operation = Some("release");
+            event.lane = Some(match kind {
+                WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
+                WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                WriteKind::Cancel(_) => "cancel",
+            });
+            event.bytes = Some(size);
+            event.request_id = match kind {
+                WriteKind::Request(id)
+                | WriteKind::Cancel(id)
+                | WriteKind::ProfileRequest(id)
+                | WriteKind::ProfileResponse(id) => Some(id),
+                WriteKind::Denial => None,
+            };
+            event.reserved_normal = Some(writes.normal_bytes);
+            event.reserved_control = Some(writes.control_bytes);
+            event.reserved_cancel = Some(writes.cancel_bytes);
+            event.jobs = Some(writes.jobs.len());
+            source_observer::record(event);
         }
     }
 

@@ -13,6 +13,9 @@ use pi_extension_protocol::{
 };
 use std::sync::Arc;
 
+#[cfg(test)]
+use crate::extensions::transport::source_observer;
+
 #[derive(Clone)]
 pub(crate) struct RegisteredProvider {
     pub connection: Arc<ProfileConnection>,
@@ -56,6 +59,23 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         model_policy: ModelHeaderPolicy,
         payload_schema: Option<pi_extension_protocol::jcs::PortableSchema>,
     ) -> Result<(), HarnessRuntimeError> {
+        #[cfg(test)]
+        let observed_provider_name = capability.name.clone();
+        #[cfg(test)]
+        let observed_model_name = models.first().map(|model| model.id.as_str().to_owned());
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "provider_register",
+                file!(),
+                line!(),
+                "RuntimeHarness::register_profile_provider",
+            );
+            event.outcome = Some("start");
+            event.provider = Some(observed_provider_name.clone());
+            event.model = observed_model_name.clone();
+            source_observer::record(event);
+        }
         if models.is_empty()
             || capability.kind != "provider"
             || !connection
@@ -104,6 +124,19 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     payload_schema,
                 },
             );
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "provider_register",
+                file!(),
+                line!(),
+                "RuntimeHarness::register_profile_provider",
+            );
+            event.outcome = Some("ok");
+            event.provider = Some(observed_provider_name);
+            event.model = observed_model_name;
+            source_observer::record(event);
+        }
         Ok(())
     }
 }
@@ -195,6 +228,18 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             let fx = self.fx.upgrade().ok_or_else(super::fault)?;
             let line = fx.lane.lane.line.acquire().await?;
             let h = fx.lane.load().await?;
+            #[cfg(test)]
+            {
+                let mut event = source_observer::SourceEvent::new(
+                    "source_current",
+                    file!(),
+                    line!(),
+                    "ProviderDispatch::prepare",
+                );
+                event.outcome = Some("check");
+                event.provider = Some(self.provider.as_str().to_owned());
+                source_observer::record(event);
+            }
             if !Arc::ptr_eq(&fx.identity, &self.identity)
                 || self.cancel.is_cancelled()
                 || fx.retired.is_cancelled()
@@ -224,6 +269,15 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
     lifecycle: RequestLifecycleOptions,
     deferred_source: Option<&(EntryId, AssistantMessage)>,
 ) -> Result<SettledAssistantMessage, HarnessRuntimeError> {
+    #[cfg(test)]
+    {
+        let mut event =
+            source_observer::SourceEvent::new("provider", file!(), line!(), "provider::invoke");
+        event.outcome = Some("start");
+        event.provider = Some(model.provider.as_str().to_owned());
+        event.model = Some(model.id.as_str().to_owned());
+        source_observer::record(event);
+    }
     let tools = context.tools.take().unwrap_or_default();
     let mut raw =
         serde_json::json!({"model":model,"context":context,"tools":tools,"options":options.wire});
@@ -281,6 +335,16 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         provider.connection.max_payload_bytes(),
     )
     .map_err(|_| super::fault())?;
+    #[cfg(test)]
+    {
+        let mut event =
+            source_observer::SourceEvent::new("provider", file!(), line!(), "provider::invoke");
+        event.outcome = Some("payload_encoded");
+        event.provider = Some(model.provider.as_str().to_owned());
+        event.model = Some(model.id.as_str().to_owned());
+        event.body_len = Some(payload.len());
+        source_observer::record(event);
+    }
     let cancellation = options.runtime.cancellation.clone();
     let slot = provider.connection.acquire_slot(&cancellation).await?;
     let line = fx.lane.lane.line.acquire().await?;
@@ -295,6 +359,19 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
             .is_none_or(|registration| !registration.same_registration(&provider.registration))
     {
         return Err(super::fault());
+    }
+    #[cfg(test)]
+    {
+        let mut event = source_observer::SourceEvent::new(
+            "source_current",
+            file!(),
+            line!(),
+            "provider::invoke",
+        );
+        event.outcome = Some("check");
+        event.provider = Some(model.provider.as_str().to_owned());
+        event.model = Some(model.id.as_str().to_owned());
+        source_observer::record(event);
     }
     let mut native = NativeDomain::new(fx.lane.owner.session.codec(), &provider.model_policy);
     native.expected_model = Some(model);
@@ -342,6 +419,17 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
             pi_extension_protocol::profile_live::RetireReason::NoLongerExpected,
         )?;
         return Err(super::fault());
+    }
+    #[cfg(test)]
+    {
+        let mut event =
+            source_observer::SourceEvent::new("terminal", file!(), line!(), "provider::invoke");
+        event.outcome = Some("ok");
+        event.operation = Some("provider.invoke");
+        event.provider = Some(model.provider.as_str().to_owned());
+        event.model = Some(model.id.as_str().to_owned());
+        event.request_id = Some(reply.binding.id());
+        source_observer::record(event);
     }
     fx.profile_receipts
         .retain_provider(key, provider.connection.clone(), &reply);

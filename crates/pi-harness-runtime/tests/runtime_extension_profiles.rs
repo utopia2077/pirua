@@ -143,6 +143,212 @@ fn source_root_stack_high_water_and_finite_cpu_are_measured() {
     println!("E1703_RESOURCE stack={stack:?} cpu={measurement:?}");
 }
 
+#[test]
+#[ignore = "explicit source-event/resource evidence witness; run with --ignored --exact"]
+fn source_root_structured_events_bind_real_resources() {
+    use pi_harness_runtime::extensions::transport::source_observer;
+    use runtime_extension_profiles_support::process::{CpuProbe, LIMIT, last_stack_snapshot};
+
+    source_observer::reset();
+
+    let tool_setup = Setup::new();
+    physical_tool_consumer(
+        &tool_setup,
+        tool_setup.session.clone(),
+        tool_setup.store.clone(),
+        0,
+        0,
+        true,
+    );
+
+    allocator_measurement_start();
+    let setup = Setup::new();
+    let harness = create(&setup, setup.session.clone());
+    let (connection, peer) = install(&setup, &harness, 0, 0);
+    let result = setup
+        .pump
+        .drive(harness.prompt(PromptInput::Text {
+            text: "structured source events".into(),
+            images: vec![],
+        }))
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        result.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    let before_close = allocator_measurement_snapshot();
+    assert!(
+        peer.requests
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|request| request.method == "provider.invoke")
+    );
+    connection.close();
+    setup.pump.drive(harness.close()).unwrap();
+    let allocation = allocator_measurement_finish();
+
+    let process_setup = Setup::new();
+    let cpu = CpuProbe::start();
+    accepted_process_consumer(
+        &process_setup,
+        process_setup.session.clone(),
+        process_setup.store.clone(),
+        0,
+        0,
+        "python",
+        ProcessMode::Native,
+    );
+    let cpu_measurement = cpu.finish();
+    let stack = last_stack_snapshot().expect("process source workers publish stack samples");
+    let events = source_observer::snapshot();
+
+    assert!(
+        events.len() > 20,
+        "real owners must emit a nontrivial trace"
+    );
+    assert!(
+        events
+            .iter()
+            .all(|event| event.schema_version == "s12-d-resource-source-events-v1"),
+        "all source records must use the accepted schema version"
+    );
+    assert!(
+        events
+            .windows(2)
+            .all(|pair| pair[0].trace_id == pair[1].trace_id && pair[0].seq < pair[1].seq),
+        "source event sequence must be monotonic"
+    );
+    assert!(
+        events
+            .iter()
+            .all(|event| event.event_id == format!("source/{}/{}", event.trace_id, event.seq)),
+        "event ids must bind the collector trace and sequence"
+    );
+
+    let phase_reads = events
+        .iter()
+        .filter(|event| event.kind == "phase" && event.outcome == Some("read"))
+        .collect::<Vec<_>>();
+    for phase in ["AwaitHello", "AwaitManifest", "AwaitReady", "Active"] {
+        assert!(
+            phase_reads.iter().any(|event| event.phase == Some(phase)),
+            "missing source-owned phase read for {phase}: {phase_reads:?}"
+        );
+    }
+    assert!(
+        events.iter().any(|event| {
+            event.kind == "resource"
+                && event.capacity.is_some_and(|value| value > 0)
+                && event.scratch_bytes.is_some()
+                && event
+                    .bound_bytes
+                    .is_some_and(|value| value >= event.capacity.unwrap())
+                && event.source_file.ends_with("extensions/transport.rs")
+                && event.function == "ConnectionPump::new"
+        }),
+        "transport resource event must carry source-owned capacity/bound provenance"
+    );
+
+    let register_ok = events
+        .iter()
+        .position(|event| event.kind == "provider_register" && event.outcome == Some("ok"))
+        .expect("provider registration owner event");
+    let source_current = events
+        .iter()
+        .enumerate()
+        .find(|(index, event)| {
+            *index > register_ok
+                && event.kind == "source_current"
+                && event.outcome == Some("check")
+                && event.function == "ProviderDispatch::prepare"
+        })
+        .map(|(index, _)| index)
+        .expect("provider source-current owner event");
+    assert!(
+        events.iter().any(|event| {
+            event.kind == "source_current"
+                && event.outcome == Some("check")
+                && event.function == "provider::invoke"
+        }),
+        "provider invoke source-current owner event"
+    );
+    let role_start = events
+        .iter()
+        .enumerate()
+        .find(|(index, event)| {
+            *index > source_current && event.kind == "role" && event.outcome == Some("started")
+        })
+        .map(|(index, _)| index)
+        .expect("role start owner event");
+    let terminal = events
+        .iter()
+        .enumerate()
+        .find(|(index, event)| {
+            *index > role_start && event.kind == "terminal" && event.outcome == Some("accepted")
+        })
+        .map(|(index, _)| index)
+        .expect("terminal owner event");
+    assert!(
+        events.iter().enumerate().any(|(index, event)| {
+            index > terminal && event.kind == "cleanup" && event.outcome == Some("complete")
+        }),
+        "cleanup must follow terminal settlement"
+    );
+    assert!(events.iter().any(|event| {
+        event.kind == "queue"
+            && event.operation == Some("reserve")
+            && event.bytes.is_some_and(|value| value > 0)
+            && event.reserved_control.is_some()
+    }));
+    assert!(events.iter().any(|event| {
+        event.kind == "queue"
+            && event.operation == Some("enqueue")
+            && event.jobs.is_some_and(|value| value > 0)
+    }));
+    assert!(events.iter().any(|event| {
+        event.kind == "queue"
+            && event.operation == Some("release")
+            && event.bytes.is_some_and(|value| value > 0)
+    }));
+    assert!(
+        events.iter().any(|event| {
+            event.kind == "role"
+                && event.role == Some("Inline")
+                && event.native_parent_present == Some(true)
+                && event.source_file.ends_with("profiles/connection.rs")
+        }),
+        "physical tool path must expose its real inline/native-parent custody"
+    );
+    assert!(
+        allocation.peak_bytes > 0
+            && allocation.allocations > 0
+            && allocation.deallocations > before_close.deallocations
+            && allocation.live_bytes <= before_close.live_bytes
+            && allocation.live_bytes >= 0
+            && allocation.allocator == "runtime-extension-profiles-alloc::TestAlloc",
+        "allocation evidence must include source activity and cleanup: before={before_close:?} after={allocation:?}"
+    );
+    assert!(
+        stack.worker_names.iter().any(|name| name == "stdout")
+            && stack.worker_names.iter().any(|name| name == "stdin")
+            && stack.worker_names.iter().any(|name| name == "stderr")
+            && stack
+                .worker_snapshots
+                .iter()
+                .all(|worker| worker.span_bytes > 0),
+        "stack evidence must come from all existing process workers: {stack:?}"
+    );
+    assert!(
+        cpu_measurement.clock_hz > 0
+            && cpu_measurement.cpu_ns > 0
+            && cpu_measurement.budget_ns == LIMIT.as_nanos()
+            && cpu_measurement.headroom_ns > 0,
+        "CPU evidence must be finite and tied to the accepted budget: {cpu_measurement:?}"
+    );
+}
+
 fn create<S: RuntimeStorage + 'static>(
     setup: &Setup,
     session: Arc<RuntimeSession<S>>,
