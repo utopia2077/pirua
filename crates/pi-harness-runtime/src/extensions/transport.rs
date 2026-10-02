@@ -22,7 +22,10 @@ use super::critical_port::{NotificationPost, SeatLease};
 
 #[cfg(test)]
 pub(crate) mod source_observer {
-    use std::sync::{Mutex, OnceLock};
+    use std::sync::{
+        Mutex, OnceLock,
+        atomic::{AtomicBool, Ordering},
+    };
 
     #[derive(Clone, Debug, Eq, PartialEq)]
     pub(crate) struct SourceEvent {
@@ -55,8 +58,11 @@ pub(crate) mod source_observer {
         pub request_id: Option<u64>,
         pub parent_request_id: Option<u64>,
         pub generation: Option<u64>,
+        pub wire_sequence_before: Option<u64>,
+        pub wire_sequence_after: Option<u64>,
         pub provider: Option<String>,
         pub model: Option<String>,
+        pub raw_body: Option<Vec<u8>>,
     }
 
     impl SourceEvent {
@@ -96,8 +102,11 @@ pub(crate) mod source_observer {
                 request_id: None,
                 parent_request_id: None,
                 generation: None,
+                wire_sequence_before: None,
+                wire_sequence_after: None,
                 provider: None,
                 model: None,
+                raw_body: None,
             }
         }
     }
@@ -110,6 +119,7 @@ pub(crate) mod source_observer {
     }
 
     static STATE: OnceLock<Mutex<State>> = OnceLock::new();
+    static C3_WALKING: AtomicBool = AtomicBool::new(false);
 
     fn state() -> &'static Mutex<State> {
         STATE.get_or_init(|| Mutex::new(State::default()))
@@ -141,6 +151,36 @@ pub(crate) mod source_observer {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .events
             .clone()
+    }
+
+    pub(crate) fn set_c3_walking(enabled: bool) {
+        C3_WALKING.store(enabled, Ordering::Release);
+    }
+
+    pub(crate) fn c3_walking_enabled() -> bool {
+        C3_WALKING.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn take_active_body(
+        request_id: u64,
+        generation: u64,
+        body_len: usize,
+    ) -> Option<Vec<u8>> {
+        let mut state = state()
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.events.iter_mut().rev().find_map(|event| {
+            if event.kind == "body_capture"
+                && event.outcome == Some("retained")
+                && event.request_id == Some(request_id)
+                && event.generation == Some(generation)
+                && event.body_len == Some(body_len)
+            {
+                event.raw_body.take()
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -339,6 +379,8 @@ pub struct ConnectionPump {
     offset: usize,
     read_storage_bound_bytes: usize,
     closed: bool,
+    #[cfg(test)]
+    raw_frame: Vec<u8>,
 }
 
 #[cfg(test)]
@@ -349,6 +391,56 @@ fn observed_phase(phase: EndpointPhase) -> &'static str {
         EndpointPhase::AwaitReady => "AwaitReady",
         EndpointPhase::Active => "Active",
         EndpointPhase::Closed => "Closed",
+    }
+}
+
+#[cfg(test)]
+fn active_request_id(envelope: &pi_extension_protocol::endpoint::SelectedEnvelope) -> Option<u64> {
+    match envelope {
+        pi_extension_protocol::endpoint::SelectedEnvelope::V1_0(envelope) => {
+            match envelope.frame.as_ref()? {
+                pi_extension_protocol::wire::v1_0::envelope::Frame::StreamItem(item) => {
+                    Some(item.request_id)
+                }
+                pi_extension_protocol::wire::v1_0::envelope::Frame::StreamEnd(end) => {
+                    Some(end.request_id)
+                }
+                _ => None,
+            }
+        }
+        pi_extension_protocol::endpoint::SelectedEnvelope::V1_1(envelope) => {
+            match envelope.frame.as_ref()? {
+                pi_extension_protocol::wire::v1_1::envelope::Frame::StreamItem(item) => {
+                    Some(item.request_id)
+                }
+                pi_extension_protocol::wire::v1_1::envelope::Frame::StreamEnd(end) => {
+                    Some(end.request_id)
+                }
+                _ => None,
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+fn active_sequence(envelope: &pi_extension_protocol::endpoint::SelectedEnvelope) -> Option<u64> {
+    match envelope {
+        pi_extension_protocol::endpoint::SelectedEnvelope::V1_0(envelope) => {
+            match envelope.frame.as_ref()? {
+                pi_extension_protocol::wire::v1_0::envelope::Frame::StreamItem(item) => {
+                    Some(item.sequence)
+                }
+                _ => None,
+            }
+        }
+        pi_extension_protocol::endpoint::SelectedEnvelope::V1_1(envelope) => {
+            match envelope.frame.as_ref()? {
+                pi_extension_protocol::wire::v1_1::envelope::Frame::StreamItem(item) => {
+                    Some(item.sequence)
+                }
+                _ => None,
+            }
+        }
     }
 }
 
@@ -419,6 +511,8 @@ impl ConnectionPump {
             offset: 0,
             read_storage_bound_bytes,
             closed: false,
+            #[cfg(test)]
+            raw_frame: Vec::new(),
         })
     }
 
@@ -547,6 +641,8 @@ impl ConnectionPump {
                 event.outcome = Some("read");
                 source_observer::record(event);
             }
+            #[cfg(test)]
+            let step_start = self.offset;
             let step = match self
                 .endpoint
                 .read_one(&self.buffered[self.offset..self.filled], now_ms)
@@ -558,6 +654,10 @@ impl ConnectionPump {
                 }
                 Err(_) => return self.fail(PumpError::MalformedInput),
             };
+            #[cfg(test)]
+            self.raw_frame.extend_from_slice(
+                &self.buffered[step_start..step_start.saturating_add(step.consumed)],
+            );
             self.offset += step.consumed;
             #[cfg(test)]
             {
@@ -583,13 +683,55 @@ impl ConnectionPump {
             }
             match step.event {
                 Some(EndpointEvent::Send(frame)) => {
+                    #[cfg(test)]
+                    self.raw_frame.clear();
                     if let Err(error) = self.write_frame(frame).await {
                         return self.fail(error);
                     }
                 }
-                Some(EndpointEvent::Ready) if return_on_ready => return Ok(None),
-                Some(EndpointEvent::Ready) | None => {}
-                Some(EndpointEvent::Active(frame)) => return Ok(Some(*frame)),
+                Some(EndpointEvent::Ready) if return_on_ready => {
+                    #[cfg(test)]
+                    self.raw_frame.clear();
+                    return Ok(None);
+                }
+                Some(EndpointEvent::Ready) => {
+                    #[cfg(test)]
+                    self.raw_frame.clear();
+                }
+                None => {}
+                Some(EndpointEvent::Active(frame)) => {
+                    #[cfg(test)]
+                    {
+                        let request_id = active_request_id(&frame.envelope);
+                        let sequence = active_sequence(&frame.envelope);
+                        let mut event = source_observer::SourceEvent::new(
+                            "body_capture",
+                            file!(),
+                            line!(),
+                            "ConnectionPump::drive_next_active",
+                        );
+                        event.phase = Some("Active");
+                        event.body_len = Some(frame.body_len);
+                        event.bound_bytes = Some(self.raw_frame.len());
+                        event.request_id = request_id;
+                        event.generation = self
+                            .endpoint
+                            .active_grant()
+                            .map(|grant| grant.wire().connection_generation);
+                        event.wire_sequence_before = sequence;
+                        event.raw_body = self.raw_frame.len().checked_sub(frame.body_len).and_then(
+                            |body_start| self.raw_frame.get(body_start..).map(ToOwned::to_owned),
+                        );
+                        event.bytes = event.raw_body.as_ref().map(Vec::len);
+                        event.outcome = event
+                            .raw_body
+                            .as_ref()
+                            .map_or(Some("unavailable"), |_| Some("retained"));
+                        source_observer::record(event);
+                        self.raw_frame.clear();
+                    }
+                    return Ok(Some(*frame));
+                }
             }
         }
     }
@@ -612,6 +754,8 @@ impl ConnectionPump {
             self.channel.close();
             self.filled = 0;
             self.offset = 0;
+            #[cfg(test)]
+            self.raw_frame.clear();
         }
     }
 

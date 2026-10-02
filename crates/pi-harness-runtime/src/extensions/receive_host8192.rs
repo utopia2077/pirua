@@ -11,6 +11,8 @@ use std::sync::{
 
 use pi_extension_protocol::endpoint::{ActiveFrame, SelectedEnvelope};
 use pi_extension_protocol::tool_live::InvocationBinding;
+#[cfg(test)]
+use pi_extension_protocol::wire::echo_bounded::BorrowedIndexArena;
 use pi_extension_protocol::wire::{v1_0, v1_1};
 
 use super::domain::StagedIndexedBody;
@@ -224,6 +226,25 @@ impl StagedReceive8192 {
         })
     }
 
+    /// Test-only indexed handoff over the already retained lease. The caller
+    /// owns the sole `ReaderClaim`; this helper copies the exact captured body
+    /// into the prewarmed body slot, borrows the selected index prefix, and
+    /// keeps both borrows alive only for the callback.
+    #[cfg(test)]
+    pub(super) fn with_indexed_body<R>(
+        &self,
+        body: &[u8],
+        callback: impl FnOnce(&[u8], &mut BorrowedIndexArena<'_>) -> R,
+    ) -> Result<R, Receive8192Error> {
+        let mut backing = self.backing.lock().unwrap_or_else(|p| p.into_inner());
+        let backing = backing.as_mut().ok_or(Receive8192Error::Closed)?;
+        let max_retained_bytes = backing.owner.layout().slot_bytes;
+        backing
+            .lease
+            .with_indexed_body(body, max_retained_bytes, callback)
+            .map_err(|_| Receive8192Error::Capacity)
+    }
+
     #[cfg(test)]
     pub(super) fn force_next_bind_failure(&self) {
         self.fail_next_bind.store(true, Ordering::Release);
@@ -284,6 +305,18 @@ impl StagedReceive8192 {
     pub(super) fn run_preopened(&self) -> Result<(), Receive8192Error> {
         let reader = self.claim_reader()?;
         drop(reader);
+        #[cfg(test)]
+        {
+            let mut event = super::transport::source_observer::SourceEvent::new(
+                "refusal",
+                file!(),
+                line!(),
+                "StagedReceive8192::run_preopened",
+            );
+            event.outcome = Some("NativeRefused");
+            event.generation = Some(self.generation);
+            super::transport::source_observer::record(event);
+        }
         Err(Receive8192Error::NativeRefused)
     }
 }

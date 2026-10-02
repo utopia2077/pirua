@@ -8,6 +8,8 @@
 use std::alloc::Layout;
 use std::num::NonZeroUsize;
 
+#[cfg(test)]
+use pi_extension_protocol::wire::echo_bounded::BorrowedIndexArena;
 use pi_extension_protocol::wire::echo_bounded::IndexStorage;
 
 use super::index_pool::{IndexPoolError, ProfileIndexLease, ProfileIndexPool};
@@ -128,6 +130,30 @@ impl ReceiveLease8192 {
             return Err(Backing8192Error::Capacity);
         }
         Ok(body.len())
+    }
+
+    #[cfg(test)]
+    pub(super) fn with_indexed_body<R>(
+        &mut self,
+        body: &[u8],
+        max_retained_bytes: usize,
+        callback: impl FnOnce(&[u8], &mut BorrowedIndexArena<'_>) -> R,
+    ) -> Result<R, Backing8192Error> {
+        let body_slot = self.body.as_deref_mut().ok_or(Backing8192Error::Capacity)?;
+        if body.is_empty() || body.len() > self.selected.get() || body.len() > body_slot.len() {
+            return Err(Backing8192Error::Capacity);
+        }
+        body_slot[..body.len()].copy_from_slice(body);
+        let body_view = &body_slot[..body.len()];
+        let storage = self
+            .index
+            .as_mut()
+            .map(ProfileIndexLease::storage_mut)
+            .ok_or(Backing8192Error::Capacity)?;
+        let mut arena = storage
+            .borrow(self.selected, max_retained_bytes)
+            .map_err(|_| Backing8192Error::Capacity)?;
+        Ok(callback(body_view, &mut arena))
     }
 }
 

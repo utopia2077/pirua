@@ -734,6 +734,8 @@ impl SingleToolOwner {
             writes: Mutex::new(WriteState::default()),
             #[cfg(test)]
             force_rollback_failure: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            force_retained_for_test: std::sync::atomic::AtomicBool::new(false),
         });
         let prior = {
             let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
@@ -1427,6 +1429,14 @@ impl ReadyToolRoute {
     }
 
     #[cfg(test)]
+    fn install_walking_receive_for_test(&self, channel: Arc<dyn RetainedOrderedByteChannel>) {
+        self.route
+            .force_retained_for_test
+            .store(true, Ordering::Release);
+        self.install_staged_receive_for_test(channel);
+    }
+
+    #[cfg(test)]
     fn force_staged_bind_failure_for_test(&self) {
         let staged = self
             .route
@@ -1882,6 +1892,8 @@ struct Route {
     writes: Mutex<WriteState>,
     #[cfg(test)]
     force_rollback_failure: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    force_retained_for_test: std::sync::atomic::AtomicBool,
 }
 
 impl Route {
@@ -2687,12 +2699,161 @@ fn peer_ref_1_1(reference: &v1_1::CapabilityRef) -> PeerRef {
 type LiveOutcome = (Option<(Arc<Completion>, CompletionValue)>, bool);
 type LiveDecision = Result<LiveOutcome, DriverError>;
 
+#[cfg(test)]
+fn check_retained_indexed_for_test(
+    slot: &mut LiveSlot,
+    route: &Arc<Route>,
+    now: u64,
+    body_len: usize,
+) -> LiveDecision {
+    let staged = route
+        .staged_receive
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clone()
+        .ok_or(DriverError::WrongBinding)?;
+    let body = source_observer::take_active_body(
+        slot.invocation.binding().request_id(),
+        route.generation,
+        body_len,
+    )
+    .ok_or(DriverError::HostFault)?;
+    let reader = staged.claim_reader().map_err(|_| DriverError::HostFault)?;
+    let sequence_before = slot.invocation.next_sequence();
+    let credit = slot
+        .invocation
+        .grant_credit(body_len as u64, now)
+        .map_err(|_| DriverError::HostFault)?;
+    let mut credit_event = source_observer::SourceEvent::new(
+        "credit",
+        file!(),
+        line!(),
+        "check_retained_indexed_for_test",
+    );
+    credit_event.outcome = Some("prepared");
+    credit_event.operation = Some("additional");
+    credit_event.method = Some("Credit".into());
+    credit_event.bytes = Some(credit.body_len);
+    credit_event.request_id = Some(slot.invocation.binding().request_id());
+    credit_event.generation = Some(route.generation);
+    source_observer::record(credit_event);
+
+    let checked = staged.with_indexed_body(&body, |body, arena| {
+        slot.domain.receive_indexed_checked_with_final_time(
+            &mut slot.invocation,
+            route.generation,
+            body,
+            arena,
+            now,
+            slot.cancel_deadline_ms,
+            || route.clock.now_ms(),
+        )
+    });
+    drop(reader);
+    let checked = checked.map_err(|_| DriverError::HostFault)?;
+    let checked = match checked {
+        Ok(checked) => checked,
+        Err(DomainReceiveError::Host(_)) => {
+            slot.local_fault = true;
+            return Ok((
+                Some((
+                    slot.completion.clone(),
+                    CompletionValue::Failed(DriverError::HostFault),
+                )),
+                true,
+            ));
+        }
+        Err(DomainReceiveError::PeerLost)
+        | Err(DomainReceiveError::Protocol(LiveError::PeerLost)) => {
+            return Ok((
+                Some((
+                    slot.completion.clone(),
+                    CompletionValue::Failed(DriverError::PeerLost),
+                )),
+                true,
+            ));
+        }
+        Err(DomainReceiveError::Protocol(_)) => {
+            return Ok((
+                Some((
+                    slot.completion.clone(),
+                    CompletionValue::Failed(DriverError::MalformedPeer),
+                )),
+                true,
+            ));
+        }
+    };
+    match checked.outcome {
+        ReceiveOutcome::Progress(_) | ReceiveOutcome::IgnoredCancelledProgress => Ok((None, false)),
+        ReceiveOutcome::TerminalReceived => {
+            let sequence_after = slot.invocation.next_sequence();
+            let mut receive_event = source_observer::SourceEvent::new(
+                "receive",
+                file!(),
+                line!(),
+                "check_retained_indexed_for_test",
+            );
+            receive_event.outcome = Some("terminal_received");
+            receive_event.operation = Some("indexed");
+            receive_event.bytes = Some(body_len);
+            receive_event.body_len = Some(body_len);
+            receive_event.request_id = Some(slot.invocation.binding().request_id());
+            receive_event.generation = Some(route.generation);
+            receive_event.wire_sequence_before = Some(sequence_before);
+            receive_event.wire_sequence_after = Some(sequence_after);
+            source_observer::record(receive_event);
+
+            let terminal = match slot.invocation.receipt().expect("terminal retained").kind() {
+                TerminalKind::Result => match checked.value {
+                    Some(value) => TypedTerminal::Result(value),
+                    None => {
+                        return Ok((
+                            Some((
+                                slot.completion.clone(),
+                                CompletionValue::Failed(DriverError::HostFault),
+                            )),
+                            true,
+                        ));
+                    }
+                },
+                TerminalKind::Error => TypedTerminal::PeerError(
+                    slot.invocation
+                        .receipt()
+                        .expect("error retained")
+                        .error()
+                        .expect("typed error")
+                        .0,
+                ),
+            };
+            Ok((
+                Some((slot.completion.clone(), CompletionValue::Terminal(terminal))),
+                false,
+            ))
+        }
+        ReceiveOutcome::Stale => Ok((None, true)),
+    }
+}
+
 fn check_live_frame(
     slot: &mut LiveSlot,
     route: &Arc<Route>,
     frame: &ActiveFrame,
     now: u64,
 ) -> LiveDecision {
+    #[cfg(test)]
+    if route.force_retained_for_test.load(Ordering::Acquire)
+        && source_observer::c3_walking_enabled()
+    {
+        let caller = route
+            .caller
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .as_ref()
+            .ok_or(DriverError::WrongBinding)?
+            .staged_identity();
+        let body_len = route.prepare_retained_refusal(slot.invocation.binding(), &caller, frame)?;
+        return check_retained_indexed_for_test(slot, route, now, body_len);
+    }
     if route.retained_channel.is_some() {
         let caller = route
             .caller
@@ -3673,6 +3834,63 @@ mod local_cancel_queue_tests {
             before,
             "refusal preparation must not debit, retain a receipt or move the queue/ID"
         );
+    }
+
+    #[test]
+    fn retained_indexed_walking_branch_uses_body_lease_credit_and_terminal_receipt() {
+        let (spawner, owner, route, channel, _clock) = owner_and_route();
+        route.install_walking_receive_for_test(channel.clone());
+        source_observer::reset();
+        source_observer::set_c3_walking(true);
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("walking"),
+                "walking",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let binding = prepared.binding().clone();
+        let _handle = prepared.activate().unwrap();
+        spawner.tick();
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        source_observer::set_c3_walking(false);
+
+        assert_eq!(
+            owner.binding_phase(&binding),
+            Ok(LivePhase::TerminalReceived),
+            "the test-only branch must retain the indexed terminal"
+        );
+        let events = source_observer::snapshot();
+        assert!(events.iter().any(|event| {
+            event.kind == "body_capture"
+                && event.request_id == Some(binding.request_id())
+                && event.bytes == event.body_len
+                && event
+                    .bound_bytes
+                    .is_some_and(|bound| event.bytes.is_some_and(|body| bound >= body))
+                && event.raw_body.is_none()
+        }));
+        assert!(events.iter().any(|event| {
+            event.kind == "credit"
+                && event.operation == Some("additional")
+                && event.outcome == Some("prepared")
+                && event.request_id == Some(binding.request_id())
+        }));
+        assert!(events.iter().any(|event| {
+            event.kind == "receive"
+                && event.operation == Some("indexed")
+                && event.outcome == Some("terminal_received")
+                && event.bytes == event.body_len
+                && event.request_id == Some(binding.request_id())
+        }));
+        owner
+            .retire(&binding, RetireReason::Committed)
+            .expect("terminal receipt retires under the existing owner guard");
+        route.close();
     }
 
     fn raw(name: &str, request_id: u8) -> Vec<u8> {
