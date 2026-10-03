@@ -69,11 +69,12 @@ mod owner_observer {
             bytes_after,
             seats_before,
             seats_after,
-            connection,
+            connection: connection.clone(),
             binding,
             request_id,
             generation,
         };
+        let connection_bound = event.connection.same_connection(&connection);
         let first = {
             let mut observed = event_slot()
                 .lock()
@@ -87,13 +88,14 @@ mod owner_observer {
         };
         if first {
             eprintln!(
-                "E1752_OWNER_EVENT source={}:{} function={} operation={} outcome={} lane={} connection=<opaque-bound> request_id={} generation={} binding_id={} binding_generation={} bytes={}->{} seats={}->{}",
+                "E1752_OWNER_EVENT source={}:{} function={} operation={} outcome={} lane={} connection_bound={} request_id={} generation={} binding_id={} binding_generation={} bytes={}->{} seats={}->{}",
                 event.source_file,
                 event.source_line,
                 event.function,
                 event.operation,
                 event.outcome,
                 event.lane,
+                connection_bound,
                 event.request_id,
                 event.generation,
                 event.binding.id(),
