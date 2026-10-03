@@ -20,6 +20,10 @@ struct PendingWrite {
     result: Mutex<Option<bool>>,
     cancel: bool,
     response: bool,
+    #[cfg(test)]
+    bytes: usize,
+    #[cfg(test)]
+    generation: Option<u64>,
 }
 struct State {
     requests: VecDeque<ActiveFrame>,
@@ -36,6 +40,8 @@ pub(crate) struct ToolInbox {
     connection: Mutex<Weak<ProfileConnection>>,
     max_bytes: usize,
     max_frames: usize,
+    #[cfg(test)]
+    route_writer: Mutex<Option<Arc<super::service::Writer>>>,
 }
 impl ToolInbox {
     #[cfg(test)]
@@ -76,6 +82,8 @@ impl ToolInbox {
             connection: Mutex::new(Weak::new()),
             max_bytes,
             max_frames,
+            #[cfg(test)]
+            route_writer: Mutex::new(None),
         }))
     }
     pub(crate) fn attach(&self, connection: &Arc<ProfileConnection>) {
@@ -154,6 +162,10 @@ impl ToolInbox {
             result: Mutex::new(None),
             cancel,
             response,
+            #[cfg(test)]
+            bytes: frame.bytes.len(),
+            #[cfg(test)]
+            generation: self.observed_generation(),
         });
         {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
@@ -194,10 +206,24 @@ impl ToolInbox {
                 source_observer::record(queue);
             }
         }
-        if connection
-            .enqueue_profile(frame, id, response, deadline)
-            .is_err()
+        #[cfg(test)]
+        let enqueued = match self
+            .route_writer
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .clone()
         {
+            Some(writer) => writer.enqueue_on_route_for_test(
+                frame,
+                id,
+                deadline,
+                pending.generation.expect("attached route generation"),
+            ),
+            None => connection.enqueue_profile(frame, id, response, deadline),
+        };
+        #[cfg(not(test))]
+        let enqueued = connection.enqueue_profile(frame, id, response, deadline);
+        if enqueued.is_err() {
             self.written(id, false);
         }
         let mut done = Box::pin(pending.done.cancelled());
@@ -228,6 +254,15 @@ impl ToolInbox {
 }
 impl ToolProfileIngress for ToolInbox {
     fn incoming(&self, frame: ActiveFrame) -> Result<(), DriverError> {
+        #[cfg(test)]
+        if self
+            .route_writer
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .is_some()
+        {
+            self.observe_indexed_terminal_for_test(&frame)?;
+        }
         let requests = super::connection::peer_request(&frame.envelope).is_some()
             || self
                 .connection
@@ -326,7 +361,23 @@ impl ToolProfileIngress for ToolInbox {
             queue.operation = Some(if completed { "ack" } else { "release" });
             queue.outcome = Some(if completed { "complete" } else { "failed" });
             queue.request_id = Some(id);
+            queue.bytes = pending.as_ref().map(|pending| pending.bytes);
             source_observer::record(queue);
+            if let Some(pending) = &pending {
+                let mut release = source_observer::SourceEvent::new(
+                    "queue",
+                    file!(),
+                    line!(),
+                    "ToolInbox::written",
+                );
+                release.field = Some("Qreceive");
+                release.owner = Some("ToolInbox");
+                release.generation = pending.generation;
+                release.operation = Some("release");
+                release.bytes = Some(pending.bytes);
+                release.request_id = Some(id);
+                source_observer::record(release);
+            }
         }
         if let Some(pending) = pending {
             *pending.result.lock().unwrap_or_else(|p| p.into_inner()) = Some(completed);
@@ -364,12 +415,148 @@ impl ToolProfileIngress for ToolInbox {
 
 #[cfg(test)]
 impl ToolInbox {
+    fn observe_indexed_terminal_for_test(&self, frame: &ActiveFrame) -> Result<(), DriverError> {
+        use pi_extension_protocol::endpoint::SelectedEnvelope;
+        use pi_extension_protocol::wire::{
+            echo_bounded::{IndexArena, SelectedMinor},
+            echo_selected::{ActiveArm, select_active},
+            v1_0, v1_1,
+        };
+        let (request_id, payload) = match &frame.envelope {
+            SelectedEnvelope::V1_0(envelope) => match envelope.frame.as_ref() {
+                Some(v1_0::envelope::Frame::StreamEnd(terminal)) => {
+                    match terminal.terminal.as_ref() {
+                        Some(v1_0::stream_end::Terminal::Result(payload)) => {
+                            (terminal.request_id, payload)
+                        }
+                        _ => return Err(DriverError::MalformedPeer),
+                    }
+                }
+                _ => return Ok(()),
+            },
+            SelectedEnvelope::V1_1(envelope) => match envelope.frame.as_ref() {
+                Some(v1_1::envelope::Frame::StreamEnd(terminal)) => {
+                    match terminal.terminal.as_ref() {
+                        Some(v1_1::stream_end::Terminal::Result(payload)) => {
+                            (terminal.request_id, payload)
+                        }
+                        _ => return Err(DriverError::MalformedPeer),
+                    }
+                }
+                _ => return Ok(()),
+            },
+        };
+        let connection = self
+            .connection
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .upgrade()
+            .ok_or(DriverError::WrongBinding)?;
+        let generation = connection.grant().wire().connection_generation;
+        let body = source_observer::take_active_body(request_id, generation, frame.body_len)
+            .ok_or(DriverError::HostFault)?;
+        let limit = std::num::NonZeroUsize::new(body.len()).ok_or(DriverError::HostFault)?;
+        let mut arena = IndexArena::try_new(limit).map_err(|_| DriverError::HostFault)?;
+        let view = arena
+            .scan_envelope(&body)
+            .map_err(|_| DriverError::MalformedPeer)?;
+        let minor = if connection
+            .grant()
+            .wire()
+            .selected_protocol
+            .as_ref()
+            .is_some_and(|version| version.minor == 0)
+        {
+            SelectedMinor::V1_0
+        } else {
+            SelectedMinor::V1_1
+        };
+        let selected = select_active(view, minor, limit).map_err(|_| DriverError::MalformedPeer)?;
+        assert_eq!(selected.arm(), ActiveArm::StreamEnd);
+        assert_eq!(selected.request_id().unwrap(), request_id);
+        assert!(selected.terminal_present().unwrap());
+        assert_eq!(
+            selected.opaque_payload_span().unwrap().reborrow().unwrap(),
+            payload
+        );
+        for operation in ["indexed_selection", "indexed_terminal"] {
+            let mut event = source_observer::SourceEvent::new(
+                "body_capture",
+                file!(),
+                line!(),
+                "ToolInbox::observe_indexed_terminal_for_test",
+            );
+            event.field = Some("D_req");
+            event.owner = Some("ToolInbox");
+            event.operation = Some(operation);
+            event.outcome = Some("complete");
+            event.bytes = Some(selected.body_len());
+            event.body_len = Some(selected.body_len());
+            event.request_id = Some(selected.request_id().unwrap());
+            event.generation = Some(generation);
+            // StreamEnd has no sequence field; this observation does not
+            // advance the production owner's zero-credit stream state.
+            event.wire_sequence_before = Some(0);
+            event.wire_sequence_after = Some(0);
+            source_observer::record(event);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn bridge_writer_for_test(
+        &self,
+        connection: &ProfileConnection,
+        route: &crate::extensions::tool_driver::ReadyToolRoute,
+    ) -> Arc<super::service::Writer> {
+        assert!(connection.same_tool_connection(route));
+        assert_eq!(self.observed_generation(), Some(route.generation()));
+        let attached = self
+            .connection
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .upgrade()
+            .expect("attached profile connection");
+        assert!(std::ptr::eq(attached.as_ref(), connection));
+        let writer = super::service::Writer::new(self.max_bytes, self.max_frames).unwrap();
+        let mut bridge = self.route_writer.lock().unwrap_or_else(|p| p.into_inner());
+        assert!(bridge.is_none(), "one test-only bridge per ordinary inbox");
+        *bridge = Some(writer.clone());
+        writer
+    }
+
+    pub(crate) fn route_pending_for_test(
+        &self,
+        id: u64,
+        bytes: usize,
+        generation: u64,
+    ) -> (bool, bool, pi_ai_core::BoxFuture<'static, bool>) {
+        let pending = self
+            .state
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .writes
+            .get(&id)
+            .cloned()
+            .expect("source-owned pending route write");
+        assert_eq!(pending.bytes, bytes);
+        assert_eq!(pending.generation, Some(generation));
+        let response = pending.response;
+        let cancel = pending.cancel;
+        let completion = Box::pin(async move {
+            pending.done.cancelled().await;
+            *pending.result.lock().unwrap_or_else(|p| p.into_inner()) == Some(true)
+        });
+        (response, cancel, completion)
+    }
+
     pub(crate) fn insert_test_pending(&self, id: u64, cancel: bool) {
         let pending = Arc::new(PendingWrite {
             done: CancellationToken::new(),
             result: Mutex::new(None),
             cancel,
             response: false,
+            bytes: 0,
+            generation: None,
         });
         self.state
             .lock()

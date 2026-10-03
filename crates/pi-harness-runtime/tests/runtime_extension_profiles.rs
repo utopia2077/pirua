@@ -151,6 +151,181 @@ fn source_root_structured_events_bind_real_resources() {
 
     source_observer::reset();
 
+    let live_setup = Setup::new();
+    let live_harness = create(&live_setup, live_setup.session.clone());
+    let (live_connection, live_peer, live_writer) =
+        install_live_bridge_for_test(&live_setup, &live_harness);
+    let live_result = live_setup
+        .pump
+        .drive(live_harness.prompt(PromptInput::Text {
+            text: "one same-route provider request".into(),
+            images: vec![],
+        }))
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        live_result.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    let live_requests = live_peer.requests.lock().unwrap().clone();
+    assert_eq!(live_requests.len(), 1);
+    assert_eq!(live_requests[0].method, "provider.invoke");
+    let live_id = live_requests[0].request_id;
+    let live_generation = live_connection.grant().wire().connection_generation;
+    let live_events = source_observer::snapshot();
+    let wire = live_events
+        .iter()
+        .find(|event| {
+            event.field == Some("D_req")
+                && event.operation == Some("wire_body")
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
+        })
+        .expect("actual provider terminal body from the sole reader");
+    // The indexed seam consumes the retained body through take_active_body;
+    // the original physical byte counts remain immutable in this event.
+    let body_len = wire.body_len.unwrap();
+    assert!(body_len > 0);
+    assert_eq!(wire.bytes, Some(body_len));
+    assert_eq!(wire.outcome, Some("retained"));
+    let outgoing = pi_extension_protocol::wire::framing::encode(
+        &pi_extension_protocol::wire::v1_0::Envelope {
+            frame: Some(pi_extension_protocol::wire::v1_0::envelope::Frame::Request(
+                pi_extension_protocol::wire::v1_0::Request::decode(
+                    live_requests[0].encode_to_vec().as_slice(),
+                )
+                .unwrap(),
+            )),
+        },
+        std::num::NonZeroUsize::new(live_connection.max_payload_bytes()).unwrap(),
+    )
+    .unwrap();
+    for owner in ["ToolInbox", "Writer", "Route"] {
+        for operation in ["enqueue", "pop", "write", "ack", "release"] {
+            let expected_bytes = if owner == "ToolInbox" && matches!(operation, "enqueue" | "pop") {
+                body_len
+            } else {
+                outgoing.bytes.len()
+            };
+            assert!(
+                live_events.iter().any(|event| {
+                    event.field == Some("Qreceive")
+                        && event.owner == Some(owner)
+                        && event.operation == Some(operation)
+                        && event.request_id == Some(live_id)
+                        && event.generation == Some(live_generation)
+                        && event.bytes == Some(expected_bytes)
+                }),
+                "live request must have exact {owner}/{operation} edge"
+            );
+        }
+    }
+    assert_eq!(
+        live_events
+            .iter()
+            .filter(|event| {
+                event.kind == "interval"
+                    && event.operation == Some("physical_write")
+                    && event.outcome == Some("start")
+                    && event.request_id == Some(live_id)
+            })
+            .map(|event| event.owner)
+            .collect::<Vec<_>>(),
+        [Some("Route")]
+    );
+    let live_observation = source_observer::resource_observation();
+    println!("LIVE_ROUTE_EVENTS {live_events:?}");
+    println!(
+        "LIVE_ROUTE_RESOURCE {}",
+        serde_json::to_string(&live_observation).unwrap()
+    );
+    for field in ["Qreceive", "D_req"] {
+        assert_eq!(
+            live_observation["fields"][field]["status"], "observed",
+            "same physical route baseline must observe {field}"
+        );
+    }
+    assert_eq!(live_observation["fields"]["P_req"]["status"], "unresolved");
+    let bound_payload = live_events
+        .iter()
+        .find(|event| {
+            event.function == "ProviderRequestObservation::bind"
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
+        })
+        .expect("fresh bound provider-owned encoding event");
+    assert_eq!(bound_payload.body_len, Some(live_requests[0].payload.len()));
+    assert_eq!(
+        bound_payload.provider.as_deref(),
+        Some(live_setup.faux.model.provider.as_str())
+    );
+    assert_eq!(
+        bound_payload.model.as_deref(),
+        Some(live_setup.faux.model.id.as_str())
+    );
+    let pre_id_payload = live_events
+        .iter()
+        .find(|event| {
+            event.function == "provider::invoke" && event.operation == Some("payload_encoded")
+        })
+        .expect("original pre-ID encoding event");
+    assert_eq!(
+        (pre_id_payload.request_id, pre_id_payload.generation),
+        (None, None)
+    );
+    let admission = live_events
+        .iter()
+        .filter(|event| {
+            event.field == Some("D_req")
+                && event.kind == "native_validation"
+                && event.seq < bound_payload.seq
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(admission.len(), 2);
+    assert!(admission.iter().all(|event| event.request_id.is_none()));
+    let role_started = live_events
+        .iter()
+        .position(|event| {
+            event.kind == "role"
+                && event.outcome == Some("started")
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
+        })
+        .unwrap();
+    let selection = live_events
+        .iter()
+        .position(|event| {
+            event.function == "ProviderDispatch::prepare"
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
+        })
+        .unwrap();
+    assert!(role_started < selection);
+    assert!(live_events[role_started].seq < bound_payload.seq);
+    assert!(bound_payload.seq < live_events[selection].seq);
+    let validation = live_events
+        .iter()
+        .filter(|event| {
+            event.field == Some("D_req")
+                && event.kind == "native_validation"
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(validation.len(), 2);
+    assert_eq!(validation[0].outcome, Some("start"));
+    assert_eq!(validation[1].outcome, Some("complete"));
+    assert!(wire.seq < validation[0].seq);
+    println!(
+        "LIVE_ROUTE_BYTES request_id={live_id} generation={live_generation} payload={} frame={} body={} physical_writes=1",
+        live_requests[0].payload.len(),
+        outgoing.bytes.len(),
+        body_len
+    );
+    live_connection.close();
+    live_writer.close();
+    live_setup.pump.drive(live_harness.close()).unwrap();
+
     let tool_setup = Setup::new();
     physical_tool_consumer(
         &tool_setup,
@@ -371,11 +546,11 @@ fn source_root_structured_events_bind_real_resources() {
         "transport resource event must carry source-owned capacity/bound provenance"
     );
 
-    let register_ok = events
+    let register_ok = live_events
         .iter()
         .position(|event| event.kind == "provider_register" && event.outcome == Some("ok"))
         .expect("provider registration owner event");
-    let source_current = events
+    let source_current = live_events
         .iter()
         .enumerate()
         .find(|(index, event)| {
@@ -394,25 +569,37 @@ fn source_root_structured_events_bind_real_resources() {
         }),
         "provider invoke source-current owner event"
     );
-    let role_start = events
+    let role_start = live_events
         .iter()
         .enumerate()
         .find(|(index, event)| {
-            *index > source_current && event.kind == "role" && event.outcome == Some("started")
+            *index > register_ok
+                && event.kind == "role"
+                && event.outcome == Some("started")
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
         })
         .map(|(index, _)| index)
         .expect("role start owner event");
-    let terminal = events
+    assert!(role_start < source_current);
+    let terminal = live_events
         .iter()
         .enumerate()
         .find(|(index, event)| {
-            *index > role_start && event.kind == "terminal" && event.outcome == Some("accepted")
+            *index > source_current
+                && event.kind == "terminal"
+                && event.outcome == Some("accepted")
+                && event.request_id == Some(live_id)
         })
         .map(|(index, _)| index)
         .expect("terminal owner event");
     assert!(
-        events.iter().enumerate().any(|(index, event)| {
-            index > terminal && event.kind == "cleanup" && event.outcome == Some("complete")
+        live_events.iter().enumerate().any(|(index, event)| {
+            index > terminal
+                && event.kind == "cleanup"
+                && event.outcome == Some("complete")
+                && event.request_id == Some(live_id)
+                && event.generation == Some(live_generation)
         }),
         "cleanup must follow terminal settlement"
     );
@@ -514,16 +701,14 @@ fn source_root_structured_events_bind_real_resources() {
             "scenario expansion must bind source event IDs: {field}"
         );
     }
-    assert_eq!(
-        fields["D_req"]["status"], "unresolved",
-        "D_req must remain unresolved until one actual request joins all body/selection/provider/native edges"
-    );
-    assert_eq!(fields["D_req"]["value"], 0);
-    assert!(
-        fields["D_req"]["reason"]
-            .as_str()
-            .is_some_and(|reason| reason.contains("joined"))
-    );
+    for field in ["Qreceive", "D_req"] {
+        assert_eq!(fields[field]["status"], "observed");
+        assert!(
+            fields[field]["value"]
+                .as_u64()
+                .is_some_and(|value| value > 0)
+        );
+    }
     assert_eq!(
         fields["P_req"]["status"], "unresolved",
         "profile_live::Owner remains outside the accepted observer boundary"
@@ -556,6 +741,242 @@ fn source_root_structured_events_bind_real_resources() {
         "SOURCE_RESOURCE {}",
         serde_json::to_string(&observation).unwrap()
     );
+}
+
+#[test]
+fn provider_request_observation_requires_opaque_binding_and_native_success() {
+    use pi_extension_protocol::{
+        profile_live::{ConnectionIdentity, Owner, Role, Start},
+        profiles::{Direction, NativeError, NativeValidator, Stage, ValidatedPayload},
+    };
+    use pi_harness_runtime::extensions::{
+        profiles::{native::NativeDomain, provider::ProviderRequestObservation},
+        transport::source_observer,
+    };
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+
+    source_observer::reset();
+    let setup = Setup::new();
+    let harness = create(&setup, setup.session.clone());
+    let (connection, peer) = install_named(&setup, &harness, 0, 0, &[]);
+    setup
+        .pump
+        .drive(harness.prompt(PromptInput::Text {
+            text: "capture one real provider request for provenance negatives".into(),
+            images: vec![],
+        }))
+        .unwrap()
+        .unwrap();
+    let request = peer.requests.lock().unwrap()[0].clone();
+    let capability = request.capability_ref.clone().unwrap();
+    let model_policy = pi_ai_core::ModelHeaderPolicy::default();
+    let mut native = NativeDomain::new(setup.session.codec(), &model_policy);
+    native.expected_model = Some(&setup.faux.model);
+    let start_fixture = |native: &mut NativeDomain<'_>| {
+        let mut owner = Owner::new_with_connection(
+            connection.grant().clone(),
+            reservations(),
+            0,
+            10000,
+            connection.connection_identity(),
+        )
+        .unwrap();
+        owner
+            .start(
+                Start {
+                    capability: capability.clone(),
+                    method: request.method.clone(),
+                    direction: Direction::CoreToExtension,
+                    role: Role::Planned,
+                    key: request.effect_key.clone(),
+                    parent: None,
+                    scope: connection
+                        .grant()
+                        .profiles()
+                        .iter()
+                        .find(|profile| profile.reference() == &capability)
+                        .unwrap()
+                        .approved()
+                        .scope()
+                        .into(),
+                    payload: request.payload.clone(),
+                    now_ms: 0,
+                    requested_deadline_ms: Some(500),
+                    method_default_ms: 500,
+                    method_limit_ms: 500,
+                    initial_credit: Some(0),
+                    generation: connection.grant().wire().connection_generation,
+                },
+                native,
+            )
+            .unwrap()
+    };
+    let (binding, started) = start_fixture(&mut native);
+    let (other_binding, other_started) = start_fixture(&mut native);
+    assert_eq!(binding.id(), other_binding.id());
+    assert_eq!(binding.generation(), other_binding.generation());
+    assert!(!binding.same_identity(&other_binding));
+    let observation = Arc::new(ProviderRequestObservation::new(
+        &connection,
+        capability,
+        started.effect_key.clone().unwrap(),
+        &setup.faux.model,
+        started.payload.len(),
+    ));
+    let mut unbound = source_observer::SourceEvent::new(
+        "native_validation",
+        file!(),
+        line!(),
+        "provider_request_observation_requires_opaque_binding_and_native_success",
+    );
+    observation.annotate_bound(&mut unbound);
+    assert_eq!((unbound.request_id, unbound.generation), (None, None));
+    let before_wrong = source_observer::snapshot().len();
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            observation.bind(&ConnectionIdentity::new(), &binding, &started);
+        }))
+        .is_err(),
+        "equal numeric ID/generation cannot replace opaque connection identity"
+    );
+    assert_eq!(source_observer::snapshot().len(), before_wrong);
+    observation.bind(&connection.connection_identity(), &binding, &started);
+    let after_bound = source_observer::snapshot().len();
+    observation.bind(
+        &connection.connection_identity(),
+        &binding.clone(),
+        &started,
+    );
+    assert_eq!(source_observer::snapshot().len(), after_bound);
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            observation.bind(
+                &connection.connection_identity(),
+                &other_binding,
+                &other_started,
+            );
+        }))
+        .is_err(),
+        "another real Binding with equal numeric ID/generation cannot rebind"
+    );
+    assert_eq!(source_observer::snapshot().len(), after_bound);
+
+    native.provider_observation = Some(observation);
+    let before_rejected = source_observer::snapshot().len();
+    assert_eq!(
+        native.validate(&ValidatedPayload {
+            method: "provider.invoke".into(),
+            stage: Stage::Terminal,
+            projections: std::collections::BTreeMap::from([(
+                "provider.assistant_message.v1".into(),
+                serde_json::Value::Null,
+            )]),
+            fields: serde_json::json!({}),
+        }),
+        Err(NativeError::Rejected)
+    );
+    let rejected_events = source_observer::snapshot();
+    assert!(rejected_events[before_rejected..].iter().any(|event| {
+        event.field == Some("D_req")
+            && event.outcome == Some("start")
+            && event.request_id == Some(binding.id())
+            && event.generation == Some(binding.generation())
+    }));
+    assert!(!rejected_events[before_rejected..].iter().any(|event| {
+        event.field == Some("D_req")
+            && event.outcome == Some("complete")
+            && event.request_id == Some(binding.id())
+    }));
+    connection.close();
+    setup.pump.drive(harness.close()).unwrap();
+}
+
+fn install_live_bridge_for_test(
+    setup: &Setup,
+    harness: &RuntimeHarness<(), MemoryStorage, SessionMetadata>,
+) -> (
+    Arc<pi_harness_runtime::extensions::profiles::connection::ProfileConnection>,
+    Arc<Peer>,
+    Arc<pi_harness_runtime::extensions::profiles::service::Writer>,
+) {
+    use pi_ai_core::TaskSpawner;
+    use pi_extension_protocol::activation::HostAuthority;
+    use pi_harness_runtime::extensions::{
+        tool_driver::{OwnerLimits, SingleToolOwner},
+        transport::PumpConfig,
+    };
+    use std::num::{NonZeroU64, NonZeroUsize};
+    let profiles = vec![profile("provider.v1", setup.faux.model.provider.as_str())];
+    let peer = Peer::new(0, 0, profiles.clone());
+    peer.enable_tool(0);
+    let service = service_host(0, profiles.clone());
+    let host = HostAuthority::new(
+        "peer-a".into(),
+        7,
+        0,
+        1,
+        service.limits().clone(),
+        vec![echo_approval()],
+        vec![],
+    )
+    .unwrap()
+    .with_profiles(profiles)
+    .unwrap();
+    let owner = SingleToolOwner::new(
+        setup.pump.clone(),
+        OwnerLimits {
+            outbound_bytes: NonZeroUsize::new(1048576).unwrap(),
+            receipt_bytes: NonZeroUsize::new(262144).unwrap(),
+            write_timeout_ms: NonZeroU64::new(500).unwrap(),
+        },
+    );
+    let (connection, route) = setup
+        .pump
+        .drive(harness.connect_profile_tool(
+            &owner,
+            host,
+            peer.clone(),
+            Arc::new(Mono(std::sync::atomic::AtomicU64::new(0))),
+            PumpConfig {
+                max_read_chunk: NonZeroUsize::new(1024).unwrap(),
+                write_timeout_ms: NonZeroU64::new(500).unwrap(),
+            },
+            reservations(),
+            10000,
+        ))
+        .unwrap();
+    assert!(connection.same_tool_connection(&route));
+    assert!(
+        connection
+            .connection_identity()
+            .same_connection(&route.connection_identity())
+    );
+    assert_eq!(
+        route.generation(),
+        connection.grant().wire().connection_generation
+    );
+    let inbox = connection.tool_inbox_for_test();
+    let writer = inbox.bridge_writer_for_test(&connection, &route);
+    setup
+        .pump
+        .spawn(Box::pin(writer.clone().run_on_route_for_test(
+            Arc::downgrade(&connection),
+            inbox,
+            route,
+        )))
+        .unwrap();
+    let capability = connection.grant().profiles()[0].reference().clone();
+    setup
+        .pump
+        .drive(harness.register_profile_provider(
+            connection.clone(),
+            capability,
+            vec![setup.faux.model.clone()],
+            Default::default(),
+            None,
+        ))
+        .unwrap();
+    (connection, peer, writer)
 }
 
 fn create<S: RuntimeStorage + 'static>(

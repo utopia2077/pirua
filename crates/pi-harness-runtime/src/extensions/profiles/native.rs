@@ -23,6 +23,9 @@ pub struct NativeDomain<'a> {
     pub(crate) observation_generation: Option<u64>,
     #[cfg(test)]
     pub(crate) observation_identity: Option<String>,
+    #[cfg(test)]
+    pub(crate) provider_observation:
+        Option<std::sync::Arc<super::provider::ProviderRequestObservation>>,
 }
 impl<'a> NativeDomain<'a> {
     pub fn new(codec: &'a SessionCodec, model_policy: &'a ModelHeaderPolicy) -> Self {
@@ -39,6 +42,8 @@ impl<'a> NativeDomain<'a> {
             observation_generation: None,
             #[cfg(test)]
             observation_identity: None,
+            #[cfg(test)]
+            provider_observation: None,
         }
     }
     fn messages(&self, messages: &[AgentMessage]) -> Result<(), NativeError> {
@@ -133,6 +138,11 @@ impl NativeValidator for NativeDomain<'_> {
             event.jobs = Some(candidate.projections.len());
             event.generation = self.observation_generation;
             event.target = self.observation_identity.clone();
+            if candidate.method == "provider.invoke" && candidate.stage == Stage::Terminal {
+                if let Some(observation) = &self.provider_observation {
+                    observation.annotate_bound(&mut event);
+                }
+            }
             source_observer::record(event);
             let mut phase = source_observer::SourceEvent::new(
                 "native_validation",
@@ -302,6 +312,11 @@ impl NativeValidator for NativeDomain<'_> {
             event.jobs = Some(candidate.projections.len());
             event.generation = self.observation_generation;
             event.target = self.observation_identity.clone();
+            if candidate.method == "provider.invoke" && candidate.stage == Stage::Terminal {
+                if let Some(observation) = &self.provider_observation {
+                    observation.annotate_bound(&mut event);
+                }
+            }
             source_observer::record(event);
             let mut phase = source_observer::SourceEvent::new(
                 "native_validation",

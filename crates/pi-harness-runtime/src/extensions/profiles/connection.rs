@@ -118,6 +118,14 @@ pub struct ProfileConnection {
     peer_close: Mutex<PeerCloseFence>,
 }
 pub(crate) trait DispatchScope: Send + Sync {
+    #[cfg(test)]
+    fn observe_started(
+        &self,
+        _connection: &profile_live::ConnectionIdentity,
+        _binding: &Binding,
+        _request: &v1_1::Request,
+    ) {
+    }
     fn prepare(
         &self,
     ) -> BoxFuture<'_, Result<crate::scheduler::MutationPermit, HarnessRuntimeError>>;
@@ -429,6 +437,13 @@ impl ProfileConnection {
         self.tool_connection
             .as_ref()
             .is_some_and(|connection| connection.same_connection(&route.connection_identity()))
+    }
+    #[cfg(test)]
+    pub(crate) fn tool_inbox_for_test(&self) -> Arc<super::tool_route::ToolInbox> {
+        self.inbox
+            .as_ref()
+            .expect("ordinary Tool route inbox")
+            .clone()
     }
     pub(crate) fn passive_control(&self, envelope: &SelectedEnvelope) -> bool {
         let id = match envelope {
@@ -746,6 +761,10 @@ impl ProfileConnection {
             event.request_id = Some(binding.id());
             event.generation = Some(self.grant.wire().connection_generation);
             source_observer::record(event);
+        }
+        #[cfg(test)]
+        if let Some(dispatch) = &scope.dispatch {
+            dispatch.observe_started(&self.connection_identity(), &binding, &request);
         }
         guard.id = Some(binding.id());
         if let Some(dispatch) = scope.dispatch.take() {

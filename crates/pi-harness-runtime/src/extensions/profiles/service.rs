@@ -16,6 +16,8 @@ struct Job {
     frame: EncodedFrame,
     id: u64,
     deadline: u64,
+    #[cfg(test)]
+    generation: Option<u64>,
 }
 struct ActiveJob {
     id: u64,
@@ -84,6 +86,8 @@ impl Writer {
                 frame,
                 id,
                 deadline,
+                #[cfg(test)]
+                generation: None,
             });
             #[cfg(test)]
             {
@@ -353,6 +357,146 @@ impl Writer {
                 break;
             }
         }
+    }
+
+    /// Keep Writer's bounded queue, but delegate all admission and physical
+    /// completion to the ordinary Tool route. This worker owns no close path.
+    #[cfg(test)]
+    pub(crate) async fn run_on_route_for_test(
+        self: Arc<Self>,
+        connection: std::sync::Weak<ProfileConnection>,
+        inbox: Arc<ToolInbox>,
+        route: crate::extensions::tool_driver::ReadyToolRoute,
+    ) {
+        let attached = connection.upgrade().expect("live bridge connection");
+        assert!(attached.same_tool_connection(&route));
+        assert!(Arc::ptr_eq(&attached.tool_inbox_for_test(), &inbox));
+        drop(attached);
+        loop {
+            let job = std::future::poll_fn(|cx| {
+                let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                if let Some(job) = state.jobs.pop_front() {
+                    Self::route_event_for_test(
+                        "pop",
+                        job.id,
+                        job.generation,
+                        job.frame.bytes.len(),
+                        state.jobs.len(),
+                    );
+                    return Poll::Ready(Some(job));
+                }
+                if state.closed {
+                    return Poll::Ready(None);
+                }
+                state.wake = Some(cx.waker().clone());
+                Poll::Pending
+            })
+            .await;
+            let Some(job) = job else { break };
+            let attached = connection.upgrade().expect("live queued bridge connection");
+            assert!(attached.same_tool_connection(&route));
+            assert_eq!(job.generation, Some(route.generation()));
+            let (id, response, cancel) = attached.outgoing_identity(&job.frame).unwrap();
+            assert_eq!(id, job.id);
+            let bytes = job.frame.bytes.len();
+            let (pending_response, pending_cancel, completion) =
+                inbox.route_pending_for_test(id, bytes, route.generation());
+            assert_eq!((response, cancel), (pending_response, pending_cancel));
+            self.state.lock().unwrap_or_else(|p| p.into_inner()).active = Some(ActiveJob {
+                id,
+                cancel,
+                admitted: false,
+            });
+            Self::route_event_for_test("write", job.id, job.generation, bytes, 1);
+            let generation = job.generation;
+            let deadline = job.deadline;
+            let completed = if route.enqueue_profile(job.frame, id, response).is_ok() {
+                let mut completion = completion;
+                let clock = attached.clock();
+                let mut timer = clock.sleep_until(deadline);
+                std::future::poll_fn(|cx| {
+                    if timer.as_mut().poll(cx).is_ready() {
+                        return Poll::Ready(false);
+                    }
+                    completion.as_mut().poll(cx)
+                })
+                .await
+            } else {
+                false
+            };
+            self.publish_and_finish(id, bytes, completed, |_| {});
+            // The pending completion was published only by Route's written
+            // callback; this records Writer's own retired queue bytes.
+            if completed {
+                Self::route_event_for_test("ack", id, generation, bytes, 0);
+            }
+            Self::route_event_for_test("release", id, generation, bytes, 0);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn enqueue_on_route_for_test(
+        &self,
+        frame: EncodedFrame,
+        id: u64,
+        deadline: u64,
+        generation: u64,
+    ) -> Result<(), DriverError> {
+        assert!(generation > 0);
+        let wake = {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            let bytes = state
+                .bytes
+                .checked_add(frame.bytes.len())
+                .ok_or(DriverError::Overloaded)?;
+            if state.closed || bytes > self.max_bytes || state.jobs.len() >= self.max_jobs {
+                return Err(DriverError::Overloaded);
+            }
+            state.bytes = bytes;
+            let job = Job {
+                frame,
+                id,
+                deadline,
+                generation: Some(generation),
+            };
+            Self::route_event_for_test(
+                "enqueue",
+                job.id,
+                job.generation,
+                state.bytes,
+                state.jobs.len() + 1,
+            );
+            state.jobs.push_back(job);
+            state.wake.take()
+        };
+        if let Some(wake) = wake {
+            wake.wake()
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    fn route_event_for_test(
+        operation: &'static str,
+        id: u64,
+        generation: Option<u64>,
+        bytes: usize,
+        jobs: usize,
+    ) {
+        let mut event = source_observer::SourceEvent::new(
+            "queue",
+            file!(),
+            line!(),
+            "Writer::run_on_route_for_test",
+        );
+        event.field = Some("Qreceive");
+        event.owner = Some("Writer");
+        event.generation = generation;
+        event.request_id = Some(id);
+        event.operation = Some(operation);
+        event.bytes = Some(bytes);
+        event.jobs = Some(jobs);
+        source_observer::record(event);
     }
 }
 

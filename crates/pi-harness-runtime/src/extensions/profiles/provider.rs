@@ -16,6 +16,106 @@ use std::sync::Arc;
 #[cfg(test)]
 use crate::extensions::transport::source_observer;
 
+/// One invocation's source provenance. The opaque identity does not retain the
+/// ProfileConnection, and only Owner's actual returned Binding may bind it.
+#[cfg(test)]
+pub(crate) struct ProviderRequestObservation {
+    connection: pi_extension_protocol::profile_live::ConnectionIdentity,
+    generation: u64,
+    capability: dto::CapabilityRef,
+    key: dto::EffectKey,
+    provider: String,
+    model: String,
+    payload_len: usize,
+    binding: std::sync::Mutex<Option<pi_extension_protocol::profile_live::Binding>>,
+}
+#[cfg(test)]
+impl ProviderRequestObservation {
+    pub(crate) fn new(
+        connection: &ProfileConnection,
+        capability: dto::CapabilityRef,
+        key: dto::EffectKey,
+        model: &Model,
+        payload_len: usize,
+    ) -> Self {
+        Self {
+            connection: connection.connection_identity(),
+            generation: connection.grant().wire().connection_generation,
+            capability,
+            key,
+            provider: model.provider.as_str().to_owned(),
+            model: model.id.as_str().to_owned(),
+            payload_len,
+            binding: std::sync::Mutex::new(None),
+        }
+    }
+
+    pub(crate) fn bind(
+        &self,
+        connection: &pi_extension_protocol::profile_live::ConnectionIdentity,
+        binding: &pi_extension_protocol::profile_live::Binding,
+        request: &dto::Request,
+    ) {
+        assert!(self.connection.same_connection(connection));
+        assert_eq!(binding.generation(), self.generation);
+        assert_eq!(binding.id(), request.request_id);
+        assert_eq!(binding.capability(), &self.capability);
+        assert_eq!(request.capability_ref.as_ref(), Some(&self.capability));
+        assert_eq!(binding.key(), Some(&self.key));
+        assert_eq!(request.effect_key.as_ref(), Some(&self.key));
+        assert_eq!(request.method, "provider.invoke");
+        assert_eq!(request.payload.len(), self.payload_len);
+        let mut bound = self.binding.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(previous) = bound.as_ref() {
+            assert!(previous.same_identity(binding));
+            return;
+        }
+        *bound = Some(binding.clone());
+        drop(bound);
+        // This is a fresh provider-owned event; earlier pre-ID events remain
+        // immutable and unbound in the collector.
+        let mut event = source_observer::SourceEvent::new(
+            "provider",
+            file!(),
+            line!(),
+            "ProviderRequestObservation::bind",
+        );
+        event.field = Some("D_req");
+        event.owner = Some("ProviderDispatch");
+        event.operation = Some("payload_encoded");
+        event.outcome = Some("payload_encoded");
+        event.body_len = Some(self.payload_len);
+        self.annotate_bound(&mut event);
+        source_observer::record(event);
+    }
+
+    pub(crate) fn annotate_bound(&self, event: &mut source_observer::SourceEvent) {
+        if let Some(binding) = self
+            .binding
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .as_ref()
+        {
+            event.request_id = Some(binding.id());
+            event.generation = Some(binding.generation());
+            event.provider = Some(self.provider.clone());
+            event.model = Some(self.model.clone());
+            event.method = Some("provider.invoke".into());
+        }
+    }
+
+    fn assert_binding(&self, binding: &pi_extension_protocol::profile_live::Binding) {
+        assert!(
+            self.binding
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+                .is_some_and(|bound| bound.same_identity(binding)),
+            "provider terminal must retain the actual started Binding"
+        );
+    }
+}
+
 #[derive(Clone)]
 pub(crate) struct RegisteredProvider {
     pub connection: Arc<ProfileConnection>,
@@ -220,10 +320,22 @@ struct ProviderDispatch<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     provider: ProviderId,
     registration: ProviderRegistration,
     cancel: CancellationToken,
+    #[cfg(test)]
+    observation: Arc<ProviderRequestObservation>,
 }
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     super::connection::DispatchScope for ProviderDispatch<C, S, M>
 {
+    #[cfg(test)]
+    fn observe_started(
+        &self,
+        connection: &pi_extension_protocol::profile_live::ConnectionIdentity,
+        binding: &pi_extension_protocol::profile_live::Binding,
+        request: &dto::Request,
+    ) {
+        self.observation.bind(connection, binding, request);
+    }
+
     fn prepare(
         &self,
     ) -> pi_agent_schema::BoxFuture<'_, Result<crate::scheduler::MutationPermit, HarnessRuntimeError>>
@@ -245,6 +357,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 event.owner = Some("ProviderDispatch");
                 event.operation = Some("selection");
                 event.provider = Some(self.provider.as_str().to_owned());
+                self.observation.annotate_bound(&mut event);
                 source_observer::record(event);
             }
             if !Arc::ptr_eq(&fx.identity, &self.identity)
@@ -392,6 +505,14 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
     native.expected_model = Some(model);
     native.expected_deferred_source = deferred_source.map(|(_, message)| message);
     #[cfg(test)]
+    let observation = Arc::new(ProviderRequestObservation::new(
+        &provider.connection,
+        provider.capability.clone(),
+        super::connection::key_wire(key),
+        model,
+        payload.len(),
+    ));
+    #[cfg(test)]
     {
         let generation = provider.connection.grant().wire().connection_generation;
         native.observation_generation = Some(generation);
@@ -404,6 +525,7 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
                 .authenticated_extension_id,
             generation
         ));
+        native.provider_observation = Some(observation.clone());
     }
     let actions = super::actions::LaneActions {
         lane: fx.lane.clone(),
@@ -412,6 +534,23 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
         max_bytes: provider.connection.max_payload_bytes(),
         scope: super::actions::scope(fx, key.operation_id.clone(), Some(key.clone()), true),
     };
+    #[cfg(test)]
+    let dispatch = Arc::new(ProviderDispatch {
+        fx: Arc::downgrade(fx),
+        identity: fx.identity.clone(),
+        key: key.clone(),
+        source: deferred_source.cloned(),
+        provider: model.provider.clone(),
+        registration: provider.registration.clone(),
+        cancel: cancellation.clone(),
+        #[cfg(test)]
+        observation: observation.clone(),
+    });
+    #[cfg(test)]
+    assert!(Arc::ptr_eq(
+        &dispatch.observation,
+        native.provider_observation.as_ref().unwrap()
+    ));
     let reply = provider
         .connection
         .call(
@@ -425,6 +564,9 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
                 native_parent: None,
                 permit: Some(line),
                 slot: Some(slot),
+                #[cfg(test)]
+                dispatch: Some(dispatch),
+                #[cfg(not(test))]
                 dispatch: Some(Arc::new(ProviderDispatch {
                     fx: Arc::downgrade(fx),
                     identity: fx.identity.clone(),
@@ -440,6 +582,8 @@ async fn invoke<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: Sessio
             &cancellation,
         )
         .await?;
+    #[cfg(test)]
+    observation.assert_binding(&reply.binding);
     let _line = fx.lane.lane.line.acquire().await?;
     let h = fx.lane.load().await?;
     if !source_current(fx, &h, key, deferred_source) {
