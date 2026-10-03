@@ -13,6 +13,100 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
+#[cfg(feature = "test-owner-observer")]
+mod owner_observer {
+    use super::{Binding, ConnectionIdentity};
+    use std::sync::{Mutex, OnceLock};
+
+    #[derive(Clone, Debug)]
+    struct Event {
+        source_file: &'static str,
+        source_line: u32,
+        function: &'static str,
+        operation: &'static str,
+        outcome: &'static str,
+        lane: &'static str,
+        bytes_before: u64,
+        bytes_after: u64,
+        seats_before: usize,
+        seats_after: usize,
+        connection: ConnectionIdentity,
+        binding: Binding,
+        request_id: u64,
+        generation: u64,
+    }
+
+    static EVENT: OnceLock<Mutex<Option<Event>>> = OnceLock::new();
+
+    fn event_slot() -> &'static Mutex<Option<Event>> {
+        EVENT.get_or_init(|| Mutex::new(None))
+    }
+
+    pub(super) fn record(
+        source_file: &'static str,
+        source_line: u32,
+        function: &'static str,
+        operation: &'static str,
+        outcome: &'static str,
+        lane: &'static str,
+        bytes_before: u64,
+        bytes_after: u64,
+        seats_before: usize,
+        seats_after: usize,
+        connection: ConnectionIdentity,
+        binding: Binding,
+        request_id: u64,
+        generation: u64,
+    ) {
+        let event = Event {
+            source_file,
+            source_line,
+            function,
+            operation,
+            outcome,
+            lane,
+            bytes_before,
+            bytes_after,
+            seats_before,
+            seats_after,
+            connection,
+            binding,
+            request_id,
+            generation,
+        };
+        let first = {
+            let mut observed = event_slot()
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if observed.is_none() {
+                *observed = Some(event.clone());
+                true
+            } else {
+                false
+            }
+        };
+        if first {
+            eprintln!(
+                "E1752_OWNER_EVENT source={}:{} function={} operation={} outcome={} lane={} connection=<opaque-bound> request_id={} generation={} binding_id={} binding_generation={} bytes={}->{} seats={}->{}",
+                event.source_file,
+                event.source_line,
+                event.function,
+                event.operation,
+                event.outcome,
+                event.lane,
+                event.request_id,
+                event.generation,
+                event.binding.id(),
+                event.binding.generation(),
+                event.bytes_before,
+                event.bytes_after,
+                event.seats_before,
+                event.seats_after,
+            );
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     HostContract,
@@ -943,6 +1037,23 @@ impl Owner {
             self.rate_window = start.now_ms;
         }
         self.rate_count = count + 1;
+        #[cfg(feature = "test-owner-observer")]
+        owner_observer::record(
+            file!(),
+            line!(),
+            "Owner::start_with_id",
+            "admit",
+            "reserved",
+            "blocking",
+            charge - bytes,
+            charge,
+            self.calls.len().saturating_sub(1) + self.denials.len(),
+            self.calls.len() + self.denials.len(),
+            self.connection.clone(),
+            binding.clone(),
+            binding.id(),
+            binding.generation(),
+        );
         Ok((binding, request))
     }
     /// Release the finite blocking reservation only after transport/worker intake.
