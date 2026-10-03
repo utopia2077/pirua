@@ -56,7 +56,7 @@ FIELD_EVENT_KINDS = {
     "Qreceive": {"queue"},
     "overlap": {"interval"},
     "D_req": {"body_capture", "provider", "native_validation", "source_current", "phase"},
-    "P_req": {"queue"},
+    "P_req": {"queue", "owner_lifecycle", "cleanup"},
     "whole_stack": {"stack"},
     "allocator_peak": {"allocator"},
     "work_cpu_headroom": {"cpu"},
