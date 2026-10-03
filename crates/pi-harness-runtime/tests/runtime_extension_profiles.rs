@@ -245,7 +245,34 @@ fn source_root_structured_events_bind_real_resources() {
             "same physical route baseline must observe {field}"
         );
     }
-    assert_eq!(live_observation["fields"]["P_req"]["status"], "unresolved");
+    assert_eq!(live_observation["fields"]["P_req"]["status"], "observed");
+    assert!(
+        live_observation["fields"]["P_req"]["value"]
+            .as_u64()
+            .is_some_and(|value| value > 0)
+    );
+    assert_eq!(live_observation["fields"]["P_req"]["checks"]["owner"], true);
+    assert_eq!(
+        live_observation["fields"]["P_req"]["checks"]["dispatch_release"],
+        true
+    );
+    assert_eq!(
+        live_observation["fields"]["P_req"]["checks"]["terminal_retention"],
+        true
+    );
+    assert_eq!(
+        live_observation["fields"]["P_req"]["checks"]["final_retire"],
+        true
+    );
+    assert_eq!(
+        live_observation["fields"]["P_req"]["checks"]["tool_inbox"],
+        true
+    );
+    assert_eq!(
+        live_observation["fields"]["P_req"]["checks"]["writer"],
+        true
+    );
+    assert_eq!(live_observation["fields"]["P_req"]["checks"]["route"], true);
     let bound_payload = live_events
         .iter()
         .find(|event| {
@@ -709,16 +736,26 @@ fn source_root_structured_events_bind_real_resources() {
                 .is_some_and(|value| value > 0)
         );
     }
-    assert_eq!(
-        fields["P_req"]["status"], "unresolved",
-        "profile_live::Owner remains outside the accepted observer boundary"
-    );
-    assert_eq!(fields["P_req"]["value"], 0);
+    assert_eq!(fields["P_req"]["status"], "observed");
     assert!(
-        fields["P_req"]["reason"]
-            .as_str()
-            .is_some_and(|reason| !reason.is_empty())
+        fields["P_req"]["value"]
+            .as_u64()
+            .is_some_and(|value| value > 0)
     );
+    for check in [
+        "owner",
+        "dispatch_release",
+        "terminal_retention",
+        "final_retire",
+        "tool_inbox",
+        "writer",
+        "route",
+    ] {
+        assert_eq!(
+            fields["P_req"]["checks"][check], true,
+            "P_req same-token lifecycle check must close: {check}"
+        );
+    }
     for field in [
         "overlap",
         "whole_stack",
@@ -740,6 +777,144 @@ fn source_root_structured_events_bind_real_resources() {
     println!(
         "SOURCE_RESOURCE {}",
         serde_json::to_string(&observation).unwrap()
+    );
+}
+
+#[test]
+#[ignore = "causal P_req owner/token bridge witness; run with --ignored --exact"]
+fn source_root_p_req_owner_lifecycle_causal_red_restore() {
+    use pi_harness_runtime::extensions::transport::source_observer;
+
+    fn run() -> (serde_json::Value, Vec<source_observer::SourceEvent>) {
+        let setup = Setup::new();
+        let harness = create(&setup, setup.session.clone());
+        let (connection, peer, writer) = install_live_bridge_for_test(&setup, &harness);
+        let result = setup
+            .pump
+            .drive(harness.prompt(PromptInput::Text {
+                text: "one causal owner lifecycle request".into(),
+                images: vec![],
+            }))
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            result.outcome,
+            RunOutcome::CompletedWithAssistant(_)
+        ));
+        let requests = peer.requests.lock().unwrap().clone();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].method, "provider.invoke");
+        let observation = source_observer::resource_observation();
+        let events = source_observer::snapshot();
+        assert!(
+            events.iter().any(|event| {
+                event.field == Some("Qreceive")
+                    && event.owner == Some("ToolInbox")
+                    && event.request_id == Some(requests[0].request_id)
+                    && event.token.is_some()
+            }),
+            "ToolInbox must carry the opaque route token"
+        );
+        assert!(
+            events.iter().any(|event| {
+                event.field == Some("Qreceive")
+                    && event.owner == Some("Writer")
+                    && event.request_id == Some(requests[0].request_id)
+                    && event.token.is_some()
+            }),
+            "Writer must carry the opaque route token"
+        );
+        assert!(
+            events.iter().any(|event| {
+                event.field == Some("Qreceive")
+                    && event.owner == Some("Route")
+                    && event.request_id == Some(requests[0].request_id)
+                    && event.token.is_some()
+            }),
+            "Route must carry the opaque route token"
+        );
+        connection.close();
+        writer.close();
+        setup.pump.drive(harness.close()).unwrap();
+        (observation, events)
+    }
+
+    source_observer::reset();
+    source_observer::suppress_owner_admission(true);
+    let (red_admission, red_admission_events) = run();
+    assert_eq!(red_admission["fields"]["Qreceive"]["status"], "observed");
+    assert_eq!(red_admission["fields"]["D_req"]["status"], "observed");
+    assert_eq!(red_admission["fields"]["P_req"]["status"], "unresolved");
+    assert!(
+        red_admission_events.iter().any(|event| {
+            event.field == Some("P_req")
+                && event.owner == Some("profile_live::Owner")
+                && event.operation == Some("terminal_retain")
+        }),
+        "downstream owner retention remains visible when admission marker is suppressed"
+    );
+
+    source_observer::reset();
+    source_observer::mutate_next_owner_token();
+    let (red_token, red_token_events) = run();
+    assert_eq!(red_token["fields"]["Qreceive"]["status"], "observed");
+    assert_eq!(red_token["fields"]["D_req"]["status"], "observed");
+    assert_eq!(red_token["fields"]["P_req"]["status"], "unresolved");
+    let owner_admission = red_token_events
+        .iter()
+        .find(|event| {
+            event.field == Some("P_req")
+                && event.owner == Some("profile_live::Owner")
+                && event.operation == Some("admit")
+        })
+        .expect("mutated owner admission event");
+    let route_event = red_token_events
+        .iter()
+        .find(|event| {
+            event.field == Some("Qreceive")
+                && event.owner == Some("Route")
+                && event.operation == Some("enqueue")
+        })
+        .expect("route event with equal numeric request identity");
+    assert_eq!(owner_admission.request_id, route_event.request_id);
+    assert_eq!(owner_admission.generation, route_event.generation);
+    assert_ne!(owner_admission.token, route_event.token);
+
+    source_observer::reset();
+    source_observer::suppress_final_retire(true);
+    let (red_retire, _) = run();
+    assert_eq!(red_retire["fields"]["Qreceive"]["status"], "observed");
+    assert_eq!(red_retire["fields"]["D_req"]["status"], "observed");
+    assert_eq!(red_retire["fields"]["P_req"]["status"], "unresolved");
+
+    source_observer::reset();
+    let (restored, restored_events) = run();
+    assert_eq!(restored["fields"]["Qreceive"]["status"], "observed");
+    assert_eq!(restored["fields"]["D_req"]["status"], "observed");
+    assert_eq!(restored["fields"]["P_req"]["status"], "observed");
+    for check in [
+        "owner",
+        "dispatch_release",
+        "terminal_retention",
+        "final_retire",
+        "tool_inbox",
+        "writer",
+        "route",
+    ] {
+        assert_eq!(
+            restored["fields"]["P_req"]["checks"][check], true,
+            "{check}"
+        );
+    }
+    assert!(
+        restored_events.iter().any(|event| {
+            event.field == Some("P_req")
+                && event.owner == Some("profile_live::Owner")
+                && event.operation == Some("final_retire")
+                && event.outcome == Some("consumed")
+                && event.token.is_some()
+        }),
+        "exact final-retire event must return on restore"
     );
 }
 

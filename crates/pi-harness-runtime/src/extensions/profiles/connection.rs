@@ -89,12 +89,23 @@ impl ActionInvocation {
     /// Check immediately before invoking a native public action. No peer wait
     /// occurs while the native lane owns its mutation line.
     pub fn dispatch(&self) -> Result<(), v1_1::ErrorCode> {
-        self.connection
+        let result = self
+            .connection
             .owner
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .dispatched_at(&self.binding, self.connection.clock.now_ms())
-            .map_err(|_| v1_1::ErrorCode::InvalidParent)
+            .map_err(|_| v1_1::ErrorCode::InvalidParent);
+        #[cfg(test)]
+        if result.is_ok() {
+            self.connection.record_owner_lifecycle(
+                "dispatch_release",
+                "complete",
+                Some(&self.binding),
+                None,
+            );
+        }
+        result
     }
 }
 pub struct ProfileConnection {
@@ -157,6 +168,38 @@ fn observed_role(role: Role) -> &'static str {
 }
 
 impl ProfileConnection {
+    #[cfg(test)]
+    fn record_owner_lifecycle(
+        &self,
+        operation: &'static str,
+        outcome: &'static str,
+        binding: Option<&Binding>,
+        request_id: Option<u64>,
+    ) {
+        if operation == "admit" && source_observer::owner_admission_suppressed() {
+            return;
+        }
+        if operation == "final_retire" && source_observer::final_retire_suppressed() {
+            return;
+        }
+        let mut event = source_observer::SourceEvent::new(
+            "owner_lifecycle",
+            file!(),
+            line!(),
+            "ProfileConnection::owner_lifecycle",
+        );
+        event.field = Some("P_req");
+        event.owner = Some("profile_live::Owner");
+        event.operation = Some(operation);
+        event.outcome = Some(outcome);
+        event.request_id = request_id.or_else(|| binding.map(Binding::id));
+        event.generation = Some(self.grant.wire().connection_generation);
+        event.token = Some(source_observer::ConnectionToken::from_identity(
+            &self.connection_identity(),
+        ));
+        source_observer::record(event);
+    }
+
     pub async fn connect(
         host: HostAuthority,
         channel: Arc<dyn OrderedByteChannel>,
@@ -428,6 +471,10 @@ impl ProfileConnection {
         let admitted = owner.dispatched_at(&binding, self.clock.now_ms()).is_ok();
         drop(owner);
         drop(line);
+        #[cfg(test)]
+        if admitted {
+            self.record_owner_lifecycle("dispatch_release", "complete", Some(&binding), None);
+        }
         admitted
     }
     pub(crate) fn same_tool_connection(
@@ -605,11 +652,25 @@ impl ProfileConnection {
         binding: &Binding,
         reason: RetireReason,
     ) -> Result<(), HarnessRuntimeError> {
-        self.owner
+        let result = self
+            .owner
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .retire(binding, reason)
-            .map_err(|_| super::fault())
+            .map_err(|_| super::fault());
+        #[cfg(test)]
+        if result.is_ok() {
+            self.record_owner_lifecycle(
+                "final_retire",
+                match reason {
+                    RetireReason::Consumed => "consumed",
+                    RetireReason::NoLongerExpected => "no_longer_expected",
+                },
+                Some(binding),
+                None,
+            );
+        }
+        result
     }
     pub fn close(&self) {
         #[cfg(test)]
@@ -743,6 +804,8 @@ impl ProfileConnection {
         };
         drop(scope.permit.take());
         let (binding, request) = started.map_err(|_| super::fault())?;
+        #[cfg(test)]
+        self.record_owner_lifecycle("admit", "complete", Some(&binding), None);
         #[cfg(test)]
         {
             let mut event = source_observer::SourceEvent::new(
@@ -929,6 +992,13 @@ impl ProfileConnection {
                                 error: receipt.error(),
                             };
                             drop(owner);
+                            #[cfg(test)]
+                            self.record_owner_lifecycle(
+                                "terminal_retain",
+                                "complete",
+                                Some(&binding),
+                                None,
+                            );
                             guard.complete = true;
                             return Ok(reply);
                         }
@@ -991,6 +1061,8 @@ impl ProfileConnection {
                 self.clock.now_ms(),
             )
             .map_err(|_| super::fault())?;
+        #[cfg(test)]
+        self.record_owner_lifecycle("denial_reserve", "complete", None, Some(id));
         let result = self
             .write(
                 encode_response(id, Err(code), self.core_minor(), self.max_payload_bytes())?,
@@ -1002,6 +1074,8 @@ impl ProfileConnection {
             .unwrap_or_else(|p| p.into_inner())
             .retire_denial(id)
             .map_err(|_| super::fault())?;
+        #[cfg(test)]
+        self.record_owner_lifecycle("denial_release", "complete", None, Some(id));
         result
     }
     async fn host_request(
@@ -1083,6 +1157,8 @@ impl ProfileConnection {
             .accept_request(request, context, native);
         let result = match started {
             Ok(binding) => {
+                #[cfg(test)]
+                self.record_owner_lifecycle("admit", "complete", Some(&binding), None);
                 let payload = self
                     .owner
                     .lock()
@@ -1265,6 +1341,8 @@ impl ProfileConnection {
             }
             Err(_) => return Err(super::fault()),
         };
+        #[cfg(test)]
+        self.record_owner_lifecycle("admit", "complete", Some(&binding), None);
         let actions = actions.or_else(|| {
             let key = observed
                 .as_ref()
@@ -1384,6 +1462,8 @@ impl ProfileConnection {
             .unwrap_or_else(|p| p.into_inner())
             .accept_request(request, context, &mut native)
             .map_err(|_| super::fault())?;
+        #[cfg(test)]
+        self.record_owner_lifecycle("admit", "complete", Some(&binding), None);
         let payload = self
             .owner
             .lock()
@@ -1675,7 +1755,35 @@ impl Drop for PumpGuard {
             if let Some(binding) = owner.binding(id)
                 && owner.receipt(&binding).is_none()
             {
+                #[cfg(test)]
+                let token =
+                    source_observer::ConnectionToken::from_identity(&owner.connection_identity());
+                #[cfg(test)]
+                let generation = binding.generation();
+                #[cfg(test)]
+                let retired = owner
+                    .retire(&binding, RetireReason::NoLongerExpected)
+                    .is_ok();
+                #[cfg(not(test))]
                 owner.retire(&binding, RetireReason::NoLongerExpected).ok();
+                drop(owner);
+                #[cfg(test)]
+                if retired {
+                    let mut event = source_observer::SourceEvent::new(
+                        "cleanup",
+                        file!(),
+                        line!(),
+                        "PumpGuard::drop",
+                    );
+                    event.field = Some("P_req");
+                    event.owner = Some("PumpGuard");
+                    event.operation = Some("preterminal_cleanup");
+                    event.outcome = Some("complete");
+                    event.request_id = Some(id);
+                    event.generation = Some(generation);
+                    event.token = Some(token);
+                    source_observer::record(event);
+                }
             }
         }
         if let Some(id) = self.id {

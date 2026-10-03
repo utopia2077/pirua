@@ -1902,6 +1902,11 @@ struct Route {
 }
 
 impl Route {
+    #[cfg(test)]
+    fn connection_token(&self) -> source_observer::ConnectionToken {
+        source_observer::ConnectionToken::from_identity(&self.connection)
+    }
+
     fn prepare_retained_refusal(
         &self,
         binding: &InvocationBinding,
@@ -2129,6 +2134,12 @@ impl Route {
             .now_ms()
             .checked_add(self.timeout_ms)
             .ok_or(DriverError::Deadline)?;
+        #[cfg(test)]
+        let route_token = self.connection_token();
+        #[cfg(test)]
+        let reserve_facts;
+        #[cfg(test)]
+        let enqueue_facts;
         let wake = {
             let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
             if self.status() == RouteStatus::Closed
@@ -2146,29 +2157,26 @@ impl Route {
             )?;
             #[cfg(test)]
             {
-                let mut event =
-                    source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
-                event.field = Some("P_req");
-                event.owner = Some("Route");
-                event.operation = Some("reserve");
-                event.lane = Some(match kind {
+                let lane = match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
                     WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
                     WriteKind::Cancel(_) => "cancel",
-                });
-                event.bytes = Some(bytes);
-                event.request_id = match kind {
+                };
+                let request_id = match kind {
                     WriteKind::Request(id)
                     | WriteKind::Cancel(id)
                     | WriteKind::ProfileRequest(id)
                     | WriteKind::ProfileResponse(id) => Some(id),
                     WriteKind::Denial => None,
                 };
-                event.reserved_normal = Some(writes.normal_bytes);
-                event.reserved_control = Some(writes.control_bytes);
-                event.reserved_cancel = Some(writes.cancel_bytes);
-                event.jobs = Some(writes.jobs.len());
-                source_observer::record(event);
+                reserve_facts = Some((
+                    lane,
+                    request_id,
+                    writes.normal_bytes,
+                    writes.control_bytes,
+                    writes.cancel_bytes,
+                    writes.jobs.len(),
+                ));
             }
             if denial {
                 self.mark_draining();
@@ -2181,33 +2189,66 @@ impl Route {
             });
             #[cfg(test)]
             {
-                let mut event =
-                    source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
-                event.field = Some("Qreceive");
-                event.owner = Some("Route");
-                event.generation = Some(self.generation);
-                event.operation = Some("enqueue");
-                event.lane = Some(match kind {
+                let lane = match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
                     WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
                     WriteKind::Cancel(_) => "cancel",
-                });
-                event.bytes = Some(bytes);
-                event.request_id = match kind {
+                };
+                let request_id = match kind {
                     WriteKind::Request(id)
                     | WriteKind::Cancel(id)
                     | WriteKind::ProfileRequest(id)
                     | WriteKind::ProfileResponse(id) => Some(id),
                     WriteKind::Denial => None,
                 };
-                event.reserved_normal = Some(writes.normal_bytes);
-                event.reserved_control = Some(writes.control_bytes);
-                event.reserved_cancel = Some(writes.cancel_bytes);
-                event.jobs = Some(writes.jobs.len());
-                source_observer::record(event);
+                enqueue_facts = Some((
+                    lane,
+                    request_id,
+                    writes.normal_bytes,
+                    writes.control_bytes,
+                    writes.cancel_bytes,
+                    writes.jobs.len(),
+                ));
             }
             writes.waker.take()
         };
+        #[cfg(test)]
+        {
+            if let Some((lane, request_id, normal, control, cancel, jobs)) = reserve_facts {
+                let mut event =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
+                event.field = Some("P_req");
+                event.owner = Some("Route");
+                event.operation = Some("reserve");
+                event.lane = Some(lane);
+                event.bytes = Some(bytes);
+                event.request_id = request_id;
+                event.reserved_normal = Some(normal);
+                event.reserved_control = Some(control);
+                event.reserved_cancel = Some(cancel);
+                event.jobs = Some(jobs);
+                event.generation = Some(self.generation);
+                event.token = Some(route_token.clone());
+                source_observer::record(event);
+            }
+            if let Some((lane, request_id, normal, control, cancel, jobs)) = enqueue_facts {
+                let mut event =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Route::enqueue");
+                event.field = Some("Qreceive");
+                event.owner = Some("Route");
+                event.generation = Some(self.generation);
+                event.operation = Some("enqueue");
+                event.lane = Some(lane);
+                event.bytes = Some(bytes);
+                event.request_id = request_id;
+                event.reserved_normal = Some(normal);
+                event.reserved_control = Some(control);
+                event.reserved_cancel = Some(cancel);
+                event.jobs = Some(jobs);
+                event.token = Some(route_token);
+                source_observer::record(event);
+            }
+        }
         Ok((wake, deadline))
     }
 
@@ -2293,6 +2334,10 @@ impl Route {
     }
 
     fn release_write(&self, kind: WriteKind, size: usize) {
+        #[cfg(test)]
+        let route_token = self.connection_token();
+        #[cfg(test)]
+        let release_facts;
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
         let reserved = match kind {
             WriteKind::Denial | WriteKind::ProfileResponse(_) => &mut writes.control_bytes,
@@ -2305,6 +2350,30 @@ impl Route {
         }
         #[cfg(test)]
         {
+            let lane = match kind {
+                WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
+                WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                WriteKind::Cancel(_) => "cancel",
+            };
+            let request_id = match kind {
+                WriteKind::Request(id)
+                | WriteKind::Cancel(id)
+                | WriteKind::ProfileRequest(id)
+                | WriteKind::ProfileResponse(id) => Some(id),
+                WriteKind::Denial => None,
+            };
+            release_facts = Some((
+                lane,
+                request_id,
+                writes.normal_bytes,
+                writes.control_bytes,
+                writes.cancel_bytes,
+                writes.jobs.len(),
+            ));
+        }
+        drop(writes);
+        #[cfg(test)]
+        if let Some((lane, request_id, normal, control, cancel, jobs)) = release_facts {
             let mut event = source_observer::SourceEvent::new(
                 "queue",
                 file!(),
@@ -2314,23 +2383,15 @@ impl Route {
             event.field = Some("P_req");
             event.owner = Some("Route");
             event.operation = Some("release");
-            event.lane = Some(match kind {
-                WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
-                WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
-                WriteKind::Cancel(_) => "cancel",
-            });
+            event.lane = Some(lane);
             event.bytes = Some(size);
-            event.request_id = match kind {
-                WriteKind::Request(id)
-                | WriteKind::Cancel(id)
-                | WriteKind::ProfileRequest(id)
-                | WriteKind::ProfileResponse(id) => Some(id),
-                WriteKind::Denial => None,
-            };
-            event.reserved_normal = Some(writes.normal_bytes);
-            event.reserved_control = Some(writes.control_bytes);
-            event.reserved_cancel = Some(writes.cancel_bytes);
-            event.jobs = Some(writes.jobs.len());
+            event.request_id = request_id;
+            event.reserved_normal = Some(normal);
+            event.reserved_control = Some(control);
+            event.reserved_cancel = Some(cancel);
+            event.jobs = Some(jobs);
+            event.generation = Some(self.generation);
+            event.token = Some(route_token.clone());
             source_observer::record(event);
             let mut queue = source_observer::SourceEvent::new(
                 "queue",
@@ -2342,20 +2403,11 @@ impl Route {
             queue.owner = Some("Route");
             queue.generation = Some(self.generation);
             queue.operation = Some("release");
-            queue.lane = Some(match kind {
-                WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
-                WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
-                WriteKind::Cancel(_) => "cancel",
-            });
+            queue.lane = Some(lane);
             queue.bytes = Some(size);
-            queue.request_id = match kind {
-                WriteKind::Request(id)
-                | WriteKind::Cancel(id)
-                | WriteKind::ProfileRequest(id)
-                | WriteKind::ProfileResponse(id) => Some(id),
-                WriteKind::Denial => None,
-            };
-            queue.jobs = Some(writes.jobs.len());
+            queue.request_id = request_id;
+            queue.jobs = Some(jobs);
+            queue.token = Some(route_token);
             source_observer::record(queue);
         }
     }
@@ -2469,6 +2521,8 @@ impl WriteState {
 
 async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
     loop {
+        #[cfg(test)]
+        let route_token = route.connection_token();
         let job = poll_fn(|cx| {
             let mut writes = route.writes.lock().unwrap_or_else(|p| p.into_inner());
             if route.status() == RouteStatus::Closed {
@@ -2482,42 +2536,23 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             }
             if let Some(job) = writes.jobs.pop_front() {
                 #[cfg(test)]
-                {
-                    let mut event =
-                        source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
-                    event.field = Some("P_req");
-                    event.owner = Some("Route");
-                    event.operation = Some("pop");
-                    event.bytes = Some(job.frame.bytes.len());
-                    event.jobs = Some(writes.jobs.len());
-                    event.request_id = match job.kind {
+                let pop_facts = (
+                    job.frame.bytes.len(),
+                    writes.jobs.len(),
+                    match job.kind {
                         WriteKind::Request(id)
                         | WriteKind::Cancel(id)
                         | WriteKind::ProfileRequest(id)
                         | WriteKind::ProfileResponse(id) => Some(id),
                         WriteKind::Denial => None,
-                    };
-                    source_observer::record(event);
-                    let mut queue =
-                        source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
-                    queue.field = Some("Qreceive");
-                    queue.owner = Some("Route");
-                    queue.generation = Some(route.generation);
-                    queue.operation = Some("pop");
-                    queue.bytes = Some(job.frame.bytes.len());
-                    queue.jobs = Some(writes.jobs.len());
-                    queue.request_id = match job.kind {
-                        WriteKind::Request(id)
-                        | WriteKind::Cancel(id)
-                        | WriteKind::ProfileRequest(id)
-                        | WriteKind::ProfileResponse(id) => Some(id),
-                        WriteKind::Denial => None,
-                    };
-                    source_observer::record(queue);
-                }
+                    },
+                );
                 if matches!(job.kind, WriteKind::Request(_) | WriteKind::Cancel(_)) {
                     writes.popped_unadmitted = Some((job.kind, job.frame.bytes.len()));
                 }
+                #[cfg(test)]
+                return Poll::Ready(Some((job, pop_facts)));
+                #[cfg(not(test))]
                 return Poll::Ready(Some(job));
             }
             let prior = writes.waker.replace(cx.waker().clone());
@@ -2526,7 +2561,37 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             Poll::Pending
         })
         .await;
+        #[cfg(test)]
+        let Some((job, (pop_bytes, pop_jobs, pop_request_id))) = job else {
+            break;
+        };
+        #[cfg(not(test))]
         let Some(job) = job else { break };
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+            event.field = Some("P_req");
+            event.owner = Some("Route");
+            event.operation = Some("pop");
+            event.bytes = Some(pop_bytes);
+            event.jobs = Some(pop_jobs);
+            event.request_id = pop_request_id;
+            event.generation = Some(route.generation);
+            event.token = Some(route_token.clone());
+            source_observer::record(event);
+            let mut queue =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
+            queue.field = Some("Qreceive");
+            queue.owner = Some("Route");
+            queue.generation = Some(route.generation);
+            queue.operation = Some("pop");
+            queue.bytes = Some(pop_bytes);
+            queue.jobs = Some(pop_jobs);
+            queue.request_id = pop_request_id;
+            queue.token = Some(route_token.clone());
+            source_observer::record(queue);
+        }
         if let WriteKind::Request(id) = job.kind
             && !owner.admit_ordered_request(&route, id, job.deadline)
         {
@@ -2596,6 +2661,8 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 | WriteKind::ProfileResponse(id) => Some(id),
                 WriteKind::Denial => None,
             };
+            event.generation = Some(route.generation);
+            event.token = Some(route.connection_token());
             source_observer::record(event);
             let mut queue =
                 source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
@@ -2612,6 +2679,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 | WriteKind::ProfileResponse(id) => Some(id),
                 WriteKind::Denial => None,
             };
+            queue.token = Some(route.connection_token());
             source_observer::record(queue);
         }
         if route.clock.now_ms() >= job.deadline {
@@ -2645,6 +2713,8 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
             event.operation = Some("physical_write");
             event.outcome = Some("end");
             event.bytes = Some(size);
+            event.generation = Some(route.generation);
+            event.token = Some(route.connection_token());
             source_observer::record(event);
             let mut queue =
                 source_observer::SourceEvent::new("queue", file!(), line!(), "writer_loop");
@@ -2661,6 +2731,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 | WriteKind::ProfileResponse(id) => Some(id),
                 WriteKind::Denial => None,
             };
+            queue.token = Some(route.connection_token());
             source_observer::record(queue);
             if completed {
                 let mut ack =
@@ -2678,6 +2749,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                     | WriteKind::ProfileResponse(id) => Some(id),
                     WriteKind::Denial => None,
                 };
+                ack.token = Some(route.connection_token());
                 source_observer::record(ack);
             }
         }

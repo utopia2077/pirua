@@ -36,6 +36,8 @@ pub(crate) struct Writer {
     state: Mutex<State>,
     max_bytes: usize,
     max_jobs: usize,
+    #[cfg(test)]
+    token: Mutex<Option<crate::extensions::transport::source_observer::ConnectionToken>>,
 }
 impl Writer {
     pub(crate) fn new(max_bytes: usize, max_jobs: usize) -> Result<Arc<Self>, DriverError> {
@@ -64,6 +66,8 @@ impl Writer {
             }),
             max_bytes,
             max_jobs,
+            #[cfg(test)]
+            token: Mutex::new(None),
         }))
     }
     pub(crate) fn enqueue(
@@ -72,6 +76,8 @@ impl Writer {
         id: u64,
         deadline: u64,
     ) -> Result<(), DriverError> {
+        #[cfg(test)]
+        let enqueue_facts;
         let wake = {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             let bytes = state
@@ -91,18 +97,22 @@ impl Writer {
             });
             #[cfg(test)]
             {
-                let mut event =
-                    source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::enqueue");
-                event.field = Some("Qreceive");
-                event.owner = Some("Writer");
-                event.operation = Some("enqueue");
-                event.bytes = Some(state.bytes);
-                event.jobs = Some(state.jobs.len());
-                event.request_id = Some(id);
-                source_observer::record(event);
+                enqueue_facts = (state.bytes, state.jobs.len());
             }
             state.wake.take()
         };
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::enqueue");
+            event.field = Some("Qreceive");
+            event.owner = Some("Writer");
+            event.operation = Some("enqueue");
+            event.bytes = Some(enqueue_facts.0);
+            event.jobs = Some(enqueue_facts.1);
+            event.request_id = Some(id);
+            source_observer::record(event);
+        }
         if let Some(wake) = wake {
             wake.wake();
         }
@@ -153,40 +163,55 @@ impl Writer {
             .as_ref()
             .is_some_and(|active| active.id == id)
     }
-    fn publish_and_finish<F>(&self, id: u64, bytes: usize, completed: bool, publish: F) -> bool
+    fn publish_and_finish<F>(
+        &self,
+        id: u64,
+        bytes: usize,
+        completed: bool,
+        state_bookkeeping: F,
+    ) -> bool
     where
         F: FnOnce(&State),
     {
-        let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
-        state.bytes = state.bytes.saturating_sub(bytes);
-        let active_matches = state
-            .active
-            .as_ref()
-            .is_some_and(|active| active.id == id && active.admitted && active.cancel);
+        #[cfg(test)]
+        let observation;
+        let close_after_ack = {
+            let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+            state.bytes = state.bytes.saturating_sub(bytes);
+            let active_matches = state
+                .active
+                .as_ref()
+                .is_some_and(|active| active.id == id && active.admitted && active.cancel);
 
-        // Keep the exact active Cancel visible while publication wakes the
-        // caller. The close decision is made under the same Writer lock after
-        // publication, so a clean EOF cannot retire or close it early.
-        publish(&state);
-        state.active.take();
+            // Keep the exact active Cancel visible while publication wakes the
+            // caller. The close decision is made under the same Writer lock after
+            // publication, so a clean EOF cannot retire or close it early.
+            state_bookkeeping(&state);
+            state.active.take();
+            #[cfg(test)]
+            {
+                observation = (if completed { "ack" } else { "release" }, completed);
+            }
+            if completed && active_matches && state.peer_close_requested {
+                state.closed = true;
+                true
+            } else {
+                false
+            }
+        };
         #[cfg(test)]
         {
             let mut event =
                 source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::run");
             event.field = Some("Qreceive");
             event.owner = Some("Writer");
-            event.operation = Some(if completed { "ack" } else { "release" });
-            event.outcome = Some(if completed { "complete" } else { "failed" });
+            event.operation = Some(observation.0);
+            event.outcome = Some(if observation.1 { "complete" } else { "failed" });
             event.bytes = Some(bytes);
             event.request_id = Some(id);
             source_observer::record(event);
         }
-        if completed && active_matches && state.peer_close_requested {
-            state.closed = true;
-            true
-        } else {
-            false
-        }
+        close_after_ack
     }
     pub(crate) async fn run(
         self: Arc<Self>,
@@ -203,34 +228,10 @@ impl Writer {
                 }
                 if let Some(job) = state.jobs.pop_front() {
                     #[cfg(test)]
-                    {
-                        let mut event = source_observer::SourceEvent::new(
-                            "queue",
-                            file!(),
-                            line!(),
-                            "Writer::run",
-                        );
-                        event.field = Some("Qreceive");
-                        event.owner = Some("Writer");
-                        event.operation = Some("pop");
-                        event.bytes = Some(job.frame.bytes.len());
-                        event.jobs = Some(state.jobs.len());
-                        event.request_id = Some(job.id);
-                        source_observer::record(event);
-                        let mut queue = source_observer::SourceEvent::new(
-                            "queue",
-                            file!(),
-                            line!(),
-                            "Writer::run",
-                        );
-                        queue.field = Some("Qreceive");
-                        queue.owner = Some("Writer");
-                        queue.operation = Some("write");
-                        queue.outcome = Some("start");
-                        queue.bytes = Some(job.frame.bytes.len());
-                        queue.request_id = Some(job.id);
-                        source_observer::record(queue);
-                    }
+                    let pop_facts = (job.frame.bytes.len(), state.jobs.len(), job.id);
+                    #[cfg(test)]
+                    return Poll::Ready(Some((job, pop_facts)));
+                    #[cfg(not(test))]
                     return Poll::Ready(Some(job));
                 }
                 if state.closed {
@@ -242,9 +243,35 @@ impl Writer {
                 Poll::Pending
             })
             .await;
+            #[cfg(test)]
+            let Some((job, (pop_bytes, pop_jobs, pop_request_id))) = job else {
+                break;
+            };
+            #[cfg(not(test))]
             let Some(job) = job else {
                 break;
             };
+            #[cfg(test)]
+            {
+                let mut event =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::run");
+                event.field = Some("Qreceive");
+                event.owner = Some("Writer");
+                event.operation = Some("pop");
+                event.bytes = Some(pop_bytes);
+                event.jobs = Some(pop_jobs);
+                event.request_id = Some(pop_request_id);
+                source_observer::record(event);
+                let mut queue =
+                    source_observer::SourceEvent::new("queue", file!(), line!(), "Writer::run");
+                queue.field = Some("Qreceive");
+                queue.owner = Some("Writer");
+                queue.operation = Some("write");
+                queue.outcome = Some("start");
+                queue.bytes = Some(pop_bytes);
+                queue.request_id = Some(pop_request_id);
+                source_observer::record(queue);
+            }
             let bytes = job.frame.bytes.len();
             let cancel = inbox.is_cancel(job.id);
             let skip = {
@@ -341,9 +368,11 @@ impl Writer {
                 queue.request_id = Some(job.id);
                 source_observer::record(queue);
             }
-            let close_after_ack = self.publish_and_finish(job.id, bytes, completed, |_| {
-                inbox.written(job.id, completed)
-            });
+            // ToolInbox publication captures the Owner-derived token and records
+            // queue facts, so it must happen after the Writer state guard above
+            // has been released.
+            let close_after_ack = self.publish_and_finish(job.id, bytes, completed, |_| {});
+            inbox.written(job.id, completed);
             if close_after_ack {
                 if let Some(connection) = connection.upgrade() {
                     connection.close();
@@ -371,19 +400,21 @@ impl Writer {
         let attached = connection.upgrade().expect("live bridge connection");
         assert!(attached.same_tool_connection(&route));
         assert!(Arc::ptr_eq(&attached.tool_inbox_for_test(), &inbox));
+        #[cfg(test)]
+        {
+            *self.token.lock().unwrap_or_else(|p| p.into_inner()) = Some(
+                crate::extensions::transport::source_observer::ConnectionToken::from_identity(
+                    &attached.connection_identity(),
+                ),
+            );
+        }
+        let route_token = self.token.lock().unwrap_or_else(|p| p.into_inner()).clone();
         drop(attached);
         loop {
             let job = std::future::poll_fn(|cx| {
                 let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
                 if let Some(job) = state.jobs.pop_front() {
-                    Self::route_event_for_test(
-                        "pop",
-                        job.id,
-                        job.generation,
-                        job.frame.bytes.len(),
-                        state.jobs.len(),
-                    );
-                    return Poll::Ready(Some(job));
+                    return Poll::Ready(Some((job, state.jobs.len())));
                 }
                 if state.closed {
                     return Poll::Ready(None);
@@ -392,7 +423,15 @@ impl Writer {
                 Poll::Pending
             })
             .await;
-            let Some(job) = job else { break };
+            let Some((job, pop_jobs)) = job else { break };
+            self.route_event_for_test(
+                route_token.clone(),
+                "pop",
+                job.id,
+                job.generation,
+                job.frame.bytes.len(),
+                pop_jobs,
+            );
             let attached = connection.upgrade().expect("live queued bridge connection");
             assert!(attached.same_tool_connection(&route));
             assert_eq!(job.generation, Some(route.generation()));
@@ -407,7 +446,14 @@ impl Writer {
                 cancel,
                 admitted: false,
             });
-            Self::route_event_for_test("write", job.id, job.generation, bytes, 1);
+            self.route_event_for_test(
+                route_token.clone(),
+                "write",
+                job.id,
+                job.generation,
+                bytes,
+                1,
+            );
             let generation = job.generation;
             let deadline = job.deadline;
             let completed = if route.enqueue_profile(job.frame, id, response).is_ok() {
@@ -428,9 +474,9 @@ impl Writer {
             // The pending completion was published only by Route's written
             // callback; this records Writer's own retired queue bytes.
             if completed {
-                Self::route_event_for_test("ack", id, generation, bytes, 0);
+                self.route_event_for_test(route_token.clone(), "ack", id, generation, bytes, 0);
             }
-            Self::route_event_for_test("release", id, generation, bytes, 0);
+            self.route_event_for_test(route_token.clone(), "release", id, generation, bytes, 0);
         }
     }
 
@@ -443,7 +489,8 @@ impl Writer {
         generation: u64,
     ) -> Result<(), DriverError> {
         assert!(generation > 0);
-        let wake = {
+        let route_token = self.token.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        let (wake, event_facts) = {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             let bytes = state
                 .bytes
@@ -459,16 +506,18 @@ impl Writer {
                 deadline,
                 generation: Some(generation),
             };
-            Self::route_event_for_test(
-                "enqueue",
-                job.id,
-                job.generation,
-                state.bytes,
-                state.jobs.len() + 1,
-            );
+            let event_facts = (job.id, job.generation, state.bytes, state.jobs.len() + 1);
             state.jobs.push_back(job);
-            state.wake.take()
+            (state.wake.take(), event_facts)
         };
+        self.route_event_for_test(
+            route_token,
+            "enqueue",
+            event_facts.0,
+            event_facts.1,
+            event_facts.2,
+            event_facts.3,
+        );
         if let Some(wake) = wake {
             wake.wake()
         }
@@ -477,6 +526,8 @@ impl Writer {
 
     #[cfg(test)]
     fn route_event_for_test(
+        &self,
+        token: Option<crate::extensions::transport::source_observer::ConnectionToken>,
         operation: &'static str,
         id: u64,
         generation: Option<u64>,
@@ -496,6 +547,7 @@ impl Writer {
         event.operation = Some(operation);
         event.bytes = Some(bytes);
         event.jobs = Some(jobs);
+        event.token = token;
         source_observer::record(event);
     }
 }
@@ -531,13 +583,13 @@ mod tests {
         let close_after_ack = writer.publish_and_finish(id, 0, true, |state| {
             assert!(
                 state.active.as_ref().is_some_and(|active| active.id == id),
-                "active exact ID survives inbox.written publication"
-            );
-            <ToolInbox as crate::extensions::tool_driver::ToolProfileIngress>::written(
-                &inbox, id, true,
+                "active exact ID survives lock-local publication bookkeeping"
             );
         });
         assert!(close_after_ack);
+        <ToolInbox as crate::extensions::tool_driver::ToolProfileIngress>::written(
+            &inbox, id, true,
+        );
         assert!(
             !inbox.has_test_pending(id),
             "positive acknowledgement removed the exact pending write"

@@ -53,6 +53,21 @@ impl ToolInbox {
             .map(|connection| connection.grant().wire().connection_generation)
     }
 
+    #[cfg(test)]
+    fn observed_token(
+        &self,
+    ) -> Option<crate::extensions::transport::source_observer::ConnectionToken> {
+        self.connection
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .upgrade()
+            .map(|connection| {
+                crate::extensions::transport::source_observer::ConnectionToken::from_identity(
+                    &connection.connection_identity(),
+                )
+            })
+    }
+
     pub(crate) fn new(max_bytes: usize, max_frames: usize) -> Result<Arc<Self>, DriverError> {
         if max_bytes == 0 || max_bytes == usize::MAX || max_frames == 0 || max_frames > 256 {
             return Err(DriverError::InvalidHost);
@@ -106,7 +121,13 @@ impl ToolInbox {
             .is_some()
     }
     pub(crate) async fn next(&self, requests: bool) -> Result<Option<ActiveFrame>, PumpError> {
-        std::future::poll_fn(|cx| {
+        #[cfg(test)]
+        let observed_generation = self.observed_generation();
+        #[cfg(test)]
+        let observed_token = self.observed_token();
+        #[cfg(test)]
+        let mut observed_jobs = None;
+        let result = std::future::poll_fn(|cx| {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             let frame = if requests {
                 state.requests.pop_front()
@@ -117,20 +138,7 @@ impl ToolInbox {
                 state.bytes -= frame.body_len;
                 #[cfg(test)]
                 {
-                    let mut event = source_observer::SourceEvent::new(
-                        "queue",
-                        file!(),
-                        line!(),
-                        "ToolInbox::next",
-                    );
-                    event.field = Some("Qreceive");
-                    event.owner = Some("ToolInbox");
-                    event.generation = self.observed_generation();
-                    event.operation = Some("pop");
-                    event.bytes = Some(frame.body_len);
-                    event.jobs = Some(state.requests.len() + state.replies.len());
-                    event.request_id = active_request_id(&frame.envelope);
-                    source_observer::record(event);
+                    observed_jobs = Some(state.requests.len() + state.replies.len());
                 }
                 return Poll::Ready(Ok(Some(frame)));
             }
@@ -146,7 +154,22 @@ impl ToolInbox {
             drop(old);
             Poll::Pending
         })
-        .await
+        .await;
+        #[cfg(test)]
+        if let Ok(Some(frame)) = &result {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::next");
+            event.field = Some("Qreceive");
+            event.owner = Some("ToolInbox");
+            event.generation = observed_generation;
+            event.token = observed_token;
+            event.operation = Some("pop");
+            event.bytes = Some(frame.body_len);
+            event.request_id = active_request_id(&frame.envelope);
+            event.jobs = observed_jobs;
+            source_observer::record(event);
+        }
+        result
     }
     pub(crate) async fn write(
         &self,
@@ -157,6 +180,10 @@ impl ToolInbox {
         // The existing selected framing carries the request ID; parse one
         // bounded complete frame without interpreting its native payload.
         let (id, response, cancel) = connection.outgoing_identity(&frame)?;
+        #[cfg(test)]
+        let observed_generation = self.observed_generation();
+        #[cfg(test)]
+        let observed_token = self.observed_token();
         let pending = Arc::new(PendingWrite {
             done: CancellationToken::new(),
             result: Mutex::new(None),
@@ -165,8 +192,10 @@ impl ToolInbox {
             #[cfg(test)]
             bytes: frame.bytes.len(),
             #[cfg(test)]
-            generation: self.observed_generation(),
+            generation: observed_generation,
         });
+        #[cfg(test)]
+        let write_jobs;
         {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             if state.closed
@@ -178,33 +207,32 @@ impl ToolInbox {
             state.writes.insert(id, pending.clone());
             #[cfg(test)]
             {
-                let mut event = source_observer::SourceEvent::new(
-                    "queue",
-                    file!(),
-                    line!(),
-                    "ToolInbox::write",
-                );
-                event.field = Some("P_req");
-                event.owner = Some("ToolInbox");
-                event.operation = Some("reserve");
-                event.request_id = Some(id);
-                event.jobs = Some(state.writes.len());
-                source_observer::record(event);
-                let mut queue = source_observer::SourceEvent::new(
-                    "queue",
-                    file!(),
-                    line!(),
-                    "ToolInbox::write",
-                );
-                queue.field = Some("Qreceive");
-                queue.owner = Some("ToolInbox");
-                queue.generation = self.observed_generation();
-                queue.operation = Some("write");
-                queue.bytes = Some(frame.bytes.len());
-                queue.jobs = Some(state.writes.len());
-                queue.request_id = Some(id);
-                source_observer::record(queue);
+                write_jobs = state.writes.len();
             }
+        }
+        #[cfg(test)]
+        {
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::write");
+            event.field = Some("P_req");
+            event.owner = Some("ToolInbox");
+            event.operation = Some("reserve");
+            event.request_id = Some(id);
+            event.generation = observed_generation;
+            event.token = observed_token.clone();
+            event.jobs = Some(write_jobs);
+            source_observer::record(event);
+            let mut queue =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::write");
+            queue.field = Some("Qreceive");
+            queue.owner = Some("ToolInbox");
+            queue.generation = observed_generation;
+            queue.token = observed_token;
+            queue.operation = Some("write");
+            queue.bytes = Some(frame.bytes.len());
+            queue.jobs = Some(write_jobs);
+            queue.request_id = Some(id);
+            source_observer::record(queue);
         }
         #[cfg(test)]
         let enqueued = match self
@@ -255,12 +283,13 @@ impl ToolInbox {
 impl ToolProfileIngress for ToolInbox {
     fn incoming(&self, frame: ActiveFrame) -> Result<(), DriverError> {
         #[cfg(test)]
-        if self
+        let route_writer_attached = self
             .route_writer
             .lock()
             .unwrap_or_else(|p| p.into_inner())
-            .is_some()
-        {
+            .is_some();
+        #[cfg(test)]
+        if route_writer_attached {
             self.observe_indexed_terminal_for_test(&frame)?;
         }
         let requests = super::connection::peer_request(&frame.envelope).is_some()
@@ -270,6 +299,14 @@ impl ToolProfileIngress for ToolInbox {
                 .unwrap_or_else(|p| p.into_inner())
                 .upgrade()
                 .is_some_and(|connection| connection.passive_control(&frame.envelope));
+        #[cfg(test)]
+        let observed_generation = self.observed_generation();
+        #[cfg(test)]
+        let observed_token = self.observed_token();
+        #[cfg(test)]
+        let request_id = active_request_id(&frame.envelope);
+        #[cfg(test)]
+        let incoming_observation;
         let wake = {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             let bytes = state
@@ -285,20 +322,8 @@ impl ToolProfileIngress for ToolInbox {
             state.bytes = bytes;
             #[cfg(test)]
             {
-                let mut event = source_observer::SourceEvent::new(
-                    "queue",
-                    file!(),
-                    line!(),
-                    "ToolInbox::incoming",
-                );
-                event.field = Some("Qreceive");
-                event.owner = Some("ToolInbox");
-                event.generation = self.observed_generation();
-                event.operation = Some("enqueue");
-                event.bytes = Some(state.bytes);
-                event.jobs = Some(state.requests.len() + state.replies.len() + 1);
-                event.request_id = active_request_id(&frame.envelope);
-                source_observer::record(event);
+                incoming_observation =
+                    (state.bytes, state.requests.len() + state.replies.len() + 1);
             }
             if requests {
                 state.requests.push_back(frame);
@@ -308,6 +333,21 @@ impl ToolProfileIngress for ToolInbox {
                 state.reply_wake.take()
             }
         };
+        #[cfg(test)]
+        {
+            let (bytes, jobs) = incoming_observation;
+            let mut event =
+                source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::incoming");
+            event.field = Some("Qreceive");
+            event.owner = Some("ToolInbox");
+            event.generation = observed_generation;
+            event.token = observed_token;
+            event.operation = Some("enqueue");
+            event.bytes = Some(bytes);
+            event.jobs = Some(jobs);
+            event.request_id = request_id;
+            source_observer::record(event);
+        }
         if let Some(wake) = wake {
             wake.wake();
         }
@@ -334,6 +374,10 @@ impl ToolProfileIngress for ToolInbox {
         })
     }
     fn written(&self, id: u64, completed: bool) {
+        #[cfg(test)]
+        let observed_generation = self.observed_generation();
+        #[cfg(test)]
+        let observed_token = self.observed_token();
         let pending = {
             let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
             let pending = state.writes.remove(&id);
@@ -348,7 +392,8 @@ impl ToolProfileIngress for ToolInbox {
                 source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::written");
             event.field = Some("P_req");
             event.owner = Some("ToolInbox");
-            event.generation = self.observed_generation();
+            event.generation = observed_generation;
+            event.token = observed_token.clone();
             event.operation = Some(if completed { "ack" } else { "release" });
             event.request_id = Some(id);
             event.outcome = Some(if completed { "complete" } else { "failed" });
@@ -357,7 +402,8 @@ impl ToolProfileIngress for ToolInbox {
                 source_observer::SourceEvent::new("queue", file!(), line!(), "ToolInbox::written");
             queue.field = Some("Qreceive");
             queue.owner = Some("ToolInbox");
-            queue.generation = self.observed_generation();
+            queue.generation = observed_generation;
+            queue.token = observed_token.clone();
             queue.operation = Some(if completed { "ack" } else { "release" });
             queue.outcome = Some(if completed { "complete" } else { "failed" });
             queue.request_id = Some(id);
@@ -373,6 +419,7 @@ impl ToolProfileIngress for ToolInbox {
                 release.field = Some("Qreceive");
                 release.owner = Some("ToolInbox");
                 release.generation = pending.generation;
+                release.token = observed_token;
                 release.operation = Some("release");
                 release.bytes = Some(pending.bytes);
                 release.request_id = Some(id);

@@ -21,6 +21,7 @@ use crate::extensions::transport::source_observer;
 #[cfg(test)]
 pub(crate) struct ProviderRequestObservation {
     connection: pi_extension_protocol::profile_live::ConnectionIdentity,
+    token: source_observer::ConnectionToken,
     generation: u64,
     capability: dto::CapabilityRef,
     key: dto::EffectKey,
@@ -40,6 +41,9 @@ impl ProviderRequestObservation {
     ) -> Self {
         Self {
             connection: connection.connection_identity(),
+            token: source_observer::ConnectionToken::from_identity(
+                &connection.connection_identity(),
+            ),
             generation: connection.grant().wire().connection_generation,
             capability,
             key,
@@ -101,6 +105,7 @@ impl ProviderRequestObservation {
             event.provider = Some(self.provider.clone());
             event.model = Some(self.model.clone());
             event.method = Some("provider.invoke".into());
+            event.token = Some(self.token.clone());
         }
     }
 

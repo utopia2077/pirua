@@ -22,12 +22,40 @@ use super::critical_port::{NotificationPost, SeatLease};
 
 #[cfg(test)]
 pub(crate) mod source_observer {
+    use pi_extension_protocol::profile_live::ConnectionIdentity;
     use std::cell::Cell;
     use std::collections::{BTreeMap, BTreeSet};
     use std::sync::{
         Mutex, OnceLock,
         atomic::{AtomicBool, Ordering},
     };
+
+    #[derive(Clone)]
+    pub(crate) struct ConnectionToken(ConnectionIdentity);
+
+    impl ConnectionToken {
+        pub(crate) fn from_identity(identity: &ConnectionIdentity) -> Self {
+            Self(identity.clone())
+        }
+
+        pub(crate) fn same_connection(&self, other: &Self) -> bool {
+            self.0.same_connection(&other.0)
+        }
+    }
+
+    impl std::fmt::Debug for ConnectionToken {
+        fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("ConnectionToken(<opaque>)")
+        }
+    }
+
+    impl PartialEq for ConnectionToken {
+        fn eq(&self, other: &Self) -> bool {
+            self.same_connection(other)
+        }
+    }
+
+    impl Eq for ConnectionToken {}
 
     #[derive(Clone, Debug, Eq, PartialEq)]
     pub(crate) struct SourceEvent {
@@ -80,6 +108,7 @@ pub(crate) mod source_observer {
         pub target: Option<String>,
         pub topology: Option<Vec<String>>,
         pub raw_body: Option<Vec<u8>>,
+        pub token: Option<ConnectionToken>,
     }
 
     impl SourceEvent {
@@ -139,6 +168,7 @@ pub(crate) mod source_observer {
                 target: None,
                 topology: None,
                 raw_body: None,
+                token: None,
             }
         }
     }
@@ -152,6 +182,9 @@ pub(crate) mod source_observer {
 
     static STATE: OnceLock<Mutex<State>> = OnceLock::new();
     static C3_WALKING: AtomicBool = AtomicBool::new(false);
+    static SUPPRESS_OWNER_ADMISSION: AtomicBool = AtomicBool::new(false);
+    static SUPPRESS_FINAL_RETIRE: AtomicBool = AtomicBool::new(false);
+    static MUTATE_NEXT_OWNER_TOKEN: AtomicBool = AtomicBool::new(false);
     thread_local! {
         static GENERATION: Cell<Option<u64>> = const { Cell::new(None) };
         static CASE_ID: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
@@ -168,6 +201,29 @@ pub(crate) mod source_observer {
         state.trace_id = state.trace_id.saturating_add(1);
         state.seq = 0;
         state.events.clear();
+        SUPPRESS_OWNER_ADMISSION.store(false, Ordering::Release);
+        SUPPRESS_FINAL_RETIRE.store(false, Ordering::Release);
+        MUTATE_NEXT_OWNER_TOKEN.store(false, Ordering::Release);
+    }
+
+    pub(crate) fn suppress_owner_admission(enabled: bool) {
+        SUPPRESS_OWNER_ADMISSION.store(enabled, Ordering::Release);
+    }
+
+    pub(crate) fn suppress_final_retire(enabled: bool) {
+        SUPPRESS_FINAL_RETIRE.store(enabled, Ordering::Release);
+    }
+
+    pub(crate) fn owner_admission_suppressed() -> bool {
+        SUPPRESS_OWNER_ADMISSION.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn final_retire_suppressed() -> bool {
+        SUPPRESS_FINAL_RETIRE.load(Ordering::Acquire)
+    }
+
+    pub(crate) fn mutate_next_owner_token() {
+        MUTATE_NEXT_OWNER_TOKEN.store(true, Ordering::Release);
     }
 
     pub(crate) fn with_generation<R>(generation: u64, f: impl FnOnce() -> R) -> R {
@@ -199,6 +255,14 @@ pub(crate) mod source_observer {
     pub(crate) fn record(mut event: SourceEvent) {
         if event.case_id.is_none() {
             event.case_id = current_case_id();
+        }
+        if event.field == Some("P_req")
+            && event.owner == Some("profile_live::Owner")
+            && event.operation == Some("admit")
+        {
+            if MUTATE_NEXT_OWNER_TOKEN.swap(false, Ordering::AcqRel) {
+                event.token = Some(ConnectionToken::from_identity(&ConnectionIdentity::new()));
+            }
         }
         let mut state = state()
             .lock()
@@ -274,7 +338,8 @@ pub(crate) mod source_observer {
                 "phase" | "read" | "body_capture" | "native_validation"
             ),
             "Qread" => matches!(kind, "resource" | "read" | "queue"),
-            "Qreceive" | "P_req" => kind == "queue",
+            "Qreceive" => kind == "queue",
+            "P_req" => matches!(kind, "queue" | "owner_lifecycle" | "cleanup"),
             "overlap" => kind == "interval",
             "D_req" => matches!(
                 kind,
@@ -647,6 +712,181 @@ pub(crate) mod source_observer {
             dreq_validation,
         ) = dreq_chain.unwrap_or((0, 0, false, false, false, false, false, false));
         let dreq_complete = dreq_request_id > 0 && dreq_generation > 0;
+        let p_req_events = events
+            .iter()
+            .filter(|event| event.field == Some("P_req"))
+            .collect::<Vec<_>>();
+        let p_req_generations = p_req_events
+            .iter()
+            .filter_map(|event| event.generation)
+            .filter(|generation| *generation > 0)
+            .collect::<BTreeSet<_>>();
+        let p_req_chain = p_req_generations.iter().find_map(|generation| {
+            let scoped = p_req_events
+                .iter()
+                .copied()
+                .filter(|event| event.generation == Some(*generation))
+                .collect::<Vec<_>>();
+            let admissions = scoped
+                .iter()
+                .filter(|event| {
+                    event.kind == "owner_lifecycle"
+                        && event.owner == Some("profile_live::Owner")
+                        && event.operation == Some("admit")
+                        && event.outcome == Some("complete")
+                        && event.request_id.is_some()
+                        && event.token.is_some()
+                })
+                .collect::<Vec<_>>();
+            let admission = admissions.first()?;
+            let request_id = admission.request_id?;
+            let token = admission.token.as_ref()?;
+            let same_token = |event: &&SourceEvent| {
+                event
+                    .token
+                    .as_ref()
+                    .is_some_and(|candidate| candidate == token)
+            };
+            let dispatch = scoped.iter().any(|event| {
+                event.kind == "owner_lifecycle"
+                    && event.owner == Some("profile_live::Owner")
+                    && event.operation == Some("dispatch_release")
+                    && event.outcome == Some("complete")
+                    && event.request_id == Some(request_id)
+                    && same_token(event)
+            });
+            let retained = scoped.iter().any(|event| {
+                event.kind == "owner_lifecycle"
+                    && event.owner == Some("profile_live::Owner")
+                    && event.operation == Some("terminal_retain")
+                    && event.outcome == Some("complete")
+                    && event.request_id == Some(request_id)
+                    && same_token(event)
+            });
+            let final_retire = scoped.iter().any(|event| {
+                event.kind == "owner_lifecycle"
+                    && event.owner == Some("profile_live::Owner")
+                    && event.operation == Some("final_retire")
+                    && event.outcome == Some("consumed")
+                    && event.request_id == Some(request_id)
+                    && same_token(event)
+            });
+            let inbox = events
+                .iter()
+                .filter(|event| {
+                    event.kind == "queue"
+                        && event.owner == Some("ToolInbox")
+                        && event.generation == Some(*generation)
+                        && event.request_id == Some(request_id)
+                        && same_token(event)
+                })
+                .collect::<Vec<_>>();
+            let writer = events
+                .iter()
+                .filter(|event| {
+                    event.kind == "queue"
+                        && event.owner == Some("Writer")
+                        && event.generation == Some(*generation)
+                        && event.request_id == Some(request_id)
+                        && same_token(event)
+                })
+                .collect::<Vec<_>>();
+            let route = events
+                .iter()
+                .filter(|event| {
+                    event.kind == "queue"
+                        && event.owner == Some("Route")
+                        && event.generation == Some(*generation)
+                        && event.request_id == Some(request_id)
+                        && same_token(event)
+                })
+                .collect::<Vec<_>>();
+            let owner_events = scoped.iter().filter(|event| {
+                event.kind == "owner_lifecycle"
+                    && event.owner == Some("profile_live::Owner")
+                    && event.request_id == Some(request_id)
+                    && same_token(event)
+            });
+            let selected_admissions = admissions
+                .iter()
+                .filter(|event| event.request_id == Some(request_id) && same_token(event))
+                .count();
+            let denial = scoped.iter().any(|event| {
+                event.kind == "owner_lifecycle"
+                    && event.owner == Some("profile_live::Owner")
+                    && event.operation == Some("denial_reserve")
+                    && event.outcome == Some("complete")
+                    && event
+                        .token
+                        .as_ref()
+                        .is_some_and(|candidate| candidate == token)
+            }) && scoped.iter().any(|event| {
+                event.kind == "owner_lifecycle"
+                    && event.owner == Some("profile_live::Owner")
+                    && event.operation == Some("denial_release")
+                    && event.outcome == Some("complete")
+                    && event
+                        .token
+                        .as_ref()
+                        .is_some_and(|candidate| candidate == token)
+            });
+            let queue_ops = |owner: &'static str, records: &[&SourceEvent]| {
+                records.iter().any(|event| {
+                    event.owner == Some(owner)
+                        && event.operation == Some("enqueue")
+                        && event.request_id == Some(request_id)
+                }) && records.iter().any(|event| {
+                    event.owner == Some(owner)
+                        && event.operation == Some("pop")
+                        && event.request_id == Some(request_id)
+                }) && records.iter().any(|event| {
+                    event.owner == Some(owner)
+                        && event.operation == Some("write")
+                        && event.request_id == Some(request_id)
+                }) && records.iter().any(|event| {
+                    event.owner == Some(owner)
+                        && event.operation == Some("ack")
+                        && event.request_id == Some(request_id)
+                }) && records.iter().any(|event| {
+                    event.owner == Some(owner)
+                        && event.operation == Some("release")
+                        && event.request_id == Some(request_id)
+                })
+            };
+            let inbox_complete = queue_ops("ToolInbox", &inbox);
+            let writer_complete = queue_ops("Writer", &writer);
+            let route_complete = queue_ops("Route", &route);
+            let owner_complete = selected_admissions == 1
+                && owner_events.count() >= 3
+                && dispatch
+                && retained
+                && final_retire;
+            (owner_complete && inbox_complete && writer_complete && route_complete).then_some((
+                *generation,
+                request_id,
+                owner_complete,
+                dispatch,
+                retained,
+                final_retire,
+                inbox_complete,
+                writer_complete,
+                route_complete,
+                denial,
+            ))
+        });
+        let (
+            p_req_generation,
+            p_req_request_id,
+            p_req_owner,
+            p_req_dispatch,
+            p_req_retained,
+            p_req_final_retire,
+            p_req_inbox,
+            p_req_writer,
+            p_req_route,
+            p_req_denial,
+        ) = p_req_chain.unwrap_or((0, 0, false, false, false, false, false, false, false, false));
+        let p_req_complete = p_req_generation > 0;
         let parity_cases = events
             .iter()
             .filter(|event| {
@@ -845,12 +1085,24 @@ pub(crate) mod source_observer {
             (
                 "P_req",
                 serde_json::json!({
-                    "status": "unresolved",
-                    "value": 0,
+                    "status": if p_req_complete { "observed" } else { "unresolved" },
+                    "value": if p_req_complete { p_req_events.len() } else { 0 },
                     "unit": "source-events",
                     "evidence": evidence("P_req"),
-                    "meaning": "scoped reservation owner-set across reserve/enqueue/pop/write/release",
-                    "reason": "the complete scoped owner-set, including profile_live::Owner, was not observed",
+                    "meaning": "same opaque ConnectionIdentity token across Owner lifecycle, ToolInbox, Writer, and Route",
+                    "checks": {
+                        "generation": p_req_generation,
+                        "request_id": p_req_request_id,
+                        "owner": p_req_owner,
+                        "dispatch_release": p_req_dispatch,
+                        "terminal_retention": p_req_retained,
+                        "final_retire": p_req_final_retire,
+                        "tool_inbox": p_req_inbox,
+                        "writer": p_req_writer,
+                        "route": p_req_route,
+                        "denial_reserve_release": p_req_denial,
+                    },
+                    "reason": if p_req_complete { serde_json::Value::Null } else { serde_json::Value::String("the same opaque token did not close Owner admission/dispatch/retention/final-retire and ToolInbox/Writer/Route events".into()) },
                 }),
             ),
             (
