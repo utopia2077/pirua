@@ -74,6 +74,7 @@ pub(super) struct StagedReceive8192 {
     channel: Arc<dyn RetainedOrderedByteChannel>,
     generation: u64,
     backing: Mutex<Option<StagedBacking8192>>,
+    captured_body: Mutex<Option<(u64, usize)>>,
     caller: Mutex<Option<(InvocationBinding, CallerIdentity8192)>>,
     reader_claimed: AtomicBool,
     close_requested: AtomicBool,
@@ -149,6 +150,7 @@ impl StagedReceive8192 {
                 lease,
                 owner: backing,
             })),
+            captured_body: Mutex::new(None),
             caller: Mutex::new(None),
             reader_claimed: AtomicBool::new(false),
             close_requested: AtomicBool::new(false),
@@ -261,6 +263,70 @@ impl StagedReceive8192 {
         })
     }
 
+    /// Copy one decoded active body from the pump's sole bounded capture into
+    /// the already prewarmed retained lease. The callback never reads or
+    /// closes the channel and does not grant protocol credit.
+    pub(super) fn capture_body(
+        &self,
+        frame: &ActiveFrame,
+        body: &[u8],
+    ) -> Result<(), Receive8192Error> {
+        self.captured_body
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
+        if self.close_requested.load(Ordering::Acquire) || self.cleaned.load(Ordering::Acquire) {
+            return Err(Receive8192Error::Closed);
+        }
+        let request_id = body_request_id(frame).ok_or(Receive8192Error::UnsupportedFrame)?;
+        if body.is_empty()
+            || body.len() != frame.body_len
+            || body.len() > super::receive_backing8192::FRAME
+        {
+            return Err(Receive8192Error::Capacity);
+        }
+        {
+            let mut backing = self.backing.lock().unwrap_or_else(|p| p.into_inner());
+            let backing = backing.as_mut().ok_or(Receive8192Error::Closed)?;
+            let body_slot = backing
+                .lease
+                .body_mut()
+                .map_err(|_| Receive8192Error::Capacity)?;
+            if body.len() > body_slot.len() {
+                return Err(Receive8192Error::Capacity);
+            }
+            body_slot[..body.len()].copy_from_slice(body);
+        }
+        *self.captured_body.lock().unwrap_or_else(|p| p.into_inner()) =
+            Some((request_id, body.len()));
+        #[cfg(test)]
+        {
+            let layout = self
+                .backing
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .as_ref()
+                .map(|backing| backing.owner.layout());
+            let mut event = super::transport::source_observer::SourceEvent::new(
+                "body_capture",
+                file!(),
+                line!(),
+                "StagedReceive8192::capture_body",
+            );
+            event.field = Some("D_req");
+            event.owner = Some("ConnectionPump");
+            event.operation = Some("pump_borrow");
+            event.outcome = Some("retained");
+            event.body_len = Some(body.len());
+            event.bytes = Some(body.len());
+            event.bound_bytes = layout.map(|layout| layout.body_bytes);
+            event.request_id = Some(request_id);
+            event.generation = Some(self.generation);
+            super::transport::source_observer::record(event);
+        }
+        Ok(())
+    }
+
     /// Test-only indexed handoff over the already retained lease. The caller
     /// owns the sole `ReaderClaim`; this helper copies the exact captured body
     /// into the prewarmed body slot, borrows the selected index prefix, and
@@ -278,6 +344,22 @@ impl StagedReceive8192 {
             .lease
             .with_indexed_body(body, max_retained_bytes, callback)
             .map_err(|_| Receive8192Error::Capacity)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_captured_body(&self, request_id: u64, body_len: usize) -> Option<Vec<u8>> {
+        let captured = self
+            .captured_body
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take()?;
+        if captured != (request_id, body_len) {
+            return None;
+        }
+        let mut backing = self.backing.lock().unwrap_or_else(|p| p.into_inner());
+        let backing = backing.as_mut()?;
+        let body = backing.lease.body_mut().ok()?;
+        Some(body[..body_len].to_vec())
     }
 
     #[cfg(test)]
@@ -400,6 +482,21 @@ impl Drop for ReaderClaim<'_> {
         if self.receive.close_requested.load(Ordering::Acquire) {
             self.receive.cleanup();
         }
+    }
+}
+
+fn body_request_id(frame: &ActiveFrame) -> Option<u64> {
+    match &frame.envelope {
+        SelectedEnvelope::V1_0(envelope) => match envelope.frame.as_ref()? {
+            v1_0::envelope::Frame::StreamItem(item) => Some(item.request_id),
+            v1_0::envelope::Frame::StreamEnd(end) => Some(end.request_id),
+            _ => None,
+        },
+        SelectedEnvelope::V1_1(envelope) => match envelope.frame.as_ref()? {
+            v1_1::envelope::Frame::StreamItem(item) => Some(item.request_id),
+            v1_1::envelope::Frame::StreamEnd(end) => Some(end.request_id),
+            _ => None,
+        },
     }
 }
 
@@ -716,5 +813,38 @@ mod tests {
             .unwrap()
             .join()
             .unwrap();
+    }
+
+    #[test]
+    fn pump_body_callback_copies_only_the_bounded_body_and_keeps_refusal_inert() {
+        let receive = StagedReceive8192::stage(Arc::new(Probe), 17).unwrap();
+        let envelope = v1_1::Envelope {
+            frame: Some(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+                request_id: 41,
+                terminal: Some(v1_1::stream_end::Terminal::Result(vec![1, 2, 3])),
+            })),
+        };
+        let body_len = pi_extension_protocol::wire::framing::encode(
+            &envelope,
+            std::num::NonZeroUsize::new(super::super::receive_backing8192::FRAME).unwrap(),
+        )
+        .unwrap()
+        .body_len;
+        let frame = ActiveFrame {
+            envelope: SelectedEnvelope::V1_1(envelope),
+            body_len,
+        };
+        let mut body = vec![0x5a; body_len];
+        receive.capture_body(&frame, &body).unwrap();
+        body.fill(0);
+        assert_eq!(
+            receive.take_captured_body(41, body_len).unwrap(),
+            vec![0x5a; body_len]
+        );
+        assert!(receive.claim_reader().is_ok());
+        assert!(matches!(
+            receive.run_preopened(),
+            Err(Receive8192Error::NativeRefused)
+        ));
     }
 }

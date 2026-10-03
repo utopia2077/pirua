@@ -1428,6 +1428,8 @@ pub struct ConnectionPump {
     offset: usize,
     read_storage_bound_bytes: usize,
     closed: bool,
+    active_body_capture: Option<Vec<u8>>,
+    active_body_callback: Option<ActiveBodyCallback>,
     #[cfg(test)]
     generation: u64,
     #[cfg(test)]
@@ -1435,6 +1437,9 @@ pub struct ConnectionPump {
     #[cfg(test)]
     raw_frame: Vec<u8>,
 }
+
+type ActiveBodyCallback =
+    Box<dyn FnMut(&[u8], &ActiveFrame) -> Result<(), ()> + Send + Sync + 'static>;
 
 #[cfg(test)]
 fn observed_phase(phase: EndpointPhase) -> &'static str {
@@ -1609,6 +1614,8 @@ impl ConnectionPump {
             offset: 0,
             read_storage_bound_bytes,
             closed: false,
+            active_body_capture: None,
+            active_body_callback: None,
             #[cfg(test)]
             generation,
             #[cfg(test)]
@@ -1636,6 +1643,33 @@ impl ConnectionPump {
     /// offered to the host on each read.
     pub fn read_buffer_capacity_bytes(&self) -> usize {
         self.buffered.capacity()
+    }
+
+    /// Install one bounded callback over the exact body bytes already owned by
+    /// this pump. The callback runs before the decoded frame leaves the pump;
+    /// it cannot read the channel, retain the borrowed slice, or close it.
+    pub(crate) fn set_active_body_callback<F>(&mut self, callback: F) -> Result<(), PumpError>
+    where
+        F: FnMut(&[u8], &ActiveFrame) -> Result<(), ()> + Send + Sync + 'static,
+    {
+        if self.active_body_callback.is_some() {
+            return Err(PumpError::ReadBufferUnavailable);
+        }
+        let capture_bytes = self
+            .endpoint
+            .active_grant()
+            .and_then(|grant| grant.wire().limits.as_ref())
+            .and_then(|limits| usize::try_from(limits.frame_bytes).ok())
+            .unwrap_or(self.buffered.len())
+            .checked_add(10)
+            .ok_or(PumpError::ReadBufferUnavailable)?;
+        let mut capture = Vec::new();
+        capture
+            .try_reserve_exact(capture_bytes)
+            .map_err(|_| PumpError::ReadBufferUnavailable)?;
+        self.active_body_capture = Some(capture);
+        self.active_body_callback = Some(Box::new(callback));
+        Ok(())
     }
 
     pub fn active_grant(&self) -> Option<&ActiveGrant> {
@@ -1748,7 +1782,6 @@ impl ConnectionPump {
                 event.operation = Some("phase_read");
                 source_observer::record(event);
             }
-            #[cfg(test)]
             let step_start = self.offset;
             let step = match self
                 .endpoint
@@ -1766,6 +1799,16 @@ impl ConnectionPump {
                 &self.buffered[step_start..step_start.saturating_add(step.consumed)],
             );
             self.offset += step.consumed;
+            if let Some(capture) = self.active_body_capture.as_mut() {
+                let end = capture
+                    .len()
+                    .checked_add(step.consumed)
+                    .ok_or(PumpError::ReadBufferUnavailable)?;
+                if end > capture.capacity() {
+                    return self.fail(PumpError::ReadBufferUnavailable);
+                }
+                capture.extend_from_slice(&self.buffered[step_start..step_start + step.consumed]);
+            }
             #[cfg(test)]
             {
                 let mut event = source_observer::SourceEvent::new(
@@ -1803,6 +1846,9 @@ impl ConnectionPump {
             }
             match step.event {
                 Some(EndpointEvent::Send(frame)) => {
+                    if let Some(capture) = self.active_body_capture.as_mut() {
+                        capture.clear();
+                    }
                     #[cfg(test)]
                     self.raw_frame.clear();
                     if let Err(error) = self.write_frame(frame).await {
@@ -1810,16 +1856,32 @@ impl ConnectionPump {
                     }
                 }
                 Some(EndpointEvent::Ready) if return_on_ready => {
+                    if let Some(capture) = self.active_body_capture.as_mut() {
+                        capture.clear();
+                    }
                     #[cfg(test)]
                     self.raw_frame.clear();
                     return Ok(None);
                 }
                 Some(EndpointEvent::Ready) => {
+                    if let Some(capture) = self.active_body_capture.as_mut() {
+                        capture.clear();
+                    }
                     #[cfg(test)]
                     self.raw_frame.clear();
                 }
                 None => {}
                 Some(EndpointEvent::Active(frame)) => {
+                    if let Some(capture) = self.active_body_capture.as_ref() {
+                        let body_start = capture
+                            .len()
+                            .checked_sub(frame.body_len)
+                            .ok_or(PumpError::MalformedInput)?;
+                        let body = capture.get(body_start..).ok_or(PumpError::MalformedInput)?;
+                        if let Some(callback) = self.active_body_callback.as_mut() {
+                            callback(body, &frame).map_err(|_| PumpError::ReadBufferUnavailable)?;
+                        }
+                    }
                     #[cfg(test)]
                     {
                         let request_id = active_request_id(&frame.envelope);
@@ -1854,6 +1916,9 @@ impl ConnectionPump {
                         source_observer::record(event);
                         self.raw_frame.clear();
                     }
+                    if let Some(capture) = self.active_body_capture.as_mut() {
+                        capture.clear();
+                    }
                     return Ok(Some(*frame));
                 }
             }
@@ -1883,6 +1948,9 @@ impl ConnectionPump {
             self.channel.close();
             self.filled = 0;
             self.offset = 0;
+            if let Some(capture) = self.active_body_capture.as_mut() {
+                capture.clear();
+            }
             #[cfg(test)]
             self.raw_frame.clear();
         }

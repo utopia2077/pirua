@@ -2783,6 +2783,30 @@ enum ReaderAction {
 }
 
 async fn reader_loop(owner: SingleToolOwner, route: Arc<Route>, mut pump: ConnectionPump) {
+    let staged_receive = route
+        .staged_receive
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .clone();
+    if let Some(staged_receive) = staged_receive {
+        let callback_receive = staged_receive.clone();
+        if pump
+            .set_active_body_callback(move |body, frame| {
+                match callback_receive.capture_body(frame, body) {
+                    Ok(())
+                    | Err(
+                        crate::extensions::receive_host8192::Receive8192Error::UnsupportedFrame,
+                    )
+                    | Err(crate::extensions::receive_host8192::Receive8192Error::Closed) => Ok(()),
+                    Err(_) => Err(()),
+                }
+            })
+            .is_err()
+        {
+            owner.close_route(&route, DriverError::HostFault);
+            return;
+        }
+    }
     loop {
         match pump.next_active().await {
             Ok(Some(frame)) => {
@@ -2934,12 +2958,9 @@ fn check_retained_indexed_for_test(
         .unwrap_or_else(|p| p.into_inner())
         .clone()
         .ok_or(DriverError::WrongBinding)?;
-    let body = source_observer::take_active_body(
-        slot.invocation.binding().request_id(),
-        route.generation,
-        body_len,
-    )
-    .ok_or(DriverError::HostFault)?;
+    let body = staged
+        .take_captured_body(slot.invocation.binding().request_id(), body_len)
+        .ok_or(DriverError::HostFault)?;
     let reader = staged.claim_reader().map_err(|_| DriverError::HostFault)?;
     let sequence_before = slot.invocation.next_sequence();
     let credit = slot
@@ -4126,6 +4147,15 @@ pub(crate) mod local_cancel_queue_tests {
                 && event
                     .bound_bytes
                     .is_some_and(|bound| event.bytes.is_some_and(|body| bound >= body))
+                && event.raw_body.is_none()
+        }));
+        assert!(events.iter().any(|event| {
+            event.kind == "body_capture"
+                && event.owner == Some("ConnectionPump")
+                && event.operation == Some("pump_borrow")
+                && event.outcome == Some("retained")
+                && event.request_id == Some(binding.request_id())
+                && event.bytes == event.body_len
                 && event.raw_body.is_none()
         }));
         assert!(events.iter().any(|event| {
