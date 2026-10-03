@@ -36,28 +36,45 @@ mod owner_observer {
         generation: u64,
     }
 
+    #[derive(Clone, Debug)]
+    pub(super) struct RecordFields {
+        pub(super) source_file: &'static str,
+        pub(super) source_line: u32,
+        pub(super) function: &'static str,
+        pub(super) operation: &'static str,
+        pub(super) outcome: &'static str,
+        pub(super) lane: &'static str,
+        pub(super) bytes_before: u64,
+        pub(super) bytes_after: u64,
+        pub(super) seats_before: usize,
+        pub(super) seats_after: usize,
+        pub(super) binding: Binding,
+        pub(super) request_id: u64,
+        pub(super) generation: u64,
+    }
+
     static EVENT: OnceLock<Mutex<Option<Event>>> = OnceLock::new();
 
     fn event_slot() -> &'static Mutex<Option<Event>> {
         EVENT.get_or_init(|| Mutex::new(None))
     }
 
-    pub(super) fn record(
-        source_file: &'static str,
-        source_line: u32,
-        function: &'static str,
-        operation: &'static str,
-        outcome: &'static str,
-        lane: &'static str,
-        bytes_before: u64,
-        bytes_after: u64,
-        seats_before: usize,
-        seats_after: usize,
-        connection: ConnectionIdentity,
-        binding: Binding,
-        request_id: u64,
-        generation: u64,
-    ) {
+    pub(super) fn record(connection: ConnectionIdentity, fields: RecordFields) {
+        let RecordFields {
+            source_file,
+            source_line,
+            function,
+            operation,
+            outcome,
+            lane,
+            bytes_before,
+            bytes_after,
+            seats_before,
+            seats_after,
+            binding,
+            request_id,
+            generation,
+        } = fields;
         let event = Event {
             source_file,
             source_line,
@@ -1041,20 +1058,22 @@ impl Owner {
         self.rate_count = count + 1;
         #[cfg(feature = "test-owner-observer")]
         owner_observer::record(
-            file!(),
-            line!(),
-            "Owner::start_with_id",
-            "admit",
-            "reserved",
-            "blocking",
-            charge - bytes,
-            charge,
-            self.calls.len().saturating_sub(1) + self.denials.len(),
-            self.calls.len() + self.denials.len(),
             self.connection.clone(),
-            binding.clone(),
-            binding.id(),
-            binding.generation(),
+            owner_observer::RecordFields {
+                source_file: file!(),
+                source_line: line!(),
+                function: "Owner::start_with_id",
+                operation: "admit",
+                outcome: "reserved",
+                lane: "blocking",
+                bytes_before: charge - bytes,
+                bytes_after: charge,
+                seats_before: self.calls.len().saturating_sub(1) + self.denials.len(),
+                seats_after: self.calls.len() + self.denials.len(),
+                binding: binding.clone(),
+                request_id: binding.id(),
+                generation: binding.generation(),
+            },
         );
         Ok((binding, request))
     }

@@ -1229,8 +1229,10 @@ fn e1421_hpre_inventory_capacity_minus_one_precedes_root_or_clone() {
     let inventory = host
         .bounded_owned_inventory(&OwnedInventoryCaps::default())
         .unwrap();
-    let mut caps = OwnedInventoryCaps::default();
-    caps.visits = inventory.visits - 1;
+    let caps = OwnedInventoryCaps {
+        visits: inventory.visits - 1,
+        ..OwnedInventoryCaps::default()
+    };
     assert_eq!(
         host.bounded_owned_inventory(&caps).unwrap_err().reason,
         "owned_inventory_capacity"
