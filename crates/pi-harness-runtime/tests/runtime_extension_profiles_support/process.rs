@@ -701,6 +701,92 @@ impl Channel {
     pub fn stderr_text(&self) -> String {
         String::from_utf8_lossy(&self.stderr.lock().unwrap()).into_owned()
     }
+    pub fn snapshot_result_round_trip_diagnostic(&self) -> String {
+        let body = self
+            .writes
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|bytes| {
+                let mut reader = FrameReader::<v1_1::Envelope>::new(nz(262144));
+                let envelope = reader.read_one(bytes).ok()?.frame?.envelope;
+                match envelope.frame {
+                    Some(v1_1::envelope::Frame::Response(response))
+                        if response.request_id == 1000 =>
+                    {
+                        match response.terminal {
+                            Some(v1_1::response::Terminal::Result(body)) => Some(body),
+                            _ => None,
+                        }
+                    }
+                    _ => None,
+                }
+            })
+            .next();
+        let Some(body) = body else {
+            return "snapshot_result_round_trip_bytes=unavailable".into();
+        };
+        let input_hex = body
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let rust_hex = match dto::SnapshotGetResult::decode(body.as_slice()) {
+            Ok(result) => result
+                .encode_to_vec()
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>(),
+            Err(error) => format!("decode-error:{error}"),
+        };
+        let node_hex = if self.language == "typescript" {
+            let script = r#"
+import { pathToFileURL } from "node:url";
+const [repo, minorText, inputHex] = process.argv.slice(1);
+const { Codec } = await import(pathToFileURL(`${repo}/sdk/typescript/profiles/wire.ts`).href);
+function sortedMaps(obj) {
+  if (Array.isArray(obj)) return obj.map(sortedMaps);
+  if (!obj || typeof obj !== "object" || Buffer.isBuffer(obj)) return obj;
+  const out = {};
+  for (const [key, value] of Object.entries(obj)) out[key] = sortedMaps(value);
+  if (out.map_value)
+    out.map_value.entries.sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+  return out;
+}
+const codec = new Codec(repo, Number(minorText));
+const decoded = codec.decode("SnapshotGetResult", Buffer.from(inputHex, "hex"));
+process.stdout.write(codec.encode("SnapshotGetResult", sortedMaps(decoded)).toString("hex"));
+"#;
+            let output = Command::new("node")
+                .args([
+                    "--experimental-strip-types",
+                    "--input-type=module",
+                    "-e",
+                    script,
+                ])
+                .arg(root())
+                .arg(self.minor.to_string())
+                .arg(&input_hex)
+                .output();
+            match output {
+                Ok(output) if output.status.success() => {
+                    String::from_utf8_lossy(&output.stdout).trim().to_owned()
+                }
+                Ok(output) => format!(
+                    "node-error:status={};stderr={}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr).trim()
+                ),
+                Err(error) => format!("node-error:{error}"),
+            }
+        } else {
+            "not-run-language-is-not-typescript".into()
+        };
+        format!(
+            "snapshot_result_input_hex={input_hex}; \
+             snapshot_result_rust_roundtrip_hex={rust_hex}; \
+             snapshot_result_typescript_roundtrip_hex={node_hex}"
+        )
+    }
     pub fn signal(&self, phase: &str) {
         assert!(matches!(
             phase,

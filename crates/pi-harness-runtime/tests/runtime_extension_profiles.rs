@@ -5311,7 +5311,13 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 peer.signal("resource-changed");
                 let deadline = Instant::now() + Duration::from_secs(4);
                 loop {
-                    assert!(runtime_r1_r4_support::poll(future.as_mut()).is_pending());
+                    match runtime_r1_r4_support::poll(future.as_mut()) {
+                        std::task::Poll::Pending => {}
+                        std::task::Poll::Ready(result) => panic!(
+                            "resource provider unexpectedly Ready: {result:?}; stderr={}",
+                            peer.stderr_text()
+                        ),
+                    }
                     setup.pump.tick();
                     if peer.response_frames().len() == 2 {
                         break;
@@ -5544,11 +5550,14 @@ fn accepted_process_consumer<S: RuntimeStorage + 'static>(
                 peer.signal("actions");
                 let deadline = Instant::now() + Duration::from_secs(4);
                 loop {
-                    assert!(
-                        runtime_r1_r4_support::poll(future.as_mut()).is_pending(),
-                        "provider must remain Open: {}",
-                        peer.stderr_text()
-                    );
+                    match runtime_r1_r4_support::poll(future.as_mut()) {
+                        std::task::Poll::Pending => {}
+                        std::task::Poll::Ready(result) => panic!(
+                            "provider must remain Open; unexpectedly Ready: {result:?}; stderr={}; {}",
+                            peer.stderr_text(),
+                            peer.snapshot_result_round_trip_diagnostic()
+                        ),
+                    }
                     setup.pump.tick();
                     if peer.response_frames().len()
                         == if mode == ProcessMode::HostQueue { 3 } else { 2 }
