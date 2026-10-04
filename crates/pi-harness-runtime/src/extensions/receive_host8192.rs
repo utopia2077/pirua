@@ -97,10 +97,10 @@ impl StagedReceive8192 {
             .spawn(move || {
                 #[cfg(test)]
                 {
-                    return super::transport::source_observer::with_generation(
+                    super::transport::source_observer::with_generation(
                         generation,
                         ReceiveBacking8192::construct,
-                    );
+                    )
                 }
                 #[cfg(not(test))]
                 {

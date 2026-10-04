@@ -138,10 +138,11 @@ impl NativeValidator for NativeDomain<'_> {
             event.jobs = Some(candidate.projections.len());
             event.generation = self.observation_generation;
             event.target = self.observation_identity.clone();
-            if candidate.method == "provider.invoke" && candidate.stage == Stage::Terminal {
-                if let Some(observation) = &self.provider_observation {
-                    observation.annotate_bound(&mut event);
-                }
+            if candidate.method == "provider.invoke"
+                && candidate.stage == Stage::Terminal
+                && let Some(observation) = &self.provider_observation
+            {
+                observation.annotate_bound(&mut event);
             }
             source_observer::record(event);
             let mut phase = source_observer::SourceEvent::new(
@@ -312,10 +313,11 @@ impl NativeValidator for NativeDomain<'_> {
             event.jobs = Some(candidate.projections.len());
             event.generation = self.observation_generation;
             event.target = self.observation_identity.clone();
-            if candidate.method == "provider.invoke" && candidate.stage == Stage::Terminal {
-                if let Some(observation) = &self.provider_observation {
-                    observation.annotate_bound(&mut event);
-                }
+            if candidate.method == "provider.invoke"
+                && candidate.stage == Stage::Terminal
+                && let Some(observation) = &self.provider_observation
+            {
+                observation.annotate_bound(&mut event);
             }
             source_observer::record(event);
             let mut phase = source_observer::SourceEvent::new(

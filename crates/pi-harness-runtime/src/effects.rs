@@ -3136,7 +3136,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "extensions"))]
+use crate::runtime_extension_profiles::runtime_r1_r4_support as origin_support;
+
+#[cfg(all(test, not(feature = "extensions")))]
 #[path = "../tests/runtime_r1_r4_support/mod.rs"]
 mod origin_support;
 

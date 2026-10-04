@@ -259,10 +259,9 @@ pub(crate) mod source_observer {
         if event.field == Some("P_req")
             && event.owner == Some("profile_live::Owner")
             && event.operation == Some("admit")
+            && MUTATE_NEXT_OWNER_TOKEN.swap(false, Ordering::AcqRel)
         {
-            if MUTATE_NEXT_OWNER_TOKEN.swap(false, Ordering::AcqRel) {
-                event.token = Some(ConnectionToken::from_identity(&ConnectionIdentity::new()));
-            }
+            event.token = Some(ConnectionToken::from_identity(&ConnectionIdentity::new()));
         }
         let mut state = state()
             .lock()
@@ -1108,7 +1107,7 @@ pub(crate) mod source_observer {
             (
                 "whole_stack",
                 serde_json::json!({
-                    "status": if stack_span > 0 { "observed" } else { "observed" },
+                    "status": "observed",
                     "value": stack_span,
                     "unit": "bytes",
                     "evidence": evidence("whole_stack"),

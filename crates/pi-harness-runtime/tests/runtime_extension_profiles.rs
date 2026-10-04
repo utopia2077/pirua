@@ -1,6 +1,6 @@
 #![cfg(feature = "extensions")]
 mod runtime_extension_profiles_support;
-mod runtime_r1_r4_support;
+pub(crate) mod runtime_r1_r4_support;
 use pi_agent_schema::*;
 use pi_agent_session::{
     codec::SessionCodec,
@@ -1090,7 +1090,7 @@ fn install_live_bridge_for_test(
         7,
         0,
         1,
-        service.limits().clone(),
+        *service.limits(),
         vec![echo_approval()],
         vec![],
     )

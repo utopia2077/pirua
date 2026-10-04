@@ -5,7 +5,7 @@ extern crate self as pi_harness_runtime;
 
 #[cfg(all(test, feature = "extensions"))]
 #[path = "../tests/runtime_extension_profiles.rs"]
-mod runtime_extension_profiles;
+pub(crate) mod runtime_extension_profiles;
 
 #[cfg(feature = "extensions")]
 pub mod extensions;
