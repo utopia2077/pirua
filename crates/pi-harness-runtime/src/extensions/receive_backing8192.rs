@@ -10,7 +10,6 @@ use std::num::NonZeroUsize;
 
 #[cfg(test)]
 use super::transport::source_observer;
-#[cfg(test)]
 use pi_extension_protocol::wire::echo_bounded::BorrowedIndexArena;
 use pi_extension_protocol::wire::echo_bounded::IndexStorage;
 
@@ -223,14 +222,12 @@ impl ReceiveLease8192 {
         Ok(body.len())
     }
 
-    #[cfg(test)]
     pub(super) fn with_indexed_body<R>(
         &mut self,
         body: &[u8],
         max_retained_bytes: usize,
         callback: impl FnOnce(&[u8], &mut BorrowedIndexArena<'_>) -> R,
     ) -> Result<R, Backing8192Error> {
-        let generation = self.generation;
         let body_slot = self.body.as_deref_mut().ok_or(Backing8192Error::Capacity)?;
         if body.is_empty() || body.len() > self.selected.get() || body.len() > body_slot.len() {
             return Err(Backing8192Error::Capacity);
@@ -245,22 +242,25 @@ impl ReceiveLease8192 {
         let mut arena = storage
             .borrow(self.selected, max_retained_bytes)
             .map_err(|_| Backing8192Error::Capacity)?;
-        let mut event = source_observer::SourceEvent::new(
-            "resource",
-            file!(),
-            line!(),
-            "ReceiveLease8192::with_indexed_body",
-        );
-        event.field = Some("Hboot");
-        event.owner = Some("ReceiveLease8192");
-        event.generation = generation;
-        event.operation = Some("index_body");
-        event.outcome = Some("observed");
-        event.body_len = Some(body.len());
-        event.bytes = Some(body.len());
-        event.capacity = Some(self.selected.get());
-        event.bound_bytes = Some(max_retained_bytes);
-        source_observer::record(event);
+        #[cfg(test)]
+        {
+            let mut event = source_observer::SourceEvent::new(
+                "resource",
+                file!(),
+                line!(),
+                "ReceiveLease8192::with_indexed_body",
+            );
+            event.field = Some("Hboot");
+            event.owner = Some("ReceiveLease8192");
+            event.generation = self.generation;
+            event.operation = Some("index_body");
+            event.outcome = Some("observed");
+            event.body_len = Some(body.len());
+            event.bytes = Some(body.len());
+            event.capacity = Some(self.selected.get());
+            event.bound_bytes = Some(max_retained_bytes);
+            source_observer::record(event);
+        }
         Ok(callback(body_view, &mut arena))
     }
 }

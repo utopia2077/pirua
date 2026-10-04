@@ -11,7 +11,6 @@ use std::sync::{
 
 use pi_extension_protocol::endpoint::{ActiveFrame, SelectedEnvelope};
 use pi_extension_protocol::tool_live::InvocationBinding;
-#[cfg(test)]
 use pi_extension_protocol::wire::echo_bounded::BorrowedIndexArena;
 #[cfg(test)]
 use pi_extension_protocol::wire::framing::EncodedFrame;
@@ -327,11 +326,9 @@ impl StagedReceive8192 {
         Ok(())
     }
 
-    /// Test-only indexed handoff over the already retained lease. The caller
-    /// owns the sole `ReaderClaim`; this helper copies the exact captured body
-    /// into the prewarmed body slot, borrows the selected index prefix, and
+    /// Indexed handoff over the already retained lease. The caller owns the
+    /// sole `ReaderClaim`; this helper borrows the selected index prefix and
     /// keeps both borrows alive only for the callback.
-    #[cfg(test)]
     pub(super) fn with_indexed_body<R>(
         &self,
         body: &[u8],
@@ -346,7 +343,6 @@ impl StagedReceive8192 {
             .map_err(|_| Receive8192Error::Capacity)
     }
 
-    #[cfg(test)]
     pub(super) fn take_captured_body(&self, request_id: u64, body_len: usize) -> Option<Vec<u8>> {
         let captured = self
             .captured_body

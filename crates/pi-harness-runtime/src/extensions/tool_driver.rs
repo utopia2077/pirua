@@ -365,6 +365,7 @@ struct LiveSlot {
     provisional_frame: Option<ActiveFrame>,
     local_fault: bool,
     cancel_deadline_ms: Option<u64>,
+    pending_write_wake: Option<Waker>,
 }
 
 #[derive(Clone)]
@@ -669,10 +670,19 @@ impl SingleToolOwner {
             usize::try_from(selected_limits.frame_bytes).map_err(|_| DriverError::InvalidHost)?;
         let blocking_cap = usize::try_from(selected_limits.blocking_queue_bytes)
             .map_err(|_| DriverError::InvalidHost)?;
-        // Q, one full C and one fixed D have independent finite buckets. The
-        // checked sum is the route's maximum outstanding outbound reservation.
+        let initial_stream_credit_bytes = retained_channel.as_ref().and_then(|_| {
+            u64::try_from(frame_cap).ok().map(|frame_cap| {
+                selected_limits
+                    .max_stream_credit_bytes
+                    .min(frame_cap)
+                    .min(super::receive_backing8192::FRAME as u64)
+            })
+        });
+        // Q, one full C, one full Credit, and one fixed D have independent
+        // finite buckets. The checked sum is the route's maximum outstanding
+        // outbound reservation.
         let bounded_outbound = frame_cap
-            .checked_mul(2)
+            .checked_mul(3)
             .and_then(|control| {
                 control.checked_add(blocking_cap.min(self.0.limits.outbound_bytes.get()))
             })
@@ -682,6 +692,8 @@ impl SingleToolOwner {
             || selected.minor > 1
             || frame_cap == 0
             || selected_limits.cancellation_grace_ms == 0
+            || retained_channel.is_some()
+                && initial_stream_credit_bytes.is_none_or(|credit| credit == 0)
             || !bounded_outbound
         {
             return Err(DriverError::InvalidHost);
@@ -731,6 +743,7 @@ impl SingleToolOwner {
             status: std::sync::atomic::AtomicU8::new(0),
             next_id: AtomicU64::new(1),
             frame_cap,
+            initial_stream_credit_bytes,
             normal_cap: blocking_cap.min(self.0.limits.outbound_bytes.get()),
             control_cap: frame_cap,
             cancel_cap: frame_cap,
@@ -1695,7 +1708,7 @@ impl ReadyToolRoute {
                 method_limit_ms: timing.method_limit_ms,
                 connection_remaining_ms: timing.connection_remaining_ms,
                 parent_remaining_ms: timing.parent_remaining_ms,
-                initial_credit_bytes: Some(0),
+                initial_credit_bytes: self.route.initial_stream_credit_bytes,
             },
         )
         .map_err(|_| DriverError::InvalidHost)?;
@@ -1766,6 +1779,7 @@ impl ReadyToolRoute {
                 provisional_frame: None,
                 local_fault: false,
                 cancel_deadline_ms: None,
+                pending_write_wake: None,
             });
             if let Some(caller) = caller {
                 previous_route_caller = self
@@ -1889,6 +1903,7 @@ struct Route {
     status: std::sync::atomic::AtomicU8,
     next_id: AtomicU64,
     frame_cap: usize,
+    initial_stream_credit_bytes: Option<u64>,
     normal_cap: usize,
     control_cap: usize,
     cancel_cap: usize,
@@ -2025,6 +2040,7 @@ impl Route {
             writes.normal_bytes = 0;
             writes.control_bytes = 0;
             writes.cancel_bytes = 0;
+            writes.credit_bytes = 0;
             writes.popped_unadmitted = None;
             writes.retired_cancel_id = None;
             wake
@@ -2052,6 +2068,7 @@ impl Route {
             writes.normal_bytes = 0;
             writes.control_bytes = 0;
             writes.cancel_bytes = 0;
+            writes.credit_bytes = 0;
             writes.popped_unadmitted = None;
             writes.retired_cancel_id = None;
             wake
@@ -2090,6 +2107,7 @@ impl Route {
         writes.normal_bytes = 0;
         writes.control_bytes = 0;
         writes.cancel_bytes = 0;
+        writes.credit_bytes = 0;
         writes.popped_unadmitted = None;
         writes.retired_cancel_id = None;
         FenceRouteDecision::Close(waker)
@@ -2160,6 +2178,7 @@ impl Route {
                 let lane = match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
                     WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                    WriteKind::Credit => "credit",
                     WriteKind::Cancel(_) => "cancel",
                 };
                 let request_id = match kind {
@@ -2167,7 +2186,7 @@ impl Route {
                     | WriteKind::Cancel(id)
                     | WriteKind::ProfileRequest(id)
                     | WriteKind::ProfileResponse(id) => Some(id),
-                    WriteKind::Denial => None,
+                    WriteKind::Credit | WriteKind::Denial => None,
                 };
                 reserve_facts = Some((
                     lane,
@@ -2192,6 +2211,7 @@ impl Route {
                 let lane = match kind {
                     WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
                     WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                    WriteKind::Credit => "credit",
                     WriteKind::Cancel(_) => "cancel",
                 };
                 let request_id = match kind {
@@ -2199,7 +2219,7 @@ impl Route {
                     | WriteKind::Cancel(id)
                     | WriteKind::ProfileRequest(id)
                     | WriteKind::ProfileResponse(id) => Some(id),
-                    WriteKind::Denial => None,
+                    WriteKind::Credit | WriteKind::Denial => None,
                 };
                 enqueue_facts = Some((
                     lane,
@@ -2341,6 +2361,7 @@ impl Route {
         let mut writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
         let reserved = match kind {
             WriteKind::Denial | WriteKind::ProfileResponse(_) => &mut writes.control_bytes,
+            WriteKind::Credit => &mut writes.credit_bytes,
             WriteKind::Cancel(_) => &mut writes.cancel_bytes,
             WriteKind::Request(_) | WriteKind::ProfileRequest(_) => &mut writes.normal_bytes,
         };
@@ -2353,6 +2374,7 @@ impl Route {
             let lane = match kind {
                 WriteKind::Request(_) | WriteKind::ProfileRequest(_) => "normal",
                 WriteKind::Denial | WriteKind::ProfileResponse(_) => "control",
+                WriteKind::Credit => "credit",
                 WriteKind::Cancel(_) => "cancel",
             };
             let request_id = match kind {
@@ -2360,7 +2382,7 @@ impl Route {
                 | WriteKind::Cancel(id)
                 | WriteKind::ProfileRequest(id)
                 | WriteKind::ProfileResponse(id) => Some(id),
-                WriteKind::Denial => None,
+                WriteKind::Credit | WriteKind::Denial => None,
             };
             release_facts = Some((
                 lane,
@@ -2422,7 +2444,7 @@ impl Route {
 
     fn has_control_pending(&self) -> bool {
         let writes = self.writes.lock().unwrap_or_else(|p| p.into_inner());
-        writes.control_bytes != 0 || writes.cancel_bytes != 0
+        writes.control_bytes != 0 || writes.cancel_bytes != 0 || writes.credit_bytes != 0
     }
 
     fn has_cancel_pending(&self) -> bool {
@@ -2455,6 +2477,7 @@ impl Route {
 enum WriteKind {
     Request(u64),
     Cancel(u64),
+    Credit,
     Denial,
     ProfileRequest(u64),
     ProfileResponse(u64),
@@ -2471,6 +2494,7 @@ struct WriteState {
     normal_bytes: usize,
     control_bytes: usize,
     cancel_bytes: usize,
+    credit_bytes: usize,
     retired_cancel_id: Option<u64>,
     popped_unadmitted: Option<(WriteKind, usize)>,
     denial_fenced: bool,
@@ -2493,6 +2517,7 @@ impl WriteState {
             WriteKind::Denial | WriteKind::ProfileResponse(_) => {
                 (&mut self.control_bytes, denial_cap)
             }
+            WriteKind::Credit => (&mut self.credit_bytes, denial_cap),
             WriteKind::Cancel(_) => (&mut self.cancel_bytes, cancel_cap),
         };
         *reserved = reserved
@@ -2544,7 +2569,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                         | WriteKind::Cancel(id)
                         | WriteKind::ProfileRequest(id)
                         | WriteKind::ProfileResponse(id) => Some(id),
-                        WriteKind::Denial => None,
+                        WriteKind::Credit | WriteKind::Denial => None,
                     },
                 );
                 if matches!(job.kind, WriteKind::Request(_) | WriteKind::Cancel(_)) {
@@ -2659,7 +2684,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 | WriteKind::Cancel(id)
                 | WriteKind::ProfileRequest(id)
                 | WriteKind::ProfileResponse(id) => Some(id),
-                WriteKind::Denial => None,
+                WriteKind::Credit | WriteKind::Denial => None,
             };
             event.generation = Some(route.generation);
             event.token = Some(route.connection_token());
@@ -2677,7 +2702,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 | WriteKind::Cancel(id)
                 | WriteKind::ProfileRequest(id)
                 | WriteKind::ProfileResponse(id) => Some(id),
-                WriteKind::Denial => None,
+                WriteKind::Credit | WriteKind::Denial => None,
             };
             queue.token = Some(route.connection_token());
             source_observer::record(queue);
@@ -2729,7 +2754,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                 | WriteKind::Cancel(id)
                 | WriteKind::ProfileRequest(id)
                 | WriteKind::ProfileResponse(id) => Some(id),
-                WriteKind::Denial => None,
+                WriteKind::Credit | WriteKind::Denial => None,
             };
             queue.token = Some(route.connection_token());
             source_observer::record(queue);
@@ -2747,7 +2772,7 @@ async fn writer_loop(owner: SingleToolOwner, route: Arc<Route>) {
                     | WriteKind::Cancel(id)
                     | WriteKind::ProfileRequest(id)
                     | WriteKind::ProfileResponse(id) => Some(id),
-                    WriteKind::Denial => None,
+                    WriteKind::Credit | WriteKind::Denial => None,
                 };
                 ack.token = Some(route.connection_token());
                 source_observer::record(ack);
@@ -2945,8 +2970,7 @@ fn peer_ref_1_1(reference: &v1_1::CapabilityRef) -> PeerRef {
 type LiveOutcome = (Option<(Arc<Completion>, CompletionValue)>, bool);
 type LiveDecision = Result<LiveOutcome, DriverError>;
 
-#[cfg(test)]
-fn check_retained_indexed_for_test(
+fn check_retained_indexed(
     slot: &mut LiveSlot,
     route: &Arc<Route>,
     now: u64,
@@ -2962,24 +2986,8 @@ fn check_retained_indexed_for_test(
         .take_captured_body(slot.invocation.binding().request_id(), body_len)
         .ok_or(DriverError::HostFault)?;
     let reader = staged.claim_reader().map_err(|_| DriverError::HostFault)?;
+    #[cfg(test)]
     let sequence_before = slot.invocation.next_sequence();
-    let credit = slot
-        .invocation
-        .grant_credit(body_len as u64, now)
-        .map_err(|_| DriverError::HostFault)?;
-    let mut credit_event = source_observer::SourceEvent::new(
-        "credit",
-        file!(),
-        line!(),
-        "check_retained_indexed_for_test",
-    );
-    credit_event.outcome = Some("prepared");
-    credit_event.operation = Some("additional");
-    credit_event.method = Some("Credit".into());
-    credit_event.bytes = Some(credit.body_len);
-    credit_event.request_id = Some(slot.invocation.binding().request_id());
-    credit_event.generation = Some(route.generation);
-    source_observer::record(credit_event);
 
     let checked = staged.with_indexed_body(&body, |body, arena| {
         slot.domain.receive_indexed_checked_with_final_time(
@@ -3027,58 +3035,90 @@ fn check_retained_indexed_for_test(
         }
     };
     match checked.outcome {
-        ReceiveOutcome::Progress(_) | ReceiveOutcome::IgnoredCancelledProgress => Ok((None, false)),
+        ReceiveOutcome::Progress(_) => {
+            let body_credit = u64::try_from(body_len).map_err(|_| DriverError::HostFault)?;
+            let credit = slot
+                .invocation
+                .grant_credit(body_credit, now)
+                .map_err(|_| DriverError::HostFault)?;
+            let (wake, _) = route.enqueue(credit, WriteKind::Credit)?;
+            slot.pending_write_wake = wake;
+            #[cfg(test)]
+            {
+                let mut credit_event = source_observer::SourceEvent::new(
+                    "credit",
+                    file!(),
+                    line!(),
+                    "check_retained_indexed",
+                );
+                credit_event.outcome = Some("enqueued");
+                credit_event.operation = Some("additional");
+                credit_event.method = Some("Credit".into());
+                credit_event.bytes = Some(body_len);
+                credit_event.request_id = Some(slot.invocation.binding().request_id());
+                credit_event.generation = Some(route.generation);
+                source_observer::record(credit_event);
+            }
+            Ok((None, false))
+        }
+        ReceiveOutcome::IgnoredCancelledProgress => Ok((None, false)),
         ReceiveOutcome::TerminalReceived => {
+            #[cfg(test)]
             let sequence_after = slot.invocation.next_sequence();
-            let mut receive_event = source_observer::SourceEvent::new(
-                "receive",
-                file!(),
-                line!(),
-                "check_retained_indexed_for_test",
-            );
-            receive_event.outcome = Some("terminal_received");
-            receive_event.operation = Some("indexed");
-            receive_event.bytes = Some(body_len);
-            receive_event.body_len = Some(body_len);
-            receive_event.request_id = Some(slot.invocation.binding().request_id());
-            receive_event.generation = Some(route.generation);
-            receive_event.wire_sequence_before = Some(sequence_before);
-            receive_event.wire_sequence_after = Some(sequence_after);
-            source_observer::record(receive_event);
-            let mut selection_event = source_observer::SourceEvent::new(
-                "body_capture",
-                file!(),
-                line!(),
-                "check_retained_indexed_for_test",
-            );
-            selection_event.field = Some("D_req");
-            selection_event.owner = Some("StagedReceive8192");
-            selection_event.operation = Some("indexed_selection");
-            selection_event.outcome = Some("complete");
-            selection_event.bytes = Some(body_len);
-            selection_event.body_len = Some(body_len);
-            selection_event.request_id = Some(slot.invocation.binding().request_id());
-            selection_event.generation = Some(route.generation);
-            selection_event.wire_sequence_before = Some(sequence_before);
-            selection_event.wire_sequence_after = Some(sequence_after);
-            source_observer::record(selection_event);
-            let mut terminal_event = source_observer::SourceEvent::new(
-                "body_capture",
-                file!(),
-                line!(),
-                "check_retained_indexed_for_test",
-            );
-            terminal_event.field = Some("D_req");
-            terminal_event.owner = Some("StagedReceive8192");
-            terminal_event.operation = Some("indexed_terminal");
-            terminal_event.outcome = Some("complete");
-            terminal_event.bytes = Some(body_len);
-            terminal_event.body_len = Some(body_len);
-            terminal_event.request_id = Some(slot.invocation.binding().request_id());
-            terminal_event.generation = Some(route.generation);
-            terminal_event.wire_sequence_before = Some(sequence_before);
-            terminal_event.wire_sequence_after = Some(sequence_after);
-            source_observer::record(terminal_event);
+            #[cfg(test)]
+            {
+                let mut receive_event = source_observer::SourceEvent::new(
+                    "receive",
+                    file!(),
+                    line!(),
+                    "check_retained_indexed",
+                );
+                receive_event.outcome = Some("terminal_received");
+                receive_event.operation = Some("indexed");
+                receive_event.bytes = Some(body_len);
+                receive_event.body_len = Some(body_len);
+                receive_event.request_id = Some(slot.invocation.binding().request_id());
+                receive_event.generation = Some(route.generation);
+                receive_event.wire_sequence_before = Some(sequence_before);
+                receive_event.wire_sequence_after = Some(sequence_after);
+                source_observer::record(receive_event);
+
+                let mut selection_event = source_observer::SourceEvent::new(
+                    "body_capture",
+                    file!(),
+                    line!(),
+                    "check_retained_indexed",
+                );
+                selection_event.field = Some("D_req");
+                selection_event.owner = Some("StagedReceive8192");
+                selection_event.operation = Some("indexed_selection");
+                selection_event.outcome = Some("complete");
+                selection_event.bytes = Some(body_len);
+                selection_event.body_len = Some(body_len);
+                selection_event.request_id = Some(slot.invocation.binding().request_id());
+                selection_event.generation = Some(route.generation);
+                selection_event.wire_sequence_before = Some(sequence_before);
+                selection_event.wire_sequence_after = Some(sequence_after);
+                source_observer::record(selection_event);
+
+                let mut terminal_event = source_observer::SourceEvent::new(
+                    "body_capture",
+                    file!(),
+                    line!(),
+                    "check_retained_indexed",
+                );
+                terminal_event.field = Some("D_req");
+                terminal_event.owner = Some("StagedReceive8192");
+                terminal_event.operation = Some("indexed_terminal");
+                terminal_event.outcome = Some("complete");
+                terminal_event.bytes = Some(body_len);
+                terminal_event.body_len = Some(body_len);
+                terminal_event.request_id = Some(slot.invocation.binding().request_id());
+                terminal_event.generation = Some(route.generation);
+                terminal_event.wire_sequence_before = Some(sequence_before);
+                terminal_event.wire_sequence_after = Some(sequence_after);
+                source_observer::record(terminal_event);
+            }
 
             let terminal = match slot.invocation.receipt().expect("terminal retained").kind() {
                 TerminalKind::Result => match checked.value {
@@ -3129,7 +3169,7 @@ fn check_live_frame(
             .ok_or(DriverError::WrongBinding)?
             .staged_identity();
         let body_len = route.prepare_retained_refusal(slot.invocation.binding(), &caller, frame)?;
-        return check_retained_indexed_for_test(slot, route, now, body_len);
+        return check_retained_indexed(slot, route, now, body_len);
     }
     if route.retained_channel.is_some() {
         let caller = route
@@ -3139,14 +3179,8 @@ fn check_live_frame(
             .as_ref()
             .ok_or(DriverError::WrongBinding)?
             .staged_identity();
-        route.prepare_retained_refusal(slot.invocation.binding(), &caller, frame)?;
-        return Ok((
-            Some((
-                slot.completion.clone(),
-                CompletionValue::Failed(DriverError::HostFault),
-            )),
-            true,
-        ));
+        let body_len = route.prepare_retained_refusal(slot.invocation.binding(), &caller, frame)?;
+        return check_retained_indexed(slot, route, now, body_len);
     }
     match slot.domain.receive_checked_with_final_time(
         &mut slot.invocation,
@@ -3253,7 +3287,7 @@ impl SingleToolOwner {
         };
         match incoming {
             Incoming::Item(id) | Incoming::End(id) => {
-                let checked = (|| -> Result<Option<LiveOutcome>, DriverError> {
+                let checked = (|| -> Result<(Option<LiveOutcome>, Option<Waker>), DriverError> {
                     let mut state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
                     let slot = state.live.as_mut().ok_or(DriverError::MalformedPeer)?;
                     if !Arc::ptr_eq(&slot.route, route)
@@ -3264,7 +3298,7 @@ impl SingleToolOwner {
                     }
                     let now = route.clock.now_ms();
                     if slot.invocation.phase() == LivePhase::PeerLost {
-                        return Ok(Some((None, false)));
+                        return Ok((Some((None, false)), slot.pending_write_wake.take()));
                     }
                     if now
                         >= slot
@@ -3273,13 +3307,16 @@ impl SingleToolOwner {
                     {
                         slot.invocation.peer_lost();
                         slot.provisional_frame = None;
-                        return Ok(Some((
+                        return Ok((
                             Some((
-                                slot.completion.clone(),
-                                CompletionValue::Failed(DriverError::PeerLost),
+                                Some((
+                                    slot.completion.clone(),
+                                    CompletionValue::Failed(DriverError::PeerLost),
+                                )),
+                                true,
                             )),
-                            true,
-                        )));
+                            slot.pending_write_wake.take(),
+                        ));
                     }
                     if !slot.send_confirmed {
                         if slot.provisional_frame.is_some()
@@ -3294,13 +3331,22 @@ impl SingleToolOwner {
                         // confirmation fence; zero credit means no valid item can
                         // precede the first terminal in this source unit.
                         slot.provisional_frame = Some(frame);
-                        return Ok(None);
+                        return Ok((None, slot.pending_write_wake.take()));
                     }
-                    check_live_frame(slot, route, &frame, now).map(Some)
+                    let outcome = check_live_frame(slot, route, &frame, now);
+                    let wake = slot.pending_write_wake.take();
+                    outcome.map(|outcome| (Some(outcome), wake))
                 })();
                 match checked {
-                    Ok(None) => Ok(ReaderAction::Continue),
-                    Ok(Some(outcome)) => self.finish_live_decision(route, Ok(outcome)),
+                    Ok((outcome, wake)) => {
+                        if let Some(wake) = wake {
+                            wake.wake();
+                        }
+                        match outcome {
+                            None => Ok(ReaderAction::Continue),
+                            Some(outcome) => self.finish_live_decision(route, Ok(outcome)),
+                        }
+                    }
                     Err(error) => self.finish_live_decision(route, Err(error)),
                 }
             }
@@ -3318,7 +3364,9 @@ impl SingleToolOwner {
                                         LivePhase::Open | LivePhase::CancelRequested
                                     )
                             }),
-                            writes.control_bytes != 0 || writes.cancel_bytes != 0,
+                            writes.control_bytes != 0
+                                || writes.cancel_bytes != 0
+                                || writes.credit_bytes != 0,
                         )
                     };
                     if pending || control_pending {
@@ -3890,6 +3938,81 @@ pub(crate) mod local_cancel_queue_tests {
         (spawner, owner, route, channel, clock)
     }
 
+    fn owner_and_retained_route() -> (
+        Arc<LifecycleSpawner>,
+        SingleToolOwner,
+        ReadyToolRoute,
+        Arc<LifecycleChannel>,
+        Arc<LifecycleClock>,
+    ) {
+        let spawner = Arc::new(LifecycleSpawner::default());
+        let owner = SingleToolOwner::new(
+            spawner.clone(),
+            OwnerLimits {
+                outbound_bytes: nz(8192),
+                receipt_bytes: nz(8192),
+                write_timeout_ms: NonZeroU64::new(10).unwrap(),
+            },
+        );
+        let channel = Arc::new(LifecycleChannel::new());
+        channel.push(hello());
+        channel.push(manifest());
+        channel.push(frame(5, &[]));
+        let clock = Arc::new(LifecycleClock::new(7));
+        let route = spawner
+            .drive(owner.connect_inner(
+                host(7),
+                channel.clone(),
+                Some(channel.clone()),
+                clock.clone(),
+                PumpConfig {
+                    max_read_chunk: nz(8192),
+                    write_timeout_ms: NonZeroU64::new(10).unwrap(),
+                },
+                None,
+            ))
+            .unwrap();
+        route
+            .bind_timing(EchoRouteTiming {
+                method_limit_ms: NonZeroU64::new(1000).unwrap(),
+                connection_deadline_ms: 10_000,
+            })
+            .unwrap();
+        (spawner, owner, route, channel, clock)
+    }
+
+    fn written_frames(channel: &LifecycleChannel) -> Vec<v1_1::Envelope> {
+        channel
+            .writes
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|bytes| {
+                let mut reader =
+                    pi_extension_protocol::wire::framing::FrameReader::<v1_1::Envelope>::new(nz(
+                        8192,
+                    ));
+                reader
+                    .read_one(bytes)
+                    .unwrap()
+                    .frame
+                    .expect("complete written frame")
+                    .envelope
+            })
+            .collect()
+    }
+
+    fn framed_body_len(bytes: &[u8]) -> usize {
+        let mut reader =
+            pi_extension_protocol::wire::framing::FrameReader::<v1_1::Envelope>::new(nz(8192));
+        reader
+            .read_one(bytes)
+            .unwrap()
+            .frame
+            .expect("complete input frame")
+            .body_len
+    }
+
     fn plan() -> ToolEffectPlan<()> {
         let index = SafeUnsigned::new(0).unwrap();
         ToolEffectPlan {
@@ -4160,12 +4283,14 @@ pub(crate) mod local_cancel_queue_tests {
                 && event.bytes == event.body_len
                 && event.raw_body.is_none()
         }));
-        assert!(events.iter().any(|event| {
-            event.kind == "credit"
-                && event.operation == Some("additional")
-                && event.outcome == Some("prepared")
-                && event.request_id == Some(binding.request_id())
-        }));
+        let state = owner.0.state.lock().unwrap();
+        let slot = state.live.as_ref().expect("terminal remains owned");
+        assert_eq!(
+            slot.invocation.credit(),
+            0,
+            "terminal frames consume no progress credit"
+        );
+        drop(state);
         assert!(events.iter().any(|event| {
             event.kind == "receive"
                 && event.operation == Some("indexed")
@@ -4183,6 +4308,124 @@ pub(crate) mod local_cancel_queue_tests {
     fn retained_indexed_walking_branch_uses_body_lease_credit_and_terminal_receipt() {
         source_observer::reset();
         retained_indexed_walking_branch_for_test();
+    }
+
+    #[test]
+    fn retained_production_route_grants_initial_and_exact_additional_credit() {
+        source_observer::reset();
+        let (spawner, owner, route, channel, _clock) = owner_and_retained_route();
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("production-credit"),
+                "production-credit",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let binding = prepared.binding().clone();
+        let _handle = prepared.activate().unwrap();
+        spawner.tick();
+
+        let request = written_frames(&channel)
+            .into_iter()
+            .find_map(|envelope| match envelope.frame {
+                Some(v1_1::envelope::Frame::Request(request)) => Some(request),
+                _ => None,
+            })
+            .expect("tool request written");
+        assert_eq!(request.initial_stream_credit_bytes, Some(4096));
+
+        let progress = raw("progress", 1);
+        let progress_body_len = framed_body_len(&progress);
+        channel.push(progress);
+        spawner.tick();
+        spawner.tick();
+
+        assert_eq!(owner.binding_phase(&binding), Ok(LivePhase::Open));
+        let state = owner.0.state.lock().unwrap();
+        let slot = state.live.as_ref().expect("live retained invocation");
+        assert_eq!(slot.invocation.next_sequence(), 1);
+        assert_eq!(slot.invocation.credit(), 4096);
+        drop(state);
+        let credit = written_frames(&channel)
+            .into_iter()
+            .find_map(|envelope| match envelope.frame {
+                Some(v1_1::envelope::Frame::Credit(credit)) => Some(credit),
+                _ => None,
+            })
+            .expect("additional credit written");
+        assert_eq!(credit.request_id, binding.request_id());
+        assert_eq!(credit.additional_bytes, progress_body_len as u64);
+
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(&binding),
+            Ok(LivePhase::TerminalReceived)
+        );
+        owner
+            .retire(&binding, RetireReason::Committed)
+            .expect("terminal receipt retires");
+        assert_eq!(
+            written_frames(&channel)
+                .iter()
+                .filter(|envelope| {
+                    matches!(envelope.frame, Some(v1_1::envelope::Frame::Credit(_)))
+                })
+                .count(),
+            1,
+            "terminal frames do not mint replenishment credit"
+        );
+        route.close();
+    }
+
+    #[test]
+    fn retained_production_route_emits_no_new_credit_after_cancellation() {
+        let (spawner, owner, route, channel, _clock) = owner_and_retained_route();
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("production-cancel"),
+                "production-cancel",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        let binding = prepared.binding().clone();
+        let _handle = prepared.activate().unwrap();
+        spawner.tick();
+        owner
+            .abort_local(&binding, LocalAbortCause::User)
+            .expect("cancel is admitted");
+        spawner.tick();
+
+        channel.push(raw("progress", 1));
+        spawner.tick();
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(&binding),
+            Ok(LivePhase::CancelRequested)
+        );
+        assert!(
+            !written_frames(&channel)
+                .iter()
+                .any(|envelope| matches!(envelope.frame, Some(v1_1::envelope::Frame::Credit(_)))),
+            "cancellation must suppress replenishment credit"
+        );
+
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(&binding),
+            Ok(LivePhase::TerminalReceived)
+        );
+        owner
+            .retire(&binding, RetireReason::Committed)
+            .expect("cancelled terminal receipt retires");
+        route.close();
     }
 
     fn raw(name: &str, request_id: u8) -> Vec<u8> {
