@@ -83,6 +83,50 @@ fn unhex(s: &str) -> Vec<u8> {
 }
 
 #[test]
+fn json_wire_sorts_map_entries_recursively() {
+    let input: Value =
+        serde_json::from_str(r#"{"z":{"z":1,"a":[{"z":2,"a":3}]},"a":0,"m":{"z":4,"a":5}}"#)
+            .unwrap();
+    let wire = json_wire(&input).unwrap();
+
+    fn assert_sorted(value: &v1_1::WireValue) {
+        match value.value.as_ref() {
+            Some(v1_1::wire_value::Value::MapValue(map)) => {
+                let keys = map
+                    .entries
+                    .iter()
+                    .map(|entry| entry.key.as_str())
+                    .collect::<Vec<_>>();
+                let mut sorted = keys.clone();
+                sorted.sort_unstable();
+                assert_eq!(keys, sorted);
+                for entry in &map.entries {
+                    assert_sorted(entry.value.as_ref().unwrap());
+                }
+            }
+            Some(v1_1::wire_value::Value::ListValue(list)) => {
+                for item in &list.items {
+                    assert_sorted(item);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    assert_sorted(&wire);
+    let Some(v1_1::wire_value::Value::MapValue(root)) = wire.value.as_ref() else {
+        panic!("expected root map");
+    };
+    assert_eq!(
+        root.entries
+            .iter()
+            .map(|entry| entry.key.as_str())
+            .collect::<Vec<_>>(),
+        ["a", "m", "z"]
+    );
+}
+
+#[test]
 fn every_static_root_checks_missing_wrong_projection_and_digest_in_both_minors() {
     let r = registry();
     let v = vectors();

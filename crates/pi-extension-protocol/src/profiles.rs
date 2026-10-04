@@ -857,17 +857,23 @@ pub fn json_wire(v: &Value) -> Result<v1_1::WireValue> {
             Value::Array(a) => W::ListValue(v1_1::WireList {
                 items: a.iter().map(json_wire).collect::<Result<_>>()?,
             }),
-            Value::Object(m) => W::MapValue(v1_1::WireMap {
-                entries: m
-                    .iter()
-                    .map(|(k, v)| {
-                        Ok(v1_1::WireMapEntry {
-                            key: k.clone(),
-                            value: Some(json_wire(v)?),
+            Value::Object(m) => {
+                let mut entries = m.iter().collect::<Vec<_>>();
+                entries.sort_unstable_by(|(left, _), (right, _)| {
+                    left.encode_utf16().cmp(right.encode_utf16())
+                });
+                W::MapValue(v1_1::WireMap {
+                    entries: entries
+                        .into_iter()
+                        .map(|(k, v)| {
+                            Ok(v1_1::WireMapEntry {
+                                key: k.clone(),
+                                value: Some(json_wire(v)?),
+                            })
                         })
-                    })
-                    .collect::<Result<_>>()?,
-            }),
+                        .collect::<Result<_>>()?,
+                })
+            }
         }),
     })
 }
