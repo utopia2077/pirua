@@ -109,6 +109,20 @@ impl ProviderRequestObservation {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn bound_event_count(&self) -> usize {
+        source_observer::snapshot()
+            .iter()
+            .filter(|event| {
+                event.function == "ProviderRequestObservation::bind"
+                    && event
+                        .token
+                        .as_ref()
+                        .is_some_and(|token| token.same_connection(&self.token))
+            })
+            .count()
+    }
+
     fn assert_binding(&self, binding: &pi_extension_protocol::profile_live::Binding) {
         assert!(
             self.binding

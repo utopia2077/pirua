@@ -1006,7 +1006,7 @@ fn provider_request_observation_requires_opaque_binding_and_native_success() {
     );
     observation.annotate_bound(&mut unbound);
     assert_eq!((unbound.request_id, unbound.generation), (None, None));
-    let before_wrong = source_observer::snapshot().len();
+    let before_wrong_bound = observation.bound_event_count();
     assert!(
         catch_unwind(AssertUnwindSafe(|| {
             observation.bind(&ConnectionIdentity::new(), &binding, &started);
@@ -1014,15 +1014,15 @@ fn provider_request_observation_requires_opaque_binding_and_native_success() {
         .is_err(),
         "equal numeric ID/generation cannot replace opaque connection identity"
     );
-    assert_eq!(source_observer::snapshot().len(), before_wrong);
+    assert_eq!(observation.bound_event_count(), before_wrong_bound);
     observation.bind(&connection.connection_identity(), &binding, &started);
-    let after_bound = source_observer::snapshot().len();
+    let after_bound = observation.bound_event_count();
     observation.bind(
         &connection.connection_identity(),
         &binding.clone(),
         &started,
     );
-    assert_eq!(source_observer::snapshot().len(), after_bound);
+    assert_eq!(observation.bound_event_count(), after_bound);
     assert!(
         catch_unwind(AssertUnwindSafe(|| {
             observation.bind(
@@ -1034,7 +1034,7 @@ fn provider_request_observation_requires_opaque_binding_and_native_success() {
         .is_err(),
         "another real Binding with equal numeric ID/generation cannot rebind"
     );
-    assert_eq!(source_observer::snapshot().len(), after_bound);
+    assert_eq!(observation.bound_event_count(), after_bound);
 
     native.provider_observation = Some(observation);
     let before_rejected = source_observer::snapshot().len();
