@@ -128,6 +128,16 @@ pub struct ProfileConnection {
     waiting: AtomicUsize,
     peer_close: Mutex<PeerCloseFence>,
 }
+struct ConnectToolArgs<'a> {
+    owner: &'a crate::extensions::tool_driver::SingleToolOwner,
+    host: HostAuthority,
+    channel: Arc<dyn OrderedByteChannel>,
+    retained_channel: Option<Arc<dyn RetainedOrderedByteChannel>>,
+    clock: Arc<dyn MonotonicClock>,
+    config: PumpConfig,
+    reservations: Reservations,
+    remaining_ms: u64,
+}
 pub(crate) trait DispatchScope: Send + Sync {
     #[cfg(test)]
     fn observe_started(
@@ -249,16 +259,16 @@ impl ProfileConnection {
         remaining_ms: u64,
     ) -> Result<(Arc<Self>, crate::extensions::tool_driver::ReadyToolRoute), HarnessRuntimeError>
     {
-        Self::connect_tool_inner(
+        Self::connect_tool_inner(ConnectToolArgs {
             owner,
             host,
             channel,
-            None,
+            retained_channel: None,
             clock,
             config,
             reservations,
             remaining_ms,
-        )
+        })
         .await
     }
 
@@ -273,28 +283,30 @@ impl ProfileConnection {
     ) -> Result<(Arc<Self>, crate::extensions::tool_driver::ReadyToolRoute), HarnessRuntimeError>
     {
         let ordered: Arc<dyn OrderedByteChannel> = channel.clone();
-        Self::connect_tool_inner(
+        Self::connect_tool_inner(ConnectToolArgs {
             owner,
             host,
-            ordered,
-            Some(channel),
+            channel: ordered,
+            retained_channel: Some(channel),
             clock,
             config,
             reservations,
             remaining_ms,
-        )
+        })
         .await
     }
 
     async fn connect_tool_inner(
-        owner: &crate::extensions::tool_driver::SingleToolOwner,
-        host: HostAuthority,
-        channel: Arc<dyn OrderedByteChannel>,
-        retained_channel: Option<Arc<dyn RetainedOrderedByteChannel>>,
-        clock: Arc<dyn MonotonicClock>,
-        config: PumpConfig,
-        reservations: Reservations,
-        remaining_ms: u64,
+        ConnectToolArgs {
+            owner,
+            host,
+            channel,
+            retained_channel,
+            clock,
+            config,
+            reservations,
+            remaining_ms,
+        }: ConnectToolArgs<'_>,
     ) -> Result<(Arc<Self>, crate::extensions::tool_driver::ReadyToolRoute), HarnessRuntimeError>
     {
         let max = usize::try_from(reservations.blocking_bytes).map_err(|_| super::fault())?;
@@ -2103,6 +2115,10 @@ impl<
     /// channels that advertise only [`OrderedByteChannel`]. This additive
     /// entry preserves the existing pump as the sole reader and carries the
     /// retained capability into the route before ordinary trait erasure.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "Preserve the frozen retained-ingress public API."
+    )]
     pub async fn connect_profile_tool_retained(
         &self,
         owner: &crate::extensions::tool_driver::SingleToolOwner,
