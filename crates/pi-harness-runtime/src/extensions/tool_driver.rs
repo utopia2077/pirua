@@ -670,7 +670,7 @@ impl SingleToolOwner {
             usize::try_from(selected_limits.frame_bytes).map_err(|_| DriverError::InvalidHost)?;
         let blocking_cap = usize::try_from(selected_limits.blocking_queue_bytes)
             .map_err(|_| DriverError::InvalidHost)?;
-        let initial_stream_credit_bytes = retained_channel.as_ref().and_then(|_| {
+        let initial_stream_credit_bytes = retained_channel.as_ref().map_or(Some(0), |_| {
             u64::try_from(frame_cap).ok().map(|frame_cap| {
                 selected_limits
                     .max_stream_credit_bytes
