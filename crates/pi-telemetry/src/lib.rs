@@ -2,17 +2,30 @@
 
 //! Executor-neutral telemetry contracts for the Rust harness workspace.
 //!
-//! This crate deliberately defines only process-local observation handles. It
-//! does not define a wire format, persistence format, exporter, or schema.
+//! This crate defines process-local observation handles, detached in-memory
+//! recording, and serializable telemetry schema metadata. It does not define
+//! a persistence format or exporter.
 
+mod memory;
 mod noop;
+mod schema;
 
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
+pub use memory::{InMemoryTelemetryContext, RecordedTelemetryEvent, RecordedTelemetrySpan};
 pub use noop::{
     NOOP_TELEMETRY_CONTEXT, NOOP_TELEMETRY_SPAN, NoopTelemetryContext, NoopTelemetrySpan,
+};
+pub use schema::{
+    DuplicateTelemetrySpanNames, TelemetryAttributeDefinition, TelemetryAttributeMetadata,
+    TelemetryAttributeType, TelemetryCardinality, TelemetryDefaultStatus,
+    TelemetryEventAttributeDefinition, TelemetryEventDefinition, TelemetryParentDefinition,
+    TelemetrySchemaDefinition, TelemetrySpanDefinition, TelemetryStartAttributeDefinition,
+    TelemetryStatusDefinition, define_telemetry_schema, span_attributes_to_json,
+    validate_unique_telemetry_span_names,
 };
 
 /// A finite floating-point number accepted at the telemetry boundary.
@@ -217,32 +230,37 @@ impl SpanGuard {
         }
     }
 
+    pub(crate) fn noop() -> Self {
+        Self::new(NoopTelemetrySpan)
+    }
+
     /// Starts a child of this span.
     pub fn start_child(&self, options: SpanOptions) -> SpanGuard {
         match &self.span {
-            Some(span) => span.start_child(options),
-            None => NOOP_TELEMETRY_CONTEXT.start_span(options),
+            Some(span) => catch_unwind(AssertUnwindSafe(|| span.start_child(options)))
+                .unwrap_or_else(|_| Self::noop()),
+            None => Self::noop(),
         }
     }
 
     /// Delegates an event to the backend span.
     pub fn add_event(&self, name: &str, attributes: &SpanAttributes) {
         if let Some(span) = &self.span {
-            span.add_event(name, attributes);
+            let _ = catch_unwind(AssertUnwindSafe(|| span.add_event(name, attributes)));
         }
     }
 
     /// Delegates attributes to the backend span.
     pub fn set_attributes(&self, attributes: &SpanAttributes) {
         if let Some(span) = &self.span {
-            span.set_attributes(attributes);
+            let _ = catch_unwind(AssertUnwindSafe(|| span.set_attributes(attributes)));
         }
     }
 
     /// Delegates a status update to the backend span.
     pub fn set_status(&self, status: SpanStatus) {
         if let Some(span) = &self.span {
-            span.set_status(status);
+            let _ = catch_unwind(AssertUnwindSafe(|| span.set_status(status)));
         }
     }
 
@@ -253,7 +271,7 @@ impl SpanGuard {
 
     fn settle(&mut self) {
         if let Some(span) = self.span.take() {
-            span.finish();
+            let _ = catch_unwind(AssertUnwindSafe(|| span.finish()));
         }
     }
 }
