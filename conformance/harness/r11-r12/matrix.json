@@ -1,0 +1,20 @@
+{
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "scope": "S13-B1 source-backed surface audit",
+  "backends": ["memory", "jsonl", "sqlite"],
+  "rows": [
+    "first_attachment_live_state",
+    "repository_attachment_reopen",
+    "sqlite_durable_prefix",
+    "public_queue_event_snapshot",
+    "settings_resources_watch",
+    "public_private_omission"
+  ],
+  "whole_task_gate": "deferred_to_S13-D",
+  "new_runtime_code": false,
+  "stop_conditions": [
+    "jsonl fixture cannot share the accepted runtime capability path",
+    "private durable operation/register state would need exposure",
+    "new backend transaction semantics are required"
+  ]
+}
