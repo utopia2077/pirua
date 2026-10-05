@@ -322,41 +322,6 @@ fn in_memory_recorder_clones_inputs_and_snapshots_are_detached() {
 }
 
 #[test]
-fn span_guard_keeps_panicking_observer_payload_calls_passive() {
-    struct PanickingSpan;
-
-    impl TelemetrySpan for PanickingSpan {
-        fn start_child(&self, _options: SpanOptions) -> SpanGuard {
-            panic!("start child observer failure");
-        }
-
-        fn add_event(&self, _name: &str, _attributes: &SpanAttributes) {
-            panic!("event observer failure");
-        }
-
-        fn set_attributes(&self, _attributes: &SpanAttributes) {
-            panic!("attributes observer failure");
-        }
-
-        fn set_status(&self, _status: SpanStatus) {
-            panic!("status observer failure");
-        }
-
-        fn finish(&self) {
-            panic!("finish observer failure");
-        }
-    }
-
-    let parent = SpanGuard::new(PanickingSpan);
-    parent.add_event("event", &SpanAttributes::new());
-    parent.set_attributes(&SpanAttributes::new());
-    parent.set_status(SpanStatus::Ok);
-    let child = parent.start_child(options("child"));
-    child.finish();
-    parent.finish();
-}
-
-#[test]
 fn telemetry_schema_is_detached_serializable_and_rejects_duplicate_span_names() {
     let mut schema = TelemetrySchemaDefinition::new(1);
     let mut span = TelemetrySpanDefinition::new(

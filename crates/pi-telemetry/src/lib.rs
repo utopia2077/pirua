@@ -13,7 +13,6 @@ mod schema;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
-use std::panic::{AssertUnwindSafe, catch_unwind};
 
 pub use memory::{InMemoryTelemetryContext, RecordedTelemetryEvent, RecordedTelemetrySpan};
 pub use noop::{
@@ -237,30 +236,29 @@ impl SpanGuard {
     /// Starts a child of this span.
     pub fn start_child(&self, options: SpanOptions) -> SpanGuard {
         match &self.span {
-            Some(span) => catch_unwind(AssertUnwindSafe(|| span.start_child(options)))
-                .unwrap_or_else(|_| Self::noop()),
-            None => Self::noop(),
+            Some(span) => span.start_child(options),
+            None => NOOP_TELEMETRY_CONTEXT.start_span(options),
         }
     }
 
     /// Delegates an event to the backend span.
     pub fn add_event(&self, name: &str, attributes: &SpanAttributes) {
         if let Some(span) = &self.span {
-            let _ = catch_unwind(AssertUnwindSafe(|| span.add_event(name, attributes)));
+            span.add_event(name, attributes);
         }
     }
 
     /// Delegates attributes to the backend span.
     pub fn set_attributes(&self, attributes: &SpanAttributes) {
         if let Some(span) = &self.span {
-            let _ = catch_unwind(AssertUnwindSafe(|| span.set_attributes(attributes)));
+            span.set_attributes(attributes);
         }
     }
 
     /// Delegates a status update to the backend span.
     pub fn set_status(&self, status: SpanStatus) {
         if let Some(span) = &self.span {
-            let _ = catch_unwind(AssertUnwindSafe(|| span.set_status(status)));
+            span.set_status(status);
         }
     }
 
@@ -271,7 +269,7 @@ impl SpanGuard {
 
     fn settle(&mut self) {
         if let Some(span) = self.span.take() {
-            let _ = catch_unwind(AssertUnwindSafe(|| span.finish()));
+            span.finish();
         }
     }
 }
