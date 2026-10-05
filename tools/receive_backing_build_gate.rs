@@ -81,8 +81,11 @@ fn main() -> ExitCode {
     if !host.contains("NativeRefused") {
         return refused(Some(&evidence), "frozen NativeRefused guard is absent");
     }
-    if !driver.contains("initial_credit_bytes: Some(0)") {
-        return refused(Some(&evidence), "frozen zero-credit guard is absent");
+    if !driver.contains("initial_stream_credit_bytes")
+        || !driver.contains("max_stream_credit_bytes")
+        || !driver.contains("initial_credit_bytes: self.route.initial_stream_credit_bytes")
+    {
+        return refused(Some(&evidence), "bounded stream-credit wiring is absent");
     }
     if let Some(profile) = value(&args, "--profile") {
         if !PROFILES.contains(&profile.as_str()) {

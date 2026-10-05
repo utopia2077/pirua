@@ -118,8 +118,10 @@ def source_identity(source: Path) -> tuple[str, str, dict[str, str]]:
     driver = (source / SOURCE_FILES[2]).read_text(encoding="utf-8")
     require("NativeRefused" in host, "frozen NativeRefused guard is absent from current source")
     require(
-        "initial_credit_bytes: Some(0)" in driver,
-        "frozen zero-credit guard is absent from current source",
+        "initial_stream_credit_bytes" in driver
+        and "max_stream_credit_bytes" in driver
+        and "initial_credit_bytes: self.route.initial_stream_credit_bytes" in driver,
+        "bounded stream-credit wiring is absent from current source",
     )
     return commit, tree, files
 

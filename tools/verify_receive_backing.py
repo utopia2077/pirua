@@ -163,9 +163,16 @@ def main() -> int:
             files[relative] = sha256_file(path)
     host_path = source / "crates/pi-harness-runtime/src/extensions/receive_host8192.rs"
     driver_path = source / "crates/pi-harness-runtime/src/extensions/tool_driver.rs"
+    driver_source = driver_path.read_text(encoding="utf-8") if driver_path.is_file() else ""
+    host_source = host_path.read_text(encoding="utf-8") if host_path.is_file() else ""
     guards = {
-        "zero_credit": driver_path.is_file() and "initial_credit_bytes: Some(0)" in driver_path.read_text(encoding="utf-8"),
-        "native_refused": host_path.is_file() and "NativeRefused" in host_path.read_text(encoding="utf-8"),
+        "bounded_stream_credit": (
+            "initial_stream_credit_bytes" in driver_source
+            and "max_stream_credit_bytes" in driver_source
+            and "initial_credit_bytes: self.route.initial_stream_credit_bytes" in driver_source
+        ),
+        "ordinary_zero_credit": "map_or(Some(0)" in driver_source,
+        "native_refused": "NativeRefused" in host_source,
     }
     status = {
         "schema_version": NATIVE_SCHEMA_VERSION,
