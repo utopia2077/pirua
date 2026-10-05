@@ -15,7 +15,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::{
-        Arc, Mutex, OnceLock,
+        Arc, Condvar, Mutex, OnceLock,
         atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
         mpsc,
     },
@@ -23,6 +23,48 @@ use std::{
     time::{Duration, Instant},
 };
 pub const LIMIT: Duration = Duration::from_secs(15);
+
+/// Bound real Node/Python actor startups so their first handshake and short
+/// protocol deadlines remain schedulable when the Rust test harness runs many
+/// process-backed cases in parallel.  The permit is returned after the child
+/// publishes its first stdout frame; it never gates the lifetime of a peer
+/// that a test intentionally keeps alive while opening a second peer.
+const MAX_CONCURRENT_PEER_STARTUPS: usize = 4;
+
+struct PeerProcessGate {
+    active: Mutex<usize>,
+    wake: Condvar,
+}
+
+static PEER_PROCESS_GATE: OnceLock<PeerProcessGate> = OnceLock::new();
+
+struct PeerProcessStartupPermit;
+
+fn peer_process_gate() -> &'static PeerProcessGate {
+    PEER_PROCESS_GATE.get_or_init(|| PeerProcessGate {
+        active: Mutex::new(0),
+        wake: Condvar::new(),
+    })
+}
+
+fn acquire_peer_process_startup_permit() -> PeerProcessStartupPermit {
+    let gate = peer_process_gate();
+    let mut active = gate.active.lock().unwrap();
+    while *active >= MAX_CONCURRENT_PEER_STARTUPS {
+        active = gate.wake.wait(active).unwrap();
+    }
+    *active += 1;
+    PeerProcessStartupPermit
+}
+
+impl Drop for PeerProcessStartupPermit {
+    fn drop(&mut self) {
+        let gate = peer_process_gate();
+        let mut active = gate.active.lock().unwrap();
+        *active = active.saturating_sub(1);
+        gate.wake.notify_one();
+    }
+}
 
 /// A bounded source-owned stack probe for the existing child-process worker
 /// threads.  The addresses are sampled from actual stack locals at I/O phase
@@ -479,6 +521,7 @@ impl Channel {
     }
     pub fn spawn_scenario(language: &str, core: u32, minor: u32, scenario: &str) -> Arc<Self> {
         verify_inputs();
+        let peer_process_startup_permit = acquire_peer_process_startup_permit();
         let release = std::env::temp_dir().join(format!(
             "profile-peer1412-{}-{}",
             std::process::id(),
@@ -564,12 +607,16 @@ impl Channel {
         let read_peak_worker = read_peak.clone();
         let topology_worker = topology.clone();
         workers.push(std::thread::spawn(move || {
+            let mut startup_permit = Some(peer_process_startup_permit);
             let mut total = 0;
             loop {
                 sample_worker_stack(&stack_probe, "stdout", 2);
                 let mut buffer = [0u8; 4096];
                 let count = output.read(&mut buffer).unwrap_or(0);
                 sample_worker_stack(&stack_probe, "stdout", 2);
+                if count > 0 {
+                    startup_permit.take();
+                }
                 total += count;
                 assert!(total <= 1048576, "finite peer stdout budget");
                 captured.lock().unwrap().extend_from_slice(&buffer[..count]);

@@ -149,6 +149,7 @@ fn source_root_structured_events_bind_real_resources() {
     use pi_harness_runtime::extensions::transport::source_observer;
     use runtime_extension_profiles_support::process::{CpuProbe, LIMIT, last_stack_snapshot};
 
+    let _observer_guard = source_observer::exclusive_test_guard();
     source_observer::reset();
 
     let live_setup = Setup::new();
@@ -785,6 +786,7 @@ fn source_root_structured_events_bind_real_resources() {
 fn source_root_p_req_owner_lifecycle_causal_red_restore() {
     use pi_harness_runtime::extensions::transport::source_observer;
 
+    let _observer_guard = source_observer::exclusive_test_guard();
     fn run() -> (serde_json::Value, Vec<source_observer::SourceEvent>) {
         let setup = Setup::new();
         let harness = create(&setup, setup.session.clone());
@@ -930,6 +932,7 @@ fn provider_request_observation_requires_opaque_binding_and_native_success() {
     };
     use std::panic::{AssertUnwindSafe, catch_unwind};
 
+    let _observer_guard = source_observer::exclusive_test_guard();
     source_observer::reset();
     let setup = Setup::new();
     let harness = create(&setup, setup.session.clone());

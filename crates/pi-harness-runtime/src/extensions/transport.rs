@@ -181,6 +181,7 @@ pub(crate) mod source_observer {
     }
 
     static STATE: OnceLock<Mutex<State>> = OnceLock::new();
+    static EXCLUSIVE_TEST_GUARD: OnceLock<Mutex<()>> = OnceLock::new();
     static C3_WALKING: AtomicBool = AtomicBool::new(false);
     static SUPPRESS_OWNER_ADMISSION: AtomicBool = AtomicBool::new(false);
     static SUPPRESS_FINAL_RETIRE: AtomicBool = AtomicBool::new(false);
@@ -192,6 +193,19 @@ pub(crate) mod source_observer {
 
     fn state() -> &'static Mutex<State> {
         STATE.get_or_init(|| Mutex::new(State::default()))
+    }
+
+    /// Serialize tests that reset or inspect the process-wide source ledger.
+    ///
+    /// Production code never calls this.  The observer intentionally remains
+    /// process-global so source events can cross the pump/route boundaries;
+    /// tests that mutate that ledger must therefore hold one guard for their
+    /// entire witness instead of racing another test's reset.
+    pub(crate) fn exclusive_test_guard() -> std::sync::MutexGuard<'static, ()> {
+        EXCLUSIVE_TEST_GUARD
+            .get_or_init(|| Mutex::new(()))
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub(crate) fn reset() {

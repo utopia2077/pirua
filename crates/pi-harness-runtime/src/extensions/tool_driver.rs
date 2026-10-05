@@ -4306,12 +4306,14 @@ pub(crate) mod local_cancel_queue_tests {
 
     #[test]
     fn retained_indexed_walking_branch_uses_body_lease_credit_and_terminal_receipt() {
+        let _observer_guard = source_observer::exclusive_test_guard();
         source_observer::reset();
         retained_indexed_walking_branch_for_test();
     }
 
     #[test]
     fn retained_production_route_grants_initial_and_exact_additional_credit() {
+        let _observer_guard = source_observer::exclusive_test_guard();
         source_observer::reset();
         let (spawner, owner, route, channel, _clock) = owner_and_retained_route();
         let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);

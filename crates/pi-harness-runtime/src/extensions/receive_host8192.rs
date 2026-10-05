@@ -700,6 +700,7 @@ mod tests {
 
     #[test]
     fn native_measurement_trace() {
+        let _observer_guard = super::super::transport::source_observer::exclusive_test_guard();
         std::thread::Builder::new()
             .name("receive8192-native-measurement".into())
             .stack_size(64 * 1024 * 1024)
