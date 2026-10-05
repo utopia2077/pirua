@@ -1,0 +1,21 @@
+{
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "source": "16143fc",
+  "mode": "source-backed-focused-conformance",
+  "observer_panic": "propagates_at_receipt_boundary",
+  "result_failure": "sink_local_disable",
+  "whole_task_gate": "deferred_to_S13-D",
+  "commands": [
+    "cargo test -p pi-telemetry --locked --offline",
+    "cargo test -p pi-agent --test telemetry_facade --features sqlite --locked --offline",
+    "cargo test -p pi-agent-session --test session_deferred_observation --locked --offline",
+    "cargo test -p pi-harness-runtime --test runtime_telemetry --locked --offline",
+    "cargo test -p pi-extension-protocol --test profile_live --locked --offline",
+    "sh crates/pi-extension-protocol/schema/verify.sh"
+  ],
+  "open": [
+    "upstream callback-style typed schema aliases",
+    "Agent-owned AI/Harness schema constants",
+    "unchanged canonical ./scripts/verify.sh assembly"
+  ]
+}
