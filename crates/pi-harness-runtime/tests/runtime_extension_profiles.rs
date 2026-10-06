@@ -4,6 +4,7 @@ pub(crate) mod runtime_r1_r4_support;
 use pi_agent_schema::*;
 use pi_agent_session::{
     codec::SessionCodec,
+    jsonl::{JsonlOptions, JsonlStorage},
     memory::MemoryStorage,
     session::RuntimeSession,
     storage::{AtomicStorage, RuntimeStorage},
@@ -1498,6 +1499,29 @@ fn real_sqlite_keyed_provider_and_ordered_native_hooks_all_minor_pairs() {
         }
     }
 }
+
+#[test]
+fn real_jsonl_provider_hook_telemetry_profile_parity_all_minor_pairs() {
+    for core in 0..=1 {
+        for minor in 0..=1 {
+            let setup = Setup::new();
+            let (session, store, dir) = jsonl_case(&setup);
+            run(&setup, session, store.clone(), core, minor);
+            drop(store);
+            std::fs::remove_dir_all(dir).unwrap();
+        }
+    }
+    for core in 0..=1 {
+        for minor in 0..=1 {
+            let setup = Setup::new();
+            let (session, store, dir) = jsonl_case(&setup);
+            telemetry_consumers(&setup, session, store.clone(), core, minor);
+            drop(store);
+            std::fs::remove_dir_all(dir).unwrap();
+        }
+    }
+}
+
 #[test]
 fn expected_abort_target_keeps_a_successor_operation_running() {
     let setup = Setup::new();
@@ -1592,6 +1616,87 @@ fn sqlite_case(
             ))
             .unwrap(),
     );
+    (session, store, dir)
+}
+
+fn jsonl_case(
+    setup: &Setup,
+) -> (
+    Arc<RuntimeSession<JsonlStorage>>,
+    Arc<JsonlStorage>,
+    std::path::PathBuf,
+) {
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let dir = std::env::temp_dir().join(format!(
+        "runtime-profile-jsonl-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::SeqCst)
+    ));
+    std::fs::create_dir(&dir).unwrap();
+    let path = dir.join("session.jsonl");
+    let metadata = setup.session.metadata();
+    assert_eq!(metadata.storage_version, n(1));
+    let codec = Arc::new(
+        SessionCodec::new(
+            Default::default(),
+            ProviderHeaderPolicy::from_allowlist(["x-public".into()]),
+        )
+        .unwrap(),
+    );
+    let store = JsonlStorage::create(
+        &path,
+        metadata.clone(),
+        codec.clone(),
+        setup.time.clone(),
+        JsonlOptions::default(),
+    )
+    .unwrap();
+    assert!(path.starts_with(&dir));
+    assert!(path.is_file());
+    let header = std::fs::read_to_string(&path).unwrap();
+    assert!(header.contains("\"storageVersion\":1"));
+    let session = Arc::new(
+        setup
+            .pump
+            .drive(RuntimeSession::new(
+                store.clone(),
+                metadata,
+                codec,
+                setup.ids.clone(),
+                Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
+            ))
+            .unwrap(),
+    );
+    let model = setup.faux.model.clone();
+    setup
+        .pump
+        .drive(session.commit(Transaction {
+            writes: vec![
+                Write::SetRegister(Box::new(RegisterSet::LaneConfig {
+                    key: "main".into(),
+                    value: LaneConfiguration {
+                        model: LaneModel {
+                            provider: model.provider,
+                            model_id: model.id,
+                        },
+                        thinking_level: AgentThinkingLevel::Off,
+                        active_tool_names: vec![],
+                    },
+                })),
+                Write::SetRegister(Box::new(RegisterSet::LaneLeaf {
+                    key: "main".into(),
+                    value: None,
+                })),
+                Write::SetRegister(Box::new(RegisterSet::LaneState {
+                    key: "main".into(),
+                    value: LaneState {
+                        current_operation_id: None,
+                        pending_next_run: vec![],
+                    },
+                })),
+            ],
+        }))
+        .unwrap();
     (session, store, dir)
 }
 fn resource_consumers<S: RuntimeStorage + 'static>(

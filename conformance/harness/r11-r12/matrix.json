@@ -1,6 +1,6 @@
 {
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
-  "scope": "S13-B1 source-backed surface audit",
+  "scope": "S13-B1 plus S13-D2 source-backed surface/runtime audit",
   "backends": ["memory", "jsonl", "sqlite"],
   "rows": [
     "first_attachment_live_state",
@@ -8,8 +8,22 @@
     "sqlite_durable_prefix",
     "public_queue_event_snapshot",
     "settings_resources_watch",
+    "jsonl_runtime_profile_parity",
     "public_private_omission"
   ],
+  "jsonl_runtime_profile_parity": {
+    "test": "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs::real_jsonl_provider_hook_telemetry_profile_parity_all_minor_pairs",
+    "backend": "JsonlStorage",
+    "protocol_pairs": 4,
+    "cases": [
+      "provider_hook_normal_completion",
+      "telemetry_sink_local_failure_or_refusal"
+    ],
+    "limits": [
+      "does_not_cover_full_jsonl_resource_action_watch_matrix",
+      "does_not_cover_whole_task_gate"
+    ]
+  },
   "whole_task_gate": "deferred_to_S13-D",
   "new_runtime_code": false,
   "stop_conditions": [
