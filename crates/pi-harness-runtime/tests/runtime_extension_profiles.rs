@@ -1505,19 +1505,17 @@ fn real_jsonl_provider_hook_telemetry_profile_parity_all_minor_pairs() {
     for core in 0..=1 {
         for minor in 0..=1 {
             let setup = Setup::new();
-            let (session, store, dir) = jsonl_case(&setup);
+            let (_temp_dir, session, store) = jsonl_case(&setup);
             run(&setup, session, store.clone(), core, minor);
             drop(store);
-            std::fs::remove_dir_all(dir).unwrap();
         }
     }
     for core in 0..=1 {
         for minor in 0..=1 {
             let setup = Setup::new();
-            let (session, store, dir) = jsonl_case(&setup);
+            let (_temp_dir, session, store) = jsonl_case(&setup);
             telemetry_consumers(&setup, session, store.clone(), core, minor);
             drop(store);
-            std::fs::remove_dir_all(dir).unwrap();
         }
     }
 }
@@ -1619,21 +1617,39 @@ fn sqlite_case(
     (session, store, dir)
 }
 
+struct JsonlTempDir {
+    path: std::path::PathBuf,
+}
+
+impl JsonlTempDir {
+    fn path(&self) -> &std::path::Path {
+        &self.path
+    }
+}
+
+impl Drop for JsonlTempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
 fn jsonl_case(
     setup: &Setup,
 ) -> (
+    JsonlTempDir,
     Arc<RuntimeSession<JsonlStorage>>,
     Arc<JsonlStorage>,
-    std::path::PathBuf,
 ) {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let dir = std::env::temp_dir().join(format!(
-        "runtime-profile-jsonl-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::SeqCst)
-    ));
-    std::fs::create_dir(&dir).unwrap();
-    let path = dir.join("session.jsonl");
+    let temp_dir = JsonlTempDir {
+        path: std::env::temp_dir().join(format!(
+            "runtime-profile-jsonl-{}-{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::SeqCst)
+        )),
+    };
+    std::fs::create_dir(temp_dir.path()).unwrap();
+    let path = temp_dir.path().join("session.jsonl");
     let metadata = setup.session.metadata();
     assert_eq!(metadata.storage_version, n(1));
     let codec = Arc::new(
@@ -1651,7 +1667,7 @@ fn jsonl_case(
         JsonlOptions::default(),
     )
     .unwrap();
-    assert!(path.starts_with(&dir));
+    assert!(path.starts_with(temp_dir.path()));
     assert!(path.is_file());
     let header = std::fs::read_to_string(&path).unwrap();
     assert!(header.contains("\"storageVersion\":1"));
@@ -1697,7 +1713,7 @@ fn jsonl_case(
             ],
         }))
         .unwrap();
-    (session, store, dir)
+    (temp_dir, session, store)
 }
 fn resource_consumers<S: RuntimeStorage + 'static>(
     setup: &Setup,
