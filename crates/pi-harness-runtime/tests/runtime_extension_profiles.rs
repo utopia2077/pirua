@@ -1622,6 +1622,11 @@ struct JsonlTempDir {
 }
 
 impl JsonlTempDir {
+    fn create(path: std::path::PathBuf) -> std::io::Result<Self> {
+        std::fs::create_dir(&path)?;
+        Ok(Self { path })
+    }
+
     fn path(&self) -> &std::path::Path {
         &self.path
     }
@@ -1633,6 +1638,26 @@ impl Drop for JsonlTempDir {
     }
 }
 
+#[test]
+fn jsonl_temp_dir_collision_preserves_existing_directory() {
+    static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let path = std::env::temp_dir().join(format!(
+        "runtime-profile-jsonl-collision-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::SeqCst)
+    ));
+    std::fs::create_dir(&path).unwrap();
+    let sentinel = path.join("sentinel");
+    std::fs::write(&sentinel, b"keep").unwrap();
+
+    let result = JsonlTempDir::create(path.clone());
+    assert!(result.is_err(), "an existing path must reject ownership");
+    assert!(path.is_dir());
+    assert_eq!(std::fs::read(&sentinel).unwrap(), b"keep");
+
+    std::fs::remove_dir_all(path).unwrap();
+}
+
 fn jsonl_case(
     setup: &Setup,
 ) -> (
@@ -1641,14 +1666,12 @@ fn jsonl_case(
     Arc<JsonlStorage>,
 ) {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let temp_dir = JsonlTempDir {
-        path: std::env::temp_dir().join(format!(
-            "runtime-profile-jsonl-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::SeqCst)
-        )),
-    };
-    std::fs::create_dir(temp_dir.path()).unwrap();
+    let temp_dir = JsonlTempDir::create(std::env::temp_dir().join(format!(
+        "runtime-profile-jsonl-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::SeqCst)
+    )))
+    .unwrap();
     let path = temp_dir.path().join("session.jsonl");
     let metadata = setup.session.metadata();
     assert_eq!(metadata.storage_version, n(1));
