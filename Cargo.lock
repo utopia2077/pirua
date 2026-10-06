@@ -1156,6 +1156,7 @@ dependencies = [
  "pi-ai-transport",
  "pi-telemetry",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
