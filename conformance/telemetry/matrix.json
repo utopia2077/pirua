@@ -1,9 +1,11 @@
 {
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
-  "source": "16143fc",
+  "source": "f27aa7b + S13-D1 bounded witness",
   "mode": "source-backed-focused-conformance",
   "observer_panic": "propagates_at_receipt_boundary",
   "result_failure": "sink_local_disable",
+  "durable_snapshot_witness": "crates/pi-agent-session/tests/session_deferred_observation.rs::dropped_or_panicking_observer_cannot_replay_receipt",
+  "schema_witness": "crates/pi-telemetry/tests/contract.rs::telemetry_schema_is_detached_serializable_and_rejects_duplicate_span_names",
   "whole_task_gate": "deferred_to_S13-D",
   "commands": [
     "cargo test -p pi-telemetry --locked --offline",

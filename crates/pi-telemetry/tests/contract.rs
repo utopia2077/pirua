@@ -5,10 +5,183 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use pi_telemetry::{
     AttributeValue, FiniteTelemetryNumber, InMemoryTelemetryContext, NOOP_TELEMETRY_CONTEXT,
     NOOP_TELEMETRY_SPAN, NoopTelemetryContext, NoopTelemetrySpan, SpanAttributes, SpanGuard,
-    SpanOptions, SpanStatus, TelemetryAttributeDefinition, TelemetryContext, TelemetryErrorInfo,
-    TelemetryEventDefinition, TelemetryParentDefinition, TelemetrySchemaDefinition, TelemetrySpan,
-    TelemetrySpanDefinition, TelemetryStartAttributeDefinition, TelemetryStatusDefinition,
+    SpanOptions, SpanStatus, TelemetryAttributeDefinition, TelemetryCardinality, TelemetryContext,
+    TelemetryErrorInfo, TelemetryEventDefinition, TelemetryParentDefinition,
+    TelemetrySchemaDefinition, TelemetrySpan, TelemetrySpanDefinition,
+    TelemetryStartAttributeDefinition, TelemetryStatusDefinition,
 };
+
+fn assert_well_formed_json(input: &str) {
+    struct Parser<'a> {
+        bytes: &'a [u8],
+        position: usize,
+    }
+    impl Parser<'_> {
+        fn whitespace(&mut self) {
+            while self
+                .bytes
+                .get(self.position)
+                .is_some_and(|byte| matches!(byte, b' ' | b'\n' | b'\r' | b'\t'))
+            {
+                self.position += 1;
+            }
+        }
+        fn consume(&mut self, expected: u8) {
+            assert_eq!(self.bytes.get(self.position), Some(&expected));
+            self.position += 1;
+        }
+        fn value(&mut self) {
+            self.whitespace();
+            match self.bytes.get(self.position).copied() {
+                Some(b'{') => self.object(),
+                Some(b'[') => self.array(),
+                Some(b'"') => self.string(),
+                Some(b't') => self.literal(b"true"),
+                Some(b'f') => self.literal(b"false"),
+                Some(b'n') => self.literal(b"null"),
+                Some(b'-' | b'0'..=b'9') => self.number(),
+                other => panic!("invalid JSON value start: {other:?}"),
+            }
+        }
+        fn object(&mut self) {
+            self.consume(b'{');
+            self.whitespace();
+            if self.bytes.get(self.position) == Some(&b'}') {
+                self.position += 1;
+                return;
+            }
+            loop {
+                self.whitespace();
+                self.string();
+                self.whitespace();
+                self.consume(b':');
+                self.value();
+                self.whitespace();
+                match self.bytes.get(self.position).copied() {
+                    Some(b',') => self.position += 1,
+                    Some(b'}') => {
+                        self.position += 1;
+                        return;
+                    }
+                    other => panic!("invalid JSON object separator: {other:?}"),
+                }
+            }
+        }
+        fn array(&mut self) {
+            self.consume(b'[');
+            self.whitespace();
+            if self.bytes.get(self.position) == Some(&b']') {
+                self.position += 1;
+                return;
+            }
+            loop {
+                self.value();
+                self.whitespace();
+                match self.bytes.get(self.position).copied() {
+                    Some(b',') => self.position += 1,
+                    Some(b']') => {
+                        self.position += 1;
+                        return;
+                    }
+                    other => panic!("invalid JSON array separator: {other:?}"),
+                }
+            }
+        }
+        fn string(&mut self) {
+            self.consume(b'"');
+            loop {
+                match self.bytes.get(self.position).copied() {
+                    Some(b'"') => {
+                        self.position += 1;
+                        return;
+                    }
+                    Some(b'\\') => {
+                        self.position += 1;
+                        match self.bytes.get(self.position).copied() {
+                            Some(b'"' | b'\\' | b'/' | b'b' | b'f' | b'n' | b'r' | b't') => {
+                                self.position += 1
+                            }
+                            Some(b'u') => {
+                                self.position += 1;
+                                for _ in 0..4 {
+                                    assert!(
+                                        self.bytes
+                                            .get(self.position)
+                                            .is_some_and(u8::is_ascii_hexdigit)
+                                    );
+                                    self.position += 1;
+                                }
+                            }
+                            other => panic!("invalid JSON string escape: {other:?}"),
+                        }
+                    }
+                    Some(byte) if byte >= 0x20 => self.position += 1,
+                    other => panic!("invalid JSON string byte: {other:?}"),
+                }
+            }
+        }
+        fn literal(&mut self, literal: &[u8]) {
+            assert_eq!(
+                self.bytes.get(self.position..self.position + literal.len()),
+                Some(literal)
+            );
+            self.position += literal.len();
+        }
+        fn number(&mut self) {
+            let start = self.position;
+            if self.bytes.get(self.position) == Some(&b'-') {
+                self.position += 1;
+            }
+            while self
+                .bytes
+                .get(self.position)
+                .is_some_and(u8::is_ascii_digit)
+            {
+                self.position += 1;
+            }
+            if self.bytes.get(self.position) == Some(&b'.') {
+                self.position += 1;
+                while self
+                    .bytes
+                    .get(self.position)
+                    .is_some_and(u8::is_ascii_digit)
+                {
+                    self.position += 1;
+                }
+            }
+            if self
+                .bytes
+                .get(self.position)
+                .is_some_and(|byte| *byte == b'e' || *byte == b'E')
+            {
+                self.position += 1;
+                if self
+                    .bytes
+                    .get(self.position)
+                    .is_some_and(|byte| *byte == b'+' || *byte == b'-')
+                {
+                    self.position += 1;
+                }
+                while self
+                    .bytes
+                    .get(self.position)
+                    .is_some_and(u8::is_ascii_digit)
+                {
+                    self.position += 1;
+                }
+            }
+            assert!(self.position > start, "JSON number must contain digits");
+        }
+    }
+
+    let mut parser = Parser {
+        bytes: input.as_bytes(),
+        position: 0,
+    };
+    parser.value();
+    parser.whitespace();
+    assert_eq!(parser.position, parser.bytes.len(), "trailing JSON input");
+}
 
 fn options(name: &str) -> SpanOptions {
     SpanOptions {
@@ -53,18 +226,25 @@ fn telemetry_numbers_reject_every_non_finite_value() {
 fn attribute_values_cover_all_six_supported_shapes() {
     let one = FiniteTelemetryNumber::new(1.0).expect("finite fixture");
     let values = [
-        AttributeValue::String("text".to_owned()),
+        AttributeValue::String("quoted\ntext".to_owned()),
         AttributeValue::Number(one),
         AttributeValue::Boolean(true),
-        AttributeValue::Strings(vec!["text".to_owned()]),
+        AttributeValue::Strings(vec!["text".to_owned(), "quoted\"".to_owned()]),
         AttributeValue::Numbers(vec![one]),
         AttributeValue::Booleans(vec![true, false]),
     ];
 
-    assert!(matches!(&values[0], AttributeValue::String(value) if value == "text"));
+    assert_eq!(values[0].to_json(), "\"quoted\\ntext\"");
+    assert_eq!(values[1].to_json(), "1");
+    assert_eq!(values[2].to_json(), "true");
+    assert_eq!(values[3].to_json(), "[\"text\",\"quoted\\\"\"]");
+    assert_eq!(values[4].to_json(), "[1]");
+    assert_eq!(values[5].to_json(), "[true,false]");
+
+    assert!(matches!(&values[0], AttributeValue::String(value) if value == "quoted\ntext"));
     assert!(matches!(&values[1], AttributeValue::Number(value) if *value == one));
     assert!(matches!(&values[2], AttributeValue::Boolean(true)));
-    assert!(matches!(&values[3], AttributeValue::Strings(value) if value == &["text"]));
+    assert!(matches!(&values[3], AttributeValue::Strings(value) if value == &["text", "quoted\""]));
     assert!(matches!(&values[4], AttributeValue::Numbers(value) if value == &[one]));
     assert!(matches!(&values[5], AttributeValue::Booleans(value) if value == &[true, false]));
 }
@@ -323,27 +503,97 @@ fn in_memory_recorder_clones_inputs_and_snapshots_are_detached() {
 
 #[test]
 fn telemetry_schema_is_detached_serializable_and_rejects_duplicate_span_names() {
-    let mut schema = TelemetrySchemaDefinition::new(1);
+    let one = FiniteTelemetryNumber::new(1.0).expect("finite fixture");
+    let two = FiniteTelemetryNumber::new(2.0).expect("finite fixture");
+    let three = FiniteTelemetryNumber::new(3.0).expect("finite fixture");
+    let four = FiniteTelemetryNumber::new(4.0).expect("finite fixture");
+    let mut schema = TelemetrySchemaDefinition::new(7);
     let mut span = TelemetrySpanDefinition::new(
-        "operation",
-        TelemetryParentDefinition::Any,
-        TelemetryStatusDefinition::new("operation fails"),
+        "operation \"description\"\n",
+        TelemetryParentDefinition::Spans(vec!["parent".to_owned(), "external".to_owned()]),
+        TelemetryStatusDefinition::new("operation fails\\when"),
     );
     span.start_attributes.insert(
-        "kind".to_owned(),
+        "a-string".to_owned(),
         TelemetryStartAttributeDefinition::required(TelemetryAttributeDefinition::string(
-            "operation kind",
+            "line\n\"slash\\",
         )),
+    );
+    span.start_attributes.insert(
+        "b-number".to_owned(),
+        TelemetryStartAttributeDefinition::optional(
+            TelemetryAttributeDefinition::number("numeric")
+                .sensitive(true)
+                .cardinality(TelemetryCardinality::High)
+                .with_values(vec![
+                    AttributeValue::Number(one),
+                    AttributeValue::Number(FiniteTelemetryNumber::new(-0.0).unwrap()),
+                ])
+                .with_examples(vec![AttributeValue::Number(two)]),
+        ),
+    );
+    span.start_attributes.insert(
+        "c-boolean".to_owned(),
+        TelemetryStartAttributeDefinition::required(TelemetryAttributeDefinition::boolean("flag")),
+    );
+    span.start_attributes.insert(
+        "d-string-list".to_owned(),
+        TelemetryStartAttributeDefinition::optional(
+            TelemetryAttributeDefinition::strings("labels")
+                .with_element_values(vec![
+                    AttributeValue::String("one".to_owned()),
+                    AttributeValue::String("two".to_owned()),
+                ])
+                .with_examples(vec![AttributeValue::Strings(vec![
+                    "example".to_owned(),
+                    "quoted\"".to_owned(),
+                ])]),
+        ),
+    );
+    span.start_attributes.insert(
+        "e-number-list".to_owned(),
+        TelemetryStartAttributeDefinition::required(
+            TelemetryAttributeDefinition::numbers("measurements")
+                .with_element_values(vec![AttributeValue::Number(three)])
+                .with_examples(vec![AttributeValue::Numbers(vec![
+                    four,
+                    FiniteTelemetryNumber::new(-0.0).unwrap(),
+                ])]),
+        ),
+    );
+    span.start_attributes.insert(
+        "f-boolean-list".to_owned(),
+        TelemetryStartAttributeDefinition::optional(
+            TelemetryAttributeDefinition::booleans("switches")
+                .with_element_values(vec![
+                    AttributeValue::Boolean(true),
+                    AttributeValue::Boolean(false),
+                ])
+                .with_examples(vec![AttributeValue::Booleans(vec![true, false])]),
+        ),
+    );
+    span.end_attributes.insert(
+        "ended".to_owned(),
+        TelemetryAttributeDefinition::string("end marker"),
     );
     span.events.insert(
         "finished".to_owned(),
         TelemetryEventDefinition::new("operation finished"),
     );
+    span.events.get_mut("finished").unwrap().attributes.insert(
+        "event-flag".to_owned(),
+        TelemetryStartAttributeDefinition::optional(TelemetryAttributeDefinition::boolean(
+            "event flag",
+        )),
+    );
     schema.spans.insert("operation".to_owned(), span);
 
     let json = schema.to_json();
-    assert!(json.contains("\"spans\":{\"operation\":"));
-    assert!(json.contains("\"events\":{\"finished\":"));
+    assert_well_formed_json(&json);
+    assert_eq!(
+        json,
+        "{\"version\":7,\"spans\":{\"operation\":{\"description\":\"operation \\\"description\\\"\\n\",\"parents\":{\"kind\":\"spans\",\"spans\":[\"parent\",\"external\"]},\"startAttributes\":{\"a-string\":{\"type\":\"string\",\"description\":\"line\\n\\\"slash\\\\\",\"required\":true},\"b-number\":{\"type\":\"number\",\"description\":\"numeric\",\"sensitive\":true,\"cardinality\":\"high\",\"values\":[1,-0],\"examples\":[2],\"required\":false},\"c-boolean\":{\"type\":\"boolean\",\"description\":\"flag\",\"required\":true},\"d-string-list\":{\"type\":\"string[]\",\"description\":\"labels\",\"elementValues\":[\"one\",\"two\"],\"examples\":[[\"example\",\"quoted\\\"\"]],\"required\":false},\"e-number-list\":{\"type\":\"number[]\",\"description\":\"measurements\",\"elementValues\":[3],\"examples\":[[4,-0]],\"required\":true},\"f-boolean-list\":{\"type\":\"boolean[]\",\"description\":\"switches\",\"elementValues\":[true,false],\"examples\":[[true,false]],\"required\":false}},\"endAttributes\":{\"ended\":{\"type\":\"string\",\"description\":\"end marker\"}},\"events\":{\"finished\":{\"description\":\"operation finished\",\"attributes\":{\"event-flag\":{\"type\":\"boolean\",\"description\":\"event flag\",\"required\":false}}}},\"status\":{\"default\":\"ok\",\"errorWhen\":\"operation fails\\\\when\"}}}}"
+    );
 
     let duplicate = pi_telemetry::validate_unique_telemetry_span_names(&[&schema, &schema])
         .expect_err("duplicate span names must be rejected");

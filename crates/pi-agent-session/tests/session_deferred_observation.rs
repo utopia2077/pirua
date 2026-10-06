@@ -328,7 +328,7 @@ fn preparation_and_stamp_errors_use_one_codec_checked_error_receipt() {
 #[test]
 fn dropped_or_panicking_observer_cannot_replay_receipt() {
     let raw = Arc::new(MemoryBacking::new()).open(Clock::new()).unwrap();
-    let session = observed_session(raw, Arc::new(Audit::default()));
+    let session = observed_session(raw.clone(), Arc::new(Audit::default()));
     let request = request(vec![set("first")]);
     let token = prepared(&session, &request);
     let (outcome, dropped) =
@@ -339,13 +339,38 @@ fn dropped_or_panicking_observer_cannot_replay_receipt() {
     let (outcome, receipt) =
         ready(session.commit_prepared_conditional_with_observation(token, request.clone()));
     assert!(matches!(outcome, Ok(ConditionalOutcome::Applied(_))));
+    let committed_snapshot =
+        serde_json::to_vec(&ready(raw.snapshot()).unwrap()).expect("snapshot must serialize");
     let log = Arc::new(Audit::default());
     log.panic_on_start.store(true, Ordering::SeqCst);
+    let receipt = receipt.expect("applied write must earn one receipt");
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        receipt.unwrap().emit(&Parent(log.clone()));
+        receipt.emit(&Parent(log.clone()));
     }));
     assert!(result.is_err());
     assert_eq!(log.calls().len(), 1);
+    let after_panic_snapshot =
+        serde_json::to_vec(&ready(raw.snapshot()).unwrap()).expect("snapshot must serialize");
+    assert_eq!(
+        after_panic_snapshot, committed_snapshot,
+        "observer panic must not mutate the committed durable authority"
+    );
+    // `WriteObservation::emit` consumes the receipt. The single callback and
+    // unchanged authority together prove there was no second emission/replay.
+    assert_eq!(
+        log.calls(),
+        vec![Call::Start(SpanOptions {
+            name: "pi.session.write".to_owned(),
+            attributes: [
+                ("pi.session.item_count".to_owned(), number(1.0)),
+                (
+                    "pi.session.item_kinds".to_owned(),
+                    AttributeValue::Strings(vec!["register".to_owned()]),
+                ),
+            ]
+            .into(),
+        })]
+    );
 
     let token = prepared(&session, &request);
     let (outcome, receipt) =

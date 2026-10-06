@@ -173,9 +173,11 @@ pub enum SpanStatus {
 
 /// An explicit parent context capable of starting a telemetry span.
 ///
-/// Implementations are passive observers: for well-formed inputs, recording
-/// failures must not panic or otherwise change the observed operation's control
-/// flow. An implementation unable to record a span must return a no-op guard.
+/// Implementations are passive observers of authoritative work. When a
+/// session's one-shot receipt invokes an observer, an observer panic propagates
+/// to the receipt caller at that boundary; the committed durable authority is
+/// not rolled back or replayed. Implementations must not make a second durable
+/// write while observing, and [`SpanGuard`] does not catch panics.
 pub trait TelemetryContext: Send + Sync {
     /// Starts a span owned by the returned settlement guard.
     fn start_span(&self, options: SpanOptions) -> SpanGuard;
@@ -183,9 +185,10 @@ pub trait TelemetryContext: Send + Sync {
 
 /// Backend behavior for one live span.
 ///
-/// Implementations are passive observers. Recording methods must absorb their
-/// own internal failures and become no-ops after the span is finished.
-/// [`finish`](Self::finish) must be idempotent and must not panic.
+/// Implementations are passive observers. Calls after the span is finished are
+/// no-ops, and [`finish`](Self::finish) is idempotent. Observer panics
+/// propagate to the caller at the invocation boundary; [`SpanGuard`] does not
+/// catch them.
 pub trait TelemetrySpan: Send + Sync {
     /// Starts a child span, or returns a no-op guard when recording is unavailable.
     fn start_child(&self, options: SpanOptions) -> SpanGuard;
