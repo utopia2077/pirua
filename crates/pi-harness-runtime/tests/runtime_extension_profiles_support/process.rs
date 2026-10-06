@@ -357,7 +357,7 @@ fn verify_inputs() {
     let files = [
         (
             "sdk/typescript/profile-peer.ts",
-            "ae7c79933bbc474692da34c948aa54a1dd9243358229a87b5e4a528c6a056440",
+            "d6813d166d76cba0cd0e9553aba414a78a4beb4c7c6a53b7aeabe2ab34439b7f",
         ),
         (
             "sdk/typescript/profiles/wire.ts",
@@ -369,7 +369,7 @@ fn verify_inputs() {
         ),
         (
             "sdk/python/profile_peer.py",
-            "02be004c6cc76c4fb4e636c22089a63fda27f5e07ea96b90f5d0115fed3f5419",
+            "e7e56da580405522eea4f0e521ad7d10bf52e9b6feaea4a0efed550b338656ae",
         ),
         (
             "sdk/python/profiles/wire.py",
@@ -423,6 +423,7 @@ pub struct Channel {
     language: String,
     core: u32,
     minor: u32,
+    scenario: String,
     command: String,
     topology: Arc<Mutex<Vec<String>>>,
 }
@@ -731,6 +732,7 @@ impl Channel {
             language: language.to_owned(),
             core,
             minor,
+            scenario: scenario.to_owned(),
             command: command_line,
             topology,
         })
@@ -1050,6 +1052,13 @@ process.stdout.write(codec.encode("SnapshotGetResult", sortedMaps(decoded)).toSt
         });
     }
     pub fn finish(&self, success: bool) {
+        if self.scenario == "runtime-native-resource-r2" {
+            // The peer waits for this marker after writing its final
+            // resource.read response. Because finish is called after the
+            // host-side refresh future returns, the child cannot publish EOF
+            // before the host accepts that response.
+            std::fs::write(&self.release, "resource-r2-finish").unwrap();
+        }
         self.closed.store(true, Ordering::SeqCst);
         let deadline = Instant::now() + LIMIT;
         let status = loop {

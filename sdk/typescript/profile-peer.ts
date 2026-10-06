@@ -1023,7 +1023,13 @@ function terminal(r: any, decoded?: any) {
   else end.result = payload;
   const arm = m.mode === 2 ? "stream_end" : "response";
   send({ [arm]: end });
-  if (runtimeResourceR2 && r.method === "resource.read") onceDone = true;
+  if (runtimeResourceR2 && r.method === "resource.read") {
+    // The host must consume this response before the selected refresh peer
+    // publishes EOF. Channel::finish writes this marker only after refresh
+    // returns, which keeps clean EOF out of the final response boundary.
+    awaitSignal("resource-r2-finish");
+    onceDone = true;
+  }
   if (runtimeEvent && r.method === "telemetry.flush") {
     awaitSignal("event-subscribe");
     nativeEventRequest("event.subscribe");

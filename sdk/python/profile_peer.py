@@ -1125,6 +1125,10 @@ def terminal(request, decoded=None):
     arm = "stream_end" if m["mode"] == 2 else "response"
     send({arm: end})
     if runtime_resource_r2 and request["method"] == "resource.read":
+        # The host must consume this response before the selected refresh peer
+        # publishes EOF. Channel.finish writes this marker only after refresh
+        # returns, which keeps clean EOF out of the final response boundary.
+        await_signal("resource-r2-finish")
         once_done = True
     if runtime_event and request["method"] == "telemetry.flush":
         await_signal("event-subscribe")
