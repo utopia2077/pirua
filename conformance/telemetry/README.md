@@ -9,13 +9,13 @@ guard ABI.
 
 | Contract | Rust witness | Expected invariant |
 | --- | --- | --- |
-| Detached span identity and parentage | `crates/pi-telemetry/tests/contract.rs:212-249` | Root/child IDs, parent IDs, event order, explicit status, and end order are stable. |
-| Detached inputs and snapshots | `crates/pi-telemetry/tests/contract.rs:252-322` | Caller mutation and snapshot mutation never alter recorder state. |
+| Detached span identity and parentage | `crates/pi-telemetry/tests/contract.rs:391-429` | Root/child IDs, parent IDs, event order, explicit status, and end order are stable. |
+| Detached inputs and snapshots | `crates/pi-telemetry/tests/contract.rs:431-502` | Caller mutation and snapshot mutation never alter recorder state. |
 | Schema serialization and duplicate rejection | `crates/pi-telemetry/tests/contract.rs:504-600` | Parsed and exact schema JSON covers all six scalar/list shapes, required/optional fields, escaping, sensitivity, cardinality, values, elementValues, examples, and duplicate span names. Raw schema/value helpers remain separate from remote projection redaction. |
 | Public facade | `crates/pi-agent/tests/telemetry_facade.rs:1-33` | The public `pi_agent` surface can construct and inspect a root/child trace. |
 | Runtime durable trace equality | `crates/pi-harness-runtime/tests/runtime_telemetry.rs:231-249,753-817` | Telemetry observation does not change durable IDs, transactions, or admitted write publication. |
 | Runtime lifecycle/order | `crates/pi-harness-runtime/tests/runtime_telemetry.rs:114-229,418-494,634-703` | Parentage, finish order, retry attempts, close/drop/unwind, and provider failures remain complete. |
-| Receipt no-replay under observer failure | `crates/pi-agent-session/tests/session_deferred_observation.rs:328-373` | Deferred and immediate observations match; the committed snapshot is serialized before a panicking receipt, remains byte-for-byte identical afterward, and the consumed receipt cannot emit/replay a second observation. Observer panics propagate at the existing receipt boundary. |
+| Receipt no-replay under observer failure | `crates/pi-agent-session/tests/session_deferred_observation.rs:111-264,328-373` | Deferred and immediate observations match; the committed snapshot is serialized before a panicking receipt, remains byte-for-byte identical afterward, and the consumed receipt cannot emit/replay a second observation. Observer panics propagate at the existing receipt boundary. |
 | Remote queue result isolation | `crates/pi-extension-protocol/tests/profile_live.rs:519-577,618-669` | Overload, malformed ack, flush, and capability errors disable only the telemetry sink and preserve unrelated capability state. |
 | Schema freshness | `crates/pi-extension-protocol/schema/verify.sh` | Protocol descriptors, derived tables, activation variants, and Node digests remain fresh. |
 
