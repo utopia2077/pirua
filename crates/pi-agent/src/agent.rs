@@ -13,7 +13,7 @@ use pi_agent_schema::{
     AgentEvent, AgentEventSink, AgentMessage, BoxFuture, Cancellation, LiveAgentMessage, QueueMode,
 };
 use pi_ai_core::{Message, Model, ToolCallId};
-use tokio::sync::Notify;
+use tokio::sync::watch;
 
 /// Listener callback used by the public compatibility owner.
 pub type AgentListener = Arc<
@@ -78,7 +78,7 @@ struct QueueState {
 
 struct ActiveRun {
     cancellation: Arc<LegacyCancellation>,
-    done: Arc<Notify>,
+    done: watch::Receiver<bool>,
 }
 
 struct Inner {
@@ -212,17 +212,17 @@ impl Agent {
     /// Resolves after the active run and all `agent_end` listeners settle.
     pub async fn wait_for_idle(&self) {
         loop {
-            let notify = self
+            let mut done = self
                 .inner
                 .lock()
                 .unwrap_or_else(|e| e.into_inner())
                 .active
                 .as_ref()
                 .map(|active| active.done.clone());
-            let Some(notify) = notify else {
+            let Some(ref mut done) = done else {
                 return;
             };
-            notify.notified().await;
+            let _ = done.changed().await;
         }
     }
 
@@ -266,7 +266,7 @@ impl Agent {
         prompts: Vec<AgentMessage>,
         continuation: bool,
     ) -> Result<(), LegacyAgentError> {
-        let (options, context, cancellation, done, control, sink) = {
+        let (options, context, cancellation, done_sender, control, sink) = {
             let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
             if inner.active.is_some() {
                 return Err(LegacyAgentError::InvalidContext(
@@ -274,14 +274,14 @@ impl Agent {
                 ));
             }
             let cancellation = LegacyCancellation::new();
-            let done = Arc::new(Notify::new());
+            let (done_sender, done_receiver) = watch::channel(false);
             inner.state.is_streaming = true;
             inner.state.streaming_message = None;
             inner.state.error_message = None;
             inner.state.pending_tool_calls.clear();
             inner.active = Some(ActiveRun {
                 cancellation: cancellation.clone(),
-                done: done.clone(),
+                done: done_receiver,
             });
             let context = LegacyContext {
                 system_prompt: inner.state.system_prompt.clone(),
@@ -304,7 +304,7 @@ impl Agent {
                 inner.options.clone(),
                 context,
                 cancellation,
-                done,
+                done_sender,
                 control,
                 sink,
             )
@@ -346,7 +346,7 @@ impl Agent {
             inner.state.pending_tool_calls.clear();
             inner.active = None;
         }
-        done.notify_waiters();
+        let _ = done_sender.send(true);
         result
     }
 }

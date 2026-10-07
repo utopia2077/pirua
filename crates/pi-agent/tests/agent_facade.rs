@@ -131,6 +131,10 @@ fn abort_propagates_signal_and_reset_clears_transcript() {
             let agent = agent.clone();
             tokio::spawn(async move { agent.prompt(vec![user("wait")]).await })
         };
+        let idle_waiter = {
+            let agent = agent.clone();
+            tokio::spawn(async move { agent.wait_for_idle().await })
+        };
         for _ in 0..1000 {
             if agent.state().is_streaming {
                 break;
@@ -146,6 +150,7 @@ fn abort_propagates_signal_and_reset_clears_transcript() {
             .await
             .expect("task joins")
             .expect("abort is in-band");
+        idle_waiter.await.expect("idle waiter joins");
         assert!(!agent.state().is_streaming);
         assert!(agent.state().messages.iter().any(|message| {
             matches!(
