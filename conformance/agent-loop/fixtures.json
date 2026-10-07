@@ -797,7 +797,7 @@
           "type": "message_end",
           "role": "assistant",
           "messageId": "assistant-0",
-          "stopReason": "toolUse"
+          "stopReason": "length"
         },
         {
           "index": 6,
@@ -872,7 +872,7 @@
           "role": "assistant",
           "id": "assistant-0",
           "content": "length",
-          "stopReason": "toolUse"
+          "stopReason": "length"
         },
         {
           "role": "toolResult",

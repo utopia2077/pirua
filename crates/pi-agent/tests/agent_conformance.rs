@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -300,13 +300,159 @@ fn corpus_manifest_has_exact_denominator_statuses_and_one_negative_each() {
         manifest["negatives"].as_array().expect("negatives").len(),
         12
     );
-    assert_eq!(
-        manifest["denominator"]
+    let expected_denominator = [
+        (
+            "U1",
+            "prompt_entry_continuation_message_sets",
+            "source-confirmed",
+            &["recon-contract.md:12-13"][..],
+        ),
+        (
+            "U2",
+            "lifecycle_order_message_pairing",
+            "source-confirmed",
+            &["recon-contract.md:13-14"][..],
+        ),
+        (
+            "U3",
+            "transform_convert_provider_invocation",
+            "source-confirmed",
+            &["recon-contract.md:14"][..],
+        ),
+        (
+            "U4",
+            "provider_error_abort_terminal_outcomes",
+            "test-unwitnessed",
+            &["recon-contract.md:14-15"][..],
+        ),
+        (
+            "U5",
+            "tool_preparation_validation_hooks_pairing",
+            "test-unwitnessed",
+            &["recon-contract.md:15"][..],
+        ),
+        (
+            "U6",
+            "sequential_tool_scheduling_override",
+            "test-unwitnessed",
+            &["recon-contract.md:15-16"][..],
+        ),
+        (
+            "U7",
+            "parallel_completion_source_order",
+            "source-confirmed",
+            &["recon-contract.md:16"][..],
+        ),
+        (
+            "U8",
+            "progress_late_update_error_conversion",
+            "test-unwitnessed",
+            &["recon-contract.md:16"][..],
+        ),
+        (
+            "U9",
+            "length_truncation_termination",
+            "source-confirmed",
+            &["recon-contract.md:16-17"][..],
+        ),
+        (
+            "U10",
+            "steering_follow_up_queue_modes",
+            "test-unwitnessed",
+            &["recon-contract.md:17"][..],
+        ),
+        (
+            "U11",
+            "mutable_state_listener_abort_reset_reentrancy",
+            "source-confirmed",
+            &["recon-contract.md:17-18"][..],
+        ),
+        (
+            "U12",
+            "proxy_reconstruction_error_abort_mapping",
+            "test-unwitnessed",
+            &["upstream.md:12", "conformance.md:27"][..],
+        ),
+        (
+            "U13",
+            "low_level_stream_terminal_iterator_eof",
+            "test-unwitnessed",
+            &["recon-contract.md:20-21", "rust.md:98-100"][..],
+        ),
+        (
+            "U14",
+            "legacy_agent_harness_v3_compatibility_separation",
+            "non-applicable",
+            &["recon-contract.md:21-22"][..],
+        ),
+    ];
+    let denominator = manifest["denominator"].as_array().expect("denominator");
+    assert_eq!(denominator.len(), expected_denominator.len());
+    for (row, (expected_id, expected_name, expected_status, expected_refs)) in
+        denominator.iter().zip(expected_denominator)
+    {
+        assert_eq!(row["id"], expected_id);
+        assert_eq!(row["name"], expected_name);
+        assert_eq!(row["status"], expected_status);
+        let references = row["sourceReferences"]
             .as_array()
-            .expect("denominator")
-            .len(),
-        14
-    );
+            .expect("denominator source references");
+        assert_eq!(references.len(), expected_refs.len());
+        for (reference, expected_reference) in references.iter().zip(expected_refs) {
+            assert_eq!(reference, expected_reference);
+        }
+    }
+    let expected_denominator_ids = expected_denominator
+        .iter()
+        .map(|(id, _, _, _)| *id)
+        .collect::<BTreeSet<_>>();
+    let actual_denominator_ids = denominator
+        .iter()
+        .map(|row| row["id"].as_str().expect("denominator ID"))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual_denominator_ids, expected_denominator_ids);
+
+    let positive_ids = rows
+        .iter()
+        .map(|row| row["id"].as_str().expect("positive ID"))
+        .collect::<BTreeSet<_>>();
+    let mut linked_positive_ids = BTreeSet::new();
+    for negative in manifest["negatives"].as_array().expect("negatives") {
+        let positive_id = negative["positiveId"]
+            .as_str()
+            .expect("negative positive ID");
+        assert!(positive_ids.contains(positive_id));
+        assert!(
+            linked_positive_ids.insert(positive_id),
+            "positive row has more than one causal negative: {positive_id}"
+        );
+        assert_eq!(
+            negative["negativeId"],
+            format!("{positive_id}.causal"),
+            "causal negative ID must identify its positive row"
+        );
+        assert!(
+            negative["name"]
+                .as_str()
+                .is_some_and(|name| !name.is_empty())
+        );
+        assert!(
+            negative["reason"]
+                .as_str()
+                .is_some_and(|reason| !reason.is_empty())
+        );
+        assert!(
+            negative["mutation"]["target"]
+                .as_str()
+                .is_some_and(|target| !target.is_empty())
+        );
+        assert!(
+            negative["mutation"]["operation"]
+                .as_str()
+                .is_some_and(|operation| !operation.is_empty())
+        );
+    }
+    assert_eq!(linked_positive_ids, positive_ids);
     let statuses = rows
         .iter()
         .map(|row| (row["id"].as_str().unwrap(), row["status"].as_str().unwrap()))
@@ -525,7 +671,7 @@ fn low_level_tool_order_truncation_and_steering_witnesses_are_causal() {
                 })
             })
         };
-        run_agent_loop_with_tools(
+        let produced = run_agent_loop_with_tools(
             vec![user("truncated")],
             LegacyContext {
                 tools: vec![echo_descriptor()],
@@ -538,6 +684,17 @@ fn low_level_tool_order_truncation_and_steering_witnesses_are_causal() {
         .await
         .expect("length truncation is in-band");
         assert!(seen.lock().unwrap().is_empty());
+        let assistant_stop_reasons = produced
+            .iter()
+            .filter_map(|message| match message {
+                AgentMessage::BuiltIn(Message::Assistant(message)) => Some(message.stop_reason),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            assistant_stop_reasons,
+            vec![pi_ai_core::StopReason::Length, pi_ai_core::StopReason::Stop]
+        );
 
         let tool: LegacyTool = Arc::new(EchoTool {
             descriptor: echo_descriptor(),

@@ -50,22 +50,27 @@ verifies that the checked-in fixture bytes were never changed. The mutation
 reasons cover event order, tool pairing, queue boundary, abort boundary, and
 provider error category.
 
-Status is explicit. `source-confirmed` means the cited upstream behavior and a
-current Rust witness are present. `test-unwitnessed` means the upstream row is
-source-backed but the current Rust tree does not expose the required complete
-trace; the corpus records it and the focused Rust test asserts that status
-instead of inventing parity. `non-applicable` is reserved for the explicit
-S14 boundary. The separate U1-U14 denominator in `manifest.json` accounts for
-all frozen behavior, including proxy and low-level stream/iterator rows;
-proxy and stream parity are not silently omitted. Harness v3 durable state and
-coding-runtime composition remain outside this legacy suite and are marked in
-the denominator as non-applicable or test-unwitnessed according to the frozen
-contract.
+Status is explicit. `source-confirmed` means the cited upstream behavior and
+the specific bounded local behavior named by the row have a current Rust
+witness. It does not mean that a Rust-captured trace has been run through the
+Node comparator or that full Agent-level parity has been differentially
+executed. A denominator row that combines a witnessed sub-behavior with an
+unwitnessed complete Agent path is therefore `test-unwitnessed`; the local
+witness remains in the focused Rust target. `non-applicable` is reserved for
+the explicit S14 boundary. The separate U1-U14 denominator in `manifest.json`
+accounts for all frozen behavior, including proxy and low-level
+stream/iterator rows; proxy and stream parity are not silently omitted.
+Harness v3 durable state and coding-runtime composition remain outside this
+legacy suite and are marked in the denominator as non-applicable or
+test-unwitnessed according to the frozen contract.
 
 The current Rust tests exercise only accepted low-level/public APIs with
 witnesses: lifecycle, transform-before-convert, tool batch ordering,
 truncation refusal, steering boundary, provider throw terminalization,
 continuation, and the public façade's process-local state/queue behavior.
-Rows marked `test-unwitnessed` or `non-applicable` are checked as bookkeeping
-and are not made to pass by comparing an implementation-generated fixture to
-itself. No live provider or network access is used.
+The Node causal command is a corpus/comparator self-test: it compares each
+fixture with itself and with one mutated clone, and never runs Rust. The
+focused Rust target separately checks local witnesses and manifest
+bookkeeping; it does not feed an implementation-generated trace into
+`compareTrace`. Rows marked `test-unwitnessed` or `non-applicable` remain
+explicit boundary records. No live provider or network access is used.

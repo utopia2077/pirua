@@ -186,20 +186,20 @@
     {
       "negativeId": "queue.steer_after_tools.causal",
       "positiveId": "queue.steer_after_tools",
-      "name": "queue_boundary:events[queue_deliver].index",
+      "name": "queue_boundary:events[queue_deliver].kind",
       "reason": "queue_boundary",
       "mutation": {
-        "target": "events[queue_deliver].index",
-        "operation": "swap"
+        "target": "events[queue_deliver].kind",
+        "operation": "replace"
       }
     },
     {
       "negativeId": "queue.follow_up_continue.causal",
       "positiveId": "queue.follow_up_continue",
-      "name": "queue_boundary:queue.kind",
+      "name": "queue_boundary:events[queue_deliver].kind",
       "reason": "queue_boundary",
       "mutation": {
-        "target": "queue.kind",
+        "target": "events[queue_deliver].kind",
         "operation": "replace"
       }
     },
@@ -262,7 +262,7 @@
     {
       "id": "U4",
       "name": "provider_error_abort_terminal_outcomes",
-      "status": "source-confirmed",
+      "status": "test-unwitnessed",
       "sourceReferences": [
         "recon-contract.md:14-15"
       ]
@@ -270,7 +270,7 @@
     {
       "id": "U5",
       "name": "tool_preparation_validation_hooks_pairing",
-      "status": "source-confirmed",
+      "status": "test-unwitnessed",
       "sourceReferences": [
         "recon-contract.md:15"
       ]
@@ -278,7 +278,7 @@
     {
       "id": "U6",
       "name": "sequential_tool_scheduling_override",
-      "status": "source-confirmed",
+      "status": "test-unwitnessed",
       "sourceReferences": [
         "recon-contract.md:15-16"
       ]
@@ -310,7 +310,7 @@
     {
       "id": "U10",
       "name": "steering_follow_up_queue_modes",
-      "status": "source-confirmed",
+      "status": "test-unwitnessed",
       "sourceReferences": [
         "recon-contract.md:17"
       ]
