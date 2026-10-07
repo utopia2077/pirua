@@ -24,6 +24,7 @@ pi-ai-core.workspace = true
 pi-harness-core.workspace = true
 pi-harness-runtime.workspace = true
 pi-telemetry.workspace = true
+tokio.workspace = true
 
 [dev-dependencies]
 serde.workspace = true

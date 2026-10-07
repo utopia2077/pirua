@@ -1,4 +1,10 @@
 //! Public Agent facade with standalone search and telemetry contracts.
+mod agent;
+pub use agent::*;
+pub use pi_agent_loop::{
+    LegacyAgentError, LegacyCancellation, LegacyConvertFn, LegacyRequest, LegacyStreamFn,
+    LegacyTool, LegacyTransformFn,
+};
 pub use pi_agent_search::{
     EntrySearchHit, SearchQuery, SessionSearchHit, SessionSearchService, SessionSearchTopEntry,
 };

@@ -1145,6 +1145,7 @@ dependencies = [
  "pi-telemetry",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]
