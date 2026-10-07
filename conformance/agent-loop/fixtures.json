@@ -1,0 +1,1609 @@
+{
+  "schemaVersion": 1,
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "rows": [
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "single_turn.stop",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "hello"
+          }
+        ]
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "stop"
+        },
+        {
+          "index": 6,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 7,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "hello"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "hello from model",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "providerCalls": 1
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "single_turn.transform_context",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "hello"
+          }
+        ],
+        "transform": "context-transform"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "stop"
+        },
+        {
+          "index": 6,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 7,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "hello"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "transformed",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "transformBeforeConvert": true,
+        "providerCalls": 1
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "tool.single_call",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "run one tool"
+          }
+        ],
+        "tools": [
+          {
+            "name": "echo",
+            "executionMode": "parallel"
+          }
+        ]
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "toolUse"
+        },
+        {
+          "index": 6,
+          "type": "tool_execution_start",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 7,
+          "type": "tool_execution_update",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "progress": "started"
+        },
+        {
+          "index": 8,
+          "type": "tool_execution_end",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "isError": false,
+          "executed": true
+        },
+        {
+          "index": 9,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 10,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 11,
+          "type": "turn_end",
+          "toolResults": [
+            "call-1"
+          ]
+        },
+        {
+          "index": 12,
+          "type": "turn_start"
+        },
+        {
+          "index": 13,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-1"
+        },
+        {
+          "index": 14,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-1",
+          "stopReason": "stop"
+        },
+        {
+          "index": 15,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 16,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "run one tool"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "tool call",
+          "stopReason": "toolUse"
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "content": "echo:ok",
+          "isError": false,
+          "terminate": false
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-1",
+          "content": "done",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "completionOrder": [
+          "call-1"
+        ],
+        "sourceOrder": [
+          "call-1"
+        ],
+        "toolExecuted": true
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "tool.parallel_completion_source",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "parallel"
+          }
+        ],
+        "tools": [
+          {
+            "name": "echo"
+          },
+          {
+            "name": "echo"
+          }
+        ],
+        "executionMode": "parallel"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "toolUse"
+        },
+        {
+          "index": 6,
+          "type": "tool_execution_start",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 7,
+          "type": "tool_execution_start",
+          "toolCallId": "call-2",
+          "toolName": "echo"
+        },
+        {
+          "index": 8,
+          "type": "tool_execution_end",
+          "toolCallId": "call-2",
+          "toolName": "echo",
+          "isError": false,
+          "executed": true
+        },
+        {
+          "index": 9,
+          "type": "tool_execution_end",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "isError": false,
+          "executed": true
+        },
+        {
+          "index": 10,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 11,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 12,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "echo"
+        },
+        {
+          "index": 13,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "echo"
+        },
+        {
+          "index": 14,
+          "type": "turn_end",
+          "toolResults": [
+            "call-1",
+            "call-2"
+          ]
+        },
+        {
+          "index": 15,
+          "type": "turn_start"
+        },
+        {
+          "index": 16,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-1"
+        },
+        {
+          "index": 17,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-1",
+          "stopReason": "stop"
+        },
+        {
+          "index": 18,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 19,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "parallel"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "two calls",
+          "stopReason": "toolUse"
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "content": "echo:ok",
+          "isError": false,
+          "terminate": false
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "echo",
+          "content": "echo:ok",
+          "isError": false,
+          "terminate": false
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-1",
+          "content": "done",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "completionOrder": [
+          "call-2",
+          "call-1"
+        ],
+        "sourceOrder": [
+          "call-1",
+          "call-2"
+        ],
+        "completionMayDiffer": true
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "tool.sequential_override",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "sequential"
+          }
+        ],
+        "tools": [
+          {
+            "name": "echo",
+            "executionMode": "sequential"
+          },
+          {
+            "name": "echo"
+          }
+        ],
+        "executionMode": "parallel"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "toolUse"
+        },
+        {
+          "index": 6,
+          "type": "tool_execution_start",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 7,
+          "type": "tool_execution_start",
+          "toolCallId": "call-2",
+          "toolName": "echo"
+        },
+        {
+          "index": 8,
+          "type": "tool_execution_end",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "isError": false,
+          "executed": true
+        },
+        {
+          "index": 9,
+          "type": "tool_execution_end",
+          "toolCallId": "call-2",
+          "toolName": "echo",
+          "isError": false,
+          "executed": true
+        },
+        {
+          "index": 10,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 11,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 12,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "echo"
+        },
+        {
+          "index": 13,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "echo"
+        },
+        {
+          "index": 14,
+          "type": "turn_end",
+          "toolResults": [
+            "call-1",
+            "call-2"
+          ]
+        },
+        {
+          "index": 15,
+          "type": "turn_start"
+        },
+        {
+          "index": 16,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-1"
+        },
+        {
+          "index": 17,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-1",
+          "stopReason": "stop"
+        },
+        {
+          "index": 18,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 19,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "sequential"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "two calls",
+          "stopReason": "toolUse"
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "content": "echo:ok",
+          "isError": false,
+          "terminate": false
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-2",
+          "toolName": "echo",
+          "content": "echo:ok",
+          "isError": false,
+          "terminate": false
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-1",
+          "content": "done",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "completionOrder": [
+          "call-1",
+          "call-2"
+        ],
+        "sourceOrder": [
+          "call-1",
+          "call-2"
+        ],
+        "forcedSequential": true
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "tool.length_truncated",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "truncated"
+          }
+        ],
+        "tools": [
+          {
+            "name": "echo"
+          }
+        ],
+        "providerStopReason": "length"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "toolUse"
+        },
+        {
+          "index": 6,
+          "type": "tool_execution_start",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 7,
+          "type": "tool_execution_end",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "isError": true,
+          "executed": false,
+          "immediate": "length"
+        },
+        {
+          "index": 8,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 9,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 10,
+          "type": "turn_end",
+          "toolResults": [
+            "call-1"
+          ]
+        },
+        {
+          "index": 11,
+          "type": "turn_start"
+        },
+        {
+          "index": 12,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-1"
+        },
+        {
+          "index": 13,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-1",
+          "stopReason": "stop"
+        },
+        {
+          "index": 14,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 15,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "truncated"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "length",
+          "stopReason": "toolUse"
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "content": "tool call truncated",
+          "isError": true,
+          "terminate": false
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-1",
+          "content": "done",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "toolExecuted": false,
+        "immediateReason": "length"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "tool.block_terminate",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "blocked"
+          }
+        ],
+        "tools": [
+          {
+            "name": "echo"
+          }
+        ],
+        "beforeHook": "terminate"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "toolUse"
+        },
+        {
+          "index": 6,
+          "type": "tool_execution_start",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 7,
+          "type": "tool_execution_end",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "isError": true,
+          "executed": false,
+          "immediate": "terminate",
+          "terminate": true
+        },
+        {
+          "index": 8,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 9,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 10,
+          "type": "turn_end",
+          "toolResults": [
+            "call-1"
+          ]
+        },
+        {
+          "index": 11,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "blocked"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "blocked call",
+          "stopReason": "toolUse"
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "content": "blocked",
+          "isError": true,
+          "terminate": true
+        }
+      ],
+      "outcome": {
+        "kind": "toolTermination",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "toolExecuted": false,
+        "immediateReason": "terminate"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "queue.steer_after_tools",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "start"
+          }
+        ],
+        "tools": [
+          {
+            "name": "echo"
+          }
+        ],
+        "queueMode": "all"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "toolUse"
+        },
+        {
+          "index": 6,
+          "type": "tool_execution_start",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 7,
+          "type": "tool_execution_end",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "isError": false,
+          "executed": true
+        },
+        {
+          "index": 8,
+          "type": "message_start",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 9,
+          "type": "message_end",
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo"
+        },
+        {
+          "index": 10,
+          "type": "turn_end",
+          "toolResults": [
+            "call-1"
+          ]
+        },
+        {
+          "index": 11,
+          "type": "queue_admit",
+          "kind": "steer",
+          "sequence": 0,
+          "payloadDigest": "sha256:user-steer"
+        },
+        {
+          "index": 12,
+          "type": "queue_deliver",
+          "kind": "steer",
+          "sequence": 0,
+          "deliverySequence": 0,
+          "payloadDigest": "sha256:user-steer"
+        },
+        {
+          "index": 13,
+          "type": "turn_start"
+        },
+        {
+          "index": 14,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "steer-0"
+        },
+        {
+          "index": 15,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "steer-0"
+        },
+        {
+          "index": 16,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-1"
+        },
+        {
+          "index": 17,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-1",
+          "stopReason": "stop"
+        },
+        {
+          "index": 18,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 19,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "start"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "tool call",
+          "stopReason": "toolUse"
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "call-1",
+          "toolName": "echo",
+          "content": "echo:ok",
+          "isError": false,
+          "terminate": false
+        },
+        {
+          "role": "user",
+          "id": "steer-0",
+          "content": "steer-0"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-1",
+          "content": "done",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "queue": {
+        "kind": "steer",
+        "mode": "all",
+        "items": [
+          {
+            "sequence": 0,
+            "payloadDigest": "sha256:user-steer",
+            "admittedAt": 11,
+            "deliveredAt": 12
+          }
+        ]
+      },
+      "observations": {
+        "queueDeliveredAfterToolResults": true
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "queue.follow_up_continue",
+      "input": {
+        "kind": "continue",
+        "context": [
+          {
+            "role": "assistant",
+            "id": "prior-assistant",
+            "content": "prior",
+            "stopReason": "stop"
+          }
+        ],
+        "queueMode": "oldest"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "queue_admit",
+          "kind": "followUp",
+          "sequence": 0,
+          "payloadDigest": "sha256:follow-up"
+        },
+        {
+          "index": 3,
+          "type": "queue_deliver",
+          "kind": "followUp",
+          "sequence": 0,
+          "deliverySequence": 0,
+          "payloadDigest": "sha256:follow-up"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "follow-0"
+        },
+        {
+          "index": 5,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "follow-0"
+        },
+        {
+          "index": 6,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 7,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "stop"
+        },
+        {
+          "index": 8,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 9,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "follow-0",
+          "content": "follow-up"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "continued",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "queue": {
+        "kind": "followUp",
+        "mode": "oldest",
+        "items": [
+          {
+            "sequence": 0,
+            "payloadDigest": "sha256:follow-up",
+            "admittedAt": 2,
+            "deliveredAt": 3
+          }
+        ]
+      },
+      "observations": {
+        "queueDeliveredByContinue": true,
+        "replayedInput": false
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "abort.active_stream",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "abort me"
+          }
+        ],
+        "abort": "active-stream"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "abort_signal",
+          "boundary": "after_assistant_start"
+        },
+        {
+          "index": 6,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "aborted",
+          "errorCategory": "aborted"
+        },
+        {
+          "index": 7,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 8,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "abort me"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "",
+          "stopReason": "aborted",
+          "errorCategory": "aborted"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "aborted",
+        "errorCategory": "aborted",
+        "errorMessage": "legacy provider aborted",
+        "terminal": true,
+        "abortBoundary": "after_assistant_start"
+      },
+      "normalizers": [],
+      "observations": {
+        "lateProgressSuppressed": true,
+        "newExecutionAfterAbort": false
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "provider.throw",
+      "input": {
+        "kind": "prompt",
+        "messages": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "provider throws"
+          }
+        ],
+        "providerFailure": "throw"
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "user",
+          "messageId": "user-0"
+        },
+        {
+          "index": 4,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 5,
+          "type": "provider_error",
+          "category": "thrown"
+        },
+        {
+          "index": 6,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "error",
+          "errorCategory": "provider"
+        },
+        {
+          "index": 7,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 8,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "id": "user-0",
+          "content": "provider throws"
+        },
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "legacy provider failed",
+          "stopReason": "error",
+          "errorCategory": "provider"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "error",
+        "errorCategory": "provider",
+        "errorMessage": "legacy provider failed: synthetic provider failure",
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "retryCount": 0,
+        "toolExecuted": false
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "continue.existing_context",
+      "input": {
+        "kind": "continue",
+        "context": [
+          {
+            "role": "user",
+            "id": "user-0",
+            "content": "existing"
+          },
+          {
+            "role": "toolResult",
+            "toolCallId": "call-1",
+            "toolName": "echo",
+            "content": "echo:ok",
+            "isError": false,
+            "terminate": false
+          }
+        ]
+      },
+      "events": [
+        {
+          "index": 0,
+          "type": "agent_start"
+        },
+        {
+          "index": 1,
+          "type": "turn_start"
+        },
+        {
+          "index": 2,
+          "type": "message_start",
+          "role": "assistant",
+          "messageId": "assistant-0"
+        },
+        {
+          "index": 3,
+          "type": "message_end",
+          "role": "assistant",
+          "messageId": "assistant-0",
+          "stopReason": "stop"
+        },
+        {
+          "index": 4,
+          "type": "turn_end",
+          "toolResults": []
+        },
+        {
+          "index": 5,
+          "type": "agent_end"
+        }
+      ],
+      "messages": [
+        {
+          "role": "assistant",
+          "id": "assistant-0",
+          "content": "continued",
+          "stopReason": "stop"
+        }
+      ],
+      "outcome": {
+        "kind": "assistant",
+        "stopReason": "stop",
+        "errorCategory": null,
+        "errorMessage": null,
+        "terminal": true
+      },
+      "normalizers": [],
+      "observations": {
+        "replayedInput": false,
+        "userMessageEvents": 0,
+        "providerCalls": 1
+      }
+    }
+  ]
+}
