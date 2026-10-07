@@ -2,8 +2,8 @@
 mod agent;
 pub use agent::*;
 pub use pi_agent_loop::{
-    LegacyAgentError, LegacyCancellation, LegacyConvertFn, LegacyRequest, LegacyStreamFn,
-    LegacyTool, LegacyTransformFn,
+    LegacyAgentError, LegacyCancellation, LegacyContext, LegacyConvertFn, LegacyHooksHandle,
+    LegacyRequest, LegacyStreamFn, LegacyTool, LegacyTransformFn, ToolPhaseError, ToolPhaseHooks,
 };
 pub use pi_agent_search::{
     EntrySearchHit, SearchQuery, SessionSearchHit, SessionSearchService, SessionSearchTopEntry,

@@ -75,6 +75,9 @@ pub struct LegacyContext {
 /// invocation and is never serialized or attached to durable Harness state.
 pub type LegacyTool = AgentHarnessToolHandle<LegacyContext>;
 
+/// Process-local before/after hook set used by the legacy tool pipeline.
+pub type LegacyHooksHandle = Arc<dyn ToolPhaseHooks<LegacyContext>>;
+
 /// Queue and stop hooks used by the transient legacy loop.
 pub trait LegacyLoopControl: Send + Sync {
     /// Polls messages that steer the next assistant turn.
@@ -260,6 +263,30 @@ pub fn run_agent_loop_with_tools_and_mode(
     )
 }
 
+/// Runs a legacy prompt with executable tools and caller-provided hooks.
+#[allow(clippy::too_many_arguments)]
+pub fn run_agent_loop_with_tools_and_control_and_mode_and_hooks(
+    prompts: Vec<AgentMessage>,
+    context: LegacyContext,
+    config: LegacyLoopConfig,
+    tools: Vec<LegacyTool>,
+    control: Option<Arc<dyn LegacyLoopControl>>,
+    default_mode: ToolExecutionMode,
+    hooks: LegacyHooksHandle,
+    sink: Arc<dyn AgentEventSink>,
+) -> BoxFuture<'static, Result<Vec<AgentMessage>, LegacyAgentError>> {
+    run_agent_loop_with_tools_and_control_and_mode_inner(
+        prompts,
+        context,
+        config,
+        tools,
+        control,
+        default_mode,
+        hooks,
+        sink,
+    )
+}
+
 fn run_agent_loop_with_tools_and_control_and_mode(
     prompts: Vec<AgentMessage>,
     context: LegacyContext,
@@ -267,6 +294,29 @@ fn run_agent_loop_with_tools_and_control_and_mode(
     tools: Vec<LegacyTool>,
     control: Option<Arc<dyn LegacyLoopControl>>,
     default_mode: ToolExecutionMode,
+    sink: Arc<dyn AgentEventSink>,
+) -> BoxFuture<'static, Result<Vec<AgentMessage>, LegacyAgentError>> {
+    run_agent_loop_with_tools_and_control_and_mode_inner(
+        prompts,
+        context,
+        config,
+        tools,
+        control,
+        default_mode,
+        Arc::new(LegacyHooks),
+        sink,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_agent_loop_with_tools_and_control_and_mode_inner(
+    prompts: Vec<AgentMessage>,
+    context: LegacyContext,
+    config: LegacyLoopConfig,
+    tools: Vec<LegacyTool>,
+    control: Option<Arc<dyn LegacyLoopControl>>,
+    default_mode: ToolExecutionMode,
+    hooks: LegacyHooksHandle,
     sink: Arc<dyn AgentEventSink>,
 ) -> BoxFuture<'static, Result<Vec<AgentMessage>, LegacyAgentError>> {
     Box::pin(async move {
@@ -341,6 +391,7 @@ fn run_agent_loop_with_tools_and_control_and_mode(
                 let phases = LegacyPhases {
                     tools: tools.clone(),
                     context: current.clone(),
+                    hooks: hooks.clone(),
                     sink: sink.clone(),
                     cancellation: config.cancellation.clone(),
                 };
@@ -542,6 +593,7 @@ async fn append_control_messages(
 struct LegacyPhases {
     tools: Vec<LegacyTool>,
     context: LegacyContext,
+    hooks: LegacyHooksHandle,
     sink: Arc<dyn AgentEventSink>,
     cancellation: Arc<dyn Cancellation>,
 }
@@ -578,7 +630,7 @@ impl ToolBatchPhases<LegacyContext> for LegacyPhases {
                 binding,
                 context,
                 self.cancellation.as_ref(),
-                &LegacyHooks,
+                self.hooks.as_ref(),
                 false,
             )
             .await
@@ -616,7 +668,7 @@ impl ToolBatchPhases<LegacyContext> for LegacyPhases {
                 executed,
                 context,
                 self.cancellation.as_ref(),
-                &LegacyHooks,
+                self.hooks.as_ref(),
                 &LegacyValidator,
                 !self.cancellation.is_cancelled(),
             )

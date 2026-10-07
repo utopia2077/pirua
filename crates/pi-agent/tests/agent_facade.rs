@@ -2,10 +2,15 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use pi_agent::{
-    Agent, AgentListener, AgentOptions, LegacyAgentError, LegacyConvertFn, LegacyStreamFn,
+    Agent, AgentListener, AgentOptions, LegacyAgentError, LegacyContext, LegacyConvertFn,
+    LegacyHooksHandle, LegacyStreamFn, LegacyTool, ToolPhaseError, ToolPhaseHooks,
 };
-use pi_agent_schema::{AgentEvent, AgentMessage};
-use pi_ai_core::{Message, Model};
+use pi_agent_schema::{
+    AgentEvent, AgentHarnessTool, AgentMessage, AgentTool, AgentToolResult, BeforeToolResult,
+    BoxFuture, Cancellation, ErrorContext, ExecutedToolOutcome, QueueMode, SettledAssistantMessage,
+    ToolExecutionError, ToolProgressSink,
+};
+use pi_ai_core::{InputContent, JsonObject, JsonValue, Message, Model, TextContent, ToolCallId};
 
 fn model() -> Model {
     serde_json::from_value(serde_json::json!({
@@ -53,6 +58,32 @@ fn assistant(text: &str) -> pi_agent_schema::SettledAssistantMessage {
     .expect("valid assistant")
 }
 
+fn tool_assistant() -> SettledAssistantMessage {
+    serde_json::from_value(serde_json::json!({
+        "role": "assistant",
+        "content": [{
+            "type": "toolCall",
+            "id": "call-1",
+            "name": "echo",
+            "arguments": {"value": "from-tool"}
+        }],
+        "api": "api",
+        "provider": "provider",
+        "model": "model",
+        "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {"input": 0.0, "output": 0.0, "cacheRead": 0.0, "cacheWrite": 0.0, "total": 0.0}
+        },
+        "stopReason": "toolUse",
+        "timestamp": 0
+    }))
+    .expect("valid tool assistant")
+}
+
 fn converter() -> LegacyConvertFn {
     Arc::new(|messages| {
         Ok(messages
@@ -73,6 +104,121 @@ fn options(stream: LegacyStreamFn) -> AgentOptions {
         convert_to_provider: converter(),
         transform_context: None,
         tools: Vec::new(),
+        hooks: None,
+    }
+}
+
+fn echo_descriptor() -> AgentTool {
+    serde_json::from_value(serde_json::json!({
+        "name": "echo",
+        "label": "Echo",
+        "description": "Echo",
+        "parameters": {
+            "type": "object",
+            "properties": {"value": {"type": "string"}},
+            "required": ["value"],
+            "additionalProperties": false
+        }
+    }))
+    .expect("valid echo descriptor")
+}
+
+struct EchoTool {
+    descriptor: AgentTool,
+    seen: Arc<Mutex<Vec<String>>>,
+}
+
+impl AgentHarnessTool<LegacyContext> for EchoTool {
+    fn descriptor(&self) -> &AgentTool {
+        &self.descriptor
+    }
+
+    fn prepare_arguments(&self, args: JsonValue) -> Result<JsonObject, ToolExecutionError> {
+        let JsonValue::Object(args) = args else {
+            return Err(ToolExecutionError::new(
+                ErrorContext::new("arguments must be an object").expect("static error"),
+            ));
+        };
+        Ok(args)
+    }
+
+    fn execute<'a>(
+        &'a self,
+        _tool_call_id: ToolCallId,
+        params: JsonObject,
+        _cancellation: &'a dyn Cancellation,
+        _progress: &'a dyn ToolProgressSink,
+        _context: &'a LegacyContext,
+    ) -> BoxFuture<'a, Result<AgentToolResult, ToolExecutionError>> {
+        Box::pin(async move {
+            let value = params
+                .as_map()
+                .get("value")
+                .and_then(|value| match value {
+                    JsonValue::String(value) => Some(value.clone()),
+                    _ => None,
+                })
+                .unwrap_or_default();
+            self.seen.lock().unwrap().push(value.clone());
+            Ok(AgentToolResult {
+                content: vec![InputContent::Text(TextContent {
+                    content_type: Default::default(),
+                    text: format!("echo:{value}"),
+                    text_signature: None,
+                })],
+                details: JsonValue::Object(params),
+                usage: None,
+                added_tool_names: None,
+                terminate: None,
+            })
+        })
+    }
+}
+
+struct RecordingHooks {
+    events: Arc<Mutex<Vec<&'static str>>>,
+}
+
+impl ToolPhaseHooks<LegacyContext> for RecordingHooks {
+    fn before<'a>(
+        &'a self,
+        _call: &'a pi_ai_core::ToolCall,
+        _args: &'a JsonObject,
+        _context: &'a LegacyContext,
+        _cancellation: &'a dyn Cancellation,
+    ) -> BoxFuture<'a, Result<Option<BeforeToolResult>, ToolPhaseError>> {
+        let events = self.events.clone();
+        Box::pin(async move {
+            events.lock().unwrap().push("before");
+            Ok(None)
+        })
+    }
+
+    fn after<'a>(
+        &'a self,
+        _call: &'a pi_ai_core::ToolCall,
+        _args: &'a JsonObject,
+        _outcome: &'a ExecutedToolOutcome,
+        _context: &'a LegacyContext,
+        _cancellation: &'a dyn Cancellation,
+    ) -> BoxFuture<'a, Result<Option<pi_agent_schema::AfterToolResult>, ToolPhaseError>> {
+        let events = self.events.clone();
+        Box::pin(async move {
+            events.lock().unwrap().push("after");
+            Ok(None)
+        })
+    }
+}
+
+fn options_with_tool_and_hooks(
+    stream: LegacyStreamFn,
+    tool: LegacyTool,
+    hooks: LegacyHooksHandle,
+) -> AgentOptions {
+    AgentOptions {
+        tools: vec![tool],
+        hooks: Some(hooks),
+        ..options(stream)
     }
 }
 
@@ -194,5 +340,94 @@ fn reentrancy_is_rejected_while_a_run_is_active() {
             .await
             .expect("task joins")
             .expect("abort is in-band");
+    });
+}
+
+#[test]
+fn follow_up_all_mode_delivers_all_queued_messages_on_next_turn() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let stream: LegacyStreamFn = {
+            let calls = calls.clone();
+            Arc::new(move |request, _| {
+                let call = calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Box::pin(async move {
+                    if call == 0 {
+                        tokio::time::sleep(Duration::from_millis(10)).await;
+                    } else {
+                        let users = request
+                            .messages
+                            .iter()
+                            .filter_map(|message| match message {
+                                Message::User(user) => match &user.content {
+                                    pi_ai_core::UserContent::Text(text) => Some(text.clone()),
+                                    _ => None,
+                                },
+                                _ => None,
+                            })
+                            .collect::<Vec<_>>();
+                        assert!(users.iter().any(|text| text == "one"));
+                        assert!(users.iter().any(|text| text == "two"));
+                    }
+                    Ok(assistant("done"))
+                })
+            })
+        };
+        let agent = Agent::new(options(stream));
+        agent.set_follow_up_mode(QueueMode::All);
+        let running = {
+            let agent = agent.clone();
+            tokio::spawn(async move { agent.prompt(vec![user("start")]).await })
+        };
+        for _ in 0..1000 {
+            if agent.state().is_streaming {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+        agent.follow_up(user("one")).expect("active follow-up");
+        agent.follow_up(user("two")).expect("active follow-up");
+        running.await.expect("task joins").expect("prompt succeeds");
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2);
+    });
+}
+
+#[test]
+fn public_hooks_reach_legacy_tool_prepare_and_finalize() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let stream: LegacyStreamFn = {
+            let calls = calls.clone();
+            Arc::new(move |_, _| {
+                let call = calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Box::pin(async move {
+                    if call == 0 {
+                        Ok(tool_assistant())
+                    } else {
+                        Ok(assistant("done"))
+                    }
+                })
+            })
+        };
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let tool: LegacyTool = Arc::new(EchoTool {
+            descriptor: echo_descriptor(),
+            seen: seen.clone(),
+        });
+        let hook_events = Arc::new(Mutex::new(Vec::new()));
+        let hooks: LegacyHooksHandle = Arc::new(RecordingHooks {
+            events: hook_events.clone(),
+        });
+        let agent = Agent::new(options_with_tool_and_hooks(stream, tool, hooks));
+
+        agent
+            .prompt(vec![user("run tool")])
+            .await
+            .expect("prompt succeeds");
+
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2);
+        assert_eq!(&*seen.lock().unwrap(), &["from-tool".to_owned()]);
+        assert_eq!(&*hook_events.lock().unwrap(), &["before", "after"]);
+        assert_eq!(agent.state().messages.len(), 4);
     });
 }

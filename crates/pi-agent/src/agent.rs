@@ -5,9 +5,10 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 
 use pi_agent_loop::{
-    LegacyAgentError, LegacyCancellation, LegacyContext, LegacyConvertFn, LegacyLoopConfig,
-    LegacyLoopControl, LegacyStreamFn, LegacyTool, LegacyTransformFn,
+    LegacyAgentError, LegacyCancellation, LegacyContext, LegacyConvertFn, LegacyHooksHandle,
+    LegacyLoopConfig, LegacyLoopControl, LegacyStreamFn, LegacyTool, LegacyTransformFn,
     run_agent_loop_with_tools_and_control,
+    run_agent_loop_with_tools_and_control_and_mode_and_hooks,
 };
 use pi_agent_schema::{
     AgentEvent, AgentEventSink, AgentMessage, BoxFuture, Cancellation, LiveAgentMessage, QueueMode,
@@ -37,6 +38,8 @@ pub struct AgentOptions {
     pub transform_context: Option<LegacyTransformFn>,
     /// Executable process-local tools.
     pub tools: Vec<LegacyTool>,
+    /// Optional process-local before/after tool hooks.
+    pub hooks: Option<LegacyHooksHandle>,
 }
 
 impl fmt::Debug for AgentOptions {
@@ -264,7 +267,7 @@ impl Agent {
     async fn start_run(
         &self,
         prompts: Vec<AgentMessage>,
-        continuation: bool,
+        _continuation: bool,
     ) -> Result<(), LegacyAgentError> {
         let (options, context, cancellation, done_sender, control, sink) = {
             let mut inner = self.inner.lock().unwrap_or_else(|e| e.into_inner());
@@ -316,13 +319,15 @@ impl Agent {
             stream: options.stream,
             cancellation: cancellation.clone(),
         };
-        let result = if continuation {
-            run_agent_loop_with_tools_and_control(
+        let result = if let Some(hooks) = options.hooks {
+            run_agent_loop_with_tools_and_control_and_mode_and_hooks(
                 prompts,
                 context,
                 config,
                 options.tools,
                 Some(control),
+                pi_agent_schema::ToolExecutionMode::Parallel,
+                hooks,
                 sink,
             )
             .await
