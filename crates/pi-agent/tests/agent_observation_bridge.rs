@@ -9,12 +9,12 @@ use std::time::Duration;
 use pi_agent_loop::{
     LegacyCancellation, LegacyContext, LegacyConvertFn, LegacyLoopConfig, LegacyStreamFn,
     LegacyTool, LegacyTransformFn, run_agent_loop, run_agent_loop_continue,
-    run_agent_loop_with_tools,
+    run_agent_loop_with_tools, run_agent_loop_with_tools_and_mode,
 };
 use pi_agent_schema::{
     AgentEvent, AgentEventSink, AgentHarnessTool, AgentMessage, AgentTool, AgentToolResult,
     BoxFuture, Cancellation, ErrorContext, HarnessRuntimeError, LiveAgentMessage,
-    SettledAssistantMessage, ToolExecutionError, ToolProgressSink,
+    SettledAssistantMessage, ToolExecutionError, ToolExecutionMode, ToolProgressSink,
 };
 use pi_ai_core::{InputContent, JsonObject, JsonValue, Message, Model, TextContent};
 use serde_json::{Map, Value, json};
@@ -56,19 +56,16 @@ fn user(text: &str) -> AgentMessage {
     .expect("valid user fixture")
 }
 
-fn input_user(id: &str, text: &str) -> Value {
-    json!({"role": "user", "id": id, "content": text})
-}
-
-fn input_tool_result(tool_call_id: &str, content: &str) -> Value {
-    json!({
+fn tool_result_message(tool_call_id: &str, content: &str, is_error: bool) -> AgentMessage {
+    serde_json::from_value(json!({
         "role": "toolResult",
         "toolCallId": tool_call_id,
         "toolName": "echo",
-        "content": content,
-        "isError": false,
-        "terminate": false
-    })
+        "content": [{"type": "text", "text": content}],
+        "isError": is_error,
+        "timestamp": 0
+    }))
+    .expect("valid tool result message")
 }
 
 fn assistant(text: &str, stop_reason: &str) -> SettledAssistantMessage {
@@ -241,6 +238,51 @@ struct ProjectionState {
     open_assistant: Option<String>,
 }
 
+#[derive(Clone, Copy)]
+enum InputKind {
+    Prompt,
+    Continue,
+}
+
+struct ActualInput {
+    kind: InputKind,
+    prompts: Vec<AgentMessage>,
+    context: LegacyContext,
+    explicit_execution_mode: Option<ToolExecutionMode>,
+    transform_marker: Option<String>,
+    provider_stop_reason: Option<String>,
+}
+
+impl ActualInput {
+    fn prompt(
+        prompts: Vec<AgentMessage>,
+        context: LegacyContext,
+        explicit_execution_mode: Option<ToolExecutionMode>,
+        transform_marker: Option<String>,
+        provider_stop_reason: Option<String>,
+    ) -> Self {
+        Self {
+            kind: InputKind::Prompt,
+            prompts,
+            context,
+            explicit_execution_mode,
+            transform_marker,
+            provider_stop_reason,
+        }
+    }
+
+    fn continuation(context: LegacyContext) -> Self {
+        Self {
+            kind: InputKind::Continue,
+            prompts: Vec::new(),
+            context,
+            explicit_execution_mode: None,
+            transform_marker: None,
+            provider_stop_reason: None,
+        }
+    }
+}
+
 fn stop_reason(value: pi_ai_core::StopReason) -> &'static str {
     match value {
         pi_ai_core::StopReason::Pending => "pending",
@@ -250,6 +292,23 @@ fn stop_reason(value: pi_ai_core::StopReason) -> &'static str {
         pi_ai_core::StopReason::Error => "error",
         pi_ai_core::StopReason::Aborted => "aborted",
         pi_ai_core::StopReason::Deferred => "deferred",
+    }
+}
+
+fn execution_mode(value: ToolExecutionMode) -> &'static str {
+    match value {
+        ToolExecutionMode::Parallel => "parallel",
+        ToolExecutionMode::Sequential => "sequential",
+    }
+}
+
+fn capture_first_provider_stop_reason(
+    slot: &Mutex<Option<String>>,
+    message: &SettledAssistantMessage,
+) {
+    let mut captured = slot.lock().unwrap();
+    if captured.is_none() {
+        *captured = Some(stop_reason(message.as_message().stop_reason).to_owned());
     }
 }
 
@@ -433,6 +492,111 @@ fn text_content(value: &Value) -> String {
 
 fn serialized_message(message: &AgentMessage) -> Value {
     serde_json::to_value(message).expect("Agent message serializes")
+}
+
+fn project_declared_message(message: &AgentMessage, state: &mut ProjectionState) -> Value {
+    let live = LiveAgentMessage::Settled(message.clone());
+    role_message_start(&live, state);
+    let mut projected = role_message_end(message, state);
+    if let Some(message_id) = projected.remove("messageId") {
+        projected.insert("id".to_owned(), message_id);
+    }
+    let serialized = serialized_message(message);
+    match message {
+        AgentMessage::BuiltIn(Message::User(_)) | AgentMessage::BuiltIn(Message::Assistant(_)) => {
+            projected.insert(
+                "content".to_owned(),
+                Value::String(text_content(&serialized["content"])),
+            );
+        }
+        AgentMessage::BuiltIn(Message::ToolResult(result)) => {
+            projected.insert(
+                "content".to_owned(),
+                Value::String(text_content(&serialized["content"])),
+            );
+            projected.insert("isError".to_owned(), json!(result.is_error));
+            // ToolResultMessage has no terminate member; the legacy DTO's
+            // absent termination hint is the actual false default.
+            projected.insert("terminate".to_owned(), Value::Bool(false));
+        }
+        AgentMessage::Custom(_) => {
+            panic!("selected bridge rows do not contain custom messages")
+        }
+    }
+    Value::Object(projected)
+}
+
+fn project_input(input: &ActualInput) -> Value {
+    let mut projected = Map::new();
+    projected.insert(
+        "kind".to_owned(),
+        Value::String(
+            match input.kind {
+                InputKind::Prompt => "prompt",
+                InputKind::Continue => "continue",
+            }
+            .to_owned(),
+        ),
+    );
+    let mut state = ProjectionState::default();
+    match input.kind {
+        InputKind::Prompt => {
+            projected.insert(
+                "messages".to_owned(),
+                Value::Array(
+                    input
+                        .prompts
+                        .iter()
+                        .map(|message| project_declared_message(message, &mut state))
+                        .collect(),
+                ),
+            );
+        }
+        InputKind::Continue => {
+            projected.insert(
+                "context".to_owned(),
+                Value::Array(
+                    input
+                        .context
+                        .messages
+                        .iter()
+                        .map(|message| project_declared_message(message, &mut state))
+                        .collect(),
+                ),
+            );
+        }
+    }
+    if !input.context.tools.is_empty() {
+        projected.insert(
+            "tools".to_owned(),
+            Value::Array(
+                input
+                    .context
+                    .tools
+                    .iter()
+                    .map(|tool| {
+                        let mut projected = Map::new();
+                        projected.insert("name".to_owned(), json!(tool.name.to_string()));
+                        if let Some(mode) = tool.execution_mode {
+                            projected
+                                .insert("executionMode".to_owned(), json!(execution_mode(mode)));
+                        }
+                        Value::Object(projected)
+                    })
+                    .collect(),
+            ),
+        );
+    }
+    if let Some(mode) = input.explicit_execution_mode {
+        projected.insert("executionMode".to_owned(), json!(execution_mode(mode)));
+    }
+    if let Some(marker) = &input.transform_marker {
+        projected.insert("transform".to_owned(), json!(marker));
+    }
+    if input.provider_stop_reason.as_deref() == Some("length") {
+        projected.insert("providerStopReason".to_owned(), json!("length"));
+    }
+    Value::Object(projected)
 }
 
 fn project_messages(events: &[AgentEvent]) -> Vec<Value> {
@@ -637,35 +801,55 @@ fn truncation_reason(events: &[AgentEvent]) -> Option<String> {
 
 fn actual_observation(
     case_id: &str,
-    input: Value,
+    input: ActualInput,
     events: &[AgentEvent],
     executed_ids: &BTreeSet<String>,
     observations: Value,
     immediate_reason: Option<&str>,
 ) -> Value {
     let projected = project_events(events, executed_ids, immediate_reason);
-    let terminal = events
+    let terminal_message = events
         .iter()
         .rev()
         .find_map(|event| match event {
-            AgentEvent::MessageEnd {
-                message: AgentMessage::BuiltIn(Message::Assistant(message)),
-            } => Some(message.as_ref()),
+            AgentEvent::MessageEnd { message } => Some(message),
             _ => None,
         })
         .expect("actual trace has an assistant terminal message");
-    let terminal_stop_reason = stop_reason(terminal.stop_reason).to_owned();
-    let terminal_error_category = match terminal.stop_reason {
-        pi_ai_core::StopReason::Aborted => Some("aborted"),
-        pi_ai_core::StopReason::Error => Some("provider"),
-        _ => None,
+    let (
+        terminal_kind,
+        terminal_stop_reason,
+        terminal_error_category,
+        terminal_error_message,
+        terminal,
+    ) = match terminal_message {
+        AgentMessage::BuiltIn(Message::Assistant(message)) => (
+            "assistant",
+            stop_reason(message.stop_reason).to_owned(),
+            match message.stop_reason {
+                pi_ai_core::StopReason::Aborted => Some("aborted"),
+                pi_ai_core::StopReason::Error => Some("provider"),
+                _ => None,
+            },
+            message.error_message.clone(),
+            message.stop_reason != pi_ai_core::StopReason::Pending,
+        ),
+        AgentMessage::BuiltIn(Message::User(_)) => {
+            panic!("selected bridge rows do not end with a user message")
+        }
+        AgentMessage::BuiltIn(Message::ToolResult(_)) => {
+            panic!("selected bridge rows do not end with a tool result")
+        }
+        AgentMessage::Custom(_) => {
+            panic!("selected bridge rows do not end with a custom message")
+        }
     };
     let mut outcome = json!({
-        "kind": "assistant",
+        "kind": terminal_kind,
         "stopReason": terminal_stop_reason,
         "errorCategory": terminal_error_category,
-        "errorMessage": terminal.error_message,
-        "terminal": terminal.stop_reason != pi_ai_core::StopReason::Pending,
+        "errorMessage": terminal_error_message,
+        "terminal": terminal,
     });
     if events
         .iter()
@@ -677,7 +861,7 @@ fn actual_observation(
         "schemaVersion": 1,
         "authority": AUTHORITY,
         "caseId": case_id,
-        "input": input,
+        "input": project_input(&input),
         "events": projected,
         "messages": project_messages(events),
         "outcome": outcome,
@@ -688,26 +872,38 @@ fn actual_observation(
 fn run_single_turn() -> Value {
     let calls = Arc::new(AtomicUsize::new(0));
     let provider_calls = calls.clone();
+    let provider_stop_reason = Arc::new(Mutex::new(None));
+    let provider_stop_for_stream = provider_stop_reason.clone();
     let stream: LegacyStreamFn = Arc::new(move |_, _| {
         provider_calls.fetch_add(1, Ordering::SeqCst);
-        Box::pin(async { Ok(assistant("hello from model", "stop")) })
+        let provider_stop_for_response = provider_stop_for_stream.clone();
+        Box::pin(async move {
+            let message = assistant("hello from model", "stop");
+            capture_first_provider_stop_reason(&provider_stop_for_response, &message);
+            Ok(message)
+        })
     });
     let events = Events::default();
+    let prompts = vec![user("hello")];
+    let context = LegacyContext::default();
     tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(run_agent_loop(
-            vec![user("hello")],
-            LegacyContext::default(),
+            prompts.clone(),
+            context.clone(),
             config(stream),
             Arc::new(events.clone()),
         ))
         .expect("single-turn loop succeeds");
     actual_observation(
         "single_turn.stop",
-        json!({
-            "kind": "prompt",
-            "messages": [input_user("user-0", "hello")],
-        }),
+        ActualInput::prompt(
+            prompts,
+            context,
+            None,
+            None,
+            provider_stop_reason.lock().unwrap().clone(),
+        ),
         &events.0.lock().unwrap(),
         &BTreeSet::new(),
         json!({"providerCalls": calls.load(Ordering::SeqCst)}),
@@ -718,8 +914,11 @@ fn run_single_turn() -> Value {
 fn run_transform() -> Value {
     let order = Arc::new(Mutex::new(Vec::<&'static str>::new()));
     let transform_order = order.clone();
+    let transform_marker = Arc::new(Mutex::new(None));
+    let transform_marker_for_callback = transform_marker.clone();
     let transform: LegacyTransformFn = Arc::new(move |messages| {
         transform_order.lock().unwrap().push("transform");
+        *transform_marker_for_callback.lock().unwrap() = Some("context-transform".to_owned());
         Box::pin(async move { Ok(messages) })
     });
     let convert_order = order.clone();
@@ -735,11 +934,20 @@ fn run_transform() -> Value {
     });
     let calls = Arc::new(AtomicUsize::new(0));
     let provider_calls = calls.clone();
+    let provider_stop_reason = Arc::new(Mutex::new(None));
+    let provider_stop_for_stream = provider_stop_reason.clone();
     let stream: LegacyStreamFn = Arc::new(move |_, _| {
         provider_calls.fetch_add(1, Ordering::SeqCst);
-        Box::pin(async { Ok(assistant("transformed", "stop")) })
+        let provider_stop_for_response = provider_stop_for_stream.clone();
+        Box::pin(async move {
+            let message = assistant("transformed", "stop");
+            capture_first_provider_stop_reason(&provider_stop_for_response, &message);
+            Ok(message)
+        })
     });
     let events = Events::default();
+    let prompts = vec![user("hello")];
+    let context = LegacyContext::default();
     let config = LegacyLoopConfig {
         model: model(),
         transform_context: Some(transform),
@@ -750,19 +958,21 @@ fn run_transform() -> Value {
     tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(run_agent_loop(
-            vec![user("hello")],
-            LegacyContext::default(),
+            prompts.clone(),
+            context.clone(),
             config,
             Arc::new(events.clone()),
         ))
         .expect("transform loop succeeds");
     actual_observation(
         "single_turn.transform_context",
-        json!({
-            "kind": "prompt",
-            "messages": [input_user("user-0", "hello")],
-            "transform": "context-transform",
-        }),
+        ActualInput::prompt(
+            prompts,
+            context,
+            None,
+            transform_marker.lock().unwrap().clone(),
+            provider_stop_reason.lock().unwrap().clone(),
+        ),
         &events.0.lock().unwrap(),
         &BTreeSet::new(),
         json!({
@@ -783,31 +993,41 @@ fn run_parallel() -> Value {
     });
     let calls = Arc::new(AtomicUsize::new(0));
     let provider_calls = calls.clone();
+    let provider_stop_reason = Arc::new(Mutex::new(None));
+    let provider_stop_for_stream = provider_stop_reason.clone();
     let stream: LegacyStreamFn = Arc::new(move |_, _| {
         let call = provider_calls.fetch_add(1, Ordering::SeqCst);
+        let provider_stop_for_response = provider_stop_for_stream.clone();
         Box::pin(async move {
             if call == 0 {
-                Ok(tool_assistant(
+                let message = tool_assistant(
                     "two calls",
                     "toolUse",
                     &[("call-1", "ok"), ("call-2", "ok")],
-                ))
+                );
+                capture_first_provider_stop_reason(&provider_stop_for_response, &message);
+                Ok(message)
             } else {
-                Ok(assistant("done", "stop"))
+                let message = assistant("done", "stop");
+                capture_first_provider_stop_reason(&provider_stop_for_response, &message);
+                Ok(message)
             }
         })
     });
     let events = Events::default();
+    let prompts = vec![user("parallel")];
+    let context = LegacyContext {
+        tools: vec![echo_descriptor(), echo_descriptor()],
+        ..LegacyContext::default()
+    };
     tokio::runtime::Runtime::new()
         .unwrap()
-        .block_on(run_agent_loop_with_tools(
-            vec![user("parallel")],
-            LegacyContext {
-                tools: vec![echo_descriptor()],
-                ..LegacyContext::default()
-            },
+        .block_on(run_agent_loop_with_tools_and_mode(
+            prompts.clone(),
+            context.clone(),
             config(stream),
             vec![tool],
+            ToolExecutionMode::Parallel,
             Arc::new(events.clone()),
         ))
         .expect("parallel loop succeeds");
@@ -816,12 +1036,13 @@ fn run_parallel() -> Value {
     let (completion_order, source_order) = tool_orders(&event_guard);
     actual_observation(
         "tool.parallel_completion_source",
-        json!({
-            "kind": "prompt",
-            "messages": [input_user("user-0", "parallel")],
-            "tools": [{"name": "echo"}, {"name": "echo"}],
-            "executionMode": "parallel",
-        }),
+        ActualInput::prompt(
+            prompts,
+            context,
+            Some(ToolExecutionMode::Parallel),
+            None,
+            provider_stop_reason.lock().unwrap().clone(),
+        ),
         &event_guard,
         &executed,
         json!({
@@ -843,25 +1064,34 @@ fn run_truncated() -> Value {
     });
     let calls = Arc::new(AtomicUsize::new(0));
     let provider_calls = calls.clone();
+    let provider_stop_reason = Arc::new(Mutex::new(None));
+    let provider_stop_for_stream = provider_stop_reason.clone();
     let stream: LegacyStreamFn = Arc::new(move |_, _| {
         let call = provider_calls.fetch_add(1, Ordering::SeqCst);
+        let provider_stop_for_response = provider_stop_for_stream.clone();
         Box::pin(async move {
             if call == 0 {
-                Ok(tool_assistant("length", "length", &[("call-1", "cut")]))
+                let message = tool_assistant("length", "length", &[("call-1", "cut")]);
+                capture_first_provider_stop_reason(&provider_stop_for_response, &message);
+                Ok(message)
             } else {
-                Ok(assistant("done", "stop"))
+                let message = assistant("done", "stop");
+                capture_first_provider_stop_reason(&provider_stop_for_response, &message);
+                Ok(message)
             }
         })
     });
     let events = Events::default();
+    let prompts = vec![user("truncated")];
+    let context = LegacyContext {
+        tools: vec![echo_descriptor()],
+        ..LegacyContext::default()
+    };
     tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(run_agent_loop_with_tools(
-            vec![user("truncated")],
-            LegacyContext {
-                tools: vec![echo_descriptor()],
-                ..LegacyContext::default()
-            },
+            prompts.clone(),
+            context.clone(),
             config(stream),
             vec![tool],
             Arc::new(events.clone()),
@@ -872,12 +1102,13 @@ fn run_truncated() -> Value {
     let immediate_reason = truncation_reason(&event_guard);
     actual_observation(
         "tool.length_truncated",
-        json!({
-            "kind": "prompt",
-            "messages": [input_user("user-0", "truncated")],
-            "tools": [{"name": "echo"}],
-            "providerStopReason": "length",
-        }),
+        ActualInput::prompt(
+            prompts,
+            context,
+            None,
+            None,
+            provider_stop_reason.lock().unwrap().clone(),
+        ),
         &event_guard,
         &executed,
         json!({
@@ -896,25 +1127,17 @@ fn run_continue() -> Value {
         Box::pin(async { Ok(assistant("continued", "stop")) })
     });
     let events = Events::default();
-    let context_tool_result = input_tool_result("call-1", "echo:ok");
+    let context = LegacyContext {
+        messages: vec![
+            user("existing"),
+            tool_result_message("call-1", "echo:ok", false),
+        ],
+        ..LegacyContext::default()
+    };
     tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(run_agent_loop_continue(
-            LegacyContext {
-                messages: vec![
-                    user("existing"),
-                    serde_json::from_value(json!({
-                        "role": "toolResult",
-                        "toolCallId": "call-1",
-                        "toolName": "echo",
-                        "content": [{"type": "text", "text": "echo:ok"}],
-                        "isError": false,
-                        "timestamp": 0
-                    }))
-                    .expect("valid continuation tool result"),
-                ],
-                ..LegacyContext::default()
-            },
+            context.clone(),
             config(stream),
             Arc::new(events.clone()),
         ))
@@ -935,13 +1158,7 @@ fn run_continue() -> Value {
         .count();
     actual_observation(
         "continue.existing_context",
-        json!({
-            "kind": "continue",
-            "context": [
-                input_user("user-0", "existing"),
-                context_tool_result,
-            ],
-        }),
+        ActualInput::continuation(context),
         &events.0.lock().unwrap(),
         &BTreeSet::new(),
         json!({

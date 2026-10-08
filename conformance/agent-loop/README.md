@@ -21,14 +21,17 @@ cargo test --offline --locked -p pi-agent --test agent_observation_bridge
 
 The bridge covers `single_turn.stop`, `single_turn.transform_context`,
 `tool.parallel_completion_source`, `tool.length_truncated`, and
-`continue.existing_context`. Each fresh Rust run supplies the declared input
-context, the projected message and tool-result content, every lifecycle event,
-and the complete applicable outcome (`kind`, `stopReason`, `errorCategory`,
-`errorMessage`, `terminal`, and `executed` for tool rows). It also supplies
-test-owned side-channel observations for provider call count,
-transform/converter order, tool completion/source order, truncation
-no-execution, and continuation input replay. The target does not read
-`fixtures.json` to construct actual rows or compare a fixture to itself.
+`continue.existing_context`. Each fresh Rust run retains the exact prompt
+vector and `LegacyContext` clone passed to the loop, then projects their
+message roles/content, context tool names and per-tool execution modes, and
+the captured first provider stop reason. The transform marker comes from the
+real transform callback wrapper. The bridge also captures every lifecycle
+event, the complete applicable outcome (`kind`, `stopReason`, `errorCategory`,
+`errorMessage`, `terminal`, and `executed` for tool rows), and test-owned
+side-channel observations for provider call count, transform/converter order,
+tool completion/source order, truncation no-execution, and continuation input
+replay. The target does not read `fixtures.json` to construct actual rows or
+compare a fixture to itself.
 
 The bridge deliberately does not manufacture `queue_admit`, `queue_deliver`,
 `abort_signal`, or `provider_error` as `AgentEvent` values. Queue, active-stream
@@ -80,11 +83,11 @@ provider error category.
 
 Status is explicit. `source-confirmed` means the cited upstream behavior and
 the specific bounded local behavior named by the row have a current Rust
-witness. It does not mean that a Rust-captured trace has been run through the
-Node comparator or that full Agent-level parity has been differentially
-executed. A denominator row that combines a witnessed sub-behavior with an
-unwitnessed complete Agent path is therefore `test-unwitnessed`; the local
-witness remains in the focused Rust target. `non-applicable` is reserved for
+witness. It remains local/source evidence for that positive row; the
+Rust-to-Node actual-observation bridge independently covers exactly the five
+rows named above. A denominator row that combines a witnessed sub-behavior
+with an unwitnessed complete Agent path is therefore `test-unwitnessed`; the
+local witness remains in the focused Rust target. `non-applicable` is reserved for
 the explicit S14 boundary. The separate U1-U14 denominator in `manifest.json`
 accounts for all frozen behavior, including proxy and low-level
 stream/iterator rows; proxy and stream parity are not silently omitted.
