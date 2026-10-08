@@ -27,15 +27,6 @@ provider-openai = ["dep:pi-ai-providers", "pi-ai/provider-openai"]
 provider-openai-codex = ["dep:pi-ai-providers", "pi-ai/provider-openai-codex"]
 provider-openrouter = ["dep:pi-ai-providers", "pi-ai/provider-openrouter"]
 
-# Catalog shards are separate from provider wire/adapter selection.
-catalog-anthropic = ["dep:pi-ai-providers", "pi-ai/catalog-anthropic"]
-catalog-deepseek = ["dep:pi-ai-providers", "pi-ai/catalog-deepseek"]
-catalog-google = ["dep:pi-ai-providers", "pi-ai/catalog-google"]
-catalog-openai = ["dep:pi-ai-providers", "pi-ai/catalog-openai"]
-catalog-openai-codex = ["dep:pi-ai-providers", "pi-ai/catalog-openai-codex"]
-catalog-openrouter = ["dep:pi-ai-providers", "pi-ai/catalog-openrouter"]
-catalog-openrouter-images = ["dep:pi-ai-providers", "pi-ai/catalog-openrouter-images"]
-
 # Image and OAuth capability families are independently opt-in.  They do not
 # imply a text provider or a host callback/network implementation.
 images-runtime = ["dep:pi-ai-providers", "pi-ai/images-runtime"]
@@ -43,11 +34,6 @@ images-openrouter = ["images-runtime", "pi-ai/images-openrouter"]
 oauth-anthropic = ["dep:pi-ai-providers", "pi-ai/oauth-anthropic"]
 oauth-openai-codex = ["dep:pi-ai-providers", "pi-ai/oauth-openai-codex"]
 oauth-openrouter = ["dep:pi-ai-providers", "pi-ai/oauth-openrouter"]
-
-# Explicit aggregate opt-ins forward the existing pi-ai aggregate features.
-all-providers = ["dep:pi-ai-providers", "pi-ai/all-providers"]
-all-images = ["dep:pi-ai-providers", "pi-ai/all-images"]
-all-oauth = ["dep:pi-ai-providers", "pi-ai/all-oauth"]
 
 [dependencies]
 pi-agent.workspace = true

@@ -5,6 +5,7 @@ pub use pi_agent_loop::{
     LegacyAgentError, LegacyCancellation, LegacyContext, LegacyConvertFn, LegacyHooksHandle,
     LegacyRequest, LegacyStreamFn, LegacyTool, LegacyTransformFn, ToolPhaseError, ToolPhaseHooks,
 };
+pub use pi_agent_schema::{CompactionSettings, QueueMode};
 pub use pi_agent_search::{
     EntrySearchHit, SearchQuery, SessionSearchHit, SessionSearchService, SessionSearchTopEntry,
 };

@@ -3,9 +3,8 @@
 //! The runtime receives these values from its host.  It does not read settings
 //! files, persist credentials, or perform provider/network work while creating
 //! a snapshot.  Provider-neutral IDs, stream options, retry policy, and
-//! thinking levels come directly from `pi-ai-core`; the small queue and
-//! compaction DTOs mirror the Agent schema until that schema is exposed through
-//! the runtime's public facade.
+//! thinking levels come directly from `pi-ai-core`; queue and compaction settings
+//! are reused from the Agent schema through its public facade.
 
 use pi_ai::{ModelId, ModelThinkingLevel, ProviderId, RetryPolicy, StreamOptionsWire, ToolName};
 
@@ -28,25 +27,7 @@ impl ModelRef {
 /// The public model thinking level, including disabled thinking.
 pub type ThinkingLevel = ModelThinkingLevel;
 
-/// Detached compaction thresholds captured for a coding run.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CompactionSettings {
-    /// Whether automatic compaction checks are enabled.
-    pub enabled: bool,
-    /// Tokens reserved for summary prompt and output.
-    pub reserve_tokens: pi_ai::SafeUnsigned,
-    /// Approximate recent-context tokens retained after compaction.
-    pub keep_recent_tokens: pi_ai::SafeUnsigned,
-}
-
-/// Queue draining behavior for steering and follow-up messages.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum QueueMode {
-    /// Drain all eligible queued messages.
-    All,
-    /// Drain only the oldest eligible message.
-    OneAtATime,
-}
+pub use pi_agent::{CompactionSettings, QueueMode};
 
 /// Detached normalized settings required by the later coding Harness builder.
 ///
