@@ -1,1 +1,7 @@
-//! Private headless coding-runtime crate for the Rust harness workspace.
+//! Private headless coding-runtime composition crate for the Rust harness.
+
+pub mod settings_snapshot;
+
+pub use settings_snapshot::{
+    CodingSettingsSnapshot, CompactionSettings, ModelRef, QueueMode, ThinkingLevel,
+};
