@@ -313,23 +313,25 @@ fn abort_propagates_signal_and_reset_clears_transcript() {
 #[test]
 fn reentrancy_is_rejected_while_a_run_is_active() {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
-        let stream: LegacyStreamFn = Arc::new(|_, cancellation| {
-            Box::pin(async move {
-                cancellation.cancelled().await;
-                Err(LegacyAgentError::Provider("cancelled".to_owned()))
+        let started = Arc::new(tokio::sync::Notify::new());
+        let stream: LegacyStreamFn = {
+            let started = started.clone();
+            Arc::new(move |_, cancellation| {
+                started.notify_one();
+                Box::pin(async move {
+                    cancellation.cancelled().await;
+                    Err(LegacyAgentError::Provider("cancelled".to_owned()))
+                })
             })
-        });
+        };
         let agent = Agent::new(options(stream));
         let running = {
             let agent = agent.clone();
             tokio::spawn(async move { agent.prompt(vec![user("first")]).await })
         };
-        for _ in 0..100 {
-            if agent.state().is_streaming {
-                break;
-            }
-            tokio::task::yield_now().await;
-        }
+        tokio::time::timeout(Duration::from_secs(1), started.notified())
+            .await
+            .expect("first run must enter the provider stream");
         let error = agent
             .prompt(vec![user("second")])
             .await
