@@ -39,6 +39,22 @@ const EVENT_FIELDS = {
   abort_signal: ["index", "type", "boundary"],
   provider_error: ["index", "type", "category"],
 };
+const ACTUAL_OBSERVATION_KEYS = [
+  "schemaVersion", "authority", "caseId", "events", "outcome", "observations",
+];
+const ACTUAL_EVENT_FIELDS = {
+  agent_start: ["index", "type"],
+  agent_end: ["index", "type"],
+  turn_start: ["index", "type"],
+  turn_end: ["index", "type", "toolResults"],
+  message_start: ["index", "type", "role", "messageId", "toolCallId", "toolName"],
+  message_end: ["index", "type", "role", "messageId", "toolCallId", "toolName", "stopReason", "errorCategory"],
+  tool_execution_start: ["index", "type", "toolCallId", "toolName"],
+  tool_execution_update: ["index", "type", "toolCallId", "toolName", "progress"],
+  tool_execution_end: ["index", "type", "toolCallId", "toolName", "isError", "executed", "immediate", "terminate"],
+};
+const ACTUAL_OUTCOME_KEYS = ["stopReason", "errorCategory"];
+const ACTUAL_EVENT_TYPES = new Set(Object.keys(ACTUAL_EVENT_FIELDS));
 const NORMALIZER_KINDS = new Set(["timestamp", "generatedId"]);
 const PROTECTED_PATH_PARTS = new Set([
   "type", "index", "toolCallId", "toolName", "kind", "stopReason", "errorCategory",
@@ -176,6 +192,39 @@ function validateEvent(event, path) {
   if (event.payloadDigest !== undefined) assertString(event.payloadDigest, `${path}.payloadDigest`);
   if (event.stopReason !== undefined) assertString(event.stopReason, `${path}.stopReason`);
   if (event.errorCategory !== undefined && event.errorCategory !== null) assertString(event.errorCategory, `${path}.errorCategory`);
+}
+
+function validateActualEvent(event, path) {
+  assertObject(event, path);
+  if (typeof event.type !== "string" || !ACTUAL_EVENT_TYPES.has(event.type)) {
+    throw new TraceMismatch(
+      `${path}.type`,
+      "actual observation contains a non-AgentEvent type",
+      [...ACTUAL_EVENT_TYPES],
+      event.type,
+    );
+  }
+  assertAllowedKeys(event, ACTUAL_EVENT_FIELDS[event.type], path);
+  assertInteger(event.index, `${path}.index`);
+  if (event.type === "turn_end") {
+    if (!Array.isArray(event.toolResults)) {
+      throw new TraceMismatch(`${path}.toolResults`, "expected string array", "string[]", event.toolResults);
+    }
+    assertStringArray(event.toolResults, `${path}.toolResults`);
+  }
+  for (const key of ["messageId", "toolCallId", "toolName", "progress", "immediate"]) {
+    if (event[key] !== undefined) assertString(event[key], `${path}.${key}`);
+  }
+  for (const key of ["isError", "executed", "terminate"]) {
+    if (event[key] !== undefined) assertBoolean(event[key], `${path}.${key}`);
+  }
+  if (event.role !== undefined && !["user", "assistant", "toolResult"].includes(event.role)) {
+    throw new TraceMismatch(`${path}.role`, "unknown actual event message role", "user|assistant|toolResult", event.role);
+  }
+  if (event.stopReason !== undefined) assertString(event.stopReason, `${path}.stopReason`);
+  if (event.errorCategory !== undefined && event.errorCategory !== null) {
+    assertString(event.errorCategory, `${path}.errorCategory`);
+  }
 }
 
 function validateQueue(queue, path) {
@@ -443,6 +492,104 @@ export function compareTrace(expected, actual) {
   const mismatch = firstDeepMismatch(normalizedExpected, normalizedActual);
   if (mismatch) throw mismatch;
   return { ok: true, projections: toolPairInvariant(actual) };
+}
+
+function compareActualEventFields(expected, actual, path) {
+  const expectedKeys = ownKeys(expected);
+  const actualKeys = ownKeys(actual);
+  if (format(expectedKeys) !== format(actualKeys)) {
+    throw new TraceMismatch(`${path}.keys`, "actual AgentEvent projection keys mismatch", expectedKeys, actualKeys);
+  }
+  for (const key of expectedKeys) {
+    const mismatch = firstDeepMismatch(expected[key], actual[key], `${path}.${key}`);
+    if (mismatch) throw mismatch;
+  }
+}
+
+function validateActualObservation(actual, expectedCaseId) {
+  assertObject(actual, "actualObservation");
+  assertAllowedKeys(actual, ACTUAL_OBSERVATION_KEYS, "actualObservation");
+  if (actual.schemaVersion !== 1) {
+    throw new TraceMismatch("actualObservation.schemaVersion", "unsupported actual schema version", 1, actual.schemaVersion);
+  }
+  if (actual.authority !== AUTHORITY) {
+    throw new TraceMismatch("actualObservation.authority", "actual authority mismatch", AUTHORITY, actual.authority);
+  }
+  assertString(actual.caseId, "actualObservation.caseId");
+  if (actual.caseId !== expectedCaseId) {
+    throw new TraceMismatch("actualObservation.caseId", "actual case ID mismatch", expectedCaseId, actual.caseId);
+  }
+  if (!Array.isArray(actual.events)) {
+    throw new TraceMismatch("actualObservation.events", "expected array", "array", actual.events);
+  }
+  actual.events.forEach((event, index) => validateActualEvent(event, `actualObservation.events[${index}]`));
+  assertObject(actual.outcome, "actualObservation.outcome");
+  assertAllowedKeys(actual.outcome, ACTUAL_OUTCOME_KEYS, "actualObservation.outcome");
+  assertString(actual.outcome.stopReason, "actualObservation.outcome.stopReason");
+  if (actual.outcome.errorCategory !== undefined && actual.outcome.errorCategory !== null) {
+    assertString(actual.outcome.errorCategory, "actualObservation.outcome.errorCategory");
+  }
+  assertObject(actual.observations, "actualObservation.observations");
+  assertAllowedKeys(actual.observations, OBSERVATION_KEYS, "actualObservation.observations");
+  return actual;
+}
+
+/**
+ * Compare an implementation-generated actual Agent observation against one
+ * checked-in fixture. The actual envelope intentionally contains only fields
+ * that can be projected from AgentEvent plus test-owned side-channel
+ * observations; queue/abort/provider pseudo-events are rejected here.
+ */
+export function compareObservation(expected, actualObservation) {
+  validateTrace(expected, expected.caseId);
+  assertInvariants(expected);
+  const actual = validateActualObservation(actualObservation, expected.caseId);
+  lifecycleInvariant(actual);
+  messagePairInvariant(actual);
+  toolPairInvariant(actual);
+
+  const representableExpectedEvents = expected.events.every((event) => ACTUAL_EVENT_TYPES.has(event.type));
+  if (!representableExpectedEvents) {
+    throw new TraceMismatch(
+      "$.events",
+      "fixture contains side-channel records that are not AgentEvent projections",
+      [...ACTUAL_EVENT_TYPES],
+      expected.events.filter((event) => !ACTUAL_EVENT_TYPES.has(event.type)).map((event) => event.type),
+    );
+  }
+  if (expected.events.length !== actual.events.length) {
+    throw new TraceMismatch("$.events.length", "actual event count mismatch", expected.events.length, actual.events.length);
+  }
+  for (let index = 0; index < expected.events.length; index += 1) {
+    compareActualEventFields(expected.events[index], actual.events[index], `$.events[${index}]`);
+  }
+
+  for (const key of ["stopReason", "errorCategory"]) {
+    const expectedValue = expected.outcome[key] ?? null;
+    const actualValue = actual.outcome[key] ?? null;
+    const mismatch = firstDeepMismatch(expectedValue, actualValue, `$.outcome.${key}`);
+    if (mismatch) throw mismatch;
+  }
+
+  const expectedObservationKeys = ownKeys(expected.observations ?? {});
+  const actualObservationKeys = ownKeys(actual.observations);
+  if (format(expectedObservationKeys) !== format(actualObservationKeys)) {
+    throw new TraceMismatch(
+      "$.observations.keys",
+      "actual side-channel observation keys mismatch",
+      expectedObservationKeys,
+      actualObservationKeys,
+    );
+  }
+  for (const key of expectedObservationKeys) {
+    const mismatch = firstDeepMismatch(
+      expected.observations[key],
+      actual.observations[key],
+      `$.observations.${key}`,
+    );
+    if (mismatch) throw mismatch;
+  }
+  return { ok: true, caseId: expected.caseId };
 }
 
 export function firstFailure(expected, actual) {

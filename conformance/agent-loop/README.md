@@ -12,6 +12,31 @@ Run the focused Rust target with this exact command:
 cargo test --offline --locked -p pi-agent --test agent_conformance
 ```
 
+The bounded actual-observation bridge runs fresh Rust Agent calls and sends
+their projected observations over stdin to the Node comparator:
+
+```text
+cargo test --offline --locked -p pi-agent --test agent_observation_bridge
+```
+
+The bridge covers `single_turn.stop`, `single_turn.transform_context`,
+`tool.parallel_completion_source`, `tool.length_truncated`, and
+`continue.existing_context`. It projects only fields captured from the actual
+Rust `AgentEventSink`, plus test-owned side-channel observations for provider
+call count, transform/converter order, tool completion/source order,
+truncation no-execution, and continuation input replay. The target does not
+read `fixtures.json` to construct actual rows or compare a fixture to itself.
+
+The bridge deliberately does not manufacture `queue_admit`, `queue_deliver`,
+`abort_signal`, or `provider_error` as `AgentEvent` values. Queue, active-stream
+abort, and provider-error rows remain explicit skipped/test-unwitnessed
+boundaries until a separate process-local observation port can capture them.
+The skipped rows are `queue.steer_after_tools`, `queue.follow_up_continue`,
+`abort.active_stream`, and `provider.throw`; they remain in the checked-in
+12-row corpus and are not counted as bridge passes.
+`compare-actual.mjs` rejects those pseudo-event types in an actual observation
+and fails closed on unknown envelope, event, outcome, or observation fields.
+
 The optional Node causal self-test is:
 
 ```text
@@ -74,3 +99,11 @@ focused Rust target separately checks local witnesses and manifest
 bookkeeping; it does not feed an implementation-generated trace into
 `compareTrace`. Rows marked `test-unwitnessed` or `non-applicable` remain
 explicit boundary records. No live provider or network access is used.
+
+The actual-observation bridge is a separate Rust-to-Node check: the Rust test
+executes deterministic provider/tool callbacks, captures the fresh event list,
+and invokes `/usr/bin/node` (with `PATH=/usr/bin:/bin` and
+`NODE_NO_WARNINGS=1`) for each covered case. The Node driver loads the matching
+checked-in fixture and calls `compareObservation`; it compares the actual
+AgentEvent projection, selected outcome fields, and every declared observation
+field while retaining the full fixture validation/invariant checks.
