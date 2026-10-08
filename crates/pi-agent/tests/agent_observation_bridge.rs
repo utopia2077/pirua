@@ -56,6 +56,21 @@ fn user(text: &str) -> AgentMessage {
     .expect("valid user fixture")
 }
 
+fn input_user(id: &str, text: &str) -> Value {
+    json!({"role": "user", "id": id, "content": text})
+}
+
+fn input_tool_result(tool_call_id: &str, content: &str) -> Value {
+    json!({
+        "role": "toolResult",
+        "toolCallId": tool_call_id,
+        "toolName": "echo",
+        "content": content,
+        "isError": false,
+        "terminate": false
+    })
+}
+
 fn assistant(text: &str, stop_reason: &str) -> SettledAssistantMessage {
     let mut value = json!({
         "role": "assistant",
@@ -80,18 +95,25 @@ fn assistant(text: &str, stop_reason: &str) -> SettledAssistantMessage {
     serde_json::from_value(value).expect("valid assistant fixture")
 }
 
-fn tool_assistant(stop_reason: &str, calls: &[(&str, &str)]) -> SettledAssistantMessage {
-    let content: Vec<_> = calls
-        .iter()
-        .map(|(id, value)| {
-            json!({
-                "type": "toolCall",
-                "id": *id,
-                "name": "echo",
-                "arguments": {"value": *value}
+fn tool_assistant(
+    text: &str,
+    stop_reason: &str,
+    calls: &[(&str, &str)],
+) -> SettledAssistantMessage {
+    let mut content = vec![json!({"type": "text", "text": text})];
+    content.extend(
+        calls
+            .iter()
+            .map(|(id, value)| {
+                json!({
+                    "type": "toolCall",
+                    "id": *id,
+                    "name": "echo",
+                    "arguments": {"value": *value}
+                })
             })
-        })
-        .collect();
+            .collect::<Vec<_>>(),
+    );
     serde_json::from_value(json!({
         "role": "assistant",
         "content": content,
@@ -152,7 +174,7 @@ fn echo_descriptor() -> AgentTool {
 struct EchoTool {
     descriptor: AgentTool,
     delay_ms: u64,
-    slow_value: Option<String>,
+    slow_call_id: Option<String>,
     executed_ids: Arc<Mutex<Vec<String>>>,
 }
 
@@ -192,7 +214,8 @@ impl AgentHarnessTool<LegacyContext> for EchoTool {
                 .lock()
                 .unwrap()
                 .push(tool_call_id.to_string());
-            if self.delay_ms > 0 && self.slow_value.as_deref() == Some(value.as_str()) {
+            let call_id = tool_call_id.to_string();
+            if self.delay_ms > 0 && self.slow_call_id.as_deref() == Some(call_id.as_str()) {
                 tokio::time::sleep(Duration::from_millis(self.delay_ms)).await;
             }
             Ok(AgentToolResult {
@@ -204,7 +227,7 @@ impl AgentHarnessTool<LegacyContext> for EchoTool {
                 details: JsonValue::Object(params),
                 usage: None,
                 added_tool_names: None,
-                terminate: None,
+                terminate: Some(false),
             })
         })
     }
@@ -275,6 +298,53 @@ fn role_message_start(
     result
 }
 
+fn role_message_update(message: &LiveAgentMessage, state: &ProjectionState) -> Map<String, Value> {
+    let mut result = Map::new();
+    match message {
+        LiveAgentMessage::Assistant(_) => {
+            result.insert("role".to_owned(), Value::String("assistant".to_owned()));
+            result.insert(
+                "messageId".to_owned(),
+                Value::String(
+                    state
+                        .open_assistant
+                        .clone()
+                        .expect("assistant message update has a matching start"),
+                ),
+            );
+        }
+        LiveAgentMessage::Settled(AgentMessage::BuiltIn(Message::User(_))) => {
+            result.insert("role".to_owned(), Value::String("user".to_owned()));
+            result.insert(
+                "messageId".to_owned(),
+                Value::String(
+                    state
+                        .open_user
+                        .clone()
+                        .expect("user message update has a matching start"),
+                ),
+            );
+        }
+        LiveAgentMessage::Settled(AgentMessage::BuiltIn(Message::Assistant(_))) => {
+            result.insert("role".to_owned(), Value::String("assistant".to_owned()));
+            result.insert(
+                "messageId".to_owned(),
+                Value::String(
+                    state
+                        .open_assistant
+                        .clone()
+                        .expect("assistant message update has a matching start"),
+                ),
+            );
+        }
+        LiveAgentMessage::Settled(AgentMessage::BuiltIn(Message::ToolResult(_)))
+        | LiveAgentMessage::Settled(AgentMessage::Custom(_)) => {
+            panic!("selected bridge rows do not contain unsupported message updates")
+        }
+    }
+    result
+}
+
 fn role_message_end(message: &AgentMessage, state: &mut ProjectionState) -> Map<String, Value> {
     let mut result = Map::new();
     match message {
@@ -321,6 +391,12 @@ fn role_message_end(message: &AgentMessage, state: &mut ProjectionState) -> Map<
                     ),
                 );
             }
+            if let Some(error_message) = &message.error_message {
+                result.insert(
+                    "errorMessage".to_owned(),
+                    Value::String(error_message.clone()),
+                );
+            }
         }
         AgentMessage::BuiltIn(Message::ToolResult(message)) => {
             result.insert("role".to_owned(), Value::String("toolResult".to_owned()));
@@ -336,6 +412,86 @@ fn role_message_end(message: &AgentMessage, state: &mut ProjectionState) -> Map<
         AgentMessage::Custom(_) => panic!("selected bridge rows do not contain custom messages"),
     }
     result
+}
+
+fn text_content(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        Value::Array(blocks) => blocks
+            .iter()
+            .filter_map(|block| {
+                block
+                    .get("text")
+                    .or_else(|| block.get("thinking"))
+                    .and_then(Value::as_str)
+            })
+            .collect::<Vec<_>>()
+            .join(""),
+        _ => String::new(),
+    }
+}
+
+fn serialized_message(message: &AgentMessage) -> Value {
+    serde_json::to_value(message).expect("Agent message serializes")
+}
+
+fn project_messages(events: &[AgentEvent]) -> Vec<Value> {
+    let mut state = ProjectionState::default();
+    let terminate_by_id: std::collections::BTreeMap<_, _> = events
+        .iter()
+        .filter_map(|event| match event {
+            AgentEvent::ToolExecutionEnd {
+                tool_call_id,
+                result,
+                ..
+            } => Some((tool_call_id.to_string(), result.terminate.unwrap_or(false))),
+            _ => None,
+        })
+        .collect();
+    events
+        .iter()
+        .filter_map(|event| {
+            let message = match event {
+                AgentEvent::MessageStart { message } => {
+                    role_message_start(message, &mut state);
+                    return None;
+                }
+                AgentEvent::MessageUpdate { .. } => return None,
+                AgentEvent::MessageEnd { message } => message,
+                _ => return None,
+            };
+            let mut projected = role_message_end(message, &mut state);
+            if let Some(message_id) = projected.remove("messageId") {
+                projected.insert("id".to_owned(), message_id);
+            }
+            let serialized = serialized_message(message);
+            match message {
+                AgentMessage::BuiltIn(Message::User(_))
+                | AgentMessage::BuiltIn(Message::Assistant(_)) => {
+                    projected.insert(
+                        "content".to_owned(),
+                        Value::String(text_content(&serialized["content"])),
+                    );
+                }
+                AgentMessage::BuiltIn(Message::ToolResult(result)) => {
+                    let tool_call_id = result.tool_call_id.to_string();
+                    projected.insert(
+                        "content".to_owned(),
+                        Value::String(text_content(&serialized["content"])),
+                    );
+                    projected.insert("isError".to_owned(), json!(result.is_error));
+                    projected.insert(
+                        "terminate".to_owned(),
+                        json!(terminate_by_id.get(&tool_call_id).copied().unwrap_or(false)),
+                    );
+                }
+                AgentMessage::Custom(_) => {
+                    panic!("selected bridge rows do not contain custom messages")
+                }
+            }
+            Some(Value::Object(projected))
+        })
+        .collect()
 }
 
 fn project_events(
@@ -378,7 +534,7 @@ fn project_events(
                 }
                 AgentEvent::MessageUpdate { message, .. } => {
                     result.insert("type".to_owned(), json!("message_update"));
-                    result.extend(role_message_start(message, &mut state));
+                    result.extend(role_message_update(message, &state));
                 }
                 AgentEvent::MessageEnd { message } => {
                     result.insert("type".to_owned(), json!("message_end"));
@@ -396,17 +552,30 @@ fn project_events(
                 AgentEvent::ToolExecutionUpdate {
                     tool_call_id,
                     tool_name,
+                    partial_result,
                     ..
                 } => {
                     result.insert("type".to_owned(), json!("tool_execution_update"));
                     result.insert("toolCallId".to_owned(), json!(tool_call_id.to_string()));
                     result.insert("toolName".to_owned(), json!(tool_name.to_string()));
-                    result.insert("progress".to_owned(), json!("updated"));
+                    let progress = partial_result
+                        .content
+                        .iter()
+                        .filter_map(|content| match content {
+                            InputContent::Text(text) => Some(text.text.as_str()),
+                            InputContent::Image(_) => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("");
+                    if progress.is_empty() {
+                        panic!("tool execution update without actual textual progress");
+                    }
+                    result.insert("progress".to_owned(), json!(progress));
                 }
                 AgentEvent::ToolExecutionEnd {
                     tool_call_id,
                     tool_name,
-                    result: tool_result,
+                    result: _tool_result,
                     is_error,
                 } => {
                     result.insert("type".to_owned(), json!("tool_execution_end"));
@@ -419,9 +588,6 @@ fn project_events(
                     );
                     if let Some(reason) = immediate_reason {
                         result.insert("immediate".to_owned(), json!(reason));
-                    }
-                    if let Some(terminate) = tool_result.terminate {
-                        result.insert("terminate".to_owned(), json!(terminate));
                     }
                 }
             }
@@ -471,26 +637,50 @@ fn truncation_reason(events: &[AgentEvent]) -> Option<String> {
 
 fn actual_observation(
     case_id: &str,
+    input: Value,
     events: &[AgentEvent],
     executed_ids: &BTreeSet<String>,
     observations: Value,
     immediate_reason: Option<&str>,
 ) -> Value {
     let projected = project_events(events, executed_ids, immediate_reason);
-    let stop_reason = projected
+    let terminal = events
         .iter()
         .rev()
-        .find_map(|event| {
-            (event["type"] == "message_end" && event["role"] == "assistant")
-                .then(|| event["stopReason"].clone())
+        .find_map(|event| match event {
+            AgentEvent::MessageEnd {
+                message: AgentMessage::BuiltIn(Message::Assistant(message)),
+            } => Some(message.as_ref()),
+            _ => None,
         })
         .expect("actual trace has an assistant terminal message");
+    let terminal_stop_reason = stop_reason(terminal.stop_reason).to_owned();
+    let terminal_error_category = match terminal.stop_reason {
+        pi_ai_core::StopReason::Aborted => Some("aborted"),
+        pi_ai_core::StopReason::Error => Some("provider"),
+        _ => None,
+    };
+    let mut outcome = json!({
+        "kind": "assistant",
+        "stopReason": terminal_stop_reason,
+        "errorCategory": terminal_error_category,
+        "errorMessage": terminal.error_message,
+        "terminal": terminal.stop_reason != pi_ai_core::StopReason::Pending,
+    });
+    if events
+        .iter()
+        .any(|event| matches!(event, AgentEvent::ToolExecutionEnd { .. }))
+    {
+        outcome["executed"] = json!(!executed_ids.is_empty());
+    }
     json!({
         "schemaVersion": 1,
         "authority": AUTHORITY,
         "caseId": case_id,
+        "input": input,
         "events": projected,
-        "outcome": {"stopReason": stop_reason, "errorCategory": null},
+        "messages": project_messages(events),
+        "outcome": outcome,
         "observations": observations,
     })
 }
@@ -514,6 +704,10 @@ fn run_single_turn() -> Value {
         .expect("single-turn loop succeeds");
     actual_observation(
         "single_turn.stop",
+        json!({
+            "kind": "prompt",
+            "messages": [input_user("user-0", "hello")],
+        }),
         &events.0.lock().unwrap(),
         &BTreeSet::new(),
         json!({"providerCalls": calls.load(Ordering::SeqCst)}),
@@ -564,6 +758,11 @@ fn run_transform() -> Value {
         .expect("transform loop succeeds");
     actual_observation(
         "single_turn.transform_context",
+        json!({
+            "kind": "prompt",
+            "messages": [input_user("user-0", "hello")],
+            "transform": "context-transform",
+        }),
         &events.0.lock().unwrap(),
         &BTreeSet::new(),
         json!({
@@ -579,7 +778,7 @@ fn run_parallel() -> Value {
     let tool: LegacyTool = Arc::new(EchoTool {
         descriptor: echo_descriptor(),
         delay_ms: 20,
-        slow_value: Some("first".to_owned()),
+        slow_call_id: Some("call-1".to_owned()),
         executed_ids: executed_ids.clone(),
     });
     let calls = Arc::new(AtomicUsize::new(0));
@@ -589,8 +788,9 @@ fn run_parallel() -> Value {
         Box::pin(async move {
             if call == 0 {
                 Ok(tool_assistant(
+                    "two calls",
                     "toolUse",
-                    &[("call-1", "first"), ("call-2", "second")],
+                    &[("call-1", "ok"), ("call-2", "ok")],
                 ))
             } else {
                 Ok(assistant("done", "stop"))
@@ -616,6 +816,12 @@ fn run_parallel() -> Value {
     let (completion_order, source_order) = tool_orders(&event_guard);
     actual_observation(
         "tool.parallel_completion_source",
+        json!({
+            "kind": "prompt",
+            "messages": [input_user("user-0", "parallel")],
+            "tools": [{"name": "echo"}, {"name": "echo"}],
+            "executionMode": "parallel",
+        }),
         &event_guard,
         &executed,
         json!({
@@ -632,7 +838,7 @@ fn run_truncated() -> Value {
     let tool: LegacyTool = Arc::new(EchoTool {
         descriptor: echo_descriptor(),
         delay_ms: 0,
-        slow_value: None,
+        slow_call_id: None,
         executed_ids: executed_ids.clone(),
     });
     let calls = Arc::new(AtomicUsize::new(0));
@@ -641,7 +847,7 @@ fn run_truncated() -> Value {
         let call = provider_calls.fetch_add(1, Ordering::SeqCst);
         Box::pin(async move {
             if call == 0 {
-                Ok(tool_assistant("length", &[("call-1", "cut")]))
+                Ok(tool_assistant("length", "length", &[("call-1", "cut")]))
             } else {
                 Ok(assistant("done", "stop"))
             }
@@ -666,6 +872,12 @@ fn run_truncated() -> Value {
     let immediate_reason = truncation_reason(&event_guard);
     actual_observation(
         "tool.length_truncated",
+        json!({
+            "kind": "prompt",
+            "messages": [input_user("user-0", "truncated")],
+            "tools": [{"name": "echo"}],
+            "providerStopReason": "length",
+        }),
         &event_guard,
         &executed,
         json!({
@@ -684,11 +896,23 @@ fn run_continue() -> Value {
         Box::pin(async { Ok(assistant("continued", "stop")) })
     });
     let events = Events::default();
+    let context_tool_result = input_tool_result("call-1", "echo:ok");
     tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(run_agent_loop_continue(
             LegacyContext {
-                messages: vec![user("existing")],
+                messages: vec![
+                    user("existing"),
+                    serde_json::from_value(json!({
+                        "role": "toolResult",
+                        "toolCallId": "call-1",
+                        "toolName": "echo",
+                        "content": [{"type": "text", "text": "echo:ok"}],
+                        "isError": false,
+                        "timestamp": 0
+                    }))
+                    .expect("valid continuation tool result"),
+                ],
                 ..LegacyContext::default()
             },
             config(stream),
@@ -711,6 +935,13 @@ fn run_continue() -> Value {
         .count();
     actual_observation(
         "continue.existing_context",
+        json!({
+            "kind": "continue",
+            "context": [
+                input_user("user-0", "existing"),
+                context_tool_result,
+            ],
+        }),
         &events.0.lock().unwrap(),
         &BTreeSet::new(),
         json!({

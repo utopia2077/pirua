@@ -21,11 +21,14 @@ cargo test --offline --locked -p pi-agent --test agent_observation_bridge
 
 The bridge covers `single_turn.stop`, `single_turn.transform_context`,
 `tool.parallel_completion_source`, `tool.length_truncated`, and
-`continue.existing_context`. It projects only fields captured from the actual
-Rust `AgentEventSink`, plus test-owned side-channel observations for provider
-call count, transform/converter order, tool completion/source order,
-truncation no-execution, and continuation input replay. The target does not
-read `fixtures.json` to construct actual rows or compare a fixture to itself.
+`continue.existing_context`. Each fresh Rust run supplies the declared input
+context, the projected message and tool-result content, every lifecycle event,
+and the complete applicable outcome (`kind`, `stopReason`, `errorCategory`,
+`errorMessage`, `terminal`, and `executed` for tool rows). It also supplies
+test-owned side-channel observations for provider call count,
+transform/converter order, tool completion/source order, truncation
+no-execution, and continuation input replay. The target does not read
+`fixtures.json` to construct actual rows or compare a fixture to itself.
 
 The bridge deliberately does not manufacture `queue_admit`, `queue_deliver`,
 `abort_signal`, or `provider_error` as `AgentEvent` values. Queue, active-stream
@@ -101,9 +104,14 @@ bookkeeping; it does not feed an implementation-generated trace into
 explicit boundary records. No live provider or network access is used.
 
 The actual-observation bridge is a separate Rust-to-Node check: the Rust test
-executes deterministic provider/tool callbacks, captures the fresh event list,
-and invokes `/usr/bin/node` (with `PATH=/usr/bin:/bin` and
+executes deterministic provider/tool callbacks, captures the fresh event list
+and message values, and invokes `/usr/bin/node` (with `PATH=/usr/bin:/bin` and
 `NODE_NO_WARNINGS=1`) for each covered case. The Node driver loads the matching
-checked-in fixture and calls `compareObservation`; it compares the actual
-AgentEvent projection, selected outcome fields, and every declared observation
-field while retaining the full fixture validation/invariant checks.
+checked-in fixture and calls `compareObservation`; it compares the declared
+input, projected messages and content, every projected AgentEvent field, the
+exact declared outcome field set and values, and every declared observation
+field while retaining the full fixture validation/invariant checks. The
+length-truncation tool-result text is the exact source-backed Rust message,
+including the `echo` tool name. Message updates retain an existing lifecycle
+identity, and tool progress retains actual textual progress; unsupported
+side-channel pseudo-events remain rejected from actual AgentEvent projections.

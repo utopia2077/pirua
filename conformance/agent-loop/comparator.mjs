@@ -40,7 +40,8 @@ const EVENT_FIELDS = {
   provider_error: ["index", "type", "category"],
 };
 const ACTUAL_OBSERVATION_KEYS = [
-  "schemaVersion", "authority", "caseId", "events", "outcome", "observations",
+  "schemaVersion", "authority", "caseId", "input", "events", "messages", "outcome",
+  "observations",
 ];
 const ACTUAL_EVENT_FIELDS = {
   agent_start: ["index", "type"],
@@ -53,7 +54,7 @@ const ACTUAL_EVENT_FIELDS = {
   tool_execution_update: ["index", "type", "toolCallId", "toolName", "progress"],
   tool_execution_end: ["index", "type", "toolCallId", "toolName", "isError", "executed", "immediate", "terminate"],
 };
-const ACTUAL_OUTCOME_KEYS = ["stopReason", "errorCategory"];
+const ACTUAL_OUTCOME_KEYS = OUTCOME_KEYS;
 const ACTUAL_EVENT_TYPES = new Set(Object.keys(ACTUAL_EVENT_FIELDS));
 const NORMALIZER_KINDS = new Set(["timestamp", "generatedId"]);
 const PROTECTED_PATH_PARTS = new Set([
@@ -335,6 +336,7 @@ function firstDeepMismatch(expected, actual, path = "$") {
     return new TraceMismatch(path, "exact value mismatch", expected, actual);
   }
   if (Array.isArray(expected) !== Array.isArray(actual)) return new TraceMismatch(path, "array/object mismatch", expected, actual);
+  if (typeof expected !== "object") return new TraceMismatch(path, "exact value mismatch", expected, actual);
   if (Array.isArray(expected)) {
     if (expected.length !== actual.length) return new TraceMismatch(`${path}.length`, "array length mismatch", expected.length, actual.length);
     for (let index = 0; index < expected.length; index += 1) {
@@ -519,15 +521,41 @@ function validateActualObservation(actual, expectedCaseId) {
   if (actual.caseId !== expectedCaseId) {
     throw new TraceMismatch("actualObservation.caseId", "actual case ID mismatch", expectedCaseId, actual.caseId);
   }
+  validateInput(actual.input, "actualObservation.input");
   if (!Array.isArray(actual.events)) {
     throw new TraceMismatch("actualObservation.events", "expected array", "array", actual.events);
   }
   actual.events.forEach((event, index) => validateActualEvent(event, `actualObservation.events[${index}]`));
+  if (!Array.isArray(actual.messages)) {
+    throw new TraceMismatch("actualObservation.messages", "expected array", "array", actual.messages);
+  }
+  actual.messages.forEach((message, index) => validateMessage(message, `actualObservation.messages[${index}]`));
   assertObject(actual.outcome, "actualObservation.outcome");
   assertAllowedKeys(actual.outcome, ACTUAL_OUTCOME_KEYS, "actualObservation.outcome");
+  for (const key of ["kind", "stopReason", "errorCategory", "errorMessage"]) {
+    if (actual.outcome[key] !== undefined && actual.outcome[key] !== null) {
+      assertString(actual.outcome[key], `actualObservation.outcome.${key}`);
+    }
+  }
+  for (const key of ["kind", "stopReason", "errorCategory", "errorMessage", "terminal"]) {
+    if (!Object.prototype.hasOwnProperty.call(actual.outcome, key)) {
+      throw new TraceMismatch(
+        `actualObservation.outcome.${key}`,
+        "actual outcome omits a required field",
+        "declared field present",
+        actual.outcome,
+      );
+    }
+  }
   assertString(actual.outcome.stopReason, "actualObservation.outcome.stopReason");
   if (actual.outcome.errorCategory !== undefined && actual.outcome.errorCategory !== null) {
     assertString(actual.outcome.errorCategory, "actualObservation.outcome.errorCategory");
+  }
+  if (actual.outcome.terminal !== undefined) {
+    assertBoolean(actual.outcome.terminal, "actualObservation.outcome.terminal");
+  }
+  if (actual.outcome.executed !== undefined) {
+    assertBoolean(actual.outcome.executed, "actualObservation.outcome.executed");
   }
   assertObject(actual.observations, "actualObservation.observations");
   assertAllowedKeys(actual.observations, OBSERVATION_KEYS, "actualObservation.observations");
@@ -536,9 +564,9 @@ function validateActualObservation(actual, expectedCaseId) {
 
 /**
  * Compare an implementation-generated actual Agent observation against one
- * checked-in fixture. The actual envelope intentionally contains only fields
- * that can be projected from AgentEvent plus test-owned side-channel
- * observations; queue/abort/provider pseudo-events are rejected here.
+ * checked-in fixture. The actual envelope contains only fields captured from
+ * the fresh Agent run plus test-owned side-channel observations; queue/abort/
+ * provider pseudo-events are rejected here.
  */
 export function compareObservation(expected, actualObservation) {
   validateTrace(expected, expected.caseId);
@@ -548,13 +576,13 @@ export function compareObservation(expected, actualObservation) {
   messagePairInvariant(actual);
   toolPairInvariant(actual);
 
-  const representableExpectedEvents = expected.events.every((event) => ACTUAL_EVENT_TYPES.has(event.type));
-  if (!representableExpectedEvents) {
+  const unrepresentableExpectedEvents = expected.events.filter((event) => !ACTUAL_EVENT_TYPES.has(event.type));
+  if (unrepresentableExpectedEvents.length > 0) {
     throw new TraceMismatch(
       "$.events",
       "fixture contains side-channel records that are not AgentEvent projections",
       [...ACTUAL_EVENT_TYPES],
-      expected.events.filter((event) => !ACTUAL_EVENT_TYPES.has(event.type)).map((event) => event.type),
+      unrepresentableExpectedEvents.map((event) => event.type),
     );
   }
   if (expected.events.length !== actual.events.length) {
@@ -564,12 +592,28 @@ export function compareObservation(expected, actualObservation) {
     compareActualEventFields(expected.events[index], actual.events[index], `$.events[${index}]`);
   }
 
-  for (const key of ["stopReason", "errorCategory"]) {
+  const expectedOutcomeKeys = ownKeys(expected.outcome);
+  const actualOutcomeKeys = ownKeys(actual.outcome);
+  if (format(expectedOutcomeKeys) !== format(actualOutcomeKeys)) {
+    throw new TraceMismatch(
+      "$.outcome.keys",
+      "actual outcome keys mismatch",
+      expectedOutcomeKeys,
+      actualOutcomeKeys,
+    );
+  }
+  for (const key of expectedOutcomeKeys) {
     const expectedValue = expected.outcome[key] ?? null;
     const actualValue = actual.outcome[key] ?? null;
     const mismatch = firstDeepMismatch(expectedValue, actualValue, `$.outcome.${key}`);
     if (mismatch) throw mismatch;
   }
+
+  const inputMismatch = firstDeepMismatch(expected.input, actual.input, "$.input");
+  if (inputMismatch) throw inputMismatch;
+
+  const messagesMismatch = firstDeepMismatch(expected.messages, actual.messages, "$.messages");
+  if (messagesMismatch) throw messagesMismatch;
 
   const expectedObservationKeys = ownKeys(expected.observations ?? {});
   const actualObservationKeys = ownKeys(actual.observations);

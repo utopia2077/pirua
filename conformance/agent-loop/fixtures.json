@@ -526,7 +526,8 @@
         "stopReason": "stop",
         "errorCategory": null,
         "errorMessage": null,
-        "terminal": true
+        "terminal": true,
+        "executed": true
       },
       "normalizers": [],
       "observations": {
@@ -878,7 +879,7 @@
           "role": "toolResult",
           "toolCallId": "call-1",
           "toolName": "echo",
-          "content": "tool call truncated",
+          "content": "Tool call \"echo\" was not executed: the response hit the output token limit, so its arguments may be truncated. Re-issue the tool call with complete arguments.",
           "isError": true,
           "terminate": false
         },
@@ -894,7 +895,8 @@
         "stopReason": "stop",
         "errorCategory": null,
         "errorMessage": null,
-        "terminal": true
+        "terminal": true,
+        "executed": false
       },
       "normalizers": [],
       "observations": {
