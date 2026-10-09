@@ -1,6 +1,7 @@
 //! Private headless coding-runtime composition crate for the Rust harness.
 
 pub mod credentials;
+pub mod tools;
 pub mod messages;
 pub mod models;
 pub mod provider_composition;
