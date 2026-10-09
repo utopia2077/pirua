@@ -1,8 +1,9 @@
 use pi_ai::{
     ApiAdapter, ApiId, ApiKeyAuth, ApiKeyAuthInput, AuthContext, AuthContextError,
-    AuthProviderError, AuthResult, BoxFuture, CancellationToken, CredentialStore,
-    InMemoryCredentialStore, Model, ModelBaseUrl, ModelCost, ModelId, ModelInput, ModelsError,
-    Provider, ProviderAuth, ProviderId, PublicModelBaseUrl, SafeUnsigned,
+    AuthProviderError, AuthResult, BoxFuture, CancellationToken, CredentialInfo,
+    CredentialMutation, CredentialReconciliation, CredentialStore, CredentialStoreError, Model,
+    ModelBaseUrl, ModelCost, ModelId, ModelInput, ModelsError, Provider, ProviderAuth, ProviderId,
+    PublicModelBaseUrl, SafeUnsigned, VersionedCredential,
 };
 use pi_coding_runtime::{
     CodingRuntimeError, CredentialInputs, EntranceKind, ProviderComposition,
@@ -14,6 +15,42 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 struct NoopApiKey;
 
 struct PanicAuthContext;
+
+struct PanicCredentialStore;
+
+impl CredentialStore for PanicCredentialStore {
+    fn read<'a>(
+        &'a self,
+        _provider: &'a ProviderId,
+        _cancellation: &'a CancellationToken,
+    ) -> BoxFuture<'a, Result<Option<VersionedCredential>, CredentialStoreError>> {
+        panic!("the composition facade must not read credentials");
+    }
+
+    fn list<'a>(
+        &'a self,
+        _cancellation: &'a CancellationToken,
+    ) -> BoxFuture<'a, Result<Vec<CredentialInfo>, CredentialStoreError>> {
+        panic!("the composition facade must not list credentials");
+    }
+
+    fn begin_mutation<'a>(
+        &'a self,
+        _provider: &'a ProviderId,
+        _cancellation: &'a CancellationToken,
+    ) -> BoxFuture<'a, Result<Box<dyn CredentialMutation + 'static>, CredentialStoreError>> {
+        panic!("the composition facade must not mutate credentials");
+    }
+
+    fn reconcile<'a>(
+        &'a self,
+        _provider: &'a ProviderId,
+        _resolution: CredentialReconciliation,
+        _cancellation: &'a CancellationToken,
+    ) -> BoxFuture<'a, Result<Option<VersionedCredential>, CredentialStoreError>> {
+        panic!("the composition facade must not reconcile credentials");
+    }
+}
 
 impl AuthContext for PanicAuthContext {
     fn env<'a>(
@@ -216,7 +253,7 @@ fn capability_failure_is_before_request_and_has_no_provider_side_effects() {
 
 #[test]
 fn credentials_are_injected_without_auth_or_storage_calls() {
-    let store: Arc<dyn CredentialStore> = Arc::new(InMemoryCredentialStore::new());
+    let store: Arc<dyn CredentialStore> = Arc::new(PanicCredentialStore);
     let auth_context: Arc<dyn AuthContext> = Arc::new(PanicAuthContext);
     let facade = ProviderComposition::new(ProviderCompositionInputs {
         credentials: CredentialInputs::new(Some(store.clone()), Some(auth_context.clone())),
