@@ -1,7 +1,8 @@
 use pi_ai::{
-    ApiAdapter, ApiId, ApiKeyAuth, ApiKeyAuthInput, AuthProviderError, AuthResult, BoxFuture,
-    Model, ModelBaseUrl, ModelCost, ModelId, ModelInput, ModelsError, Provider, ProviderAuth,
-    ProviderId, PublicModelBaseUrl, SafeUnsigned,
+    ApiAdapter, ApiId, ApiKeyAuth, ApiKeyAuthInput, AuthContext, AuthContextError,
+    AuthProviderError, AuthResult, BoxFuture, CancellationToken, CredentialStore,
+    InMemoryCredentialStore, Model, ModelBaseUrl, ModelCost, ModelId, ModelInput, ModelsError,
+    Provider, ProviderAuth, ProviderId, PublicModelBaseUrl, SafeUnsigned,
 };
 use pi_coding_runtime::{
     CodingRuntimeError, CredentialInputs, EntranceKind, ProviderComposition,
@@ -11,6 +12,26 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 struct NoopApiKey;
+
+struct PanicAuthContext;
+
+impl AuthContext for PanicAuthContext {
+    fn env<'a>(
+        &'a self,
+        _name: &'a str,
+        _cancellation: &'a CancellationToken,
+    ) -> BoxFuture<'a, Result<Option<String>, AuthContextError>> {
+        panic!("the composition facade must not read ambient auth");
+    }
+
+    fn file_exists<'a>(
+        &'a self,
+        _path: &'a str,
+        _cancellation: &'a CancellationToken,
+    ) -> BoxFuture<'a, Result<bool, AuthContextError>> {
+        panic!("the composition facade must not inspect auth files");
+    }
+}
 
 impl ApiKeyAuth for NoopApiKey {
     fn name(&self) -> &str {
@@ -195,7 +216,23 @@ fn capability_failure_is_before_request_and_has_no_provider_side_effects() {
 
 #[test]
 fn credentials_are_injected_without_auth_or_storage_calls() {
-    let facade = ProviderComposition::new(ProviderCompositionInputs::default()).expect("empty");
-    assert!(facade.credentials().store().is_none());
-    assert!(facade.credentials().auth_context().is_none());
+    let store: Arc<dyn CredentialStore> = Arc::new(InMemoryCredentialStore::new());
+    let auth_context: Arc<dyn AuthContext> = Arc::new(PanicAuthContext);
+    let facade = ProviderComposition::new(ProviderCompositionInputs {
+        credentials: CredentialInputs::new(Some(store.clone()), Some(auth_context.clone())),
+        ..ProviderCompositionInputs::default()
+    })
+    .expect("empty");
+
+    assert!(Arc::ptr_eq(
+        facade.credentials().store().expect("store retained"),
+        &store
+    ));
+    assert!(Arc::ptr_eq(
+        facade
+            .credentials()
+            .auth_context()
+            .expect("auth context retained"),
+        &auth_context
+    ));
 }
