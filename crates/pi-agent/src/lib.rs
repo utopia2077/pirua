@@ -6,6 +6,8 @@ pub use pi_agent_loop::{
     LegacyRequest, LegacyStreamFn, LegacyTool, LegacyTransformFn, ToolPhaseError, ToolPhaseHooks,
 };
 pub use pi_agent_schema::{CompactionSettings, QueueMode};
+/// Public schema facade for product crates that compose Agent contracts.
+pub use pi_agent_schema as schema;
 pub use pi_agent_search::{
     EntrySearchHit, SearchQuery, SessionSearchHit, SessionSearchService, SessionSearchTopEntry,
 };
