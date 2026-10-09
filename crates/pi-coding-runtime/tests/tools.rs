@@ -411,7 +411,6 @@ fn read_uses_host_image_processing_and_bash_honors_timeout() {
             .await
             .unwrap_err()
     });
-    println!("TIMEOUT_ERROR={}", error);
     assert!(error.to_string().contains("timed out"));
 }
 

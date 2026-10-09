@@ -94,6 +94,8 @@ pub struct ProcessOptions {
     pub timeout: Option<Duration>,
     /// Environment overrides.
     pub env: BTreeMap<String, String>,
+    /// Shared cancellation flag a host process runner may observe.
+    pub abort_signal: Option<Arc<std::sync::atomic::AtomicBool>>,
 }
 
 /// Host port consumed by all coding tools.
@@ -279,8 +281,59 @@ impl ExecutionEnv for LocalExecutionEnv {
             for (key, value) in options.env {
                 cmd.env(key, value);
             }
-            let output = cmd.output().map_err(env_error)?;
-            if matches!(output.status.code(), Some(124) | Some(137) | None)
+            cmd.stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+            let abort_signal = options.abort_signal.clone();
+            let mut child = cmd.spawn().map_err(env_error)?;
+            let stdout = child.stdout.take();
+            let stderr = child.stderr.take();
+            let stdout_reader = std::thread::spawn(move || {
+                stdout
+                    .map(|mut stream| {
+                        let mut bytes = Vec::new();
+                        let _ = std::io::Read::read_to_end(&mut stream, &mut bytes);
+                        bytes
+                    })
+                    .unwrap_or_default()
+            });
+            let stderr_reader = std::thread::spawn(move || {
+                stderr
+                    .map(|mut stream| {
+                        let mut bytes = Vec::new();
+                        let _ = std::io::Read::read_to_end(&mut stream, &mut bytes);
+                        bytes
+                    })
+                    .unwrap_or_default()
+            });
+            let started = std::time::Instant::now();
+            let status = loop {
+                if abort_signal
+                    .as_ref()
+                    .is_some_and(|flag| flag.load(std::sync::atomic::Ordering::Relaxed))
+                {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(EnvError::new("command aborted"));
+                }
+                if let Some(status) = child.try_wait().map_err(env_error)? {
+                    break status;
+                }
+                if options
+                    .timeout
+                    .is_some_and(|timeout| started.elapsed() >= timeout)
+                {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(EnvError::new(format!(
+                        "command timed out after {} seconds",
+                        options.timeout.unwrap().as_secs_f64()
+                    )));
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            };
+            let stdout = stdout_reader.join().unwrap_or_default();
+            let stderr = stderr_reader.join().unwrap_or_default();
+            if status.code().is_none()
                 && let Some(timeout) = options.timeout
             {
                 return Err(EnvError::new(format!(
@@ -288,6 +341,11 @@ impl ExecutionEnv for LocalExecutionEnv {
                     timeout.as_secs_f64()
                 )));
             }
+            let output = std::process::Output {
+                status,
+                stdout,
+                stderr,
+            };
             Ok(ProcessOutput {
                 stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
                 stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
@@ -1204,6 +1262,7 @@ impl AgentHarnessTool<ExecutionToolContext> for ShellTool {
             let timeout = arg_f64(&p, "timeout")
                 .filter(|seconds| seconds.is_finite() && *seconds > 0.0)
                 .map(Duration::from_secs_f64);
+            let abort_signal = Arc::new(std::sync::atomic::AtomicBool::new(false));
             let output = ctx
                 .env
                 .exec(
@@ -1213,6 +1272,7 @@ impl AgentHarnessTool<ExecutionToolContext> for ShellTool {
                         cwd: None,
                         timeout,
                         env: BTreeMap::new(),
+                        abort_signal: Some(Arc::clone(&abort_signal)),
                     },
                 )
                 .await
