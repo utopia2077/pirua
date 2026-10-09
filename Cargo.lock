@@ -1281,6 +1281,8 @@ dependencies = [
  "pi-extension-protocol",
  "pi-harness-runtime",
  "pi-telemetry",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

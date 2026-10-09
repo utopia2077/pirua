@@ -45,3 +45,5 @@ pi-ai-transport = { workspace = true, optional = true }
 pi-extension-protocol = { workspace = true, optional = true }
 pi-harness-runtime.workspace = true
 pi-telemetry.workspace = true
+serde.workspace = true
+serde_json.workspace = true
