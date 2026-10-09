@@ -68,8 +68,21 @@ pub struct ProcessOutput {
     pub stdout: String,
     /// Captured standard error.
     pub stderr: String,
+    /// Optional merged arrival-ordered stream supplied by the host.
+    pub merged: Option<String>,
     /// Exit status, or -1 when unavailable.
     pub exit_code: i32,
+}
+
+/// Host-produced image content after optional conversion/resizing.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProcessedImage {
+    /// Base64 data.
+    pub data: String,
+    /// Resulting MIME type.
+    pub mime_type: String,
+    /// Human-readable processing hints.
+    pub hints: Vec<String>,
 }
 
 /// Process options supplied by a coding tool.
@@ -91,6 +104,15 @@ pub trait ExecutionEnv: Send + Sync {
     fn exists<'a>(&'a self, path: &'a str) -> BoxFuture<'a, EnvResult<bool>>;
     /// Read binary bytes.
     fn read_binary_file<'a>(&'a self, path: &'a str) -> BoxFuture<'a, EnvResult<Vec<u8>>>;
+    /// Optionally process an image (conversion/resizing remains a host concern).
+    fn process_image<'a>(
+        &'a self,
+        _bytes: &'a [u8],
+        _mime_type: &'a str,
+        _auto_resize: bool,
+    ) -> BoxFuture<'a, EnvResult<Option<ProcessedImage>>> {
+        Box::pin(async { Ok(None) })
+    }
     /// Read UTF-8 text.
     fn read_text_file<'a>(&'a self, path: &'a str) -> BoxFuture<'a, EnvResult<String>>;
     /// Write bytes or UTF-8 text, creating parent directories.
@@ -232,14 +254,44 @@ impl ExecutionEnv for LocalExecutionEnv {
                     c.args(["-lc", command]);
                     c
                 };
+            if let Some(timeout) = options.timeout.filter(|value| !value.is_zero()) {
+                #[cfg(unix)]
+                {
+                    let executable = if shell.eq_ignore_ascii_case("powershell")
+                        || shell.eq_ignore_ascii_case("pwsh")
+                    {
+                        if cfg!(windows) { "powershell" } else { "pwsh" }
+                    } else {
+                        "bash"
+                    };
+                    let seconds = format!("{:.3}", timeout.as_secs_f64());
+                    let mut timed = std::process::Command::new("timeout");
+                    timed.args(["--signal=KILL", &seconds, executable]);
+                    if executable == "bash" {
+                        timed.args(["-lc", command]);
+                    } else {
+                        timed.args(["-NoProfile", "-NonInteractive", "-Command", command]);
+                    }
+                    cmd = timed;
+                }
+            }
             cmd.current_dir(cwd);
             for (key, value) in options.env {
                 cmd.env(key, value);
             }
             let output = cmd.output().map_err(env_error)?;
+            if matches!(output.status.code(), Some(124) | Some(137) | None)
+                && let Some(timeout) = options.timeout
+            {
+                return Err(EnvError::new(format!(
+                    "command timed out after {} seconds",
+                    timeout.as_secs_f64()
+                )));
+            }
             Ok(ProcessOutput {
                 stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
                 stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+                merged: None,
                 exit_code: output.status.code().unwrap_or(-1),
             })
         })
@@ -267,6 +319,7 @@ static TEMP_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64
 
 /// Truncation metadata retained in tool details.
 #[derive(Clone, Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Truncation {
     /// Whether truncation occurred.
     pub truncated: bool,
@@ -498,6 +551,11 @@ fn arg_u64(obj: &JsonObject, key: &str) -> Option<u64> {
         }
     })
 }
+fn arg_f64(obj: &JsonObject, key: &str) -> Option<f64> {
+    obj.as_map()
+        .get(key)
+        .and_then(|value| serde_json::to_value(value).ok()?.as_f64())
+}
 fn arg_bool(obj: &JsonObject, key: &str) -> bool {
     obj.as_map()
         .get(key)
@@ -621,6 +679,23 @@ impl AgentHarnessTool<ExecutionToolContext> for ReadTool {
                 .map_err(|e| tool_error(e.message))?;
             check_cancelled(c)?;
             if let Some(mime) = image_mime(&bytes) {
+                if let Some(processed) = ctx
+                    .env
+                    .process_image(&bytes, mime, true)
+                    .await
+                    .map_err(|e| tool_error(e.message))?
+                {
+                    let hints = if processed.hints.is_empty() {
+                        String::new()
+                    } else {
+                        format!("\n{}", processed.hints.join("\n"))
+                    };
+                    return Ok(image_result(
+                        format!("Read image file [{}]{}", processed.mime_type, hints),
+                        processed.data,
+                        processed.mime_type,
+                    ));
+                }
                 if mime == "image/bmp" {
                     return Ok(text_result(
                         format!(
@@ -723,6 +798,7 @@ impl AgentHarnessTool<ExecutionToolContext> for WriteTool {
             let _guard = lock_for(&ctx.env, &path)
                 .await
                 .map_err(|e| tool_error(e.message))?;
+            check_cancelled(c)?;
             ctx.env
                 .write_file(&path, content.as_bytes())
                 .await
@@ -773,15 +849,70 @@ fn json_array_edits(obj: &JsonObject) -> Result<Vec<(String, String)>, ToolExecu
         })
         .collect()
 }
+
+fn single_edit_value(value: &JsonValue) -> bool {
+    matches!(value, JsonValue::Object(object)
+        if matches!(object.as_map().get("oldText"), Some(JsonValue::String(_)))
+        && matches!(object.as_map().get("newText"), Some(JsonValue::String(_))))
+}
+
+fn normalize_edit_arguments(args: JsonValue) -> Result<JsonObject, ToolExecutionError> {
+    let mut object = parse_obj(args)?.into_map();
+    if let Some(JsonValue::String(encoded)) = object.get("edits") {
+        if let Ok(value) = serde_json::from_str::<serde_json::Value>(encoded) {
+            let parsed: JsonValue =
+                serde_json::from_value(value).map_err(|e| tool_error(e.to_string()))?;
+            let parsed = if single_edit_value(&parsed) {
+                JsonValue::Array(vec![parsed])
+            } else {
+                parsed
+            };
+            object.insert("edits".to_owned(), parsed);
+        }
+    } else if let Some(value) = object.get("edits")
+        && single_edit_value(value)
+    {
+        object.insert("edits".to_owned(), JsonValue::Array(vec![value.clone()]));
+    }
+    let legacy = match (object.remove("oldText"), object.remove("newText")) {
+        (Some(JsonValue::String(old_text)), Some(JsonValue::String(new_text))) => {
+            Some((old_text, new_text))
+        }
+        (old, new) => {
+            if let Some(value) = old {
+                object.insert("oldText".to_owned(), value);
+            }
+            if let Some(value) = new {
+                object.insert("newText".to_owned(), value);
+            }
+            None
+        }
+    };
+    if let Some((old_text, new_text)) = legacy {
+        let edit = JsonValue::Object(JsonObject::new(BTreeMap::from([
+            ("oldText".to_owned(), JsonValue::String(old_text)),
+            ("newText".to_owned(), JsonValue::String(new_text)),
+        ])));
+        match object.get_mut("edits") {
+            Some(JsonValue::Array(edits)) => edits.push(edit),
+            _ => {
+                object.insert("edits".to_owned(), JsonValue::Array(vec![edit]));
+            }
+        }
+    }
+    Ok(JsonObject::new(object))
+}
 fn normalize_fuzzy(s: &str) -> String {
     s.replace("\r\n", "\n")
         .replace('\r', "\n")
         .chars()
         .map(|c| match c {
+            '\u{ff01}'..='\u{ff5e}' => char::from_u32(c as u32 - 0xfee0).unwrap_or(c),
+            '\u{3000}' => ' ',
             '\u{2018}' | '\u{2019}' | '\u{201a}' | '\u{201b}' => '\'',
             '\u{201c}' | '\u{201d}' | '\u{201e}' | '\u{201f}' => '"',
             '\u{2010}'..='\u{2015}' | '\u{2212}' => '-',
-            '\u{00a0}' | '\u{2002}'..='\u{200a}' | '\u{202f}' | '\u{205f}' | '\u{3000}' => ' ',
+            '\u{00a0}' | '\u{2002}'..='\u{200a}' | '\u{202f}' | '\u{205f}' => ' ',
             c => c,
         })
         .collect::<String>()
@@ -790,26 +921,97 @@ fn normalize_fuzzy(s: &str) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
+
+fn line_ranges(content: &str) -> Vec<(usize, usize)> {
+    let mut ranges = Vec::new();
+    let mut start = 0;
+    for (index, ch) in content.char_indices() {
+        if ch == '\n' {
+            ranges.push((start, index + 1));
+            start = index + 1;
+        }
+    }
+    if start < content.len() || ranges.is_empty() {
+        ranges.push((start, content.len()));
+    }
+    ranges
+}
+
+type Replacement = (usize, usize, String);
+type ReplacementGroup = (usize, usize, Vec<Replacement>);
+
+fn apply_preserving_untouched(original: &str, base: &str, replacements: &[Replacement]) -> String {
+    let original_lines = line_ranges(original);
+    let base_lines = line_ranges(base);
+    let mut groups: Vec<ReplacementGroup> = Vec::new();
+    for replacement in replacements {
+        let start_line = base_lines
+            .iter()
+            .position(|(_, end)| replacement.0 < *end)
+            .unwrap_or(0);
+        let replacement_end = replacement.0 + replacement.1;
+        let mut end_line = start_line;
+        while end_line + 1 < base_lines.len() && base_lines[end_line].1 < replacement_end {
+            end_line += 1;
+        }
+        if let Some(group) = groups.last_mut()
+            && start_line <= group.1
+        {
+            group.1 = group.1.max(end_line);
+            group.2.push(replacement.clone());
+            continue;
+        }
+        groups.push((start_line, end_line, vec![replacement.clone()]));
+    }
+    let mut output = String::new();
+    let mut original_line = 0;
+    for (start_line, end_line, mut group) in groups {
+        for &(start, end) in &original_lines[original_line..start_line.min(original_lines.len())] {
+            output.push_str(&original[start..end]);
+        }
+        let start_offset = base_lines[start_line].0;
+        let end_offset = base_lines[end_line].1;
+        group.sort_by_key(|replacement| replacement.0);
+        let mut segment = base[start_offset..end_offset].to_owned();
+        for (index, length, new_text) in group.into_iter().rev() {
+            let local = index - start_offset;
+            segment.replace_range(local..local + length, &new_text);
+        }
+        output.push_str(&segment);
+        original_line = (end_line + 1).min(original_lines.len());
+    }
+    for &(start, end) in &original_lines[original_line..] {
+        output.push_str(&original[start..end]);
+    }
+    output
+}
+
 fn apply_edits(
     content: &str,
     edits: &[(String, String)],
     path: &str,
 ) -> Result<(String, String), String> {
-    let mut matches = Vec::new();
+    let normalized_content = normalize_fuzzy(content);
     let mut fuzzy = false;
+    let mut matches = Vec::new();
     for (i, (old, new)) in edits.iter().enumerate() {
         if old.is_empty() {
             return Err(format!("edits[{i}].oldText must not be empty in {path}."));
         }
-        let mut idx = content
+        let normalized_old = normalize_fuzzy(old);
+        let exact = content
             .match_indices(old)
             .map(|(i, _)| i)
             .collect::<Vec<_>>();
+        let mut idx = exact;
+        let mut match_length = old.len();
         if idx.is_empty() {
             fuzzy = true;
-            let norm = normalize_fuzzy(content);
-            let no = normalize_fuzzy(old);
-            idx = norm.match_indices(&no).map(|(i, _)| i).collect();
+            idx = normalized_content
+                .match_indices(&normalized_old)
+                .map(|(i, _)| i)
+                .collect();
+            match_length = normalized_old.len();
         }
         if idx.is_empty() {
             return Err(format!(
@@ -822,7 +1024,37 @@ fn apply_edits(
                 idx.len()
             ));
         }
-        matches.push((idx[0], old.len(), new.clone()));
+        matches.push((
+            idx[0],
+            match_length,
+            if fuzzy {
+                normalize_fuzzy(new)
+            } else {
+                new.clone()
+            },
+        ));
+    }
+    if fuzzy {
+        matches.clear();
+        for (i, (old, new)) in edits.iter().enumerate() {
+            let normalized_old = normalize_fuzzy(old);
+            let indices = normalized_content
+                .match_indices(&normalized_old)
+                .map(|(index, _)| index)
+                .collect::<Vec<_>>();
+            if indices.is_empty() {
+                return Err(format!(
+                    "Could not find edits[{i}] in {path}. The oldText must match exactly."
+                ));
+            }
+            if indices.len() > 1 {
+                return Err(format!(
+                    "Found {} occurrences of edits[{i}] in {path}. Each oldText must be unique.",
+                    indices.len()
+                ));
+            }
+            matches.push((indices[0], normalized_old.len(), normalize_fuzzy(new)));
+        }
     }
     matches.sort_by_key(|m| m.0);
     for w in matches.windows(2) {
@@ -832,11 +1064,14 @@ fn apply_edits(
             ));
         }
     }
-    let mut out = if fuzzy {
-        normalize_fuzzy(content)
-    } else {
-        content.to_owned()
-    };
+    if fuzzy {
+        let out = apply_preserving_untouched(content, &normalized_content, &matches);
+        if out == content {
+            return Err(format!("No changes made to {path}."));
+        }
+        return Ok((content.to_owned(), out));
+    }
+    let mut out = content.to_owned();
     for (idx, len, new) in matches.into_iter().rev() {
         out.replace_range(idx..idx + len, &new);
     }
@@ -845,12 +1080,34 @@ fn apply_edits(
     }
     Ok((content.to_owned(), out))
 }
+
+fn unified_diff(path: &str, old: &str, new: &str) -> String {
+    let old_lines: Vec<_> = old.lines().collect();
+    let new_lines: Vec<_> = new.lines().collect();
+    let mut diff = format!(
+        "--- {path}\n+++ {path}\n@@ -1,{} +1,{} @@\n",
+        old_lines.len().max(1),
+        new_lines.len().max(1)
+    );
+    for line in old_lines {
+        diff.push('-');
+        diff.push_str(line);
+        diff.push('\n');
+    }
+    for line in new_lines {
+        diff.push('+');
+        diff.push_str(line);
+        diff.push('\n');
+    }
+    diff
+}
+
 impl AgentHarnessTool<ExecutionToolContext> for EditTool {
     fn descriptor(&self) -> &AgentTool {
         &self.descriptor
     }
     fn prepare_arguments(&self, args: JsonValue) -> Result<JsonObject, ToolExecutionError> {
-        parse_obj(args)
+        normalize_edit_arguments(args)
     }
     fn execute<'a>(
         &'a self,
@@ -891,7 +1148,7 @@ impl AgentHarnessTool<ExecutionToolContext> for EditTool {
                 .await
                 .map_err(|e| tool_error(e.message))?;
             check_cancelled(c)?;
-            let diff = format!("--- {raw}\n+++ {raw}\n@@\n-{base}\n+{new}");
+            let diff = unified_diff(&raw, &base, &new);
             Ok(text_result(
                 format!("Successfully replaced {} block(s) in {}.", edits.len(), raw),
                 Some(json!({"diff": diff, "patch": diff})),
@@ -937,7 +1194,16 @@ impl AgentHarnessTool<ExecutionToolContext> for ShellTool {
         Box::pin(async move {
             check_cancelled(c)?;
             let command = arg_string(&p, "command")?;
-            let timeout = arg_u64(&p, "timeout").map(Duration::from_secs);
+            let command = if self.shell == "powershell" {
+                format!(
+                    "try {{ [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 }} catch {{}}\n{command}"
+                )
+            } else {
+                command
+            };
+            let timeout = arg_f64(&p, "timeout")
+                .filter(|seconds| seconds.is_finite() && *seconds > 0.0)
+                .map(Duration::from_secs_f64);
             let output = ctx
                 .env
                 .exec(
@@ -952,7 +1218,9 @@ impl AgentHarnessTool<ExecutionToolContext> for ShellTool {
                 .await
                 .map_err(|e| tool_error(e.message))?;
             check_cancelled(c)?;
-            let combined = if output.stderr.is_empty() {
+            let combined = if let Some(merged) = output.merged {
+                merged
+            } else if output.stderr.is_empty() {
                 output.stdout
             } else if output.stdout.is_empty() {
                 output.stderr
@@ -1042,7 +1310,7 @@ impl AgentHarnessTool<ExecutionToolContext> for LsTool {
                     }
                 })
                 .unwrap_or(".");
-            let limit = arg_u64(&p, "limit").unwrap_or(500) as usize;
+            let limit = arg_u64(&p, "limit").unwrap_or(500).max(1) as usize;
             let path = ctx
                 .env
                 .absolute_path(raw)
@@ -1078,17 +1346,29 @@ impl AgentHarnessTool<ExecutionToolContext> for LsTool {
             if out.is_empty() {
                 out = "(empty directory)".into()
             }
+            let (mut out, truncation) = truncate_head(&out);
+            let mut notices = Vec::new();
             if limited {
-                out.push_str(&format!(
-                    "\n\n[{} entries limit reached. Use limit={} for more]",
+                notices.push(format!(
+                    "{} entries limit reached. Use limit={} for more",
                     limit,
                     limit * 2
                 ));
             }
-            Ok(text_result(
-                out,
-                limited.then(|| json!({"entryLimitReached":limit})),
-            ))
+            if truncation.truncated {
+                notices.push("50.0KB output limit reached".to_owned());
+            }
+            if !notices.is_empty() {
+                out.push_str(&format!("\n\n[{}]", notices.join(". ")));
+            }
+            let detail = if limited || truncation.truncated {
+                Some(
+                    json!({"entryLimitReached": limited.then_some(limit), "truncation": truncation}),
+                )
+            } else {
+                None
+            };
+            Ok(text_result(out, detail))
         })
     }
 }
@@ -1121,6 +1401,44 @@ fn glob_matches(pattern: &str, name: &str) -> bool {
     r.push('$');
     Regex::new(&r).map(|re| re.is_match(name)).unwrap_or(false)
 }
+fn ignore_pattern_matches(pattern: &str, relative: &str) -> bool {
+    let mut pattern = pattern.trim();
+    if pattern.is_empty() || pattern.starts_with('#') {
+        return false;
+    }
+    if pattern.starts_with('!') {
+        pattern = &pattern[1..];
+    }
+    let directory = pattern.ends_with('/');
+    pattern = pattern.trim_start_matches('/').trim_end_matches('/');
+    if pattern.is_empty() {
+        return false;
+    }
+    let candidate = relative.trim_start_matches("./").trim_end_matches('/');
+    if directory {
+        return candidate == pattern || candidate.starts_with(&format!("{pattern}/"));
+    }
+    glob_matches(pattern, candidate)
+        || (!pattern.contains('/')
+            && glob_matches(
+                pattern,
+                Path::new(candidate)
+                    .file_name()
+                    .and_then(|v| v.to_str())
+                    .unwrap_or(candidate),
+            ))
+}
+
+fn ignored(relative: &str, patterns: &[String]) -> bool {
+    let mut result = false;
+    for pattern in patterns {
+        if ignore_pattern_matches(pattern, relative) {
+            result = !pattern.trim_start().starts_with('!');
+        }
+    }
+    result
+}
+
 fn collect_files(
     env: &Arc<dyn ExecutionEnv>,
     root: &str,
@@ -1129,10 +1447,25 @@ fn collect_files(
     let root = root.to_owned();
     Box::pin(async move {
         let mut files = Vec::new();
-        let mut stack = vec![root];
+        let mut stack = vec![root.clone()];
+        let mut patterns = Vec::<String>::new();
+        if let Ok(ignore) = env.read_text_file(&format!("{root}/.gitignore")).await {
+            patterns.extend(ignore.lines().map(str::to_owned));
+        }
         while let Some(dir) = stack.pop() {
+            if let Ok(ignore) = env.read_text_file(&format!("{dir}/.gitignore")).await {
+                patterns.extend(ignore.lines().map(str::to_owned));
+            }
             for entry in env.list_dir(&dir).await? {
-                if entry.name == ".git" || entry.name == "node_modules" {
+                if entry.name == ".git" {
+                    continue;
+                }
+                let relative = Path::new(&entry.path)
+                    .strip_prefix(&root)
+                    .unwrap_or(Path::new(&entry.path))
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                if ignored(&relative, &patterns) {
                     continue;
                 }
                 if entry.is_dir {
@@ -1180,7 +1513,7 @@ impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
                 .absolute_path(raw)
                 .await
                 .map_err(|e| tool_error(e.message))?;
-            let limit = arg_u64(&p, "limit").unwrap_or(100) as usize;
+            let limit = arg_u64(&p, "limit").unwrap_or(100).max(1) as usize;
             let literal = arg_bool(&p, "literal");
             let ignore = arg_bool(&p, "ignoreCase");
             let regex = if literal {
@@ -1259,29 +1592,51 @@ impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
                             shown.truncate(GREP_MAX_LINE_LENGTH);
                             shown.push_str("... [truncated]");
                         }
+                        let relative = Path::new(&file.path)
+                            .strip_prefix(&root)
+                            .unwrap_or(Path::new(&file.path))
+                            .to_string_lossy()
+                            .replace('\\', "/");
                         result.push(if n == idx {
-                            format!("{}:{}: {}", file.path, n + 1, shown)
+                            format!("{}:{}: {}", relative, n + 1, shown)
                         } else {
-                            format!("{}-{}- {}", file.path, n + 1, shown)
+                            format!("{}-{}- {}", relative, n + 1, shown)
                         });
                     }
                 }
-                if count > limit {
+                if count >= limit {
                     break;
                 }
             }
-            let mut out = result.join("\n");
+            let raw_output = result.join("\n");
+            let (mut out, truncation) = truncate_head(&raw_output);
             if out.is_empty() {
                 out = "No matches found".into()
             }
-            let reached = count > limit;
+            let reached = count >= limit;
+            let lines_truncated = result.iter().any(|line| line.contains("... [truncated]"));
+            let byte_truncated = truncation.truncated;
+            let mut notices = Vec::new();
             if reached {
-                out.push_str(&format!("\n\n[{} matches limit reached]", limit));
+                notices.push(format!("{} matches limit reached", limit));
             }
-            Ok(text_result(
-                out,
-                reached.then(|| json!({"matchLimitReached":limit})),
-            ))
+            if byte_truncated {
+                notices.push("50.0KB output limit reached".to_owned());
+            }
+            if lines_truncated {
+                notices.push("some lines truncated".to_owned());
+            }
+            if !notices.is_empty() && out != "No matches found" {
+                out.push_str(&format!("\n\n[{}]", notices.join(". ")));
+            }
+            let detail = if reached || byte_truncated || lines_truncated {
+                Some(
+                    json!({"matchLimitReached": reached.then_some(limit), "truncation": byte_truncated.then_some(truncation), "linesTruncated": lines_truncated}),
+                )
+            } else {
+                None
+            };
+            Ok(text_result(out, detail))
         })
     }
 }
@@ -1335,7 +1690,7 @@ impl AgentHarnessTool<ExecutionToolContext> for FindTool {
                 .absolute_path(raw)
                 .await
                 .map_err(|e| tool_error(e.message))?;
-            let limit = arg_u64(&p, "limit").unwrap_or(1000) as usize;
+            let limit = arg_u64(&p, "limit").unwrap_or(1000).max(1) as usize;
             let mut files = collect_files(&ctx.env, &root)
                 .await
                 .map_err(|e| tool_error(e.message))?;
@@ -1358,14 +1713,26 @@ impl AgentHarnessTool<ExecutionToolContext> for FindTool {
                 return Ok(text_result("No files found matching pattern", None));
             }
             let reached = paths.len() >= limit;
-            let mut out = paths.join("\n");
+            let raw_output = paths.join("\n");
+            let (mut out, truncation) = truncate_head(&raw_output);
+            let mut notices = Vec::new();
             if reached {
-                out.push_str(&format!("\n\n[{} results limit reached]", limit));
+                notices.push(format!("{} results limit reached", limit));
             }
-            Ok(text_result(
-                out,
-                reached.then(|| json!({"resultLimitReached":limit})),
-            ))
+            if truncation.truncated {
+                notices.push("50.0KB output limit reached".to_owned());
+            }
+            if !notices.is_empty() {
+                out.push_str(&format!("\n\n[{}]", notices.join(". ")));
+            }
+            let detail = if reached || truncation.truncated {
+                Some(
+                    json!({"resultLimitReached": reached.then_some(limit), "truncation": truncation}),
+                )
+            } else {
+                None
+            };
+            Ok(text_result(out, detail))
         })
     }
 }
@@ -1415,6 +1782,8 @@ pub fn tool_prompt_metadata(name: &str) -> (&'static str, &'static [&'static str
             &[
                 "Use edit for precise changes (edits[].oldText must match exactly)",
                 "When changing multiple separate locations in one file, use one edit call with multiple entries in edits[] instead of multiple edit calls",
+                "Each edits[].oldText is matched against the original file, not after earlier edits are applied. Do not emit overlapping or nested edits. Merge nearby changes into one edit.",
+                "Keep edits[].oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.",
             ],
         ),
         "bash" => (
