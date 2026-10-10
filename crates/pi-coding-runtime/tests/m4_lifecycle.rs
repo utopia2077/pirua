@@ -1,12 +1,16 @@
 use pi_agent::schema::{
-    AgentLane, AgentMessage, CompactionSettings, HarnessRuntimeError, ProviderHeaderPolicy,
-    SessionCodecOptions, SessionCreateOptions, SessionRepo, SessionTree,
+    AgentLane, AgentMessage, BranchForkOptions, CompactionSettings, ForkOptions,
+    HarnessRuntimeError, ProviderHeaderPolicy, Session, SessionCodecOptions, SessionCreateOptions,
+    SessionForkRequest, SessionRepo, SessionTree,
 };
 use pi_agent_session::{
     context::SummaryRenderer,
-    jsonl::JsonlOptions,
+    jsonl::{JsonlOptions, JsonlStorage},
     memory::{MemoryStorage, StorageClock},
-    repo::{MemorySessionRepo, jsonl::JsonlSessionRepo},
+    repo::{
+        MemorySessionRepo,
+        jsonl::{JsonlSession, JsonlSessionMetadata, JsonlSessionRepo},
+    },
 };
 
 use pi_ai::{
@@ -168,8 +172,55 @@ fn model(id: &str) -> Model {
     }
 }
 
+async fn registry_for(
+    clock: Arc<ClockPort>,
+    spawner: Arc<TokioSpawner>,
+    first: Model,
+    second: Model,
+) -> Arc<ModelsRegistry> {
+    let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
+        credentials: Arc::new(pi_ai::InMemoryCredentialStore::new()),
+        models_store: Box::new(pi_ai::InMemoryModelsStore::new()),
+        auth_context: Arc::new(AuthHost),
+        clock,
+        spawner,
+        model_header_policy: Default::default(),
+    }));
+    registry
+        .set_provider(Arc::new(FixtureProvider {
+            id: first.provider.clone(),
+            models: vec![first, second],
+            auth: ProviderAuth::new(Some(Arc::new(NoopApiKey)), None).expect("auth"),
+        }))
+        .await
+        .expect("provider publication");
+    registry
+}
+
+fn settings_for(model: &Model) -> CodingSettingsSnapshot {
+    CodingSettingsSnapshot::new(
+        ModelRef::new(model.provider.clone(), model.id.clone()),
+        ThinkingLevel::Off,
+        vec![ToolName::new("read").expect("tool")],
+        pi_ai::RetryPolicy {
+            enabled: false,
+            max_retries: pi_ai::MaxRetries::new(0).expect("retries"),
+            base_delay_ms: SafeUnsigned::new(0).expect("delay"),
+        },
+        CompactionSettings {
+            enabled: false,
+            reserve_tokens: SafeUnsigned::new(0).expect("reserve"),
+            keep_recent_tokens: SafeUnsigned::new(0).expect("tail"),
+        },
+        StreamOptionsWire::default(),
+        pi_coding_runtime::QueueMode::All,
+        pi_coding_runtime::QueueMode::All,
+    )
+}
+
 struct Fixture {
     registry: Arc<ModelsRegistry>,
+    repo: MemorySessionRepo,
     factory: Arc<RuntimeFactory<pi_coding_runtime::ExecutionToolContext, MemoryStorage>>,
     session: Arc<pi_agent_session::repo::MemorySession>,
     destination: Arc<pi_agent_session::repo::MemorySession>,
@@ -184,23 +235,7 @@ impl Fixture {
         let ids = Arc::new(Ids::default());
         let first = model("m4-first");
         let second = model("m4-second");
-        let provider = Arc::new(FixtureProvider {
-            id: first.provider.clone(),
-            models: vec![first.clone(), second],
-            auth: ProviderAuth::new(Some(Arc::new(NoopApiKey)), None).expect("auth"),
-        });
-        let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
-            credentials: Arc::new(pi_ai::InMemoryCredentialStore::new()),
-            models_store: Box::new(pi_ai::InMemoryModelsStore::new()),
-            auth_context: Arc::new(AuthHost),
-            clock: clock.clone(),
-            spawner: spawner.clone(),
-            model_header_policy: Default::default(),
-        }));
-        registry
-            .set_provider(provider)
-            .await
-            .expect("provider publication");
+        let registry = registry_for(clock.clone(), spawner.clone(), first.clone(), second).await;
         let repo = MemorySessionRepo::new(
             SessionCodecOptions::default(),
             ProviderHeaderPolicy::default(),
@@ -231,26 +266,10 @@ impl Fixture {
             Arc::new(pi_coding_runtime::ExecutionToolContext { env: env.clone() }),
             Arc::new(Summary),
         ));
-        let settings = CodingSettingsSnapshot::new(
-            ModelRef::new(first.provider, first.id),
-            ThinkingLevel::Off,
-            vec![ToolName::new("read").expect("tool")],
-            pi_ai::RetryPolicy {
-                enabled: false,
-                max_retries: pi_ai::MaxRetries::new(0).expect("retries"),
-                base_delay_ms: SafeUnsigned::new(0).expect("delay"),
-            },
-            CompactionSettings {
-                enabled: false,
-                reserve_tokens: SafeUnsigned::new(0).expect("reserve"),
-                keep_recent_tokens: SafeUnsigned::new(0).expect("tail"),
-            },
-            StreamOptionsWire::default(),
-            pi_coding_runtime::QueueMode::All,
-            pi_coding_runtime::QueueMode::All,
-        );
+        let settings = settings_for(&first);
         Self {
             registry,
+            repo,
             factory,
             session,
             destination,
@@ -355,6 +374,76 @@ fn builder_first_attachment_and_lifecycle_replacement_use_one_runtime() {
 }
 
 #[test]
+fn lifecycle_retains_owner_when_teardown_reports_storage_failure() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let fixture = Fixture::new().await;
+        let mut lifecycle = CodingSessionLifecycle::new();
+        lifecycle
+            .attach(fixture.builder().first_attachment())
+            .await
+            .expect("first attach");
+        // Inject a deterministic failure into the teardown path by closing the
+        // backend behind the active owner. The lifecycle must retain the
+        // owner/lease handle so a host can inspect or recover it.
+        fixture.session.close().await.expect("injected close");
+        assert!(
+            lifecycle.close().await.is_err(),
+            "teardown must report failure"
+        );
+        assert!(
+            lifecycle.current().is_some(),
+            "failed teardown must retain the active owner for recovery"
+        );
+    });
+}
+
+#[test]
+fn fork_destination_publishes_through_lifecycle_and_preserves_source() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let fixture = Fixture::new().await;
+        let mut lifecycle = CodingSessionLifecycle::new();
+        lifecycle
+            .attach(fixture.builder().first_attachment())
+            .await
+            .expect("source attach");
+        let source_leaf = fixture.session.get_leaf_id().await.expect("source leaf");
+        let fork = fixture
+            .repo
+            .fork(
+                fixture.session.metadata(),
+                SessionForkRequest {
+                    fork: ForkOptions::Branch(BranchForkOptions::default()),
+                    create: SessionCreateOptions {
+                        id: Some("m4-fork".parse().expect("fork id")),
+                        ..Default::default()
+                    },
+                },
+            )
+            .await
+            .expect("fork destination");
+        assert_eq!(
+            fork.metadata().parent_session_id,
+            Some("m4-session".parse().expect("parent id"))
+        );
+        assert_eq!(
+            fixture.session.get_leaf_id().await.expect("source leaf"),
+            source_leaf
+        );
+        lifecycle
+            .attach_fork(fixture.builder_for(fork.clone()).first_attachment())
+            .await
+            .expect("fork attach");
+        assert!(
+            fork.get_register(pi_agent::schema::RegisterNamespace::LaneConfig, "main")
+                .await
+                .expect("fork config")
+                .is_some()
+        );
+        lifecycle.close().await.expect("close fork");
+    });
+}
+
+#[test]
 fn builder_rejects_stream_fields_outside_the_curated_harness_surface() {
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let fixture = Fixture::new().await;
@@ -376,6 +465,153 @@ fn builder_rejects_stream_fields_outside_the_curated_harness_surface() {
         assert!(
             fixture.session.claim_runtime().is_ok(),
             "rejected options do not claim"
+        );
+    });
+}
+
+#[test]
+fn configured_restart_reopens_jsonl_on_a_new_backend_incarnation() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let root = unique_dir("m4-restart");
+        std::fs::create_dir_all(&root).expect("root");
+        let clock = Arc::new(ClockPort);
+        let spawner = Arc::new(TokioSpawner);
+        let ids = Arc::new(Ids::default());
+        let first = model("m4-first");
+        let registry = registry_for(
+            clock.clone(),
+            spawner.clone(),
+            first.clone(),
+            model("m4-second"),
+        )
+        .await;
+        let repo = JsonlSessionRepo::new(
+            &root,
+            SessionCodecOptions::default(),
+            ProviderHeaderPolicy::default(),
+            ids.clone(),
+            clock.clone(),
+            Arc::new(NOOP_TELEMETRY_CONTEXT),
+            JsonlOptions::default(),
+        )
+        .expect("jsonl repo");
+        let session = repo
+            .create(SessionCreateOptions {
+                id: Some("m4-restart".parse().expect("id")),
+                ..Default::default()
+            })
+            .await
+            .expect("session");
+        let env: Arc<dyn ExecutionEnv> = Arc::new(LocalExecutionEnv::new(&root));
+        let factory: Arc<
+            RuntimeFactory<
+                pi_coding_runtime::ExecutionToolContext,
+                JsonlStorage,
+                JsonlSessionMetadata,
+            >,
+        > = Arc::new(RuntimeFactory::new(
+            clock.clone(),
+            spawner.clone(),
+            ids,
+            Arc::new(pi_coding_runtime::ExecutionToolContext { env: env.clone() }),
+            Arc::new(Summary),
+        ));
+        let settings = settings_for(&first);
+        let builder = |session: Arc<JsonlSession>| {
+            CodingHarnessBuilder::new(
+                factory.clone(),
+                session,
+                registry.clone(),
+                env.clone(),
+                Resources::default(),
+                settings.clone(),
+            )
+        };
+        let metadata = session.metadata();
+        let mut lifecycle: CodingSessionLifecycle<JsonlStorage, JsonlSessionMetadata> =
+            CodingSessionLifecycle::new();
+        lifecycle
+            .attach(builder(session.clone()).first_attachment())
+            .await
+            .expect("first attach");
+        lifecycle
+            .current()
+            .expect("current")
+            .switch_model(
+                ProviderId::new("openai").unwrap(),
+                ModelId::new("m4-second").unwrap(),
+            )
+            .await
+            .expect("durable model switch");
+        assert_eq!(
+            lifecycle
+                .current()
+                .expect("current")
+                .harness()
+                .get_model()
+                .await
+                .unwrap()
+                .unwrap()
+                .id
+                .as_str(),
+            "m4-second"
+        );
+        lifecycle.close().await.expect("close first backend");
+        let reopened = repo.open(metadata).await.expect("reopen");
+        assert!(
+            !Arc::ptr_eq(&session, &reopened),
+            "reopen allocates a new backend incarnation"
+        );
+        lifecycle
+            .restart(builder(reopened.clone()))
+            .await
+            .expect("configured restart");
+        assert_eq!(
+            lifecycle
+                .current()
+                .expect("current")
+                .session()
+                .metadata()
+                .base
+                .id,
+            reopened.metadata().base.id
+        );
+        assert_eq!(
+            lifecycle
+                .current()
+                .expect("current")
+                .harness()
+                .get_model()
+                .await
+                .unwrap()
+                .unwrap()
+                .id
+                .as_str(),
+            "m4-second"
+        );
+        lifecycle.close().await.expect("close reopened backend");
+        std::fs::remove_dir_all(root).expect("cleanup");
+    });
+}
+
+#[test]
+fn active_run_transport_requires_a_host_supplied_provider_adapter() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let fixture = Fixture::new().await;
+        let provider = fixture
+            .registry
+            .get_provider(&ProviderId::new("openai").unwrap())
+            .expect("provider");
+        let model = fixture
+            .registry
+            .get_model(
+                &ProviderId::new("openai").unwrap(),
+                &ModelId::new("m4-first").unwrap(),
+            )
+            .expect("model");
+        assert!(
+            provider.adapter(&model.api).is_none(),
+            "the M4 fixture refuses active-run execution without a host adapter"
         );
     });
 }
@@ -405,10 +641,61 @@ fn external_legacy_import_preserves_source_until_first_checked_write() {
             .await
             .expect("open");
         assert_eq!(std::fs::read(&path).expect("read source"), source);
-        imported
-            .set_name(Some("first checked write".into()))
+        assert_eq!(imported.metadata().base.id.as_str(), "process");
+        assert_eq!(imported.metadata().base.cwd.as_deref(), Some("source"));
+        let imported_leaf = imported.get_leaf_id().await.expect("normalized leaf");
+        assert!(imported_leaf.is_some());
+
+        let clock = Arc::new(ClockPort);
+        let spawner = Arc::new(TokioSpawner);
+        let ids = Arc::new(Ids::default());
+        let first = model("m4-first");
+        let registry = registry_for(
+            clock.clone(),
+            spawner.clone(),
+            first.clone(),
+            model("m4-second"),
+        )
+        .await;
+        let env: Arc<dyn ExecutionEnv> = Arc::new(LocalExecutionEnv::new(&root));
+        let factory: Arc<
+            RuntimeFactory<
+                pi_coding_runtime::ExecutionToolContext,
+                JsonlStorage,
+                JsonlSessionMetadata,
+            >,
+        > = Arc::new(RuntimeFactory::new(
+            clock,
+            spawner,
+            ids,
+            Arc::new(pi_coding_runtime::ExecutionToolContext { env: env.clone() }),
+            Arc::new(Summary),
+        ));
+        let builder = CodingHarnessBuilder::new(
+            factory,
+            imported.clone(),
+            registry,
+            env,
+            Resources::default(),
+            settings_for(&first),
+        )
+        .first_attachment();
+        let mut lifecycle: CodingSessionLifecycle<JsonlStorage, JsonlSessionMetadata> =
+            CodingSessionLifecycle::new();
+        lifecycle
+            .attach_import(builder)
             .await
-            .expect("first checked write converts");
+            .expect("import attach");
+        assert_eq!(
+            lifecycle
+                .current()
+                .expect("current")
+                .session()
+                .get_leaf_id()
+                .await
+                .expect("leaf"),
+            imported_leaf
+        );
         let rows: Vec<serde_json::Value> = std::fs::read(&path)
             .expect("converted bytes")
             .split(|byte| *byte == b'\n')
@@ -419,6 +706,11 @@ fn external_legacy_import_preserves_source_until_first_checked_write() {
             rows.first().and_then(|row| row.get("v")),
             Some(&serde_json::json!(4))
         );
+        assert!(rows.iter().any(
+            |row| row.get("details").and_then(|details| details.get("source"))
+                == Some(&serde_json::json!("v3-import"))
+        ));
+        lifecycle.close().await.expect("close import");
         std::fs::remove_dir_all(root).expect("cleanup");
     });
 }

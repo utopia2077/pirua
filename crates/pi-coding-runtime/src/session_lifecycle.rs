@@ -103,9 +103,14 @@ where
     }
 
     async fn teardown_current(&mut self) -> Result<(), HarnessRuntimeError> {
-        let Some(current) = self.current.take() else {
+        let Some(current) = self.current.as_ref() else {
             return Ok(());
         };
-        current.teardown().await
+        current.teardown().await?;
+        // Keep the owner available throughout teardown. Dropping it before the
+        // sequence succeeds could silently release the runtime lease and make
+        // a retry or recovery path impossible after abort/idle/close failure.
+        self.current.take();
+        Ok(())
     }
 }
