@@ -960,88 +960,62 @@ fn normalize_edit_arguments(args: JsonValue) -> Result<JsonObject, ToolExecution
     }
     Ok(JsonObject::new(object))
 }
-fn normalize_fuzzy(s: &str) -> String {
-    s.replace("\r\n", "\n")
-        .replace('\r', "\n")
-        .chars()
-        .map(|c| match c {
-            '\u{ff01}'..='\u{ff5e}' => char::from_u32(c as u32 - 0xfee0).unwrap_or(c),
-            '\u{3000}' => ' ',
-            '\u{2018}' | '\u{2019}' | '\u{201a}' | '\u{201b}' => '\'',
-            '\u{201c}' | '\u{201d}' | '\u{201e}' | '\u{201f}' => '"',
-            '\u{2010}'..='\u{2015}' | '\u{2212}' => '-',
-            '\u{00a0}' | '\u{2002}'..='\u{200a}' | '\u{202f}' | '\u{205f}' => ' ',
-            c => c,
-        })
-        .collect::<String>()
-        .split('\n')
-        .map(str::trim_end)
-        .collect::<Vec<_>>()
-        .join("\n")
+fn normalize_piece(ch: char) -> char {
+    match ch {
+        '\u{2018}' | '\u{2019}' | '\u{201a}' | '\u{201b}' => '\'',
+        '\u{201c}' | '\u{201d}' | '\u{201e}' | '\u{201f}' => '"',
+        '\u{2010}'..='\u{2015}' | '\u{2212}' => '-',
+        '\u{00a0}' | '\u{2002}'..='\u{200a}' | '\u{202f}' | '\u{205f}' | '\u{3000}' => ' ',
+        value => value,
+    }
 }
 
-fn line_ranges(content: &str) -> Vec<(usize, usize)> {
-    let mut ranges = Vec::new();
-    let mut start = 0;
-    for (index, ch) in content.char_indices() {
-        if ch == '\n' {
-            ranges.push((start, index + 1));
-            start = index + 1;
-        }
-    }
-    if start < content.len() || ranges.is_empty() {
-        ranges.push((start, content.len()));
-    }
-    ranges
-}
-
-type Replacement = (usize, usize, String);
-type ReplacementGroup = (usize, usize, Vec<Replacement>);
-
-fn apply_preserving_untouched(original: &str, base: &str, replacements: &[Replacement]) -> String {
-    let original_lines = line_ranges(original);
-    let base_lines = line_ranges(base);
-    let mut groups: Vec<ReplacementGroup> = Vec::new();
-    for replacement in replacements {
-        let start_line = base_lines
-            .iter()
-            .position(|(_, end)| replacement.0 < *end)
-            .unwrap_or(0);
-        let replacement_end = replacement.0 + replacement.1;
-        let mut end_line = start_line;
-        while end_line + 1 < base_lines.len() && base_lines[end_line].1 < replacement_end {
-            end_line += 1;
-        }
-        if let Some(group) = groups.last_mut()
-            && start_line <= group.1
-        {
-            group.1 = group.1.max(end_line);
-            group.2.push(replacement.clone());
-            continue;
-        }
-        groups.push((start_line, end_line, vec![replacement.clone()]));
-    }
+fn normalize_with_map(content: &str) -> (String, Vec<(usize, usize)>) {
+    use unicode_normalization::UnicodeNormalization;
     let mut output = String::new();
-    let mut original_line = 0;
-    for (start_line, end_line, mut group) in groups {
-        for &(start, end) in &original_lines[original_line..start_line.min(original_lines.len())] {
-            output.push_str(&original[start..end]);
+    let mut map = Vec::new();
+    let mut chars = content.char_indices().peekable();
+    while let Some((start, ch)) = chars.next() {
+        let end = chars.peek().map_or(content.len(), |(index, _)| *index);
+        let (piece, piece_end) =
+            if ch == '\r' && chars.peek().is_some_and(|(_, next)| *next == '\n') {
+                let (lf_start, _) = chars.next().expect("peeked CRLF companion");
+                ("\n".to_owned(), lf_start + 1)
+            } else {
+                (ch.to_string().nfkc().collect::<String>(), end)
+            };
+        for normalized in piece.chars().map(normalize_piece) {
+            output.push(normalized);
+            map.push((start, piece_end));
         }
-        let start_offset = base_lines[start_line].0;
-        let end_offset = base_lines[end_line].1;
-        group.sort_by_key(|replacement| replacement.0);
-        let mut segment = base[start_offset..end_offset].to_owned();
-        for (index, length, new_text) in group.into_iter().rev() {
-            let local = index - start_offset;
-            segment.replace_range(local..local + length, &new_text);
+    }
+    // Match the pinned trailing-whitespace normalization while retaining source ranges.
+    let mut keep = vec![true; map.len()];
+    let output_chars: Vec<char> = output.chars().collect();
+    let mut line_start = 0;
+    for index in 0..=output_chars.len() {
+        if index == output_chars.len() || output_chars[index] == '\n' {
+            let mut end = index;
+            while end > line_start && output_chars[end - 1].is_whitespace() {
+                keep[end - 1] = false;
+                end -= 1;
+            }
+            line_start = index + 1;
         }
-        output.push_str(&segment);
-        original_line = (end_line + 1).min(original_lines.len());
     }
-    for &(start, end) in &original_lines[original_line..] {
-        output.push_str(&original[start..end]);
+    let mut normalized = String::new();
+    let mut normalized_map = Vec::new();
+    for (index, ch) in output_chars.into_iter().enumerate() {
+        if keep[index] {
+            normalized.push(ch);
+            normalized_map.push(map[index]);
+        }
     }
-    output
+    (normalized, normalized_map)
+}
+
+fn normalize_fuzzy(s: &str) -> String {
+    normalize_with_map(s).0
 }
 
 fn apply_edits(
@@ -1049,7 +1023,7 @@ fn apply_edits(
     edits: &[(String, String)],
     path: &str,
 ) -> Result<(String, String), String> {
-    let normalized_content = normalize_fuzzy(content);
+    let (normalized_content, content_map) = normalize_with_map(content);
     let mut fuzzy = false;
     let mut matches = Vec::new();
     for (i, (old, new)) in edits.iter().enumerate() {
@@ -1085,11 +1059,7 @@ fn apply_edits(
         matches.push((
             idx[0],
             match_length,
-            if fuzzy {
-                normalize_fuzzy(new)
-            } else {
-                new.clone()
-            },
+            new.replace("\r\n", "\n").replace('\r', "\n"),
         ));
     }
     if fuzzy {
@@ -1111,7 +1081,11 @@ fn apply_edits(
                     indices.len()
                 ));
             }
-            matches.push((indices[0], normalized_old.len(), normalize_fuzzy(new)));
+            matches.push((
+                indices[0],
+                normalized_old.len(),
+                new.replace("\r\n", "\n").replace('\r', "\n"),
+            ));
         }
     }
     matches.sort_by_key(|m| m.0);
@@ -1122,15 +1096,32 @@ fn apply_edits(
             ));
         }
     }
-    if fuzzy {
-        let out = apply_preserving_untouched(content, &normalized_content, &matches);
-        if out == content {
-            return Err(format!("No changes made to {path}."));
+    let mut mapped = Vec::new();
+    for (index, length, new) in matches {
+        if fuzzy {
+            let start_char = normalized_content[..index].chars().count();
+            let end_char = start_char + normalized_content[index..index + length].chars().count();
+            let Some(&(original_start, _)) = content_map.get(start_char) else {
+                return Err(format!("Could not map edit in {path}."));
+            };
+            let Some(&(_, original_end)) = content_map.get(end_char.saturating_sub(1)) else {
+                return Err(format!("Could not map edit in {path}."));
+            };
+            mapped.push((original_start, original_end - original_start, new));
+        } else {
+            mapped.push((index, length, new));
         }
-        return Ok((content.to_owned(), out));
+    }
+    mapped.sort_by_key(|replacement| replacement.0);
+    for window in mapped.windows(2) {
+        if window[0].0 + window[0].1 > window[1].0 {
+            return Err(format!(
+                "edits overlap in {path}. Merge them into one edit."
+            ));
+        }
     }
     let mut out = content.to_owned();
-    for (idx, len, new) in matches.into_iter().rev() {
+    for (idx, len, new) in mapped.into_iter().rev() {
         out.replace_range(idx..idx + len, &new);
     }
     if out == content {
@@ -1139,25 +1130,79 @@ fn apply_edits(
     Ok((content.to_owned(), out))
 }
 
-fn unified_diff(path: &str, old: &str, new: &str) -> String {
+fn unified_diff(path: &str, old: &str, new: &str) -> (String, String) {
     let old_lines: Vec<_> = old.lines().collect();
     let new_lines: Vec<_> = new.lines().collect();
-    let mut diff = format!(
-        "--- {path}\n+++ {path}\n@@ -1,{} +1,{} @@\n",
-        old_lines.len().max(1),
-        new_lines.len().max(1)
+    let mut table = vec![vec![0usize; new_lines.len() + 1]; old_lines.len() + 1];
+    for old_index in (0..old_lines.len()).rev() {
+        for new_index in (0..new_lines.len()).rev() {
+            table[old_index][new_index] = if old_lines[old_index] == new_lines[new_index] {
+                table[old_index + 1][new_index + 1] + 1
+            } else {
+                table[old_index + 1][new_index].max(table[old_index][new_index + 1])
+            };
+        }
+    }
+    let mut rows = Vec::new();
+    let (mut old_index, mut new_index) = (0, 0);
+    while old_index < old_lines.len() || new_index < new_lines.len() {
+        if old_index < old_lines.len()
+            && new_index < new_lines.len()
+            && old_lines[old_index] == new_lines[new_index]
+        {
+            rows.push((' ', old_index, new_index, old_lines[old_index]));
+            old_index += 1;
+            new_index += 1;
+        } else if new_index < new_lines.len()
+            && (old_index == old_lines.len()
+                || table[old_index][new_index + 1] >= table[old_index + 1][new_index])
+        {
+            rows.push(('+', old_index, new_index, new_lines[new_index]));
+            new_index += 1;
+        } else {
+            rows.push(('-', old_index, new_index, old_lines[old_index]));
+            old_index += 1;
+        }
+    }
+    let changed: Vec<_> = rows
+        .iter()
+        .enumerate()
+        .filter(|(_, row)| row.0 != ' ')
+        .map(|(index, _)| index)
+        .collect();
+    if changed.is_empty() {
+        return (String::new(), String::new());
+    }
+    let start = changed[0].saturating_sub(4);
+    let end = (changed.last().copied().unwrap_or(start) + 5).min(rows.len());
+    let mut old_start = rows[start].1 + 1;
+    let mut new_start = rows[start].2 + 1;
+    if rows[start].0 == '+' {
+        old_start = old_start.saturating_sub(1);
+    }
+    if rows[start].0 == '-' {
+        new_start = new_start.saturating_sub(1);
+    }
+    let old_count = rows[start..end].iter().filter(|row| row.0 != '+').count();
+    let new_count = rows[start..end].iter().filter(|row| row.0 != '-').count();
+    let mut patch = format!(
+        "--- {path}\n+++ {path}\n@@ -{old_start},{old_count} +{new_start},{new_count} @@\n"
     );
-    for line in old_lines {
-        diff.push('-');
-        diff.push_str(line);
-        diff.push('\n');
+    let mut display = format!("@@ -{old_start},{old_count} +{new_start},{new_count} @@\n");
+    for (kind, _, _, line) in &rows[start..end] {
+        patch.push(*kind);
+        patch.push_str(line);
+        patch.push('\n');
+        if *kind == ' ' {
+            display.push_str("  ");
+        } else {
+            display.push(*kind);
+        }
+        display.push_str(line);
+        display.push('\n');
     }
-    for line in new_lines {
-        diff.push('+');
-        diff.push_str(line);
-        diff.push('\n');
-    }
-    diff
+    // Keep the display-oriented diff and standard patch distinct, as in pi-mono.
+    (display, patch)
 }
 
 impl AgentHarnessTool<ExecutionToolContext> for EditTool {
@@ -1206,10 +1251,10 @@ impl AgentHarnessTool<ExecutionToolContext> for EditTool {
                 .await
                 .map_err(|e| tool_error(e.message))?;
             check_cancelled(c)?;
-            let diff = unified_diff(&raw, &base, &new);
+            let (diff, patch) = unified_diff(&raw, &base, &new);
             Ok(text_result(
                 format!("Successfully replaced {} block(s) in {}.", edits.len(), raw),
-                Some(json!({"diff": diff, "patch": diff})),
+                Some(json!({"diff": diff, "patch": patch})),
             ))
         })
     }
@@ -1450,13 +1495,26 @@ impl GrepTool {
 }
 fn glob_matches(pattern: &str, name: &str) -> bool {
     let mut r = String::from("^");
-    for ch in pattern.chars() {
+    let chars: Vec<_> = pattern.chars().collect();
+    let mut index = 0;
+    while index < chars.len() {
+        let ch = chars[index];
         match ch {
-            '*' => r.push_str(".*"),
+            '*' if index + 1 < chars.len() && chars[index + 1] == '*' => {
+                index += 1;
+                if index + 1 < chars.len() && chars[index + 1] == '/' {
+                    r.push_str("(?:.*/)?");
+                    index += 1;
+                } else {
+                    r.push_str(".*");
+                }
+            }
+            '*' => r.push_str("[^/]*"),
             '?' => r.push('.'),
             '.' => r.push_str("\\."),
             c => r.push_str(&regex::escape(&c.to_string())),
         }
+        index += 1;
     }
     r.push('$');
     Regex::new(&r).map(|re| re.is_match(name)).unwrap_or(false)
@@ -1489,10 +1547,15 @@ fn ignore_pattern_matches(pattern: &str, relative: &str) -> bool {
             ))
 }
 
-fn ignored(relative: &str, patterns: &[String]) -> bool {
+fn ignored(path: &str, patterns: &[(String, String)]) -> bool {
     let mut result = false;
-    for pattern in patterns {
-        if ignore_pattern_matches(pattern, relative) {
+    for (base, pattern) in patterns {
+        let scoped = Path::new(path)
+            .strip_prefix(base)
+            .unwrap_or(Path::new(path))
+            .to_string_lossy()
+            .replace('\\', "/");
+        if ignore_pattern_matches(pattern, &scoped) {
             result = !pattern.trim_start().starts_with('!');
         }
     }
@@ -1507,36 +1570,45 @@ fn collect_files(
     let root = root.to_owned();
     Box::pin(async move {
         let mut files = Vec::new();
-        let mut stack = vec![root.clone()];
-        let mut patterns = Vec::<String>::new();
-        if let Ok(ignore) = env.read_text_file(&format!("{root}/.gitignore")).await {
-            patterns.extend(ignore.lines().map(str::to_owned));
-        }
-        while let Some(dir) = stack.pop() {
+        let mut stack = vec![(root.clone(), Vec::<(String, String)>::new())];
+        while let Some((dir, mut patterns)) = stack.pop() {
             if let Ok(ignore) = env.read_text_file(&format!("{dir}/.gitignore")).await {
-                patterns.extend(ignore.lines().map(str::to_owned));
+                patterns.extend(
+                    ignore
+                        .lines()
+                        .map(|pattern| (dir.clone(), pattern.to_owned())),
+                );
             }
             for entry in env.list_dir(&dir).await? {
                 if entry.name == ".git" {
                     continue;
                 }
-                let relative = Path::new(&entry.path)
-                    .strip_prefix(&root)
-                    .unwrap_or(Path::new(&entry.path))
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                if ignored(&relative, &patterns) {
-                    continue;
-                }
                 if entry.is_dir {
-                    stack.push(entry.path);
-                } else {
+                    let is_ignored = ignored(&entry.path, &patterns);
+                    let can_reinclude = patterns
+                        .iter()
+                        .any(|(_, pattern)| pattern.trim_start().starts_with('!'));
+                    if !is_ignored || can_reinclude {
+                        stack.push((entry.path, patterns.clone()));
+                    }
+                } else if !ignored(&entry.path, &patterns) {
                     files.push(entry);
                 }
             }
         }
         Ok(files)
     })
+}
+
+fn truncate_match_line(line: &str) -> (String, bool) {
+    let mut chars = line.chars();
+    let text: String = chars.by_ref().take(GREP_MAX_LINE_LENGTH).collect();
+    let truncated = chars.next().is_some();
+    if truncated {
+        (format!("{text}... [truncated]"), true)
+    } else {
+        (text, false)
+    }
 }
 
 impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
@@ -1586,23 +1658,26 @@ impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
                 };
                 Some(Regex::new(&regex_pattern).map_err(|e| tool_error(e.to_string()))?)
             };
-            let files = if ctx
+            let root_info = ctx
                 .env
                 .file_info(&root)
                 .await
-                .map_err(|e| tool_error(e.message))?
-                .is_dir
-            {
+                .map_err(|e| tool_error(e.message))?;
+            let search_root = if !root_info.is_dir {
+                Path::new(&root)
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .to_string_lossy()
+                    .into_owned()
+            } else {
+                root.clone()
+            };
+            let files = if root_info.is_dir {
                 collect_files(&ctx.env, &root)
                     .await
                     .map_err(|e| tool_error(e.message))?
             } else {
-                vec![
-                    ctx.env
-                        .file_info(&root)
-                        .await
-                        .map_err(|e| tool_error(e.message))?,
-                ]
+                vec![root_info]
             };
             let glob = p.as_map().get("glob").and_then(|v| {
                 if let JsonValue::String(s) = v {
@@ -1614,6 +1689,7 @@ impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
             let context = arg_u64(&p, "context").unwrap_or(0) as usize;
             let mut result = Vec::new();
             let mut count = 0;
+            let mut lines_truncated = false;
             for file in files {
                 if let Some(glob) = glob
                     && !glob_matches(glob, &file.name)
@@ -1647,16 +1723,15 @@ impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
                     let start = idx.saturating_sub(context);
                     let end = (idx + context + 1).min(lines.len());
                     for (n, line) in lines.iter().enumerate().take(end).skip(start) {
-                        let mut shown = line.clone();
-                        if shown.len() > GREP_MAX_LINE_LENGTH {
-                            shown.truncate(GREP_MAX_LINE_LENGTH);
-                            shown.push_str("... [truncated]");
-                        }
+                        let (shown, was_truncated) = truncate_match_line(line);
                         let relative = Path::new(&file.path)
-                            .strip_prefix(&root)
+                            .strip_prefix(&search_root)
                             .unwrap_or(Path::new(&file.path))
                             .to_string_lossy()
                             .replace('\\', "/");
+                        if was_truncated {
+                            lines_truncated = true;
+                        }
                         result.push(if n == idx {
                             format!("{}:{}: {}", relative, n + 1, shown)
                         } else {
@@ -1674,7 +1749,6 @@ impl AgentHarnessTool<ExecutionToolContext> for GrepTool {
                 out = "No matches found".into()
             }
             let reached = count >= limit;
-            let lines_truncated = result.iter().any(|line| line.contains("... [truncated]"));
             let byte_truncated = truncation.truncated;
             let mut notices = Vec::new();
             if reached {

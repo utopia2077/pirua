@@ -120,6 +120,22 @@ async fn async_local_file_tools_read_write_edit_search_and_list() {
     )
     .await;
     assert!(text(&edited).contains("Successfully replaced"));
+    let details = serde_json::to_value(&edited.details).unwrap();
+    assert_ne!(details.get("diff"), details.get("patch"));
+    assert!(
+        details
+            .get("diff")
+            .and_then(|value| value.as_str())
+            .unwrap()
+            .contains("@@")
+    );
+    assert!(
+        details
+            .get("diff")
+            .and_then(|value| value.as_str())
+            .unwrap()
+            .contains("  alpha")
+    );
     let grep = run(
         create_grep_tool().as_ref(),
         json!({"pattern":"gamma","path":"src","literal":true}),
@@ -343,6 +359,63 @@ fn ls_records_byte_truncation_details() {
 }
 
 #[test]
+fn nested_gitignore_rules_are_scoped_and_negations_reinclude_descendants() {
+    let dir = TempDir::new();
+    std::fs::create_dir_all(dir.path().join("one/nested")).unwrap();
+    std::fs::create_dir_all(dir.path().join("two/nested")).unwrap();
+    std::fs::write(
+        dir.path().join("one/.gitignore"),
+        "nested/\n!nested/keep.txt\n",
+    )
+    .unwrap();
+    std::fs::write(dir.path().join("one/nested/drop.txt"), "needle\n").unwrap();
+    std::fs::write(dir.path().join("one/nested/keep.txt"), "needle\n").unwrap();
+    std::fs::write(dir.path().join("two/nested/sibling.txt"), "needle\n").unwrap();
+    let ctx = ExecutionToolContext {
+        env: Arc::new(LocalExecutionEnv::new(dir.path())),
+    };
+    let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        run(
+            create_find_tool().as_ref(),
+            json!({"pattern":"**/*.txt","path":"."}),
+            &ctx,
+        )
+        .await
+    });
+    let output = text(&result);
+    assert!(output.contains("one/nested/keep.txt"));
+    assert!(!output.contains("one/nested/drop.txt"));
+    assert!(output.contains("two/nested/sibling.txt"));
+}
+
+#[test]
+fn grep_root_file_uses_basename_and_unicode_line_truncation_is_safe() {
+    let dir = TempDir::new();
+    let content = format!("{} needle", "界".repeat(600));
+    std::fs::write(dir.path().join("unicode.txt"), content).unwrap();
+    let ctx = ExecutionToolContext {
+        env: Arc::new(LocalExecutionEnv::new(dir.path())),
+    };
+    let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        run(
+            create_grep_tool().as_ref(),
+            json!({"pattern":"needle","path":"unicode.txt","literal":true}),
+            &ctx,
+        )
+        .await
+    });
+    let output = text(&result);
+    assert!(output.starts_with("unicode.txt:1: "));
+    assert!(output.contains("[truncated]"));
+    assert!(
+        serde_json::to_value(&result.details)
+            .unwrap()
+            .get("linesTruncated")
+            .is_some()
+    );
+}
+
+#[test]
 fn edit_prepare_compatibility_and_fuzzy_matching_preserve_untouched_bytes() {
     let dir = TempDir::new();
     std::fs::write(dir.path().join("edit.txt"), "wide　line  \nkeep  \n").unwrap();
@@ -368,7 +441,28 @@ fn edit_prepare_compatibility_and_fuzzy_matching_preserve_untouched_bytes() {
     });
     assert_eq!(
         std::fs::read_to_string(dir.path().join("edit.txt")).unwrap(),
-        "changed\nkeep  \n"
+        "changed  \nkeep  \n"
+    );
+    std::fs::write(dir.path().join("nfkc.txt"), "ﬀ  tail\n").unwrap();
+    let nfkc_args = tool
+        .prepare_arguments(pi_ai::JsonValue::Object(args(json!({
+            "path":"nfkc.txt", "oldText":"ff", "newText":"new　 text"
+        }))))
+        .unwrap();
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        tool.execute(
+            "call".parse().unwrap(),
+            nfkc_args,
+            &NeverCancel,
+            &Progress,
+            &ctx,
+        )
+        .await
+        .unwrap();
+    });
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("nfkc.txt")).unwrap(),
+        "new　 text  tail\n"
     );
     let prepared_json = tool
         .prepare_arguments(pi_ai::JsonValue::Object(args(
