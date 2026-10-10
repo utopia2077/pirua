@@ -31,6 +31,15 @@ impl Cancellation for Cancelled {
         Box::pin(async {})
     }
 }
+struct FlipCancel(std::sync::atomic::AtomicUsize);
+impl Cancellation for FlipCancel {
+    fn is_cancelled(&self) -> bool {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed) > 0
+    }
+    fn cancelled(&self) -> BoxFuture<'_, ()> {
+        Box::pin(async {})
+    }
+}
 struct Progress;
 impl ToolProgressSink for Progress {
     fn update(&self, _partial: AgentToolResult) -> BoxFuture<'_, Result<(), HarnessRuntimeError>> {
@@ -433,6 +442,27 @@ fn cancelled_mutation_is_rejected_before_host_write() {
     });
     assert!(result.is_err());
     assert!(!dir.path().join("cancelled.txt").exists());
+}
+
+#[test]
+fn cancellation_is_rechecked_after_waiting_for_mutation_lock() {
+    let dir = TempDir::new();
+    let ctx = ExecutionToolContext {
+        env: Arc::new(LocalExecutionEnv::new(dir.path())),
+    };
+    let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
+        create_write_tool()
+            .execute(
+                "call".parse().unwrap(),
+                args(json!({"path":"queued.txt","content":"must not write"})),
+                &FlipCancel(std::sync::atomic::AtomicUsize::new(0)),
+                &Progress,
+                &ctx,
+            )
+            .await
+    });
+    assert!(result.is_err());
+    assert!(!dir.path().join("queued.txt").exists());
 }
 
 #[test]
