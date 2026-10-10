@@ -1,13 +1,13 @@
 //! Private headless coding-runtime composition crate for the Rust harness.
 
 pub mod credentials;
-pub mod tools;
 pub mod messages;
 pub mod models;
 pub mod provider_composition;
 pub mod resources;
 pub mod settings_snapshot;
 pub mod system_prompt;
+pub mod tools;
 
 pub use credentials::CredentialInputs;
 pub use messages::CodingMessageConverter;
@@ -30,4 +30,10 @@ pub use settings_snapshot::{
 pub use system_prompt::{
     BuildSystemPromptOptions, DocumentationPaths, ToolPromptMetadata,
     build_coding_agent_harness_system_prompt, build_system_prompt,
+};
+pub use tools::{
+    EnvError, ExecutionEnv, ExecutionToolContext, FileInfo, LocalExecutionEnv, ProcessOptions,
+    ProcessOutput, ProcessedImage, TOOL_NAMES, create_bash_tool, create_edit_tool,
+    create_find_tool, create_grep_tool, create_ls_tool, create_powershell_tool, create_read_tool,
+    create_tool, create_tools, create_write_tool, tool_prompt_metadata,
 };
