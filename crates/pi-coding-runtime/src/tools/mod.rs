@@ -971,23 +971,35 @@ fn normalize_piece(ch: char) -> char {
 }
 
 fn normalize_with_map(content: &str) -> (String, Vec<(usize, usize)>) {
-    use unicode_normalization::UnicodeNormalization;
+    use unicode_normalization::{UnicodeNormalization, char::is_combining_mark};
+    let source: Vec<_> = content.char_indices().collect();
     let mut output = String::new();
     let mut map = Vec::new();
-    let mut chars = content.char_indices().peekable();
-    while let Some((start, ch)) = chars.next() {
-        let end = chars.peek().map_or(content.len(), |(index, _)| *index);
-        let (piece, piece_end) =
-            if ch == '\r' && chars.peek().is_some_and(|(_, next)| *next == '\n') {
-                let (lf_start, _) = chars.next().expect("peeked CRLF companion");
-                ("\n".to_owned(), lf_start + 1)
-            } else {
-                (ch.to_string().nfkc().collect::<String>(), end)
-            };
+    let mut index = 0;
+    while index < source.len() {
+        let start = source[index].0;
+        let ch = source[index].1;
+        let mut end_index = index + 1;
+        if ch == '\r' && source.get(end_index).is_some_and(|(_, next)| *next == '\n') {
+            end_index += 1;
+        } else {
+            while end_index < source.len() && is_combining_mark(source[end_index].1) {
+                end_index += 1;
+            }
+        }
+        let end = source
+            .get(end_index)
+            .map_or(content.len(), |(offset, _)| *offset);
+        let piece = if ch == '\r' && end_index == index + 2 {
+            "\n".to_owned()
+        } else {
+            content[start..end].nfkc().collect()
+        };
         for normalized in piece.chars().map(normalize_piece) {
             output.push(normalized);
-            map.push((start, piece_end));
+            map.push((start, end));
         }
+        index = end_index;
     }
     // Match the pinned trailing-whitespace normalization while retaining source ranges.
     let mut keep = vec![true; map.len()];

@@ -249,6 +249,80 @@ impl ExecutionEnv for InjectedProcessEnv {
     }
 }
 
+struct BlockingWriteEnv {
+    inner: LocalExecutionEnv,
+    started: Arc<tokio::sync::Notify>,
+    release: Arc<tokio::sync::Notify>,
+    block_first: std::sync::atomic::AtomicBool,
+}
+impl ExecutionEnv for BlockingWriteEnv {
+    fn absolute_path<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<String, EnvError>> {
+        self.inner.absolute_path(path)
+    }
+    fn exists<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<bool, EnvError>> {
+        self.inner.exists(path)
+    }
+    fn read_binary_file<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<Vec<u8>, EnvError>> {
+        self.inner.read_binary_file(path)
+    }
+    fn read_text_file<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<String, EnvError>> {
+        self.inner.read_text_file(path)
+    }
+    fn write_file<'a>(
+        &'a self,
+        path: &'a str,
+        content: &'a [u8],
+    ) -> BoxFuture<'a, Result<(), EnvError>> {
+        let block = self
+            .block_first
+            .swap(false, std::sync::atomic::Ordering::Relaxed);
+        let started = Arc::clone(&self.started);
+        let release = Arc::clone(&self.release);
+        let inner = &self.inner;
+        Box::pin(async move {
+            if block {
+                started.notify_one();
+                release.notified().await;
+            }
+            inner.write_file(path, content).await
+        })
+    }
+    fn list_dir<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<Vec<FileInfo>, EnvError>> {
+        self.inner.list_dir(path)
+    }
+    fn file_info<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<FileInfo, EnvError>> {
+        self.inner.file_info(path)
+    }
+    fn canonical_path<'a>(&'a self, path: &'a str) -> BoxFuture<'a, Result<String, EnvError>> {
+        self.inner.canonical_path(path)
+    }
+    fn exec<'a>(
+        &'a self,
+        shell: &'a str,
+        command: &'a str,
+        options: ProcessOptions,
+    ) -> BoxFuture<'a, Result<ProcessOutput, EnvError>> {
+        self.inner.exec(shell, command, options)
+    }
+    fn create_temp_file<'a>(
+        &'a self,
+        prefix: &'a str,
+        content: &'a [u8],
+    ) -> BoxFuture<'a, Result<String, EnvError>> {
+        self.inner.create_temp_file(prefix, content)
+    }
+}
+
+struct GateCancel(std::sync::atomic::AtomicBool);
+impl Cancellation for GateCancel {
+    fn is_cancelled(&self) -> bool {
+        self.0.load(std::sync::atomic::Ordering::Relaxed)
+    }
+    fn cancelled(&self) -> BoxFuture<'_, ()> {
+        Box::pin(async {})
+    }
+}
+
 async fn async_powershell_uses_injected_process_port_when_unavailable() {
     let dir = TempDir::new();
     let env: Arc<dyn ExecutionEnv> = Arc::new(InjectedProcessEnv {
@@ -464,6 +538,27 @@ fn edit_prepare_compatibility_and_fuzzy_matching_preserve_untouched_bytes() {
         std::fs::read_to_string(dir.path().join("nfkc.txt")).unwrap(),
         "new　 text  tail\n"
     );
+    std::fs::write(dir.path().join("composed.txt"), "e\u{301} before\n").unwrap();
+    let composed_args = tool
+        .prepare_arguments(pi_ai::JsonValue::Object(args(json!({
+            "path":"composed.txt", "oldText":"é", "newText":"E"
+        }))))
+        .unwrap();
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        tool.execute(
+            "call".parse().unwrap(),
+            composed_args,
+            &NeverCancel,
+            &Progress,
+            &ctx,
+        )
+        .await
+        .unwrap();
+    });
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("composed.txt")).unwrap(),
+        "E before\n"
+    );
     let prepared_json = tool
         .prepare_arguments(pi_ai::JsonValue::Object(args(
             json!({"path":"edit.txt","edits":"[{\"oldText\":\"changed\",\"newText\":\"done\"}]"}),
@@ -557,6 +652,67 @@ fn cancellation_is_rechecked_after_waiting_for_mutation_lock() {
     });
     assert!(result.is_err());
     assert!(!dir.path().join("queued.txt").exists());
+}
+
+#[test]
+fn queued_cancellation_waits_on_same_path_lock_then_aborts_before_write() {
+    let dir = TempDir::new();
+    let started = Arc::new(tokio::sync::Notify::new());
+    let release = Arc::new(tokio::sync::Notify::new());
+    let env = Arc::new(BlockingWriteEnv {
+        inner: LocalExecutionEnv::new(dir.path()),
+        started: Arc::clone(&started),
+        release: Arc::clone(&release),
+        block_first: std::sync::atomic::AtomicBool::new(true),
+    });
+    let ctx = ExecutionToolContext { env };
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let first_tool = create_write_tool();
+        let second_tool = create_write_tool();
+        let first_ctx = ctx.clone();
+        let second_ctx = ctx.clone();
+        let first_cancel = Arc::new(NeverCancel);
+        let second_cancel = Arc::new(GateCancel(std::sync::atomic::AtomicBool::new(false)));
+        let first_progress = Arc::new(Progress);
+        let second_progress = Arc::new(Progress);
+        let second_cancel_for_flip = Arc::clone(&second_cancel);
+        let first_progress_for_task = Arc::clone(&first_progress);
+        let second_progress_for_task = Arc::clone(&second_progress);
+        let first = tokio::spawn(async move {
+            first_tool
+                .execute(
+                    "first".parse().unwrap(),
+                    args(json!({"path":"same.txt","content":"first"})),
+                    first_cancel.as_ref(),
+                    first_progress_for_task.as_ref(),
+                    &first_ctx,
+                )
+                .await
+        });
+        started.notified().await;
+        let second = tokio::spawn(async move {
+            second_tool
+                .execute(
+                    "second".parse().unwrap(),
+                    args(json!({"path":"same.txt","content":"second"})),
+                    second_cancel.as_ref(),
+                    second_progress_for_task.as_ref(),
+                    &second_ctx,
+                )
+                .await
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        second_cancel_for_flip
+            .0
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        release.notify_one();
+        assert!(first.await.unwrap().is_ok());
+        assert!(second.await.unwrap().is_err());
+    });
+    assert_eq!(
+        std::fs::read_to_string(dir.path().join("same.txt")).unwrap(),
+        "first"
+    );
 }
 
 #[test]
