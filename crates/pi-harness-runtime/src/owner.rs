@@ -26,7 +26,7 @@ use std::{
 use crate::extensions::tool_driver::{EchoRouteTiming, ReadyToolRoute, SingleToolOwner};
 
 #[cfg(feature = "extensions")]
-fn matches_ready_echo(local: &AgentTool, route: &ReadyToolRoute) -> bool {
+pub(crate) fn matches_ready_echo(local: &AgentTool, route: &ReadyToolRoute) -> bool {
     use pi_extension_protocol::activation::{AgentToolMode, ToolReplay};
 
     let [granted] = route.grant().tools() else {

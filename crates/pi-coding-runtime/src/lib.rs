@@ -2,6 +2,8 @@
 
 pub mod builder;
 pub mod credentials;
+#[cfg(feature = "extensions")]
+pub mod extensions;
 pub mod legacy_import;
 pub mod messages;
 pub mod models;
@@ -14,6 +16,11 @@ pub mod tools;
 
 pub use builder::{CodingHarness, CodingHarnessBuilder, CodingHarnessError};
 pub use credentials::CredentialInputs;
+#[cfg(feature = "extensions")]
+pub use extensions::{
+    CodingExtensionAdapter, CodingExtensionAttachment, CodingExtensionError, ExtensionRegistration,
+    ExtensionRegistrationKind, ExtensionServiceInput, ExtensionToolInput,
+};
 pub use legacy_import::{LegacyImportSource, open_external_jsonl};
 pub use messages::CodingMessageConverter;
 pub use models::{

@@ -105,6 +105,36 @@ pub(crate) fn recovered_echo_arguments(
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeHarness<C, S, M>
 {
+    /// Returns the current number of callbacks captured for one hook family.
+    ///
+    /// This read-only observation keeps assembled extension tests on the real
+    /// Harness registry without exposing its mutable owner internals.
+    #[cfg(feature = "extensions")]
+    pub fn registered_hook_count(&self, name: HookName) -> usize {
+        self.main.owner.hooks.capture(name).len()
+    }
+
+    /// Checks a bounded Ready `echo` route without mutating Harness state.
+    ///
+    /// Coding-runtime uses this preflight before registering any hook or
+    /// provider so malformed or ungranted extension inputs fail atomically.
+    #[cfg(feature = "extensions")]
+    pub fn validate_ready_echo_tool(
+        &self,
+        handle: &AgentHarnessToolHandle<C>,
+        route: &ReadyToolRoute,
+        timing: EchoRouteTiming,
+    ) -> Result<(), DriverError> {
+        route.check_timing(timing)?;
+        if !route.is_current()
+            || !route.has_echo_domain_projections()
+            || !crate::owner::matches_ready_echo(handle.descriptor(), route)
+        {
+            return Err(DriverError::InvalidHost);
+        }
+        Ok(())
+    }
+
     /// Register a trusted host's original declaration for one current Safe
     /// pending echo effect. The host owns recoverable provenance and native
     /// classification before invoking resume.

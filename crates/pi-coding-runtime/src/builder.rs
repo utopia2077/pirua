@@ -103,6 +103,39 @@ where
         Ok(())
     }
 
+    /// Connects one host-authenticated extension tool/profile route through
+    /// the existing runtime pump.
+    #[cfg(feature = "extensions")]
+    pub async fn connect_extension_tool(
+        &self,
+        input: crate::extensions::ExtensionToolInput,
+    ) -> Result<crate::extensions::CodingExtensionAdapter, crate::extensions::CodingExtensionError>
+    {
+        crate::extensions::CodingExtensionAdapter::connect_tool(self, input).await
+    }
+
+    /// Connects one host-authenticated service/profile route through the
+    /// existing runtime pump.
+    #[cfg(feature = "extensions")]
+    pub async fn connect_extension_service(
+        &self,
+        input: crate::extensions::ExtensionServiceInput,
+    ) -> Result<crate::extensions::CodingExtensionAdapter, crate::extensions::CodingExtensionError>
+    {
+        crate::extensions::CodingExtensionAdapter::connect_service(self, input).await
+    }
+
+    /// Attaches ordered, already-authorized extension registrations.
+    #[cfg(feature = "extensions")]
+    pub async fn attach_extensions(
+        &self,
+        adapter: crate::extensions::CodingExtensionAdapter,
+        registrations: Vec<crate::extensions::ExtensionRegistration>,
+    ) -> Result<crate::extensions::CodingExtensionAttachment, crate::extensions::CodingExtensionError>
+    {
+        adapter.attach(self, registrations).await
+    }
+
     pub(crate) async fn teardown(&self) -> Result<(), HarnessRuntimeError> {
         // Abort is idempotent and may return an expected `NoActiveOperation`
         // result. The outer runtime error still indicates a real failure.

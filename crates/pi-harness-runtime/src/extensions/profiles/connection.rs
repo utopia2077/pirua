@@ -489,7 +489,7 @@ impl ProfileConnection {
         }
         admitted
     }
-    pub(crate) fn same_tool_connection(
+    pub fn same_tool_connection(
         &self,
         route: &crate::extensions::tool_driver::ReadyToolRoute,
     ) -> bool {

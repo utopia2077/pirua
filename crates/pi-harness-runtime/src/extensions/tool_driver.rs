@@ -1408,9 +1408,7 @@ impl ReadyToolRoute {
     pub(crate) fn close_profiles(&self) {
         self.owner.close_route(&self.route, DriverError::PeerLost);
     }
-    pub(crate) fn connection_identity(
-        &self,
-    ) -> pi_extension_protocol::profile_live::ConnectionIdentity {
+    pub fn connection_identity(&self) -> pi_extension_protocol::profile_live::ConnectionIdentity {
         self.route.connection.clone()
     }
     pub fn grant(&self) -> &ActiveGrant {
@@ -1421,11 +1419,11 @@ impl ReadyToolRoute {
         &self.owner
     }
 
-    pub(crate) fn generation(&self) -> u64 {
+    pub fn generation(&self) -> u64 {
         self.route.generation
     }
 
-    pub(crate) fn is_current(&self) -> bool {
+    pub fn is_current(&self) -> bool {
         let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
         state
             .active
