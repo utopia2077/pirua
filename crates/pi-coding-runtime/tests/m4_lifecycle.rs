@@ -1,15 +1,24 @@
 use pi_agent::schema::{
-    AgentLane, AgentMessage, BranchForkOptions, CompactionSettings, ForkOptions,
-    HarnessRuntimeError, ProviderHeaderPolicy, Session, SessionCodecOptions, SessionCreateOptions,
-    SessionForkRequest, SessionRepo, SessionTree,
+    AgentLane, AgentMessage, BranchForkOptions, BranchScan, CommitResult, CompactionSettings,
+    Entry, EntryId, EntryMap, EntryScan, EntryStructure, ForkOptions, HarnessRuntimeError,
+    LaneConfiguration, LaneModel, LaneState, ProviderHeaderPolicy, Register, RegisterNamespace,
+    RegisterSet, Session, SessionCodecOptions, SessionCreateOptions, SessionForkRequest,
+    SessionMetadata, SessionRepo, SessionStats, SessionTree, Storage, StorageError, Transaction,
+    UsageRow, UsageScan, Write,
 };
 use pi_agent_session::{
+    codec::SessionCodec,
     context::SummaryRenderer,
     jsonl::{JsonlOptions, JsonlStorage},
-    memory::{MemoryStorage, StorageClock},
+    memory::{MemoryBacking, MemoryStorage, StorageClock},
     repo::{
         MemorySessionRepo,
         jsonl::{JsonlSession, JsonlSessionMetadata, JsonlSessionRepo},
+    },
+    session::RuntimeSession,
+    storage::{
+        AtomicStorage, CheckedCommitError, CheckedStorage, ConditionalCommit, ConditionalOutcome,
+        PublicationValidator, ReadStamp, RuntimeAttachment, RuntimeStorage,
     },
 };
 
@@ -33,6 +42,106 @@ use std::{
     },
     time::Duration,
 };
+
+struct FailOnceStorage {
+    inner: Arc<MemoryStorage>,
+    fail_close: std::sync::atomic::AtomicBool,
+}
+impl FailOnceStorage {
+    fn new(inner: Arc<MemoryStorage>) -> Self {
+        Self {
+            inner,
+            fail_close: std::sync::atomic::AtomicBool::new(true),
+        }
+    }
+}
+impl Storage for FailOnceStorage {
+    fn commit(
+        &self,
+        transaction: Transaction,
+    ) -> BoxFuture<'_, Result<CommitResult, StorageError>> {
+        self.inner.commit(transaction)
+    }
+    fn get_entries<'a>(
+        &'a self,
+        ids: &'a [EntryId],
+    ) -> BoxFuture<'a, Result<EntryMap, StorageError>> {
+        self.inner.get_entries(ids)
+    }
+    fn get_register<'a>(
+        &'a self,
+        namespace: RegisterNamespace,
+        key: &'a str,
+    ) -> BoxFuture<'a, Result<Option<Register>, StorageError>> {
+        self.inner.get_register(namespace, key)
+    }
+    fn list_registers<'a>(
+        &'a self,
+        namespace: RegisterNamespace,
+        prefix: Option<&'a str>,
+    ) -> BoxFuture<'a, Result<Vec<Register>, StorageError>> {
+        self.inner.list_registers(namespace, prefix)
+    }
+    fn scan_branch(&self, query: BranchScan) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+        self.inner.scan_branch(query)
+    }
+    fn scan_branch_structure(
+        &self,
+        query: BranchScan,
+    ) -> BoxFuture<'_, Result<Vec<EntryStructure>, StorageError>> {
+        self.inner.scan_branch_structure(query)
+    }
+    fn scan_entries(&self, query: EntryScan) -> BoxFuture<'_, Result<Vec<Entry>, StorageError>> {
+        self.inner.scan_entries(query)
+    }
+    fn scan_usage(&self, query: UsageScan) -> BoxFuture<'_, Result<Vec<UsageRow>, StorageError>> {
+        self.inner.scan_usage(query)
+    }
+    fn stats(&self) -> BoxFuture<'_, Result<SessionStats, StorageError>> {
+        self.inner.stats()
+    }
+    fn close(&self) -> BoxFuture<'_, Result<(), StorageError>> {
+        if self.fail_close.swap(false, Ordering::SeqCst) {
+            Box::pin(async {
+                Err(StorageError::Io(
+                    pi_agent::schema::ErrorContext::new("injected close failure").unwrap(),
+                ))
+            })
+        } else {
+            self.inner.close()
+        }
+    }
+}
+impl AtomicStorage for FailOnceStorage {
+    fn commit_conditional(
+        &self,
+        request: ConditionalCommit,
+    ) -> BoxFuture<'_, Result<ConditionalOutcome, StorageError>> {
+        self.inner.commit_conditional(request)
+    }
+    fn snapshot(
+        &self,
+    ) -> BoxFuture<'_, Result<pi_agent_session::storage::StorageSnapshot, StorageError>> {
+        self.inner.snapshot()
+    }
+}
+impl CheckedStorage for FailOnceStorage {
+    fn commit_checked<'a, V: PublicationValidator + ?Sized>(
+        &'a self,
+        request: ConditionalCommit,
+        validator: &'a V,
+    ) -> BoxFuture<'a, Result<ConditionalOutcome, CheckedCommitError<V::Error>>> {
+        self.inner.commit_checked(request, validator)
+    }
+}
+impl RuntimeStorage for FailOnceStorage {
+    fn runtime_attachment(&self) -> &RuntimeAttachment {
+        self.inner.runtime_attachment()
+    }
+    fn read_stamp(&self) -> BoxFuture<'_, Result<ReadStamp, StorageError>> {
+        self.inner.read_stamp()
+    }
+}
 
 #[derive(Default)]
 struct Ids(AtomicUsize);
@@ -394,6 +503,54 @@ fn lifecycle_retains_owner_when_teardown_reports_storage_failure() {
             lifecycle.current().is_some(),
             "failed teardown must retain the active owner for recovery"
         );
+        assert!(
+            fixture.session.claim_runtime().is_err(),
+            "failed close must retain the runtime lease"
+        );
+        drop(lifecycle);
+        assert!(
+            fixture.session.claim_runtime().is_ok(),
+            "dropping the recovered owner releases the retained lease"
+        );
+    });
+}
+
+#[test]
+fn concurrent_first_attachment_contenders_have_one_winner_and_one_failed_claim() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let fixture = Fixture::new().await;
+        let barrier = Arc::new(tokio::sync::Barrier::new(2));
+        let first = fixture.builder().first_attachment();
+        let second = fixture.builder().first_attachment();
+        let left_barrier = barrier.clone();
+        let right_barrier = barrier;
+        let left = tokio::spawn(async move {
+            left_barrier.wait().await;
+            first.build().await
+        });
+        let right = tokio::spawn(async move {
+            right_barrier.wait().await;
+            second.build().await
+        });
+        let left = left.await.expect("left contender");
+        let right = right.await.expect("right contender");
+        let mut winners = Vec::new();
+        if let Ok(value) = left {
+            winners.push(value);
+        }
+        if let Ok(value) = right {
+            winners.push(value);
+        }
+        assert_eq!(winners.len(), 1, "exactly one first attachment wins");
+        assert!(
+            fixture.session.claim_runtime().is_err(),
+            "winning owner retains the one-runtime claim"
+        );
+        drop(winners);
+        assert!(
+            fixture.session.claim_runtime().is_ok(),
+            "dropping the winner releases the claim after the failed contender"
+        );
     });
 }
 
@@ -440,6 +597,109 @@ fn fork_destination_publishes_through_lifecycle_and_preserves_source() {
                 .is_some()
         );
         lifecycle.close().await.expect("close fork");
+    });
+}
+
+#[test]
+fn close_failure_keeps_claim_busy_until_session_recovery_and_owner_drop() {
+    tokio::runtime::Runtime::new().unwrap().block_on(async {
+        let clock = Arc::new(ClockPort);
+        let spawner = Arc::new(TokioSpawner);
+        let ids = Arc::new(Ids::default());
+        let first = model("m4-first");
+        let registry = registry_for(
+            clock.clone(),
+            spawner.clone(),
+            first.clone(),
+            model("m4-second"),
+        )
+        .await;
+        let backing = Arc::new(MemoryBacking::new());
+        let raw = backing.open(clock.clone()).expect("memory storage");
+        raw.commit(Transaction {
+            writes: vec![
+                Write::SetRegister(Box::new(RegisterSet::LaneConfig {
+                    key: "main".into(),
+                    value: LaneConfiguration {
+                        model: LaneModel {
+                            provider: first.provider.clone(),
+                            model_id: first.id.clone(),
+                        },
+                        thinking_level: pi_agent::schema::AgentThinkingLevel::Off,
+                        active_tool_names: vec![ToolName::new("read").unwrap()],
+                    },
+                })),
+                Write::SetRegister(Box::new(RegisterSet::LaneLeaf {
+                    key: "main".into(),
+                    value: None,
+                })),
+                Write::SetRegister(Box::new(RegisterSet::LaneState {
+                    key: "main".into(),
+                    value: LaneState {
+                        current_operation_id: None,
+                        pending_next_run: vec![],
+                    },
+                })),
+            ],
+        })
+        .await
+        .expect("seed backend");
+        let failing = Arc::new(FailOnceStorage::new(raw));
+        let session = Arc::new(
+            RuntimeSession::new(
+                failing,
+                SessionMetadata {
+                    id: "m4-close-recovery".parse().unwrap(),
+                    created_at: SafeUnsigned::new(7).unwrap(),
+                    storage_version: SafeUnsigned::new(1).unwrap(),
+                    store_generation: SafeUnsigned::new(0).unwrap(),
+                    cwd: None,
+                    parent_session_id: None,
+                    legacy_parent_session_path: None,
+                },
+                Arc::new(
+                    SessionCodec::new(
+                        SessionCodecOptions::default(),
+                        ProviderHeaderPolicy::default(),
+                    )
+                    .unwrap(),
+                ),
+                ids.clone(),
+                Arc::new(NOOP_TELEMETRY_CONTEXT),
+            )
+            .await
+            .expect("session"),
+        );
+        let env: Arc<dyn ExecutionEnv> = Arc::new(LocalExecutionEnv::new(std::env::temp_dir()));
+        let factory: Arc<RuntimeFactory<pi_coding_runtime::ExecutionToolContext, FailOnceStorage>> =
+            Arc::new(RuntimeFactory::new(
+                clock,
+                spawner,
+                ids,
+                Arc::new(pi_coding_runtime::ExecutionToolContext { env: env.clone() }),
+                Arc::new(Summary),
+            ));
+        let builder = CodingHarnessBuilder::new(
+            factory,
+            session.clone(),
+            registry,
+            env,
+            Resources::default(),
+            settings_for(&first),
+        );
+        let mut lifecycle: CodingSessionLifecycle<FailOnceStorage> = CodingSessionLifecycle::new();
+        lifecycle.attach(builder).await.expect("attach");
+        assert!(lifecycle.close().await.is_err(), "injected close failure");
+        assert!(
+            session.claim_runtime().is_err(),
+            "failed close retains lease"
+        );
+        session.close().await.expect("successful recovery close");
+        drop(lifecycle);
+        assert!(
+            session.claim_runtime().is_ok(),
+            "recovered owner releases lease"
+        );
     });
 }
 
@@ -622,9 +882,8 @@ fn external_legacy_import_preserves_source_until_first_checked_write() {
         let root = unique_dir("m4-import");
         std::fs::create_dir_all(&root).expect("root");
         let path = root.join("legacy.jsonl");
-        let source =
-            include_bytes!("../../../conformance/session/jsonl/repository-process-v3.jsonl");
-        std::fs::write(&path, source).expect("fixture");
+        let source = legacy_v3_with_usage();
+        std::fs::write(&path, &source).expect("fixture");
         let ids = Arc::new(Ids::default());
         let repo = JsonlSessionRepo::new(
             &root,
@@ -645,6 +904,21 @@ fn external_legacy_import_preserves_source_until_first_checked_write() {
         assert_eq!(imported.metadata().base.cwd.as_deref(), Some("source"));
         let imported_leaf = imported.get_leaf_id().await.expect("normalized leaf");
         assert!(imported_leaf.is_some());
+        assert!(
+            imported_leaf
+                .as_ref()
+                .is_some_and(|leaf| leaf.as_str() != "assistant"),
+            "legacy adoption remints the source identity"
+        );
+        assert_eq!(
+            imported
+                .get_stats()
+                .await
+                .expect("normalized stats")
+                .usage
+                .total_tokens,
+            SafeUnsigned::new(99).unwrap()
+        );
 
         let clock = Arc::new(ClockPort);
         let spawner = Arc::new(TokioSpawner);
@@ -713,6 +987,55 @@ fn external_legacy_import_preserves_source_until_first_checked_write() {
         lifecycle.close().await.expect("close import");
         std::fs::remove_dir_all(root).expect("cleanup");
     });
+}
+
+fn legacy_v3_with_usage() -> Vec<u8> {
+    let rows = [
+        serde_json::json!({
+            "type": "session",
+            "version": 3,
+            "id": "process",
+            "timestamp": "1970-01-01T00:00:00.001Z",
+            "cwd": "source"
+        }),
+        serde_json::json!({
+            "type": "custom",
+            "id": "old",
+            "parentId": null,
+            "timestamp": "1970-01-01T00:00:00.002Z",
+            "customType": "note",
+            "data": {"opaque": "old"}
+        }),
+        serde_json::json!({
+            "type": "message",
+            "id": "assistant",
+            "parentId": "old",
+            "timestamp": "1970-01-01T00:00:00.003Z",
+            "message": {
+                "role": "assistant",
+                "content": [{"type": "text", "text": "answer", "textSignature": "keep"}],
+                "api": "a",
+                "provider": "p",
+                "model": "m",
+                "usage": {
+                    "input": 1,
+                    "output": 2,
+                    "cacheRead": 3,
+                    "cacheWrite": 4,
+                    "totalTokens": 99,
+                    "cost": {"input": 0.25, "output": 0.5, "cacheRead": 0.75, "cacheWrite": 1, "total": -0.125}
+                },
+                "stopReason": "stop",
+                "timestamp": 78
+            }
+        }),
+    ];
+    let mut source = Vec::new();
+    for row in rows {
+        source.extend(serde_json::to_vec(&row).expect("legacy row"));
+        source.push(b'\n');
+    }
+    source
 }
 
 fn unique_dir(prefix: &str) -> PathBuf {

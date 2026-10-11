@@ -661,10 +661,16 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     work.admission.drained().await;
                     drop(crate::tools::retire_closed_publications(work.as_ref()));
                     if work.session.close().await.is_err() {
+                        // Preserve the runtime lease when the backend did not
+                        // close. A caller may recover the session and retry or
+                        // explicitly drop the owner; taking the lease here
+                        // would silently permit a second runtime on a live
+                        // owner after a failed close.
                         let _ = work.fail("runtime Session close failed");
+                    } else {
+                        let lease = work.lease.lock().unwrap_or_else(|p| p.into_inner()).take();
+                        drop(lease);
                     }
-                    let lease = work.lease.lock().unwrap_or_else(|p| p.into_inner()).take();
-                    drop(lease);
                     completion.completed = true;
                     drop(completion);
                 }))
