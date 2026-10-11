@@ -5,7 +5,10 @@
 //! module only assembles detached coding values into `AgentHarnessOptions`.
 //! It does not add a durable session owner or extension fields.
 
-use crate::{CodingSettingsSnapshot, ExecutionEnv, ExecutionToolContext, Resources, create_tools};
+use crate::{
+    CodingRuntimeError, CodingSettingsSnapshot, ExecutionEnv, ExecutionToolContext,
+    ProviderComposition, Resources, create_tools,
+};
 use pi_agent::schema::{
     AgentHarness, AgentHarnessCreate, AgentHarnessOptions, AgentHarnessStreamOptions,
     AgentHarnessToolContextSource, AgentHarnessToolHandle, AgentLane, DriveMode,
@@ -32,6 +35,9 @@ pub enum CodingHarnessError {
     InvalidStreamOptions,
     /// The existing runtime factory rejected creation or restoration.
     Runtime(HarnessRuntimeError),
+    /// A required detached coding-runtime capability was absent before
+    /// RuntimeFactory admission.
+    Composition(CodingRuntimeError),
 }
 
 impl fmt::Display for CodingHarnessError {
@@ -40,6 +46,7 @@ impl fmt::Display for CodingHarnessError {
             Self::MissingModel { .. } => formatter.write_str("coding model is not registered"),
             Self::InvalidStreamOptions => formatter.write_str("coding stream options are invalid"),
             Self::Runtime(error) => error.fmt(formatter),
+            Self::Composition(error) => error.fmt(formatter),
         }
     }
 }
@@ -49,6 +56,7 @@ impl std::error::Error for CodingHarnessError {
         match self {
             Self::MissingModel { .. } | Self::InvalidStreamOptions => None,
             Self::Runtime(error) => Some(error),
+            Self::Composition(error) => Some(error),
         }
     }
 }
@@ -178,6 +186,7 @@ where
     system_prompt: Option<String>,
     telemetry_context: Arc<dyn TelemetryContext>,
     to_provider_messages: Option<Arc<dyn ProviderMessageConverter>>,
+    provider_composition: Option<Arc<ProviderComposition>>,
     entry_projectors:
         BTreeMap<pi_agent::schema::CustomType, Arc<dyn pi_agent::schema::EntryProjector>>,
     drive: DriveMode,
@@ -211,6 +220,7 @@ where
             system_prompt: None,
             telemetry_context: Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
             to_provider_messages: None,
+            provider_composition: None,
             entry_projectors: BTreeMap::new(),
             drive: DriveMode::Automatic,
             tool_execution: ToolExecutionMode::Parallel,
@@ -242,6 +252,14 @@ where
         self
     }
 
+    /// Supplies the detached model/provider composition used for pre-start
+    /// capability checks. The host retains ownership and no credentials or
+    /// network are consulted by this preflight.
+    pub fn with_provider_composition(mut self, composition: Arc<ProviderComposition>) -> Self {
+        self.provider_composition = Some(composition);
+        self
+    }
+
     /// Selects manual or automatic Harness driving.
     pub fn with_drive_mode(mut self, drive: DriveMode) -> Self {
         self.drive = drive;
@@ -263,6 +281,11 @@ where
 
     /// Builds the concrete runtime attachment without starting a provider run.
     pub async fn build(self) -> Result<CodingHarness<S, M>, CodingHarnessError> {
+        if let Some(composition) = self.provider_composition.as_ref() {
+            composition
+                .require_capability("models.resolve")
+                .map_err(CodingHarnessError::Composition)?;
+        }
         let stream_options = harness_stream_options(self.settings.stream)?;
         let model = self
             .models

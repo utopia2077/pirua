@@ -8,7 +8,7 @@ use crate::credentials::CredentialInputs;
 use crate::models::{
     CatalogLookupError, builtin_models, is_selected_text_provider, selected_text_provider_ids,
 };
-use pi_ai::{Model, ModelId, Provider, ProviderId};
+use pi_ai::{Model, ModelId, ModelThinkingLevel, Provider, ProviderId};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::Arc;
@@ -110,6 +110,8 @@ pub struct ProviderComposition {
     models: BTreeMap<(ProviderId, ModelId), Model>,
     known_providers: BTreeSet<ProviderId>,
     credentials: CredentialInputs,
+    aliases: BTreeMap<String, (ProviderId, ModelId)>,
+    availability: BTreeMap<(ProviderId, ModelId), bool>,
 }
 
 impl fmt::Debug for ProviderComposition {
@@ -118,6 +120,8 @@ impl fmt::Debug for ProviderComposition {
             .debug_struct("ProviderComposition")
             .field("provider_count", &self.providers.len())
             .field("model_count", &self.models.len())
+            .field("alias_count", &self.aliases.len())
+            .field("availability_count", &self.availability.len())
             .field("credential_inputs", &self.credentials)
             .finish()
     }
@@ -161,7 +165,57 @@ impl ProviderComposition {
             models,
             known_providers,
             credentials: inputs.credentials,
+            aliases: BTreeMap::new(),
+            availability: BTreeMap::new(),
         })
+    }
+
+    /// Adds detached configured models as a higher-precedence runtime overlay.
+    ///
+    /// The overlay is process-local and never writes the host model store.
+    /// Existing provider/model identities are replaced deterministically in
+    /// input order, so later detached configuration wins.
+    pub fn with_model_overlays(
+        mut self,
+        overlays: impl IntoIterator<Item = ConfiguredModelOverlay>,
+    ) -> Result<Self, CodingRuntimeError> {
+        for overlay in overlays {
+            let provider = overlay.model.provider.clone();
+            let model_id = overlay.model.id.clone();
+            if !is_selected_text_provider(provider.as_str()) {
+                return Err(CodingRuntimeError::UnsupportedProvider { provider });
+            }
+            self.known_providers.insert(provider.clone());
+            self.models
+                .insert((provider.clone(), model_id.clone()), overlay.model);
+            let canonical = format!("{provider}:{model_id}");
+            self.aliases
+                .insert(canonical, (provider.clone(), model_id.clone()));
+            for alias in overlay.aliases {
+                let normalized = normalize_alias(&alias);
+                if normalized.is_empty() {
+                    continue;
+                }
+                self.aliases
+                    .insert(normalized, (provider.clone(), model_id.clone()));
+            }
+        }
+        Ok(self)
+    }
+
+    /// Applies a host-supplied availability snapshot to this detached facade.
+    ///
+    /// Availability is an input snapshot; checking it never refreshes remote
+    /// catalogs or consults credentials.
+    pub fn with_availability(
+        mut self,
+        availability: impl IntoIterator<Item = ModelAvailability>,
+    ) -> Self {
+        self.availability = availability
+            .into_iter()
+            .map(|entry| ((entry.provider, entry.model_id), entry.available))
+            .collect();
+        self
     }
 
     /// Creates a facade from the selected, feature-gated captured catalogs.
@@ -177,6 +231,17 @@ impl ProviderComposition {
             models,
             credentials,
         })
+    }
+
+    /// Creates a selected built-in catalog and applies detached overlays.
+    pub fn from_builtin_catalogs_with_overlays(
+        credentials: CredentialInputs,
+        overlays: impl IntoIterator<Item = ConfiguredModelOverlay>,
+        availability: impl IntoIterator<Item = ModelAvailability>,
+    ) -> Result<Self, CodingRuntimeError> {
+        Self::from_builtin_catalogs(credentials)?
+            .with_model_overlays(overlays)
+            .map(|composition| composition.with_availability(availability))
     }
 
     /// Returns injected providers in deterministic provider-ID order.
@@ -214,8 +279,15 @@ impl ProviderComposition {
                 provider: model.provider.clone(),
             });
         }
+        let key = (model.provider.clone(), model.model_id.clone());
+        if self.availability.get(&key) == Some(&false) {
+            return Err(CodingRuntimeError::MissingModel {
+                provider: model.provider.clone(),
+                model_id: model.model_id.clone(),
+            });
+        }
         self.models
-            .get(&(model.provider.clone(), model.model_id.clone()))
+            .get(&key)
             .ok_or_else(|| CodingRuntimeError::MissingModel {
                 provider: model.provider.clone(),
                 model_id: model.model_id.clone(),
@@ -249,6 +321,64 @@ impl ProviderComposition {
         self.resolve(&ModelRef::new(provider_id, model_id))
     }
 
+    /// Resolves an exact reference, configured alias, or unqualified fuzzy
+    /// alias and selects an optional `@thinking-level` suffix.
+    pub fn resolve_selection(
+        &self,
+        reference: &str,
+    ) -> Result<ResolvedModel<'_>, CodingRuntimeError> {
+        let (base, requested_level) = split_thinking_suffix(reference)?;
+        let model = if base.contains(':') {
+            self.resolve_reference(base)?
+        } else {
+            let alias = normalize_alias(base);
+            if let Some((provider, model_id)) = self.aliases.get(&alias) {
+                self.resolve(&ModelRef::new(provider.clone(), model_id.clone()))?
+            } else {
+                let mut matches = self.models.iter().filter(|((_, model_id), model)| {
+                    normalize_alias(model_id.as_str()).contains(&alias)
+                        || normalize_alias(&model.name).contains(&alias)
+                });
+                let Some(((_, _), model)) = matches.next() else {
+                    return Err(CodingRuntimeError::MissingModel {
+                        provider: ProviderId::new("unknown").expect("static provider"),
+                        model_id: ModelId::new(base).map_err(|_| {
+                            CodingRuntimeError::InvalidModelReference {
+                                reference: reference.to_owned(),
+                            }
+                        })?,
+                    });
+                };
+                if matches.next().is_some() {
+                    return Err(CodingRuntimeError::InvalidModelReference {
+                        reference: reference.to_owned(),
+                    });
+                }
+                model
+            }
+        };
+        let thinking_level = requested_level.unwrap_or(ModelThinkingLevel::Off);
+        if thinking_level != ModelThinkingLevel::Off && !model.reasoning {
+            return Err(CodingRuntimeError::InvalidModelReference {
+                reference: reference.to_owned(),
+            });
+        }
+        if model
+            .thinking_level_map
+            .as_ref()
+            .and_then(|mapping| mapping.as_map().get(&thinking_level))
+            == Some(&None)
+        {
+            return Err(CodingRuntimeError::InvalidModelReference {
+                reference: reference.to_owned(),
+            });
+        }
+        Ok(ResolvedModel {
+            model,
+            thinking_level,
+        })
+    }
+
     /// Returns whether a required composition capability is available.
     pub fn has_capability(&self, capability: &str) -> bool {
         match capability {
@@ -266,4 +396,85 @@ impl ProviderComposition {
             Err(CodingRuntimeError::MissingCapability { capability })
         }
     }
+}
+
+/// One detached model overlay supplied by the host or a deterministic test
+/// adapter. Overlays are never persisted by the coding runtime.
+#[derive(Clone, Debug)]
+pub struct ConfiguredModelOverlay {
+    /// Model value to overlay.
+    pub model: Model,
+    /// Exact or fuzzy aliases accepted during selection.
+    pub aliases: Vec<String>,
+}
+
+impl ConfiguredModelOverlay {
+    /// Creates an overlay with no aliases.
+    pub fn new(model: Model) -> Self {
+        Self {
+            model,
+            aliases: Vec::new(),
+        }
+    }
+
+    /// Adds one detached alias.
+    pub fn with_alias(mut self, alias: impl Into<String>) -> Self {
+        self.aliases.push(alias.into());
+        self
+    }
+}
+
+/// One host-supplied model availability observation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ModelAvailability {
+    /// Provider identity.
+    pub provider: ProviderId,
+    /// Model identity.
+    pub model_id: ModelId,
+    /// Whether the snapshot marks the model usable.
+    pub available: bool,
+}
+
+/// A selected model and its resolved public thinking level.
+#[derive(Clone, Copy, Debug)]
+pub struct ResolvedModel<'a> {
+    /// Selected model.
+    pub model: &'a Model,
+    /// Selected thinking level.
+    pub thinking_level: ModelThinkingLevel,
+}
+
+fn normalize_alias(value: &str) -> String {
+    value
+        .trim()
+        .to_ascii_lowercase()
+        .replace(['_', '-', ' '], "")
+}
+
+fn split_thinking_suffix(
+    reference: &str,
+) -> Result<(&str, Option<ModelThinkingLevel>), CodingRuntimeError> {
+    let Some((base, suffix)) = reference.rsplit_once('@') else {
+        return Ok((reference, None));
+    };
+    let level = match suffix.to_ascii_lowercase().as_str() {
+        "off" => ModelThinkingLevel::Off,
+        "minimal" => ModelThinkingLevel::Minimal,
+        "low" => ModelThinkingLevel::Low,
+        "medium" => ModelThinkingLevel::Medium,
+        "high" => ModelThinkingLevel::High,
+        "xhigh" => ModelThinkingLevel::ExtraHigh,
+        "max" => ModelThinkingLevel::Max,
+        _ => {
+            return Err(CodingRuntimeError::InvalidModelReference {
+                reference: reference.to_owned(),
+            });
+        }
+    };
+    if base.is_empty() {
+        return Err(CodingRuntimeError::InvalidModelReference {
+            reference: reference.to_owned(),
+        });
+    }
+    Ok((base, Some(level)))
 }

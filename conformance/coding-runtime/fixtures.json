@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+  "rows": [
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "model.credentials_catalog",
+      "input": {
+        "kind": "assemble",
+        "operation": "resolve_overlay",
+        "reference": "openai:offline-model"
+      },
+      "events": [],
+      "messages": [],
+      "outcome": {
+        "kind": "resolved",
+        "error": null,
+        "terminal": true
+      },
+      "observations": {
+        "provider_calls": 0,
+        "tool_invocations": 0,
+        "session_publication_events": 0,
+        "durable_entries": 2,
+        "model": {
+          "provider": "openai",
+          "id": "offline-model",
+          "source": "overlay",
+          "available": true
+        },
+        "availability_transition": [
+          "unavailable",
+          "available"
+        ],
+        "credential_boundary": "host-owned credential inputs retained without reads",
+        "event_count": 11,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "usage",
+          "run_end"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "prompt.system_resources",
+      "input": {
+        "kind": "assemble",
+        "operation": "system_resources",
+        "resources": {
+          "skills": [
+            "visible"
+          ],
+          "prompt_templates": [
+            "build"
+          ]
+        }
+      },
+      "events": [],
+      "messages": [],
+      "outcome": {
+        "kind": "assembled",
+        "error": null,
+        "terminal": true
+      },
+      "observations": {
+        "provider_calls": 0,
+        "tool_invocations": 0,
+        "session_publication_events": 0,
+        "durable_entries": 2,
+        "resources_attached": true,
+        "event_count": 11,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "usage",
+          "run_end"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "prompt.settings_snapshot",
+      "input": {
+        "kind": "assemble",
+        "operation": "settings_snapshot",
+        "thinking_level": "off",
+        "active_tools": [
+          "read"
+        ]
+      },
+      "events": [],
+      "messages": [],
+      "outcome": {
+        "kind": "assembled",
+        "error": null,
+        "terminal": true
+      },
+      "observations": {
+        "provider_calls": 0,
+        "tool_invocations": 0,
+        "session_publication_events": 0,
+        "durable_entries": 2,
+        "settings_detached": true,
+        "event_count": 11,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "usage",
+          "run_end"
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "capability.required_prestart_failure",
+      "input": {
+        "kind": "assemble",
+        "operation": "preflight",
+        "capability": "models.resolve"
+      },
+      "events": [],
+      "messages": [],
+      "outcome": {
+        "kind": "error",
+        "error": {
+          "type": "MissingCapability",
+          "capability": "models.resolve"
+        },
+        "terminal": true
+      },
+      "observations": {
+        "provider_calls": 0,
+        "tool_invocations": 0,
+        "session_publication_events": 0,
+        "durable_entries": 0
+      }
+    }
+  ],
+  "m6Phase": "M6-A",
+  "pendingRows": [
+    "tools.validate_progress_settle",
+    "tools.coding_operations",
+    "queue.steer_during_turn",
+    "queue.follow_up_after_turn",
+    "retry.overflow_precedence",
+    "retry.provider_recovery",
+    "abort.active_stream_cleanup",
+    "compaction.context_projection",
+    "branch.fork_atomic_publish",
+    "restart.recover_session",
+    "legacy_import.format3",
+    "model_switch.next_run",
+    "extension.participation_ordering",
+    "lifecycle.builder_replace"
+  ]
+}

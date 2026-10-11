@@ -2,15 +2,17 @@ use pi_ai::{
     ApiAdapter, ApiId, ApiKeyAuth, ApiKeyAuthInput, AuthContext, AuthContextError,
     AuthProviderError, AuthResult, BoxFuture, CancellationToken, CredentialInfo,
     CredentialMutation, CredentialReconciliation, CredentialStore, CredentialStoreError, Model,
-    ModelBaseUrl, ModelCost, ModelId, ModelInput, ModelsError, Provider, ProviderAuth, ProviderId,
-    PublicModelBaseUrl, SafeUnsigned, VersionedCredential,
+    ModelBaseUrl, ModelCost, ModelId, ModelInput, ModelThinkingLevel, ModelsError, Provider,
+    ProviderAuth, ProviderId, PublicModelBaseUrl, SafeUnsigned, ThinkingLevelMap,
+    VersionedCredential,
 };
 use pi_coding_runtime::{
-    CodingRuntimeError, CredentialInputs, EntranceKind, ProviderComposition,
-    ProviderCompositionInputs, builtin_image_models, builtin_models, selected_entrances,
+    CodingRuntimeError, ConfiguredModelOverlay, CredentialInputs, EntranceKind, ModelAvailability,
+    ProviderComposition, ProviderCompositionInputs, builtin_image_models, builtin_models,
+    selected_entrances,
 };
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::{collections::BTreeMap, sync::Arc};
 
 struct NoopApiKey;
 
@@ -271,5 +273,46 @@ fn credentials_are_injected_without_auth_or_storage_calls() {
             .auth_context()
             .expect("auth context retained"),
         &auth_context
+    ));
+}
+
+#[test]
+fn overlays_have_precedence_and_availability_is_host_supplied() {
+    let mut selected = model("openai", "base-model");
+    selected.name = "Friendly Runtime".into();
+    selected.reasoning = true;
+    selected.thinking_level_map = Some(ThinkingLevelMap::new(BTreeMap::from([
+        (ModelThinkingLevel::Off, Some("off".into())),
+        (ModelThinkingLevel::High, Some("high".into())),
+        (ModelThinkingLevel::Max, None),
+    ])));
+
+    let composition = ProviderComposition::new(ProviderCompositionInputs::default())
+        .expect("empty")
+        .with_model_overlays([ConfiguredModelOverlay::new(selected.clone()).with_alias("friendly")])
+        .expect("overlay")
+        .with_availability([ModelAvailability {
+            provider: selected.provider.clone(),
+            model_id: selected.id.clone(),
+            available: false,
+        }]);
+    assert!(matches!(
+        composition.resolve_selection("friendly"),
+        Err(CodingRuntimeError::MissingModel { .. })
+    ));
+
+    let available = composition.with_availability([ModelAvailability {
+        provider: selected.provider.clone(),
+        model_id: selected.id.clone(),
+        available: true,
+    }]);
+    let resolved = available
+        .resolve_selection("friendly@high")
+        .expect("fuzzy alias and thinking suffix");
+    assert_eq!(resolved.model.id.as_str(), "base-model");
+    assert_eq!(resolved.thinking_level, ModelThinkingLevel::High);
+    assert!(matches!(
+        available.resolve_selection("friendly@max"),
+        Err(CodingRuntimeError::InvalidModelReference { .. })
     ));
 }

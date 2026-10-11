@@ -31,7 +31,8 @@ pub use models::{
     selected_text_provider_ids,
 };
 pub use provider_composition::{
-    CodingRuntimeError, ProviderComposition, ProviderCompositionInputs,
+    CodingRuntimeError, ConfiguredModelOverlay, ModelAvailability, ProviderComposition,
+    ProviderCompositionInputs, ResolvedModel,
 };
 pub use resources::{
     ContextFile, PromptTemplate, ResourceNormalizationError, Resources, Skill,
