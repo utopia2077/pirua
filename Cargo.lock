@@ -1282,6 +1282,7 @@ dependencies = [
  "pi-extension-protocol",
  "pi-harness-runtime",
  "pi-telemetry",
+ "prost",
  "regex",
  "serde",
  "serde_json",

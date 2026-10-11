@@ -1,8 +1,9 @@
 #![cfg(feature = "extensions")]
 
 use pi_agent::schema::{
-    AgentHarness, AgentLane, AgentMessage, HarnessRuntimeError, IdGenerator, SessionCreateOptions,
-    SessionRepo, SessionTree, StorageError,
+    AgentHarness, AgentHarnessTool, AgentLane, AgentMessage, AgentToolResult, Cancellation,
+    ErrorContext, HarnessRuntimeError, IdGenerator, SessionCreateOptions, SessionRepo, SessionTree,
+    StorageError, ToolExecutionError, ToolProgressSink,
 };
 use pi_agent_session::{
     context::SummaryRenderer,
@@ -10,10 +11,14 @@ use pi_agent_session::{
     repo::MemorySessionRepo,
 };
 use pi_ai::{
-    ApiAdapter, ApiId, Clock, Message, Model, ModelBaseUrl, ModelCost, ModelId, ModelInput,
-    ModelsError, ModelsRegistry, ModelsRegistryOptions, Provider, ProviderAuth, ProviderId,
-    PublicModelBaseUrl, SafeUnsigned, StreamOptionsWire, TaskSpawner, ToolName, UserContent,
-    UserMessage,
+    ApiAdapter, ApiId, AssistantContent, AssistantMessage, AssistantMessageEvent, AssistantStream,
+    AssistantStreamInit, BoxFuture, CapabilityError, Clock, DeferredCancelRequest,
+    DeferredFetchRequest, DoneReason, JsonValue, Message, Model, ModelBaseUrl, ModelCost, ModelId,
+    ModelInput, ModelsError, ModelsRegistry, ModelsRegistryOptions, Provider, ProviderAuth,
+    ProviderId, PublicModelBaseUrl, RequestLifecycleAdapter, RequestLifecycleInvocation,
+    SafeUnsigned, SimpleStreamRequest, StreamOptionsWire, TaskSpawner, TextStreamRequest, ToolCall,
+    ToolCallId, ToolCallType, ToolName, Usage, UserContent, UserMessage,
+    create_assistant_message_event_stream,
 };
 use pi_coding_runtime::{
     CodingExtensionAdapter, CodingHarnessBuilder, CodingSettingsSnapshot, CompactionSettings,
@@ -21,18 +26,21 @@ use pi_coding_runtime::{
     QueueMode, Resources, ThinkingLevel,
 };
 use pi_extension_protocol::{
-    activation::HostAuthority,
+    activation::{AgentToolMode, ApprovedTool, HostAuthority, ToolReplay, ToolSchemaInputs},
     profiles::{ApprovedProfile, Exposure, ProfileApproval},
     wire::{framing, v1_1},
 };
 use pi_harness_runtime::{
     extensions::{
         profiles::connection::ProfileConnection,
-        tool_driver::EchoRouteTiming,
+        tool_driver::{EchoRouteTiming, OwnerLimits, SingleToolOwner},
         transport::{ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig},
     },
     owner::RuntimeFactory,
 };
+use prost::Message as _;
+use serde_json::json;
+use std::sync::OnceLock;
 use std::{
     collections::{BTreeMap, BTreeSet, VecDeque},
     num::{NonZeroU64, NonZeroUsize},
@@ -81,6 +89,50 @@ impl StorageClock for AppClock {
     }
 }
 
+struct EchoTool;
+
+impl EchoTool {
+    fn descriptor() -> &'static pi_agent::schema::AgentTool {
+        static DESCRIPTOR: OnceLock<pi_agent::schema::AgentTool> = OnceLock::new();
+        DESCRIPTOR.get_or_init(|| {
+            serde_json::from_value(echo_catalog()["entries"][0]["agentTool"].clone())
+                .expect("echo descriptor")
+        })
+    }
+
+    fn error(message: &'static str) -> ToolExecutionError {
+        ToolExecutionError::new(ErrorContext::new(message).expect("bounded tool error"))
+    }
+}
+
+impl AgentHarnessTool<pi_coding_runtime::ExecutionToolContext> for EchoTool {
+    fn descriptor(&self) -> &pi_agent::schema::AgentTool {
+        Self::descriptor()
+    }
+
+    fn prepare_arguments(&self, args: JsonValue) -> Result<pi_ai::JsonObject, ToolExecutionError> {
+        match args {
+            JsonValue::Object(object) => Ok(object),
+            _ => Err(Self::error("echo arguments must be an object")),
+        }
+    }
+
+    fn execute<'a>(
+        &'a self,
+        _: ToolCallId,
+        _: pi_ai::JsonObject,
+        _: &'a dyn Cancellation,
+        _: &'a dyn ToolProgressSink,
+        _: &'a pi_coding_runtime::ExecutionToolContext,
+    ) -> BoxFuture<'a, Result<AgentToolResult, ToolExecutionError>> {
+        Box::pin(async {
+            Err(Self::error(
+                "echo is remote-only in the assembled extension witness",
+            ))
+        })
+    }
+}
+
 struct Spawner;
 impl TaskSpawner for Spawner {
     fn spawn(&self, task: pi_ai::BoxFuture<'static, ()>) -> Result<(), pi_ai::SpawnError> {
@@ -123,10 +175,153 @@ impl SummaryRenderer for Summary {
     }
 }
 
+struct EchoApiAdapter {
+    model: Model,
+    responses: Mutex<VecDeque<AssistantMessage>>,
+}
+
+impl EchoApiAdapter {
+    fn new(model: &Model) -> Arc<Self> {
+        let tool_response = AssistantMessage {
+            role: Default::default(),
+            content: vec![AssistantContent::ToolCall(ToolCall {
+                content_type: ToolCallType::ToolCall,
+                id: ToolCallId::new("assembled-echo-call").expect("tool call ID"),
+                name: ToolName::new("echo").expect("tool name"),
+                arguments: serde_json::from_value(json!({"text": "assembled echo"}))
+                    .expect("tool arguments"),
+                thought_signature: None,
+                namespace: None,
+            })],
+            api: model.api.clone(),
+            provider: model.provider.clone(),
+            model: model.id.clone(),
+            response_model: None,
+            response_id: None,
+            diagnostics: None,
+            usage: Usage::zero(),
+            stop_reason: pi_ai::StopReason::ToolUse,
+            deferred: None,
+            error_message: None,
+            raw_stop_reason: None,
+            end_turn: None,
+            timestamp: SafeUnsigned::new(7).expect("timestamp"),
+        };
+        let stop_response = AssistantMessage {
+            role: Default::default(),
+            content: Vec::new(),
+            api: model.api.clone(),
+            provider: model.provider.clone(),
+            model: model.id.clone(),
+            response_model: None,
+            response_id: None,
+            diagnostics: None,
+            usage: Usage::zero(),
+            stop_reason: pi_ai::StopReason::Stop,
+            deferred: None,
+            error_message: None,
+            raw_stop_reason: None,
+            end_turn: None,
+            timestamp: SafeUnsigned::new(7).expect("timestamp"),
+        };
+        Arc::new(Self {
+            model: model.clone(),
+            responses: Mutex::new(VecDeque::from([tool_response, stop_response])),
+        })
+    }
+
+    fn start(
+        &self,
+        clock: Arc<dyn Clock>,
+        cancellation: pi_ai::CancellationToken,
+    ) -> AssistantStream {
+        let response = self
+            .responses
+            .lock()
+            .expect("provider responses")
+            .pop_front()
+            .unwrap_or_else(|| panic!("fixture provider exhausted"));
+        let reason = match response.stop_reason {
+            pi_ai::StopReason::ToolUse => DoneReason::ToolUse,
+            _ => DoneReason::Stop,
+        };
+        let (stream, producer) = create_assistant_message_event_stream(AssistantStreamInit {
+            api: self.model.api.clone(),
+            provider: self.model.provider.clone(),
+            model: self.model.id.clone(),
+            clock,
+            cancellation,
+        });
+        tokio::spawn(async move {
+            producer
+                .push(AssistantMessageEvent::Done {
+                    reason,
+                    message: Box::new(response),
+                })
+                .expect("fixture response");
+        });
+        stream
+    }
+}
+
+impl ApiAdapter for EchoApiAdapter {
+    fn api_id(&self) -> &ApiId {
+        &self.model.api
+    }
+
+    fn stream(&self, request: TextStreamRequest) -> AssistantStream {
+        self.start(
+            request.options.runtime.clock.clone(),
+            request.options.runtime.cancellation.clone(),
+        )
+    }
+
+    fn stream_simple(&self, request: SimpleStreamRequest) -> AssistantStream {
+        self.start(
+            request.options.runtime.clock.clone(),
+            request.options.runtime.cancellation.clone(),
+        )
+    }
+
+    fn fetch_deferred(&self, _: DeferredFetchRequest) -> Result<AssistantStream, CapabilityError> {
+        Err(CapabilityError::Unsupported)
+    }
+
+    fn cancel_deferred<'a>(
+        &'a self,
+        _: DeferredCancelRequest,
+    ) -> BoxFuture<'a, Result<(), ModelsError>> {
+        Box::pin(async { Ok(()) })
+    }
+
+    fn lifecycle_adapter(&self) -> Option<&dyn RequestLifecycleAdapter> {
+        Some(self)
+    }
+}
+
+impl RequestLifecycleAdapter for EchoApiAdapter {
+    fn stream_with_lifecycle(
+        &self,
+        request: TextStreamRequest,
+        _: RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        self.stream(request)
+    }
+
+    fn stream_simple_with_lifecycle(
+        &self,
+        request: SimpleStreamRequest,
+        _: RequestLifecycleInvocation,
+    ) -> AssistantStream {
+        self.stream_simple(request)
+    }
+}
+
 struct FixtureProvider {
     id: ProviderId,
     models: Vec<Model>,
     model_calls: Arc<AtomicU64>,
+    adapter: Option<Arc<dyn ApiAdapter>>,
 }
 impl Provider for FixtureProvider {
     fn id(&self) -> &ProviderId {
@@ -143,8 +338,12 @@ impl Provider for FixtureProvider {
         self.model_calls.fetch_add(1, Ordering::SeqCst);
         Ok(self.models.clone().into())
     }
-    fn adapter(&self, _: &ApiId) -> Option<Arc<dyn ApiAdapter>> {
-        None
+    fn adapter(&self, api: &ApiId) -> Option<Arc<dyn ApiAdapter>> {
+        (self
+            .adapter
+            .as_ref()
+            .is_some_and(|adapter| adapter.api_id() == api))
+        .then(|| self.adapter.clone().expect("adapter"))
     }
 }
 
@@ -233,6 +432,10 @@ struct Peer {
     input: Mutex<VecDeque<u8>>,
     writes: Mutex<Vec<Vec<u8>>>,
     closed: AtomicBool,
+    tool_invocations: AtomicU64,
+    progress_items: AtomicU64,
+    terminal_items: AtomicU64,
+    max_frame_bytes: AtomicU64,
 }
 impl Peer {
     fn new(profiles: &[ApprovedProfile]) -> Arc<Self> {
@@ -278,6 +481,10 @@ impl Peer {
             input: Mutex::new(VecDeque::new()),
             writes: Mutex::new(Vec::new()),
             closed: AtomicBool::new(false),
+            tool_invocations: AtomicU64::new(0),
+            progress_items: AtomicU64::new(0),
+            terminal_items: AtomicU64::new(0),
+            max_frame_bytes: AtomicU64::new(0),
         });
         peer.push(v1_1::envelope::Frame::Hello(v1_1::Hello {
             protocol: Some(v1_1::VersionRange {
@@ -301,6 +508,199 @@ impl Peer {
         }));
         peer.push(v1_1::envelope::Frame::Ready(v1_1::Ready {}));
         peer
+    }
+
+    fn new_tool(profiles: &[ApprovedProfile]) -> Arc<Self> {
+        let peer = Self::new(profiles);
+        peer.enable_tool(0);
+        peer
+    }
+
+    fn tool_invocations(&self) -> u64 {
+        self.tool_invocations.load(Ordering::SeqCst)
+    }
+
+    fn progress_items(&self) -> u64 {
+        self.progress_items.load(Ordering::SeqCst)
+    }
+
+    fn terminal_items(&self) -> u64 {
+        self.terminal_items.load(Ordering::SeqCst)
+    }
+
+    fn max_frame_bytes(&self) -> u64 {
+        self.max_frame_bytes.load(Ordering::SeqCst)
+    }
+
+    fn enable_tool(&self, minor: u32) {
+        let raw = self
+            .input
+            .lock()
+            .expect("peer input")
+            .drain(..)
+            .collect::<Vec<_>>();
+        let mut reader =
+            framing::FrameReader::<v1_1::Envelope>::new(NonZeroUsize::new(8192).expect("reader"));
+        let mut at = 0;
+        let catalog = echo_catalog();
+        let set = &catalog["entries"][0]["selected_minor_schema_sets"][format!("1.{minor}")];
+        while at < raw.len() {
+            let read = reader.read_one(&raw[at..]).expect("handshake frame");
+            at += read.consumed;
+            let mut envelope = read.frame.expect("handshake envelope").envelope;
+            match envelope.frame.as_mut().expect("handshake arm") {
+                v1_1::envelope::Frame::Hello(hello) => {
+                    hello.supported_profiles.push(v1_1::ProfileRange {
+                        name: "tool.v1".into(),
+                        major: 1,
+                        min_minor: minor,
+                        max_minor: minor,
+                    });
+                }
+                v1_1::envelope::Frame::Manifest(manifest) => {
+                    manifest.capabilities.push(v1_1::CapabilityDeclaration {
+                        kind: "tool".into(),
+                        name: "echo".into(),
+                        profile: Some(v1_1::ProfileRange {
+                            name: "tool.v1".into(),
+                            major: 1,
+                            min_minor: minor,
+                            max_minor: minor,
+                        }),
+                        handler_id: "echo-handler".into(),
+                        replay: 1,
+                        execution: 2,
+                        required: true,
+                        supported_descriptor_digests: vec![v1_1::SupportedProfileDigest {
+                            minor,
+                            descriptor_digest_sha256:
+                                pi_extension_protocol::descriptor::canonical_profile_digest(
+                                    "tool.v1", 1, minor,
+                                )
+                                .expect("tool profile digest")
+                                .to_vec(),
+                        }],
+                        tool_schema_sets: vec![v1_1::ToolSchemaSet {
+                            tool_name: "echo".into(),
+                            minor,
+                            arguments: Some(v1_1::DynamicProjectionDigest {
+                                projection_id: set["arguments"]["projection_id"]
+                                    .as_str()
+                                    .expect("argument projection")
+                                    .into(),
+                                schema_digest_sha256: hex(set["arguments"]["schema_digest_sha256"]
+                                    .as_str()
+                                    .expect("argument digest")),
+                            }),
+                            progress: Some(v1_1::DynamicProjectionDigest {
+                                projection_id: set["progress"]["projection_id"]
+                                    .as_str()
+                                    .expect("progress projection")
+                                    .into(),
+                                schema_digest_sha256: hex(set["progress"]["schema_digest_sha256"]
+                                    .as_str()
+                                    .expect("progress digest")),
+                            }),
+                            raw_result: Some(v1_1::DynamicProjectionDigest {
+                                projection_id: set["raw_result"]["projection_id"]
+                                    .as_str()
+                                    .expect("result projection")
+                                    .into(),
+                                schema_digest_sha256: hex(
+                                    set["raw_result"]["schema_digest_sha256"]
+                                        .as_str()
+                                        .expect("result digest"),
+                                ),
+                            }),
+                        }],
+                        ..Default::default()
+                    });
+                }
+                _ => {}
+            }
+            self.input.lock().expect("peer input").extend(
+                framing::encode(&envelope, NonZeroUsize::new(8192).expect("frame bound"))
+                    .expect("encode handshake")
+                    .bytes,
+            );
+        }
+    }
+
+    fn respond_to_tool(&self, request: &v1_1::Request) {
+        let invoke =
+            v1_1::InvokeToolRequest::decode(request.payload.as_slice()).expect("tool request");
+        let args = wire_value(
+            invoke
+                .arguments
+                .expect("tool arguments")
+                .value
+                .expect("tool argument value"),
+        );
+        let minor = request
+            .capability_ref
+            .as_ref()
+            .expect("tool capability")
+            .profile
+            .as_ref()
+            .expect("tool profile")
+            .minor;
+        let set = &echo_catalog()["entries"][0]["selected_minor_schema_sets"][format!("1.{minor}")];
+        let progress_raw = json!({
+            "content": [{"type": "text", "text": format!("progress: {}", args["text"]) }],
+            "details": {}
+        });
+        let progress = v1_1::SchemaBoundValue {
+            projection_id: set["progress"]["projection_id"]
+                .as_str()
+                .expect("progress projection")
+                .into(),
+            schema_digest_sha256: hex(set["progress"]["schema_digest_sha256"]
+                .as_str()
+                .expect("progress digest")),
+            value: Some(
+                pi_extension_protocol::profiles::json_wire(&progress_raw).expect("progress value"),
+            ),
+        };
+        let result_raw = json!({
+            "content": [{"type": "text", "text": args["text"] }],
+            "details": {}
+        });
+        let result = v1_1::SchemaBoundValue {
+            projection_id: set["raw_result"]["projection_id"]
+                .as_str()
+                .expect("result projection")
+                .into(),
+            schema_digest_sha256: hex(set["raw_result"]["schema_digest_sha256"]
+                .as_str()
+                .expect("result digest")),
+            value: Some(
+                pi_extension_protocol::profiles::json_wire(&result_raw).expect("result value"),
+            ),
+        };
+        // Ordinary (non-retained) echo routes begin with zero peer stream
+        // credit. Let the first terminal settle the assembled Harness, then
+        // retain one bounded progress frame in the wire witness without
+        // inventing a test-only credit grant.
+        self.terminal_items.fetch_add(1, Ordering::SeqCst);
+        self.push(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+            request_id: request.request_id,
+            terminal: Some(v1_1::stream_end::Terminal::Result(
+                v1_1::InvokeToolResult {
+                    raw_result: Some(result),
+                }
+                .encode_to_vec(),
+            )),
+        }));
+        self.progress_items.fetch_add(1, Ordering::SeqCst);
+        self.push(v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
+            request_id: request.request_id,
+            sequence: 0,
+            payload: v1_1::ToolProgress {
+                event: Some(progress),
+                percent_complete: Some(50),
+            }
+            .encode_to_vec(),
+        }));
     }
 
     fn push(&self, frame: v1_1::envelope::Frame) {
@@ -348,11 +748,65 @@ impl OrderedByteChannel for Peer {
         &self,
         frame: pi_extension_protocol::wire::framing::EncodedFrame,
     ) -> pi_ai::BoxFuture<'_, Result<(), ChannelError>> {
-        self.writes.lock().expect("peer writes").push(frame.bytes);
+        self.max_frame_bytes
+            .fetch_max(frame.bytes.len() as u64, Ordering::SeqCst);
+        self.writes
+            .lock()
+            .expect("peer writes")
+            .push(frame.bytes.clone());
+        let envelope =
+            framing::FrameReader::<v1_1::Envelope>::new(NonZeroUsize::new(8192).expect("reader"))
+                .read_one(&frame.bytes)
+                .expect("host frame")
+                .frame
+                .expect("host envelope")
+                .envelope;
+        if let Some(v1_1::envelope::Frame::Request(request)) = envelope.frame
+            && request.method == "tool.invoke"
+        {
+            self.tool_invocations.fetch_add(1, Ordering::SeqCst);
+            self.respond_to_tool(&request);
+        }
         Box::pin(async { Ok(()) })
     }
     fn close(&self) {
         self.closed.store(true, Ordering::SeqCst);
+    }
+}
+
+fn hex(value: &str) -> Vec<u8> {
+    (0..value.len())
+        .step_by(2)
+        .map(|index| u8::from_str_radix(&value[index..index + 2], 16).expect("hex"))
+        .collect()
+}
+
+fn echo_catalog() -> serde_json::Value {
+    serde_json::from_str(include_str!(
+        "../../pi-extension-protocol/schema/fixtures/host-catalog.json"
+    ))
+    .expect("echo catalog")
+}
+
+fn wire_value(value: v1_1::WireValue) -> serde_json::Value {
+    use v1_1::wire_value::Value;
+    match value.value.expect("wire value") {
+        Value::NullValue(_) => serde_json::Value::Null,
+        Value::BoolValue(value) => serde_json::Value::Bool(value),
+        Value::IntegerValue(value) => serde_json::Value::from(value),
+        Value::FloatValue(value) => serde_json::Value::from(value),
+        Value::TextValue(value) => serde_json::Value::String(value),
+        Value::ListValue(value) => {
+            serde_json::Value::Array(value.items.into_iter().map(wire_value).collect())
+        }
+        Value::MapValue(value) => serde_json::Value::Object(
+            value
+                .entries
+                .into_iter()
+                .map(|entry| (entry.key, wire_value(entry.value.expect("map value"))))
+                .collect(),
+        ),
+        Value::BytesValue(_) => panic!("echo fixture does not use byte values"),
     }
 }
 
@@ -371,6 +825,7 @@ async fn fixture() -> Fixture {
     let ids = Arc::new(Ids::default());
     let model = model("m5-model");
     let provider_model_calls = Arc::new(AtomicU64::new(0));
+    let adapter = EchoApiAdapter::new(&model);
     let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
         credentials: Arc::new(pi_ai::InMemoryCredentialStore::new()),
         models_store: Box::new(pi_ai::InMemoryModelsStore::new()),
@@ -384,6 +839,7 @@ async fn fixture() -> Fixture {
             id: model.provider.clone(),
             models: vec![model.clone()],
             model_calls: provider_model_calls.clone(),
+            adapter: Some(adapter),
         }))
         .await
         .expect("initial model catalog");
@@ -423,9 +879,17 @@ async fn fixture() -> Fixture {
 }
 
 fn host(profiles: Vec<ApprovedProfile>) -> HostAuthority {
+    host_with_tool_generation(profiles, 7, None)
+}
+
+fn host_with_tool_generation(
+    profiles: Vec<ApprovedProfile>,
+    generation: u64,
+    tool: Option<ApprovedTool>,
+) -> HostAuthority {
     HostAuthority::new(
         "peer-a".into(),
-        7,
+        generation,
         0,
         0,
         v1_1::ProtocolLimits {
@@ -447,12 +911,42 @@ fn host(profiles: Vec<ApprovedProfile>) -> HostAuthority {
             cancellation_grace_ms: 100,
             max_stream_credit_bytes: 4096,
         },
-        vec![],
+        tool.into_iter().collect(),
         vec![],
     )
     .expect("host")
     .with_profiles(profiles)
     .expect("profiles")
+}
+
+fn echo_approval() -> ApprovedTool {
+    let entry = &echo_catalog()["entries"][0];
+    let agent_tool = &entry["agentTool"];
+    let descriptor = pi_extension_protocol::activation::AgentTool {
+        name: agent_tool["name"].as_str().expect("tool name").into(),
+        label: agent_tool["label"].as_str().expect("tool label").into(),
+        description: agent_tool["description"]
+            .as_str()
+            .expect("tool description")
+            .into(),
+        parameters: agent_tool["parameters"].clone(),
+        execution_mode: AgentToolMode::Sequential,
+        replay: ToolReplay::Safe,
+    };
+    let schemas = [0_u32, 1]
+        .into_iter()
+        .map(|minor| {
+            let set = &entry["selected_minor_schema_sets"][format!("1.{minor}")];
+            ToolSchemaInputs {
+                minor,
+                arguments: serde_json::to_vec(&set["arguments"]["schema"]).expect("arguments"),
+                progress: serde_json::to_vec(&set["progress"]["schema"]).expect("progress"),
+                raw_result: serde_json::to_vec(&set["raw_result"]["schema"]).expect("result"),
+            }
+        })
+        .collect();
+    ApprovedTool::new("peer-a".into(), descriptor, schemas, Default::default())
+        .expect("echo approval")
 }
 
 async fn coding_harness(
@@ -511,7 +1005,6 @@ fn assembled_missing_grant_refuses_before_harness_registration() {
             let provider_calls_before = fixture.provider_model_calls.load(Ordering::SeqCst);
             let stats_before = fixture.session.get_stats().await.expect("stats before");
             let leaf_before = fixture.session.get_leaf_id().await.expect("leaf before");
-            let tool_invocations = AtomicU64::new(0);
             let peer = Peer::new(&[]);
             let adapter = CodingExtensionAdapter::connect_service(
                 &harness,
@@ -566,7 +1059,11 @@ fn assembled_missing_grant_refuses_before_harness_registration() {
                 leaf_before,
                 "missing grant must not add a durable entry"
             );
-            assert_eq!(tool_invocations.load(Ordering::SeqCst), 0);
+            assert_eq!(
+                peer.tool_invocations(),
+                0,
+                "missing grant must not issue an assembled tool request"
+            );
             assert!(peer.writes.lock().expect("writes").len() >= 2);
             harness.harness().close().await.expect("close harness");
         });
@@ -805,6 +1302,159 @@ fn assembled_tool_refuses_without_bounded_echo_route_before_registration() {
                     .registered_hook_count(pi_agent::schema::HookName::BeforeRun),
                 0
             );
+            harness.harness().close().await.expect("close harness");
+        });
+}
+
+#[test]
+fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_and_terminal() {
+    tokio::runtime::Runtime::new()
+        .expect("runtime")
+        .block_on(async {
+            let fixture = fixture().await;
+            let harness = coding_harness(&fixture).await;
+            let selected = vec![profile("hook", "before_run")];
+            let peer = Peer::new_tool(&selected);
+            let owner = SingleToolOwner::new(
+                Arc::new(Spawner),
+                OwnerLimits {
+                    outbound_bytes: NonZeroUsize::new(8192).expect("outbound"),
+                    receipt_bytes: NonZeroUsize::new(8192).expect("receipt"),
+                    write_timeout_ms: NonZeroU64::new(1000).expect("timeout"),
+                },
+            );
+            let adapter = harness
+                .connect_extension_tool(pi_coding_runtime::ExtensionToolInput {
+                    host: host_with_tool_generation(selected, 7, Some(echo_approval())),
+                    owner,
+                    channel: peer.clone(),
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                })
+                .await
+                .expect("ready tool");
+            let attachment = harness
+                .attach_extensions(
+                    adapter,
+                    vec![ExtensionRegistration::echo_tool(
+                        Arc::new(EchoTool),
+                        EchoRouteTiming {
+                            method_limit_ms: NonZeroU64::new(1000).expect("method limit"),
+                            connection_deadline_ms: 10_000,
+                        },
+                    )],
+                )
+                .await
+                .expect("attach echo");
+            harness
+                .harness()
+                .set_active_tools(vec![ToolName::new("echo").expect("tool name")])
+                .await
+                .expect("activate echo");
+            let run = harness
+                .harness()
+                .prompt(pi_agent::schema::PromptInput::Text {
+                    text: "invoke assembled echo".into(),
+                    images: vec![],
+                })
+                .await
+                .expect("run admission")
+                .expect("run completion");
+            assert!(matches!(
+                run.outcome,
+                pi_agent::schema::RunOutcome::CompletedWithAssistant(_)
+            ));
+            assert_eq!(peer.tool_invocations(), 1);
+            assert_eq!(peer.progress_items(), 1);
+            assert_eq!(peer.terminal_items(), 1);
+            assert!(
+                peer.max_frame_bytes() <= 8192,
+                "assembled route exceeded the negotiated frame bound"
+            );
+            attachment.close();
+            harness.harness().close().await.expect("close harness");
+        });
+}
+
+#[test]
+fn assembled_tool_conflict_rejects_second_live_attachment() {
+    tokio::runtime::Runtime::new()
+        .expect("runtime")
+        .block_on(async {
+            let fixture = fixture().await;
+            let harness = coding_harness(&fixture).await;
+            let selected = vec![profile("hook", "before_run")];
+            let owner = SingleToolOwner::new(
+                Arc::new(Spawner),
+                OwnerLimits {
+                    outbound_bytes: NonZeroUsize::new(8192).expect("outbound"),
+                    receipt_bytes: NonZeroUsize::new(8192).expect("receipt"),
+                    write_timeout_ms: NonZeroU64::new(1000).expect("timeout"),
+                },
+            );
+            let first_peer = Peer::new_tool(&selected);
+            let first = harness
+                .connect_extension_tool(pi_coding_runtime::ExtensionToolInput {
+                    host: host_with_tool_generation(selected.clone(), 7, Some(echo_approval())),
+                    owner: owner.clone(),
+                    channel: first_peer,
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                })
+                .await
+                .expect("first ready tool");
+            let first_attachment = harness
+                .attach_extensions(
+                    first,
+                    vec![ExtensionRegistration::echo_tool(
+                        Arc::new(EchoTool),
+                        EchoRouteTiming {
+                            method_limit_ms: NonZeroU64::new(1000).expect("method limit"),
+                            connection_deadline_ms: 10_000,
+                        },
+                    )],
+                )
+                .await
+                .expect("first echo attachment");
+
+            let second_peer = Peer::new_tool(&selected);
+            let second = harness
+                .connect_extension_tool(pi_coding_runtime::ExtensionToolInput {
+                    host: host_with_tool_generation(selected, 8, Some(echo_approval())),
+                    owner,
+                    channel: second_peer,
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                })
+                .await
+                .expect("second ready tool");
+            let result = harness
+                .attach_extensions(
+                    second,
+                    vec![ExtensionRegistration::echo_tool(
+                        Arc::new(EchoTool),
+                        EchoRouteTiming {
+                            method_limit_ms: NonZeroU64::new(1000).expect("method limit"),
+                            connection_deadline_ms: 10_000,
+                        },
+                    )],
+                )
+                .await;
+            assert!(matches!(
+                result,
+                Err(
+                    pi_coding_runtime::CodingExtensionError::InvalidRegistration(
+                        "echo tool conflict: existing attachment wins"
+                    )
+                )
+            ));
+            first_attachment.close();
             harness.harness().close().await.expect("close harness");
         });
 }
