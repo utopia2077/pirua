@@ -25,7 +25,7 @@ use pi_harness_runtime::extensions::{
         connection::ProfileConnection, hooks::RemoteHook, provider::ProfileProviderSnapshot,
     },
     tool_driver::{DriverError, EchoRouteTiming, ReadyToolRoute, SingleToolOwner},
-    transport::{MonotonicClock, OrderedByteChannel, PumpConfig},
+    transport::{MonotonicClock, OrderedByteChannel, PumpConfig, RetainedOrderedByteChannel},
 };
 use std::{
     collections::{BTreeSet, HashSet},
@@ -42,6 +42,25 @@ pub struct ExtensionToolInput {
     pub owner: SingleToolOwner,
     /// Ordered host channel.
     pub channel: Arc<dyn OrderedByteChannel>,
+    /// Host monotonic clock.
+    pub clock: Arc<dyn MonotonicClock>,
+    /// Finite pump limits.
+    pub config: PumpConfig,
+    /// Finite profile reservations.
+    pub reservations: Reservations,
+    /// Host deadline for the connection.
+    pub remaining_ms: u64,
+}
+
+/// Inputs for connecting a Ready tool/profile route through the retained
+/// receive path owned by the existing [`RuntimeHarness`] pump.
+pub struct ExtensionRetainedToolInput {
+    /// Host-established authenticated authority.
+    pub host: pi_extension_protocol::activation::HostAuthority,
+    /// Host-owned single-tool owner.
+    pub owner: SingleToolOwner,
+    /// Ordered host channel with retained receive notifications.
+    pub channel: Arc<dyn RetainedOrderedByteChannel>,
     /// Host monotonic clock.
     pub clock: Arc<dyn MonotonicClock>,
     /// Finite pump limits.
@@ -247,6 +266,31 @@ impl CodingExtensionAdapter {
         let (connection, route) = harness
             .harness()
             .connect_profile_tool(
+                &input.owner,
+                input.host,
+                input.channel,
+                input.clock,
+                input.config,
+                input.reservations,
+                input.remaining_ms,
+            )
+            .await
+            .map_err(runtime_error)?;
+        Self::from_tool_connection(connection, route)
+    }
+
+    /// Connects through the existing authenticated retained tool/profile pump.
+    pub async fn connect_tool_retained<S, M>(
+        harness: &CodingHarness<S, M>,
+        input: ExtensionRetainedToolInput,
+    ) -> Result<Self, CodingExtensionError>
+    where
+        S: RuntimeStorage + 'static,
+        M: SessionMetadataRecord + 'static,
+    {
+        let (connection, route) = harness
+            .harness()
+            .connect_profile_tool_retained(
                 &input.owner,
                 input.host,
                 input.channel,

@@ -378,6 +378,54 @@ struct CapturedCaller8192 {
     origin: Arc<dyn OriginFence>,
 }
 
+/// Retained routes need a stable caller token after the ordinary echo
+/// publication has returned its drive lease. The routed execution path still
+/// proves the durable effect tuple before reaching this boundary; this token
+/// carries only the retained route's staged receive custody.
+struct RetainedCallerToken {
+    token: Arc<()>,
+}
+
+impl RetainedCallerToken {
+    fn arc() -> Arc<dyn OriginFence> {
+        Arc::new(Self {
+            token: Arc::new(()),
+        })
+    }
+}
+
+impl OriginFence for RetainedCallerToken {
+    fn begin_failure(&self, _drive_only: bool) {}
+
+    fn finish_failure(&self) {}
+
+    fn token(&self) -> Arc<()> {
+        self.token.clone()
+    }
+
+    fn transfer_to_work(&self) {}
+
+    fn disarm(&self) {}
+
+    fn defer_release(&self, release: Box<dyn FnOnce() + Send>) {
+        release();
+    }
+
+    fn belongs_to_drive(&self, _stamp: &Arc<()>) -> bool {
+        false
+    }
+
+    fn return_to_drive(&self) {}
+
+    fn is_work(&self) -> bool {
+        true
+    }
+
+    fn is_active(&self) -> bool {
+        true
+    }
+}
+
 impl CapturedCaller8192 {
     fn staged_identity(&self) -> crate::extensions::receive_host8192::CallerIdentity8192 {
         crate::extensions::receive_host8192::CallerIdentity8192 {
@@ -1581,6 +1629,12 @@ impl ReadyToolRoute {
         epoch: u64,
         origin: Option<&Arc<dyn OriginFence>>,
     ) -> Result<PreparedCall, DriverError> {
+        let origin = origin.cloned().or_else(|| {
+            self.route
+                .retained_channel
+                .as_ref()
+                .map(|_| RetainedCallerToken::arc())
+        });
         let caller = if self.route.retained_channel.is_some() || origin.is_some() {
             let origin = origin.ok_or(DriverError::WrongBinding)?;
             Some(CapturedCaller8192 {
@@ -1589,7 +1643,7 @@ impl ReadyToolRoute {
                 arguments: captured.clone(),
                 source_call_id: source_call_id.to_owned(),
                 epoch,
-                origin: origin.clone(),
+                origin,
             })
         } else {
             None

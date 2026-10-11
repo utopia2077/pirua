@@ -114,6 +114,17 @@ where
         crate::extensions::CodingExtensionAdapter::connect_tool(self, input).await
     }
 
+    /// Connects one host-authenticated retained extension tool/profile route
+    /// through the existing runtime pump.
+    #[cfg(feature = "extensions")]
+    pub async fn connect_extension_tool_retained(
+        &self,
+        input: crate::extensions::ExtensionRetainedToolInput,
+    ) -> Result<crate::extensions::CodingExtensionAdapter, crate::extensions::CodingExtensionError>
+    {
+        crate::extensions::CodingExtensionAdapter::connect_tool_retained(self, input).await
+    }
+
     /// Connects one host-authenticated service/profile route through the
     /// existing runtime pump.
     #[cfg(feature = "extensions")]

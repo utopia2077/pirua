@@ -19,7 +19,8 @@ pub use credentials::CredentialInputs;
 #[cfg(feature = "extensions")]
 pub use extensions::{
     CodingExtensionAdapter, CodingExtensionAttachment, CodingExtensionError, EchoConflictPolicy,
-    ExtensionRegistration, ExtensionRegistrationKind, ExtensionServiceInput, ExtensionToolInput,
+    ExtensionRegistration, ExtensionRegistrationKind, ExtensionRetainedToolInput,
+    ExtensionServiceInput, ExtensionToolInput,
 };
 pub use legacy_import::{LegacyImportSource, open_external_jsonl};
 pub use messages::CodingMessageConverter;

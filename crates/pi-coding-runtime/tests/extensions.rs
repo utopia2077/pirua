@@ -34,7 +34,10 @@ use pi_harness_runtime::{
     extensions::{
         profiles::connection::ProfileConnection,
         tool_driver::{EchoRouteTiming, OwnerLimits, SingleToolOwner},
-        transport::{ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig},
+        transport::{
+            ChannelError, MonotonicClock, OrderedByteChannel, PumpConfig,
+            RetainedOrderedByteChannel,
+        },
     },
     owner::RuntimeFactory,
 };
@@ -48,7 +51,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
-    task::Poll,
+    task::{Poll, Waker},
     time::Duration,
 };
 
@@ -432,6 +435,7 @@ struct Peer {
     input: Mutex<VecDeque<u8>>,
     writes: Mutex<Vec<Vec<u8>>>,
     closed: AtomicBool,
+    frame_bound: usize,
     tool_invocations: AtomicU64,
     progress_items: AtomicU64,
     terminal_items: AtomicU64,
@@ -439,6 +443,10 @@ struct Peer {
 }
 impl Peer {
     fn new(profiles: &[ApprovedProfile]) -> Arc<Self> {
+        Self::new_with_frame_bound(profiles, 8192)
+    }
+
+    fn new_with_frame_bound(profiles: &[ApprovedProfile], frame_bound: usize) -> Arc<Self> {
         let supported_profiles = profiles
             .iter()
             .map(|profile| v1_1::ProfileRange {
@@ -481,6 +489,7 @@ impl Peer {
             input: Mutex::new(VecDeque::new()),
             writes: Mutex::new(Vec::new()),
             closed: AtomicBool::new(false),
+            frame_bound,
             tool_invocations: AtomicU64::new(0),
             progress_items: AtomicU64::new(0),
             terminal_items: AtomicU64::new(0),
@@ -511,13 +520,21 @@ impl Peer {
     }
 
     fn new_tool(profiles: &[ApprovedProfile]) -> Arc<Self> {
-        let peer = Self::new(profiles);
+        Self::new_tool_with_frame_bound(profiles, 8192)
+    }
+
+    fn new_tool_with_frame_bound(profiles: &[ApprovedProfile], frame_bound: usize) -> Arc<Self> {
+        let peer = Self::new_with_frame_bound(profiles, frame_bound);
         peer.enable_tool(0);
         peer
     }
 
     fn tool_invocations(&self) -> u64 {
         self.tool_invocations.load(Ordering::SeqCst)
+    }
+
+    fn is_closed(&self) -> bool {
+        self.closed.load(Ordering::SeqCst)
     }
 
     fn progress_items(&self) -> u64 {
@@ -539,8 +556,9 @@ impl Peer {
             .expect("peer input")
             .drain(..)
             .collect::<Vec<_>>();
-        let mut reader =
-            framing::FrameReader::<v1_1::Envelope>::new(NonZeroUsize::new(8192).expect("reader"));
+        let mut reader = framing::FrameReader::<v1_1::Envelope>::new(
+            NonZeroUsize::new(self.frame_bound).expect("reader"),
+        );
         let mut at = 0;
         let catalog = echo_catalog();
         let set = &catalog["entries"][0]["selected_minor_schema_sets"][format!("1.{minor}")];
@@ -619,9 +637,12 @@ impl Peer {
                 _ => {}
             }
             self.input.lock().expect("peer input").extend(
-                framing::encode(&envelope, NonZeroUsize::new(8192).expect("frame bound"))
-                    .expect("encode handshake")
-                    .bytes,
+                framing::encode(
+                    &envelope,
+                    NonZeroUsize::new(self.frame_bound).expect("frame bound"),
+                )
+                .expect("encode handshake")
+                .bytes,
             );
         }
     }
@@ -677,10 +698,16 @@ impl Peer {
                 pi_extension_protocol::profiles::json_wire(&result_raw).expect("result value"),
             ),
         };
-        // Ordinary (non-retained) echo routes begin with zero peer stream
-        // credit. Let the first terminal settle the assembled Harness, then
-        // retain one bounded progress frame in the wire witness without
-        // inventing a test-only credit grant.
+        self.progress_items.fetch_add(1, Ordering::SeqCst);
+        self.push(v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
+            request_id: request.request_id,
+            sequence: 0,
+            payload: v1_1::ToolProgress {
+                event: Some(progress),
+                percent_complete: None,
+            }
+            .encode_to_vec(),
+        }));
         self.terminal_items.fetch_add(1, Ordering::SeqCst);
         self.push(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
             request_id: request.request_id,
@@ -691,22 +718,29 @@ impl Peer {
                 .encode_to_vec(),
             )),
         }));
-        self.progress_items.fetch_add(1, Ordering::SeqCst);
-        self.push(v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
-            request_id: request.request_id,
-            sequence: 0,
-            payload: v1_1::ToolProgress {
-                event: Some(progress),
-                percent_complete: Some(50),
-            }
-            .encode_to_vec(),
-        }));
+    }
+
+    fn push_oversized_stream_end(&self, request_id: u64, payload_bytes: usize) {
+        let frame = v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+            request_id,
+            terminal: Some(v1_1::stream_end::Terminal::Error(v1_1::TypedError {
+                code: v1_1::ErrorCode::HandlerError as i32,
+                safe_message: "x".repeat(payload_bytes),
+            })),
+        });
+        let encoded = framing::encode(
+            &v1_1::Envelope { frame: Some(frame) },
+            NonZeroUsize::new(8192).expect("oversized frame bound"),
+        )
+        .expect("encode oversized frame");
+        assert!(encoded.body_len > self.frame_bound);
+        self.input.lock().expect("peer input").extend(encoded.bytes);
     }
 
     fn push(&self, frame: v1_1::envelope::Frame) {
         let encoded = framing::encode(
             &v1_1::Envelope { frame: Some(frame) },
-            NonZeroUsize::new(8192).expect("frame bound"),
+            NonZeroUsize::new(self.frame_bound).expect("frame bound"),
         )
         .expect("encode handshake");
         self.input.lock().expect("peer input").extend(encoded.bytes);
@@ -771,6 +805,17 @@ impl OrderedByteChannel for Peer {
     }
     fn close(&self) {
         self.closed.store(true, Ordering::SeqCst);
+    }
+}
+
+impl RetainedOrderedByteChannel for Peer {
+    fn take_notifications(&self) -> [Option<Waker>; 2] {
+        [None, None]
+    }
+
+    fn close_retained(&self) -> [Option<Waker>; 2] {
+        self.close();
+        [None, None]
     }
 }
 
@@ -879,7 +924,7 @@ async fn fixture() -> Fixture {
 }
 
 fn host(profiles: Vec<ApprovedProfile>) -> HostAuthority {
-    host_with_tool_generation(profiles, 7, None)
+    host_with_tool_generation_and_frame(profiles, 7, None, 8192)
 }
 
 fn host_with_tool_generation(
@@ -887,14 +932,23 @@ fn host_with_tool_generation(
     generation: u64,
     tool: Option<ApprovedTool>,
 ) -> HostAuthority {
+    host_with_tool_generation_and_frame(profiles, generation, tool, 8192)
+}
+
+fn host_with_tool_generation_and_frame(
+    profiles: Vec<ApprovedProfile>,
+    generation: u64,
+    tool: Option<ApprovedTool>,
+    frame_bytes: u64,
+) -> HostAuthority {
     HostAuthority::new(
         "peer-a".into(),
         generation,
         0,
         0,
         v1_1::ProtocolLimits {
-            pre_handshake_frame_bytes: 8192,
-            frame_bytes: 8192,
+            pre_handshake_frame_bytes: frame_bytes,
+            frame_bytes,
             aggregate_decoded_bytes: 8192,
             value_depth: 32,
             value_elements: 1024,
@@ -1170,14 +1224,6 @@ fn assembled_late_hook_refusal_rolls_back_prior_provider_mutation() {
             )
             .await
             .expect("ready service");
-            eprintln!(
-                "before provider={}",
-                fixture
-                    .registry
-                    .get_provider(&fixture.model.provider)
-                    .expect("initial provider")
-                    .name()
-            );
             let connection = adapter.connection().clone();
             let hook = capability(&connection, "hook", "before_run");
             let provider = capability(&connection, "provider", "openai");
@@ -1324,7 +1370,7 @@ fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_an
                 },
             );
             let adapter = harness
-                .connect_extension_tool(pi_coding_runtime::ExtensionToolInput {
+                .connect_extension_tool_retained(pi_coding_runtime::ExtensionRetainedToolInput {
                     host: host_with_tool_generation(selected, 7, Some(echo_approval())),
                     owner,
                     channel: peer.clone(),
@@ -1369,11 +1415,78 @@ fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_an
             assert_eq!(peer.tool_invocations(), 1);
             assert_eq!(peer.progress_items(), 1);
             assert_eq!(peer.terminal_items(), 1);
+            assert!(attachment.connection().current());
             assert!(
                 peer.max_frame_bytes() <= 8192,
                 "assembled route exceeded the negotiated frame bound"
             );
             attachment.close();
+            harness.harness().close().await.expect("close harness");
+        });
+}
+
+#[test]
+fn assembled_tool_refuses_peer_frame_above_negotiated_ready_bound() {
+    tokio::runtime::Runtime::new()
+        .expect("runtime")
+        .block_on(async {
+            let fixture = fixture().await;
+            let harness = coding_harness(&fixture).await;
+            let selected = vec![profile("hook", "before_run")];
+            let peer = Peer::new_tool_with_frame_bound(&selected, 2048);
+            let adapter = harness
+                .connect_extension_tool_retained(pi_coding_runtime::ExtensionRetainedToolInput {
+                    host: host_with_tool_generation_and_frame(
+                        selected,
+                        7,
+                        Some(echo_approval()),
+                        2048,
+                    ),
+                    owner: SingleToolOwner::new(
+                        Arc::new(Spawner),
+                        OwnerLimits {
+                            outbound_bytes: NonZeroUsize::new(8192).expect("outbound"),
+                            receipt_bytes: NonZeroUsize::new(8192).expect("receipt"),
+                            write_timeout_ms: NonZeroU64::new(1000).expect("timeout"),
+                        },
+                    ),
+                    channel: peer.clone(),
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                })
+                .await
+                .expect("ready bounded tool");
+            let connection = adapter.connection().clone();
+            assert_eq!(
+                connection
+                    .grant()
+                    .wire()
+                    .limits
+                    .as_ref()
+                    .expect("limits")
+                    .frame_bytes,
+                2048
+            );
+            peer.push_oversized_stream_end(1, 3000);
+            for _ in 0..1000 {
+                if peer.is_closed() {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+            assert!(
+                peer.is_closed(),
+                "oversized peer frame must close the retained channel"
+            );
+            assert_eq!(
+                peer.tool_invocations(),
+                0,
+                "bounded refusal must precede any assembled tool invocation"
+            );
+            assert_eq!(peer.terminal_items(), 0);
+            connection.close();
             harness.harness().close().await.expect("close harness");
         });
 }
@@ -1386,7 +1499,15 @@ fn assembled_tool_conflict_rejects_second_live_attachment() {
             let fixture = fixture().await;
             let harness = coding_harness(&fixture).await;
             let selected = vec![profile("hook", "before_run")];
-            let owner = SingleToolOwner::new(
+            let first_owner = SingleToolOwner::new(
+                Arc::new(Spawner),
+                OwnerLimits {
+                    outbound_bytes: NonZeroUsize::new(8192).expect("outbound"),
+                    receipt_bytes: NonZeroUsize::new(8192).expect("receipt"),
+                    write_timeout_ms: NonZeroU64::new(1000).expect("timeout"),
+                },
+            );
+            let second_owner = SingleToolOwner::new(
                 Arc::new(Spawner),
                 OwnerLimits {
                     outbound_bytes: NonZeroUsize::new(8192).expect("outbound"),
@@ -1398,7 +1519,7 @@ fn assembled_tool_conflict_rejects_second_live_attachment() {
             let first = harness
                 .connect_extension_tool(pi_coding_runtime::ExtensionToolInput {
                     host: host_with_tool_generation(selected.clone(), 7, Some(echo_approval())),
-                    owner: owner.clone(),
+                    owner: first_owner,
                     channel: first_peer,
                     clock: Arc::new(Mono(AtomicU64::new(0))),
                     config: config(),
@@ -1420,12 +1541,14 @@ fn assembled_tool_conflict_rejects_second_live_attachment() {
                 )
                 .await
                 .expect("first echo attachment");
+            let first_connection = first_attachment.connection().clone();
+            assert!(first_connection.current());
 
             let second_peer = Peer::new_tool(&selected);
             let second = harness
                 .connect_extension_tool(pi_coding_runtime::ExtensionToolInput {
                     host: host_with_tool_generation(selected, 8, Some(echo_approval())),
-                    owner,
+                    owner: second_owner,
                     channel: second_peer,
                     clock: Arc::new(Mono(AtomicU64::new(0))),
                     config: config(),
@@ -1434,6 +1557,7 @@ fn assembled_tool_conflict_rejects_second_live_attachment() {
                 })
                 .await
                 .expect("second ready tool");
+            let second_connection = second.connection().clone();
             let result = harness
                 .attach_extensions(
                     second,
@@ -1454,7 +1578,13 @@ fn assembled_tool_conflict_rejects_second_live_attachment() {
                     )
                 )
             ));
+            assert!(
+                first_connection.current(),
+                "second independent owner must not replace generation 7"
+            );
+            assert!(second_connection.current());
             first_attachment.close();
+            second_connection.close();
             harness.harness().close().await.expect("close harness");
         });
 }
