@@ -144,6 +144,14 @@ pub(crate) struct RegisteredProvider {
     pub registration: ProviderRegistration,
     pub payload_schema: Option<pi_extension_protocol::jcs::PortableSchema>,
 }
+
+/// Opaque snapshot used by a composition owner to restore one provider
+/// registration after a later ordered extension admission fails.
+pub struct ProfileProviderSnapshot {
+    provider: ProviderId,
+    previous_provider: Option<Arc<dyn Provider>>,
+    previous_profile: Option<RegisteredProvider>,
+}
 struct CatalogProvider {
     models: Arc<[Model]>,
     auth: ProviderAuth,
@@ -168,6 +176,60 @@ impl Provider for CatalogProvider {
 impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRecord>
     RuntimeHarness<C, S, M>
 {
+    /// Captures the current catalog/profile state for one provider without
+    /// invoking provider or transport code.
+    pub fn snapshot_profile_provider(&self, provider: &ProviderId) -> ProfileProviderSnapshot {
+        ProfileProviderSnapshot {
+            provider: provider.clone(),
+            previous_provider: self.main.owner.models.get_provider(provider),
+            previous_profile: self
+                .main
+                .owner
+                .profile_providers
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .get(provider)
+                .cloned(),
+        }
+    }
+
+    /// Restores a provider/catalog snapshot captured before an extension
+    /// registration transaction.
+    pub async fn restore_profile_provider(
+        &self,
+        snapshot: ProfileProviderSnapshot,
+    ) -> Result<(), HarnessRuntimeError> {
+        self.main
+            .owner
+            .models
+            .delete_provider(&snapshot.provider)
+            .await
+            .map_err(|_| super::fault())?;
+        if let Some(provider) = snapshot.previous_provider {
+            self.main
+                .owner
+                .models
+                .set_provider(provider)
+                .await
+                .map_err(|_| super::fault())?;
+        }
+        let mut profile_providers = self
+            .main
+            .owner
+            .profile_providers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match snapshot.previous_profile {
+            Some(previous) => {
+                profile_providers.insert(snapshot.provider, previous);
+            }
+            None => {
+                profile_providers.remove(&snapshot.provider);
+            }
+        }
+        Ok(())
+    }
+
     /// Catalog registration makes an explicit no-auth provider available. Only
     /// native keyed Assistant/Summary owners can dispatch this registration.
     pub async fn register_profile_provider(

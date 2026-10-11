@@ -12,7 +12,8 @@
 
 use crate::builder::CodingHarness;
 use pi_agent::schema::{
-    AgentHarnessToolHandle, HookRegistrationError, HookSubscription, SessionMetadataRecord,
+    AgentHarness, AgentHarnessToolHandle, HookRegistrationError, HookSubscription,
+    SessionMetadataRecord,
 };
 use pi_agent_session::storage::RuntimeStorage;
 use pi_ai::{Model, ModelBaseUrl, ModelHeaderPolicy};
@@ -20,7 +21,9 @@ use pi_extension_protocol::{
     jcs::PortableSchema, profile_live::Reservations, profiles::wire_v1_1::CapabilityRef,
 };
 use pi_harness_runtime::extensions::{
-    profiles::{connection::ProfileConnection, hooks::RemoteHook},
+    profiles::{
+        connection::ProfileConnection, hooks::RemoteHook, provider::ProfileProviderSnapshot,
+    },
     tool_driver::{DriverError, EchoRouteTiming, ReadyToolRoute, SingleToolOwner},
     transport::{MonotonicClock, OrderedByteChannel, PumpConfig},
 };
@@ -147,6 +150,17 @@ pub enum ExtensionRegistrationKind {
     Provider,
 }
 
+/// Stable coding-runtime policy for an echo tool conflict across attachments.
+///
+/// The lower Harness route can replace an echo route, but the coding adapter
+/// refuses a second attached echo registration so callers cannot accidentally
+/// lose a live binding. The first attachment remains installed.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EchoConflictPolicy {
+    /// Refuse an attachment when the Harness already exposes an echo tool.
+    RejectExisting,
+}
+
 /// Refusal raised before or during extension composition.
 #[derive(Debug)]
 pub enum CodingExtensionError {
@@ -191,6 +205,11 @@ pub struct CodingExtensionAdapter {
 }
 
 impl CodingExtensionAdapter {
+    /// Returns the explicit cross-attachment echo conflict policy.
+    pub const fn echo_conflict_policy() -> EchoConflictPolicy {
+        EchoConflictPolicy::RejectExisting
+    }
+
     /// Wraps an already Ready service connection.
     ///
     /// The connection type is only produced after the existing Hello,
@@ -289,12 +308,20 @@ impl CodingExtensionAdapter {
         S: RuntimeStorage + 'static,
         M: SessionMetadataRecord + 'static,
     {
-        self.preflight(harness, &registrations)?;
+        let original_tools = harness.harness().get_tools().await.map_err(runtime_error)?;
+        self.preflight(harness, &registrations, &original_tools)
+            .await?;
+
+        let provider_snapshots = self.provider_snapshots(harness, &registrations)?;
 
         let mut hooks = Vec::new();
         let mut order = Vec::with_capacity(registrations.len());
+        let mut tool_attempted = false;
         for registration in registrations {
             let kind = registration.kind();
+            if kind == ExtensionRegistrationKind::EchoTool {
+                tool_attempted = true;
+            }
             let result = match registration {
                 ExtensionRegistration::EchoTool { handle, timing } => harness
                     .harness()
@@ -304,22 +331,23 @@ impl CodingExtensionAdapter {
                         timing,
                     )
                     .await
-                    .map_err(runtime_error)?
-                    .map_err(CodingExtensionError::Tool)
+                    .map_err(runtime_error)
+                    .and_then(|result| result.map_err(CodingExtensionError::Tool))
                     .map(|_| ()),
                 ExtensionRegistration::Hook {
                     capability,
                     model_policy,
-                } => {
-                    let hook = RemoteHook::new(self.connection.clone(), capability, model_policy)
-                        .map_err(runtime_error)?;
-                    let subscription = harness
-                        .harness()
-                        .register_profile_hook(hook)
-                        .map_err(CodingExtensionError::Hook)?;
-                    hooks.push(subscription);
-                    Ok(())
-                }
+                } => RemoteHook::new(self.connection.clone(), capability, model_policy)
+                    .map_err(runtime_error)
+                    .and_then(|hook| {
+                        harness
+                            .harness()
+                            .register_profile_hook(hook)
+                            .map_err(CodingExtensionError::Hook)
+                    })
+                    .map(|subscription| {
+                        hooks.push(subscription);
+                    }),
                 ExtensionRegistration::Provider {
                     capability,
                     models,
@@ -341,8 +369,21 @@ impl CodingExtensionAdapter {
                 for hook in hooks {
                     hook.unsubscribe();
                 }
+                let mut rollback_error = None;
+                if tool_attempted
+                    && let Err(rollback) = harness.harness().set_tools(original_tools.clone()).await
+                {
+                    rollback_error = Some(runtime_error(rollback));
+                }
+                for snapshot in provider_snapshots.into_iter().rev() {
+                    if let Err(rollback) =
+                        harness.harness().restore_profile_provider(snapshot).await
+                    {
+                        rollback_error = Some(runtime_error(rollback));
+                    }
+                }
                 self.connection.close();
-                return Err(error);
+                return Err(rollback_error.unwrap_or(error));
             }
             order.push(kind);
         }
@@ -355,10 +396,11 @@ impl CodingExtensionAdapter {
         })
     }
 
-    fn preflight<S, M>(
+    async fn preflight<S, M>(
         &self,
         harness: &CodingHarness<S, M>,
         registrations: &[ExtensionRegistration],
+        original_tools: &[AgentHarnessToolHandle<crate::ExecutionToolContext>],
     ) -> Result<(), CodingExtensionError>
     where
         S: RuntimeStorage + 'static,
@@ -377,6 +419,15 @@ impl CodingExtensionAdapter {
                     if tool_count > 1 {
                         return Err(CodingExtensionError::InvalidRegistration(
                             "only one bounded echo route may be attached",
+                        ));
+                    }
+                    if Self::echo_conflict_policy() == EchoConflictPolicy::RejectExisting
+                        && original_tools
+                            .iter()
+                            .any(|tool| tool.descriptor().name.as_str() == "echo")
+                    {
+                        return Err(CodingExtensionError::InvalidRegistration(
+                            "echo tool conflict: existing attachment wins",
                         ));
                     }
                     let route =
@@ -434,6 +485,31 @@ impl CodingExtensionAdapter {
             }
         }
         Ok(())
+    }
+
+    fn provider_snapshots<S, M>(
+        &self,
+        harness: &CodingHarness<S, M>,
+        registrations: &[ExtensionRegistration],
+    ) -> Result<Vec<ProfileProviderSnapshot>, CodingExtensionError>
+    where
+        S: RuntimeStorage + 'static,
+        M: SessionMetadataRecord + 'static,
+    {
+        let mut providers = BTreeSet::new();
+        let mut snapshots = Vec::new();
+        for registration in registrations {
+            let ExtensionRegistration::Provider { models, .. } = registration else {
+                continue;
+            };
+            let Some(model) = models.first() else {
+                continue;
+            };
+            if providers.insert(model.provider.clone()) {
+                snapshots.push(harness.harness().snapshot_profile_provider(&model.provider));
+            }
+        }
+        Ok(snapshots)
     }
 }
 

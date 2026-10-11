@@ -1,8 +1,8 @@
 #![cfg(feature = "extensions")]
 
 use pi_agent::schema::{
-    AgentHarness, AgentMessage, HarnessRuntimeError, IdGenerator, SessionCreateOptions,
-    SessionRepo, StorageError,
+    AgentHarness, AgentLane, AgentMessage, HarnessRuntimeError, IdGenerator, SessionCreateOptions,
+    SessionRepo, SessionTree, StorageError,
 };
 use pi_agent_session::{
     context::SummaryRenderer,
@@ -17,8 +17,8 @@ use pi_ai::{
 };
 use pi_coding_runtime::{
     CodingExtensionAdapter, CodingHarnessBuilder, CodingSettingsSnapshot, CompactionSettings,
-    ExecutionEnv, ExtensionRegistration, LocalExecutionEnv, ModelRef, QueueMode, Resources,
-    ThinkingLevel,
+    EchoConflictPolicy, ExecutionEnv, ExtensionRegistration, LocalExecutionEnv, ModelRef,
+    QueueMode, Resources, ThinkingLevel,
 };
 use pi_extension_protocol::{
     activation::HostAuthority,
@@ -126,6 +126,7 @@ impl SummaryRenderer for Summary {
 struct FixtureProvider {
     id: ProviderId,
     models: Vec<Model>,
+    model_calls: Arc<AtomicU64>,
 }
 impl Provider for FixtureProvider {
     fn id(&self) -> &ProviderId {
@@ -139,6 +140,7 @@ impl Provider for FixtureProvider {
         AUTH.get_or_init(ProviderAuth::no_auth)
     }
     fn models(&self) -> Result<Arc<[Model]>, ModelsError> {
+        self.model_calls.fetch_add(1, Ordering::SeqCst);
         Ok(self.models.clone().into())
     }
     fn adapter(&self, _: &ApiId) -> Option<Arc<dyn ApiAdapter>> {
@@ -360,6 +362,7 @@ struct Fixture {
     session: Arc<pi_agent_session::repo::MemorySession>,
     registry: Arc<ModelsRegistry>,
     environment: Arc<dyn ExecutionEnv>,
+    provider_model_calls: Arc<AtomicU64>,
 }
 
 async fn fixture() -> Fixture {
@@ -367,6 +370,7 @@ async fn fixture() -> Fixture {
     let spawner = Arc::new(Spawner);
     let ids = Arc::new(Ids::default());
     let model = model("m5-model");
+    let provider_model_calls = Arc::new(AtomicU64::new(0));
     let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
         credentials: Arc::new(pi_ai::InMemoryCredentialStore::new()),
         models_store: Box::new(pi_ai::InMemoryModelsStore::new()),
@@ -379,6 +383,7 @@ async fn fixture() -> Fixture {
         .set_provider(Arc::new(FixtureProvider {
             id: model.provider.clone(),
             models: vec![model.clone()],
+            model_calls: provider_model_calls.clone(),
         }))
         .await
         .expect("initial model catalog");
@@ -413,6 +418,7 @@ async fn fixture() -> Fixture {
         session,
         registry,
         environment,
+        provider_model_calls,
     }
 }
 
@@ -502,6 +508,10 @@ fn assembled_missing_grant_refuses_before_harness_registration() {
         .block_on(async {
             let fixture = fixture().await;
             let harness = coding_harness(&fixture).await;
+            let provider_calls_before = fixture.provider_model_calls.load(Ordering::SeqCst);
+            let stats_before = fixture.session.get_stats().await.expect("stats before");
+            let leaf_before = fixture.session.get_leaf_id().await.expect("leaf before");
+            let tool_invocations = AtomicU64::new(0);
             let peer = Peer::new(&[]);
             let adapter = CodingExtensionAdapter::connect_service(
                 &harness,
@@ -541,7 +551,22 @@ fn assembled_missing_grant_refuses_before_harness_registration() {
                     .registered_hook_count(pi_agent::schema::HookName::BeforeRun),
                 0
             );
-            assert_eq!(fixture.registry.get_models(None).len(), 1);
+            assert_eq!(
+                fixture.provider_model_calls.load(Ordering::SeqCst),
+                provider_calls_before,
+                "missing grant must not call the provider catalog"
+            );
+            assert_eq!(
+                fixture.session.get_stats().await.expect("stats after"),
+                stats_before,
+                "missing grant must not publish a session event"
+            );
+            assert_eq!(
+                fixture.session.get_leaf_id().await.expect("leaf after"),
+                leaf_before,
+                "missing grant must not add a durable entry"
+            );
+            assert_eq!(tool_invocations.load(Ordering::SeqCst), 0);
             assert!(peer.writes.lock().expect("writes").len() >= 2);
             harness.harness().close().await.expect("close harness");
         });
@@ -571,11 +596,16 @@ fn assembled_ordered_provider_and_hook_registration_is_deterministic() {
             .expect("ready service");
             let cap_hook = capability(adapter.connection(), "hook", "before_run");
             let cap_provider = capability(adapter.connection(), "provider", "openai");
+            let mut alternate = fixture.model.clone();
+            alternate.id = pi_ai::ModelId::new("m5-selected").expect("selected model");
             let attachment = harness
                 .attach_extensions(
                     adapter,
                     vec![
-                        ExtensionRegistration::provider(cap_provider, vec![fixture.model.clone()]),
+                        ExtensionRegistration::provider(
+                            cap_provider,
+                            vec![fixture.model.clone(), alternate.clone()],
+                        ),
                         ExtensionRegistration::hook(cap_hook),
                     ],
                 )
@@ -602,7 +632,81 @@ fn assembled_ordered_provider_and_hook_registration_is_deterministic() {
                     .auth()
                     .is_no_auth()
             );
+            harness
+                .switch_model(alternate.provider.clone(), alternate.id.clone())
+                .await
+                .expect("select catalog model");
+            assert_eq!(
+                harness
+                    .harness()
+                    .get_model()
+                    .await
+                    .expect("model")
+                    .expect("selected")
+                    .id,
+                alternate.id
+            );
             attachment.close();
+            harness.harness().close().await.expect("close harness");
+        });
+}
+
+#[test]
+fn assembled_late_hook_refusal_rolls_back_prior_provider_mutation() {
+    tokio::runtime::Runtime::new()
+        .expect("runtime")
+        .block_on(async {
+            let fixture = fixture().await;
+            let harness = coding_harness(&fixture).await;
+            let selected = vec![profile("hook", "before_run"), profile("provider", "openai")];
+            let peer = Peer::new(&selected);
+            let adapter = CodingExtensionAdapter::connect_service(
+                &harness,
+                pi_coding_runtime::ExtensionServiceInput {
+                    host: host(selected),
+                    channel: peer,
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                },
+            )
+            .await
+            .expect("ready service");
+            eprintln!(
+                "before provider={}",
+                fixture
+                    .registry
+                    .get_provider(&fixture.model.provider)
+                    .expect("initial provider")
+                    .name()
+            );
+            let connection = adapter.connection().clone();
+            let hook = capability(&connection, "hook", "before_run");
+            let provider = capability(&connection, "provider", "openai");
+            let first = harness
+                .attach_extensions(adapter, vec![ExtensionRegistration::hook(hook.clone())])
+                .await
+                .expect("first hook");
+            let mut alternate = fixture.model.clone();
+            alternate.id = pi_ai::ModelId::new("m5-alternate").expect("alternate model");
+            let result = harness
+                .attach_extensions(
+                    CodingExtensionAdapter::from_connection(connection),
+                    vec![
+                        ExtensionRegistration::provider(provider, vec![alternate]),
+                        ExtensionRegistration::hook(hook),
+                    ],
+                )
+                .await;
+            assert!(matches!(
+                result,
+                Err(pi_coding_runtime::CodingExtensionError::Hook(_))
+            ));
+            let restored = fixture.registry.get_models(Some(&fixture.model.provider));
+            assert_eq!(restored.len(), 1);
+            assert_eq!(restored[0].id, fixture.model.id);
+            first.close();
             harness.harness().close().await.expect("close harness");
         });
 }
@@ -654,6 +758,10 @@ fn assembled_tool_refuses_without_bounded_echo_route_before_registration() {
         .block_on(async {
             let fixture = fixture().await;
             let harness = coding_harness(&fixture).await;
+            assert_eq!(
+                CodingExtensionAdapter::echo_conflict_policy(),
+                EchoConflictPolicy::RejectExisting
+            );
             let peer = Peer::new(&[]);
             let adapter = CodingExtensionAdapter::connect_service(
                 &harness,
@@ -685,7 +793,11 @@ fn assembled_tool_refuses_without_bounded_echo_route_before_registration() {
                 .await;
             assert!(matches!(
                 result,
-                Err(pi_coding_runtime::CodingExtensionError::InvalidRegistration(_))
+                Err(
+                    pi_coding_runtime::CodingExtensionError::InvalidRegistration(
+                        "echo registration requires a tool connection"
+                    )
+                )
             ));
             assert_eq!(
                 harness
@@ -735,6 +847,78 @@ fn assembled_close_drops_generation_and_preserves_no_live_binding() {
             attachment.close();
             assert!(!connection.current());
             assert_eq!(connection.grant().wire().connection_generation, 7);
+            harness.harness().close().await.expect("close harness");
+        });
+}
+
+#[test]
+fn assembled_close_allows_replacement_generation_without_inheriting_binding() {
+    tokio::runtime::Runtime::new()
+        .expect("runtime")
+        .block_on(async {
+            let fixture = fixture().await;
+            let harness = coding_harness(&fixture).await;
+            let selected = vec![profile("provider", "openai")];
+            let first_peer = Peer::new(&selected);
+            let first = CodingExtensionAdapter::connect_service(
+                &harness,
+                pi_coding_runtime::ExtensionServiceInput {
+                    host: host(selected.clone()),
+                    channel: first_peer,
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                },
+            )
+            .await
+            .expect("first service");
+            let first_connection = first.connection().clone();
+            let first_attachment = harness
+                .attach_extensions(
+                    first,
+                    vec![ExtensionRegistration::provider(
+                        capability(&first_connection, "provider", "openai"),
+                        vec![fixture.model.clone()],
+                    )],
+                )
+                .await
+                .expect("first attachment");
+            first_attachment.close();
+            assert!(!first_connection.current());
+
+            let second_peer = Peer::new(&selected);
+            let second = CodingExtensionAdapter::connect_service(
+                &harness,
+                pi_coding_runtime::ExtensionServiceInput {
+                    host: host(selected),
+                    channel: second_peer,
+                    clock: Arc::new(Mono(AtomicU64::new(0))),
+                    config: config(),
+                    reservations: reservation(),
+                    remaining_ms: 10_000,
+                },
+            )
+            .await
+            .expect("replacement service");
+            let second_connection = second.connection().clone();
+            assert!(second_connection.current());
+            assert!(
+                !first_connection
+                    .connection_identity()
+                    .same_connection(&second_connection.connection_identity())
+            );
+            let second_attachment = harness
+                .attach_extensions(
+                    second,
+                    vec![ExtensionRegistration::provider(
+                        capability(&second_connection, "provider", "openai"),
+                        vec![fixture.model.clone()],
+                    )],
+                )
+                .await
+                .expect("replacement attachment");
+            second_attachment.close();
             harness.harness().close().await.expect("close harness");
         });
 }

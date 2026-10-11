@@ -18,8 +18,8 @@ pub use builder::{CodingHarness, CodingHarnessBuilder, CodingHarnessError};
 pub use credentials::CredentialInputs;
 #[cfg(feature = "extensions")]
 pub use extensions::{
-    CodingExtensionAdapter, CodingExtensionAttachment, CodingExtensionError, ExtensionRegistration,
-    ExtensionRegistrationKind, ExtensionServiceInput, ExtensionToolInput,
+    CodingExtensionAdapter, CodingExtensionAttachment, CodingExtensionError, EchoConflictPolicy,
+    ExtensionRegistration, ExtensionRegistrationKind, ExtensionServiceInput, ExtensionToolInput,
 };
 pub use legacy_import::{LegacyImportSource, open_external_jsonl};
 pub use messages::CodingMessageConverter;
