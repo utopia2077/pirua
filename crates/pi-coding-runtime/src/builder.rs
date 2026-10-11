@@ -16,7 +16,7 @@ use pi_agent::schema::{
 };
 use pi_agent::schema::{SessionMetadata, SessionMetadataRecord};
 use pi_agent_session::{session::RuntimeSession, storage::RuntimeStorage};
-use pi_ai::{ModelId, ModelsRegistry, ProviderId};
+use pi_ai::{Model, ModelId, ModelsRegistry, ProviderId};
 use pi_harness_runtime::owner::{RuntimeFactory, RuntimeHarness};
 use pi_telemetry::TelemetryContext;
 use std::{collections::BTreeMap, fmt, sync::Arc};
@@ -187,6 +187,7 @@ where
     telemetry_context: Arc<dyn TelemetryContext>,
     to_provider_messages: Option<Arc<dyn ProviderMessageConverter>>,
     provider_composition: Option<Arc<ProviderComposition>>,
+    model_override: Option<Model>,
     entry_projectors:
         BTreeMap<pi_agent::schema::CustomType, Arc<dyn pi_agent::schema::EntryProjector>>,
     drive: DriveMode,
@@ -221,6 +222,7 @@ where
             telemetry_context: Arc::new(pi_telemetry::NOOP_TELEMETRY_CONTEXT),
             to_provider_messages: None,
             provider_composition: None,
+            model_override: None,
             entry_projectors: BTreeMap::new(),
             drive: DriveMode::Automatic,
             tool_execution: ToolExecutionMode::Parallel,
@@ -260,6 +262,14 @@ where
         self
     }
 
+    /// Supplies the detached model selected by the coding-runtime
+    /// composition. The selected identity must still be present in the
+    /// host-owned registry so provider adapter lookup remains host-owned.
+    pub fn with_model_override(mut self, model: Model) -> Self {
+        self.model_override = Some(model);
+        self
+    }
+
     /// Selects manual or automatic Harness driving.
     pub fn with_drive_mode(mut self, drive: DriveMode) -> Self {
         self.drive = drive;
@@ -287,13 +297,24 @@ where
                 .map_err(CodingHarnessError::Composition)?;
         }
         let stream_options = harness_stream_options(self.settings.stream)?;
-        let model = self
-            .models
-            .get_model(&self.settings.model.provider, &self.settings.model.model_id)
-            .ok_or_else(|| CodingHarnessError::MissingModel {
-                provider: self.settings.model.provider.clone(),
-                model_id: self.settings.model.model_id.clone(),
-            })?;
+        let model = match self.model_override {
+            Some(model) => {
+                if self.models.get_model(&model.provider, &model.id).is_none() {
+                    return Err(CodingHarnessError::MissingModel {
+                        provider: model.provider.clone(),
+                        model_id: model.id.clone(),
+                    });
+                }
+                model
+            }
+            None => self
+                .models
+                .get_model(&self.settings.model.provider, &self.settings.model.model_id)
+                .ok_or_else(|| CodingHarnessError::MissingModel {
+                    provider: self.settings.model.provider.clone(),
+                    model_id: self.settings.model.model_id.clone(),
+                })?,
+        };
         let tools = self.tools.unwrap_or_else(create_tools);
         let options = AgentHarnessOptions {
             session: self.session.clone(),

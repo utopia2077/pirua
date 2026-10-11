@@ -47,6 +47,12 @@ for (const row of original.rows) {
 const unknown = clone(original.rows[0]);
 unknown.observations.unexpected = true;
 if (!firstFailure(original.rows[0], unknown)) fail("unknown observation field was accepted");
+const unknownEvent = clone(original.rows[0]);
+unknownEvent.events = [{ index: 0, type: "unknown_agent_event" }];
+if (!firstFailure(original.rows[0], unknownEvent)) fail("unknown event type was accepted");
+const malformedMessage = clone(original.rows[0]);
+malformedMessage.messages = [{ notAMessage: true }];
+if (!firstFailure(original.rows[0], malformedMessage)) fail("malformed message object was accepted");
 if (Buffer.compare(fixtureBytes, fs.readFileSync(fixturesPath)) !== 0) fail("fixture bytes changed during causal test");
 if (Buffer.compare(manifestBytes, fs.readFileSync(manifestPath)) !== 0) fail("manifest bytes changed during causal test");
 console.log(`causal self-test passed: ${completed} positives, ${manifest.negatives.length} one-change negatives, fixture bytes restored`);

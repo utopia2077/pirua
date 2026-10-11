@@ -6,10 +6,20 @@ const ERROR_KEYS = ["type", "capability"];
 const OBSERVATION_KEYS = [
   "provider_calls", "tool_invocations", "session_publication_events", "durable_entries",
   "model", "resources_attached", "settings_detached", "availability_transition",
-  "credential_boundary", "event_count", "event_types",
+  "credential_boundary", "event_count", "event_types", "terminal_kind",
+  "runtime_model_match", "resources_match", "settings_match",
 ];
 const MODEL_KEYS = ["provider", "id", "source", "available"];
 const EVENT_KEYS = ["index", "type", "role", "message_id", "tool_call_id", "tool_name", "detail"];
+const EVENT_TYPES = new Set([
+  "run_start", "run_resume", "run_suspend", "run_abort", "run_end", "fault",
+  "handler_error", "turn_start", "turn_end", "retry_scheduled", "retry_start",
+  "retry_end", "message_start", "message_update", "message_end", "tool_start",
+  "tool_update", "tool_end", "entry_added", "write_pending", "queue_update",
+  "fact_update", "config_update", "compaction_start", "compaction_end",
+  "navigation_start", "navigation_end", "lane_created", "usage",
+]);
+const MESSAGE_KEYS = ["role", "id", "content", "stopReason", "errorCategory", "errorMessage"];
 
 export class ConformanceMismatch extends Error {
   constructor(path, message, expected, actual) {
@@ -85,6 +95,10 @@ function validateObservations(observations, path) {
       throw new ConformanceMismatch(`${path}.event_types`, "expected string array", "string[]", observations.event_types);
     }
   }
+  if (observations.terminal_kind !== undefined) string(observations.terminal_kind, `${path}.terminal_kind`);
+  for (const key of ["runtime_model_match", "resources_match", "settings_match"]) {
+    if (observations[key] !== undefined) bool(observations[key], `${path}.${key}`);
+  }
 }
 
 function validateEvents(events, path) {
@@ -92,7 +106,25 @@ function validateEvents(events, path) {
   for (const [index, event] of events.entries()) {
     allowed(event, EVENT_KEYS, `${path}[${index}]`);
     integer(event.index, `${path}[${index}].index`); string(event.type, `${path}[${index}].type`);
+    if (!EVENT_TYPES.has(event.type)) {
+      throw new ConformanceMismatch(`${path}[${index}].type`, "unknown Harness event type", [...EVENT_TYPES], event.type);
+    }
     for (const key of ["role", "message_id", "tool_call_id", "tool_name", "detail"]) if (event[key] !== undefined) string(event[key], `${path}[${index}].${key}`);
+  }
+}
+
+function validateMessages(messages, path) {
+  if (!Array.isArray(messages)) throw new ConformanceMismatch(path, "expected array", "array", messages);
+  for (const [index, message] of messages.entries()) {
+    allowed(message, MESSAGE_KEYS, `${path}[${index}]`);
+    string(message.role, `${path}[${index}].role`);
+    string(message.id, `${path}[${index}].id`);
+    if (!Object.prototype.hasOwnProperty.call(message, "content")) {
+      throw new ConformanceMismatch(`${path}[${index}].content`, "message content is required", "present", undefined);
+    }
+    for (const key of ["stopReason", "errorCategory", "errorMessage"]) {
+      if (message[key] !== undefined && message[key] !== null) string(message[key], `${path}[${index}].${key}`);
+    }
   }
 }
 
@@ -105,7 +137,7 @@ export function validateObservation(value, expectedCaseId = undefined) {
   if (expectedCaseId !== undefined && value.caseId !== expectedCaseId) throw new ConformanceMismatch("observation.caseId", "case ID mismatch", expectedCaseId, value.caseId);
   validateInput(value.input, "observation.input");
   validateEvents(value.events, "observation.events");
-  if (!Array.isArray(value.messages)) throw new ConformanceMismatch("observation.messages", "expected array", "array", value.messages);
+  validateMessages(value.messages, "observation.messages");
   validateOutcome(value.outcome, "observation.outcome");
   validateObservations(value.observations, "observation.observations");
   if (value.caseId === "capability.required_prestart_failure") {
