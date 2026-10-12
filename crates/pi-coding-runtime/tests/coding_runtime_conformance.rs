@@ -130,6 +130,7 @@ impl Provider for FixtureProvider {
 struct StopAdapter {
     model: Model,
     calls: AtomicUsize,
+    resolved_models: Mutex<Vec<Model>>,
     responses: Mutex<VecDeque<AssistantMessage>>,
 }
 
@@ -159,8 +160,17 @@ impl StopAdapter {
         Arc::new(Self {
             model: model.clone(),
             calls: AtomicUsize::new(0),
+            resolved_models: Mutex::new(Vec::new()),
             responses: Mutex::new(VecDeque::from([response.clone(), response])),
         })
+    }
+
+    fn last_resolved_model(&self) -> Option<Model> {
+        self.resolved_models
+            .lock()
+            .expect("resolved models")
+            .last()
+            .cloned()
     }
 
     fn start(
@@ -168,6 +178,10 @@ impl StopAdapter {
         request: SimpleStreamRequest,
         lifecycle: RequestLifecycleInvocation,
     ) -> AssistantStream {
+        self.resolved_models
+            .lock()
+            .expect("resolved models")
+            .push(request.resolved.model.clone());
         self.calls.fetch_add(1, Ordering::SeqCst);
         let response = self
             .responses
@@ -520,7 +534,7 @@ struct AssemblyObservation {
     session_publication_events: usize,
     tool_invocations: usize,
     terminal_kind: String,
-    assembled_model: Model,
+    request_model: Model,
     runtime_model_match: bool,
     resources_match: bool,
     settings_match: bool,
@@ -570,13 +584,8 @@ async fn assembled(
     if case_id == "prompt.system_resources" {
         builder = builder.with_system_prompt("m6 assembled system prompt");
     }
-    let harness = builder.build().await?;
     let expected_model = model_override.as_ref().unwrap_or(&fixture.model);
-    let assembled_model = harness.assembled_model().clone();
-    assert!(
-        same_validated_model_metadata(&assembled_model, expected_model),
-        "{case_id}: assembled model readback must equal the selected validated model metadata"
-    );
+    let harness = builder.build().await?;
     if let Some(overlay) = model_override.as_ref() {
         let host_model = fixture
             .registry
@@ -649,7 +658,20 @@ async fn assembled(
             model.provider == expected_model.provider && model.id == expected_model.id
         });
     let runtime_model_match = host_model_identity_match
-        && same_validated_model_metadata(&assembled_model, expected_model);
+        && fixture
+            .adapter
+            .last_resolved_model()
+            .is_some_and(|request_model| {
+                same_validated_model_metadata(&request_model, expected_model)
+            });
+    let request_model = fixture
+        .adapter
+        .last_resolved_model()
+        .unwrap_or_else(|| panic!("{case_id}: adapter must observe a resolved request model"));
+    assert!(
+        same_validated_model_metadata(&request_model, expected_model),
+        "{case_id}: provider request model must equal the selected validated model metadata"
+    );
     let resources_match = serde_json::to_value(
         harness
             .harness()
@@ -717,7 +739,7 @@ async fn assembled(
         session_publication_events: effects.session_publication_events,
         tool_invocations: effects.tool_invocations,
         terminal_kind,
-        assembled_model,
+        request_model,
         runtime_model_match,
         resources_match,
         settings_match,
@@ -759,7 +781,7 @@ async fn actual(case_id: &str) -> Value {
                     .await
                     .expect("assembled model row");
             let mut observations = observed_effects(&observation);
-            observations["model"] = model_observation(&observation.assembled_model);
+            observations["model"] = model_observation(&observation.request_model);
             observations["availability_transition"] = json!(["unavailable", "available"]);
             observations["credential_boundary"] =
                 json!("host-owned credential inputs retained without reads");

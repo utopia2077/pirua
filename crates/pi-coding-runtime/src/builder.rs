@@ -80,11 +80,6 @@ where
     harness: Arc<RuntimeHarness<ExecutionToolContext, S, M>>,
     session: Arc<RuntimeSession<S, M>>,
     models: Arc<ModelsRegistry>,
-    /// Exact validated model snapshot supplied to the assembled Harness.
-    ///
-    /// The host registry remains authoritative for provider adapter lookup,
-    /// while this detached snapshot preserves overlay metadata for readback.
-    model: Model,
 }
 
 impl<S, M> CodingHarness<S, M>
@@ -100,15 +95,6 @@ where
     /// Returns the typed session used by this Harness.
     pub fn session(&self) -> &Arc<RuntimeSession<S, M>> {
         &self.session
-    }
-
-    /// Returns the exact validated model snapshot assembled into the Harness.
-    ///
-    /// Provider adapter lookup remains host-owned through `ModelsRegistry`;
-    /// this readback preserves detached overlay metadata such as the model
-    /// name and public base URL.
-    pub fn assembled_model(&self) -> &Model {
-        &self.model
     }
 
     /// Resolves and durably applies the model used by the next run.
@@ -367,7 +353,6 @@ where
             harness: created.harness,
             session: self.session,
             models: self.models,
-            model,
         })
     }
 }

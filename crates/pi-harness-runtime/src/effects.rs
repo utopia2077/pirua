@@ -816,7 +816,8 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     if !missing.models.is_empty() || !missing.tools.is_empty() {
                         return Ok(PlanningFacts::MissingIdentities { missing });
                     }
-                    match self.lane.owner.models.get_model(
+                    match self.lane.owner.request_model(
+                        &current.operation.lane,
                         &context.configuration.model.provider,
                         &context.configuration.model.model_id,
                     ) {
@@ -2582,11 +2583,10 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             else {
                 return Ok(false);
             };
-            let Some(model) = self
-                .lane
-                .owner
-                .models
-                .get_model(&event.model.provider, &event.model.id)
+            let Some(model) =
+                self.lane
+                    .owner
+                    .request_model(&event.lane, &event.model.provider, &event.model.id)
             else {
                 return Ok(false);
             };

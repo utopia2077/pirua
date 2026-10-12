@@ -113,6 +113,64 @@ fn capture_first_public_run_succeeds_and_executes_the_original_provider() {
     assert_eq!(replacement.requests.lock().unwrap().len(), 0);
 }
 
+#[test]
+fn attachment_model_snapshot_clears_after_successful_model_update() {
+    let s = Setup::new();
+    let host_model = s.faux.model.clone();
+    let mut overlay = host_model.clone();
+    overlay.name = "detached-overlay".into();
+    overlay.base_url = pi_ai_core::ModelBaseUrl::Public(
+        pi_ai_core::PublicModelBaseUrl::new("https://overlay.example.invalid").unwrap(),
+    );
+    let mut options = s.options::<()>(DriveMode::Automatic);
+    options.model = overlay.clone();
+    let f = RuntimeFactory::new(
+        s.time.clone(),
+        s.pump.clone(),
+        s.ids.clone(),
+        Arc::new(()),
+        Arc::new(Summary),
+    );
+    let c = s.pump.drive(f.create(options)).unwrap();
+
+    let first = s
+        .pump
+        .drive(c.harness.prompt(PromptInput::Text {
+            text: "overlay request".into(),
+            images: vec![],
+        }))
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        first.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    assert_eq!(
+        s.faux.request_models.lock().unwrap().as_slice(),
+        &[overlay.clone()]
+    );
+
+    s.pump
+        .drive(c.harness.set_model(host_model.clone()))
+        .unwrap();
+    let second = s
+        .pump
+        .drive(c.harness.prompt(PromptInput::Text {
+            text: "host request after model update".into(),
+            images: vec![],
+        }))
+        .unwrap()
+        .unwrap();
+    assert!(matches!(
+        second.outcome,
+        RunOutcome::CompletedWithAssistant(_)
+    ));
+    assert_eq!(
+        s.faux.request_models.lock().unwrap().as_slice(),
+        &[overlay, host_model]
+    );
+}
+
 use std::task::Poll;
 // Existing manual-intent fixture retained as an owning opposite-order control.
 #[test]

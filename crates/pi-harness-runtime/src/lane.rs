@@ -335,6 +335,9 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         result,
                         pi_agent_session::storage::ConditionalOutcome::Applied(_)
                     ) {
+                        if property == "model" {
+                            lane.owner.clear_request_model_snapshot(&lane.lane.name);
+                        }
                         let event = match property {
                             "model" => HarnessEvent::ModelConfigUpdate(ModelConfigUpdateEvent {
                                 event_type: Default::default(),

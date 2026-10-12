@@ -461,6 +461,13 @@ pub(crate) struct SuspensionObservation {
 pub(crate) struct Owner<C, S: RuntimeStorage, M: SessionMetadataRecord> {
     pub session: Arc<RuntimeSession<S, M>>,
     pub models: Arc<ModelsRegistry>,
+    /// Attachment-local complete model snapshots keyed by lane identity.
+    ///
+    /// The durable lane configuration retains only provider/model identity.
+    /// These snapshots are process-local input from the attachment options and
+    /// are used only after the host registry confirms that identity is still
+    /// registered.
+    pub(crate) request_model_snapshots: Mutex<BTreeMap<LaneId, pi_ai_core::Model>>,
     pub clock: Arc<dyn Clock>,
     pub host: Arc<dyn TaskSpawner>,
     pub effects: Supervisor,
@@ -649,6 +656,14 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         let owner = Arc::new(Owner {
             session: options.session,
             models: options.models,
+            request_model_snapshots: Mutex::new(
+                [(
+                    LaneId::new("main").expect("static lane"),
+                    options.model.clone(),
+                )]
+                .into_iter()
+                .collect(),
+            ),
             clock: self.clock.clone(),
             host: self.spawner.clone(),
             effects,
@@ -849,6 +864,41 @@ pub(crate) enum ContextSource<C> {
     Provider(Arc<dyn ToolContextProvider<C>>),
 }
 impl<C, S: RuntimeStorage, M: SessionMetadataRecord> Owner<C, S, M> {
+    /// Selects the complete model for an ordinary request.
+    ///
+    /// The host registry remains authoritative for provider/model membership.
+    /// A detached attachment snapshot can replace only the full metadata after
+    /// that host identity has been found; provider registration epoch checks
+    /// remain at the request binding boundary.
+    pub(crate) fn request_model(
+        &self,
+        lane: &LaneId,
+        provider: &pi_ai_core::ProviderId,
+        model_id: &pi_ai_core::ModelId,
+    ) -> Option<pi_ai_core::Model> {
+        let host_model = self.models.get_model(provider, model_id)?;
+        let snapshot = self
+            .request_model_snapshots
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .get(lane)
+            .cloned();
+        Some(
+            snapshot
+                .filter(|model| model.provider == *provider && model.id == *model_id)
+                .unwrap_or(host_model),
+        )
+    }
+
+    /// Drops an attachment-local request snapshot after model configuration
+    /// successfully changes.
+    pub(crate) fn clear_request_model_snapshot(&self, lane: &LaneId) {
+        self.request_model_snapshots
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .remove(lane);
+    }
+
     pub(crate) fn observe<T>(
         &self,
         result: Result<T, HarnessRuntimeError>,

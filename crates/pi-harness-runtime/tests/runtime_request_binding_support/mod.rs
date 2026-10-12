@@ -163,6 +163,7 @@ pub struct Faux {
     pub model: Model,
     pub responses: Mutex<VecDeque<AssistantMessage>>,
     pub requests: Mutex<Vec<(Context, SimpleStreamOptionsWire)>>,
+    pub request_models: Mutex<Vec<Model>>,
     pub headers: Mutex<Vec<ProviderHeaders>>,
     pub payloads: Arc<Mutex<Vec<serde_json::Value>>>,
     pub hold: Mutex<Option<CancellationToken>>,
@@ -173,6 +174,7 @@ impl Faux {
             responses: Mutex::new(vec![assistant(&model, StopReason::Stop)].into()),
             model,
             requests: Mutex::new(vec![]),
+            request_models: Mutex::new(vec![]),
             headers: Mutex::new(vec![]),
             payloads: Arc::new(Mutex::new(vec![])),
             hold: Mutex::new(None),
@@ -187,6 +189,10 @@ impl Faux {
             .lock()
             .unwrap()
             .push((request.context.clone(), request.options.wire.clone()));
+        self.request_models
+            .lock()
+            .unwrap()
+            .push(request.resolved.model.clone());
         self.headers
             .lock()
             .unwrap()
