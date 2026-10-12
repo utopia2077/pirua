@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { compareObservation, firstFailure, validateObservation } from "./comparator.mjs";
+import { ConformanceMismatch, compareObservation, firstFailure, validateObservation } from "./comparator.mjs";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const manifestPath = path.join(here, "manifest.json");
@@ -77,6 +77,24 @@ try { validateObservation(badPayload); fail("unknown nested tool payload was acc
 const badQueuedMessage = clone(original.rows.find((row) => row.caseId === "queue.steer_during_turn"));
 badQueuedMessage.observations.queued_item.message.unexpected = true;
 try { validateObservation(badQueuedMessage); fail("unknown nested queued message was accepted"); } catch (error) { if (error.message === "unknown nested queued message was accepted") throw error; }
+const codingRow = original.rows.find((row) => row.caseId === "tools.coding_operations");
+const firstMessageCall = (row) => row.events.find((event) => event.type === "message_end" && event.payload.message.content?.[0]?.type === "toolCall").payload.message.content[0];
+const messageProbes = [
+  ["unknown MessageEnd tool argument", (row) => { firstMessageCall(row).arguments.unexpected = { nested: true }; }],
+  ["contradictory MessageEnd tool path", (row) => { firstMessageCall(row).arguments.path = "missing.txt"; }],
+  ["unknown MessageEnd tool name", (row) => { firstMessageCall(row).name = "unknown_tool"; }],
+  ["malformed envelope message content", (row) => { row.messages = [{ role: "assistant", id: "injected", content: { unexpected: true } }]; }],
+];
+for (const [label, mutate] of messageProbes) {
+  const mutated = clone(codingRow);
+  mutate(mutated);
+  for (const check of [() => validateObservation(mutated, mutated.caseId), () => compareObservation(mutated, mutated)]) {
+    let rejected = false;
+    try { check(); } catch (error) { if (!(error instanceof ConformanceMismatch)) throw error; rejected = true; }
+    if (!rejected) fail(`${label} passed semantic or same-mutated expected/actual validation`);
+  }
+}
 if (Buffer.compare(fixtureBytes, fs.readFileSync(fixturesPath)) !== 0) fail("fixture bytes changed during causal test");
 if (Buffer.compare(manifestBytes, fs.readFileSync(manifestPath)) !== 0) fail("manifest bytes changed during causal test");
 console.log(`causal self-test passed: ${completed} positives, ${manifest.negatives.length} one-change negatives, fixture bytes restored`);
+console.log(`nested message probes passed: ${messageProbes.length} semantic and same-mutated expected/actual rejections`);

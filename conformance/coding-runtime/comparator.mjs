@@ -127,10 +127,12 @@ function validateMessages(messages, path) {
   for (const [index, message] of messages.entries()) {
     allowed(message, MESSAGE_KEYS, `${path}[${index}]`);
     string(message.role, `${path}[${index}].role`);
+    requireFact(["user", "assistant", "toolResult"].includes(message.role), `${path}[${index}].role`, "unknown message role", message.role);
     string(message.id, `${path}[${index}].id`);
     if (!Object.prototype.hasOwnProperty.call(message, "content")) {
       throw new ConformanceMismatch(`${path}[${index}].content`, "message content is required", "present", undefined);
     }
+    content(message.content, `${path}[${index}].content`, message.role === "assistant");
     for (const key of ["stopReason", "errorCategory", "errorMessage"]) {
       if (message[key] !== undefined && message[key] !== null) string(message[key], `${path}[${index}].${key}`);
     }
@@ -215,13 +217,13 @@ function array(value, path) { requireFact(Array.isArray(value), path, "expected 
 function strings(value, path) { array(value, path); value.forEach((item, index) => string(item, `${path}[${index}]`)); }
 function shape(value, keys, path) { allowed(value, keys, path); exactKeys(value, keys, path); }
 function nullableString(value, path) { if (value !== null) string(value, path); }
-function content(value, path) {
+function content(value, path, allowToolCalls = false) {
   if (typeof value === "string") return;
   array(value, path);
   for (const [index, block] of value.entries()) {
     allowed(block, ["type", "text", "id", "name", "arguments"], `${path}[${index}]`);
     if (block.type === "text") { shape(block, ["type", "text"], `${path}[${index}]`); string(block.text, `${path}[${index}].text`); }
-    else if (block.type === "toolCall") { shape(block, ["type", "id", "name", "arguments"], `${path}[${index}]`); string(block.id, `${path}[${index}].id`); string(block.name, `${path}[${index}].name`); requireFact(object(block.arguments), `${path}[${index}].arguments`, "tool arguments must be an object", block.arguments); }
+    else if (block.type === "toolCall") { requireFact(allowToolCalls, `${path}[${index}].type`, "tool calls require assistant content", block.type); shape(block, ["type", "id", "name", "arguments"], `${path}[${index}]`); string(block.id, `${path}[${index}].id`); string(block.name, `${path}[${index}].name`); toolArguments(block.name, block.arguments, `${path}[${index}].arguments`); }
     else requireFact(false, `${path}[${index}].type`, "unknown content block", block.type);
   }
 }
@@ -229,7 +231,7 @@ function projectedMessage(value, path) {
   allowed(value, ["role", "content", "stop_reason", "error_message", "tool_call_id", "tool_name", "is_error"], path);
   requireFact(["user", "assistant", "toolResult"].includes(value.role), `${path}.role`, "unknown projected message role", value.role);
   const keys = value.role === "user" ? ["role", "content"] : value.role === "assistant" ? ["role", "content", "stop_reason", ...(value.stop_reason === "error" || value.stop_reason === "aborted" ? ["error_message"] : [])] : ["role", "content", "tool_call_id", "tool_name", "is_error"];
-  exactKeys(value, keys, path); content(value.content, `${path}.content`);
+  exactKeys(value, keys, path); content(value.content, `${path}.content`, value.role === "assistant");
   if (value.role === "assistant") { requireFact(["stop", "toolUse", "error", "aborted", "length"].includes(value.stop_reason), `${path}.stop_reason`, "unknown stop reason", value.stop_reason); if (value.error_message !== undefined) string(value.error_message, `${path}.error_message`); }
   if (value.role === "toolResult") { string(value.tool_call_id, `${path}.tool_call_id`); string(value.tool_name, `${path}.tool_name`); bool(value.is_error, `${path}.is_error`); }
 }
@@ -243,12 +245,15 @@ function toolResult(value, path) {
 function toolCall(value, path) {
   shape(value, ["tool_call_id", "tool_name", "args"], path);
   string(value.tool_call_id, `${path}.tool_call_id`); string(value.tool_name, `${path}.tool_name`);
-  const argsKeys = { read: ["path"], write: ["path", "content"], edit: ["path", "edits"], grep: ["path", "pattern", "literal"], find: ["path", "pattern"], ls: ["path"], bash: ["command"] }[value.tool_name];
-  requireFact(argsKeys !== undefined, `${path}.tool_name`, "unknown coding tool", value.tool_name);
-  shape(value.args, argsKeys, `${path}.args`);
-  for (const key of ["path", "content", "pattern", "command"]) if (value.args[key] !== undefined) string(value.args[key], `${path}.args.${key}`);
-  if (value.args.literal !== undefined) bool(value.args.literal, `${path}.args.literal`);
-  if (value.args.edits !== undefined) { array(value.args.edits, `${path}.args.edits`); value.args.edits.forEach((edit, index) => { shape(edit, ["oldText", "newText"], `${path}.args.edits[${index}]`); string(edit.oldText, `${path}.args.edits[${index}].oldText`); string(edit.newText, `${path}.args.edits[${index}].newText`); }); }
+  toolArguments(value.tool_name, value.args, `${path}.args`);
+}
+function toolArguments(name, args, path) {
+  const tools = { read: ["path"], write: ["path", "content"], edit: ["path", "edits"], grep: ["path", "pattern", "literal"], find: ["path", "pattern"], ls: ["path"], bash: ["command"] };
+  requireFact(Object.hasOwn(tools, name), path, "unknown coding tool", name);
+  shape(args, tools[name], path);
+  for (const key of ["path", "content", "pattern", "command"]) if (args[key] !== undefined) string(args[key], `${path}.${key}`);
+  if (args.literal !== undefined) bool(args.literal, `${path}.literal`);
+  if (args.edits !== undefined) { array(args.edits, `${path}.edits`); args.edits.forEach((edit, index) => { shape(edit, ["oldText", "newText"], `${path}.edits[${index}]`); string(edit.oldText, `${path}.edits[${index}].oldText`); string(edit.newText, `${path}.edits[${index}].newText`); }); }
 }
 function toolUpdate(value, path) {
   shape(value, ["tool_call_id", "tool_name", "partial_result"], path);
@@ -360,6 +365,8 @@ function validateOperation(value) {
     shape(obs.tool_evidence, ["provider_calls", "starts", "updates", "ends"], `${path}.tool_evidence`);
     for (const [key, validate] of [["provider_calls", toolCall], ["starts", toolCall], ["updates", toolUpdate], ["ends", toolEnd]]) { array(obs.tool_evidence[key], `${path}.tool_evidence.${key}`); obs.tool_evidence[key].forEach((entry, index) => validate(entry, `${path}.tool_evidence.${key}[${index}]`)); }
     equalFact(obs.tool_evidence.provider_calls, obs.tool_evidence.starts, `${path}.tool_evidence.provider_calls`);
+    const messageCalls = eventPayloads(value, "message_end").filter((event) => event.message.role === "assistant" && Array.isArray(event.message.content)).flatMap((event) => event.message.content.filter((block) => block.type === "toolCall").map((block) => ({ tool_call_id: block.id, tool_name: block.name, args: block.arguments })));
+    equalFact(messageCalls, obs.tool_evidence.provider_calls, "observation.events.message_end", "assistant MessageEnd calls must match observed provider calls and ToolStart");
     for (const [key, type] of [["starts", "tool_start"], ["updates", "tool_update"], ["ends", "tool_end"]]) equalFact(obs.tool_evidence[key], eventPayloads(value, type), `${path}.tool_evidence.${key}`);
     const required = value.caseId === "tools.coding_operations" ? ["read", "write", "edit", "grep", "find", "ls", "bash"] : ["read"];
     equalFact(obs.tool_evidence.starts.map((entry) => entry.tool_name), required, `${path}.tool_evidence.starts`, "all frozen tool bindings must execute in order");
