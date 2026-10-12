@@ -419,6 +419,29 @@ fn observed_effects(observation: &AssemblyObservation) -> Value {
     })
 }
 
+fn same_validated_model_metadata(left: &Model, right: &Model) -> bool {
+    left.provider == right.provider
+        && left.id == right.id
+        && left.name == right.name
+        && left.base_url == right.base_url
+        && left == right
+}
+
+fn model_observation(model: &Model) -> Value {
+    let base_url = match &model.base_url {
+        ModelBaseUrl::Public(url) => url.as_str(),
+        ModelBaseUrl::RuntimeResolved => "",
+    };
+    json!({
+        "provider": model.provider,
+        "id": model.id,
+        "name": model.name,
+        "base_url": base_url,
+        "source": "overlay",
+        "available": true,
+    })
+}
+
 fn composition_for(model: &Model, availability: bool) -> ProviderComposition {
     ProviderComposition::new(ProviderCompositionInputs {
         providers: Vec::new(),
@@ -497,6 +520,7 @@ struct AssemblyObservation {
     session_publication_events: usize,
     tool_invocations: usize,
     terminal_kind: String,
+    assembled_model: Model,
     runtime_model_match: bool,
     resources_match: bool,
     settings_match: bool,
@@ -548,6 +572,31 @@ async fn assembled(
     }
     let harness = builder.build().await?;
     let expected_model = model_override.as_ref().unwrap_or(&fixture.model);
+    let assembled_model = harness.assembled_model().clone();
+    assert!(
+        same_validated_model_metadata(&assembled_model, expected_model),
+        "{case_id}: assembled model readback must equal the selected validated model metadata"
+    );
+    if let Some(overlay) = model_override.as_ref() {
+        let host_model = fixture
+            .registry
+            .get_model(&overlay.provider, &overlay.id)
+            .expect("host registry model");
+        assert_eq!(host_model.provider, overlay.provider);
+        assert_eq!(host_model.id, overlay.id);
+        assert_ne!(
+            host_model.name, overlay.name,
+            "{case_id}: host and detached model names must differ"
+        );
+        assert_ne!(
+            host_model.base_url, overlay.base_url,
+            "{case_id}: host and detached public base URLs must differ"
+        );
+        assert!(
+            !same_validated_model_metadata(&host_model, overlay),
+            "{case_id}: host registry metadata must differ from the detached overlay"
+        );
+    }
     let publication_events = Arc::new(EventCount::default());
     let tool_invocations = Arc::new(EventCount::default());
     let mut subscriptions = Vec::new();
@@ -591,7 +640,7 @@ async fn assembled(
         .wait_for_idle()
         .await
         .map_err(CodingHarnessError::Runtime)?;
-    let runtime_model_match = harness
+    let host_model_identity_match = harness
         .harness()
         .get_model()
         .await
@@ -599,6 +648,8 @@ async fn assembled(
         .is_some_and(|model| {
             model.provider == expected_model.provider && model.id == expected_model.id
         });
+    let runtime_model_match = host_model_identity_match
+        && same_validated_model_metadata(&assembled_model, expected_model);
     let resources_match = serde_json::to_value(
         harness
             .harness()
@@ -666,6 +717,7 @@ async fn assembled(
         session_publication_events: effects.session_publication_events,
         tool_invocations: effects.tool_invocations,
         terminal_kind,
+        assembled_model,
         runtime_model_match,
         resources_match,
         settings_match,
@@ -687,13 +739,27 @@ async fn actual(case_id: &str) -> Value {
                 .resolve_selection("offline")
                 .expect("available overlay");
             assert_eq!(selected.model.id.as_str(), "offline-model");
-            let selected_model = selected.model.clone();
+            let mut selected_model = selected.model.clone();
+            selected_model.name = "offline-model-detached-overlay".to_owned();
+            selected_model.base_url = ModelBaseUrl::Public(
+                PublicModelBaseUrl::new("https://overlay.example.invalid/v1").expect("overlay URL"),
+            );
+            assert!(
+                !same_validated_model_metadata(&fixture.model, &selected_model),
+                "detached overlay must differ from the host registry metadata"
+            );
+            let available = composition_for(&selected_model, true);
+            let selected_model = available
+                .resolve_selection("offline")
+                .expect("distinguishable available overlay")
+                .model
+                .clone();
             let observation =
                 assembled(&fixture, case_id, Arc::new(available), Some(selected_model))
                     .await
                     .expect("assembled model row");
             let mut observations = observed_effects(&observation);
-            observations["model"] = json!({"provider":"openai","id":"offline-model","source":"overlay","available":true});
+            observations["model"] = model_observation(&observation.assembled_model);
             observations["availability_transition"] = json!(["unavailable", "available"]);
             observations["credential_boundary"] =
                 json!("host-owned credential inputs retained without reads");

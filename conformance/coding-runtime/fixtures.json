@@ -26,6 +26,8 @@
         "model": {
           "provider": "openai",
           "id": "offline-model",
+          "name": "offline-model-detached-overlay",
+          "base_url": "https://overlay.example.invalid/v1",
           "source": "overlay",
           "available": true
         },

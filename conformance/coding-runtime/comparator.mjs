@@ -9,7 +9,7 @@ const OBSERVATION_KEYS = [
   "credential_boundary", "event_count", "event_types", "terminal_kind",
   "runtime_model_match", "resources_match", "settings_match",
 ];
-const MODEL_KEYS = ["provider", "id", "source", "available"];
+const MODEL_KEYS = ["provider", "id", "name", "base_url", "source", "available"];
 const EVENT_KEYS = ["index", "type", "role", "message_id", "tool_call_id", "tool_name", "detail"];
 const EVENT_TYPES = new Set([
   "run_start", "run_resume", "run_suspend", "run_abort", "run_end", "fault",
@@ -77,7 +77,7 @@ function validateObservations(observations, path) {
   for (const key of ["provider_calls", "tool_invocations", "session_publication_events", "durable_entries"]) integer(observations[key], `${path}.${key}`);
   if (observations.model !== undefined) {
     allowed(observations.model, MODEL_KEYS, `${path}.model`);
-    for (const key of ["provider", "id", "source"]) string(observations.model[key], `${path}.model.${key}`);
+    for (const key of ["provider", "id", "name", "base_url", "source"]) string(observations.model[key], `${path}.model.${key}`);
     bool(observations.model.available, `${path}.model.available`);
   }
   for (const key of ["resources_attached", "settings_detached"]) {

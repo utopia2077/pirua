@@ -18,6 +18,9 @@ The rows are:
 
 - `model.credentials_catalog`: detached overlay precedence, provider-scoped
   availability transition, fuzzy selection, and the host credential boundary.
+  The overlay keeps the host provider/model identity but uses distinct
+  validated `name` and public `base_url` metadata; the assembled Harness
+  readback compares those fields so removing the override fails the witness.
 - `prompt.system_resources`: detached resources passed through assembled
   prompt admission and observed through the real operation/session path.
 - `prompt.settings_snapshot`: detached settings passed through the builder and
