@@ -339,7 +339,7 @@ impl ProviderComposition {
                     normalize_alias(model_id.as_str()).contains(&alias)
                         || normalize_alias(&model.name).contains(&alias)
                 });
-                let Some(((_, _), model)) = matches.next() else {
+                let Some(((provider, model_id), _)) = matches.next() else {
                     return Err(CodingRuntimeError::MissingModel {
                         provider: ProviderId::new("unknown").expect("static provider"),
                         model_id: ModelId::new(base).map_err(|_| {
@@ -354,7 +354,7 @@ impl ProviderComposition {
                         reference: reference.to_owned(),
                     });
                 }
-                model
+                self.resolve(&ModelRef::new(provider.clone(), model_id.clone()))?
             }
         };
         let thinking_level = requested_level.unwrap_or(ModelThinkingLevel::Off);

@@ -229,6 +229,27 @@ fn exact_resolution_preserves_openrouter_colons_and_fails_stably() {
         facade.resolve_reference("openrouter"),
         Err(CodingRuntimeError::InvalidModelReference { .. })
     ));
+    assert_eq!(
+        facade
+            .resolve_selection("openrouter:vendor/model:variant")
+            .expect("exact selection preserves model-id colons")
+            .model
+            .id,
+        selected.id
+    );
+    for reference in ["variant@high", "variant@unsupported"] {
+        assert!(matches!(
+            facade.resolve_selection(reference),
+            Err(CodingRuntimeError::InvalidModelReference { .. })
+        ));
+    }
+    assert_eq!(
+        facade.resolve_selection("not-present").unwrap_err(),
+        CodingRuntimeError::MissingModel {
+            provider: ProviderId::new("unknown").expect("provider"),
+            model_id: ModelId::new("not-present").expect("model id"),
+        }
+    );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
 }
 
@@ -296,23 +317,118 @@ fn overlays_have_precedence_and_availability_is_host_supplied() {
             model_id: selected.id.clone(),
             available: false,
         }]);
-    assert!(matches!(
-        composition.resolve_selection("friendly"),
-        Err(CodingRuntimeError::MissingModel { .. })
-    ));
+    for reference in ["friendly", "  FRIEND_ly  ", "openai:base-model"] {
+        assert!(matches!(
+            composition.resolve_selection(reference),
+            Err(CodingRuntimeError::MissingModel { .. })
+        ));
+    }
 
     let available = composition.with_availability([ModelAvailability {
         provider: selected.provider.clone(),
         model_id: selected.id.clone(),
         available: true,
     }]);
-    let resolved = available
-        .resolve_selection("friendly@high")
-        .expect("fuzzy alias and thinking suffix");
-    assert_eq!(resolved.model.id.as_str(), "base-model");
-    assert_eq!(resolved.thinking_level, ModelThinkingLevel::High);
-    assert!(matches!(
-        available.resolve_selection("friendly@max"),
-        Err(CodingRuntimeError::InvalidModelReference { .. })
-    ));
+    for reference in [
+        "friendly@high",
+        "  FRIEND_ly  @HIGH",
+        "openai:base-model@high",
+    ] {
+        let resolved = available
+            .resolve_selection(reference)
+            .expect("exact or configured alias with thinking suffix");
+        assert_eq!(resolved.model.id.as_str(), "base-model");
+        assert_eq!(resolved.thinking_level, ModelThinkingLevel::High);
+    }
+    for reference in ["friendly@max", "Runtime@max", "openai:base-model@max"] {
+        assert!(matches!(
+            available.resolve_selection(reference),
+            Err(CodingRuntimeError::InvalidModelReference { .. })
+        ));
+    }
+}
+
+#[test]
+fn unregistered_fuzzy_selection_honors_availability_snapshot() {
+    let mut selected = model("openai", "base-model");
+    selected.name = "Friendly Runtime".into();
+    selected.reasoning = true;
+    let composition = ProviderComposition::new(ProviderCompositionInputs::default())
+        .expect("empty")
+        .with_model_overlays([ConfiguredModelOverlay::new(selected.clone()).with_alias("friendly")])
+        .expect("overlay")
+        .with_availability([ModelAvailability {
+            provider: selected.provider.clone(),
+            model_id: selected.id.clone(),
+            available: false,
+        }]);
+
+    // These substrings match the name without using the configured alias.
+    for reference in ["  RUN-time  ", "Runtime@high"] {
+        assert_eq!(
+            composition.resolve_selection(reference).unwrap_err(),
+            CodingRuntimeError::MissingModel {
+                provider: selected.provider.clone(),
+                model_id: selected.id.clone(),
+            }
+        );
+    }
+
+    let available = composition.with_availability([ModelAvailability {
+        provider: selected.provider.clone(),
+        model_id: selected.id.clone(),
+        available: true,
+    }]);
+    for (reference, thinking_level) in [
+        ("  RUN-time  ", ModelThinkingLevel::Off),
+        ("Runtime@high", ModelThinkingLevel::High),
+    ] {
+        let resolved = available
+            .resolve_selection(reference)
+            .expect("availability-restored unregistered substring");
+        assert_eq!(resolved.model.provider, selected.provider);
+        assert_eq!(resolved.model.id, selected.id);
+        assert_eq!(resolved.thinking_level, thinking_level);
+    }
+}
+
+#[test]
+fn unregistered_fuzzy_selection_remains_ambiguous_regardless_of_availability() {
+    let mut first = model("openai", "shared-one");
+    let mut second = model("openai", "shared-two");
+    first.reasoning = true;
+    second.reasoning = true;
+
+    for (first_available, second_available) in
+        [(false, true), (true, false), (false, false), (true, true)]
+    {
+        let composition = ProviderComposition::new(ProviderCompositionInputs::default())
+            .expect("empty")
+            .with_model_overlays([
+                ConfiguredModelOverlay::new(first.clone()),
+                ConfiguredModelOverlay::new(second.clone()),
+            ])
+            .expect("overlays")
+            .with_availability([
+                ModelAvailability {
+                    provider: first.provider.clone(),
+                    model_id: first.id.clone(),
+                    available: first_available,
+                },
+                ModelAvailability {
+                    provider: second.provider.clone(),
+                    model_id: second.id.clone(),
+                    available: second_available,
+                },
+            ]);
+
+        for reference in [" SHARED ", "shared@high"] {
+            assert_eq!(
+                composition.resolve_selection(reference).unwrap_err(),
+                CodingRuntimeError::InvalidModelReference {
+                    reference: reference.to_owned(),
+                }
+            );
+        }
+    }
 }
