@@ -11,9 +11,9 @@ const manifest = JSON.parse(manifestBytes);
 const original = JSON.parse(fixtureBytes);
 const fail = (message) => { throw new Error(message); };
 if (manifest.schemaVersion !== 1 || manifest.authority !== "853a80d26c90a14c1886f0ebb8ffaae133ca2185") fail("manifest identity mismatch");
-if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 4) fail("expected exactly 18 positive rows");
-if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 4) fail("expected exactly 18 causal negatives");
-if (!Array.isArray(original.rows) || original.rows.length !== 4) fail("expected exactly 18 fixture rows");
+if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 4) fail("expected exactly 4 active positive rows");
+if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 4) fail("expected exactly 4 active causal negatives");
+if (!Array.isArray(original.rows) || original.rows.length !== 4) fail("expected exactly 4 active fixture rows");
 const byId = new Map(original.rows.map((row) => [row.caseId, row]));
 const positiveIds = new Set();
 for (const row of manifest.positiveRows) {
