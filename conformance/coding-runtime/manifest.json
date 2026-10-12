@@ -162,91 +162,97 @@
     {
       "negativeId": "tools.validate_progress_settle.causal",
       "positiveId": "tools.validate_progress_settle",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.tool_evidence.updates",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.tool_evidence.updates",
+        "operation": "remove_last"
       }
     },
     {
       "negativeId": "tools.coding_operations.causal",
       "positiveId": "tools.coding_operations",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.environment_calls",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.environment_calls",
+        "operation": "remove_last"
       }
     },
     {
       "negativeId": "queue.steer_during_turn.causal",
       "positiveId": "queue.steer_during_turn",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.queue_snapshot.steer",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.queue_snapshot.steer",
+        "operation": "remove_last"
       }
     },
     {
       "negativeId": "queue.follow_up_after_turn.causal",
       "positiveId": "queue.follow_up_after_turn",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.queue_snapshot.follow_up",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.queue_snapshot.follow_up",
+        "operation": "remove_last"
       }
     },
     {
       "negativeId": "retry.overflow_precedence.causal",
       "positiveId": "retry.overflow_precedence",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.compaction_entries.0.summary",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.compaction_entries.0.summary",
+        "operation": "append"
       }
     },
     {
       "negativeId": "retry.provider_recovery.causal",
       "positiveId": "retry.provider_recovery",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.clock.sleeps_ms.0",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
+        "target": "observations.clock.sleeps_ms.0",
         "operation": "increment"
       }
     },
     {
       "negativeId": "abort.active_stream_cleanup.causal",
       "positiveId": "abort.active_stream_cleanup",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.cleanup.register_counts.pending.entry",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.cleanup.register_counts.pending.entry",
+        "operation": "increment",
+        "path": [
+          "observations",
+          "cleanup",
+          "register_counts",
+          "pending.entry"
+        ]
       }
     },
     {
       "negativeId": "compaction.context_projection.causal",
       "positiveId": "compaction.context_projection",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "operation_witness:observations.compaction_entries.0.parent_id",
+      "reason": "operation_witness",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "observations.compaction_entries.0.parent_id",
+        "operation": "append"
       }
     },
     {
       "negativeId": "capability.required_prestart_failure.causal",
       "positiveId": "capability.required_prestart_failure",
-      "name": "side_effects:observations.durable_entries",
-      "reason": "side_effect_count",
+      "name": "capability_preflight:input.capability",
+      "reason": "capability_preflight",
       "mutation": {
-        "target": "observations.durable_entries",
-        "operation": "increment"
+        "target": "input.capability",
+        "operation": "remove"
       }
     }
   ],

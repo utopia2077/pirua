@@ -149,6 +149,7 @@ struct StopAdapter {
     resolved_models: Mutex<Vec<Model>>,
     responses: Mutex<VecDeque<AssistantMessage>>,
     contexts: Mutex<Vec<pi_ai::Context>>,
+    emitted_responses: Arc<Mutex<Vec<AssistantMessage>>>,
     lifecycle: Arc<Mutex<Vec<String>>>,
     hold: Mutex<Option<pi_ai::CancellationToken>>,
     active_streams: Arc<AtomicUsize>,
@@ -183,6 +184,7 @@ impl StopAdapter {
             resolved_models: Mutex::new(Vec::new()),
             responses: Mutex::new(VecDeque::from([response.clone(), response])),
             contexts: Mutex::new(Vec::new()),
+            emitted_responses: Arc::new(Mutex::new(Vec::new())),
             lifecycle: Arc::new(Mutex::new(Vec::new())),
             hold: Mutex::new(None),
             active_streams: Arc::new(AtomicUsize::new(0)),
@@ -239,6 +241,7 @@ impl StopAdapter {
         let hold = self.hold.lock().expect("hold").take();
         let cancellation = request.options.runtime.cancellation.clone();
         let active_streams = self.active_streams.clone();
+        let emitted_responses = self.emitted_responses.clone();
         active_streams.fetch_add(1, Ordering::SeqCst);
         request
             .options
@@ -290,6 +293,10 @@ impl StopAdapter {
                     .lock()
                     .expect("lifecycle")
                     .push(format!("response:{request_number}:200"));
+                emitted_responses
+                    .lock()
+                    .expect("emitted responses")
+                    .push(response.clone());
                 let event = match response.stop_reason {
                     pi_ai::StopReason::Error => AssistantMessageEvent::Error {
                         reason: pi_ai::ErrorReason::Error,
@@ -453,6 +460,7 @@ struct Fixture {
     session: Arc<MemorySession>,
     registry: Arc<ModelsRegistry>,
     environment: Arc<dyn ExecutionEnv>,
+    clock: Arc<FixtureClock>,
 }
 
 async fn fixture() -> Fixture {
@@ -513,6 +521,7 @@ async fn fixture_with_environment(environment: Arc<dyn ExecutionEnv>) -> Fixture
         session,
         registry,
         environment,
+        clock,
     }
 }
 

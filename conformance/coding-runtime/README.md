@@ -8,7 +8,7 @@ as `pendingRows` in `manifest.json` for M6-C.
 Every active row runs a fresh assembled `CodingHarnessBuilder`/`AgentHarness`
 operation in `crates/pi-coding-runtime/tests/coding_runtime_conformance.rs`
 and its M6-B support module. The bridge installs deterministic local adapters,
-subscribes to real Harness event tags, starts the selected operation, waits for
+retains real Harness event payloads, starts the selected operation, waits for
 terminal or idle settlement, and reads the session entry projection. The four
 closed side-effect fields are
 `provider_calls`, `tool_invocations`, `session_publication_events`, and
@@ -35,32 +35,47 @@ The M6-A rows are:
 The M6-B rows are:
 
 - `tools.validate_progress_settle`: a provider tool call reaches the real
-  `read` binding, emits progress and terminal tool events, and settles durable
-  entries through an injected deterministic environment.
-- `tools.coding_operations`: real `write` and `bash` bindings mutate and
-  execute against the deterministic environment, with their ordered tool
-  events and provider request count captured.
+  `read` binding. The provider call arguments match ToolStart, actual
+  ToolUpdate progress precedes ToolEnd settlement, and host read data matches
+  the result content.
+- `tools.coding_operations`: real `read`, `write`, `edit`, `grep`, `find`,
+  `ls`, and `bash` bindings run in order against the deterministic environment.
+  Structured path/read/write/canonical/metadata/list/process calls retain
+  arguments, results, and errors. Provider tool calls, Harness payloads, edited
+  file bytes, search/list results, and process output are compared together.
 - `queue.steer_during_turn` and `queue.follow_up_after_turn`: the real queue
   admission and drain operations run while an adapter stream is held, with
-  queue event ordering and post-operation idle state captured.
+  QueueUpdate payloads and a public lane snapshot proving message placement.
+  The subsequent provider context proves delivery after the first turn, and
+  an idle snapshot plus register scans prove that the queue is drained.
 - `retry.overflow_precedence`: an implementation-generated context overflow
   response triggers compaction before retry, with three provider requests and
-  compaction events observed.
+  compaction payloads observed. The real overflow response, summary request
+  context, durable CompactionEntry metadata, continued request context, and
+  absence of ordinary retry events/sleeps prove the precedence.
 - `retry.provider_recovery`: an implementation-generated retryable provider
   response emits the real `retry_scheduled` event, retries once, and reaches a
-  terminal recovery response.
+  terminal recovery response. RetryScheduled fields match the actual error,
+  second attempt, and measured clock advancement/sleep; ordinary recovery
+  does not invent RetryStart or RetryEnd events.
 - `abort.active_stream_cleanup`: an active assembled stream is cancelled,
-  returns an aborted terminal outcome, and leaves no active adapter streams
-  after `wait_for_idle`.
+  records runtime cancellation in the adapter lifecycle trace and returns an
+  aborted terminal outcome. After `wait_for_idle`, public lane state and
+  operation/pending register scans show cleanup, with zero active streams.
 - `compaction.context_projection`: two assembled turns are compacted through
-  the public lane operation; provider context message counts and durable entry
-  deltas are captured around the compaction.
+  the public lane operation. Both summary requests for the split turn and
+  their actual responses are retained, with parent, summary, retained tail,
+  token estimate, usage, and hook source from the durable CompactionEntry.
+  A subsequent prompt proves projection of that summary and retained tail.
 
 No live provider, network, credential refresh, transport, protocol/schema, host
 ownership, or durable-session implementation is added. The only credential
 observation is a host-owned boundary: injected credential inputs are retained
 without reads. M6-A causal mutation changes the capability input for the
-negative row; M6-B mutations increment one durable side-effect count.
+negative row. The eight M6-B causal mutations each remove or alter one required
+operation witness, and semantic validation must reject them before exact
+fixture comparison. The self-test preserves fixture and manifest bytes and
+the exact twelve-active/six-pending partition.
 
 Run the intermediate target with:
 
@@ -75,5 +90,7 @@ env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/coding-runtime/cau
 ```
 
 `compare-actual.mjs` rejects unknown envelope, outcome, error, observation, and
-event fields before exact comparison. The fixture authority is pinned to
+event fields, including nested payload and message fields, before exact
+comparison. Row-specific checks correlate events, provider requests, host
+results, clock facts, and public session state. The fixture authority is pinned to
 `853a80d26c90a14c1886f0ebb8ffaae133ca2185`.

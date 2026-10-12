@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { compareObservation, firstFailure } from "./comparator.mjs";
+import { compareObservation, firstFailure, validateObservation } from "./comparator.mjs";
 
 const here = path.dirname(new URL(import.meta.url).pathname);
 const manifestPath = path.join(here, "manifest.json");
@@ -14,6 +14,10 @@ if (manifest.schemaVersion !== 1 || manifest.authority !== "853a80d26c90a14c1886
 if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 12) fail("expected exactly 12 active positive rows");
 if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 12) fail("expected exactly 12 active causal negatives");
 if (!Array.isArray(original.rows) || original.rows.length !== 12) fail("expected exactly 12 active fixture rows");
+const pending = ["branch.fork_atomic_publish", "restart.recover_session", "legacy_import.format3", "model_switch.next_run", "extension.participation_ordering", "lifecycle.builder_replace"];
+if (JSON.stringify(manifest.pendingRows) !== JSON.stringify(pending) || JSON.stringify(original.pendingRows) !== JSON.stringify(pending)) fail("exact six pending M6-C rows required");
+const active = ["model.credentials_catalog", "prompt.system_resources", "prompt.settings_snapshot", "tools.validate_progress_settle", "tools.coding_operations", "queue.steer_during_turn", "queue.follow_up_after_turn", "retry.overflow_precedence", "retry.provider_recovery", "abort.active_stream_cleanup", "compaction.context_projection", "capability.required_prestart_failure"];
+if (JSON.stringify(manifest.positiveRows.map((row) => row.id)) !== JSON.stringify(active) || JSON.stringify(original.rows.map((row) => row.caseId)) !== JSON.stringify(active)) fail("exact twelve active M6-A/M6-B rows required");
 const byId = new Map(original.rows.map((row) => [row.caseId, row]));
 const positiveIds = new Set();
 for (const row of manifest.positiveRows) {
@@ -27,7 +31,8 @@ for (const negative of manifest.negatives) {
   if (!positiveIds.has(negative.positiveId) || negatives.has(negative.positiveId)) fail(`negative coverage error ${negative.positiveId}`);
   if (negative.reason === "side_effect_count" && negative.mutation?.target !== "observations.durable_entries") fail(`invalid mutation ${negative.negativeId}`);
   if (negative.reason === "capability_preflight" && negative.mutation?.target !== "input.capability") fail(`invalid mutation ${negative.negativeId}`);
-  if (!["side_effect_count", "capability_preflight"].includes(negative.reason)) fail(`invalid mutation reason ${negative.reason}`);
+  if (negative.reason === "operation_witness" && (!negative.mutation?.target?.startsWith("observations.") || !["remove_last", "increment", "append"].includes(negative.mutation?.operation))) fail(`invalid operation witness ${negative.negativeId}`);
+  if (!["side_effect_count", "capability_preflight", "operation_witness"].includes(negative.reason)) fail(`invalid mutation reason ${negative.reason}`);
   negatives.set(negative.positiveId, negative);
 }
 if (negatives.size !== 12) fail("every positive needs one negative");
@@ -38,7 +43,19 @@ for (const row of original.rows) {
   compareObservation(row, row);
   const mutated = clone(row);
   if (negative.reason === "side_effect_count") mutated.observations.durable_entries += 1;
-  else mutated.input.capability = "models.resolve.removed";
+  else if (negative.reason === "capability_preflight") mutated.input.capability = "models.resolve.removed";
+  else {
+    const keys = negative.mutation.path ?? negative.mutation.target.split(".");
+    let parent = mutated;
+    for (const key of keys.slice(0, -1)) parent = parent[key];
+    const key = keys.at(-1);
+    if (negative.mutation.operation === "increment") parent[key] += 1;
+    if (negative.mutation.operation === "append") parent[key] += "-changed";
+    if (negative.mutation.operation === "remove_last") parent[key].pop();
+    let semanticFailure = false;
+    try { validateObservation(mutated, row.caseId); } catch { semanticFailure = true; }
+    if (!semanticFailure) fail(`operation mutation passed semantic validation for ${row.caseId}`);
+  }
   if (!firstFailure(row, mutated)) fail(`causal mutation unexpectedly passed for ${row.caseId}`);
   const restored = JSON.parse(fixtureBytes).rows.find((candidate) => candidate.caseId === row.caseId);
   compareObservation(row, restored);
@@ -53,6 +70,13 @@ if (!firstFailure(original.rows[0], unknownEvent)) fail("unknown event type was 
 const malformedMessage = clone(original.rows[0]);
 malformedMessage.messages = [{ notAMessage: true }];
 if (!firstFailure(original.rows[0], malformedMessage)) fail("malformed message object was accepted");
+const toolRow = original.rows.find((row) => row.caseId === "tools.validate_progress_settle");
+const badPayload = clone(toolRow);
+badPayload.events.find((event) => event.type === "tool_end").payload.unexpected = true;
+try { validateObservation(badPayload); fail("unknown nested tool payload was accepted"); } catch (error) { if (error.message === "unknown nested tool payload was accepted") throw error; }
+const badQueuedMessage = clone(original.rows.find((row) => row.caseId === "queue.steer_during_turn"));
+badQueuedMessage.observations.queued_item.message.unexpected = true;
+try { validateObservation(badQueuedMessage); fail("unknown nested queued message was accepted"); } catch (error) { if (error.message === "unknown nested queued message was accepted") throw error; }
 if (Buffer.compare(fixtureBytes, fs.readFileSync(fixturesPath)) !== 0) fail("fixture bytes changed during causal test");
 if (Buffer.compare(manifestBytes, fs.readFileSync(manifestPath)) !== 0) fail("manifest bytes changed during causal test");
 console.log(`causal self-test passed: ${completed} positives, ${manifest.negatives.length} one-change negatives, fixture bytes restored`);
