@@ -1,6 +1,6 @@
 const AUTHORITY = "853a80d26c90a14c1886f0ebb8ffaae133ca2185";
 const ENVELOPE_KEYS = ["schemaVersion", "authority", "caseId", "input", "events", "messages", "outcome", "observations"];
-const INPUT_KEYS = ["kind", "operation", "reference", "capability", "thinking_level", "active_tools", "resources"];
+const INPUT_KEYS = ["kind", "operation", "reference", "capability", "thinking_level", "active_tools", "resources", "tool", "tools", "queue", "max_retries", "retry_enabled", "custom_instructions"];
 const OUTCOME_KEYS = ["kind", "error", "terminal"];
 const ERROR_KEYS = ["type", "capability"];
 const OBSERVATION_KEYS = [
@@ -8,6 +8,9 @@ const OBSERVATION_KEYS = [
   "model", "resources_attached", "settings_detached", "availability_transition",
   "credential_boundary", "event_count", "event_types", "terminal_kind",
   "runtime_model_match", "resources_match", "settings_match",
+  "environment_calls", "tool_progress", "tool_settled", "validation", "tool_names", "file_written", "shell_output",
+  "queue_entry_id", "queue_order", "idle_after", "compaction_triggered", "overflow_classification", "retry_suppressed", "request_count",
+  "provider_recovery", "retry_attempts", "abort_outcome", "active_streams", "post_abort_idle", "session_stats_delta", "context_projection", "session_entries_before", "session_entries_after", "compaction_published",
 ];
 const MODEL_KEYS = ["provider", "id", "name", "base_url", "source", "available"];
 const EVENT_KEYS = ["index", "type", "role", "message_id", "tool_call_id", "tool_name", "detail"];
@@ -60,6 +63,10 @@ function validateInput(input, path) {
       if (!Array.isArray(input.resources[key]) || input.resources[key].some((item) => typeof item !== "string")) throw new ConformanceMismatch(`${path}.resources.${key}`, "expected string array", "string[]", input.resources[key]);
     }
   }
+  for (const key of ["tool", "queue", "custom_instructions"]) if (input[key] !== undefined) string(input[key], `${path}.${key}`);
+  if (input.max_retries !== undefined) integer(input.max_retries, `${path}.max_retries`);
+  if (input.retry_enabled !== undefined) bool(input.retry_enabled, `${path}.retry_enabled`);
+  if (input.tools !== undefined && (!Array.isArray(input.tools) || input.tools.some((item) => typeof item !== "string"))) throw new ConformanceMismatch(`${path}.tools`, "expected string array", "string[]", input.tools);
 }
 
 function validateOutcome(outcome, path) {
@@ -96,9 +103,16 @@ function validateObservations(observations, path) {
     }
   }
   if (observations.terminal_kind !== undefined) string(observations.terminal_kind, `${path}.terminal_kind`);
-  for (const key of ["runtime_model_match", "resources_match", "settings_match"]) {
+  for (const key of ["runtime_model_match", "resources_match", "settings_match", "tool_progress", "tool_settled", "idle_after", "compaction_triggered", "retry_suppressed", "provider_recovery", "post_abort_idle", "compaction_published"]) {
     if (observations[key] !== undefined) bool(observations[key], `${path}.${key}`);
   }
+  for (const key of ["environment_calls", "tool_names"]) {
+    if (observations[key] !== undefined && (!Array.isArray(observations[key]) || observations[key].some((item) => typeof item !== "string"))) throw new ConformanceMismatch(`${path}.${key}`, "expected string array", "string[]", observations[key]);
+  }
+  for (const key of ["validation", "file_written", "shell_output", "queue_entry_id", "queue_order", "overflow_classification", "abort_outcome"]) if (observations[key] !== undefined) string(observations[key], `${path}.${key}`);
+  for (const key of ["request_count", "retry_attempts", "active_streams", "session_entries_before", "session_entries_after"]) if (observations[key] !== undefined) integer(observations[key], `${path}.${key}`);
+  if (observations.session_stats_delta !== undefined) { allowed(observations.session_stats_delta, ["message_count", "usage_total"], `${path}.session_stats_delta`); integer(observations.session_stats_delta.message_count, `${path}.session_stats_delta.message_count`); integer(observations.session_stats_delta.usage_total, `${path}.session_stats_delta.usage_total`); }
+  if (observations.context_projection !== undefined) { allowed(observations.context_projection, ["before_messages", "summary_messages"], `${path}.context_projection`); integer(observations.context_projection.before_messages, `${path}.context_projection.before_messages`); integer(observations.context_projection.summary_messages, `${path}.context_projection.summary_messages`); }
 }
 
 function validateEvents(events, path) {

@@ -3,148 +3,1270 @@
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
   "rows": [
     {
-      "schemaVersion": 1,
       "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
       "caseId": "model.credentials_catalog",
+      "events": [],
       "input": {
         "kind": "assemble",
         "operation": "resolve_overlay",
         "reference": "openai:offline-model"
       },
-      "events": [],
       "messages": [],
-      "outcome": {
-        "kind": "resolved",
-        "error": null,
-        "terminal": true
-      },
       "observations": {
-        "provider_calls": 1,
-        "tool_invocations": 0,
-        "session_publication_events": 2,
-        "durable_entries": 2,
-        "model": {
-          "provider": "openai",
-          "id": "offline-model",
-          "name": "offline-model-detached-overlay",
-          "base_url": "https://overlay.example.invalid/v1",
-          "source": "overlay",
-          "available": true
-        },
         "availability_transition": [
           "unavailable",
           "available"
         ],
         "credential_boundary": "host-owned credential inputs retained without reads",
-        "terminal_kind": "completed",
-        "runtime_model_match": true,
+        "durable_entries": 2,
+        "model": {
+          "available": true,
+          "base_url": "https://overlay.example.invalid/v1",
+          "id": "offline-model",
+          "name": "offline-model-detached-overlay",
+          "provider": "openai",
+          "source": "overlay"
+        },
+        "provider_calls": 1,
         "resources_match": true,
-        "settings_match": true
-      }
+        "runtime_model_match": true,
+        "session_publication_events": 2,
+        "settings_match": true,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "resolved",
+        "terminal": true
+      },
+      "schemaVersion": 1
     },
     {
-      "schemaVersion": 1,
       "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
       "caseId": "prompt.system_resources",
+      "events": [],
       "input": {
         "kind": "assemble",
         "operation": "system_resources",
         "resources": {
-          "skills": [
-            "visible"
-          ],
           "prompt_templates": [
             "build"
+          ],
+          "skills": [
+            "visible"
           ]
         }
       },
-      "events": [],
       "messages": [],
+      "observations": {
+        "durable_entries": 2,
+        "provider_calls": 1,
+        "resources_attached": true,
+        "resources_match": true,
+        "runtime_model_match": true,
+        "session_publication_events": 2,
+        "settings_match": true,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
       "outcome": {
-        "kind": "assembled",
         "error": null,
+        "kind": "assembled",
         "terminal": true
       },
-      "observations": {
-        "provider_calls": 1,
-        "tool_invocations": 0,
-        "session_publication_events": 2,
-        "durable_entries": 2,
-        "resources_attached": true,
-        "terminal_kind": "completed",
-        "runtime_model_match": true,
-        "resources_match": true,
-        "settings_match": true
-      }
+      "schemaVersion": 1
     },
     {
-      "schemaVersion": 1,
       "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
       "caseId": "prompt.settings_snapshot",
+      "events": [],
       "input": {
-        "kind": "assemble",
-        "operation": "settings_snapshot",
-        "thinking_level": "off",
         "active_tools": [
           "read"
-        ]
+        ],
+        "kind": "assemble",
+        "operation": "settings_snapshot",
+        "thinking_level": "off"
       },
-      "events": [],
       "messages": [],
+      "observations": {
+        "durable_entries": 2,
+        "provider_calls": 1,
+        "resources_match": true,
+        "runtime_model_match": true,
+        "session_publication_events": 2,
+        "settings_detached": true,
+        "settings_match": true,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
       "outcome": {
-        "kind": "assembled",
         "error": null,
+        "kind": "assembled",
         "terminal": true
       },
-      "observations": {
-        "provider_calls": 1,
-        "tool_invocations": 0,
-        "session_publication_events": 2,
-        "durable_entries": 2,
-        "settings_detached": true,
-        "terminal_kind": "completed",
-        "runtime_model_match": true,
-        "resources_match": true,
-        "settings_match": true
-      }
+      "schemaVersion": 1
     },
     {
-      "schemaVersion": 1,
       "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
-      "caseId": "capability.required_prestart_failure",
-      "input": {
-        "kind": "assemble",
-        "operation": "preflight",
-        "capability": "models.resolve"
-      },
-      "events": [],
-      "messages": [],
-      "outcome": {
-        "kind": "error",
-        "error": {
-          "type": "MissingCapability",
-          "capability": "models.resolve"
+      "caseId": "tools.validate_progress_settle",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
         },
+        {
+          "index": 1,
+          "type": "message_start"
+        },
+        {
+          "index": 2,
+          "type": "message_end"
+        },
+        {
+          "index": 3,
+          "type": "entry_added"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "message_end"
+        },
+        {
+          "index": 7,
+          "type": "entry_added"
+        },
+        {
+          "index": 8,
+          "type": "usage"
+        },
+        {
+          "index": 9,
+          "type": "tool_start"
+        },
+        {
+          "index": 10,
+          "type": "tool_update"
+        },
+        {
+          "index": 11,
+          "type": "tool_end"
+        },
+        {
+          "index": 12,
+          "type": "message_start"
+        },
+        {
+          "index": 13,
+          "type": "message_end"
+        },
+        {
+          "index": 14,
+          "type": "entry_added"
+        },
+        {
+          "index": 15,
+          "type": "turn_end"
+        },
+        {
+          "index": 16,
+          "type": "turn_start"
+        },
+        {
+          "index": 17,
+          "type": "message_start"
+        },
+        {
+          "index": 18,
+          "type": "message_end"
+        },
+        {
+          "index": 19,
+          "type": "entry_added"
+        },
+        {
+          "index": 20,
+          "type": "turn_end"
+        },
+        {
+          "index": 21,
+          "type": "usage"
+        },
+        {
+          "index": 22,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "operation": "validate_progress_settle",
+        "tool": "read"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "environment_calls": [],
+        "event_count": 23,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "usage",
+          "tool_start",
+          "tool_update",
+          "tool_end",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end"
+        ],
+        "provider_calls": 2,
+        "session_publication_events": 4,
+        "session_stats_delta": {
+          "message_count": 4,
+          "usage_total": 0
+        },
+        "terminal_kind": "completed",
+        "tool_invocations": 1,
+        "tool_progress": true,
+        "tool_settled": true,
+        "validation": "read"
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
         "terminal": true
       },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "tools.coding_operations",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "message_start"
+        },
+        {
+          "index": 2,
+          "type": "message_end"
+        },
+        {
+          "index": 3,
+          "type": "entry_added"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "message_end"
+        },
+        {
+          "index": 7,
+          "type": "entry_added"
+        },
+        {
+          "index": 8,
+          "type": "usage"
+        },
+        {
+          "index": 9,
+          "type": "tool_start"
+        },
+        {
+          "index": 10,
+          "type": "tool_end"
+        },
+        {
+          "index": 11,
+          "type": "message_start"
+        },
+        {
+          "index": 12,
+          "type": "message_end"
+        },
+        {
+          "index": 13,
+          "type": "entry_added"
+        },
+        {
+          "index": 14,
+          "type": "turn_end"
+        },
+        {
+          "index": 15,
+          "type": "turn_start"
+        },
+        {
+          "index": 16,
+          "type": "message_start"
+        },
+        {
+          "index": 17,
+          "type": "message_end"
+        },
+        {
+          "index": 18,
+          "type": "entry_added"
+        },
+        {
+          "index": 19,
+          "type": "usage"
+        },
+        {
+          "index": 20,
+          "type": "tool_start"
+        },
+        {
+          "index": 21,
+          "type": "tool_update"
+        },
+        {
+          "index": 22,
+          "type": "tool_end"
+        },
+        {
+          "index": 23,
+          "type": "message_start"
+        },
+        {
+          "index": 24,
+          "type": "message_end"
+        },
+        {
+          "index": 25,
+          "type": "entry_added"
+        },
+        {
+          "index": 26,
+          "type": "turn_end"
+        },
+        {
+          "index": 27,
+          "type": "turn_start"
+        },
+        {
+          "index": 28,
+          "type": "message_start"
+        },
+        {
+          "index": 29,
+          "type": "message_end"
+        },
+        {
+          "index": 30,
+          "type": "entry_added"
+        },
+        {
+          "index": 31,
+          "type": "turn_end"
+        },
+        {
+          "index": 32,
+          "type": "usage"
+        },
+        {
+          "index": 33,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "operation": "coding_operations",
+        "tools": [
+          "write",
+          "bash"
+        ]
+      },
+      "messages": [],
       "observations": {
+        "durable_entries": 6,
+        "environment_calls": [
+          "write:out.txt",
+          "exec:printf coding"
+        ],
+        "event_count": 34,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "usage",
+          "tool_start",
+          "tool_end",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "usage",
+          "tool_start",
+          "tool_update",
+          "tool_end",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end"
+        ],
+        "file_written": "written",
+        "provider_calls": 3,
+        "session_publication_events": 6,
+        "session_stats_delta": {
+          "message_count": 6,
+          "usage_total": 0
+        },
+        "shell_output": "deterministic shell\n",
+        "terminal_kind": "completed",
+        "tool_invocations": 2,
+        "tool_names": [
+          "write",
+          "bash"
+        ]
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "queue.steer_during_turn",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "entry_added"
+        },
+        {
+          "index": 2,
+          "type": "message_start"
+        },
+        {
+          "index": 3,
+          "type": "message_end"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "queue_update"
+        },
+        {
+          "index": 7,
+          "type": "message_end"
+        },
+        {
+          "index": 8,
+          "type": "entry_added"
+        },
+        {
+          "index": 9,
+          "type": "turn_end"
+        },
+        {
+          "index": 10,
+          "type": "usage"
+        },
+        {
+          "index": 11,
+          "type": "queue_update"
+        },
+        {
+          "index": 12,
+          "type": "entry_added"
+        },
+        {
+          "index": 13,
+          "type": "turn_start"
+        },
+        {
+          "index": 14,
+          "type": "message_start"
+        },
+        {
+          "index": 15,
+          "type": "message_end"
+        },
+        {
+          "index": 16,
+          "type": "entry_added"
+        },
+        {
+          "index": 17,
+          "type": "turn_end"
+        },
+        {
+          "index": 18,
+          "type": "usage"
+        },
+        {
+          "index": 19,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "operation": "steer_during_turn",
+        "queue": "steer"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "event_count": 20,
+        "event_types": [
+          "run_start",
+          "entry_added",
+          "message_start",
+          "message_end",
+          "turn_start",
+          "message_start",
+          "queue_update",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "queue_update",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end"
+        ],
+        "idle_after": true,
+        "provider_calls": 2,
+        "queue_entry_id": "m6-id-5",
+        "queue_order": "steer",
+        "session_publication_events": 4,
+        "session_stats_delta": {
+          "message_count": 4,
+          "usage_total": 0
+        },
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "queue.follow_up_after_turn",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "entry_added"
+        },
+        {
+          "index": 2,
+          "type": "message_start"
+        },
+        {
+          "index": 3,
+          "type": "message_end"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "queue_update"
+        },
+        {
+          "index": 7,
+          "type": "message_end"
+        },
+        {
+          "index": 8,
+          "type": "entry_added"
+        },
+        {
+          "index": 9,
+          "type": "turn_end"
+        },
+        {
+          "index": 10,
+          "type": "usage"
+        },
+        {
+          "index": 11,
+          "type": "queue_update"
+        },
+        {
+          "index": 12,
+          "type": "entry_added"
+        },
+        {
+          "index": 13,
+          "type": "turn_start"
+        },
+        {
+          "index": 14,
+          "type": "message_start"
+        },
+        {
+          "index": 15,
+          "type": "message_end"
+        },
+        {
+          "index": 16,
+          "type": "entry_added"
+        },
+        {
+          "index": 17,
+          "type": "turn_end"
+        },
+        {
+          "index": 18,
+          "type": "usage"
+        },
+        {
+          "index": 19,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "operation": "follow_up_after_turn",
+        "queue": "follow_up"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "event_count": 20,
+        "event_types": [
+          "run_start",
+          "entry_added",
+          "message_start",
+          "message_end",
+          "turn_start",
+          "message_start",
+          "queue_update",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "queue_update",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end"
+        ],
+        "idle_after": true,
+        "provider_calls": 2,
+        "queue_entry_id": "m6-id-5",
+        "queue_order": "follow_up",
+        "session_publication_events": 4,
+        "session_stats_delta": {
+          "message_count": 4,
+          "usage_total": 0
+        },
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "retry.overflow_precedence",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "message_start"
+        },
+        {
+          "index": 2,
+          "type": "message_end"
+        },
+        {
+          "index": 3,
+          "type": "entry_added"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "message_end"
+        },
+        {
+          "index": 7,
+          "type": "compaction_start"
+        },
+        {
+          "index": 8,
+          "type": "entry_added"
+        },
+        {
+          "index": 9,
+          "type": "turn_end"
+        },
+        {
+          "index": 10,
+          "type": "usage"
+        },
+        {
+          "index": 11,
+          "type": "usage"
+        },
+        {
+          "index": 12,
+          "type": "compaction_end"
+        },
+        {
+          "index": 13,
+          "type": "entry_added"
+        },
+        {
+          "index": 14,
+          "type": "turn_start"
+        },
+        {
+          "index": 15,
+          "type": "message_start"
+        },
+        {
+          "index": 16,
+          "type": "message_end"
+        },
+        {
+          "index": 17,
+          "type": "entry_added"
+        },
+        {
+          "index": 18,
+          "type": "turn_end"
+        },
+        {
+          "index": 19,
+          "type": "usage"
+        },
+        {
+          "index": 20,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "operation": "overflow_precedence",
+        "retry_enabled": true
+      },
+      "messages": [],
+      "observations": {
+        "compaction_triggered": true,
+        "durable_entries": 4,
+        "event_count": 21,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "compaction_start",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "usage",
+          "compaction_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end"
+        ],
+        "overflow_classification": "context_overflow",
+        "provider_calls": 3,
+        "request_count": 3,
+        "retry_suppressed": true,
+        "session_publication_events": 4,
+        "session_stats_delta": {
+          "message_count": 3,
+          "usage_total": 0
+        },
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "retry.provider_recovery",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "message_start"
+        },
+        {
+          "index": 2,
+          "type": "message_end"
+        },
+        {
+          "index": 3,
+          "type": "entry_added"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "message_end"
+        },
+        {
+          "index": 7,
+          "type": "retry_scheduled"
+        },
+        {
+          "index": 8,
+          "type": "entry_added"
+        },
+        {
+          "index": 9,
+          "type": "usage"
+        },
+        {
+          "index": 10,
+          "type": "message_start"
+        },
+        {
+          "index": 11,
+          "type": "message_end"
+        },
+        {
+          "index": 12,
+          "type": "entry_added"
+        },
+        {
+          "index": 13,
+          "type": "turn_end"
+        },
+        {
+          "index": 14,
+          "type": "usage"
+        },
+        {
+          "index": 15,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "max_retries": 1,
+        "operation": "provider_recovery"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 3,
+        "event_count": 16,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "retry_scheduled",
+          "entry_added",
+          "usage",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end"
+        ],
+        "provider_calls": 2,
+        "provider_recovery": true,
+        "request_count": 2,
+        "retry_attempts": 1,
+        "session_publication_events": 3,
+        "session_stats_delta": {
+          "message_count": 3,
+          "usage_total": 0
+        },
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "abort.active_stream_cleanup",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "entry_added"
+        },
+        {
+          "index": 2,
+          "type": "turn_start"
+        },
+        {
+          "index": 3,
+          "type": "run_abort"
+        },
+        {
+          "index": 4,
+          "type": "entry_added"
+        },
+        {
+          "index": 5,
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "operation",
+        "operation": "abort_active_stream"
+      },
+      "messages": [],
+      "observations": {
+        "abort_outcome": "AbortOutcome { run_id: OperationId(\"m6-id-0\"), steer: [], follow_up: [] }",
+        "active_streams": 0,
+        "durable_entries": 2,
+        "event_count": 6,
+        "event_types": [
+          "run_start",
+          "entry_added",
+          "turn_start",
+          "run_abort",
+          "entry_added",
+          "run_end"
+        ],
+        "post_abort_idle": true,
+        "provider_calls": 1,
+        "session_publication_events": 2,
+        "session_stats_delta": {
+          "message_count": 2,
+          "usage_total": 0
+        },
+        "terminal_kind": "aborted",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "aborted",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "compaction.context_projection",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "type": "message_start"
+        },
+        {
+          "index": 2,
+          "type": "message_end"
+        },
+        {
+          "index": 3,
+          "type": "entry_added"
+        },
+        {
+          "index": 4,
+          "type": "turn_start"
+        },
+        {
+          "index": 5,
+          "type": "message_start"
+        },
+        {
+          "index": 6,
+          "type": "message_end"
+        },
+        {
+          "index": 7,
+          "type": "entry_added"
+        },
+        {
+          "index": 8,
+          "type": "turn_end"
+        },
+        {
+          "index": 9,
+          "type": "usage"
+        },
+        {
+          "index": 10,
+          "type": "run_end"
+        },
+        {
+          "index": 11,
+          "type": "run_start"
+        },
+        {
+          "index": 12,
+          "type": "message_start"
+        },
+        {
+          "index": 13,
+          "type": "message_end"
+        },
+        {
+          "index": 14,
+          "type": "entry_added"
+        },
+        {
+          "index": 15,
+          "type": "turn_start"
+        },
+        {
+          "index": 16,
+          "type": "message_start"
+        },
+        {
+          "index": 17,
+          "type": "message_end"
+        },
+        {
+          "index": 18,
+          "type": "entry_added"
+        },
+        {
+          "index": 19,
+          "type": "turn_end"
+        },
+        {
+          "index": 20,
+          "type": "usage"
+        },
+        {
+          "index": 21,
+          "type": "run_end"
+        },
+        {
+          "index": 22,
+          "type": "compaction_start"
+        },
+        {
+          "index": 23,
+          "type": "usage"
+        },
+        {
+          "index": 24,
+          "type": "usage"
+        },
+        {
+          "index": 25,
+          "type": "entry_added"
+        },
+        {
+          "index": 26,
+          "type": "compaction_end"
+        }
+      ],
+      "input": {
+        "custom_instructions": "project context",
+        "kind": "operation",
+        "operation": "context_projection"
+      },
+      "messages": [],
+      "observations": {
+        "compaction_published": true,
+        "context_projection": {
+          "before_messages": 1,
+          "summary_messages": 1
+        },
+        "durable_entries": 5,
+        "event_count": 27,
+        "event_types": [
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end",
+          "run_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_start",
+          "message_end",
+          "entry_added",
+          "turn_end",
+          "usage",
+          "run_end",
+          "compaction_start",
+          "usage",
+          "usage",
+          "entry_added",
+          "compaction_end"
+        ],
+        "provider_calls": 4,
+        "session_entries_after": 5,
+        "session_entries_before": 4,
+        "session_publication_events": 5,
+        "session_stats_delta": {
+          "message_count": 4,
+          "usage_total": 0
+        },
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "capability.required_prestart_failure",
+      "events": [],
+      "input": {
+        "capability": "models.resolve",
+        "kind": "assemble",
+        "operation": "preflight"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 0,
         "provider_calls": 0,
-        "tool_invocations": 0,
         "session_publication_events": 0,
-        "durable_entries": 0
-      }
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": {
+          "capability": "models.resolve",
+          "type": "MissingCapability"
+        },
+        "kind": "error",
+        "terminal": true
+      },
+      "schemaVersion": 1
     }
   ],
-  "m6Phase": "M6-A",
+  "m6Phase": "M6-B",
   "pendingRows": [
-    "tools.validate_progress_settle",
-    "tools.coding_operations",
-    "queue.steer_during_turn",
-    "queue.follow_up_after_turn",
-    "retry.overflow_precedence",
-    "retry.provider_recovery",
-    "abort.active_stream_cleanup",
-    "compaction.context_projection",
     "branch.fork_atomic_publish",
     "restart.recover_session",
     "legacy_import.format3",

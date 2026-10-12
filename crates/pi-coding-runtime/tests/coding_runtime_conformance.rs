@@ -40,20 +40,36 @@ use std::{
 
 const AUTHORITY: &str = "853a80d26c90a14c1886f0ebb8ffaae133ca2185";
 
-struct FixtureClock;
+mod coding_runtime_m6b_support;
+
+struct FixtureClock {
+    now: std::sync::atomic::AtomicU64,
+    sleeps: Mutex<Vec<u64>>,
+}
+impl FixtureClock {
+    fn new() -> Self {
+        Self {
+            now: std::sync::atomic::AtomicU64::new(7),
+            sleeps: Mutex::new(Vec::new()),
+        }
+    }
+}
 impl Clock for FixtureClock {
     fn now_unix_ms(&self) -> u64 {
-        7
+        self.now.load(Ordering::SeqCst)
     }
     fn sleep<'a>(
         &'a self,
-        _: Duration,
+        duration: Duration,
         cancellation: &'a pi_ai::CancellationToken,
     ) -> BoxFuture<'a, Result<(), pi_ai::Cancelled>> {
         Box::pin(async move {
             if cancellation.is_cancelled() {
                 Err(pi_ai::Cancelled)
             } else {
+                let elapsed = u64::try_from(duration.as_millis()).expect("bounded sleep");
+                self.sleeps.lock().expect("clock sleeps").push(elapsed);
+                self.now.fetch_add(elapsed, Ordering::SeqCst);
                 Ok(())
             }
         })
@@ -61,7 +77,7 @@ impl Clock for FixtureClock {
 }
 impl StorageClock for FixtureClock {
     fn now(&self) -> Result<SafeUnsigned, pi_agent::schema::StorageError> {
-        Ok(SafeUnsigned::new(7).expect("bounded fixture time"))
+        Ok(SafeUnsigned::new(self.now_unix_ms()).expect("bounded fixture time"))
     }
 }
 
@@ -132,6 +148,10 @@ struct StopAdapter {
     calls: AtomicUsize,
     resolved_models: Mutex<Vec<Model>>,
     responses: Mutex<VecDeque<AssistantMessage>>,
+    contexts: Mutex<Vec<pi_ai::Context>>,
+    lifecycle: Arc<Mutex<Vec<String>>>,
+    hold: Mutex<Option<pi_ai::CancellationToken>>,
+    active_streams: Arc<AtomicUsize>,
 }
 
 impl StopAdapter {
@@ -162,6 +182,10 @@ impl StopAdapter {
             calls: AtomicUsize::new(0),
             resolved_models: Mutex::new(Vec::new()),
             responses: Mutex::new(VecDeque::from([response.clone(), response])),
+            contexts: Mutex::new(Vec::new()),
+            lifecycle: Arc::new(Mutex::new(Vec::new())),
+            hold: Mutex::new(None),
+            active_streams: Arc::new(AtomicUsize::new(0)),
         })
     }
 
@@ -182,13 +206,27 @@ impl StopAdapter {
             .lock()
             .expect("resolved models")
             .push(request.resolved.model.clone());
-        self.calls.fetch_add(1, Ordering::SeqCst);
+        let request_number = self.calls.fetch_add(1, Ordering::SeqCst) + 1;
+        self.contexts
+            .lock()
+            .expect("contexts")
+            .push(request.context.clone());
+        self.lifecycle
+            .lock()
+            .expect("lifecycle")
+            .push(format!("dispatch:{request_number}"));
         let response = self
             .responses
             .lock()
             .expect("responses")
             .pop_front()
-            .expect("response");
+            .unwrap_or_else(|| {
+                coding_runtime_m6b_support::assistant(
+                    &self.model,
+                    pi_ai::StopReason::Stop,
+                    "deterministic terminal",
+                )
+            });
         let (stream, producer) = create_assistant_message_event_stream(AssistantStreamInit {
             api: self.model.api.clone(),
             provider: self.model.provider.clone(),
@@ -197,11 +235,17 @@ impl StopAdapter {
             cancellation: request.options.runtime.cancellation.clone(),
         });
         let model = self.model.clone();
+        let lifecycle_trace = self.lifecycle.clone();
+        let hold = self.hold.lock().expect("hold").take();
+        let cancellation = request.options.runtime.cancellation.clone();
+        let active_streams = self.active_streams.clone();
+        active_streams.fetch_add(1, Ordering::SeqCst);
         request
             .options
             .runtime
             .spawner
             .spawn(Box::pin(async move {
+                let _cleanup = coding_runtime_m6b_support::StreamCleanup(active_streams);
                 let mut payload = serde_json::json!({"m6":"assembled"});
                 if let Some(transform) = lifecycle.payload {
                     match transform.transform(&model, &mut payload).await {
@@ -214,16 +258,69 @@ impl StopAdapter {
                     }
                 }
                 let _ = payload;
+                lifecycle_trace
+                    .lock()
+                    .expect("lifecycle")
+                    .push(format!("payload:{request_number}"));
+                if let Some(hold) = hold {
+                    let mut partial = response.clone();
+                    partial.stop_reason = pi_ai::StopReason::Pending;
+                    partial.error_message = None;
+                    producer
+                        .push(AssistantMessageEvent::Start {
+                            partial: Box::new(partial),
+                        })
+                        .expect("stream start");
+                    while !hold.is_cancelled() && !cancellation.is_cancelled() {
+                        tokio::task::yield_now().await;
+                    }
+                    if cancellation.is_cancelled() {
+                        lifecycle_trace
+                            .lock()
+                            .expect("lifecycle")
+                            .push(format!("cancelled:{request_number}"));
+                        return;
+                    }
+                }
                 lifecycle.recorder.record(RequestResponseHead {
                     status: 200,
                     headers: Vec::new(),
                 });
-                producer
-                    .push(AssistantMessageEvent::Done {
-                        reason: DoneReason::Stop,
+                lifecycle_trace
+                    .lock()
+                    .expect("lifecycle")
+                    .push(format!("response:{request_number}:200"));
+                let event = match response.stop_reason {
+                    pi_ai::StopReason::Error => AssistantMessageEvent::Error {
+                        reason: pi_ai::ErrorReason::Error,
+                        error: Box::new(response),
+                    },
+                    pi_ai::StopReason::Aborted => AssistantMessageEvent::Error {
+                        reason: pi_ai::ErrorReason::Aborted,
+                        error: Box::new(response),
+                    },
+                    reason => AssistantMessageEvent::Done {
+                        reason: match reason {
+                            pi_ai::StopReason::ToolUse => DoneReason::ToolUse,
+                            pi_ai::StopReason::Length => DoneReason::Length,
+                            _ => DoneReason::Stop,
+                        },
                         message: Box::new(response),
-                    })
-                    .expect("stop response");
+                    },
+                };
+                let reason = match &event {
+                    AssistantMessageEvent::Done { message, .. } => message.stop_reason,
+                    AssistantMessageEvent::Error { error, .. } => error.stop_reason,
+                    _ => unreachable!(),
+                };
+                lifecycle_trace.lock().expect("lifecycle").push(format!(
+                    "terminal:{request_number}:{}",
+                    serde_json::to_value(reason)
+                        .expect("reason")
+                        .as_str()
+                        .expect("reason string")
+                ));
+                producer.push(event).expect("stop response");
             }))
             .expect("fixture task spawn");
         stream
@@ -359,7 +456,11 @@ struct Fixture {
 }
 
 async fn fixture() -> Fixture {
-    let clock = Arc::new(FixtureClock);
+    fixture_with_environment(Arc::new(LocalExecutionEnv::new(std::env::temp_dir()))).await
+}
+
+async fn fixture_with_environment(environment: Arc<dyn ExecutionEnv>) -> Fixture {
+    let clock = Arc::new(FixtureClock::new());
     let spawner = Arc::new(TokioSpawner);
     let ids = Arc::new(FixtureIds::default());
     let selected = model("offline-model");
@@ -396,9 +497,8 @@ async fn fixture() -> Fixture {
         })
         .await
         .expect("session");
-    let environment: Arc<dyn ExecutionEnv> = Arc::new(LocalExecutionEnv::new(std::env::temp_dir()));
     let factory = Arc::new(RuntimeFactory::new(
-        clock,
+        clock.clone(),
         spawner,
         ids,
         Arc::new(pi_coding_runtime::ExecutionToolContext {
@@ -417,7 +517,17 @@ async fn fixture() -> Fixture {
 }
 
 fn envelope(case_id: &str, input: Value, outcome: Value, observations: Value) -> Value {
-    json!({ "schemaVersion": 1, "authority": AUTHORITY, "caseId": case_id, "input": input, "events": [], "messages": [], "outcome": outcome, "observations": observations })
+    envelope_with_events(case_id, input, json!([]), outcome, observations)
+}
+
+fn envelope_with_events(
+    case_id: &str,
+    input: Value,
+    events: Value,
+    outcome: Value,
+    observations: Value,
+) -> Value {
+    json!({ "schemaVersion": 1, "authority": AUTHORITY, "caseId": case_id, "input": input, "events": events, "messages": [], "outcome": outcome, "observations": observations })
 }
 
 fn observed_effects(observation: &AssemblyObservation) -> Value {
@@ -491,6 +601,8 @@ struct EffectSnapshot {
     tool_invocations: usize,
     session_publication_events: usize,
     durable_entries: usize,
+    stats_message_count: usize,
+    stats_usage_total: usize,
 }
 
 impl EffectSnapshot {
@@ -504,6 +616,12 @@ impl EffectSnapshot {
                 .session_publication_events
                 .saturating_sub(before.session_publication_events),
             durable_entries: self.durable_entries.saturating_sub(before.durable_entries),
+            stats_message_count: self
+                .stats_message_count
+                .saturating_sub(before.stats_message_count),
+            stats_usage_total: self
+                .stats_usage_total
+                .saturating_sub(before.stats_usage_total),
         }
     }
 }
@@ -519,11 +637,14 @@ async fn effect_snapshot(
         .await
         .expect("session entries")
         .len();
+    let stats = fixture.session.get_stats().await.expect("session stats");
     EffectSnapshot {
         provider_calls: fixture.adapter.calls.load(Ordering::SeqCst),
         tool_invocations: tool_invocations.0.load(Ordering::SeqCst),
         session_publication_events: publication_events.0.load(Ordering::SeqCst),
         durable_entries,
+        stats_message_count: stats.message_count.get() as usize,
+        stats_usage_total: stats.usage.total_tokens.get() as usize,
     }
 }
 
@@ -747,6 +868,9 @@ async fn assembled(
 }
 
 async fn actual(case_id: &str) -> Value {
+    if coding_runtime_m6b_support::ROWS.contains(&case_id) {
+        return coding_runtime_m6b_support::actual_operation(case_id).await;
+    }
     let fixture = fixture().await;
     match case_id {
         "model.credentials_catalog" => {
@@ -859,22 +983,7 @@ async fn actual(case_id: &str) -> Value {
                 }),
             )
         }
-        other => {
-            let observation = assembled(
-                &fixture,
-                other,
-                Arc::new(composition_for(&fixture.model, true)),
-                None,
-            )
-            .await
-            .unwrap_or_else(|error| panic!("{other}: assembled operation failed: {error}"));
-            envelope(
-                other,
-                json!({"kind":"assemble","operation":other}),
-                json!({"kind":"boundary","error":null,"terminal":true}),
-                observed_effects(&observation),
-            )
-        }
+        other => panic!("unimplemented conformance row: {other}"),
     }
 }
 
@@ -901,7 +1010,8 @@ fn compare_with_node(case_id: &str, actual: Value) {
     let output = child.wait_with_output().expect("wait comparator");
     assert!(
         output.status.success(),
-        "{case_id}: comparator failed\nstdout={}\nstderr={}",
+        "{case_id}: comparator failed\nactual={}\nstdout={}\nstderr={}",
+        serde_json::to_string_pretty(&actual).expect("actual json"),
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
@@ -914,6 +1024,14 @@ fn assembled_coding_runtime_rows_compare_through_node() {
         "model.credentials_catalog",
         "prompt.system_resources",
         "prompt.settings_snapshot",
+        "tools.validate_progress_settle",
+        "tools.coding_operations",
+        "queue.steer_during_turn",
+        "queue.follow_up_after_turn",
+        "retry.overflow_precedence",
+        "retry.provider_recovery",
+        "abort.active_stream_cleanup",
+        "compaction.context_projection",
         "capability.required_prestart_failure",
     ] {
         compare_with_node(case_id, runtime.block_on(actual(case_id)));

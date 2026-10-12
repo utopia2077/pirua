@@ -37,6 +37,86 @@
       "fixtureBoundary": null
     },
     {
+      "id": "tools.validate_progress_settle",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-coding-runtime/src/tools/mod.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "tools.validate_progress_settle",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "tools.coding_operations",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-coding-runtime/src/tools/mod.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "tools.coding_operations",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "queue.steer_during_turn",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-agent-schema/src/surface/lane.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "queue.steer_during_turn",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "queue.follow_up_after_turn",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-agent-schema/src/surface/lane.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "queue.follow_up_after_turn",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "retry.overflow_precedence",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-ai-core/src/overflow.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "retry.overflow_precedence",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "retry.provider_recovery",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-ai-core/src/retry.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "retry.provider_recovery",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "abort.active_stream_cleanup",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-agent-schema/src/surface/lane.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "abort.active_stream_cleanup",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "compaction.context_projection",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "crates/pi-agent-schema/src/surface/lane.rs",
+        "crates/pi-agent-schema/src/event.rs"
+      ],
+      "fixtureCaseId": "compaction.context_projection",
+      "fixtureBoundary": null
+    },
+    {
       "id": "capability.required_prestart_failure",
       "status": "source-confirmed",
       "sourceReferences": [
@@ -80,26 +160,98 @@
       }
     },
     {
+      "negativeId": "tools.validate_progress_settle.causal",
+      "positiveId": "tools.validate_progress_settle",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "tools.coding_operations.causal",
+      "positiveId": "tools.coding_operations",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "queue.steer_during_turn.causal",
+      "positiveId": "queue.steer_during_turn",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "queue.follow_up_after_turn.causal",
+      "positiveId": "queue.follow_up_after_turn",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "retry.overflow_precedence.causal",
+      "positiveId": "retry.overflow_precedence",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "retry.provider_recovery.causal",
+      "positiveId": "retry.provider_recovery",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "abort.active_stream_cleanup.causal",
+      "positiveId": "abort.active_stream_cleanup",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "compaction.context_projection.causal",
+      "positiveId": "compaction.context_projection",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
+      "mutation": {
+        "target": "observations.durable_entries",
+        "operation": "increment"
+      }
+    },
+    {
       "negativeId": "capability.required_prestart_failure.causal",
       "positiveId": "capability.required_prestart_failure",
-      "name": "capability_preflight:input.capability",
-      "reason": "capability_preflight",
+      "name": "side_effects:observations.durable_entries",
+      "reason": "side_effect_count",
       "mutation": {
-        "target": "input.capability",
-        "operation": "remove"
+        "target": "observations.durable_entries",
+        "operation": "increment"
       }
     }
   ],
-  "m6Phase": "M6-A",
+  "m6Phase": "M6-B",
   "pendingRows": [
-    "tools.validate_progress_settle",
-    "tools.coding_operations",
-    "queue.steer_during_turn",
-    "queue.follow_up_after_turn",
-    "retry.overflow_precedence",
-    "retry.provider_recovery",
-    "abort.active_stream_cleanup",
-    "compaction.context_projection",
     "branch.fork_atomic_publish",
     "restart.recover_session",
     "legacy_import.format3",

@@ -11,9 +11,9 @@ const manifest = JSON.parse(manifestBytes);
 const original = JSON.parse(fixtureBytes);
 const fail = (message) => { throw new Error(message); };
 if (manifest.schemaVersion !== 1 || manifest.authority !== "853a80d26c90a14c1886f0ebb8ffaae133ca2185") fail("manifest identity mismatch");
-if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 4) fail("expected exactly 4 active positive rows");
-if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 4) fail("expected exactly 4 active causal negatives");
-if (!Array.isArray(original.rows) || original.rows.length !== 4) fail("expected exactly 4 active fixture rows");
+if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 12) fail("expected exactly 12 active positive rows");
+if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 12) fail("expected exactly 12 active causal negatives");
+if (!Array.isArray(original.rows) || original.rows.length !== 12) fail("expected exactly 12 active fixture rows");
 const byId = new Map(original.rows.map((row) => [row.caseId, row]));
 const positiveIds = new Set();
 for (const row of manifest.positiveRows) {
@@ -30,7 +30,7 @@ for (const negative of manifest.negatives) {
   if (!["side_effect_count", "capability_preflight"].includes(negative.reason)) fail(`invalid mutation reason ${negative.reason}`);
   negatives.set(negative.positiveId, negative);
 }
-if (negatives.size !== 4) fail("every positive needs one negative");
+if (negatives.size !== 12) fail("every positive needs one negative");
 const clone = (value) => JSON.parse(JSON.stringify(value));
 let completed = 0;
 for (const row of original.rows) {
