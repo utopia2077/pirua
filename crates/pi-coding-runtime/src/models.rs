@@ -3,8 +3,28 @@
 //! The catalog functions are thin wrappers over the captured `pi-ai` catalogs.
 //! They do not refresh catalogs, inspect credentials, or access a network.
 
-use pi_ai::{ImagesModel, Model};
+use pi_ai::{ImagesModel, Model, ModelThinkingLevel};
 use std::fmt;
+
+// Selected text defaults, preserving their relative order in the pinned
+// pi-mono 853a80d26c90a14c1886f0ebb8ffaae133ca2185 model-resolver.ts table.
+pub(crate) const DEFAULT_MODEL_PER_PROVIDER: [(&str, &str); 6] = [
+    ("anthropic", "claude-opus-4-8"),
+    ("openai", "gpt-5.5"),
+    ("openai-codex", "gpt-5.5"),
+    ("deepseek", "deepseek-v4-pro"),
+    ("google", "gemini-3.1-pro-preview"),
+    ("openrouter", "moonshotai/kimi-k2.6"),
+];
+
+/// Returns the coding product's pinned default thinking preference.
+///
+/// Hosts may use this preference when normalizing their settings. It does not
+/// change explicit model selection, validate model thinking support, or replace
+/// `resolve_selection`'s Off behavior when no thinking suffix is supplied.
+pub const fn default_thinking_level() -> ModelThinkingLevel {
+    ModelThinkingLevel::Medium
+}
 
 /// Kind of selected coding-runtime entrance.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

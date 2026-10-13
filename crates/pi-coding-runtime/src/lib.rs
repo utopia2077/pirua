@@ -26,9 +26,9 @@ pub use legacy_import::{LegacyImportSource, open_external_jsonl};
 pub use messages::CodingMessageConverter;
 pub use models::{
     CatalogLookupError, EntranceKind, EntranceMetadata, builtin_image_model, builtin_image_models,
-    builtin_model, builtin_models, is_selected_image_entrance, is_selected_text_provider,
-    selected_entrances, selected_image_entrances, selected_text_entrances,
-    selected_text_provider_ids,
+    builtin_model, builtin_models, default_thinking_level, is_selected_image_entrance,
+    is_selected_text_provider, selected_entrances, selected_image_entrances,
+    selected_text_entrances, selected_text_provider_ids,
 };
 pub use provider_composition::{
     CodingRuntimeError, ConfiguredModelOverlay, ModelAvailability, ProviderComposition,

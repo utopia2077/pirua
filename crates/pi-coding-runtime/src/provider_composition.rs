@@ -6,7 +6,8 @@
 
 use crate::credentials::CredentialInputs;
 use crate::models::{
-    CatalogLookupError, builtin_models, is_selected_text_provider, selected_text_provider_ids,
+    CatalogLookupError, DEFAULT_MODEL_PER_PROVIDER, builtin_models, is_selected_text_provider,
+    selected_text_provider_ids,
 };
 use pi_ai::{Model, ModelId, ModelThinkingLevel, Provider, ProviderId};
 use std::collections::{BTreeMap, BTreeSet};
@@ -257,6 +258,32 @@ impl ProviderComposition {
     /// Returns all detached models in deterministic provider/model order.
     pub fn models(&self) -> impl Iterator<Item = &Model> {
         self.models.values()
+    }
+
+    /// Selects a coding product default from detached models and availability.
+    ///
+    /// Preferred IDs follow the pinned selected-provider priority. If none is
+    /// usable, the first usable model in deterministic provider/model order is
+    /// returned. Explicitly unavailable entries are excluded; absent snapshot
+    /// entries remain usable, as in `resolve`. No usable model returns `None`.
+    ///
+    /// This read-only helper never consults providers or credentials, refreshes
+    /// catalogs, or changes a host's explicit model or thinking selection.
+    pub fn select_default_model(&self) -> Option<&Model> {
+        let available_models = || {
+            self.models
+                .iter()
+                .filter(|(key, _)| self.availability.get(*key) != Some(&false))
+                .map(|(_, model)| model)
+        };
+        for (provider, model_id) in DEFAULT_MODEL_PER_PROVIDER {
+            if let Some(model) = available_models()
+                .find(|model| model.provider.as_str() == provider && model.id.as_str() == model_id)
+            {
+                return Some(model);
+            }
+        }
+        available_models().next()
     }
 
     /// Returns host-owned credential capabilities without invoking them.
