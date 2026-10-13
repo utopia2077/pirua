@@ -41,6 +41,7 @@ use std::{
 const AUTHORITY: &str = "853a80d26c90a14c1886f0ebb8ffaae133ca2185";
 
 mod coding_runtime_m6b_support;
+mod coding_runtime_m6c_support;
 
 struct FixtureClock {
     now: std::sync::atomic::AtomicU64,
@@ -461,6 +462,7 @@ struct Fixture {
     registry: Arc<ModelsRegistry>,
     environment: Arc<dyn ExecutionEnv>,
     clock: Arc<FixtureClock>,
+    repo: Arc<MemorySessionRepo>,
 }
 
 async fn fixture() -> Fixture {
@@ -490,14 +492,16 @@ async fn fixture_with_environment(environment: Arc<dyn ExecutionEnv>) -> Fixture
         }))
         .await
         .expect("provider publication");
-    let repo = MemorySessionRepo::new(
-        Default::default(),
-        Default::default(),
-        ids.clone(),
-        clock.clone(),
-        Arc::new(NOOP_TELEMETRY_CONTEXT),
-    )
-    .expect("repo");
+    let repo = Arc::new(
+        MemorySessionRepo::new(
+            Default::default(),
+            Default::default(),
+            ids.clone(),
+            clock.clone(),
+            Arc::new(NOOP_TELEMETRY_CONTEXT),
+        )
+        .expect("repo"),
+    );
     let session = repo
         .create(SessionCreateOptions {
             id: Some("m6-session".parse().expect("session id")),
@@ -522,6 +526,7 @@ async fn fixture_with_environment(environment: Arc<dyn ExecutionEnv>) -> Fixture
         registry,
         environment,
         clock,
+        repo,
     }
 }
 
@@ -877,6 +882,9 @@ async fn assembled(
 }
 
 async fn actual(case_id: &str) -> Value {
+    if coding_runtime_m6c_support::ROWS.contains(&case_id) {
+        return coding_runtime_m6c_support::actual_operation(case_id).await;
+    }
     if coding_runtime_m6b_support::ROWS.contains(&case_id) {
         return coding_runtime_m6b_support::actual_operation(case_id).await;
     }
@@ -1029,6 +1037,7 @@ fn compare_with_node(case_id: &str, actual: Value) {
 #[test]
 fn assembled_coding_runtime_rows_compare_through_node() {
     let runtime = tokio::runtime::Runtime::new().expect("runtime");
+    let mut compared = 0;
     for case_id in [
         "model.credentials_catalog",
         "prompt.system_resources",
@@ -1041,8 +1050,29 @@ fn assembled_coding_runtime_rows_compare_through_node() {
         "retry.provider_recovery",
         "abort.active_stream_cleanup",
         "compaction.context_projection",
+        "branch.fork_atomic_publish",
+        "restart.recover_session",
+        "legacy_import.format3",
+        "model_switch.next_run",
+        "extension.participation_ordering",
+        "lifecycle.builder_replace",
         "capability.required_prestart_failure",
     ] {
+        #[cfg(not(feature = "extensions"))]
+        if case_id == "extension.participation_ordering" {
+            println!(
+                "extension.participation_ordering requires the extensions feature; no participation evidence in this build"
+            );
+            continue;
+        }
         compare_with_node(case_id, runtime.block_on(actual(case_id)));
+        compared += 1;
+        println!("assembled row compared: {case_id}");
     }
+    let applicable = if cfg!(feature = "extensions") { 18 } else { 17 };
+    assert_eq!(
+        compared, applicable,
+        "every applicable frozen row must compare"
+    );
+    println!("assembled coding-runtime conformance: {compared} applicable rows compared");
 }

@@ -1,13 +1,14 @@
-# Coding runtime conformance (S15-M6-B)
+# Coding runtime conformance (S15-M6-C)
 
-This checked-in intermediate corpus contains the twelve M6-A and M6-B rows
-that are currently witnessed through assembled operations, with twelve
-one-change causal negatives. The six lifecycle and extension rows are retained
-as `pendingRows` in `manifest.json` for M6-C.
+The frozen corpus contains eighteen positive rows and eighteen one-change
+causal negatives, with zero pending rows. Every positive keeps the exact S15
+scenario identity and source references. M6-C supplies lifecycle and extension
+observations; independent acceptance and final whole-workspace closure remain
+controller responsibilities.
 
 Every active row runs a fresh assembled `CodingHarnessBuilder`/`AgentHarness`
 operation in `crates/pi-coding-runtime/tests/coding_runtime_conformance.rs`
-and its M6-B support module. The bridge installs deterministic local adapters,
+and its M6-B and M6-C support modules. The bridge installs deterministic local adapters,
 retains real Harness event payloads, starts the selected operation, waits for
 terminal or idle settlement, and reads the session entry projection. The four
 closed side-effect fields are
@@ -68,19 +69,78 @@ The M6-B rows are:
   token estimate, usage, and hook source from the durable CompactionEntry.
   A subsequent prompt proves projection of that summary and retained tail.
 
+The M6-C rows are:
+
+- `branch.fork_atomic_publish`: an assembled source turn precedes a real
+  `MemorySessionRepo::fork`. The returned destination already contains the full
+  branch, leaf, configuration and idle state. `attach_fork` preserves that
+  publication, a destination turn uses inherited request context, and a reopened
+  source proves destination writes preserve the source.
+- `restart.recover_session`: a real JSONL-backed assembled turn is closed and
+  reopened on a distinct backend. Configured `restart` recovers the exact
+  durable entries, leaf, model and usage before a subsequent provider request
+  projects that history and publishes the next turn.
+- `legacy_import.format3`: a host-selected format-3 JSONL source preserves its
+  bytes during open, remints legacy identities, and retains nonzero usage and
+  the assistant signature. `attach_import` triggers checked format-4 adoption;
+  the persisted header and `v3-import` usage provenance are read from the file.
+  A real assembled prompt projects the imported message and extends its parent
+  chain. Opening in place remains the explicit upstream copy-semantics boundary.
+- `model_switch.next_run`: the first real request sees distinct attachment
+  overlay metadata. `switch_model` persists a model configuration event before
+  the next run. The next adapter request, readback and durable configuration all
+  select the new host model, proving the old overlay was cleared.
+- `extension.participation_ordering`: an authenticated Ready grant is consumed
+  in provider/echo-tool/hook registration order. Actual peer requests retain
+  capability principal, handler, request identity and operation inputs. A
+  before-run hook, remote echo protocol progress/settlement, second before-run hook and
+  deterministic remote-provider terminal execute through the assembled Harness.
+  Event payloads, provider contexts, session publications and close/unsubscription
+  observations are compared together. The provider registration supplies the existing admitted zero-tool payload
+  schema and exact host-approved echo-history leaf schemas. This row does not
+  claim a payload-transform hook witness.
+  Its host grant retains an 8,192-byte frame ceiling and a finite 16,384-byte
+  decoded budget for the measured 9,963-byte combined DTO charge. The final
+  published assistant identity and nonzero usage come from the actual session
+  leaf; no host credentials or HTTP are involved. The current RoutedTool ignores
+  its Harness progress sink, so this row observes zero ToolUpdate events and
+  requires the actual progress frame and exact returned host credit. This is an
+  observed forwarding limitation for final assembly review, with no omission
+  approval inferred. ToolStart/ToolEnd and all M6-B progress requirements remain
+  covered.
+- `lifecycle.builder_replace`: replacement begins while the original provider
+  stream is active. The adapter observes cancellation before destination
+  dispatch; the old run settles aborted, its operation/pending registers clear,
+  its lease releases, and the destination retains its own lease while a real
+  subsequent turn completes.
+
 No live provider, network, credential refresh, transport, protocol/schema, host
 ownership, or durable-session implementation is added. The only credential
 observation is a host-owned boundary: injected credential inputs are retained
 without reads. M6-A causal mutation changes the capability input for the
-negative row. The eight M6-B causal mutations each remove or alter one required
+negative row. The M6-B and M6-C causal mutations each remove or alter one required
 operation witness, and semantic validation must reject them before exact
 fixture comparison. The self-test preserves fixture and manifest bytes and
-the exact twelve-active/six-pending partition.
+the exact eighteen-positive/eighteen-negative/zero-pending denominator.
 
-Run the intermediate target with:
+The default build compares seventeen applicable rows and explicitly reports
+that `extension.participation_ordering` requires the `extensions` feature. Its
+disabled branch produces no extension observation. Both `--features extensions`
+and `--all-features` compare eighteen rows, including the real authenticated
+extension operation. No default-mode result can substitute for those enabled
+comparisons.
+
+Run the default target with:
 
 ```text
 cargo test --offline --locked -p pi-coding-runtime --test coding_runtime_conformance -- --nocapture
+```
+
+Run both enabled targets with:
+
+```text
+cargo test --offline --locked -p pi-coding-runtime --features extensions --test coding_runtime_conformance -- --nocapture
+cargo test --offline --locked -p pi-coding-runtime --all-features --test coding_runtime_conformance -- --nocapture
 ```
 
 Run the byte-preserving causal self-test with:
@@ -92,5 +152,10 @@ env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/coding-runtime/cau
 `compare-actual.mjs` rejects unknown envelope, outcome, error, observation, and
 event fields, including nested payload and message fields, before exact
 comparison. Row-specific checks correlate events, provider requests, host
-results, clock facts, and public session state. The fixture authority is pinned to
+results, clock facts, and public session state. Lifecycle observation fields
+are admitted only on their applicable closed row. The causal self-test also
+checks all 32 combinations of the four previously accepted M6-A rows and
+eight lifecycle-only fields, requiring semantic and same-mutated comparison
+to reject each. These supplemental probes preserve the frozen 18/18/0 corpus.
+The fixture authority is pinned to
 `853a80d26c90a14c1886f0ebb8ffaae133ca2185`.

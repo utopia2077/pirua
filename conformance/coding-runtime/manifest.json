@@ -117,6 +117,82 @@
       "fixtureBoundary": null
     },
     {
+      "id": "branch.fork_atomic_publish",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "design/07-coding-integration.md",
+        "crates/pi-coding-runtime/src/session_lifecycle.rs:86",
+        "crates/pi-agent-session/src/repo/mod.rs:464",
+        "crates/pi-agent-session/src/repo/forks.rs:29"
+      ],
+      "fixtureCaseId": "branch.fork_atomic_publish",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "restart.recover_session",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "design/07-coding-integration.md",
+        "crates/pi-coding-runtime/src/session_lifecycle.rs:73",
+        "crates/pi-agent-session/src/repo/jsonl/mod.rs",
+        "crates/pi-harness-runtime/src/owner.rs"
+      ],
+      "fixtureCaseId": "restart.recover_session",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "legacy_import.format3",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "design/07-coding-integration.md",
+        "crates/pi-coding-runtime/src/legacy_import.rs",
+        "crates/pi-agent-session/src/legacy_v3/mod.rs",
+        "crates/pi-agent-session/src/legacy_v3/ids.rs"
+      ],
+      "fixtureCaseId": "legacy_import.format3",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "model_switch.next_run",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "design/07-coding-integration.md",
+        "crates/pi-coding-runtime/src/builder.rs:101",
+        "crates/pi-harness-runtime/src/lane.rs",
+        "crates/pi-harness-runtime/src/effects.rs"
+      ],
+      "fixtureCaseId": "model_switch.next_run",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "extension.participation_ordering",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "design/07-coding-integration.md",
+        "crates/pi-coding-runtime/src/extensions.rs",
+        "crates/pi-harness-runtime/src/extensions/profiles/hooks.rs",
+        "crates/pi-harness-runtime/src/extensions/profiles/provider.rs",
+        "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs:4222",
+        "crates/pi-extension-protocol/src/profiles.rs:590",
+        "crates/pi-harness-runtime/src/tools.rs:379",
+        "crates/pi-extension-protocol/src/profiles.rs:1369"
+      ],
+      "fixtureCaseId": "extension.participation_ordering",
+      "fixtureBoundary": null
+    },
+    {
+      "id": "lifecycle.builder_replace",
+      "status": "source-confirmed",
+      "sourceReferences": [
+        "design/07-coding-integration.md",
+        "crates/pi-coding-runtime/src/session_lifecycle.rs:64",
+        "crates/pi-coding-runtime/src/builder.rs:158",
+        "crates/pi-harness-runtime/src/harness.rs"
+      ],
+      "fixtureCaseId": "lifecycle.builder_replace",
+      "fixtureBoundary": null
+    },
+    {
       "id": "capability.required_prestart_failure",
       "status": "source-confirmed",
       "sourceReferences": [
@@ -246,6 +322,66 @@
       }
     },
     {
+      "negativeId": "branch.fork_atomic_publish.causal",
+      "positiveId": "branch.fork_atomic_publish",
+      "name": "lifecycle_witness:observations.fork.published.entries",
+      "reason": "operation_witness",
+      "mutation": {
+        "target": "observations.fork.published.entries",
+        "operation": "remove_last"
+      }
+    },
+    {
+      "negativeId": "restart.recover_session.causal",
+      "positiveId": "restart.recover_session",
+      "name": "lifecycle_witness:observations.restart.recovered.entries",
+      "reason": "operation_witness",
+      "mutation": {
+        "target": "observations.restart.recovered.entries",
+        "operation": "remove_last"
+      }
+    },
+    {
+      "negativeId": "legacy_import.format3.causal",
+      "positiveId": "legacy_import.format3",
+      "name": "lifecycle_witness:observations.legacy_import.persisted_version",
+      "reason": "operation_witness",
+      "mutation": {
+        "target": "observations.legacy_import.persisted_version",
+        "operation": "increment"
+      }
+    },
+    {
+      "negativeId": "model_switch.next_run.causal",
+      "positiveId": "model_switch.next_run",
+      "name": "lifecycle_witness:observations.provider_requests.1.model.id",
+      "reason": "operation_witness",
+      "mutation": {
+        "target": "observations.provider_requests.1.model.id",
+        "operation": "append"
+      }
+    },
+    {
+      "negativeId": "extension.participation_ordering.causal",
+      "positiveId": "extension.participation_ordering",
+      "name": "lifecycle_witness:observations.extension.peer_requests",
+      "reason": "operation_witness",
+      "mutation": {
+        "target": "observations.extension.peer_requests",
+        "operation": "remove_last"
+      }
+    },
+    {
+      "negativeId": "lifecycle.builder_replace.causal",
+      "positiveId": "lifecycle.builder_replace",
+      "name": "lifecycle_witness:observations.replacement.adapter_lifecycle.2",
+      "reason": "operation_witness",
+      "mutation": {
+        "target": "observations.replacement.adapter_lifecycle.2",
+        "operation": "append"
+      }
+    },
+    {
       "negativeId": "capability.required_prestart_failure.causal",
       "positiveId": "capability.required_prestart_failure",
       "name": "capability_preflight:input.capability",
@@ -256,13 +392,6 @@
       }
     }
   ],
-  "m6Phase": "M6-B",
-  "pendingRows": [
-    "branch.fork_atomic_publish",
-    "restart.recover_session",
-    "legacy_import.format3",
-    "model_switch.next_run",
-    "extension.participation_ordering",
-    "lifecycle.builder_replace"
-  ]
+  "m6Phase": "M6-C",
+  "pendingRows": []
 }

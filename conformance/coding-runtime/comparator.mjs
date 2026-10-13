@@ -80,8 +80,13 @@ function validateOutcome(outcome, path) {
   }
 }
 
-function validateObservations(observations, path) {
-  allowed(observations, OBSERVATION_KEYS, path);
+function validateObservations(observations, path, caseId) {
+  // M6-C fields are valid only on their own closed lifecycle row. Keep the
+  // previously accepted rows' shared observation language unchanged.
+  const lifecycleKeys = LIFECYCLE_ROWS.has(caseId)
+    ? ["fixture_boundary", "provider_requests", LIFECYCLE_FIELDS[caseId]]
+    : [];
+  allowed(observations, [...OBSERVATION_KEYS, ...lifecycleKeys], path);
   for (const key of ["provider_calls", "tool_invocations", "session_publication_events", "durable_entries"]) integer(observations[key], `${path}.${key}`);
   if (observations.model !== undefined) {
     allowed(observations.model, MODEL_KEYS, `${path}.model`);
@@ -109,7 +114,7 @@ function validateObservations(observations, path) {
 
 }
 
-function validateEvents(events, path) {
+function validateEvents(events, path, lifecycle = false) {
   if (!Array.isArray(events)) throw new ConformanceMismatch(path, "expected array", "array", events);
   for (const [index, event] of events.entries()) {
     allowed(event, EVENT_KEYS, `${path}[${index}]`);
@@ -117,7 +122,7 @@ function validateEvents(events, path) {
     if (!EVENT_TYPES.has(event.type)) {
       throw new ConformanceMismatch(`${path}[${index}].type`, "unknown Harness event type", [...EVENT_TYPES], event.type);
     }
-    if (event.payload !== undefined) validatePayload(event.type, event.payload, `${path}[${index}].payload`);
+    if (event.payload !== undefined) (lifecycle ? lifecyclePayload : validatePayload)(event.type, event.payload, `${path}[${index}].payload`);
     for (const key of ["role", "message_id", "tool_call_id", "tool_name", "detail"]) if (event[key] !== undefined) string(event[key], `${path}[${index}].${key}`);
   }
 }
@@ -147,15 +152,16 @@ export function validateObservation(value, expectedCaseId = undefined) {
   string(value.caseId, "observation.caseId");
   if (expectedCaseId !== undefined && value.caseId !== expectedCaseId) throw new ConformanceMismatch("observation.caseId", "case ID mismatch", expectedCaseId, value.caseId);
   validateInput(value.input, "observation.input");
-  validateEvents(value.events, "observation.events");
+  validateEvents(value.events, "observation.events", LIFECYCLE_ROWS.has(value.caseId));
   validateMessages(value.messages, "observation.messages");
   validateOutcome(value.outcome, "observation.outcome");
-  validateObservations(value.observations, "observation.observations");
+  validateObservations(value.observations, "observation.observations", value.caseId);
   if (value.caseId === "capability.required_prestart_failure") {
     if (value.outcome.error?.type !== "MissingCapability" || value.outcome.error?.capability !== "models.resolve") throw new ConformanceMismatch("observation.outcome.error", "canonical capability error required", { type: "MissingCapability", capability: "models.resolve" }, value.outcome.error);
     for (const key of ["provider_calls", "tool_invocations", "session_publication_events", "durable_entries"]) if (value.observations[key] !== 0) throw new ConformanceMismatch(`observation.observations.${key}`, "pre-start failure must have zero side effects", 0, value.observations[key]);
   }
   validateOperation(value);
+  validateLifecycle(value);
   return value;
 }
 
@@ -460,4 +466,158 @@ function validateOperation(value) {
     validatePayload("run_abort", obs.abort_outcome, `${path}.abort_outcome`); equalFact(eventPayloads(value, "run_abort"), [obs.abort_outcome], `${path}.abort_outcome`); laneSnapshot(obs.active_snapshot, `${path}.active_snapshot`); requireFact(obs.active_snapshot.operation !== null, `${path}.active_snapshot`, "abort must begin with active operation", obs.active_snapshot); equalFact(obs.active_snapshot.operation.id, obs.abort_outcome.run_id, `${path}.abort_outcome`);
     cleanup(obs.cleanup, `${path}.cleanup`); strings(obs.adapter_lifecycle, `${path}.adapter_lifecycle`); requireFact(obs.adapter_lifecycle.includes("cancelled:1") && !obs.adapter_lifecycle.some((event) => event.startsWith("terminal:")), `${path}.adapter_lifecycle`, "adapter must observe runtime cancellation without provider terminal", obs.adapter_lifecycle); equalFact(obs.active_streams, 0, `${path}.active_streams`); equalFact(obs.provider_calls, 1, `${path}.provider_calls`); equalFact(value.outcome.kind, "aborted", "observation.outcome.kind");
   }
+}
+
+// M6-C uses its own closed payload projection, preserving all accepted M6-B checks.
+const LIFECYCLE_ROWS = new Set(["branch.fork_atomic_publish", "restart.recover_session", "legacy_import.format3", "model_switch.next_run", "extension.participation_ordering", "lifecycle.builder_replace"]);
+const LIFECYCLE_FIELDS = {"branch.fork_atomic_publish":"fork", "restart.recover_session":"restart", "legacy_import.format3":"legacy_import", "model_switch.next_run":"model_switch", "extension.participation_ordering":"extension", "lifecycle.builder_replace":"replacement"};
+function lifecycleMessage(value, path) {
+  allowed(value, ["role","content","stop_reason","error_message","tool_call_id","tool_name","is_error"],path);
+  requireFact(["user","assistant","toolResult"].includes(value.role),path,"invalid lifecycle message role",value.role);
+  exactKeys(value,value.role === "user" ? ["role","content"] : value.role === "assistant" ? ["role","content","stop_reason",...(["error","aborted"].includes(value.stop_reason)?["error_message"]:[])] : ["role","content","tool_call_id","tool_name","is_error"],path);
+  if(typeof value.content === "string") string(value.content,`${path}.content`);
+  else {
+    array(value.content,`${path}.content`);
+    value.content.forEach((block,index)=>{
+      const at=`${path}.content[${index}]`;
+      if(block.type === "text") {shape(block,["type","text",...(block.textSignature===undefined?[]:["textSignature"])],at);string(block.text,`${at}.text`);if(block.textSignature!==undefined) string(block.textSignature,`${at}.textSignature`);}
+      else { requireFact(value.role==="assistant" && block.type==="toolCall",at,"only assistant echo tool calls are supported",block);shape(block,["type","id","name","arguments"],at);string(block.id,`${at}.id`);equalFact(block.name,"echo",`${at}.name`);shape(block.arguments,["text"],`${at}.arguments`);string(block.arguments.text,`${at}.arguments.text`); }
+    });
+  }
+  if(value.role === "assistant") {requireFact(["stop","toolUse","aborted"].includes(value.stop_reason),path,"unsupported lifecycle assistant terminal",value.stop_reason);if(value.error_message!==undefined)string(value.error_message,`${path}.error_message`);}
+  if(value.role === "toolResult") {string(value.tool_call_id,`${path}.tool_call_id`);equalFact(value.tool_name,"echo",`${path}.tool_name`);bool(value.is_error,`${path}.is_error`);}
+}
+function lifecycleContext(value,path) {
+  shape(value,["system_prompt","messages","tools"],path);nullableString(value.system_prompt,`${path}.system_prompt`);strings(value.tools,`${path}.tools`);array(value.messages,`${path}.messages`);value.messages.forEach((message,index)=>lifecycleMessage(message,`${path}.messages[${index}]`));
+}
+function requestModel(value,path) {shape(value,["provider","id","name"],path);for(const [key,item] of Object.entries(value)) string(item,`${path}.${key}`);}
+function lifecycleEntry(value,path) {
+  requireFact(["message","custom"].includes(value.type),path,"unsupported lifecycle entry",value.type);
+  shape(value,["type","id","parent_id","seq",...(value.type==="message"?["message"]:["custom_type","data"])],path);
+  string(value.id,`${path}.id`);nullableString(value.parent_id,`${path}.parent_id`);integer(value.seq,`${path}.seq`);
+  if(value.type==="message") lifecycleMessage(value.message,`${path}.message`);
+  else {equalFact(value.custom_type,"note",`${path}.custom_type`);shape(value.data,["opaque"],`${path}.data`);equalFact(value.data.opaque,"old",`${path}.data.opaque`);}
+}
+function laneModel(value,path) {shape(value,["provider","modelId"],path);string(value.provider,`${path}.provider`);string(value.modelId,`${path}.modelId`);}
+function lifecycleSnapshot(value,path,active=false) {
+  shape(value,["session_id","parent_session_id","cwd","leaf_id","entries","lane_config","lane_state","message_count","usage_total"],path);
+  string(value.session_id,`${path}.session_id`);for(const key of ["parent_session_id","cwd","leaf_id"]) nullableString(value[key],`${path}.${key}`);
+  array(value.entries,`${path}.entries`);value.entries.forEach((entry,index)=>lifecycleEntry(entry,`${path}.entries[${index}]`));
+  requireFact(new Set(value.entries.map(e=>e.id)).size===value.entries.length,path,"duplicate durable entry identity",value.entries);
+  value.entries.forEach((entry,index)=> {equalFact(entry.parent_id,index===0?null:value.entries[index-1].id,`${path}.entries[${index}].parent_id`);if(index)requireFact(entry.seq>value.entries[index-1].seq,path,"entries must preserve publication sequence",value.entries);});
+  equalFact(value.leaf_id,value.entries.at(-1)?.id??null,`${path}.leaf_id`);
+  integer(value.message_count,`${path}.message_count`);integer(value.usage_total,`${path}.usage_total`);equalFact(value.message_count,value.entries.filter(e=>e.type==="message").length,`${path}.message_count`);
+  if(value.lane_config!==null) {shape(value.lane_config,["model","thinkingLevel","activeToolNames"],`${path}.lane_config`);laneModel(value.lane_config.model,`${path}.lane_config.model`);equalFact(value.lane_config.thinkingLevel,"off",`${path}.lane_config.thinkingLevel`);strings(value.lane_config.activeToolNames,`${path}.lane_config.activeToolNames`);}
+  if(value.lane_state!==null) {shape(value.lane_state,["currentOperationId","pendingNextRun"],`${path}.lane_state`);nullableString(value.lane_state.currentOperationId,`${path}.lane_state.currentOperationId`);equalFact(value.lane_state.pendingNextRun,[],`${path}.lane_state.pendingNextRun`);requireFact(active?value.lane_state.currentOperationId!==null:value.lane_state.currentOperationId===null,`${path}.lane_state.currentOperationId`,"lane operation state must reflect lifecycle phase",value.lane_state);}
+}
+function lifecycleToolResult(value,path) {
+  shape(value,["content","details"],path);content(value.content,`${path}.content`);equalFact(value.details,{},`${path}.details`);
+}
+function lifecyclePayload(type,value,path) {
+  if(type==="entry_added") {shape(value,["entry"],path);return lifecycleEntry(value.entry,`${path}.entry`);}
+  if(type==="message_end") {shape(value,["entry_id","message"],path);nullableString(value.entry_id,`${path}.entry_id`);return lifecycleMessage(value.message,`${path}.message`);}
+  if(type==="config_update") {if(value.property==="tools"){shape(value,["property"],path);return;}shape(value,["property","value","previous"],path);if(value.property==="model"){laneModel(value.value,`${path}.value`);laneModel(value.previous,`${path}.previous`);}else{equalFact(value.property,"activeTools",`${path}.property`);strings(value.value,`${path}.value`);strings(value.previous,`${path}.previous`);}return;}
+  if(["tool_start","tool_update","tool_end"].includes(type)) {
+    const fields=type==="tool_start"?["tool_call_id","tool_name","args"]:type==="tool_update"?["tool_call_id","tool_name","partial_result"]:["tool_call_id","tool_name","result","is_error","terminate"];
+    shape(value,fields,path);string(value.tool_call_id,`${path}.tool_call_id`);equalFact(value.tool_name,"echo",`${path}.tool_name`);
+    if(type==="tool_start"){shape(value.args,["text"],`${path}.args`);string(value.args.text,`${path}.args.text`);}else {lifecycleToolResult(value.partial_result??value.result,`${path}.result`);if(type==="tool_end"){equalFact(value.is_error,false,`${path}.is_error`);equalFact(value.terminate,false,`${path}.terminate`);}}return;
+  }
+  return validatePayload(type,value,path);
+}
+function validateLifecycle(value) {
+  if(!LIFECYCLE_ROWS.has(value.caseId))return;
+  const obs=value.observations,path="observation.observations",field=LIFECYCLE_FIELDS[value.caseId],data=obs[field];
+  shape(value.input,["kind","operation"],"observation.input");equalFact(value.input.kind,"lifecycle","observation.input.kind");equalFact(value.input.operation,value.caseId.split(".")[1],"observation.input.operation");
+  shape(obs,["provider_calls","tool_invocations","session_publication_events","durable_entries","event_count","event_types","terminal_kind","provider_requests","fixture_boundary",field],path);
+  string(obs.fixture_boundary,`${path}.fixture_boundary`);requireFact(obs.fixture_boundary.length>20,path,"explicit host authority boundary required",obs.fixture_boundary);
+  value.events.forEach((event,index)=>{equalFact(event.index,index,`observation.events[${index}].index`);shape(event,["index","type",...(["message_end","entry_added","run_end","run_abort","config_update","tool_start","tool_update","tool_end","queue_update"].includes(event.type)?["payload"]:[])],`observation.events[${index}]`);});
+  equalFact(obs.event_count,value.events.length,`${path}.event_count`);equalFact(obs.event_types,value.events.map(e=>e.type),`${path}.event_types`);
+  const publications=eventPayloads(value,"entry_added").map(e=>e.entry);
+  equalFact(obs.durable_entries,publications.length,`${path}.durable_entries`);equalFact(obs.session_publication_events,publications.length,`${path}.session_publication_events`);
+  equalFact(obs.tool_invocations,eventPayloads(value,"tool_start").length,`${path}.tool_invocations`);
+  const endedMessages=eventPayloads(value,"message_end");
+  equalFact(endedMessages.length,publications.length,"observation.events.message_end");
+  endedMessages.forEach((event,index)=>{equalFact(event.entry_id,publications[index].id,`observation.events.message_end[${index}].entry_id`);equalFact(event.message,publications[index].message,`observation.events.message_end[${index}].message`);});
+  for(const event of value.events.filter(e=>e.type==="run_end"))equalFact(event.payload.leaf_id,value.events.filter(e=>e.type==="entry_added"&&e.index<event.index).at(-1)?.payload.entry.id??null,"observation.events.run_end.leaf_id");
+
+  equalFact(obs.terminal_kind,"completed",`${path}.terminal_kind`);equalFact(value.outcome,{kind:"completed",error:null,terminal:true},"observation.outcome");
+  requireFact(eventPayloads(value,"run_end").some(e=>e.outcome==="completed"),"observation.events","real completed run required",value.events);
+  array(obs.provider_requests,`${path}.provider_requests`);obs.provider_requests.forEach((request,index)=>{shape(request,["model","context"],`${path}.provider_requests[${index}]`);requestModel(request.model,`${path}.provider_requests[${index}].model`);lifecycleContext(request.context,`${path}.provider_requests[${index}].context`);});
+  const checkSnapshots=(keys,activeKey)=>keys.forEach(key=>lifecycleSnapshot(data[key],`${path}.${field}.${key}`,key===activeKey));
+  const continuation=(before,after,request)=>{equalFact(after.entries.slice(0,before.entries.length),before.entries,`${path}.${field}`);equalFact(after.entries.length,before.entries.length+2,`${path}.${field}`);equalFact(request.context.messages,after.entries.filter(e=>e.type==="message").slice(0,-1).map(e=>e.message),`${path}.provider_requests`,"continued provider context must project actual durable history");};
+  if(field!=="extension")equalFact(obs.provider_calls,obs.provider_requests.length,`${path}.provider_calls`);
+  if(field==="fork") {
+    shape(data,["source","published","attached","continued","source_after_continue"],`${path}.fork`);checkSnapshots(Object.keys(data));
+    equalFact(data.source,data.source_after_continue,`${path}.fork.source_after_continue`);equalFact(data.published,data.attached,`${path}.fork.attached`);
+    equalFact(data.published.parent_session_id,data.source.session_id,`${path}.fork.published.parent_session_id`);requireFact(data.source.session_id!==data.published.session_id,`${path}.fork`,"fork destination needs a distinct session",data);
+    for(const key of ["entries","leaf_id","lane_config","lane_state"])equalFact(data.published[key],data.source[key],`${path}.fork.published.${key}`);
+    equalFact(obs.provider_calls,2,`${path}.provider_calls`);continuation(data.attached,data.continued,obs.provider_requests[1]);equalFact(publications,[...data.source.entries,...data.continued.entries.slice(data.published.entries.length)],`${path}.fork`);
+  }
+  if(field==="restart") {
+    shape(data,["before_close","reopened","recovered","continued","new_backend"],`${path}.restart`);checkSnapshots(["before_close","reopened","recovered","continued"]);equalFact(data.new_backend,true,`${path}.restart.new_backend`);equalFact(data.before_close,data.reopened,`${path}.restart.reopened`);equalFact(data.reopened,data.recovered,`${path}.restart.recovered`);equalFact(obs.provider_calls,2,`${path}.provider_calls`);continuation(data.recovered,data.continued,obs.provider_requests[1]);equalFact(publications,data.continued.entries,`${path}.restart`);
+  }
+  if(field==="legacy_import") {
+    shape(data,["source_version","source_preserved_before_write","opened","adopted","continued","persisted_version","provenance"],`${path}.legacy_import`);checkSnapshots(["opened","adopted","continued"]);equalFact(data.source_version,3,`${path}.legacy_import.source_version`);equalFact(data.persisted_version,4,`${path}.legacy_import.persisted_version`);equalFact(data.source_preserved_before_write,true,`${path}.legacy_import.source_preserved_before_write`);
+    for(const key of ["entries","leaf_id","session_id","usage_total"])equalFact(data.opened[key],data.adopted[key],`${path}.legacy_import.adopted.${key}`);
+    equalFact(data.opened.usage_total,99,`${path}.legacy_import.opened.usage_total`);equalFact(data.continued.usage_total,99,`${path}.legacy_import.continued.usage_total`);equalFact(data.opened.entries[1].message.content[0].textSignature,"keep",`${path}.legacy_import.opened.entries[1].message.content`);requireFact(data.opened.entries.length===2&&data.opened.entries.every(e=>e.id!=="old"&&e.id!=="assistant"),`${path}.legacy_import.opened`,"legacy identities must be reminted",data.opened);
+    array(data.provenance,`${path}.legacy_import.provenance`);requireFact(data.provenance.length===1,`${path}.legacy_import.provenance`,"one legacy usage adoption provenance record required",data.provenance);
+    shape(data.provenance[0],["source"],`${path}.legacy_import.provenance[0]`);equalFact(data.provenance[0].source,"v3-import",`${path}.legacy_import.provenance`);equalFact(obs.provider_calls,1,`${path}.provider_calls`);continuation(data.adopted,data.continued,obs.provider_requests[0]);equalFact(publications,data.continued.entries.slice(2),`${path}.legacy_import`);
+  }
+  if(field==="model_switch") {
+    shape(data,["before","switched","continued","readback"],`${path}.model_switch`);checkSnapshots(["before","switched","continued"]);requestModel(data.readback,`${path}.model_switch.readback`);equalFact(data.before.entries,data.switched.entries,`${path}.model_switch.switched.entries`);
+    equalFact(obs.provider_calls,2,`${path}.provider_calls`);equalFact(obs.provider_requests[0].model.name,"initial overlay",`${path}.provider_requests[0].model.name`);equalFact(obs.provider_requests[1].model,data.readback,`${path}.model_switch.readback`);
+    equalFact(data.switched.lane_config.model,{provider:data.readback.provider,modelId:data.readback.id},`${path}.model_switch.switched.lane_config.model`);requireFact(data.before.lane_config.model.modelId!==data.readback.id,`${path}.model_switch`,"switch must change dispatched model identity",data);
+    const config=eventPayloads(value,"config_update");equalFact(config,[{property:"model",previous:data.before.lane_config.model,value:data.switched.lane_config.model}],"observation.events.config_update");continuation(data.switched,data.continued,obs.provider_requests[1]);equalFact(publications,data.continued.entries,`${path}.model_switch`);
+    const configIndex=value.events.find(e=>e.type==="config_update").index, runs=value.events.filter(e=>e.type==="run_start");requireFact(runs.length===2&&runs[0].index<configIndex&&configIndex<runs[1].index,"observation.events","configuration mutation must precede the next real run",value.events);
+  }
+  if(field==="replacement") {
+    shape(data,["active_source","settled_source","continued_destination","source_claim_busy","source_claim_released","destination_claim_busy","adapter_lifecycle","active_streams","cleanup_register_counts"],`${path}.replacement`);checkSnapshots(["active_source","settled_source","continued_destination"],"active_source");for(const key of ["source_claim_busy","source_claim_released","destination_claim_busy"])equalFact(data[key],true,`${path}.replacement.${key}`);
+    shape(data.cleanup_register_counts,["op.meta","op.state","op.tool_args","op.preparation","pending.entry"],`${path}.replacement.cleanup_register_counts`);for(const [key,count] of Object.entries(data.cleanup_register_counts))equalFact(count,0,`${path}.replacement.cleanup_register_counts.${key}`);
+    equalFact(data.active_streams,0,`${path}.replacement.active_streams`);strings(data.adapter_lifecycle,`${path}.replacement.adapter_lifecycle`);requireFact(data.adapter_lifecycle.includes("cancelled:1")&&data.adapter_lifecycle.indexOf("cancelled:1")<data.adapter_lifecycle.indexOf("dispatch:2"),`${path}.replacement.adapter_lifecycle`,"old stream cancellation must finish before replacement dispatch",data.adapter_lifecycle);
+    requireFact(data.active_source.session_id!==data.continued_destination.session_id,`${path}.replacement`,"replacement must attach destination",data);equalFact(obs.provider_calls,2,`${path}.provider_calls`);equalFact(publications,[...data.settled_source.entries,...data.continued_destination.entries],`${path}.replacement`);
+    equalFact(eventPayloads(value,"run_end").map(e=>e.outcome),["aborted","completed"],"observation.events.run_end");equalFact(eventPayloads(value,"run_abort").length,1,"observation.events.run_abort");equalFact(obs.provider_requests[1].context.messages,data.continued_destination.entries.slice(0,-1).map(e=>e.message),`${path}.provider_requests[1]`);
+  }
+  if(field==="extension")validateExtension(value,data,path);
+}
+function validateExtension(value,data,path) {
+  const obs=value.observations,at=`${path}.extension`;
+  shape(data,["grant","registration_order","hook_count","catalog","peer_requests","progress_items","terminal_items","tool_invocations","max_frame_bytes","connection_before_close","connection_after_close","hooks_after_close","peer_closed","session","provider_terminal","progress_frames","credits"],at);
+  shape(data.grant,["principal","generation","ready","frame_bytes","aggregate_decoded_bytes"],`${at}.grant`);equalFact(data.grant.frame_bytes,8192,`${at}.grant.frame_bytes`);equalFact(data.grant.aggregate_decoded_bytes,16384,`${at}.grant.aggregate_decoded_bytes`);equalFact(data.grant.principal,"peer-a",`${at}.grant.principal`);equalFact(data.grant.generation,7,`${at}.grant.generation`);equalFact(data.grant.ready,true,`${at}.grant.ready`);
+  equalFact(data.registration_order,["provider","echo_tool","hook"],`${at}.registration_order`);equalFact(data.hook_count,1,`${at}.hook_count`);
+  shape(data.catalog,["provider","id","name","no_auth"],`${at}.catalog`);for(const key of ["provider","id","name"])string(data.catalog[key],`${at}.catalog.${key}`);equalFact(data.catalog.no_auth,true,`${at}.catalog.no_auth`);
+  shape(data.provider_terminal,["entry_id","provider","model","usage_total","message"],`${at}.provider_terminal`);
+  equalFact(data.provider_terminal.entry_id,data.session.leaf_id,`${at}.provider_terminal.entry_id`);
+  equalFact(data.provider_terminal.provider,data.catalog.provider,`${at}.provider_terminal.provider`);
+  equalFact(data.provider_terminal.model,data.catalog.id,`${at}.provider_terminal.model`);
+  equalFact(data.provider_terminal.usage_total,5,`${at}.provider_terminal.usage_total`);
+  equalFact(data.provider_terminal.usage_total,data.session.usage_total,`${at}.session.usage_total`);
+  lifecycleMessage(data.provider_terminal.message,`${at}.provider_terminal.message`);
+  equalFact(data.provider_terminal.message,data.session.entries.at(-1).message,`${at}.provider_terminal.message`);
+  lifecycleSnapshot(data.session,`${at}.session`);equalFact(data.session.lane_config.model,{provider:data.catalog.provider,modelId:data.catalog.id},`${at}.session.lane_config.model`);
+  for(const key of ["progress_items","terminal_items","tool_invocations"])equalFact(data[key],1,`${at}.${key}`);
+  integer(data.max_frame_bytes,`${at}.max_frame_bytes`);requireFact(data.max_frame_bytes>0&&data.max_frame_bytes<=8192,`${at}.max_frame_bytes`,"actual finite peer frames required",data.max_frame_bytes);
+  equalFact(data.connection_before_close,true,`${at}.connection_before_close`);equalFact(data.connection_after_close,false,`${at}.connection_after_close`);equalFact(data.hooks_after_close,0,`${at}.hooks_after_close`);equalFact(data.peer_closed,true,`${at}.peer_closed`);
+  array(data.peer_requests,`${at}.peer_requests`);equalFact(data.peer_requests.map(r=>r.method),["before_run","tool.invoke","before_run","provider.invoke"],`${at}.peer_requests`);
+  data.peer_requests.forEach((request,index)=>{
+    const req=`${at}.peer_requests[${index}]`;shape(request,["method","capability","request_id","input","frame_index"],req);integer(request.frame_index,`${req}.frame_index`);if(index)requireFact(request.frame_index>data.peer_requests[index-1].frame_index,req,"actual outbound request frames must preserve order",request);integer(request.request_id,`${req}.request_id`);requireFact(request.request_id>0,req,"real assigned peer request identity required",request);if(index)requireFact(request.request_id>data.peer_requests[index-1].request_id,req,"peer request order must follow assigned identity",request);
+    shape(request.capability,["kind","name","principal","handler"],`${req}.capability`);equalFact(request.capability.principal,data.grant.principal,`${req}.capability.principal`);
+    if(request.method==="before_run") {equalFact(request.capability,{kind:"hook",name:"before_run",principal:"peer-a",handler:"hook-before_run-handler"},`${req}.capability`);shape(request.input,["name","run_id","prompt"],`${req}.input`);equalFact(request.input.name,"before_run",`${req}.input.name`);string(request.input.run_id,`${req}.input.run_id`);array(request.input.prompt,`${req}.input.prompt`);request.input.prompt.forEach((message,i)=>lifecycleMessage(message,`${req}.input.prompt[${i}]`));requireFact(request.input.prompt.length===1,`${req}.input.prompt`,"real accepted hook prompt required",request.input.prompt);}
+    if(request.method==="tool.invoke") {equalFact(request.capability,{kind:"tool",name:"echo",principal:"peer-a",handler:"echo-handler"},`${req}.capability`);shape(request.input,["text"],`${req}.input`);string(request.input.text,`${req}.input.text`);}
+    if(request.method==="provider.invoke") {equalFact(request.capability,{kind:"provider",name:data.catalog.provider,principal:"peer-a",handler:`provider-${data.catalog.provider}-handler`},`${req}.capability`);shape(request.input,["model","context","auth_mode","encoded_bytes","decoded_bytes"],`${req}.input`);equalFact(request.input.encoded_bytes,1903,`${req}.input.encoded_bytes`);equalFact(request.input.decoded_bytes,9963,`${req}.input.decoded_bytes`);requireFact(request.input.encoded_bytes<=data.grant.frame_bytes&&request.input.decoded_bytes<=data.grant.aggregate_decoded_bytes,`${req}.input`,"real provider payload must fit its granted finite limits",request.input);requestModel(request.input.model,`${req}.input.model`);lifecycleContext(request.input.context,`${req}.input.context`);equalFact(request.input.auth_mode,"none",`${req}.input.auth_mode`);equalFact(request.input.model,{provider:data.catalog.provider,id:data.catalog.id,name:data.catalog.name},`${req}.input.model`);}
+  });
+  const starts=eventPayloads(value,"tool_start"),updates=eventPayloads(value,"tool_update"),ends=eventPayloads(value,"tool_end");equalFact(starts.length,1,"observation.events.tool_start");equalFact(updates,[],"observation.events.tool_update","RoutedTool does not forward protocol progress to the Harness sink");equalFact(ends.length,1,"observation.events.tool_end");
+  equalFact(starts[0].args,data.peer_requests[1].input,"observation.events.tool_start");equalFact(starts[0].tool_call_id,ends[0].tool_call_id,"observation.events.tool_end");
+  equalFact(textResult(ends[0].result),data.peer_requests[1].input.text,"observation.events.tool_end");
+  const toolIndices=["tool_start","tool_end"].map(type=>value.events.find(e=>e.type===type).index);requireFact(toolIndices[0]<toolIndices[1],"observation.events","actual extension start must precede settlement",toolIndices);
+  array(data.progress_frames,`${at}.progress_frames`);equalFact(data.progress_frames.length,1,`${at}.progress_frames`);
+  const progress=data.progress_frames[0];shape(progress,["request_id","sequence","body_bytes","payload"],`${at}.progress_frames[0]`);equalFact(progress.request_id,data.peer_requests[1].request_id,`${at}.progress_frames[0].request_id`);equalFact(progress.sequence,0,`${at}.progress_frames[0].sequence`);integer(progress.body_bytes,`${at}.progress_frames[0].body_bytes`);requireFact(progress.body_bytes>0&&progress.body_bytes<=8192,`${at}.progress_frames[0].body_bytes`,"real finite progress body required",progress.body_bytes);lifecycleToolResult(progress.payload,`${at}.progress_frames[0].payload`);equalFact(textResult(progress.payload),`progress: ${JSON.stringify(data.peer_requests[1].input.text)}`,`${at}.progress_frames[0].payload`);
+  array(data.credits,`${at}.credits`);data.credits.forEach((credit,index)=>{shape(credit,["frame_index","request_id","additional_bytes"],`${at}.credits[${index}]`);for(const [key,item] of Object.entries(credit))integer(item,`${at}.credits[${index}].${key}`);requireFact(credit.additional_bytes>0&&credit.additional_bytes<=4096,`${at}.credits[${index}]`,"actual bounded host credit required",credit);});
+  requireFact(data.credits.some(credit=>credit.request_id===progress.request_id&&credit.additional_bytes===progress.body_bytes&&credit.frame_index>data.peer_requests[1].frame_index&&credit.frame_index<data.peer_requests[2].frame_index),`${at}.credits`,"runtime must return exact progress body credit before the next hook request",data.credits);
+  equalFact(eventPayloads(value,"config_update")[0],{property:"tools"},"observation.events.config_update");
+  equalFact([data.peer_requests[0].input.run_id,data.peer_requests[2].input.run_id],eventPayloads(value,"run_end").map(event=>event.run_id),`${at}.peer_requests`,"hook requests must retain actual operation identities");
+  equalFact(obs.provider_requests.length,2,`${path}.provider_requests`);equalFact(obs.provider_calls,obs.provider_requests.length+data.peer_requests.filter(r=>r.method==="provider.invoke").length,`${path}.provider_calls`);
+  equalFact(obs.provider_requests[0].context.messages,data.peer_requests[0].input.prompt,`${path}.provider_requests[0]`);
+  equalFact(data.peer_requests[3].input.context.messages,data.session.entries.slice(0,-1).map(e=>e.message),`${at}.peer_requests[3]`);equalFact(data.peer_requests[2].input.prompt,data.session.entries.filter(e=>e.message.role==="user").slice(-1).map(e=>e.message),`${at}.peer_requests[2]`);
+  equalFact(eventPayloads(value,"entry_added").map(e=>e.entry),data.session.entries,`${at}.session`);
+  requireFact(data.session.entries.at(-1).message.content.some(block=>block.text==="remote completion"),`${at}.session`,"real authenticated provider terminal must publish",data.session);
 }

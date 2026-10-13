@@ -11,13 +11,13 @@ const manifest = JSON.parse(manifestBytes);
 const original = JSON.parse(fixtureBytes);
 const fail = (message) => { throw new Error(message); };
 if (manifest.schemaVersion !== 1 || manifest.authority !== "853a80d26c90a14c1886f0ebb8ffaae133ca2185") fail("manifest identity mismatch");
-if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 12) fail("expected exactly 12 active positive rows");
-if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 12) fail("expected exactly 12 active causal negatives");
-if (!Array.isArray(original.rows) || original.rows.length !== 12) fail("expected exactly 12 active fixture rows");
-const pending = ["branch.fork_atomic_publish", "restart.recover_session", "legacy_import.format3", "model_switch.next_run", "extension.participation_ordering", "lifecycle.builder_replace"];
-if (JSON.stringify(manifest.pendingRows) !== JSON.stringify(pending) || JSON.stringify(original.pendingRows) !== JSON.stringify(pending)) fail("exact six pending M6-C rows required");
-const active = ["model.credentials_catalog", "prompt.system_resources", "prompt.settings_snapshot", "tools.validate_progress_settle", "tools.coding_operations", "queue.steer_during_turn", "queue.follow_up_after_turn", "retry.overflow_precedence", "retry.provider_recovery", "abort.active_stream_cleanup", "compaction.context_projection", "capability.required_prestart_failure"];
-if (JSON.stringify(manifest.positiveRows.map((row) => row.id)) !== JSON.stringify(active) || JSON.stringify(original.rows.map((row) => row.caseId)) !== JSON.stringify(active)) fail("exact twelve active M6-A/M6-B rows required");
+if (!Array.isArray(manifest.positiveRows) || manifest.positiveRows.length !== 18) fail("expected exactly 18 positive rows");
+if (!Array.isArray(manifest.negatives) || manifest.negatives.length !== 18) fail("expected exactly 18 causal negatives");
+if (!Array.isArray(original.rows) || original.rows.length !== 18) fail("expected exactly 18 fixture rows");
+const pending = [];
+if (JSON.stringify(manifest.pendingRows) !== JSON.stringify(pending) || JSON.stringify(original.pendingRows) !== JSON.stringify(pending)) fail("zero pending rows required");
+const active = ["model.credentials_catalog", "prompt.system_resources", "prompt.settings_snapshot", "tools.validate_progress_settle", "tools.coding_operations", "queue.steer_during_turn", "queue.follow_up_after_turn", "retry.overflow_precedence", "retry.provider_recovery", "abort.active_stream_cleanup", "compaction.context_projection", "branch.fork_atomic_publish", "restart.recover_session", "legacy_import.format3", "model_switch.next_run", "extension.participation_ordering", "lifecycle.builder_replace", "capability.required_prestart_failure"];
+if (JSON.stringify(manifest.positiveRows.map((row) => row.id)) !== JSON.stringify(active) || JSON.stringify(original.rows.map((row) => row.caseId)) !== JSON.stringify(active)) fail("exact eighteen frozen S15 rows required");
 const byId = new Map(original.rows.map((row) => [row.caseId, row]));
 const positiveIds = new Set();
 for (const row of manifest.positiveRows) {
@@ -35,7 +35,7 @@ for (const negative of manifest.negatives) {
   if (!["side_effect_count", "capability_preflight", "operation_witness"].includes(negative.reason)) fail(`invalid mutation reason ${negative.reason}`);
   negatives.set(negative.positiveId, negative);
 }
-if (negatives.size !== 12) fail("every positive needs one negative");
+if (negatives.size !== 18) fail("every positive needs one negative");
 const clone = (value) => JSON.parse(JSON.stringify(value));
 let completed = 0;
 for (const row of original.rows) {
@@ -55,6 +55,9 @@ for (const row of original.rows) {
     let semanticFailure = false;
     try { validateObservation(mutated, row.caseId); } catch { semanticFailure = true; }
     if (!semanticFailure) fail(`operation mutation passed semantic validation for ${row.caseId}`);
+    let selfComparisonFailure = false;
+    try { compareObservation(mutated, mutated); } catch { selfComparisonFailure = true; }
+    if (!selfComparisonFailure) fail(`operation mutation passed same-mutated comparison for ${row.caseId}`);
   }
   if (!firstFailure(row, mutated)) fail(`causal mutation unexpectedly passed for ${row.caseId}`);
   const restored = JSON.parse(fixtureBytes).rows.find((candidate) => candidate.caseId === row.caseId);
@@ -94,7 +97,30 @@ for (const [label, mutate] of messageProbes) {
     if (!rejected) fail(`${label} passed semantic or same-mutated expected/actual validation`);
   }
 }
+// Keep M6-C fields out of the four previously accepted M6-A envelopes, even
+// when a malformed fixture and actual observation contain the same new field.
+const priorRows = ["model.credentials_catalog", "prompt.system_resources", "prompt.settings_snapshot", "capability.required_prestart_failure"];
+const lifecycleKeys = ["fixture_boundary", "provider_requests", "fork", "restart", "legacy_import", "model_switch", "replacement", "extension"];
+const priorRowFailures = [];
+let priorRowProbes = 0;
+for (const caseId of priorRows) {
+  for (const key of lifecycleKeys) {
+    const mutated = clone(byId.get(caseId));
+    mutated.observations[key] = { review_unknown: true };
+    for (const [label, check] of [
+      ["semantic", () => validateObservation(mutated, caseId)],
+      ["same-mutated", () => compareObservation(mutated, mutated)],
+    ]) {
+      let rejected = false;
+      try { check(); } catch (error) { if (!(error instanceof ConformanceMismatch)) throw error; rejected = true; }
+      if (!rejected) priorRowFailures.push(`${caseId}.${key}: ${label} accepted`);
+    }
+    priorRowProbes += 1;
+  }
+}
+if (priorRowFailures.length) fail(`prior-row lifecycle field probes failed: ${priorRowFailures.join("; ")}`);
 if (Buffer.compare(fixtureBytes, fs.readFileSync(fixturesPath)) !== 0) fail("fixture bytes changed during causal test");
 if (Buffer.compare(manifestBytes, fs.readFileSync(manifestPath)) !== 0) fail("manifest bytes changed during causal test");
 console.log(`causal self-test passed: ${completed} positives, ${manifest.negatives.length} one-change negatives, fixture bytes restored`);
 console.log(`nested message probes passed: ${messageProbes.length} semantic and same-mutated expected/actual rejections`);
+console.log(`prior-row lifecycle field probes passed: ${priorRowProbes} semantic and same-mutated expected/actual rejections`);

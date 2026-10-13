@@ -3531,6 +3531,3054 @@
     },
     {
       "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "branch.fork_atomic_publish",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "payload": {
+            "entry_id": "m6-id-1",
+            "message": {
+              "content": "fork source",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 2,
+          "payload": {
+            "entry": {
+              "id": "m6-id-1",
+              "message": {
+                "content": "fork source",
+                "role": "user"
+              },
+              "parent_id": null,
+              "seq": 3,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 3,
+          "type": "turn_start"
+        },
+        {
+          "index": 4,
+          "payload": {
+            "entry_id": "m6-id-3",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 5,
+          "type": "turn_end"
+        },
+        {
+          "index": 6,
+          "payload": {
+            "entry": {
+              "id": "m6-id-3",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-1",
+              "seq": 10,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 7,
+          "payload": {
+            "leaf_id": "m6-id-3",
+            "outcome": "completed",
+            "run_id": "m6-id-0"
+          },
+          "type": "run_end"
+        },
+        {
+          "index": 8,
+          "type": "run_start"
+        },
+        {
+          "index": 9,
+          "payload": {
+            "entry_id": "m6-id-6",
+            "message": {
+              "content": "fork continued",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 10,
+          "payload": {
+            "entry": {
+              "id": "m6-id-6",
+              "message": {
+                "content": "fork continued",
+                "role": "user"
+              },
+              "parent_id": "m6-id-3",
+              "seq": 14,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 11,
+          "type": "turn_start"
+        },
+        {
+          "index": 12,
+          "payload": {
+            "entry_id": "m6-id-8",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 13,
+          "type": "turn_end"
+        },
+        {
+          "index": 14,
+          "payload": {
+            "entry": {
+              "id": "m6-id-8",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-6",
+              "seq": 21,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 15,
+          "payload": {
+            "leaf_id": "m6-id-8",
+            "outcome": "completed",
+            "run_id": "m6-id-5"
+          },
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "lifecycle",
+        "operation": "fork_atomic_publish"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "event_count": 16,
+        "event_types": [
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end",
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end"
+        ],
+        "fixture_boundary": "MemorySessionRepo owns atomic destination publication; host file export is unverified",
+        "fork": {
+          "attached": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "fork source",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": "m6-session",
+            "session_id": "m6-fork",
+            "usage_total": 0
+          },
+          "continued": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "fork source",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-6",
+                "message": {
+                  "content": "fork continued",
+                  "role": "user"
+                },
+                "parent_id": "m6-id-3",
+                "seq": 14,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-8",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-6",
+                "seq": 21,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-8",
+            "message_count": 4,
+            "parent_session_id": "m6-session",
+            "session_id": "m6-fork",
+            "usage_total": 0
+          },
+          "published": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "fork source",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": "m6-session",
+            "session_id": "m6-fork",
+            "usage_total": 0
+          },
+          "source": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "fork source",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          },
+          "source_after_continue": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "fork source",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          }
+        },
+        "provider_calls": 2,
+        "provider_requests": [
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "fork source",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          },
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "fork source",
+                  "role": "user"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                {
+                  "content": "fork continued",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          }
+        ],
+        "session_publication_events": 4,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "restart.recover_session",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "payload": {
+            "entry_id": "m6-id-1",
+            "message": {
+              "content": "restart before",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 2,
+          "payload": {
+            "entry": {
+              "id": "m6-id-1",
+              "message": {
+                "content": "restart before",
+                "role": "user"
+              },
+              "parent_id": null,
+              "seq": 3,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 3,
+          "type": "turn_start"
+        },
+        {
+          "index": 4,
+          "payload": {
+            "entry_id": "m6-id-3",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 5,
+          "type": "turn_end"
+        },
+        {
+          "index": 6,
+          "payload": {
+            "entry": {
+              "id": "m6-id-3",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-1",
+              "seq": 10,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 7,
+          "payload": {
+            "leaf_id": "m6-id-3",
+            "outcome": "completed",
+            "run_id": "m6-id-0"
+          },
+          "type": "run_end"
+        },
+        {
+          "index": 8,
+          "type": "run_start"
+        },
+        {
+          "index": 9,
+          "payload": {
+            "entry_id": "m6-id-6",
+            "message": {
+              "content": "restart after",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 10,
+          "payload": {
+            "entry": {
+              "id": "m6-id-6",
+              "message": {
+                "content": "restart after",
+                "role": "user"
+              },
+              "parent_id": "m6-id-3",
+              "seq": 18,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 11,
+          "type": "turn_start"
+        },
+        {
+          "index": 12,
+          "payload": {
+            "entry_id": "m6-id-8",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 13,
+          "type": "turn_end"
+        },
+        {
+          "index": 14,
+          "payload": {
+            "entry": {
+              "id": "m6-id-8",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-6",
+              "seq": 25,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 15,
+          "payload": {
+            "leaf_id": "m6-id-8",
+            "outcome": "completed",
+            "run_id": "m6-id-5"
+          },
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "lifecycle",
+        "operation": "recover_session"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "event_count": 16,
+        "event_types": [
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end",
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end"
+        ],
+        "fixture_boundary": "host-selected temporary JSONL path; JsonlSessionRepo owns reopen and recovery; crash/power-loss is unverified",
+        "provider_calls": 2,
+        "provider_requests": [
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "restart before",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          },
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "restart before",
+                  "role": "user"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                {
+                  "content": "restart after",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          }
+        ],
+        "restart": {
+          "before_close": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "restart before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-restart",
+            "usage_total": 0
+          },
+          "continued": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "restart before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-6",
+                "message": {
+                  "content": "restart after",
+                  "role": "user"
+                },
+                "parent_id": "m6-id-3",
+                "seq": 18,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-8",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-6",
+                "seq": 25,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-8",
+            "message_count": 4,
+            "parent_session_id": null,
+            "session_id": "m6-restart",
+            "usage_total": 0
+          },
+          "new_backend": true,
+          "recovered": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "restart before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-restart",
+            "usage_total": 0
+          },
+          "reopened": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "restart before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-restart",
+            "usage_total": 0
+          }
+        },
+        "session_publication_events": 4,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "legacy_import.format3",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "payload": {
+            "entry_id": "m6-id-1",
+            "message": {
+              "content": "import continued",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 2,
+          "payload": {
+            "entry": {
+              "id": "m6-id-1",
+              "message": {
+                "content": "import continued",
+                "role": "user"
+              },
+              "parent_id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+              "seq": 6,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 3,
+          "type": "turn_start"
+        },
+        {
+          "index": 4,
+          "payload": {
+            "entry_id": "m6-id-3",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 5,
+          "type": "turn_end"
+        },
+        {
+          "index": 6,
+          "payload": {
+            "entry": {
+              "id": "m6-id-3",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-1",
+              "seq": 13,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 7,
+          "payload": {
+            "leaf_id": "m6-id-3",
+            "outcome": "completed",
+            "run_id": "m6-id-0"
+          },
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "lifecycle",
+        "operation": "format3"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 2,
+        "event_count": 8,
+        "event_types": [
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end"
+        ],
+        "fixture_boundary": "host supplies external JSONL path; Rust opens in place and adopts on first checked write; upstream copy-to-active-directory is unimplemented",
+        "legacy_import": {
+          "adopted": {
+            "cwd": "source",
+            "entries": [
+              {
+                "custom_type": "note",
+                "data": {
+                  "opaque": "old"
+                },
+                "id": "00000000-0002-7e83-9324-7e0685225a90",
+                "parent_id": null,
+                "seq": 0,
+                "type": "custom"
+              },
+              {
+                "id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+                "message": {
+                  "content": [
+                    {
+                      "text": "legacy answer",
+                      "textSignature": "keep",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "00000000-0002-7e83-9324-7e0685225a90",
+                "seq": 1,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+            "message_count": 1,
+            "parent_session_id": null,
+            "session_id": "process",
+            "usage_total": 99
+          },
+          "continued": {
+            "cwd": "source",
+            "entries": [
+              {
+                "custom_type": "note",
+                "data": {
+                  "opaque": "old"
+                },
+                "id": "00000000-0002-7e83-9324-7e0685225a90",
+                "parent_id": null,
+                "seq": 0,
+                "type": "custom"
+              },
+              {
+                "id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+                "message": {
+                  "content": [
+                    {
+                      "text": "legacy answer",
+                      "textSignature": "keep",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "00000000-0002-7e83-9324-7e0685225a90",
+                "seq": 1,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "import continued",
+                  "role": "user"
+                },
+                "parent_id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+                "seq": 6,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 13,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 3,
+            "parent_session_id": null,
+            "session_id": "process",
+            "usage_total": 99
+          },
+          "opened": {
+            "cwd": "source",
+            "entries": [
+              {
+                "custom_type": "note",
+                "data": {
+                  "opaque": "old"
+                },
+                "id": "00000000-0002-7e83-9324-7e0685225a90",
+                "parent_id": null,
+                "seq": 0,
+                "type": "custom"
+              },
+              {
+                "id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+                "message": {
+                  "content": [
+                    {
+                      "text": "legacy answer",
+                      "textSignature": "keep",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "00000000-0002-7e83-9324-7e0685225a90",
+                "seq": 1,
+                "type": "message"
+              }
+            ],
+            "lane_config": null,
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "00000000-0003-7a0a-a30c-6bef1024ece7",
+            "message_count": 1,
+            "parent_session_id": null,
+            "session_id": "process",
+            "usage_total": 99
+          },
+          "persisted_version": 4,
+          "provenance": [
+            {
+              "source": "v3-import"
+            }
+          ],
+          "source_preserved_before_write": true,
+          "source_version": 3
+        },
+        "provider_calls": 1,
+        "provider_requests": [
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "legacy answer",
+                      "textSignature": "keep",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                {
+                  "content": "import continued",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          }
+        ],
+        "session_publication_events": 2,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "model_switch.next_run",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "payload": {
+            "entry_id": "m6-id-1",
+            "message": {
+              "content": "model before",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 2,
+          "payload": {
+            "entry": {
+              "id": "m6-id-1",
+              "message": {
+                "content": "model before",
+                "role": "user"
+              },
+              "parent_id": null,
+              "seq": 3,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 3,
+          "type": "turn_start"
+        },
+        {
+          "index": 4,
+          "payload": {
+            "entry_id": "m6-id-3",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 5,
+          "type": "turn_end"
+        },
+        {
+          "index": 6,
+          "payload": {
+            "entry": {
+              "id": "m6-id-3",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-1",
+              "seq": 10,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 7,
+          "payload": {
+            "leaf_id": "m6-id-3",
+            "outcome": "completed",
+            "run_id": "m6-id-0"
+          },
+          "type": "run_end"
+        },
+        {
+          "index": 8,
+          "payload": {
+            "previous": {
+              "modelId": "offline-model",
+              "provider": "openai"
+            },
+            "property": "model",
+            "value": {
+              "modelId": "offline-next",
+              "provider": "openai"
+            }
+          },
+          "type": "config_update"
+        },
+        {
+          "index": 9,
+          "type": "run_start"
+        },
+        {
+          "index": 10,
+          "payload": {
+            "entry_id": "m6-id-6",
+            "message": {
+              "content": "model after",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 11,
+          "payload": {
+            "entry": {
+              "id": "m6-id-6",
+              "message": {
+                "content": "model after",
+                "role": "user"
+              },
+              "parent_id": "m6-id-3",
+              "seq": 19,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 12,
+          "type": "turn_start"
+        },
+        {
+          "index": 13,
+          "payload": {
+            "entry_id": "m6-id-8",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 14,
+          "type": "turn_end"
+        },
+        {
+          "index": 15,
+          "payload": {
+            "entry": {
+              "id": "m6-id-8",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-6",
+              "seq": 26,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 16,
+          "payload": {
+            "leaf_id": "m6-id-8",
+            "outcome": "completed",
+            "run_id": "m6-id-5"
+          },
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "lifecycle",
+        "operation": "next_run"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "event_count": 17,
+        "event_types": [
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end",
+          "config_update",
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end"
+        ],
+        "fixture_boundary": "host registry owns model catalog and no-auth adapter; live provider reconfiguration is unverified",
+        "model_switch": {
+          "before": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "model before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          },
+          "continued": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "model before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-6",
+                "message": {
+                  "content": "model after",
+                  "role": "user"
+                },
+                "parent_id": "m6-id-3",
+                "seq": 19,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-8",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-6",
+                "seq": 26,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-next",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-8",
+            "message_count": 4,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          },
+          "readback": {
+            "id": "offline-next",
+            "name": "offline-next",
+            "provider": "openai"
+          },
+          "switched": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "model before",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-next",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          }
+        },
+        "provider_calls": 2,
+        "provider_requests": [
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "model before",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "initial overlay",
+              "provider": "openai"
+            }
+          },
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "model before",
+                  "role": "user"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                {
+                  "content": "model after",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-next",
+              "name": "offline-next",
+              "provider": "openai"
+            }
+          }
+        ],
+        "session_publication_events": 4,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "extension.participation_ordering",
+      "events": [
+        {
+          "index": 0,
+          "payload": {
+            "property": "tools"
+          },
+          "type": "config_update"
+        },
+        {
+          "index": 1,
+          "payload": {
+            "previous": [
+              "read"
+            ],
+            "property": "activeTools",
+            "value": [
+              "echo"
+            ]
+          },
+          "type": "config_update"
+        },
+        {
+          "index": 2,
+          "type": "run_start"
+        },
+        {
+          "index": 3,
+          "payload": {
+            "entry_id": "m6-id-1",
+            "message": {
+              "content": "extension tool operation",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 4,
+          "payload": {
+            "entry": {
+              "id": "m6-id-1",
+              "message": {
+                "content": "extension tool operation",
+                "role": "user"
+              },
+              "parent_id": null,
+              "seq": 4,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 5,
+          "type": "turn_start"
+        },
+        {
+          "index": 6,
+          "payload": {
+            "entry_id": "m6-id-3",
+            "message": {
+              "content": [
+                {
+                  "arguments": {
+                    "text": "extension echo"
+                  },
+                  "id": "m6c-echo",
+                  "name": "echo",
+                  "type": "toolCall"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "toolUse"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 7,
+          "payload": {
+            "entry": {
+              "id": "m6-id-3",
+              "message": {
+                "content": [
+                  {
+                    "arguments": {
+                      "text": "extension echo"
+                    },
+                    "id": "m6c-echo",
+                    "name": "echo",
+                    "type": "toolCall"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "toolUse"
+              },
+              "parent_id": "m6-id-1",
+              "seq": 11,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 8,
+          "payload": {
+            "args": {
+              "text": "extension echo"
+            },
+            "tool_call_id": "m6c-echo",
+            "tool_name": "echo"
+          },
+          "type": "tool_start"
+        },
+        {
+          "index": 9,
+          "payload": {
+            "is_error": false,
+            "result": {
+              "content": [
+                {
+                  "text": "extension echo",
+                  "type": "text"
+                }
+              ],
+              "details": {}
+            },
+            "terminate": false,
+            "tool_call_id": "m6c-echo",
+            "tool_name": "echo"
+          },
+          "type": "tool_end"
+        },
+        {
+          "index": 10,
+          "payload": {
+            "entry_id": "m6-id-5",
+            "message": {
+              "content": [
+                {
+                  "text": "extension echo",
+                  "type": "text"
+                }
+              ],
+              "is_error": false,
+              "role": "toolResult",
+              "tool_call_id": "m6c-echo",
+              "tool_name": "echo"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 11,
+          "type": "turn_end"
+        },
+        {
+          "index": 12,
+          "payload": {
+            "entry": {
+              "id": "m6-id-5",
+              "message": {
+                "content": [
+                  {
+                    "text": "extension echo",
+                    "type": "text"
+                  }
+                ],
+                "is_error": false,
+                "role": "toolResult",
+                "tool_call_id": "m6c-echo",
+                "tool_name": "echo"
+              },
+              "parent_id": "m6-id-3",
+              "seq": 17,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 13,
+          "type": "turn_start"
+        },
+        {
+          "index": 14,
+          "payload": {
+            "entry_id": "m6-id-7",
+            "message": {
+              "content": [
+                {
+                  "text": "echo settled",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 15,
+          "type": "turn_end"
+        },
+        {
+          "index": 16,
+          "payload": {
+            "entry": {
+              "id": "m6-id-7",
+              "message": {
+                "content": [
+                  {
+                    "text": "echo settled",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-5",
+              "seq": 23,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 17,
+          "payload": {
+            "leaf_id": "m6-id-7",
+            "outcome": "completed",
+            "run_id": "m6-id-0"
+          },
+          "type": "run_end"
+        },
+        {
+          "index": 18,
+          "payload": {
+            "previous": [
+              "echo"
+            ],
+            "property": "activeTools",
+            "value": []
+          },
+          "type": "config_update"
+        },
+        {
+          "index": 19,
+          "payload": {
+            "previous": {
+              "modelId": "offline-model",
+              "provider": "openai"
+            },
+            "property": "model",
+            "value": {
+              "modelId": "remote-offline",
+              "provider": "openrouter"
+            }
+          },
+          "type": "config_update"
+        },
+        {
+          "index": 20,
+          "type": "run_start"
+        },
+        {
+          "index": 21,
+          "payload": {
+            "entry_id": "m6-id-10",
+            "message": {
+              "content": "extension provider operation",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 22,
+          "payload": {
+            "entry": {
+              "id": "m6-id-10",
+              "message": {
+                "content": "extension provider operation",
+                "role": "user"
+              },
+              "parent_id": "m6-id-7",
+              "seq": 33,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 23,
+          "type": "turn_start"
+        },
+        {
+          "index": 24,
+          "payload": {
+            "entry_id": "m6-id-12",
+            "message": {
+              "content": [
+                {
+                  "text": "remote completion",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 25,
+          "type": "turn_end"
+        },
+        {
+          "index": 26,
+          "payload": {
+            "entry": {
+              "id": "m6-id-12",
+              "message": {
+                "content": [
+                  {
+                    "text": "remote completion",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-10",
+              "seq": 40,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 27,
+          "payload": {
+            "leaf_id": "m6-id-12",
+            "outcome": "completed",
+            "run_id": "m6-id-9"
+          },
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "lifecycle",
+        "operation": "participation_ordering"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 6,
+        "event_count": 28,
+        "event_types": [
+          "config_update",
+          "config_update",
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "entry_added",
+          "tool_start",
+          "tool_end",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end",
+          "config_update",
+          "config_update",
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end"
+        ],
+        "extension": {
+          "catalog": {
+            "id": "remote-offline",
+            "name": "remote catalog model",
+            "no_auth": true,
+            "provider": "openrouter"
+          },
+          "connection_after_close": false,
+          "connection_before_close": true,
+          "credits": [
+            {
+              "additional_bytes": 157,
+              "frame_index": 4,
+              "request_id": 2
+            }
+          ],
+          "grant": {
+            "aggregate_decoded_bytes": 16384,
+            "frame_bytes": 8192,
+            "generation": 7,
+            "principal": "peer-a",
+            "ready": true
+          },
+          "hook_count": 1,
+          "hooks_after_close": 0,
+          "max_frame_bytes": 2099,
+          "peer_closed": true,
+          "peer_requests": [
+            {
+              "capability": {
+                "handler": "hook-before_run-handler",
+                "kind": "hook",
+                "name": "before_run",
+                "principal": "peer-a"
+              },
+              "frame_index": 2,
+              "input": {
+                "name": "before_run",
+                "prompt": [
+                  {
+                    "content": "extension tool operation",
+                    "role": "user"
+                  }
+                ],
+                "run_id": "m6-id-0"
+              },
+              "method": "before_run",
+              "request_id": 1
+            },
+            {
+              "capability": {
+                "handler": "echo-handler",
+                "kind": "tool",
+                "name": "echo",
+                "principal": "peer-a"
+              },
+              "frame_index": 3,
+              "input": {
+                "text": "extension echo"
+              },
+              "method": "tool.invoke",
+              "request_id": 2
+            },
+            {
+              "capability": {
+                "handler": "hook-before_run-handler",
+                "kind": "hook",
+                "name": "before_run",
+                "principal": "peer-a"
+              },
+              "frame_index": 5,
+              "input": {
+                "name": "before_run",
+                "prompt": [
+                  {
+                    "content": "extension provider operation",
+                    "role": "user"
+                  }
+                ],
+                "run_id": "m6-id-9"
+              },
+              "method": "before_run",
+              "request_id": 3
+            },
+            {
+              "capability": {
+                "handler": "provider-openrouter-handler",
+                "kind": "provider",
+                "name": "openrouter",
+                "principal": "peer-a"
+              },
+              "frame_index": 6,
+              "input": {
+                "auth_mode": "none",
+                "context": {
+                  "messages": [
+                    {
+                      "content": "extension tool operation",
+                      "role": "user"
+                    },
+                    {
+                      "content": [
+                        {
+                          "arguments": {
+                            "text": "extension echo"
+                          },
+                          "id": "m6c-echo",
+                          "name": "echo",
+                          "type": "toolCall"
+                        }
+                      ],
+                      "role": "assistant",
+                      "stop_reason": "toolUse"
+                    },
+                    {
+                      "content": [
+                        {
+                          "text": "extension echo",
+                          "type": "text"
+                        }
+                      ],
+                      "is_error": false,
+                      "role": "toolResult",
+                      "tool_call_id": "m6c-echo",
+                      "tool_name": "echo"
+                    },
+                    {
+                      "content": [
+                        {
+                          "text": "echo settled",
+                          "type": "text"
+                        }
+                      ],
+                      "role": "assistant",
+                      "stop_reason": "stop"
+                    },
+                    {
+                      "content": "extension provider operation",
+                      "role": "user"
+                    }
+                  ],
+                  "system_prompt": "",
+                  "tools": []
+                },
+                "decoded_bytes": 9963,
+                "encoded_bytes": 1903,
+                "model": {
+                  "id": "remote-offline",
+                  "name": "remote catalog model",
+                  "provider": "openrouter"
+                }
+              },
+              "method": "provider.invoke",
+              "request_id": 4
+            }
+          ],
+          "progress_frames": [
+            {
+              "body_bytes": 157,
+              "payload": {
+                "content": [
+                  {
+                    "text": "progress: \"extension echo\"",
+                    "type": "text"
+                  }
+                ],
+                "details": {}
+              },
+              "request_id": 2,
+              "sequence": 0
+            }
+          ],
+          "progress_items": 1,
+          "provider_terminal": {
+            "entry_id": "m6-id-12",
+            "message": {
+              "content": [
+                {
+                  "text": "remote completion",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            },
+            "model": "remote-offline",
+            "provider": "openrouter",
+            "usage_total": 5
+          },
+          "registration_order": [
+            "provider",
+            "echo_tool",
+            "hook"
+          ],
+          "session": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "extension tool operation",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 4,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [
+                    {
+                      "arguments": {
+                        "text": "extension echo"
+                      },
+                      "id": "m6c-echo",
+                      "name": "echo",
+                      "type": "toolCall"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "toolUse"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 11,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-5",
+                "message": {
+                  "content": [
+                    {
+                      "text": "extension echo",
+                      "type": "text"
+                    }
+                  ],
+                  "is_error": false,
+                  "role": "toolResult",
+                  "tool_call_id": "m6c-echo",
+                  "tool_name": "echo"
+                },
+                "parent_id": "m6-id-3",
+                "seq": 17,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-7",
+                "message": {
+                  "content": [
+                    {
+                      "text": "echo settled",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-5",
+                "seq": 23,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-10",
+                "message": {
+                  "content": "extension provider operation",
+                  "role": "user"
+                },
+                "parent_id": "m6-id-7",
+                "seq": 33,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-12",
+                "message": {
+                  "content": [
+                    {
+                      "text": "remote completion",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-10",
+                "seq": 40,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [],
+              "model": {
+                "modelId": "remote-offline",
+                "provider": "openrouter"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-12",
+            "message_count": 6,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 5
+          },
+          "terminal_items": 1,
+          "tool_invocations": 1
+        },
+        "fixture_boundary": "host authenticates peer-a and supplies grants/channel; deterministic provider, echo and hook frames only; JS loading, transport authentication, live credentials/network and same-family hook identity remain unverified; RoutedTool currently consumes protocol progress and returns credit without forwarding Harness ToolUpdate (observed limitation for final assembly review)",
+        "provider_calls": 3,
+        "provider_requests": [
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "extension tool operation",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "echo"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          },
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "extension tool operation",
+                  "role": "user"
+                },
+                {
+                  "content": [
+                    {
+                      "arguments": {
+                        "text": "extension echo"
+                      },
+                      "id": "m6c-echo",
+                      "name": "echo",
+                      "type": "toolCall"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "toolUse"
+                },
+                {
+                  "content": [
+                    {
+                      "text": "extension echo",
+                      "type": "text"
+                    }
+                  ],
+                  "is_error": false,
+                  "role": "toolResult",
+                  "tool_call_id": "m6c-echo",
+                  "tool_name": "echo"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "echo"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          }
+        ],
+        "session_publication_events": 6,
+        "terminal_kind": "completed",
+        "tool_invocations": 1
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
+      "caseId": "lifecycle.builder_replace",
+      "events": [
+        {
+          "index": 0,
+          "type": "run_start"
+        },
+        {
+          "index": 1,
+          "payload": {
+            "entry_id": "m6-id-1",
+            "message": {
+              "content": "replace active",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 2,
+          "payload": {
+            "entry": {
+              "id": "m6-id-1",
+              "message": {
+                "content": "replace active",
+                "role": "user"
+              },
+              "parent_id": null,
+              "seq": 3,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 3,
+          "type": "turn_start"
+        },
+        {
+          "index": 4,
+          "payload": {
+            "follow_up": [],
+            "run_id": "m6-id-0",
+            "steer": []
+          },
+          "type": "run_abort"
+        },
+        {
+          "index": 5,
+          "payload": {
+            "entry_id": "m6-id-3",
+            "message": {
+              "content": [],
+              "error_message": "request cancelled",
+              "role": "assistant",
+              "stop_reason": "aborted"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 6,
+          "type": "turn_end"
+        },
+        {
+          "index": 7,
+          "payload": {
+            "entry": {
+              "id": "m6-id-3",
+              "message": {
+                "content": [],
+                "error_message": "request cancelled",
+                "role": "assistant",
+                "stop_reason": "aborted"
+              },
+              "parent_id": "m6-id-1",
+              "seq": 11,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 8,
+          "payload": {
+            "leaf_id": "m6-id-3",
+            "outcome": "aborted",
+            "run_id": "m6-id-0"
+          },
+          "type": "run_end"
+        },
+        {
+          "index": 9,
+          "type": "run_start"
+        },
+        {
+          "index": 10,
+          "payload": {
+            "entry_id": "m6-id-6",
+            "message": {
+              "content": "replace continued",
+              "role": "user"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 11,
+          "payload": {
+            "entry": {
+              "id": "m6-id-6",
+              "message": {
+                "content": "replace continued",
+                "role": "user"
+              },
+              "parent_id": null,
+              "seq": 3,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 12,
+          "type": "turn_start"
+        },
+        {
+          "index": 13,
+          "payload": {
+            "entry_id": "m6-id-8",
+            "message": {
+              "content": [
+                {
+                  "text": "deterministic terminal",
+                  "type": "text"
+                }
+              ],
+              "role": "assistant",
+              "stop_reason": "stop"
+            }
+          },
+          "type": "message_end"
+        },
+        {
+          "index": 14,
+          "type": "turn_end"
+        },
+        {
+          "index": 15,
+          "payload": {
+            "entry": {
+              "id": "m6-id-8",
+              "message": {
+                "content": [
+                  {
+                    "text": "deterministic terminal",
+                    "type": "text"
+                  }
+                ],
+                "role": "assistant",
+                "stop_reason": "stop"
+              },
+              "parent_id": "m6-id-6",
+              "seq": 10,
+              "type": "message"
+            }
+          },
+          "type": "entry_added"
+        },
+        {
+          "index": 16,
+          "payload": {
+            "leaf_id": "m6-id-8",
+            "outcome": "completed",
+            "run_id": "m6-id-5"
+          },
+          "type": "run_end"
+        }
+      ],
+      "input": {
+        "kind": "lifecycle",
+        "operation": "builder_replace"
+      },
+      "messages": [],
+      "observations": {
+        "durable_entries": 4,
+        "event_count": 17,
+        "event_types": [
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "run_abort",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end",
+          "run_start",
+          "message_end",
+          "entry_added",
+          "turn_start",
+          "message_end",
+          "turn_end",
+          "entry_added",
+          "run_end"
+        ],
+        "fixture_boundary": "CodingSessionLifecycle sequences abort/idle/close/attach; MemorySession owns leases; host process teardown is unverified",
+        "provider_calls": 2,
+        "provider_requests": [
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "replace active",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          },
+          {
+            "context": {
+              "messages": [
+                {
+                  "content": "replace continued",
+                  "role": "user"
+                }
+              ],
+              "system_prompt": "",
+              "tools": [
+                "read"
+              ]
+            },
+            "model": {
+              "id": "offline-model",
+              "name": "offline-model",
+              "provider": "openai"
+            }
+          }
+        ],
+        "replacement": {
+          "active_source": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "replace active",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": "m6-id-0",
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-1",
+            "message_count": 1,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          },
+          "active_streams": 0,
+          "adapter_lifecycle": [
+            "dispatch:1",
+            "payload:1",
+            "cancelled:1",
+            "dispatch:2",
+            "payload:2",
+            "response:2:200",
+            "terminal:2:stop"
+          ],
+          "continued_destination": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-6",
+                "message": {
+                  "content": "replace continued",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-8",
+                "message": {
+                  "content": [
+                    {
+                      "text": "deterministic terminal",
+                      "type": "text"
+                    }
+                  ],
+                  "role": "assistant",
+                  "stop_reason": "stop"
+                },
+                "parent_id": "m6-id-6",
+                "seq": 10,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-8",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-replacement",
+            "usage_total": 0
+          },
+          "destination_claim_busy": true,
+          "settled_source": {
+            "cwd": null,
+            "entries": [
+              {
+                "id": "m6-id-1",
+                "message": {
+                  "content": "replace active",
+                  "role": "user"
+                },
+                "parent_id": null,
+                "seq": 3,
+                "type": "message"
+              },
+              {
+                "id": "m6-id-3",
+                "message": {
+                  "content": [],
+                  "error_message": "request cancelled",
+                  "role": "assistant",
+                  "stop_reason": "aborted"
+                },
+                "parent_id": "m6-id-1",
+                "seq": 11,
+                "type": "message"
+              }
+            ],
+            "lane_config": {
+              "activeToolNames": [
+                "read"
+              ],
+              "model": {
+                "modelId": "offline-model",
+                "provider": "openai"
+              },
+              "thinkingLevel": "off"
+            },
+            "lane_state": {
+              "currentOperationId": null,
+              "pendingNextRun": []
+            },
+            "leaf_id": "m6-id-3",
+            "message_count": 2,
+            "parent_session_id": null,
+            "session_id": "m6-session",
+            "usage_total": 0
+          },
+          "source_claim_busy": true,
+          "source_claim_released": true,
+          "cleanup_register_counts": {
+            "op.meta": 0,
+            "op.state": 0,
+            "op.tool_args": 0,
+            "op.preparation": 0,
+            "pending.entry": 0
+          }
+        },
+        "session_publication_events": 4,
+        "terminal_kind": "completed",
+        "tool_invocations": 0
+      },
+      "outcome": {
+        "error": null,
+        "kind": "completed",
+        "terminal": true
+      },
+      "schemaVersion": 1
+    },
+    {
+      "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
       "caseId": "capability.required_prestart_failure",
       "events": [],
       "input": {
@@ -3556,13 +6604,6 @@
       "schemaVersion": 1
     }
   ],
-  "m6Phase": "M6-B",
-  "pendingRows": [
-    "branch.fork_atomic_publish",
-    "restart.recover_session",
-    "legacy_import.format3",
-    "model_switch.next_run",
-    "extension.participation_ordering",
-    "lifecycle.builder_replace"
-  ]
+  "m6Phase": "M6-C",
+  "pendingRows": []
 }
