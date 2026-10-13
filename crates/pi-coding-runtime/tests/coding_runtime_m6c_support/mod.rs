@@ -77,7 +77,7 @@ impl Trace {
                 HarnessEvent::RunEndAbortedWithoutFinal(e) => Some(json!({"run_id":e.run_id,"outcome":e.outcome,"leaf_id":e.leaf_id})),
                 HarnessEvent::RunAbort(e) => Some(json!({"run_id":e.run_id,"steer":e.steer.iter().map(message_json).collect::<Vec<_>>(),"follow_up":e.follow_up.iter().map(message_json).collect::<Vec<_>>()})),
                 HarnessEvent::ToolStart(e) => Some(json!({"tool_call_id":e.tool_call_id,"tool_name":e.tool_name,"args":e.args})),
-                HarnessEvent::ToolUpdate(e) => Some(json!({"tool_call_id":e.tool_call_id,"tool_name":e.tool_name,"partial_result":e.partial_result})),
+                HarnessEvent::ToolUpdate(e) => Some(json!({"tool_call_id":e.tool_call_id,"tool_name":e.tool_name,"lane":e.lane,"run_id":e.run_id,"turn_id":e.turn_id,"partial_result":e.partial_result})),
                 HarnessEvent::ToolEnd(e) => Some(json!({"tool_call_id":e.tool_call_id,"tool_name":e.tool_name,"result":e.result,"is_error":e.is_error,"terminate":e.terminate})),
                 HarnessEvent::QueueUpdate(e) => Some(json!({"steer":queued_json(&e.steer),"follow_up":queued_json(&e.follow_up),"next_run":queued_json(&e.next_run)})),
                 _ => None,

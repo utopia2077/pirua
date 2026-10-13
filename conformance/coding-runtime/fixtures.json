@@ -5506,6 +5506,26 @@
         {
           "index": 9,
           "payload": {
+            "lane": "main",
+            "partial_result": {
+              "content": [
+                {
+                  "text": "progress: \"extension echo\"",
+                  "type": "text"
+                }
+              ],
+              "details": {}
+            },
+            "run_id": "m6-id-0",
+            "tool_call_id": "m6c-echo",
+            "tool_name": "echo",
+            "turn_id": "m6-id-2"
+          },
+          "type": "tool_update"
+        },
+        {
+          "index": 10,
+          "payload": {
             "is_error": false,
             "result": {
               "content": [
@@ -5523,7 +5543,7 @@
           "type": "tool_end"
         },
         {
-          "index": 10,
+          "index": 11,
           "payload": {
             "entry_id": "m6-id-5",
             "message": {
@@ -5542,11 +5562,11 @@
           "type": "message_end"
         },
         {
-          "index": 11,
+          "index": 12,
           "type": "turn_end"
         },
         {
-          "index": 12,
+          "index": 13,
           "payload": {
             "entry": {
               "id": "m6-id-5",
@@ -5570,11 +5590,11 @@
           "type": "entry_added"
         },
         {
-          "index": 13,
+          "index": 14,
           "type": "turn_start"
         },
         {
-          "index": 14,
+          "index": 15,
           "payload": {
             "entry_id": "m6-id-7",
             "message": {
@@ -5591,11 +5611,11 @@
           "type": "message_end"
         },
         {
-          "index": 15,
+          "index": 16,
           "type": "turn_end"
         },
         {
-          "index": 16,
+          "index": 17,
           "payload": {
             "entry": {
               "id": "m6-id-7",
@@ -5617,7 +5637,7 @@
           "type": "entry_added"
         },
         {
-          "index": 17,
+          "index": 18,
           "payload": {
             "leaf_id": "m6-id-7",
             "outcome": "completed",
@@ -5626,7 +5646,7 @@
           "type": "run_end"
         },
         {
-          "index": 18,
+          "index": 19,
           "payload": {
             "previous": [
               "echo"
@@ -5637,7 +5657,7 @@
           "type": "config_update"
         },
         {
-          "index": 19,
+          "index": 20,
           "payload": {
             "previous": {
               "modelId": "offline-model",
@@ -5652,11 +5672,11 @@
           "type": "config_update"
         },
         {
-          "index": 20,
+          "index": 21,
           "type": "run_start"
         },
         {
-          "index": 21,
+          "index": 22,
           "payload": {
             "entry_id": "m6-id-10",
             "message": {
@@ -5667,7 +5687,7 @@
           "type": "message_end"
         },
         {
-          "index": 22,
+          "index": 23,
           "payload": {
             "entry": {
               "id": "m6-id-10",
@@ -5683,11 +5703,11 @@
           "type": "entry_added"
         },
         {
-          "index": 23,
+          "index": 24,
           "type": "turn_start"
         },
         {
-          "index": 24,
+          "index": 25,
           "payload": {
             "entry_id": "m6-id-12",
             "message": {
@@ -5704,11 +5724,11 @@
           "type": "message_end"
         },
         {
-          "index": 25,
+          "index": 26,
           "type": "turn_end"
         },
         {
-          "index": 26,
+          "index": 27,
           "payload": {
             "entry": {
               "id": "m6-id-12",
@@ -5730,7 +5750,7 @@
           "type": "entry_added"
         },
         {
-          "index": 27,
+          "index": 28,
           "payload": {
             "leaf_id": "m6-id-12",
             "outcome": "completed",
@@ -5746,7 +5766,7 @@
       "messages": [],
       "observations": {
         "durable_entries": 6,
-        "event_count": 28,
+        "event_count": 29,
         "event_types": [
           "config_update",
           "config_update",
@@ -5757,6 +5777,7 @@
           "message_end",
           "entry_added",
           "tool_start",
+          "tool_update",
           "tool_end",
           "message_end",
           "turn_end",
@@ -6084,9 +6105,32 @@
             "usage_total": 5
           },
           "terminal_items": 1,
+          "tool_event_identities": {
+            "end": {
+              "lane": "main",
+              "run_id": "m6-id-0",
+              "tool_call_id": "m6c-echo",
+              "tool_name": "echo",
+              "turn_id": "m6-id-2"
+            },
+            "start": {
+              "lane": "main",
+              "run_id": "m6-id-0",
+              "tool_call_id": "m6c-echo",
+              "tool_name": "echo",
+              "turn_id": "m6-id-2"
+            },
+            "update": {
+              "lane": "main",
+              "run_id": "m6-id-0",
+              "tool_call_id": "m6c-echo",
+              "tool_name": "echo",
+              "turn_id": "m6-id-2"
+            }
+          },
           "tool_invocations": 1
         },
-        "fixture_boundary": "host authenticates peer-a and supplies grants/channel; deterministic provider, echo and hook frames only; JS loading, transport authentication, live credentials/network and same-family hook identity remain unverified; RoutedTool currently consumes protocol progress and returns credit without forwarding Harness ToolUpdate (observed limitation for final assembly review)",
+        "fixture_boundary": "host authenticates peer-a and supplies grants/channel; deterministic provider, echo and hook frames only; actual Harness ToolUpdate and exact body Credit precede the peer's zero-credit terminal; JS loading, transport authentication, live credentials/network and same-family hook identity remain unverified",
         "provider_calls": 3,
         "provider_requests": [
           {

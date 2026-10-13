@@ -175,7 +175,11 @@
         "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs:4222",
         "crates/pi-extension-protocol/src/profiles.rs:590",
         "crates/pi-harness-runtime/src/tools.rs:379",
-        "crates/pi-extension-protocol/src/profiles.rs:1369"
+        "crates/pi-extension-protocol/src/profiles.rs:1369",
+        "crates/pi-harness-runtime/src/extensions/tool_driver.rs",
+        "crates/pi-coding-runtime/tests/coding_runtime_m6c_support/extensions.rs",
+        "crates/pi-coding-runtime/tests/coding_runtime_m6c_support/mod.rs",
+        "crates/pi-coding-runtime/tests/extensions.rs"
       ],
       "fixtureCaseId": "extension.participation_ordering",
       "fixtureBoundary": null

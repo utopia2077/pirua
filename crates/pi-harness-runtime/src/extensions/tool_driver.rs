@@ -7,11 +7,11 @@ use std::collections::VecDeque;
 use std::fmt;
 use std::future::poll_fn;
 use std::num::{NonZeroU64, NonZeroUsize};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::task::{Poll, Waker};
 
-use pi_agent_schema::ToolEffectPlan;
+use pi_agent_schema::{AgentToolUpdate, Cancellation, ToolEffectPlan, ToolProgressSink};
 use pi_ai_core::{CancellationToken, JsonObject, TaskSpawner};
 use pi_extension_protocol::activation::{ActiveGrant, HostAuthority};
 use pi_extension_protocol::descriptor::canonical_profile_digest;
@@ -124,7 +124,104 @@ impl Completion {
     }
 }
 
+// A validated echo item necessarily contains the full 32-byte projection digest.
+// This lower bound is deliberately smaller than its complete protobuf body.
+const MIN_PROGRESS_BODY: usize = 32;
+const PROGRESS_POLL_BUDGET: usize = 16;
+
+struct ProgressReservation(Arc<AtomicUsize>);
+impl Drop for ProgressReservation {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+struct ProgressEntry {
+    update: Option<AgentToolUpdate>,
+    _sequence: u64,
+    body_bytes: usize,
+    _reservation: ProgressReservation,
+}
+#[derive(Default)]
+struct ProgressState {
+    enabled: bool,
+    stopped: bool,
+    window: usize,
+    item_limit: usize,
+    item_charge: usize,
+    retained_items: usize,
+    retained_wire: usize,
+    queue: VecDeque<ProgressEntry>,
+    waker: Option<Waker>,
+}
+#[derive(Default)]
+struct ProgressBuffer(Mutex<ProgressState>, Arc<AtomicUsize>);
+impl ProgressBuffer {
+    fn clear(&self) {
+        let mut state = self.0.lock().unwrap_or_else(|p| p.into_inner());
+        state.stopped = true;
+        while let Some(entry) = state.queue.pop_front() {
+            state.retained_items = state
+                .retained_items
+                .checked_sub(1)
+                .expect("queued reservation");
+            state.retained_wire = state
+                .retained_wire
+                .checked_sub(entry.body_bytes)
+                .expect("queued body charge");
+        }
+        // Release the preallocated item backing too: retired generations must
+        // not retain an empty queue allocation behind an unpolled caller.
+        state.queue = VecDeque::new();
+    }
+    // Called only outside owner/Harness lines, including waker destruction.
+    fn wake(&self) {
+        let wake = self
+            .0
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .waker
+            .take();
+        if let Some(wake) = wake {
+            wake.wake();
+        }
+    }
+}
+struct StopProgress(Arc<ProgressBuffer>);
+impl Drop for StopProgress {
+    fn drop(&mut self) {
+        self.0.clear();
+        // This guard exists only in the wrapper off all owner/Harness lines.
+        let wake = self
+            .0
+            .0
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .waker
+            .take();
+        drop(wake);
+    }
+}
+struct ProgressDelivery {
+    entry: ProgressEntry,
+    buffer: Arc<ProgressBuffer>,
+}
+impl Drop for ProgressDelivery {
+    fn drop(&mut self) {
+        let mut state = self.buffer.0.lock().unwrap_or_else(|p| p.into_inner());
+        state.retained_items = state
+            .retained_items
+            .checked_sub(1)
+            .expect("delivery reservation");
+        state.retained_wire = state
+            .retained_wire
+            .checked_sub(self.entry.body_bytes)
+            .expect("delivery body charge");
+    }
+}
+
 pub struct CallHandle {
+    owner: SingleToolOwner,
+    progress: Arc<ProgressBuffer>,
     binding: InvocationBinding,
     completion: Arc<Completion>,
 }
@@ -148,6 +245,98 @@ impl PreparedCall {
             .as_ref()
             .expect("unconsumed prepared call")
             .binding()
+    }
+
+    /// The selected Harness wrapper enables publication before Request dispatch.
+    /// Low-level terminal-only callers keep their existing consumption contract.
+    pub(crate) fn enable_progress(&mut self) -> Result<(), DriverError> {
+        match self.configure_progress() {
+            Ok(()) => Ok(()),
+            Err(error) => {
+                // Refuse an unfunded arrival window while Q is still inactive.
+                // If another exact fence/loss already won, activation preserves
+                // that earlier completion instead of replacing its disposition.
+                if self.owner.reject_prepared(
+                    &self.route,
+                    self.binding(),
+                    CompletionValue::Failed(error),
+                ) {
+                    self.handle = None;
+                    Err(error)
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    fn configure_progress(&self) -> Result<(), DriverError> {
+        if self.route.retained_channel.is_none() {
+            // Ordinary zero-credit routes remain terminal-only compatibility.
+            return Ok(());
+        }
+        let handle = self.handle.as_ref().expect("prepared call");
+        let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let slot = state.live.as_ref().ok_or(DriverError::WrongBinding)?;
+        if !slot
+            .invocation
+            .binding()
+            .same_live_identity(&handle.binding)
+            || slot.send_started
+        {
+            return Err(DriverError::WrongBinding);
+        }
+        let limits = self
+            .route
+            .grant
+            .wire()
+            .limits
+            .as_ref()
+            .ok_or(DriverError::InvalidHost)?;
+        let window = usize::try_from(self.route.initial_stream_credit_bytes.unwrap_or(0))
+            .map_err(|_| DriverError::InvalidHost)?;
+        let configured =
+            usize::try_from(limits.progress_queue_bytes).map_err(|_| DriverError::InvalidHost)?;
+        if window == 0 || window > configured {
+            return Err(DriverError::InvalidHost);
+        }
+        let decoded = usize::try_from(limits.aggregate_decoded_bytes)
+            .map_err(|_| DriverError::InvalidHost)?;
+        // Wire and typed retention are different axes. Reserve a conservative
+        // 256 logical bytes per metered decoded byte. wire/value.rs charges
+        // every DTO node/map entry and exact UTF-8/byte lengths; this multiplier
+        // covers typed node/vector/map metadata without equating wire length
+        // with retained size. Add 512 per item for root and custody metadata.
+        // No duplicate normalized JSON is queued. Admission overlaps at most
+        // one decoded/typed value and two bounded JSON buffers in the existing
+        // sole-reader decode. This is a logical bound, not an allocator or
+        // subscriber-retention certificate. Each funded wire window can carry
+        // at most floor(window/32) items, INCLUDING a delivery-held item.
+        let item_charge = decoded
+            .checked_mul(256)
+            .and_then(|n| n.checked_add(512))
+            .ok_or(DriverError::InvalidHost)?;
+        let item_limit = window / MIN_PROGRESS_BODY;
+        item_limit
+            .checked_mul(item_charge)
+            .and_then(|n| n.checked_add(item_charge))
+            .and_then(|n| {
+                self.route
+                    .frame_cap
+                    .checked_mul(2)
+                    .and_then(|json| n.checked_add(json))
+            })
+            .ok_or(DriverError::InvalidHost)?;
+        let mut progress = handle.progress.0.lock().unwrap_or_else(|p| p.into_inner());
+        progress
+            .queue
+            .try_reserve_exact(item_limit)
+            .map_err(|_| DriverError::Overloaded)?;
+        progress.enabled = true;
+        progress.window = window;
+        progress.item_limit = item_limit;
+        progress.item_charge = item_charge;
+        Ok(())
     }
 
     pub fn activate(mut self) -> Result<CallHandle, DriverError> {
@@ -257,6 +446,177 @@ impl CallHandle {
         }
     }
 
+    fn poll_progress(&self, cx: &mut std::task::Context<'_>) -> Poll<Option<ProgressDelivery>> {
+        let new_waker = cx.waker().clone();
+        let owner = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let active = owner.live.as_ref().is_some_and(|slot| {
+            slot.invocation.binding().same_live_identity(&self.binding)
+                && !slot.local_fault
+                && slot.cancel_deadline_ms.is_none()
+                && matches!(
+                    slot.invocation.phase(),
+                    LivePhase::Open | LivePhase::TerminalReceived
+                )
+        });
+        let mut state = self.progress.0.lock().unwrap_or_else(|p| p.into_inner());
+        let old_waker = state.waker.replace(new_waker);
+        let result = if !active || state.stopped {
+            Poll::Ready(None)
+        } else if let Some(entry) = state.queue.pop_front() {
+            Poll::Ready(Some(ProgressDelivery {
+                entry,
+                buffer: self.progress.clone(),
+            }))
+        } else {
+            Poll::Pending
+        };
+        drop(state);
+        drop(owner);
+        drop(old_waker);
+        result
+    }
+
+    fn complete_progress(&self, delivery: ProgressDelivery) -> Result<(), DriverError> {
+        let bytes = u64::try_from(delivery.entry.body_bytes).map_err(|_| DriverError::HostFault)?;
+        // The sink future has completed and been dropped before releasing this
+        // delivery-held reservation. Recheck exact Open custody under the same
+        // owner line as receive/cancel/terminal/fencing before minting Credit.
+        drop(delivery);
+        let wake = {
+            let mut state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            let Some(slot) = state.live.as_mut().filter(|slot| {
+                slot.invocation.binding().same_live_identity(&self.binding)
+                    && slot.invocation.phase() == LivePhase::Open
+                    && !slot.local_fault
+                    && slot.cancel_deadline_ms.is_none()
+                    && slot.route.status() != RouteStatus::Closed
+            }) else {
+                return Ok(());
+            };
+            let now = slot.route.clock.now_ms();
+            if now >= slot.invocation.effective_deadline_ms() {
+                return Ok(());
+            }
+            let credit = slot
+                .invocation
+                .grant_credit(bytes, now)
+                .map_err(|_| DriverError::HostFault)?;
+            slot.route.enqueue(credit, WriteKind::Credit)?.0
+        };
+        if let Some(wake) = wake {
+            wake.wake();
+        }
+        Ok(())
+    }
+
+    /// Poll a borrowed sink off every owner/Harness line while terminal and
+    /// cancellation remain live. A coalesced terminal gives at most one bounded
+    /// batch of ready publications; a pending sink is immediately disposable.
+    pub(crate) async fn outcome_with_progress(
+        &self,
+        sink: &dyn ToolProgressSink,
+        cancellation: &dyn Cancellation,
+    ) -> Option<Result<CallOutcome, DriverError>> {
+        let _stop = StopProgress(self.progress.clone());
+        let mut outcome = Box::pin(self.outcome());
+        let mut cancelled = Box::pin(cancellation.cancelled());
+        // Tuple fields drop in declaration order. The future owns the typed
+        // update, so destroy it before releasing custody on every discard,
+        // including cancellation and dropping this outer future while pending.
+        let mut delivery: Option<(
+            pi_ai_core::BoxFuture<'_, Result<(), pi_agent_schema::HarnessRuntimeError>>,
+            ProgressDelivery,
+        )> = None;
+        let result = poll_fn(|cx| {
+            let terminal = match outcome.as_mut().poll(cx) {
+                Poll::Ready(value) => Some(value),
+                Poll::Pending => None,
+            };
+            let cancelled_now = cancelled.as_mut().poll(cx).is_ready();
+            if cancelled_now {
+                delivery = None;
+                return Poll::Ready(terminal);
+            }
+            for _ in 0..PROGRESS_POLL_BUDGET {
+                if cancelled.as_mut().poll(cx).is_ready() {
+                    delivery = None;
+                    return Poll::Ready(terminal);
+                }
+                // Checking even while a sink is pending also stops delivery
+                // after exact owner cancellation, replacement or fencing.
+                let active = {
+                    let state = self.owner.0.state.lock().unwrap_or_else(|p| p.into_inner());
+                    state.live.as_ref().is_some_and(|slot| {
+                        slot.invocation.binding().same_live_identity(&self.binding)
+                            && !slot.local_fault
+                            && slot.cancel_deadline_ms.is_none()
+                            && matches!(
+                                slot.invocation.phase(),
+                                LivePhase::Open | LivePhase::TerminalReceived
+                            )
+                    })
+                };
+                let stopped = self
+                    .progress
+                    .0
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .stopped;
+                if !active || stopped {
+                    delivery = None;
+                    break;
+                }
+                if delivery.is_none() {
+                    match self.poll_progress(cx) {
+                        Poll::Ready(Some(mut next)) => {
+                            // Move the typed value; preserve its reservation
+                            // until the future owning it has finished/dropped.
+                            let update = next.entry.update.take().expect("owned typed update");
+                            delivery = Some((sink.update(update), next));
+                        }
+                        _ => break,
+                    }
+                }
+                let Some((future, _)) = delivery.as_mut() else {
+                    break;
+                };
+                if future.as_mut().poll(cx).is_pending() {
+                    break;
+                }
+                let (future, finished) = delivery.take().expect("polled delivery");
+                drop(future);
+                if cancellation.is_cancelled() {
+                    drop(finished);
+                    return Poll::Ready(terminal);
+                }
+                if let Err(error) = self.complete_progress(finished) {
+                    return Poll::Ready(Some(Err(error)));
+                }
+            }
+            if let Some(terminal) = terminal {
+                return Poll::Ready(Some(terminal));
+            }
+            if delivery.is_none() {
+                let queued = !self
+                    .progress
+                    .0
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .queue
+                    .is_empty();
+                if queued {
+                    cx.waker().wake_by_ref();
+                }
+            }
+            Poll::Pending
+        })
+        .await;
+        // Stop pending delivery first, then discard queued transient custody.
+        drop(delivery);
+        self.progress.clear();
+        result
+    }
+
     /// Compatibility access for callers that require a terminal. The exact
     /// no-write disposition remains separately available through `outcome`.
     pub async fn first_terminal(&self) -> Result<TypedTerminal, DriverError> {
@@ -360,12 +720,19 @@ struct LiveSlot {
     domain: EchoDomainBinding,
     route: Arc<Route>,
     completion: Arc<Completion>,
+    progress: Arc<ProgressBuffer>,
     send_started: bool,
     send_confirmed: bool,
     provisional_frame: Option<ActiveFrame>,
     local_fault: bool,
     cancel_deadline_ms: Option<u64>,
     pending_write_wake: Option<Waker>,
+}
+
+impl Drop for LiveSlot {
+    fn drop(&mut self) {
+        self.progress.clear();
+    }
 }
 
 #[derive(Clone)]
@@ -469,6 +836,7 @@ struct OwnerInner {
     state: Mutex<OwnerState>,
     host: Arc<dyn TaskSpawner>,
     limits: OwnerLimits,
+    progress_items: Arc<AtomicUsize>,
 }
 
 /// One owner-global live/terminal slot, shared by successive generations.
@@ -644,6 +1012,7 @@ impl SingleToolOwner {
             }),
             host,
             limits,
+            progress_items: Arc::new(AtomicUsize::new(0)),
         }))
     }
 
@@ -1092,6 +1461,18 @@ impl SingleToolOwner {
                 (route, completion, None, wake, Some(cutoff))
             }
         };
+        let progress = {
+            let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            state
+                .live
+                .as_ref()
+                .filter(|slot| slot.invocation.binding().same_live_identity(binding))
+                .map(|slot| slot.progress.clone())
+        };
+        if let Some(progress) = progress {
+            progress.clear();
+            progress.wake();
+        }
         let unadmitted = close.is_some();
         if let Some(close) = close {
             route.finish_fence_decision(close);
@@ -1152,6 +1533,20 @@ impl SingleToolOwner {
                 }
             })
         };
+        let progress = {
+            let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            state
+                .live
+                .as_ref()
+                .filter(|slot| Arc::ptr_eq(&slot.route, route))
+                .map(|slot| slot.progress.clone())
+        };
+        if let Some(progress) = progress {
+            // Transient delivery ends on close even when the first terminal is
+            // independently retained. Never replace that receipt/completion.
+            progress.clear();
+            progress.wake();
+        }
         if let Some(completion) = completion {
             completion.finish(CompletionValue::Failed(reason));
         }
@@ -1706,7 +2101,11 @@ impl ReadyToolRoute {
         {
             return Err(DriverError::Closed);
         }
-        if state.live.is_some() || self.route.normal_cap == 0 || self.route.has_cancel_pending() {
+        if state.live.is_some()
+            || self.owner.0.progress_items.load(Ordering::SeqCst) != 0
+            || self.route.normal_cap == 0
+            || self.route.has_cancel_pending()
+        {
             return Err(DriverError::Overloaded);
         }
         if self.route.frame_cap > self.owner.0.limits.receipt_bytes.get() {
@@ -1798,6 +2197,10 @@ impl ReadyToolRoute {
             .checked_add(self.route.timeout_ms)
             .ok_or(DriverError::Deadline)?;
         let completion = Arc::new(Completion::new());
+        let progress = Arc::new(ProgressBuffer(
+            Mutex::new(ProgressState::default()),
+            self.owner.0.progress_items.clone(),
+        ));
         let staged_caller =
             caller.as_ref().map(
                 |caller| crate::extensions::receive_host8192::CallerIdentity8192 {
@@ -1852,6 +2255,7 @@ impl ReadyToolRoute {
                 domain,
                 route: self.route.clone(),
                 completion: completion.clone(),
+                progress: progress.clone(),
                 send_started: false,
                 send_confirmed: false,
                 provisional_frame: None,
@@ -1934,6 +2338,8 @@ impl ReadyToolRoute {
             owner: self.owner.clone(),
             route: self.route.clone(),
             handle: Some(CallHandle {
+                owner: self.owner.clone(),
+                progress,
                 binding,
                 completion,
             }),
@@ -3133,7 +3539,49 @@ fn check_retained_indexed(
         }
     };
     match checked.outcome {
-        ReceiveOutcome::Progress(_) => {
+        ReceiveOutcome::Progress(validated) => {
+            // Normalized JSON is admission-only. Carry the already-constructed
+            // value, sequence and exact body charge; do not decode it again.
+            drop(validated);
+            {
+                let mut progress = slot.progress.0.lock().unwrap_or_else(|p| p.into_inner());
+                if progress.enabled {
+                    if progress.stopped {
+                        return Ok((None, false));
+                    }
+                    let update = checked.value.ok_or(DriverError::HostFault)?;
+                    let wire = progress
+                        .retained_wire
+                        .checked_add(body_len)
+                        .ok_or(DriverError::HostFault)?;
+                    let count = progress
+                        .retained_items
+                        .checked_add(1)
+                        .ok_or(DriverError::HostFault)?;
+                    if body_len < MIN_PROGRESS_BODY
+                        || wire > progress.window
+                        || count > progress.item_limit
+                    {
+                        return Err(DriverError::HostFault);
+                    }
+                    count
+                        .checked_mul(progress.item_charge)
+                        .ok_or(DriverError::HostFault)?;
+                    progress.retained_wire = wire;
+                    progress.retained_items = count;
+                    slot.progress
+                        .1
+                        .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_add(1))
+                        .map_err(|_| DriverError::HostFault)?;
+                    progress.queue.push_back(ProgressEntry {
+                        update: Some(update),
+                        _sequence: slot.invocation.next_sequence() - 1,
+                        body_bytes: body_len,
+                        _reservation: ProgressReservation(slot.progress.1.clone()),
+                    });
+                    return Ok((None, false));
+                }
+            }
             let body_credit = u64::try_from(body_len).map_err(|_| DriverError::HostFault)?;
             let credit = slot
                 .invocation
@@ -3550,6 +3998,19 @@ impl SingleToolOwner {
         if let Some((completion, value)) = finish {
             completion.finish(value);
         }
+        // Publish the independent completion before invoking a progress waker.
+        // The ready wrapper still sees its queued values in this same poll.
+        let progress = {
+            let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+            state
+                .live
+                .as_ref()
+                .filter(|slot| Arc::ptr_eq(&slot.route, route))
+                .map(|slot| slot.progress.clone())
+        };
+        if let Some(progress) = progress {
+            progress.wake();
+        }
         if (close && !peer_lost_with_denial)
             || (route.status() == RouteStatus::Draining && !route.has_control_pending())
         {
@@ -3951,6 +4412,9 @@ pub(crate) mod local_cancel_queue_tests {
     }
 
     fn host(generation: u64) -> HostAuthority {
+        host_with_progress_queue(generation, 4096)
+    }
+    fn host_with_progress_queue(generation: u64, progress_queue_bytes: u64) -> HostAuthority {
         let catalog: Value = serde_json::from_str(CATALOG).unwrap();
         let entry = &catalog["entries"][0];
         let agent = &entry["agentTool"];
@@ -3991,7 +4455,7 @@ pub(crate) mod local_cancel_queue_tests {
                 bytes_length: 4096,
                 in_flight_requests: 8,
                 blocking_queue_bytes: 4096,
-                progress_queue_bytes: 4096,
+                progress_queue_bytes,
                 passive_queue_bytes: 4096,
                 telemetry_queue_bytes: 4096,
                 nesting_depth: 8,
@@ -4066,6 +4530,17 @@ pub(crate) mod local_cancel_queue_tests {
         Arc<LifecycleChannel>,
         Arc<LifecycleClock>,
     ) {
+        owner_and_retained_route_with_progress_queue(4096)
+    }
+    fn owner_and_retained_route_with_progress_queue(
+        progress_queue_bytes: u64,
+    ) -> (
+        Arc<LifecycleSpawner>,
+        SingleToolOwner,
+        ReadyToolRoute,
+        Arc<LifecycleChannel>,
+        Arc<LifecycleClock>,
+    ) {
         let spawner = Arc::new(LifecycleSpawner::default());
         let owner = SingleToolOwner::new(
             spawner.clone(),
@@ -4082,7 +4557,7 @@ pub(crate) mod local_cancel_queue_tests {
         let clock = Arc::new(LifecycleClock::new(7));
         let route = spawner
             .drive(owner.connect_inner(
-                host(7),
+                host_with_progress_queue(7, progress_queue_bytes),
                 channel.clone(),
                 Some(channel.clone()),
                 clock.clone(),
@@ -4430,6 +4905,841 @@ pub(crate) mod local_cancel_queue_tests {
         let _observer_guard = source_observer::exclusive_test_guard();
         source_observer::reset();
         retained_indexed_walking_branch_for_test();
+    }
+
+    struct ProgressSinkProbe {
+        owner: SingleToolOwner,
+        ready: AtomicBool,
+        started: AtomicUsize,
+        dropped: AtomicUsize,
+        cancel_on_delivery: Option<CancellationToken>,
+        values: Mutex<Vec<AgentToolUpdate>>,
+    }
+    struct PendingDeliveryProbe<'a>(&'a AtomicUsize);
+    impl Drop for PendingDeliveryProbe<'_> {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+    impl ToolProgressSink for ProgressSinkProbe {
+        fn update(
+            &self,
+            update: AgentToolUpdate,
+        ) -> BoxFuture<'_, Result<(), pi_agent_schema::HarnessRuntimeError>> {
+            // Both construction and polling must be off the sole reader's
+            // owner line. Try-lock makes this a distinguishing bounded check.
+            assert!(self.owner.0.state.try_lock().is_ok());
+            self.started.fetch_add(1, Ordering::SeqCst);
+            let guard = PendingDeliveryProbe(&self.dropped);
+            let mut update = Some(update);
+            Box::pin(poll_fn(move |_| {
+                let _keep = &guard;
+                assert!(self.owner.0.state.try_lock().is_ok());
+                if !self.ready.load(Ordering::SeqCst) {
+                    return Poll::Pending;
+                }
+                self.values.lock().unwrap().push(update.take().unwrap());
+                if let Some(cancel) = &self.cancel_on_delivery {
+                    cancel.cancel();
+                }
+                Poll::Ready(Ok(()))
+            }))
+        }
+    }
+    fn progress_probe(owner: &SingleToolOwner, ready: bool) -> ProgressSinkProbe {
+        ProgressSinkProbe {
+            owner: owner.clone(),
+            ready: AtomicBool::new(ready),
+            started: AtomicUsize::new(0),
+            dropped: AtomicUsize::new(0),
+            cancel_on_delivery: None,
+            values: Mutex::new(Vec::new()),
+        }
+    }
+    fn progress_call(route: &ReadyToolRoute) -> CallHandle {
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let mut prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("handoff"),
+                "handoff",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        prepared.enable_progress().unwrap();
+        prepared.activate().unwrap()
+    }
+    fn progress_frame_text(id: u8, sequence: u64, text: &str) -> Vec<u8> {
+        use prost::Message as _;
+        let mut reader = framing::FrameReader::<v1_1::Envelope>::new(nz(8192));
+        let mut envelope = reader
+            .read_one(&raw("progress", id))
+            .unwrap()
+            .frame
+            .unwrap()
+            .envelope;
+        let Some(v1_1::envelope::Frame::StreamItem(item)) = envelope.frame.as_mut() else {
+            panic!("progress frame");
+        };
+        item.sequence = sequence;
+        let mut payload = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+        payload.event.as_mut().unwrap().value = Some(
+            pi_extension_protocol::profiles::json_wire(&serde_json::json!({
+                "content": [{"type": "text", "text": text}], "details": {}
+            }))
+            .unwrap(),
+        );
+        item.payload = payload.encode_to_vec();
+        framing::encode(&envelope, nz(8192)).unwrap().bytes
+    }
+    fn credited_burst() -> Vec<Vec<u8>> {
+        let mut frames: Vec<_> = (0..20)
+            .map(|sequence| progress_frame_text(1, sequence, &format!("item-{sequence}")))
+            .collect();
+        let used: usize = frames.iter().map(|frame| framed_body_len(frame)).sum();
+        let remaining = 4096 - used;
+        let final_frame = (0..remaining)
+            .map(|n| progress_frame_text(1, 20, &"z".repeat(n)))
+            .find(|frame| framed_body_len(frame) == remaining)
+            .expect("exact funded window");
+        frames.push(final_frame);
+        assert_eq!(
+            frames
+                .iter()
+                .map(|frame| framed_body_len(frame))
+                .sum::<usize>(),
+            4096
+        );
+        frames
+    }
+    fn credit_sum(channel: &LifecycleChannel) -> u64 {
+        written_frames(channel)
+            .into_iter()
+            .filter_map(|envelope| match envelope.frame {
+                Some(v1_1::envelope::Frame::Credit(credit)) => Some(credit.additional_bytes),
+                _ => None,
+            })
+            .sum()
+    }
+
+    #[test]
+    fn retained_handoff_unfunded_configured_window_refuses_before_request_dispatch() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        let (spawner, owner, route, channel, _) =
+            owner_and_retained_route_with_progress_queue(1024);
+        assert_eq!(
+            route.route.initial_stream_credit_bytes,
+            Some(4096),
+            "do not silently lower granted credit"
+        );
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        let mut prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("unfunded"),
+                "unfunded",
+                1,
+                Some(&origin),
+            )
+            .unwrap();
+        assert_eq!(prepared.enable_progress(), Err(DriverError::InvalidHost));
+        drop(prepared);
+        spawner.tick();
+        assert!(owner.retained_binding().is_none());
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        assert!(written_frames(&channel).iter().all(|frame| !matches!(
+            frame.frame,
+            Some(v1_1::envelope::Frame::Request(_) | v1_1::envelope::Frame::Credit(_))
+        )));
+        route.close();
+    }
+
+    #[test]
+    fn retained_handoff_ready_sink_publishes_coalesced_update_before_terminal() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        let (spawner, owner, route, channel, _) = owner_and_retained_route();
+        let handle = progress_call(&route);
+        let probe = progress_probe(&owner, true);
+        let cancel = crate::effects::TokenCancellation(CancellationToken::new());
+        let mut drive = Box::pin(handle.outcome_with_progress(&probe, &cancel));
+        assert!(
+            drive
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending()
+        );
+        spawner.tick();
+        channel.push([progress_frame_text(1, 0, "partial"), raw("terminal", 1)].concat());
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(handle.binding()),
+            Ok(LivePhase::TerminalReceived)
+        );
+        assert!(matches!(
+            drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+            Poll::Ready(Some(Ok(CallOutcome::Terminal(_))))
+        ));
+        assert_eq!(probe.values.lock().unwrap().len(), 1);
+        assert_eq!(
+            serde_json::to_value(&probe.values.lock().unwrap()[0]).unwrap()["content"][0]["text"],
+            "partial"
+        );
+        assert_eq!(
+            credit_sum(&channel),
+            0,
+            "terminal never creates late Credit"
+        );
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        owner
+            .retire(handle.binding(), RetireReason::Committed)
+            .unwrap();
+        route.close();
+    }
+
+    #[test]
+    fn retained_handoff_pending_full_credit_burst_reserves_delivery_and_terminal_independently() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        for restore_ready in [false, true] {
+            let (spawner, owner, route, channel, _) = owner_and_retained_route();
+            let handle = progress_call(&route);
+            let probe = progress_probe(&owner, false);
+            let cancel = crate::effects::TokenCancellation(CancellationToken::new());
+            let mut drive = Box::pin(handle.outcome_with_progress(&probe, &cancel));
+            spawner.tick();
+            for frame in credited_burst() {
+                channel.push(frame);
+            }
+            spawner.tick();
+            assert!(
+                drive
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending()
+            );
+            assert_eq!(probe.started.load(Ordering::SeqCst), 1);
+            {
+                let state = handle.progress.0.lock().unwrap();
+                assert_eq!(state.retained_wire, 4096);
+                assert_eq!(state.retained_items, 21);
+                assert_eq!(
+                    state.queue.len(),
+                    20,
+                    "popping keeps the delivery-held reservation"
+                );
+                assert!(state.retained_items <= state.item_limit);
+                assert_eq!(state.item_limit, 128);
+                assert_eq!(state.item_charge, 8192 * 256 + 512);
+            }
+            {
+                let state = owner.0.state.lock().unwrap();
+                assert_eq!(state.live.as_ref().unwrap().invocation.credit(), 0);
+                assert_eq!(state.live.as_ref().unwrap().invocation.next_sequence(), 21);
+            }
+            assert_eq!(credit_sum(&channel), 0);
+            if restore_ready {
+                probe.ready.store(true, Ordering::SeqCst);
+                for _ in 0..2 {
+                    assert!(
+                        drive
+                            .as_mut()
+                            .poll(&mut Context::from_waker(Waker::noop()))
+                            .is_pending()
+                    );
+                    spawner.tick();
+                }
+                assert_eq!(probe.values.lock().unwrap().len(), 21);
+                for (n, value) in probe.values.lock().unwrap().iter().take(20).enumerate() {
+                    assert_eq!(
+                        serde_json::to_value(value).unwrap()["content"][0]["text"],
+                        format!("item-{n}")
+                    );
+                }
+                assert_eq!(
+                    credit_sum(&channel),
+                    4096,
+                    "refund exact received bodies only after sink completion"
+                );
+                assert_eq!(
+                    owner
+                        .0
+                        .state
+                        .lock()
+                        .unwrap()
+                        .live
+                        .as_ref()
+                        .unwrap()
+                        .invocation
+                        .credit(),
+                    4096
+                );
+            }
+            channel.push(raw("terminal", 1));
+            spawner.tick();
+            assert_eq!(
+                owner.binding_phase(handle.binding()),
+                Ok(LivePhase::TerminalReceived)
+            );
+            assert!(matches!(
+                drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+                Poll::Ready(Some(Ok(CallOutcome::Terminal(_))))
+            ));
+            if !restore_ready {
+                assert!(probe.values.lock().unwrap().is_empty());
+                assert_eq!(
+                    probe.dropped.load(Ordering::SeqCst),
+                    1,
+                    "pending sink is dropped at terminal"
+                );
+                assert_eq!(credit_sum(&channel), 0);
+            }
+            assert_eq!(handle.progress.0.lock().unwrap().retained_items, 0);
+            assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+            owner
+                .retire(handle.binding(), RetireReason::Committed)
+                .unwrap();
+            route.close();
+        }
+    }
+
+    #[test]
+    fn retained_handoff_coalesced_full_burst_gives_ready_sink_bounded_terminal_opportunity() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        let (spawner, owner, route, channel, _) = owner_and_retained_route();
+        let handle = progress_call(&route);
+        let probe = progress_probe(&owner, true);
+        let cancel = crate::effects::TokenCancellation(CancellationToken::new());
+        spawner.tick();
+        let mut burst = credited_burst().concat();
+        burst.extend(raw("terminal", 1));
+        channel.push(burst);
+        spawner.tick();
+        assert_eq!(
+            owner.binding_phase(handle.binding()),
+            Ok(LivePhase::TerminalReceived)
+        );
+        assert!(matches!(
+            spawner.drive(handle.outcome_with_progress(&probe, &cancel)),
+            Some(Ok(CallOutcome::Terminal(_)))
+        ));
+        assert_eq!(
+            probe.values.lock().unwrap().len(),
+            16,
+            "one finite ready batch before terminal completion"
+        );
+        assert_eq!(credit_sum(&channel), 0);
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            handle.progress.0.lock().unwrap().queue.capacity(),
+            0,
+            "terminal releases undelivered item backing"
+        );
+        owner
+            .retire(handle.binding(), RetireReason::Committed)
+            .unwrap();
+        route.close();
+    }
+
+    #[test]
+    fn retained_handoff_checked_cancel_stops_pending_and_credited_inflight_without_refund() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        let (spawner, owner, route, channel, _) = owner_and_retained_route();
+        let handle = progress_call(&route);
+        let probe = progress_probe(&owner, false);
+        let token = CancellationToken::new();
+        let cancel = crate::effects::TokenCancellation(token.clone());
+        let mut drive = Box::pin(handle.outcome_with_progress(&probe, &cancel));
+        spawner.tick();
+        channel.push(progress_frame_text(1, 0, "pending"));
+        spawner.tick();
+        assert!(
+            drive
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending()
+        );
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap();
+        token.cancel();
+        assert!(matches!(
+            drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+            Poll::Ready(None)
+        ));
+        probe.ready.store(true, Ordering::SeqCst);
+        channel.push(progress_frame_text(1, 1, "after cancel"));
+        spawner.tick();
+        spawner.tick();
+        assert_eq!(
+            owner
+                .0
+                .state
+                .lock()
+                .unwrap()
+                .live
+                .as_ref()
+                .unwrap()
+                .invocation
+                .next_sequence(),
+            2
+        );
+        assert_eq!(
+            owner.binding_phase(handle.binding()),
+            Ok(LivePhase::CancelRequested)
+        );
+        assert!(probe.values.lock().unwrap().is_empty());
+        assert_eq!(probe.dropped.load(Ordering::SeqCst), 1);
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        assert_eq!(credit_sum(&channel), 0);
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        assert!(matches!(
+            spawner.drive(handle.outcome()),
+            Ok(CallOutcome::Terminal(_))
+        ));
+        owner
+            .retire(handle.binding(), RetireReason::Committed)
+            .unwrap();
+        route.close();
+    }
+
+    #[test]
+    fn retained_handoff_cancel_during_sink_completion_stops_backlog_and_refund() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        let (spawner, owner, route, channel, _) = owner_and_retained_route();
+        let handle = progress_call(&route);
+        let token = CancellationToken::new();
+        let cancel = crate::effects::TokenCancellation(token.clone());
+        let mut probe = progress_probe(&owner, true);
+        probe.cancel_on_delivery = Some(token);
+        spawner.tick();
+        channel.push(
+            [
+                progress_frame_text(1, 0, "published"),
+                progress_frame_text(1, 1, "suppressed"),
+            ]
+            .concat(),
+        );
+        spawner.tick();
+        assert!(
+            spawner
+                .drive(handle.outcome_with_progress(&probe, &cancel))
+                .is_none()
+        );
+        assert_eq!(
+            probe.values.lock().unwrap().len(),
+            1,
+            "already-published progress remains visible"
+        );
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        assert_eq!(credit_sum(&channel), 0);
+        owner
+            .abort_local(handle.binding(), LocalAbortCause::User)
+            .unwrap();
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        owner
+            .retire(handle.binding(), RetireReason::Committed)
+            .unwrap();
+        route.close();
+    }
+
+    fn invalid_progress_frame(kind: &str) -> Vec<u8> {
+        use prost::Message as _;
+        let mut reader = framing::FrameReader::<v1_1::Envelope>::new(nz(8192));
+        let mut envelope = reader
+            .read_one(&progress_frame_text(1, 0, "invalid"))
+            .unwrap()
+            .frame
+            .unwrap()
+            .envelope;
+        let Some(v1_1::envelope::Frame::StreamItem(item)) = envelope.frame.as_mut() else {
+            panic!("item");
+        };
+        match kind {
+            "request" => item.request_id = 2,
+            "sequence" => item.sequence = 1,
+            "schema" | "domain" => {
+                let mut payload = v1_1::ToolProgress::decode(item.payload.as_slice()).unwrap();
+                let json = if kind == "schema" {
+                    serde_json::json!({"content": [], "details": {"extra": true}})
+                } else {
+                    // Portable JSON integer accepts an integral float; the
+                    // correctly bound Rust SafeUnsigned constructor rejects it.
+                    serde_json::json!({"content": [], "details": {}, "usage": {
+                        "input": 1.0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "totalTokens": 0,
+                        "cost": {"input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0, "total": 0}
+                    }})
+                };
+                payload.event.as_mut().unwrap().value =
+                    Some(pi_extension_protocol::profiles::json_wire(&json).unwrap());
+                item.payload = payload.encode_to_vec();
+            }
+            _ => panic!("invalid kind"),
+        }
+        framing::encode(&envelope, nz(8192)).unwrap().bytes
+    }
+
+    #[test]
+    fn retained_handoff_invalid_schema_domain_request_and_sequence_never_publish() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        for kind in ["schema", "domain", "request", "sequence"] {
+            let (spawner, owner, route, channel, _) = owner_and_retained_route();
+            let handle = progress_call(&route);
+            let probe = progress_probe(&owner, true);
+            let cancel = crate::effects::TokenCancellation(CancellationToken::new());
+            let mut drive = Box::pin(handle.outcome_with_progress(&probe, &cancel));
+            assert!(
+                drive
+                    .as_mut()
+                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .is_pending()
+            );
+            spawner.tick();
+            channel.push(invalid_progress_frame(kind));
+            spawner.tick();
+            assert!(
+                matches!(
+                    drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+                    Poll::Ready(Some(Err(DriverError::MalformedPeer)))
+                ),
+                "{kind}"
+            );
+            assert!(probe.values.lock().unwrap().is_empty(), "{kind}");
+            assert_eq!(probe.started.load(Ordering::SeqCst), 0);
+            assert_eq!(credit_sum(&channel), 0);
+            assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+            owner.acknowledge_peer_lost(handle.binding()).unwrap();
+        }
+    }
+
+    #[test]
+    fn retained_handoff_later_invalid_frame_preserves_first_terminal_and_stops_backlog() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        for invalid in [
+            progress_frame_text(1, 1, "stale"),
+            invalid_progress_frame("domain"),
+        ] {
+            let (spawner, owner, route, channel, _) = owner_and_retained_route();
+            let handle = progress_call(&route);
+            let probe = progress_probe(&owner, true);
+            let cancel = crate::effects::TokenCancellation(CancellationToken::new());
+            spawner.tick();
+            channel.push(
+                [
+                    progress_frame_text(1, 0, "prior"),
+                    raw("terminal", 1),
+                    invalid,
+                ]
+                .concat(),
+            );
+            spawner.tick();
+            assert_eq!(
+                owner.binding_phase(handle.binding()),
+                Ok(LivePhase::TerminalReceived)
+            );
+            let mut drive = Box::pin(handle.outcome_with_progress(&probe, &cancel));
+            assert!(matches!(
+                drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+                Poll::Ready(Some(Ok(CallOutcome::Terminal(_))))
+            ));
+            assert!(
+                probe.values.lock().unwrap().is_empty(),
+                "closed generation publishes no queued/stale value"
+            );
+            assert_eq!(credit_sum(&channel), 0);
+            owner
+                .retire(handle.binding(), RetireReason::Committed)
+                .unwrap();
+            route.close();
+        }
+    }
+
+    #[test]
+    fn retained_handoff_old_delivery_reservation_blocks_new_binding_until_value_drop() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        let (spawner, owner, route, channel, _) = owner_and_retained_route();
+        let handle = progress_call(&route);
+        spawner.tick();
+        channel.push(progress_frame_text(1, 0, "held"));
+        spawner.tick();
+        let Poll::Ready(Some(held)) = handle.poll_progress(&mut Context::from_waker(Waker::noop()))
+        else {
+            panic!("delivery");
+        };
+        channel.push(raw("terminal", 1));
+        spawner.tick();
+        owner
+            .retire(handle.binding(), RetireReason::Committed)
+            .unwrap();
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 1);
+        let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+        assert_eq!(
+            route
+                .prepare_planned_with_captured_bounds(
+                    &plan(),
+                    &captured("next"),
+                    "next",
+                    2,
+                    Some(&origin)
+                )
+                .err(),
+            Some(DriverError::Overloaded)
+        );
+        drop(held);
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        let prepared = route
+            .prepare_planned_with_captured_bounds(
+                &plan(),
+                &captured("next"),
+                "next",
+                2,
+                Some(&origin),
+            )
+            .expect("freed old retention admits new binding");
+        assert_eq!(
+            prepared.binding().request_id(),
+            2,
+            "refusal did not advance ID"
+        );
+        drop(prepared);
+        route.close();
+    }
+
+    #[derive(Debug, Eq, PartialEq)]
+    struct HoldingFutureDropObservation {
+        content_items: usize,
+        retained_items: usize,
+        retained_wire: usize,
+        global_items: usize,
+        admission: Option<Result<(), DriverError>>,
+    }
+
+    struct HoldingProgressSink {
+        owner: SingleToolOwner,
+        route: ReadyToolRoute,
+        progress: Arc<ProgressBuffer>,
+        reenter_after_retirement: bool,
+        observations: Mutex<Vec<HoldingFutureDropObservation>>,
+    }
+
+    // This actual sink future owns the typed value delivered by the driver.
+    // Drop observes custody while `update` is still an inhabited field; its
+    // fields are destroyed only after the destructor returns.
+    struct HoldingProgressFuture<'a> {
+        update: AgentToolUpdate,
+        sink: &'a HoldingProgressSink,
+    }
+
+    impl Future for HoldingProgressFuture<'_> {
+        type Output = Result<(), pi_agent_schema::HarnessRuntimeError>;
+
+        fn poll(self: std::pin::Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
+            assert_eq!(self.update.content.len(), 1);
+            assert!(self.sink.owner.0.state.try_lock().is_ok());
+            Poll::Pending
+        }
+    }
+
+    impl Drop for HoldingProgressFuture<'_> {
+        fn drop(&mut self) {
+            assert!(self.sink.owner.0.state.try_lock().is_ok());
+            let (retained_items, retained_wire) = {
+                let state = self.sink.progress.0.try_lock().unwrap();
+                (state.retained_items, state.retained_wire)
+            };
+            let global_items = self.sink.owner.0.progress_items.load(Ordering::SeqCst);
+            let admission = self.sink.reenter_after_retirement.then(|| {
+                let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+                self.sink
+                    .route
+                    .prepare_planned_with_captured_bounds(
+                        &plan(),
+                        &captured("during-drop"),
+                        "during-drop",
+                        2,
+                        Some(&origin),
+                    )
+                    .map(drop)
+            });
+            self.sink
+                .observations
+                .lock()
+                .unwrap()
+                .push(HoldingFutureDropObservation {
+                    content_items: self.update.content.len(),
+                    retained_items,
+                    retained_wire,
+                    global_items,
+                    admission,
+                });
+        }
+    }
+
+    impl ToolProgressSink for HoldingProgressSink {
+        fn update(
+            &self,
+            update: AgentToolUpdate,
+        ) -> BoxFuture<'_, Result<(), pi_agent_schema::HarnessRuntimeError>> {
+            assert!(self.owner.0.state.try_lock().is_ok());
+            Box::pin(HoldingProgressFuture { update, sink: self })
+        }
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum HoldingFutureDiscard {
+        Terminal,
+        Cancellation,
+        OuterFuture,
+        RetiredOuterFuture,
+    }
+
+    fn holding_future_discard(case: HoldingFutureDiscard) {
+        let (spawner, owner, route, channel, _) = owner_and_retained_route();
+        let handle = progress_call(&route);
+        let sink = HoldingProgressSink {
+            owner: owner.clone(),
+            route: route.clone(),
+            progress: handle.progress.clone(),
+            reenter_after_retirement: matches!(case, HoldingFutureDiscard::RetiredOuterFuture),
+            observations: Mutex::new(Vec::new()),
+        };
+        let token = CancellationToken::new();
+        let cancellation = crate::effects::TokenCancellation(token.clone());
+        let frame = progress_frame_text(1, 0, "charged-update");
+        let body_bytes = framed_body_len(&frame);
+        spawner.tick();
+        channel.push(frame);
+        spawner.tick();
+        let mut drive = Box::pin(handle.outcome_with_progress(&sink, &cancellation));
+        assert!(
+            drive
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending()
+        );
+        {
+            let state = handle.progress.0.lock().unwrap();
+            assert!(state.queue.is_empty());
+            assert_eq!((state.retained_items, state.retained_wire), (1, body_bytes));
+        }
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 1);
+        assert_eq!(credit_sum(&channel), 0);
+        match case {
+            HoldingFutureDiscard::Terminal => {
+                channel.push(raw("terminal", 1));
+                spawner.tick();
+                assert_eq!(
+                    owner.binding_phase(handle.binding()),
+                    Ok(LivePhase::TerminalReceived)
+                );
+                assert!(matches!(
+                    drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+                    Poll::Ready(Some(Ok(CallOutcome::Terminal(_))))
+                ));
+            }
+            HoldingFutureDiscard::Cancellation => {
+                owner
+                    .abort_local(handle.binding(), LocalAbortCause::User)
+                    .unwrap();
+                token.cancel();
+                assert!(matches!(
+                    drive.as_mut().poll(&mut Context::from_waker(Waker::noop())),
+                    Poll::Ready(None)
+                ));
+            }
+            HoldingFutureDiscard::OuterFuture => {}
+            HoldingFutureDiscard::RetiredOuterFuture => {
+                channel.push(raw("terminal", 1));
+                spawner.tick();
+                assert!(matches!(
+                    spawner.drive(handle.outcome()),
+                    Ok(CallOutcome::Terminal(_))
+                ));
+                owner
+                    .retire(handle.binding(), RetireReason::Committed)
+                    .unwrap();
+                assert!(owner.retained_binding().is_none());
+                assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 1);
+            }
+        }
+        drop(drive);
+        assert_eq!(
+            *sink.observations.lock().unwrap(),
+            [HoldingFutureDropObservation {
+                content_items: 1,
+                retained_items: 1,
+                retained_wire: body_bytes,
+                global_items: 1,
+                admission: sink
+                    .reenter_after_retirement
+                    .then_some(Err(DriverError::Overloaded)),
+            }],
+            "{case:?}: sink must destroy its actual typed value before freeing capacity"
+        );
+        {
+            let state = handle.progress.0.lock().unwrap();
+            assert!(state.queue.is_empty());
+            assert_eq!((state.retained_items, state.retained_wire), (0, 0));
+        }
+        assert_eq!(owner.0.progress_items.load(Ordering::SeqCst), 0);
+        if sink.reenter_after_retirement {
+            let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+            let next = route
+                .prepare_planned_with_captured_bounds(
+                    &plan(),
+                    &captured("after-drop"),
+                    "after-drop",
+                    2,
+                    Some(&origin),
+                )
+                .expect("complete typed-value destruction admits the next binding");
+            assert_eq!(
+                next.binding().request_id(),
+                2,
+                "refusal preserves request ID"
+            );
+            drop(next);
+        } else {
+            if !matches!(case, HoldingFutureDiscard::Terminal) {
+                channel.push(raw("terminal", 1));
+                spawner.tick();
+            }
+            assert!(matches!(
+                spawner.drive(handle.outcome()),
+                Ok(CallOutcome::Terminal(_))
+            ));
+            owner
+                .retire(handle.binding(), RetireReason::Committed)
+                .unwrap();
+        }
+        spawner.tick();
+        assert_eq!(credit_sum(&channel), 0, "discard mints no refund");
+        route.close();
+    }
+
+    #[test]
+    fn retained_handoff_holding_future_terminal_discard_keeps_charge_through_drop() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        holding_future_discard(HoldingFutureDiscard::Terminal);
+    }
+
+    #[test]
+    fn retained_handoff_holding_future_cancel_discard_keeps_charge_through_drop() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        holding_future_discard(HoldingFutureDiscard::Cancellation);
+    }
+
+    #[test]
+    fn retained_handoff_holding_future_outer_drop_keeps_charge_through_drop() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        holding_future_discard(HoldingFutureDiscard::OuterFuture);
+    }
+
+    #[test]
+    fn retained_handoff_holding_future_retired_outer_drop_blocks_reentrant_admission() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        holding_future_discard(HoldingFutureDiscard::RetiredOuterFuture);
     }
 
     #[test]

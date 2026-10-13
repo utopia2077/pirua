@@ -102,12 +102,15 @@ The M6-C rows are:
   Its host grant retains an 8,192-byte frame ceiling and a finite 16,384-byte
   decoded budget for the measured 9,963-byte combined DTO charge. The final
   published assistant identity and nonzero usage come from the actual session
-  leaf; no host credentials or HTTP are involved. The current RoutedTool ignores
-  its Harness progress sink, so this row observes zero ToolUpdate events and
-  requires the actual progress frame and exact returned host credit. This is an
-  observed forwarding limitation for final assembly review, with no omission
-  approval inferred. ToolStart/ToolEnd and all M6-B progress requirements remain
-  covered.
+  leaf; no host credentials or HTTP are involved. The actual ToolUpdate retains
+  the call, tool, lane, run and turn identity of ToolStart/ToolEnd, publishes the
+  peer's partial content/details, and occurs between start and settlement.
+  The peer installs one bounded pending terminal before enqueueing its real
+  progress frame, then validates the matching request and measured 157-byte
+  body refund before sending that zero-credit terminal. This is the normal
+  ready-sink and funded-credit witness. Separate driver tests cover coalesced
+  terminal, pending sink, cancellation and credited bursts; this peer
+  coordination does not change runtime terminal policy.
 - `lifecycle.builder_replace`: replacement begins while the original provider
   stream is active. The adapter observes cancellation before destination
   dispatch; the old run settles aborted, its operation/pending registers clear,

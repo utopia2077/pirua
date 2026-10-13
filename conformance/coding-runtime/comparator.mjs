@@ -114,7 +114,7 @@ function validateObservations(observations, path, caseId) {
 
 }
 
-function validateEvents(events, path, lifecycle = false) {
+function validateEvents(events, path, lifecycle = false, extension = false) {
   if (!Array.isArray(events)) throw new ConformanceMismatch(path, "expected array", "array", events);
   for (const [index, event] of events.entries()) {
     allowed(event, EVENT_KEYS, `${path}[${index}]`);
@@ -122,7 +122,7 @@ function validateEvents(events, path, lifecycle = false) {
     if (!EVENT_TYPES.has(event.type)) {
       throw new ConformanceMismatch(`${path}[${index}].type`, "unknown Harness event type", [...EVENT_TYPES], event.type);
     }
-    if (event.payload !== undefined) (lifecycle ? lifecyclePayload : validatePayload)(event.type, event.payload, `${path}[${index}].payload`);
+    if (event.payload !== undefined) (lifecycle ? lifecyclePayload : validatePayload)(event.type, event.payload, `${path}[${index}].payload`, extension);
     for (const key of ["role", "message_id", "tool_call_id", "tool_name", "detail"]) if (event[key] !== undefined) string(event[key], `${path}[${index}].${key}`);
   }
 }
@@ -152,7 +152,7 @@ export function validateObservation(value, expectedCaseId = undefined) {
   string(value.caseId, "observation.caseId");
   if (expectedCaseId !== undefined && value.caseId !== expectedCaseId) throw new ConformanceMismatch("observation.caseId", "case ID mismatch", expectedCaseId, value.caseId);
   validateInput(value.input, "observation.input");
-  validateEvents(value.events, "observation.events", LIFECYCLE_ROWS.has(value.caseId));
+  validateEvents(value.events, "observation.events", LIFECYCLE_ROWS.has(value.caseId), value.caseId === "extension.participation_ordering");
   validateMessages(value.messages, "observation.messages");
   validateOutcome(value.outcome, "observation.outcome");
   validateObservations(value.observations, "observation.observations", value.caseId);
@@ -513,14 +513,14 @@ function lifecycleSnapshot(value,path,active=false) {
 function lifecycleToolResult(value,path) {
   shape(value,["content","details"],path);content(value.content,`${path}.content`);equalFact(value.details,{},`${path}.details`);
 }
-function lifecyclePayload(type,value,path) {
+function lifecyclePayload(type,value,path,extension=false) {
   if(type==="entry_added") {shape(value,["entry"],path);return lifecycleEntry(value.entry,`${path}.entry`);}
   if(type==="message_end") {shape(value,["entry_id","message"],path);nullableString(value.entry_id,`${path}.entry_id`);return lifecycleMessage(value.message,`${path}.message`);}
   if(type==="config_update") {if(value.property==="tools"){shape(value,["property"],path);return;}shape(value,["property","value","previous"],path);if(value.property==="model"){laneModel(value.value,`${path}.value`);laneModel(value.previous,`${path}.previous`);}else{equalFact(value.property,"activeTools",`${path}.property`);strings(value.value,`${path}.value`);strings(value.previous,`${path}.previous`);}return;}
   if(["tool_start","tool_update","tool_end"].includes(type)) {
-    const fields=type==="tool_start"?["tool_call_id","tool_name","args"]:type==="tool_update"?["tool_call_id","tool_name","partial_result"]:["tool_call_id","tool_name","result","is_error","terminate"];
+    const fields=type==="tool_start"?["tool_call_id","tool_name","args"]:type==="tool_update"?["tool_call_id","tool_name",...(extension?["lane","run_id","turn_id"]:[]),"partial_result"]:["tool_call_id","tool_name","result","is_error","terminate"];
     shape(value,fields,path);string(value.tool_call_id,`${path}.tool_call_id`);equalFact(value.tool_name,"echo",`${path}.tool_name`);
-    if(type==="tool_start"){shape(value.args,["text"],`${path}.args`);string(value.args.text,`${path}.args.text`);}else {lifecycleToolResult(value.partial_result??value.result,`${path}.result`);if(type==="tool_end"){equalFact(value.is_error,false,`${path}.is_error`);equalFact(value.terminate,false,`${path}.terminate`);}}return;
+    if(type==="tool_start"){shape(value.args,["text"],`${path}.args`);string(value.args.text,`${path}.args.text`);}else {lifecycleToolResult(value.partial_result??value.result,`${path}.result`);if(type==="tool_update"&&extension)for(const key of ["lane","run_id","turn_id"])string(value[key],`${path}.${key}`);if(type==="tool_end"){equalFact(value.is_error,false,`${path}.is_error`);equalFact(value.terminate,false,`${path}.terminate`);}}return;
   }
   return validatePayload(type,value,path);
 }
@@ -581,7 +581,7 @@ function validateLifecycle(value) {
 }
 function validateExtension(value,data,path) {
   const obs=value.observations,at=`${path}.extension`;
-  shape(data,["grant","registration_order","hook_count","catalog","peer_requests","progress_items","terminal_items","tool_invocations","max_frame_bytes","connection_before_close","connection_after_close","hooks_after_close","peer_closed","session","provider_terminal","progress_frames","credits"],at);
+  shape(data,["grant","registration_order","hook_count","catalog","peer_requests","progress_items","terminal_items","tool_invocations","max_frame_bytes","connection_before_close","connection_after_close","hooks_after_close","peer_closed","session","provider_terminal","progress_frames","credits","tool_event_identities"],at);
   shape(data.grant,["principal","generation","ready","frame_bytes","aggregate_decoded_bytes"],`${at}.grant`);equalFact(data.grant.frame_bytes,8192,`${at}.grant.frame_bytes`);equalFact(data.grant.aggregate_decoded_bytes,16384,`${at}.grant.aggregate_decoded_bytes`);equalFact(data.grant.principal,"peer-a",`${at}.grant.principal`);equalFact(data.grant.generation,7,`${at}.grant.generation`);equalFact(data.grant.ready,true,`${at}.grant.ready`);
   equalFact(data.registration_order,["provider","echo_tool","hook"],`${at}.registration_order`);equalFact(data.hook_count,1,`${at}.hook_count`);
   shape(data.catalog,["provider","id","name","no_auth"],`${at}.catalog`);for(const key of ["provider","id","name"])string(data.catalog[key],`${at}.catalog.${key}`);equalFact(data.catalog.no_auth,true,`${at}.catalog.no_auth`);
@@ -605,12 +605,17 @@ function validateExtension(value,data,path) {
     if(request.method==="tool.invoke") {equalFact(request.capability,{kind:"tool",name:"echo",principal:"peer-a",handler:"echo-handler"},`${req}.capability`);shape(request.input,["text"],`${req}.input`);string(request.input.text,`${req}.input.text`);}
     if(request.method==="provider.invoke") {equalFact(request.capability,{kind:"provider",name:data.catalog.provider,principal:"peer-a",handler:`provider-${data.catalog.provider}-handler`},`${req}.capability`);shape(request.input,["model","context","auth_mode","encoded_bytes","decoded_bytes"],`${req}.input`);equalFact(request.input.encoded_bytes,1903,`${req}.input.encoded_bytes`);equalFact(request.input.decoded_bytes,9963,`${req}.input.decoded_bytes`);requireFact(request.input.encoded_bytes<=data.grant.frame_bytes&&request.input.decoded_bytes<=data.grant.aggregate_decoded_bytes,`${req}.input`,"real provider payload must fit its granted finite limits",request.input);requestModel(request.input.model,`${req}.input.model`);lifecycleContext(request.input.context,`${req}.input.context`);equalFact(request.input.auth_mode,"none",`${req}.input.auth_mode`);equalFact(request.input.model,{provider:data.catalog.provider,id:data.catalog.id,name:data.catalog.name},`${req}.input.model`);}
   });
-  const starts=eventPayloads(value,"tool_start"),updates=eventPayloads(value,"tool_update"),ends=eventPayloads(value,"tool_end");equalFact(starts.length,1,"observation.events.tool_start");equalFact(updates,[],"observation.events.tool_update","RoutedTool does not forward protocol progress to the Harness sink");equalFact(ends.length,1,"observation.events.tool_end");
+  const starts=eventPayloads(value,"tool_start"),updates=eventPayloads(value,"tool_update"),ends=eventPayloads(value,"tool_end");equalFact(starts.length,1,"observation.events.tool_start");equalFact(updates.length,1,"observation.events.tool_update","real extension progress must publish through the Harness sink");equalFact(ends.length,1,"observation.events.tool_end");
   equalFact(starts[0].args,data.peer_requests[1].input,"observation.events.tool_start");equalFact(starts[0].tool_call_id,ends[0].tool_call_id,"observation.events.tool_end");
+  equalFact(updates[0].tool_call_id,starts[0].tool_call_id,"observation.events.tool_update.tool_call_id");equalFact(updates[0].tool_name,starts[0].tool_name,"observation.events.tool_update.tool_name");equalFact(updates[0].tool_name,ends[0].tool_name,"observation.events.tool_end.tool_name");equalFact(updates[0].lane,"main","observation.events.tool_update.lane");equalFact(updates[0].run_id,data.peer_requests[0].input.run_id,"observation.events.tool_update.run_id");
+  shape(data.tool_event_identities,["start","update","end"],`${at}.tool_event_identities`);for(const [phase,identity] of Object.entries(data.tool_event_identities)){shape(identity,["tool_call_id","tool_name","lane","run_id","turn_id"],`${at}.tool_event_identities.${phase}`);for(const [key,item] of Object.entries(identity)){string(item,`${at}.tool_event_identities.${phase}.${key}`);requireFact(item.length>0,`${at}.tool_event_identities.${phase}.${key}`,"real nonempty tool event identity required",item);}}
+  equalFact(data.tool_event_identities.start,data.tool_event_identities.update,`${at}.tool_event_identities.update`);equalFact(data.tool_event_identities.start,data.tool_event_identities.end,`${at}.tool_event_identities.end`);equalFact(data.tool_event_identities.update,Object.fromEntries(["tool_call_id","tool_name","lane","run_id","turn_id"].map(key=>[key,updates[0][key]])),"observation.events.tool_update","actual event identities must match the serialized update");
+  const call=data.session.entries.flatMap(entry=>entry.message?.role==="assistant"?entry.message.content.filter(block=>block.type==="toolCall"):[]);equalFact(call.length,1,`${at}.session`);equalFact(starts[0].tool_call_id,call[0].id,"observation.events.tool_start.tool_call_id");equalFact(starts[0].args,call[0].arguments,"observation.events.tool_start.args");
   equalFact(textResult(ends[0].result),data.peer_requests[1].input.text,"observation.events.tool_end");
-  const toolIndices=["tool_start","tool_end"].map(type=>value.events.find(e=>e.type===type).index);requireFact(toolIndices[0]<toolIndices[1],"observation.events","actual extension start must precede settlement",toolIndices);
+  const toolIndices=["tool_start","tool_update","tool_end"].map(type=>value.events.find(e=>e.type===type).index);requireFact(toolIndices[0]<toolIndices[1]&&toolIndices[1]<toolIndices[2],"observation.events","actual extension start, progress and settlement must preserve order",toolIndices);
   array(data.progress_frames,`${at}.progress_frames`);equalFact(data.progress_frames.length,1,`${at}.progress_frames`);
   const progress=data.progress_frames[0];shape(progress,["request_id","sequence","body_bytes","payload"],`${at}.progress_frames[0]`);equalFact(progress.request_id,data.peer_requests[1].request_id,`${at}.progress_frames[0].request_id`);equalFact(progress.sequence,0,`${at}.progress_frames[0].sequence`);integer(progress.body_bytes,`${at}.progress_frames[0].body_bytes`);requireFact(progress.body_bytes>0&&progress.body_bytes<=8192,`${at}.progress_frames[0].body_bytes`,"real finite progress body required",progress.body_bytes);lifecycleToolResult(progress.payload,`${at}.progress_frames[0].payload`);equalFact(textResult(progress.payload),`progress: ${JSON.stringify(data.peer_requests[1].input.text)}`,`${at}.progress_frames[0].payload`);
+  equalFact(updates[0].partial_result,progress.payload,"observation.events.tool_update.partial_result","published typed progress must retain the actual peer payload");
   array(data.credits,`${at}.credits`);data.credits.forEach((credit,index)=>{shape(credit,["frame_index","request_id","additional_bytes"],`${at}.credits[${index}]`);for(const [key,item] of Object.entries(credit))integer(item,`${at}.credits[${index}].${key}`);requireFact(credit.additional_bytes>0&&credit.additional_bytes<=4096,`${at}.credits[${index}]`,"actual bounded host credit required",credit);});
   requireFact(data.credits.some(credit=>credit.request_id===progress.request_id&&credit.additional_bytes===progress.body_bytes&&credit.frame_index>data.peer_requests[1].frame_index&&credit.frame_index<data.peer_requests[2].frame_index),`${at}.credits`,"runtime must return exact progress body credit before the next hook request",data.credits);
   equalFact(eventPayloads(value,"config_update")[0],{property:"tools"},"observation.events.config_update");

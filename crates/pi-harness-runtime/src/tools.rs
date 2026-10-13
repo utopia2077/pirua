@@ -22,7 +22,7 @@ use crate::owner::EchoRouteSnapshot;
 #[cfg(feature = "extensions")]
 use pi_extension_protocol::tool_live::{InvocationBinding, LivePhase, RetireReason};
 #[cfg(feature = "extensions")]
-use std::{future::Future, pin::pin, task::Poll};
+use std::future::Future;
 
 pub(crate) struct PairedPermits(
     Option<crate::scheduler::PairPermit>,
@@ -381,7 +381,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
         tool_call_id: pi_ai_core::ToolCallId,
         params: JsonObject,
         cancellation: &'a dyn Cancellation,
-        _progress: &'a dyn ToolProgressSink,
+        progress: &'a dyn ToolProgressSink,
         _context: &'a C,
     ) -> BoxFuture<'a, Result<AgentToolResult, ToolExecutionError>> {
         self.state.lock().unwrap_or_else(|p| p.into_inner()).entered = true;
@@ -498,7 +498,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                     .insert(self.plan.key.clone());
             }
             permits.release();
-            let prepared = prepared.map_err(|error| {
+            let mut prepared = prepared.map_err(|error| {
                 if error == DriverError::HostFault {
                     self.state
                         .lock()
@@ -506,6 +506,12 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                         .disposition = Some(RoutedDisposition::HostFault);
                 }
                 route_error("extension tool admission failed")
+            })?;
+            prepared.enable_progress().map_err(|_| {
+                let mut state = self.state.lock().unwrap_or_else(|p| p.into_inner());
+                state.disposition = Some(RoutedDisposition::HostFault);
+                state.owner_released = true;
+                route_error("extension progress capacity unavailable")
             })?;
             let binding = prepared.binding().clone();
             let handle = prepared.activate().map_err(|error| {
@@ -516,18 +522,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
                 }
                 route_error("extension tool activation failed")
             })?;
-            let mut outcome = pin!(handle.outcome());
-            let mut cancelled = pin!(cancellation.cancelled());
-            let first = std::future::poll_fn(|cx| {
-                if let Poll::Ready(value) = outcome.as_mut().poll(cx) {
-                    return Poll::Ready(Some(value));
-                }
-                if cancelled.as_mut().poll(cx).is_ready() {
-                    return Poll::Ready(None);
-                }
-                Poll::Pending
-            })
-            .await;
+            let first = handle.outcome_with_progress(progress, cancellation).await;
             if first.is_none() {
                 let line = self
                     .fx
@@ -561,7 +556,7 @@ impl<C: Send + Sync + 'static, S: RuntimeStorage + 'static, M: SessionMetadataRe
             }
             let outcome = match first {
                 Some(value) => value,
-                None => outcome.await,
+                None => handle.outcome().await,
             };
             match outcome {
                 Ok(CallOutcome::Terminal(TypedTerminal::Result(result))) => {

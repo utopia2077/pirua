@@ -134,6 +134,12 @@ impl MonotonicClock for Mono {
     }
 }
 
+struct PendingToolTerminal {
+    request_id: u64,
+    progress_body_bytes: usize,
+    terminal: v1_1::StreamEnd,
+}
+
 struct Peer {
     input: Mutex<VecDeque<u8>>,
     writes: Mutex<Vec<Vec<u8>>>,
@@ -146,6 +152,7 @@ struct Peer {
     requests: Mutex<Vec<Value>>,
     progress_frames: Mutex<Vec<Value>>,
     credits: Mutex<Vec<Value>>,
+    pending_tool_terminal: Mutex<Option<PendingToolTerminal>>,
 }
 impl Peer {
     fn new_with_frame_bound(profiles: &[ApprovedProfile], frame_bound: usize) -> Arc<Self> {
@@ -199,6 +206,7 @@ impl Peer {
             requests: Mutex::new(Vec::new()),
             progress_frames: Mutex::new(Vec::new()),
             credits: Mutex::new(Vec::new()),
+            pending_tool_terminal: Mutex::new(None),
         });
         peer.push(v1_1::envelope::Frame::Hello(v1_1::Hello {
             protocol: Some(v1_1::VersionRange {
@@ -404,7 +412,7 @@ impl Peer {
             ),
         };
         self.progress_items.fetch_add(1, Ordering::SeqCst);
-        let body_bytes = self.push(v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
+        let progress_frame = self.encode(v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
             request_id: request.request_id,
             sequence: 0,
             payload: v1_1::ToolProgress {
@@ -413,9 +421,12 @@ impl Peer {
             }
             .encode_to_vec(),
         }));
+        let body_bytes = progress_frame.body_len;
         self.progress_frames.lock().unwrap().push(json!({"request_id":request.request_id,"sequence":0,"body_bytes":body_bytes,"payload":progress_raw}));
-        self.terminal_items.fetch_add(1, Ordering::SeqCst);
-        self.push(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+        // The one-live-echo fixture waits for the actual capacity-funded refund.
+        // Install the bounded terminal before progress becomes reader-visible,
+        // because that reader can immediately return Credit on another task.
+        let terminal = v1_1::StreamEnd {
             request_id: request.request_id,
             terminal: Some(v1_1::stream_end::Terminal::Result(
                 v1_1::InvokeToolResult {
@@ -423,15 +434,31 @@ impl Peer {
                 }
                 .encode_to_vec(),
             )),
-        }));
+        };
+        let mut pending = self.pending_tool_terminal.lock().unwrap();
+        assert!(pending.is_none(), "only one echo terminal may be pending");
+        *pending = Some(PendingToolTerminal {
+            request_id: request.request_id,
+            progress_body_bytes: body_bytes,
+            terminal,
+        });
+        drop(pending);
+        self.input
+            .lock()
+            .expect("peer input")
+            .extend(progress_frame.bytes);
     }
 
-    fn push(&self, frame: v1_1::envelope::Frame) -> usize {
-        let encoded = framing::encode(
+    fn encode(&self, frame: v1_1::envelope::Frame) -> framing::EncodedFrame {
+        framing::encode(
             &v1_1::Envelope { frame: Some(frame) },
             NonZeroUsize::new(self.frame_bound).expect("frame bound"),
         )
-        .expect("encode handshake");
+        .expect("encode peer frame")
+    }
+
+    fn push(&self, frame: v1_1::envelope::Frame) -> usize {
+        let encoded = self.encode(frame);
         let body_bytes = encoded.body_len;
         self.input.lock().expect("peer input").extend(encoded.bytes);
         body_bytes
@@ -489,7 +516,25 @@ impl OrderedByteChannel for Peer {
                 .expect("host envelope")
                 .envelope;
         if let Some(v1_1::envelope::Frame::Credit(credit)) = &envelope.frame {
+            let terminal = {
+                let mut pending = self.pending_tool_terminal.lock().unwrap();
+                let expected = pending
+                    .as_ref()
+                    .expect("real echo progress must precede Credit");
+                assert_eq!(
+                    credit.request_id, expected.request_id,
+                    "Credit must retain the actual echo request identity"
+                );
+                assert_eq!(
+                    usize::try_from(credit.additional_bytes).unwrap(),
+                    expected.progress_body_bytes,
+                    "Credit must refund the measured progress frame body exactly"
+                );
+                pending.take().unwrap().terminal
+            };
             self.credits.lock().unwrap().push(json!({"frame_index":frame_index,"request_id":credit.request_id,"additional_bytes":credit.additional_bytes}));
+            self.terminal_items.fetch_add(1, Ordering::SeqCst);
+            self.push(v1_1::envelope::Frame::StreamEnd(terminal));
         }
         if let Some(v1_1::envelope::Frame::Request(request)) = envelope.frame {
             eprintln!("M6C peer request {}", request.method);
@@ -818,6 +863,50 @@ pub(super) async fn participation() -> Value {
     assert_eq!(peer.tool_invocations(), 1);
     assert_eq!(peer.progress_items(), 1);
     assert_eq!(peer.terminal_items(), 1);
+    assert!(peer.pending_tool_terminal.lock().unwrap().is_none());
+    let tool_event_identities = {
+        use pi_agent::schema::HarnessEvent;
+        let events = trace.events.lock().unwrap();
+        let tool_events = events
+            .iter()
+            .filter(|event| {
+                matches!(
+                    event,
+                    HarnessEvent::ToolStart(_)
+                        | HarnessEvent::ToolUpdate(_)
+                        | HarnessEvent::ToolEnd(_)
+                )
+            })
+            .collect::<Vec<_>>();
+        let [
+            HarnessEvent::ToolStart(start),
+            HarnessEvent::ToolUpdate(update),
+            HarnessEvent::ToolEnd(end),
+        ] = tool_events.as_slice()
+        else {
+            panic!("real extension ToolStart → ToolUpdate → ToolEnd required: {tool_events:?}");
+        };
+        assert_eq!(start.tool_call_id.as_str(), "m6c-echo");
+        assert_eq!(update.tool_call_id, start.tool_call_id);
+        assert_eq!(end.tool_call_id, start.tool_call_id);
+        assert_eq!(update.tool_name, start.tool_name);
+        assert_eq!(end.tool_name, start.tool_name);
+        assert_eq!(update.lane, start.lane);
+        assert_eq!(end.lane, start.lane);
+        assert_eq!(update.run_id, start.run_id);
+        assert_eq!(end.run_id, start.run_id);
+        assert_eq!(update.turn_id, start.turn_id);
+        assert_eq!(end.turn_id, start.turn_id);
+        assert_eq!(
+            serde_json::to_value(&update.partial_result).unwrap(),
+            peer.progress_frames.lock().unwrap()[0]["payload"]
+        );
+        json!({
+            "start":{"tool_call_id":start.tool_call_id,"tool_name":start.tool_name,"lane":start.lane,"run_id":start.run_id,"turn_id":start.turn_id},
+            "update":{"tool_call_id":update.tool_call_id,"tool_name":update.tool_name,"lane":update.lane,"run_id":update.run_id,"turn_id":update.turn_id},
+            "end":{"tool_call_id":end.tool_call_id,"tool_name":end.tool_name,"lane":end.lane,"run_id":end.run_id,"turn_id":end.turn_id}
+        })
+    };
     h.harness().set_active_tools(vec![]).await.unwrap();
     h.switch_model(remote.provider.clone(), remote.id.clone())
         .await
@@ -859,9 +948,9 @@ pub(super) async fn participation() -> Value {
     obs["extension"] = json!({"grant":granted,"registration_order":registration_order,"hook_count":hook_count,
         "catalog":{"provider":catalog.provider,"id":catalog.id,"name":catalog.name,"no_auth":f.registry.get_provider(&catalog.provider).unwrap().auth().is_no_auth()},
         "peer_requests":requests,"progress_items":peer.progress_items(),"terminal_items":peer.terminal_items(),"tool_invocations":peer.tool_invocations(),
-        "max_frame_bytes":peer.max_frame_bytes(),"connection_before_close":current_before,"connection_after_close":current_after,"hooks_after_close":hooks_after,"peer_closed":peer.is_closed(),"session":session,"provider_terminal":provider_terminal,"progress_frames":peer.progress_frames.lock().unwrap().clone(),"credits":peer.credits.lock().unwrap().clone()});
+        "max_frame_bytes":peer.max_frame_bytes(),"connection_before_close":current_before,"connection_after_close":current_after,"hooks_after_close":hooks_after,"peer_closed":peer.is_closed(),"session":session,"provider_terminal":provider_terminal,"progress_frames":peer.progress_frames.lock().unwrap().clone(),"credits":peer.credits.lock().unwrap().clone(),"tool_event_identities":tool_event_identities});
     obs["fixture_boundary"] = json!(
-        "host authenticates peer-a and supplies grants/channel; deterministic provider, echo and hook frames only; JS loading, transport authentication, live credentials/network and same-family hook identity remain unverified; RoutedTool currently consumes protocol progress and returns credit without forwarding Harness ToolUpdate (observed limitation for final assembly review)"
+        "host authenticates peer-a and supplies grants/channel; deterministic provider, echo and hook frames only; actual Harness ToolUpdate and exact body Credit precede the peer's zero-credit terminal; JS loading, transport authentication, live credentials/network and same-family hook identity remain unverified"
     );
     h.harness().close().await.unwrap();
     result("extension.participation_ordering", &trace, obs)

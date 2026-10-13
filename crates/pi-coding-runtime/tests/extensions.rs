@@ -1352,6 +1352,19 @@ fn assembled_tool_refuses_without_bounded_echo_route_before_registration() {
         });
 }
 
+struct ToolEventLog(Mutex<Vec<pi_agent::schema::HarnessEvent>>);
+impl pi_agent::schema::EventListener for ToolEventLog {
+    fn on_event(
+        &self,
+        event: pi_agent::schema::HarnessEvent,
+    ) -> BoxFuture<'_, Result<(), pi_agent::schema::HandlerError>> {
+        Box::pin(async move {
+            self.0.lock().unwrap().push(event);
+            Ok(())
+        })
+    }
+}
+
 #[test]
 fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_and_terminal() {
     tokio::runtime::Runtime::new()
@@ -1399,6 +1412,12 @@ fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_an
                 .set_active_tools(vec![ToolName::new("echo").expect("tool name")])
                 .await
                 .expect("activate echo");
+            let events = Arc::new(ToolEventLog(Mutex::new(Vec::new())));
+            let _subscriptions: Vec<_> = [
+                pi_agent::schema::HarnessEventType::ToolStart,
+                pi_agent::schema::HarnessEventType::ToolUpdate,
+                pi_agent::schema::HarnessEventType::ToolEnd,
+            ].into_iter().map(|kind| harness.harness().events().on(kind, events.clone())).collect();
             let run = harness
                 .harness()
                 .prompt(pi_agent::schema::PromptInput::Text {
@@ -1412,6 +1431,28 @@ fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_an
                 run.outcome,
                 pi_agent::schema::RunOutcome::CompletedWithAssistant(_)
             ));
+            {
+                use pi_agent::schema::HarnessEvent;
+                let events = events.0.lock().unwrap();
+                let [HarnessEvent::ToolStart(start), HarnessEvent::ToolUpdate(update), HarnessEvent::ToolEnd(end)] = events.as_slice() else {
+                    panic!("expected real ToolStart → ToolUpdate → ToolEnd, received {events:?}");
+                };
+                assert_eq!(start.tool_call_id.as_str(), "assembled-echo-call");
+                assert_eq!(update.tool_call_id, start.tool_call_id);
+                assert_eq!(end.tool_call_id, start.tool_call_id);
+                assert_eq!(update.tool_name, start.tool_name);
+                assert_eq!(end.tool_name, start.tool_name);
+                assert_eq!(update.lane, start.lane);
+                assert_eq!(end.lane, start.lane);
+                assert_eq!(update.run_id, start.run_id);
+                assert_eq!(end.run_id, start.run_id);
+                assert_eq!(update.turn_id, start.turn_id);
+                assert_eq!(end.turn_id, start.turn_id);
+                assert_eq!(serde_json::to_value(&update.partial_result).unwrap(), json!({
+                    "content": [{"type": "text", "text": format!("progress: {}", serde_json::to_value(&start.args).unwrap()["text"]) }],
+                    "details": {}
+                }));
+            }
             assert_eq!(peer.tool_invocations(), 1);
             assert_eq!(peer.progress_items(), 1);
             assert_eq!(peer.terminal_items(), 1);
