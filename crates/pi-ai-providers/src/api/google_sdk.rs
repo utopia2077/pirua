@@ -721,10 +721,11 @@ pub(crate) fn prepare(
                     v.location.as_deref().unwrap_or("undefined")
                 )
             });
-            #[cfg(not(feature = "wire-google-vertex"))]
-            let resource: Option<String> = None;
+            #[cfg(feature = "wire-google-vertex")]
             let resource =
                 resource.unwrap_or_else(|| "projects/undefined/locations/undefined".into());
+            #[cfg(not(feature = "wire-google-vertex"))]
+            let resource: String = "projects/undefined/locations/undefined".into();
             body["cachedContent"] = json!(if cloud {
                 if s.starts_with("projects/") {
                     s.into()
