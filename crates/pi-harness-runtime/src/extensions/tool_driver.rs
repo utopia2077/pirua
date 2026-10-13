@@ -798,6 +798,7 @@ impl SingleToolOwner {
             timeout_ms: self.0.limits.write_timeout_ms.get(),
             timing: OnceLock::new(),
             writes: Mutex::new(WriteState::default()),
+            reader_wake: Mutex::new(None),
             #[cfg(test)]
             force_rollback_failure: std::sync::atomic::AtomicBool::new(false),
             #[cfg(test)]
@@ -1363,9 +1364,34 @@ impl SingleToolOwner {
                     .map(|frame| check_live_frame(slot, route, &frame, now))
             }
         };
-        match decision {
+        let result = match decision {
             Some(decision) => self.finish_live_decision(route, decision),
             None => Ok(ReaderAction::Continue),
+        };
+        // Validation consumes the retained body under the owner line before
+        // another pump acquisition can replace it. Wakers run off that line.
+        route.wake_reader();
+        result
+    }
+
+    fn poll_reader_ready(&self, route: &Arc<Route>, waker: &Waker) -> Poll<bool> {
+        let state = self.0.state.lock().unwrap_or_else(|p| p.into_inner());
+        let mut reader_wake = route.reader_wake.lock().unwrap_or_else(|p| p.into_inner());
+        if route.status() == RouteStatus::Closed {
+            return Poll::Ready(false);
+        }
+        if route.retained_channel.is_some()
+            && state.live.as_ref().is_some_and(|slot| {
+                Arc::ptr_eq(&slot.route, route) && slot.provisional_frame.is_some()
+            })
+        {
+            let prior = reader_wake.replace(waker.clone());
+            drop(reader_wake);
+            drop(state);
+            drop(prior);
+            Poll::Pending
+        } else {
+            Poll::Ready(true)
         }
     }
 
@@ -1962,6 +1988,7 @@ struct Route {
     timeout_ms: u64,
     timing: OnceLock<EchoRouteTiming>,
     writes: Mutex<WriteState>,
+    reader_wake: Mutex<Option<Waker>>,
     #[cfg(test)]
     force_rollback_failure: std::sync::atomic::AtomicBool,
     #[cfg(test)]
@@ -2073,8 +2100,22 @@ impl Route {
             staged_receive.finish_close();
         }
     }
+
+    fn wake_reader(&self) {
+        let wake = self
+            .reader_wake
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
+        if let Some(wake) = wake {
+            wake.wake();
+        }
+    }
+
     fn close(&self) {
-        if self.status.swap(2, Ordering::SeqCst) == 2 {
+        let already_closed = self.status.swap(2, Ordering::SeqCst) == 2;
+        self.wake_reader();
+        if already_closed {
             self.clear_any_caller();
             self.finish_staged_receive_close();
             return;
@@ -2128,6 +2169,7 @@ impl Route {
         self.clear_any_caller();
         self.channel.close();
         self.finish_staged_receive_close();
+        self.wake_reader();
         if let Some(waker) = wake {
             waker.wake();
         }
@@ -2188,6 +2230,7 @@ impl Route {
                 self.finish_staged_receive_close();
             }
         }
+        self.wake_reader();
     }
     fn enqueue(
         &self,
@@ -2885,6 +2928,9 @@ async fn reader_loop(owner: SingleToolOwner, route: Arc<Route>, mut pump: Connec
         }
     }
     loop {
+        if !poll_fn(|cx| owner.poll_reader_ready(&route, cx.waker())).await {
+            break;
+        }
         match pump.next_active().await {
             Ok(Some(frame)) => {
                 if let Some(profiles) = &route.profiles {
@@ -3379,9 +3425,9 @@ impl SingleToolOwner {
                         {
                             return Err(DriverError::MalformedPeer);
                         }
-                        // At most one selected frame is held behind the full-write
-                        // confirmation fence; zero credit means no valid item can
-                        // precede the first terminal in this source unit.
+                        // Keep this frame paired with the sole retained body.
+                        // A retained reader defers its next acquisition until
+                        // confirmation consumes it or loss releases the fence.
                         slot.provisional_frame = Some(frame);
                         return Ok((None, slot.pending_write_wake.take()));
                     }
@@ -3635,8 +3681,8 @@ pub(crate) mod local_cancel_queue_tests {
     use std::collections::VecDeque;
     use std::future::{Future, poll_fn};
     use std::num::{NonZeroU64, NonZeroUsize};
-    use std::sync::atomic::{AtomicBool, AtomicU64};
-    use std::task::{Context, Poll};
+    use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize};
+    use std::task::{Context, Poll, Wake};
 
     use crate::extensions::transport::ChannelError;
     use pi_ai_core::{BoxFuture, SafeUnsigned, SpawnError, TaskSpawner};
@@ -3676,11 +3722,15 @@ pub(crate) mod local_cancel_queue_tests {
         }
 
         fn tick(&self) {
+            self.tick_with_waker(Waker::noop());
+        }
+
+        fn tick_with_waker(&self, waker: &Waker) {
             let tasks = std::mem::take(&mut *self.tasks.lock().unwrap());
             for mut task in tasks {
                 if task
                     .as_mut()
-                    .poll(&mut Context::from_waker(Waker::noop()))
+                    .poll(&mut Context::from_waker(waker))
                     .is_pending()
                 {
                     self.tasks.lock().unwrap().push(task);
@@ -3693,6 +3743,15 @@ pub(crate) mod local_cancel_queue_tests {
         fn spawn(&self, task: BoxFuture<'static, ()>) -> Result<(), SpawnError> {
             self.tasks.lock().unwrap().push(task);
             Ok(())
+        }
+    }
+
+    #[derive(Default)]
+    struct WakeCounter(AtomicUsize);
+
+    impl Wake for WakeCounter {
+        fn wake(self: Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -3731,6 +3790,7 @@ pub(crate) mod local_cancel_queue_tests {
         reads: Mutex<VecDeque<Option<Vec<u8>>>>,
         writes: Mutex<Vec<Vec<u8>>>,
         closed: AtomicBool,
+        hold_write_completion: AtomicBool,
     }
 
     impl LifecycleChannel {
@@ -3739,6 +3799,7 @@ pub(crate) mod local_cancel_queue_tests {
                 reads: Mutex::new(VecDeque::new()),
                 writes: Mutex::new(Vec::new()),
                 closed: AtomicBool::new(false),
+                hold_write_completion: AtomicBool::new(false),
             }
         }
 
@@ -3778,6 +3839,14 @@ pub(crate) mod local_cancel_queue_tests {
                     return Err(ChannelError::Closed);
                 }
                 self.writes.lock().unwrap().push(frame.bytes);
+                poll_fn(|_| {
+                    if self.hold_write_completion.load(Ordering::SeqCst) {
+                        Poll::Pending
+                    } else {
+                        Poll::Ready(())
+                    }
+                })
+                .await;
                 Ok(())
             })
         }
@@ -4433,6 +4502,179 @@ pub(crate) mod local_cancel_queue_tests {
             "terminal frames do not mint replenishment credit"
         );
         route.close();
+    }
+
+    #[test]
+    fn retained_provisional_frame_defers_next_pump_capture_until_confirmation() {
+        let _observer_guard = source_observer::exclusive_test_guard();
+        source_observer::reset();
+        source_observer::with_case_id("provisional-before-confirmation", || {
+            let (spawner, owner, route, channel, _clock) = owner_and_retained_route();
+            let wakes = Arc::new(WakeCounter::default());
+            let waker = Waker::from(wakes.clone());
+            channel.hold_write_completion.store(true, Ordering::SeqCst);
+            let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+            let prepared = route
+                .prepare_planned_with_captured_bounds(
+                    &plan(),
+                    &captured("early-progress"),
+                    "early-progress",
+                    1,
+                    Some(&origin),
+                )
+                .unwrap();
+            let binding = prepared.binding().clone();
+            let handle = prepared.activate().unwrap();
+            spawner.tick();
+            {
+                let state = owner.0.state.lock().unwrap();
+                let slot = state.live.as_ref().unwrap();
+                assert!(slot.send_started && !slot.send_confirmed);
+                assert_eq!(slot.invocation.credit(), 4096);
+            }
+
+            // Both frames enter the real pump in one read. Its buffered terminal
+            // must not reach the capture callback while progress is provisional.
+            let progress = raw("progress", binding.request_id() as u8);
+            let progress_body_len = framed_body_len(&progress);
+            channel.push([progress, raw("terminal", binding.request_id() as u8)].concat());
+            spawner.tick_with_waker(&waker);
+            spawner.tick_with_waker(&waker);
+            let captures = || {
+                source_observer::snapshot()
+                    .into_iter()
+                    .filter(|event| {
+                        event.kind == "body_capture"
+                            && event.function == "StagedReceive8192::capture_body"
+                            && event.case_id.as_deref() == Some("provisional-before-confirmation")
+                    })
+                    .count()
+            };
+            assert_eq!(captures(), 1, "next pump capture must await confirmation");
+            {
+                let state = owner.0.state.lock().unwrap();
+                let slot = state.live.as_ref().unwrap();
+                assert!(slot.provisional_frame.is_some() && !slot.send_confirmed);
+                assert_eq!(slot.invocation.next_sequence(), 0);
+            }
+
+            assert!(
+                route
+                    .route
+                    .reader_wake
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .will_wake(&waker)
+            );
+            wakes.0.store(0, Ordering::SeqCst);
+            channel.hold_write_completion.store(false, Ordering::SeqCst);
+            spawner.tick();
+            spawner.tick();
+            assert!(
+                wakes.0.load(Ordering::SeqCst) > 0,
+                "confirmation wakes the waiting reader"
+            );
+            assert!(route.route.reader_wake.lock().unwrap().is_none());
+            assert!(matches!(
+                spawner.drive(handle.outcome()),
+                Ok(CallOutcome::Terminal(TypedTerminal::Result(_)))
+            ));
+            assert_eq!(captures(), 2);
+            let credit = written_frames(&channel)
+                .into_iter()
+                .find_map(|envelope| match envelope.frame {
+                    Some(v1_1::envelope::Frame::Credit(credit)) => Some(credit),
+                    _ => None,
+                })
+                .expect("provisional progress returns exact byte credit");
+            assert_eq!(credit.additional_bytes, progress_body_len as u64);
+            assert_eq!(credit.request_id, binding.request_id());
+            route.close();
+        });
+    }
+
+    #[test]
+    fn retained_provisional_reader_wakes_on_close_and_loss() {
+        for cause in [
+            "close",
+            "write-deadline",
+            "invocation-deadline",
+            "cancel-grace",
+        ] {
+            let (spawner, owner, route, channel, clock) = owner_and_retained_route();
+            channel.hold_write_completion.store(true, Ordering::SeqCst);
+            let origin: Arc<dyn OriginFence> = Arc::new(LifecycleOrigin);
+            let prepared = route
+                .prepare_planned_with_captured_bounds(
+                    &plan(),
+                    &captured(cause),
+                    cause,
+                    1,
+                    Some(&origin),
+                )
+                .unwrap();
+            let binding = prepared.binding().clone();
+            let handle = prepared.activate().unwrap();
+            spawner.tick();
+            channel.push([raw("progress", 1), raw("terminal", 1)].concat());
+            let wakes = Arc::new(WakeCounter::default());
+            let waker = Waker::from(wakes.clone());
+            spawner.tick_with_waker(&waker);
+            assert!(
+                route
+                    .route
+                    .reader_wake
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .will_wake(&waker)
+            );
+            wakes.0.store(0, Ordering::SeqCst);
+
+            match cause {
+                "close" => route.close(),
+                "write-deadline" => {
+                    clock.set(17);
+                    spawner.tick();
+                }
+                "invocation-deadline" => {
+                    clock.set(1007);
+                    owner.expire(&route.route, &binding);
+                }
+                "cancel-grace" => {
+                    owner.abort_local(&binding, LocalAbortCause::User).unwrap();
+                    assert_eq!(
+                        owner.binding_phase(&binding),
+                        Ok(LivePhase::CancelRequested)
+                    );
+                    assert!(route.route.reader_wake.lock().unwrap().is_some());
+                    clock.set(107);
+                    owner.expire(&route.route, &binding);
+                }
+                _ => unreachable!(),
+            }
+            assert!(
+                wakes.0.load(Ordering::SeqCst) > 0,
+                "{cause} wakes the waiting reader"
+            );
+            assert!(route.route.reader_wake.lock().unwrap().is_none());
+            assert!(matches!(
+                spawner.drive(handle.outcome()),
+                Err(DriverError::PeerLost)
+            ));
+            assert!(channel.closed.load(Ordering::SeqCst));
+            spawner.tick();
+            assert!(
+                spawner.tasks.lock().unwrap().is_empty(),
+                "{cause} releases all tasks"
+            );
+            assert!(!written_frames(&channel).iter().any(|envelope| {
+                matches!(envelope.frame, Some(v1_1::envelope::Frame::Credit(_)))
+            }));
+        }
     }
 
     #[test]
