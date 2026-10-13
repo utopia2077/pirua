@@ -321,7 +321,7 @@ function hostCalls(value, path) {
     if (call.method === "exists") bool(call.result, `${at}.result`);
     if (call.method === "file_info") fileInfo(call.result, `${at}.result`);
     if (call.method === "list_dir") { array(call.result, `${at}.result`); call.result.forEach((file, i) => fileInfo(file, `${at}.result[${i}]`)); }
-    if (call.method === "exec") { nullableString(call.args.cwd, `${at}.args.cwd`); if (call.args.timeout_ms !== null) integer(call.args.timeout_ms, `${at}.args.timeout_ms`); shape(call.args.env, [], `${at}.args.env`); bool(call.args.abort_signal, `${at}.args.abort_signal`); shape(call.result, ["stdout", "stderr", "merged", "exit_code"], `${at}.result`); string(call.result.stdout, `${at}.result.stdout`); string(call.result.stderr, `${at}.result.stderr`); nullableString(call.result.merged, `${at}.result.merged`); integer(call.result.exit_code, `${at}.result.exit_code`); }
+    if (call.method === "exec") { nullableString(call.args.cwd, `${at}.args.cwd`); if (call.args.timeout_ms !== null) integer(call.args.timeout_ms, `${at}.args.timeout_ms`); shape(call.args.env, ["PI_SESSION_ID", "PI_SESSION_FILE", "PI_PROVIDER", "PI_MODEL", "PI_REASONING_LEVEL"], `${at}.args.env`); for (const [key, value] of Object.entries(call.args.env)) string(value, `${at}.args.env.${key}`); bool(call.args.abort_signal, `${at}.args.abort_signal`); shape(call.result, ["stdout", "stderr", "merged", "exit_code"], `${at}.result`); string(call.result.stdout, `${at}.result.stdout`); string(call.result.stderr, `${at}.result.stderr`); nullableString(call.result.merged, `${at}.result.merged`); integer(call.result.exit_code, `${at}.result.exit_code`); }
   }
 }
 function validatePayload(type, payload, path) {
@@ -399,7 +399,10 @@ function validateOperation(value) {
       requireFact(writes.length === 2 && writes[0].args.content === write.args.content, `${path}.environment_calls`, "write arguments must reach host mutation", writes);
       const edited = edit.args.edits.reduce((body, change) => body.replace(change.oldText, change.newText), write.args.content);
       equalFact(writes[1].args.content, edited, `${path}.environment_calls`, "edit must produce observed second write"); equalFact(obs.files_after[edit.args.path], edited, `${path}.files_after`);
-      const exec = calls.find((call) => call.method === "exec"); equalFact(exec.args.command, bash.args.command, `${path}.environment_calls`); equalFact(exec.args.shell, bash.tool_name, `${path}.environment_calls`); equalFact(exec.result.stdout, textResult(obs.tool_evidence.ends.find((item) => item.tool_name === "bash").result), `${path}.environment_calls`, "process output must equal tool settlement");
+      const exec = calls.find((call) => call.method === "exec");
+      // Generic SessionMetadataRecord supplies identity, with no host session file path.
+      equalFact(exec.args.env, { PI_SESSION_ID: "m6-session", PI_SESSION_FILE: "", PI_PROVIDER: "openai", PI_MODEL: "offline-model", PI_REASONING_LEVEL: "off" }, `${path}.environment_calls.exec.env`, "shell must reach host with current Harness/session identity");
+      equalFact(exec.args.command, bash.args.command, `${path}.environment_calls`); equalFact(exec.args.shell, bash.tool_name, `${path}.environment_calls`); equalFact(exec.result.stdout, textResult(obs.tool_evidence.ends.find((item) => item.tool_name === "bash").result), `${path}.environment_calls`, "process output must equal tool settlement");
       requireFact(textResult(obs.tool_evidence.ends.find((item) => item.tool_name === "grep").result).includes(grep.args.pattern) && calls.some((call) => call.method === "read_text_file" && call.result === edited), `${path}.tool_evidence`, "grep must observe edited file through host read", obs.tool_evidence);
       const listing = calls.find((call) => call.method === "list_dir").result.map((file) => file.name).sort().join("\n");
       equalFact(textResult(obs.tool_evidence.ends.find((item) => item.tool_name === "find").result), listing, `${path}.tool_evidence`); equalFact(textResult(obs.tool_evidence.ends.find((item) => item.tool_name === "ls").result), listing, `${path}.tool_evidence`);

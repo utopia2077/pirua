@@ -1467,7 +1467,13 @@
               "abort_signal": false,
               "command": "printf coding",
               "cwd": null,
-              "env": {},
+              "env": {
+                "PI_MODEL": "offline-model",
+                "PI_PROVIDER": "openai",
+                "PI_REASONING_LEVEL": "off",
+                "PI_SESSION_FILE": "",
+                "PI_SESSION_ID": "m6-session"
+              },
               "shell": "bash",
               "timeout_ms": null
             },

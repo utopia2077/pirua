@@ -11,6 +11,7 @@ pub mod provider_composition;
 pub mod resources;
 pub mod session_lifecycle;
 pub mod settings_snapshot;
+mod shell_context;
 pub mod system_prompt;
 pub mod tools;
 

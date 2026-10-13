@@ -316,6 +316,10 @@ where
                 })?,
         };
         let tools = self.tools.unwrap_or_else(create_tools);
+        let tool_context = Arc::new(crate::shell_context::ShellContextProvider::new(
+            self.execution_env,
+            &self.session,
+        ));
         let options = AgentHarnessOptions {
             session: self.session.clone(),
             models: self.models.clone(),
@@ -323,10 +327,8 @@ where
             thinking_level: Some(self.settings.thinking_level),
             active_tool_names: Some(self.settings.active_tools.clone()),
             tools,
-            tool_context: Some(AgentHarnessToolContextSource::Static(
-                ExecutionToolContext {
-                    env: self.execution_env,
-                },
+            tool_context: Some(AgentHarnessToolContextSource::Provider(
+                tool_context.clone(),
             )),
             system_prompt: self
                 .system_prompt
@@ -349,6 +351,7 @@ where
             } else {
                 self.factory.create_configured(options).await?
             };
+        tool_context.bind(&created.harness);
         Ok(CodingHarness {
             harness: created.harness,
             session: self.session,
