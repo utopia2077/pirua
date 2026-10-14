@@ -602,9 +602,41 @@ fn fork_destination_publishes_through_lifecycle_and_preserves_source() {
 
 #[test]
 fn close_failure_keeps_claim_busy_until_session_recovery_and_owner_drop() {
+    #[derive(Default)]
+    struct TrackingTaskSpawner(std::sync::Mutex<Vec<tokio::task::JoinHandle<()>>>);
+    impl TaskSpawner for TrackingTaskSpawner {
+        fn spawn(&self, task: pi_ai::BoxFuture<'static, ()>) -> Result<(), pi_ai::SpawnError> {
+            let handle = tokio::spawn(async move {
+                let mut task = task;
+                task.as_mut().await;
+                // Release every task-captured owner before reporting completion.
+                drop(task);
+            });
+            self.0.lock().expect("fixture task tracker").push(handle);
+            Ok(())
+        }
+    }
+    impl TrackingTaskSpawner {
+        async fn join(&self) -> usize {
+            let mut joined = 0;
+            loop {
+                let tasks = std::mem::take(&mut *self.0.lock().expect("fixture task tracker"));
+                if tasks.is_empty() {
+                    return joined;
+                }
+                joined += tasks.len();
+                // Await outside the lock, then include any tasks these admitted.
+                for task in tasks {
+                    task.await.expect("admitted host task completes");
+                }
+            }
+        }
+    }
+
     tokio::runtime::Runtime::new().unwrap().block_on(async {
         let clock = Arc::new(ClockPort);
         let spawner = Arc::new(TokioSpawner);
+        let host_tasks = Arc::new(TrackingTaskSpawner::default());
         let ids = Arc::new(Ids::default());
         let first = model("m4-first");
         let registry = registry_for(
@@ -674,7 +706,7 @@ fn close_failure_keeps_claim_busy_until_session_recovery_and_owner_drop() {
         let factory: Arc<RuntimeFactory<pi_coding_runtime::ExecutionToolContext, FailOnceStorage>> =
             Arc::new(RuntimeFactory::new(
                 clock,
-                spawner,
+                host_tasks.clone(),
                 ids,
                 Arc::new(pi_coding_runtime::ExecutionToolContext { env: env.clone() }),
                 Arc::new(Summary),
@@ -694,7 +726,20 @@ fn close_failure_keeps_claim_busy_until_session_recovery_and_owner_drop() {
             session.claim_runtime().is_err(),
             "failed close retains lease"
         );
+        // Close-result notification can precede destruction of its owner clones.
+        assert!(
+            host_tasks.join().await > 0,
+            "fixture joins admitted host tasks"
+        );
+        assert!(
+            session.claim_runtime().is_err(),
+            "failed close retains lease after host tasks complete"
+        );
         session.close().await.expect("successful recovery close");
+        assert!(
+            session.claim_runtime().is_err(),
+            "session recovery retains lease while lifecycle owns harness"
+        );
         drop(lifecycle);
         assert!(
             session.claim_runtime().is_ok(),
