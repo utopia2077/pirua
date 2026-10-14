@@ -1,10 +1,14 @@
-# Coding runtime conformance (S15-M6-C)
+# Coding runtime conformance (S15-M6 closure)
 
 The frozen corpus contains eighteen positive rows and eighteen one-change
 causal negatives, with zero pending rows. Every positive keeps the exact S15
-scenario identity and source references. M6-C supplies lifecycle and extension
-observations; independent acceptance and final whole-workspace closure remain
-controller responsibilities.
+scenario identity and source references. The bridge supplies fresh foundation,
+operation, lifecycle and extension observations. Independent acceptance and
+final whole-workspace closure remain controller responsibilities.
+
+The [model implementation responsibility table](model-responsibilities.md)
+records selected catalog/overlay/default/selection/availability/credential
+owners, concrete source and tests, and the precise host and unverified limits.
 
 Every active row runs a fresh assembled `CodingHarnessBuilder`/`AgentHarness`
 operation in `crates/pi-coding-runtime/tests/coding_runtime_conformance.rs`
@@ -19,7 +23,8 @@ are additional observations.
 The M6-A rows are:
 
 - `model.credentials_catalog`: detached overlay precedence, provider-scoped
-  availability transition, fuzzy selection, and the host credential boundary.
+  availability transition, configured alias selection, and the host credential boundary.
+  Separate focused model tests witness unregistered fuzzy selection and defaults.
   The overlay keeps the host provider/model identity but uses distinct
   validated `name` and public `base_url` metadata; the deterministic provider
   request records those fields so removing the override fails the witness.
@@ -146,7 +151,13 @@ cargo test --offline --locked -p pi-coding-runtime --features extensions --test 
 cargo test --offline --locked -p pi-coding-runtime --all-features --test coding_runtime_conformance -- --nocapture
 ```
 
-Run the byte-preserving causal self-test with:
+The ordinary `coding_runtime_causal_corpus_runs_through_node` Cargo test runs the
+full Node causal self-test and requires successful exit, the exact 18/18/0
+corpus, fixture/manifest byte restoration, and all persistent probe markers.
+The unchanged workspace verification commands reach this test automatically.
+It complements the three actual Rust-to-Node comparison modes above.
+
+Run the same byte-preserving causal self-test directly with:
 
 ```text
 env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/coding-runtime/causal.mjs
@@ -159,6 +170,14 @@ results, clock facts, and public session state. Lifecycle observation fields
 are admitted only on their applicable closed row. The causal self-test also
 checks all 32 combinations of the four previously accepted M6-A rows and
 eight lifecycle-only fields, requiring semantic and same-mutated comparison
-to reject each. These supplemental probes preserve the frozen 18/18/0 corpus.
+to reject each. Four retained nested-message probes remain in place.
+The four foundation rows additionally require their own exact input, outcome,
+observation and emitted nested object schemas; inherited operation fields and
+other foundation rows' fields cannot enter those envelopes. Their prepared
+positive operation counts and true readback/availability flags, and the exact
+zero-effect preflight contract, are checked independently of fixture equality.
+The self-test runs 380 foundation applicability, required-key, type, nested
+shape and semantic probes through both semantic and same-mutated comparison.
+These supplemental probes preserve the frozen 18/18/0 corpus.
 The fixture authority is pinned to
 `853a80d26c90a14c1886f0ebb8ffaae133ca2185`.

@@ -329,6 +329,13 @@ fn event_types_for(case_id: &str) -> &'static [HarnessEventType] {
     }
 }
 
+type OperationObservers = (
+    Arc<EventCount>,
+    Arc<EventCount>,
+    Arc<Mutex<Vec<HarnessEvent>>>,
+    Vec<Arc<dyn pi_agent::schema::EventSubscription>>,
+);
+
 fn observe(
     harness: &Arc<
         pi_harness_runtime::owner::RuntimeHarness<
@@ -338,12 +345,7 @@ fn observe(
         >,
     >,
     case_id: &str,
-) -> (
-    Arc<EventCount>,
-    Arc<EventCount>,
-    Arc<Mutex<Vec<HarnessEvent>>>,
-    Vec<Arc<dyn pi_agent::schema::EventSubscription>>,
-) {
+) -> OperationObservers {
     let publication_events = Arc::new(EventCount::default());
     let tool_invocations = Arc::new(EventCount::default());
     let events = Arc::new(Mutex::new(Vec::new()));

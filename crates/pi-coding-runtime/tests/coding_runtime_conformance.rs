@@ -743,19 +743,16 @@ async fn assembled(
     }
     let publication_events = Arc::new(EventCount::default());
     let tool_invocations = Arc::new(EventCount::default());
-    let mut subscriptions = Vec::new();
-    subscriptions.push(
+    let subscriptions = vec![
         harness
             .harness()
             .events()
             .on(HarnessEventType::EntryAdded, publication_events.clone()),
-    );
-    subscriptions.push(
         harness
             .harness()
             .events()
             .on(HarnessEventType::ToolStart, tool_invocations.clone()),
-    );
+    ];
     let before_effects = effect_snapshot(fixture, &publication_events, &tool_invocations).await;
     let run = harness
         .harness()
@@ -1075,4 +1072,37 @@ fn assembled_coding_runtime_rows_compare_through_node() {
         "every applicable frozen row must compare"
     );
     println!("assembled coding-runtime conformance: {compared} applicable rows compared");
+}
+
+#[test]
+fn coding_runtime_causal_corpus_runs_through_node() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let output = Command::new("/usr/bin/node")
+        .current_dir(root)
+        .env_clear()
+        .env("PATH", "/usr/bin:/bin")
+        .env("NODE_NO_WARNINGS", "1")
+        .arg("conformance/coding-runtime/causal.mjs")
+        .output()
+        .expect("run full Node causal self-test");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        output.status.success(),
+        "Node causal self-test failed: status={}\nstdout={stdout}\nstderr={stderr}",
+        output.status
+    );
+    for marker in [
+        "causal self-test passed: 18 positives, 18 one-change negatives, fixture bytes restored",
+        "causal corpus: 18 positives, 18 negatives, 0 pending; fixture and manifest bytes restored",
+        "nested message probes passed: 4 semantic and same-mutated expected/actual rejections",
+        "prior-row lifecycle field probes passed: 32 semantic and same-mutated expected/actual rejections",
+        "foundation closure probes passed: 380 semantic and same-mutated expected/actual rejections across all four foundation rows",
+    ] {
+        assert!(
+            stdout.contains(marker),
+            "missing causal success marker {marker:?}\nstdout={stdout}\nstderr={stderr}"
+        );
+    }
+    print!("{stdout}");
 }

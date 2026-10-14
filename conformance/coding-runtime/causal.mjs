@@ -119,8 +119,99 @@ for (const caseId of priorRows) {
   }
 }
 if (priorRowFailures.length) fail(`prior-row lifecycle field probes failed: ${priorRowFailures.join("; ")}`);
+// Revision 240: close the inherited M6-B applicability gap and every emitted
+// foundation object. Each mutation must fail semantic validation even when
+// expected and actual contain the identical malformed value.
+const operationOnlyFields = [
+  "event_count", "event_types", "session_stats_delta", "environment_calls", "tool_evidence", "tool_names", "files_after",
+  "queued_result", "queue_order", "queued_item", "queue_snapshot", "provider_contexts", "cleanup",
+  "retry_scheduled", "clock", "adapter_lifecycle", "provider_responses", "overflow_response", "summary_request",
+  "abort_outcome", "active_snapshot", "active_streams", "compaction_entries", "summary_requests", "summary_responses",
+  "continued_request", "session_entries_before", "session_entries_after", "before_compaction_leaf",
+];
+const foundationProbes = [];
+const foundationProbeIds = new Set();
+const addFoundationProbe = (caseId, label, mutate) => {
+  const id = `${caseId}:${label}`;
+  if (foundationProbeIds.has(id)) return;
+  foundationProbeIds.add(id);
+  foundationProbes.push([caseId, label, mutate]);
+};
+const atPath = (row, keys) => keys.reduce((value, key) => value[key], row);
+for (const caseId of priorRows) {
+  const row = byId.get(caseId);
+  for (const key of operationOnlyFields) addFoundationProbe(caseId, `foreign observations.${key}`, (value) => { value.observations[key] = { review_unknown: true }; });
+  // Well-typed fields belonging to another foundation row must also reject.
+  for (const peer of priorRows.map((id) => byId.get(id))) {
+    for (const [key, field] of Object.entries(peer.observations)) {
+      if (!(key in row.observations)) addFoundationProbe(caseId, `cross-row observations.${key}`, (value) => { value.observations[key] = clone(field); });
+    }
+    for (const [key, field] of Object.entries(peer.input)) {
+      if (!(key in row.input)) addFoundationProbe(caseId, `cross-row input.${key}`, (value) => { value.input[key] = clone(field); });
+    }
+  }
+  for (const [key, field] of Object.entries(row.input)) {
+    if (typeof field === "string") addFoundationProbe(caseId, `contradictory input.${key}`, (value) => { value.input[key] = "unobserved"; });
+  }
+  const objectPaths = [["input"], ["outcome"], ["observations"]];
+  if (row.input.resources) objectPaths.push(["input", "resources"]);
+  if (row.observations.model) objectPaths.push(["observations", "model"]);
+  if (row.outcome.error) objectPaths.push(["outcome", "error"]);
+  for (const keys of objectPaths) {
+    const name = keys.join(".");
+    addFoundationProbe(caseId, `unknown ${name} field`, (value) => { atPath(value, keys).review_unknown = true; });
+    for (const key of Object.keys(atPath(row, keys))) {
+      addFoundationProbe(caseId, `missing ${name}.${key}`, (value) => { delete atPath(value, keys)[key]; });
+      addFoundationProbe(caseId, `wrong type ${name}.${key}`, (value) => { atPath(value, keys)[key] = { review_unknown: true }; });
+    }
+  }
+  const arrayPaths = [["input", "active_tools"], ["input", "resources", "skills"], ["input", "resources", "prompt_templates"], ["observations", "availability_transition"]];
+  for (const keys of arrayPaths) {
+    if (!keys.slice(0, -1).every((_, index) => atPath(row, keys.slice(0, index + 1)) !== undefined)) continue;
+    if (!Array.isArray(atPath(row, keys))) continue;
+    addFoundationProbe(caseId, `wrong item ${keys.join(".")}`, (value) => { atPath(value, keys)[0] = { review_unknown: true }; });
+    addFoundationProbe(caseId, `contradictory ${keys.join(".")}`, (value) => { atPath(value, keys).pop(); });
+  }
+  addFoundationProbe(caseId, "contradictory outcome.kind", (value) => { value.outcome.kind = "unobserved"; });
+  addFoundationProbe(caseId, "nonterminal outcome", (value) => { value.outcome.terminal = false; });
+  addFoundationProbe(caseId, "unemitted event", (value) => { value.events = [{ index: 0, type: "run_start" }]; });
+  addFoundationProbe(caseId, "unemitted message", (value) => { value.messages = [{ role: "user", id: "unemitted", content: "text" }]; });
+  for (const key of ["provider_calls", "tool_invocations", "session_publication_events", "durable_entries"]) addFoundationProbe(caseId, `contradictory observations.${key}`, (value) => { value.observations[key] += 1; });
+  for (const [key, field] of Object.entries(row.observations)) {
+    if (typeof field === "boolean") addFoundationProbe(caseId, `false observations.${key}`, (value) => { value.observations[key] = false; });
+  }
+  if (caseId === "model.credentials_catalog") {
+    for (const key of Object.keys(row.observations.model)) addFoundationProbe(caseId, `contradictory model.${key}`, (value) => { value.observations.model[key] = key === "available" ? false : "unobserved"; });
+    addFoundationProbe(caseId, "contradictory credential boundary", (value) => { value.observations.credential_boundary = "credentials activated"; });
+  }
+  if (caseId === "prompt.settings_snapshot") addFoundationProbe(caseId, "contradictory thinking preference", (value) => { value.input.thinking_level = "high"; });
+  if (caseId === "capability.required_prestart_failure") {
+    addFoundationProbe(caseId, "contradictory preflight capability", (value) => { value.input.capability = "models.resolve.removed"; });
+    addFoundationProbe(caseId, "noncanonical capability error", (value) => { value.outcome.error.type = "MissingModel"; });
+    addFoundationProbe(caseId, "noncanonical error capability", (value) => { value.outcome.error.capability = "providers.resolve"; });
+  } else {
+    addFoundationProbe(caseId, "contradictory terminal kind", (value) => { value.observations.terminal_kind = "failed"; });
+    addFoundationProbe(caseId, "unexpected positive error", (value) => { value.outcome.error = { type: "MissingCapability", capability: "models.resolve" }; });
+  }
+}
+const foundationFailures = [];
+for (const [caseId, label, mutate] of foundationProbes) {
+  const mutated = clone(byId.get(caseId));
+  mutate(mutated);
+  for (const [checkName, check] of [["semantic", () => validateObservation(mutated, caseId)], ["same-mutated", () => compareObservation(mutated, mutated)]]) {
+    let rejected = false;
+    try { check(); } catch (error) { if (!(error instanceof ConformanceMismatch)) throw error; rejected = true; }
+    if (!rejected) foundationFailures.push({ caseId, label, check: checkName, malformedObservation: mutated });
+  }
+}
+if (foundationFailures.length) {
+  for (const failure of foundationFailures) console.error(`foundation closure accepted malformed observation: ${JSON.stringify(failure)}`);
+  fail(`foundation closure probes failed: ${foundationFailures.length} semantic or same-mutated checks accepted`);
+}
 if (Buffer.compare(fixtureBytes, fs.readFileSync(fixturesPath)) !== 0) fail("fixture bytes changed during causal test");
 if (Buffer.compare(manifestBytes, fs.readFileSync(manifestPath)) !== 0) fail("manifest bytes changed during causal test");
 console.log(`causal self-test passed: ${completed} positives, ${manifest.negatives.length} one-change negatives, fixture bytes restored`);
 console.log(`nested message probes passed: ${messageProbes.length} semantic and same-mutated expected/actual rejections`);
 console.log(`prior-row lifecycle field probes passed: ${priorRowProbes} semantic and same-mutated expected/actual rejections`);
+console.log(`foundation closure probes passed: ${foundationProbes.length} semantic and same-mutated expected/actual rejections across all four foundation rows`);
+console.log(`causal corpus: ${completed} positives, ${manifest.negatives.length} negatives, ${pending.length} pending; fixture and manifest bytes restored`);

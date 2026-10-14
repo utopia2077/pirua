@@ -160,9 +160,72 @@ export function validateObservation(value, expectedCaseId = undefined) {
     if (value.outcome.error?.type !== "MissingCapability" || value.outcome.error?.capability !== "models.resolve") throw new ConformanceMismatch("observation.outcome.error", "canonical capability error required", { type: "MissingCapability", capability: "models.resolve" }, value.outcome.error);
     for (const key of ["provider_calls", "tool_invocations", "session_publication_events", "durable_entries"]) if (value.observations[key] !== 0) throw new ConformanceMismatch(`observation.observations.${key}`, "pre-start failure must have zero side effects", 0, value.observations[key]);
   }
+  validateFoundation(value);
   validateOperation(value);
   validateLifecycle(value);
   return value;
+}
+
+// These four assembled fixtures emit only the fields below. The *_match flags
+// come from Harness readbacks; attached/detached/source fields describe the
+// prepared fixture. Model metadata is the request-visible offline overlay.
+// These are bounded operation facts, not general resource/settings policy.
+const FOUNDATION_INPUTS = {
+  "model.credentials_catalog": { kind: "assemble", operation: "resolve_overlay", reference: "openai:offline-model" },
+  "prompt.system_resources": { kind: "assemble", operation: "system_resources", resources: { skills: ["visible"], prompt_templates: ["build"] } },
+  "prompt.settings_snapshot": { kind: "assemble", operation: "settings_snapshot", thinking_level: "off", active_tools: ["read"] },
+  "capability.required_prestart_failure": { kind: "assemble", operation: "preflight", capability: "models.resolve" },
+};
+const FOUNDATION_EFFECTS = ["provider_calls", "tool_invocations", "session_publication_events", "durable_entries"];
+const FOUNDATION_MATCHES = ["runtime_model_match", "resources_match", "settings_match"];
+const FOUNDATION_FIELDS = {
+  "model.credentials_catalog": ["model", "availability_transition", "credential_boundary"],
+  "prompt.system_resources": ["resources_attached"],
+  "prompt.settings_snapshot": ["settings_detached"],
+  "capability.required_prestart_failure": [],
+};
+function validateFoundation(value) {
+  const input = FOUNDATION_INPUTS[value.caseId];
+  if (!input) return;
+  const obs = value.observations, path = "observation.observations";
+  const prestart = value.caseId === "capability.required_prestart_failure";
+  shape(value.input, Object.keys(input), "observation.input");
+  if (value.input.resources !== undefined) {
+    shape(value.input.resources, ["skills", "prompt_templates"], "observation.input.resources");
+    strings(value.input.resources.skills, "observation.input.resources.skills");
+    strings(value.input.resources.prompt_templates, "observation.input.resources.prompt_templates");
+  }
+  equalFact(value.input, input, "observation.input", "foundation input must match the assembled operation");
+  shape(value.outcome, OUTCOME_KEYS, "observation.outcome");
+  equalFact(value.events, [], "observation.events", "foundation bridge emits measured counters, not event payloads");
+  equalFact(value.messages, [], "observation.messages", "foundation bridge emits no message projection");
+  shape(obs, [...FOUNDATION_EFFECTS, ...(prestart ? [] : ["terminal_kind", ...FOUNDATION_MATCHES]), ...FOUNDATION_FIELDS[value.caseId]], path);
+  if (prestart) {
+    shape(value.outcome.error, ERROR_KEYS, "observation.outcome.error");
+    equalFact(value.outcome, { kind: "error", error: { type: "MissingCapability", capability: "models.resolve" }, terminal: true }, "observation.outcome");
+    for (const key of FOUNDATION_EFFECTS) equalFact(obs[key], 0, `${path}.${key}`, "pre-start failure must have measured zero effects");
+    return;
+  }
+  equalFact(value.outcome, { kind: value.caseId === "model.credentials_catalog" ? "resolved" : "assembled", error: null, terminal: true }, "observation.outcome");
+  equalFact(obs.terminal_kind, "completed", `${path}.terminal_kind`);
+  for (const key of FOUNDATION_MATCHES) equalFact(obs[key], true, `${path}.${key}`, "positive operation must match its Harness readback");
+  // The deterministic bridge sends one text prompt, receives one assistant,
+  // and invokes no tool. Both entries are measured after real idle settlement.
+  for (const [key, count] of Object.entries({ provider_calls: 1, tool_invocations: 0, session_publication_events: 2, durable_entries: 2 })) equalFact(obs[key], count, `${path}.${key}`, "prepared offline operation must retain its measured effect count");
+  if (value.caseId === "model.credentials_catalog") {
+    shape(obs.model, MODEL_KEYS, `${path}.model`);
+    equalFact(obs.model.provider, "openai", `${path}.model.provider`);
+    equalFact(obs.model.id, "offline-model", `${path}.model.id`);
+    equalFact(obs.model.name, "offline-model-detached-overlay", `${path}.model.name`);
+    equalFact(obs.model.base_url, "https://overlay.example.invalid/v1", `${path}.model.base_url`);
+    equalFact(obs.model.source, "overlay", `${path}.model.source`);
+    equalFact(obs.model.available, true, `${path}.model.available`);
+    strings(obs.availability_transition, `${path}.availability_transition`);
+    equalFact(obs.availability_transition, ["unavailable", "available"], `${path}.availability_transition`);
+    equalFact(obs.credential_boundary, "host-owned credential inputs retained without reads", `${path}.credential_boundary`);
+  }
+  if (value.caseId === "prompt.system_resources") equalFact(obs.resources_attached, true, `${path}.resources_attached`);
+  if (value.caseId === "prompt.settings_snapshot") equalFact(obs.settings_detached, true, `${path}.settings_detached`);
 }
 
 function firstMismatch(expected, actual, path = "$") {
