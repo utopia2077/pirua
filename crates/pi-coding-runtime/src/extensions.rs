@@ -34,7 +34,7 @@ use std::{
 };
 
 /// Inputs for connecting a Ready tool/profile route through the existing
-/// [`RuntimeHarness`] pump.
+/// [`RuntimeHarness`](../../pi_harness_runtime/owner/struct.RuntimeHarness.html) pump.
 pub struct ExtensionToolInput {
     /// Host-established authenticated authority.
     pub host: pi_extension_protocol::activation::HostAuthority,
@@ -53,7 +53,7 @@ pub struct ExtensionToolInput {
 }
 
 /// Inputs for connecting a Ready tool/profile route through the retained
-/// receive path owned by the existing [`RuntimeHarness`] pump.
+/// receive path owned by the existing [`RuntimeHarness`](../../pi_harness_runtime/owner/struct.RuntimeHarness.html) pump.
 pub struct ExtensionRetainedToolInput {
     /// Host-established authenticated authority.
     pub host: pi_extension_protocol::activation::HostAuthority,
@@ -72,7 +72,7 @@ pub struct ExtensionRetainedToolInput {
 }
 
 /// Inputs for connecting a service-only profile route through the existing
-/// [`RuntimeHarness`] pump.
+/// [`RuntimeHarness`](../../pi_harness_runtime/owner/struct.RuntimeHarness.html) pump.
 pub struct ExtensionServiceInput {
     /// Host-established authenticated authority.
     pub host: pi_extension_protocol::activation::HostAuthority,
