@@ -431,6 +431,23 @@ impl MonotonicClock for Mono {
     }
 }
 
+enum ToolTerminalMode {
+    Immediate,
+    AfterProgressRefund,
+}
+
+struct PendingToolTerminal {
+    request_id: u64,
+    progress_body_bytes: usize,
+    terminal: v1_1::StreamEnd,
+}
+
+struct ProgressRefund {
+    request_id: u64,
+    progress_body_bytes: usize,
+    credit: v1_1::Credit,
+}
+
 struct Peer {
     input: Mutex<VecDeque<u8>>,
     writes: Mutex<Vec<Vec<u8>>>,
@@ -440,6 +457,9 @@ struct Peer {
     progress_items: AtomicU64,
     terminal_items: AtomicU64,
     max_frame_bytes: AtomicU64,
+    tool_terminal_mode: ToolTerminalMode,
+    pending_tool_terminal: Mutex<Option<PendingToolTerminal>>,
+    progress_refund: Mutex<Option<ProgressRefund>>,
 }
 impl Peer {
     fn new(profiles: &[ApprovedProfile]) -> Arc<Self> {
@@ -447,6 +467,14 @@ impl Peer {
     }
 
     fn new_with_frame_bound(profiles: &[ApprovedProfile], frame_bound: usize) -> Arc<Self> {
+        Self::new_with_terminal_mode(profiles, frame_bound, ToolTerminalMode::Immediate)
+    }
+
+    fn new_with_terminal_mode(
+        profiles: &[ApprovedProfile],
+        frame_bound: usize,
+        tool_terminal_mode: ToolTerminalMode,
+    ) -> Arc<Self> {
         let supported_profiles = profiles
             .iter()
             .map(|profile| v1_1::ProfileRange {
@@ -494,6 +522,9 @@ impl Peer {
             progress_items: AtomicU64::new(0),
             terminal_items: AtomicU64::new(0),
             max_frame_bytes: AtomicU64::new(0),
+            tool_terminal_mode,
+            pending_tool_terminal: Mutex::new(None),
+            progress_refund: Mutex::new(None),
         });
         peer.push(v1_1::envelope::Frame::Hello(v1_1::Hello {
             protocol: Some(v1_1::VersionRange {
@@ -521,6 +552,13 @@ impl Peer {
 
     fn new_tool(profiles: &[ApprovedProfile]) -> Arc<Self> {
         Self::new_tool_with_frame_bound(profiles, 8192)
+    }
+
+    fn new_tool_waiting_for_progress_refund(profiles: &[ApprovedProfile]) -> Arc<Self> {
+        let peer =
+            Self::new_with_terminal_mode(profiles, 8192, ToolTerminalMode::AfterProgressRefund);
+        peer.enable_tool(0);
+        peer
     }
 
     fn new_tool_with_frame_bound(profiles: &[ApprovedProfile], frame_bound: usize) -> Arc<Self> {
@@ -699,7 +737,7 @@ impl Peer {
             ),
         };
         self.progress_items.fetch_add(1, Ordering::SeqCst);
-        self.push(v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
+        let progress_frame = v1_1::envelope::Frame::StreamItem(v1_1::StreamItem {
             request_id: request.request_id,
             sequence: 0,
             payload: v1_1::ToolProgress {
@@ -707,9 +745,8 @@ impl Peer {
                 percent_complete: None,
             }
             .encode_to_vec(),
-        }));
-        self.terminal_items.fetch_add(1, Ordering::SeqCst);
-        self.push(v1_1::envelope::Frame::StreamEnd(v1_1::StreamEnd {
+        });
+        let terminal = v1_1::StreamEnd {
             request_id: request.request_id,
             terminal: Some(v1_1::stream_end::Terminal::Result(
                 v1_1::InvokeToolResult {
@@ -717,7 +754,35 @@ impl Peer {
                 }
                 .encode_to_vec(),
             )),
-        }));
+        };
+        match self.tool_terminal_mode {
+            ToolTerminalMode::Immediate => {
+                self.push(progress_frame);
+                self.terminal_items.fetch_add(1, Ordering::SeqCst);
+                self.push(v1_1::envelope::Frame::StreamEnd(terminal));
+            }
+            ToolTerminalMode::AfterProgressRefund => {
+                let encoded = framing::encode(
+                    &v1_1::Envelope {
+                        frame: Some(progress_frame),
+                    },
+                    NonZeroUsize::new(self.frame_bound).expect("frame bound"),
+                )
+                .expect("encode progress");
+                // This ready-publication witness keeps one actual terminal pending
+                // until capacity is refunded. Install its identity and measured
+                // charge before another task can read progress and return Credit.
+                let mut pending = self.pending_tool_terminal.lock().expect("pending terminal");
+                assert!(pending.is_none(), "only one echo terminal may be pending");
+                *pending = Some(PendingToolTerminal {
+                    request_id: request.request_id,
+                    progress_body_bytes: encoded.body_len,
+                    terminal,
+                });
+                drop(pending);
+                self.input.lock().expect("peer input").extend(encoded.bytes);
+            }
+        }
     }
 
     fn push_oversized_stream_end(&self, request_id: u64, payload_bytes: usize) {
@@ -795,6 +860,38 @@ impl OrderedByteChannel for Peer {
                 .frame
                 .expect("host envelope")
                 .envelope;
+        if let ToolTerminalMode::AfterProgressRefund = self.tool_terminal_mode
+            && let Some(v1_1::envelope::Frame::Credit(credit)) = &envelope.frame
+        {
+            let terminal = {
+                let mut pending = self.pending_tool_terminal.lock().expect("pending terminal");
+                let expected = pending
+                    .as_ref()
+                    .expect("actual echo progress must precede Credit");
+                assert_eq!(
+                    credit.request_id, expected.request_id,
+                    "Credit must retain the actual echo request identity"
+                );
+                assert_eq!(
+                    usize::try_from(credit.additional_bytes).expect("Credit body bytes"),
+                    expected.progress_body_bytes,
+                    "Credit must refund the measured progress frame body exactly"
+                );
+                let mut refund = self.progress_refund.lock().expect("progress refund");
+                assert!(
+                    refund.is_none(),
+                    "only one echo progress refund is expected"
+                );
+                *refund = Some(ProgressRefund {
+                    request_id: expected.request_id,
+                    progress_body_bytes: expected.progress_body_bytes,
+                    credit: *credit,
+                });
+                pending.take().expect("pending terminal").terminal
+            };
+            self.terminal_items.fetch_add(1, Ordering::SeqCst);
+            self.push(v1_1::envelope::Frame::StreamEnd(terminal));
+        }
         if let Some(v1_1::envelope::Frame::Request(request)) = envelope.frame
             && request.method == "tool.invoke"
         {
@@ -1373,7 +1470,7 @@ fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_an
             let fixture = fixture().await;
             let harness = coding_harness(&fixture).await;
             let selected = vec![profile("hook", "before_run")];
-            let peer = Peer::new_tool(&selected);
+            let peer = Peer::new_tool_waiting_for_progress_refund(&selected);
             let owner = SingleToolOwner::new(
                 Arc::new(Spawner),
                 OwnerLimits {
@@ -1456,6 +1553,17 @@ fn assembled_tool_route_executes_through_coding_harness_with_bounded_progress_an
             assert_eq!(peer.tool_invocations(), 1);
             assert_eq!(peer.progress_items(), 1);
             assert_eq!(peer.terminal_items(), 1);
+            assert!(peer.pending_tool_terminal.lock().unwrap().is_none());
+            {
+                let refund = peer.progress_refund.lock().unwrap();
+                let refund = refund.as_ref().expect("actual echo progress Credit");
+                assert_eq!(refund.credit.request_id, refund.request_id);
+                assert_eq!(
+                    usize::try_from(refund.credit.additional_bytes).unwrap(),
+                    refund.progress_body_bytes
+                );
+                assert!(refund.progress_body_bytes > 0);
+            }
             assert!(attachment.connection().current());
             assert!(
                 peer.max_frame_bytes() <= 8192,
