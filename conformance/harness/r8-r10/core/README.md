@@ -51,4 +51,4 @@ published through Session. Exact restored source passes.
 
 This finite component coverage is not a public manual-gate/crash/reopen acceptance
 claim. Independent public histories, runtime integration, SQLite composition and the
-normal main whole-workspace gate remain separately owned by the controller.
+complete workspace gate remain separate verification requirements.

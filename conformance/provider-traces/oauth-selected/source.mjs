@@ -1,5 +1,5 @@
 // Complete pinned selected OAuth modules, with explicit synthetic host services.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {registerHooks,stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 import {setImmediate as immediate} from 'node:timers/promises';
@@ -7,7 +7,7 @@ const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185', hashes={};
 registerHooks({resolve(s,c,next){if(c.parentURL?.startsWith('pinned:')&&s==='node:crypto')return{url:'fixture:crypto',shortCircuit:true};if(s.startsWith('pinned:'))return{url:s,shortCircuit:true};if(c.parentURL?.startsWith('pinned:')&&s.startsWith('.'))return{url:'pinned:'+new URL(s,'file:///'+c.parentURL.slice(7)).pathname.slice(1),shortCircuit:true};return next(s,c);},load(u,c,next){
  if(u==='node:http')return{format:'module',source:'export const createServer=(fn)=>globalThis.__server(fn);',shortCircuit:true};
  if(u==='fixture:crypto')return{format:'module',source:'export const randomBytes=n=>Buffer.from(Array.from({length:n},(_,i)=>i));',shortCircuit:true};
- if(!u.startsWith('pinned:'))return next(u,c);const p=u.slice(7),s=execFileSync('/usr/bin/git',['-C','upstream/pi-mono','show',pin+':'+p],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});hashes[p]=createHash('sha256').update(s).digest('hex');return{format:'module',source:stripTypeScriptTypes(s),shortCircuit:true};
+ if(!u.startsWith('pinned:'))return next(u,c);const p=u.slice(7),s=execFileSync('/usr/bin/git',['-C',upstreamRoot,'show',pin+':'+p],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});hashes[p]=createHash('sha256').update(s).digest('hex');return{format:'module',source:stripTypeScriptTypes(s),shortCircuit:true};
 }});
 Object.defineProperty(globalThis,'crypto',{value:{getRandomValues:b=>{for(let i=0;i<b.length;i++)b[i]=i;return b;},subtle:{async digest(algorithm,bytes){if(algorithm!=='SHA-256')throw Error('unexpected digest');return Uint8Array.from(createHash('sha256').update(bytes).digest()).buffer;}},randomUUID:()=> '00010203-0405-4607-8809-0a0b0c0d0e0f'}});
 const {anthropicOAuth}=await import('pinned:packages/ai/src/auth/oauth/anthropic.ts');

@@ -1,11 +1,11 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import { stripTypeScriptTypes } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { deepStrictEqual } from 'node:assert';
 import { createHash } from 'node:crypto';
 const commit = '853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const path = 'packages/ai/src/api/simple-options.ts';
-const source = execFileSync('git',['show',`${commit}:${path}`],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source = execFileSync('git',['show',`${commit}:${path}`],{cwd:upstreamRoot,encoding:'utf8'});
 const body = source.slice(source.indexOf('export const MIN_ANSWER_TOKENS'));
 const adjust = new Function(stripTypeScriptTypes(body).replaceAll('export ','')+'\nreturn adjustMaxTokensForThinking;')();
 const cases = [

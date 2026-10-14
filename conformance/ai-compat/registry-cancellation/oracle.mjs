@@ -1,4 +1,4 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -10,7 +10,7 @@ const fingerprints={};
 const clean=s=>stripTypeScriptTypes(s.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export \{[^}]*\} from [^;]*;\n/gm,'').replace(/^export /gm,''));
 const context=vm.createContext({Error,AbortController,Date:class extends Date{static now(){return 7;}}});
 for(const path of paths){
- const bytes=execFileSync('git',['show',pin+':packages/ai/src/'+path],{cwd:'upstream/pi-mono'});
+ const bytes=execFileSync('git',['show',pin+':packages/ai/src/'+path],{cwd:upstreamRoot});
  fingerprints[path]=createHash('sha256').update(bytes).digest('hex');
  vm.runInContext(clean(bytes.toString()),context,{filename:path});
 }

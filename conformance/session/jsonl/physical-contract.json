@@ -1,6 +1,6 @@
 {
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
-  "localContract": "plan33/conventions54; S07 index and corrected review494",
+  "localContract": "docs/architecture/05-session-storage.md#jsonl-backend",
   "sourceClauses": ["H398-401", "H396-450", "H481-511", "Appendix B"],
   "wire": {"version":4,"kind":"header","storageVersion":1},
   "orderedRegisterHistory": [

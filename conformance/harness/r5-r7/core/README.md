@@ -27,8 +27,8 @@ NotApplied from consume-first durable entry/delete, preserves remaining drained 
 and rereads serialized skip. It does not execute a RuntimeHarness queue call or claim a
 physical repository reopen: those belong to the S10 runtime consumer's proofs.
 
-Existing R1–R4 targets and finite operation-state model remain unchanged. The S10 unit
-runner records both feature profiles, strict Clippy, touched formatting, old-consumer
-workspace check, and compiled causal rejection/restoration under persistent core680
-external evidence. Whole-slice acceptance requires the controller's independent review
-and normal-main verify.sh after actual runtime/backend composition.
+Existing R1–R4 targets and the finite operation-state model remain unchanged.
+Both feature profiles, strict Clippy, formatting, workspace checks and compiled
+causal rejection/restoration remain verification obligations. Whole-runtime
+acceptance also requires independent review and the complete `verify.sh` run
+after actual runtime/backend composition.

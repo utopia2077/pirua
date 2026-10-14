@@ -25,9 +25,8 @@ These fixture tool argument objects use the existing Rust JsonObject canonical m
 order before entering the source helper. JavaScript numeric keys still sort as JS
 Object.entries/JSON.stringify require. Arbitrary original JavaScript insertion order
 cannot be recovered after conversion to the already-frozen Rust BTreeMap DTO. The
-initial noncanonical fixture and its distinguishing failed prompt comparison remain
-in E/content710/insertion-order-original-{source.mjs,golden.json} and focused-04.log;
-this is an explicit representation limit, not an assertion of insertion-order parity.
+noncanonical input cannot establish original insertion-order parity. This is an
+explicit representation limit.
 
 Separate Rust tests exercise v3 projection: exact committed-row source identity,
 logical retained/projector positions, stored assistant filtering without refiltering
@@ -66,6 +65,6 @@ effective thinking budget, then sends R-B_eff with an explicit active budget buc
 (including zero). Desired template max_tokens stays separate. Thirty-two complete-
 source helper composition cases are checked against actual captured Models adapter
 inputs; adaptive/off/other/nonreasoning are distinct controls. This proves the local
-request seam, not an execution of every selected SDK's final HTTP payload; root owns
+request seam, not an execution of every selected SDK's final HTTP payload; separate checks cover
 the independent native-adapter composition probe. Existing provider helpers and
 captured Model are unchanged.

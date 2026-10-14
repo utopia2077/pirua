@@ -1,4 +1,18 @@
-/target/
+# Build output and language caches.
+**/target/
 **/__pycache__/
 *.py[cod]
 .DS_Store
+
+# Local upstream input and developer tooling.
+/upstream/pi-mono/
+.agents/
+.claude/
+skills-lock.json
+
+# Private workflow documents and local evidence.
+/docs/exec-plans/
+/docs/handoff/
+/orchestration/
+/private-development-records/
+/.artifacts/

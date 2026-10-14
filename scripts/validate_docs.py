@@ -15,14 +15,18 @@ from pathlib import Path
 from urllib.parse import unquote
 
 
+try:
+    from .upstream import resolve_upstream, upstream_environment
+except ImportError:
+    from upstream import resolve_upstream, upstream_environment
+
 ROOT = Path(__file__).resolve().parents[1]
-BUNDLE = ROOT / "unpublished/active/2026-09-01-rust-harness"
-DEFAULT_TOPOLOGY_DOC = BUNDLE / "design/02-crate-topology.md"
+DEFAULT_TOPOLOGY_DOC = ROOT / "docs/architecture/02-crate-topology.md"
 DEFAULT_TOPOLOGY_MAP = ROOT / "workspace-topology.toml"
 APPROVED_DEV_EDGES = {("pi-harness-runtime", "pi-agent-sqlite")}
 DEFAULT_UPSTREAM_MAP = ROOT / "upstream-map.toml"
-PROPOSAL = BUNDLE / "proposal.md"
-PLAN = BUNDLE / "plan.md"
+PROPOSAL = ROOT / "docs/scope.md"
+PLAN = ROOT / "docs/verification-plan.md"
 
 PROPOSAL_SECTIONS = [
     "Status",
@@ -259,7 +263,7 @@ def link_target(source: Path, raw_target: str) -> Path | None:
 def validate_links_and_format(errors: list[str]) -> int:
     text_files = sorted(
         path
-        for path in ROOT.rglob("*")
+        for path in (ROOT / name for name in subprocess.check_output(["git", "-C", str(ROOT), "ls-files", "-z", "--cached", "--others", "--exclude-standard"]).decode().split("\0") if name)
         if path.is_file()
         and ".git" not in path.parts
         and path.suffix in {".md", ".toml", ".py", ".sh"}
@@ -451,7 +455,11 @@ def validate_upstream_map(
         errors.append("upstream map schema_version must be 2")
 
     upstream = data.get("upstream", {})
-    checkout = Path(upstream.get("checkout", ""))
+    try:
+        checkout = resolve_upstream(upstream.get("checkout"))
+    except ValueError as error:
+        errors.append(str(error))
+        return {}, [], data
     commit = upstream.get("commit", "")
     if not checkout.is_dir():
         errors.append(f"upstream object-store checkout does not exist: {checkout}")

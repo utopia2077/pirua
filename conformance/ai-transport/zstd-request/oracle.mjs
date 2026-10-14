@@ -1,4 +1,4 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {stripTypeScriptTypes} from 'node:module';
@@ -7,7 +7,7 @@ import vm from 'node:vm';
 import zlib from 'node:zlib';
 
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const source=execFileSync('git',['show',pin+':packages/ai/src/api/openai-codex-responses.ts'],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show',pin+':packages/ai/src/api/openai-codex-responses.ts'],{cwd:upstreamRoot,encoding:'utf8'});
 const level=source.match(/const REQUEST_COMPRESSION_ZSTD_LEVEL = (\d+);/)[0];
 const helper=source.slice(source.indexOf('function loadNodeZlib('),source.indexOf('// ============================================================================\n// Main Stream Function'));
 const compress=vm.runInNewContext(stripTypeScriptTypes(level+'\n'+helper)+'\ncompressRequestBodyZstd',{process,Uint8Array});

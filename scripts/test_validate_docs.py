@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from scripts import validate_docs as validator_module
@@ -220,12 +222,61 @@ class ValidatorCausalTests(unittest.TestCase):
             )
             self.assert_rejected(result, "dev-only edge inventory must be exactly")
 
+    def test_upstream_config_environment_and_default_precedence(self) -> None:
+        configured = validator_module.resolve_upstream()
+        with tempfile.TemporaryDirectory(prefix="rust-harness-resolver-") as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "--quiet", str(root)], check=True)
+            default = root / "upstream/pi-mono"
+            default.parent.mkdir()
+            default.symlink_to(configured, target_is_directory=True)
+            absent = str(root / "absent")
+            with mock.patch.dict(os.environ, {}, clear=True):
+                self.assertEqual(validator_module.resolve_upstream(root=root), configured)
+                subprocess.run(["git", "-C", str(root), "config", "--local", "pirua.upstreamRoot", absent], check=True)
+                with self.assertRaisesRegex(ValueError, "checkout does not exist"):
+                    validator_module.resolve_upstream(root=root)
+            with mock.patch.dict(os.environ, {"PIRUA_UPSTREAM_ROOT": str(configured)}):
+                self.assertEqual(validator_module.resolve_upstream(root=root), configured)
+                with self.assertRaisesRegex(ValueError, "checkout does not exist"):
+                    validator_module.resolve_upstream(absent, root=root)
+            subprocess.run(["git", "-C", str(root), "config", "--local", "pirua.upstreamRoot", str(configured)], check=True)
+            with mock.patch.dict(os.environ, {"PIRUA_UPSTREAM_ROOT": absent}):
+                with self.assertRaisesRegex(ValueError, "checkout does not exist"):
+                    validator_module.resolve_upstream(root=root)
+                self.assertEqual(validator_module.resolve_upstream(str(configured), root=root), configured)
+            command = [sys.executable, "-c", (
+                "import sys; from pathlib import Path; "
+                "sys.path.insert(0, sys.argv[1]); from upstream import resolve_upstream; "
+                "print(resolve_upstream(root=Path(sys.argv[2])))"
+            ), str(ROOT / "scripts"), str(root)]
+            result = subprocess.run(command, cwd=root, env={}, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), str(configured))
+            subprocess.run(["git", "-C", str(root), "config", "--local", "--unset", "pirua.upstreamRoot"], check=True)
+            default.unlink()
+            result = subprocess.run(command, cwd=root, env={}, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("checkout does not exist", result.stderr)
+
+    def test_explicit_probe_checkout_is_not_bypassed_by_environment(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="rust-harness-explicit-checkout-") as directory:
+            probe = Path(directory) / "upstream-map.toml"
+            text = UPSTREAM_MAP.read_text(encoding="utf-8").replace(
+                'checkout = "upstream/pi-mono"',
+                f'checkout = "{Path(directory) / "absent-object-store"}"',
+                1,
+            )
+            probe.write_text(text, encoding="utf-8")
+            result = run_validator("--map", str(probe), "--skip-manifests")
+            self.assert_rejected(result, "upstream object-store checkout does not exist")
+
     def test_dirty_checkout_does_not_change_pinned_evidence(self) -> None:
         with tempfile.TemporaryDirectory(prefix="rust-harness-dirty-") as directory:
             directory_path = Path(directory)
             checkout = directory_path / "pi-mono"
             clone = subprocess.run(
-                ["git", "clone", "--quiet", "upstream/pi-mono", str(checkout)],
+                ["git", "clone", "--quiet", str(validator_module.resolve_upstream()), str(checkout)],
                 check=False,
                 capture_output=True,
                 text=True,

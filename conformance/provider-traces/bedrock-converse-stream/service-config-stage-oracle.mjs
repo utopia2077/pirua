@@ -1,7 +1,7 @@
-import {createRequire} from 'node:module';
+import {createRequire} from 'node:module';import {upstreamPath} from '../../upstream.mjs';
 import {Readable} from 'node:stream';
 import assert from 'node:assert/strict';
-const require=createRequire('upstream/pi-mono/package.json');
+const require=createRequire(upstreamPath('package.json'));
 const {BedrockRuntimeClient,ConverseStreamCommand}=require('@aws-sdk/client-bedrock-runtime');
 const {HttpResponse}=require('@smithy/core/protocols');
 const realTimeout=globalThis.setTimeout;let now=1767323045000;Date.now=()=>now;Math.random=()=>0.5;

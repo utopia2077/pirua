@@ -1,4 +1,4 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -6,7 +6,7 @@ import {deepStrictEqual} from 'node:assert';
 import vm from 'node:vm';
 const commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const hashes={};
-const source=path=>{const value=execFileSync('git',['show',`${commit}:${path}`],{cwd:'upstream/pi-mono',encoding:'utf8'});hashes[path]=createHash('sha256').update(value).digest('hex');return value;};
+const source=path=>{const value=execFileSync('git',['show',`${commit}:${path}`],{cwd:upstreamRoot,encoding:'utf8'});hashes[path]=createHash('sha256').update(value).digest('hex');return value;};
 class Events {events=[];finished=Promise.withResolvers();push(event){this.events.push(structuredClone(event));}end(){this.finished.resolve(this.events.at(-1).error);}result(){return this.finished.promise;}}
 const context=vm.createContext({Date:{now:()=>7},Headers,URL,AbortSignal,Response,TextDecoder,AssistantMessageEventStream:Events,transformMessages:messages=>messages,getPiUserAgent:()=> 'pi-ai-rust',headersToRecord:headers=>Object.fromEntries(headers)});
 for(const path of ['packages/ai/src/utils/retry.ts','packages/ai/src/utils/overflow.ts','packages/ai/src/api/mistral-conversations.ts'])vm.runInContext(stripTypeScriptTypes(source(path).replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,'')),context);

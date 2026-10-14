@@ -1,9 +1,9 @@
-import {readFileSync} from 'node:fs';
+import {readFileSync} from 'node:fs';import {upstreamRoot} from '../../upstream.mjs';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {Readable} from 'node:stream';
 import assert from 'node:assert/strict';
-const root='upstream/pi-mono',pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const root=upstreamRoot,pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const require=createRequire(root+'/package.json');
 const sdk=require('@aws-sdk/client-bedrock-runtime');
 const {HttpResponse}=require('@smithy/core/protocols');

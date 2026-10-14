@@ -1,7 +1,7 @@
 {
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/agent/docs/harness.md:H767-790",
-  "contract": "plan35/conventions57/S08 accepted; no-compaction zero-copy is frozen local representation",
-  "status": "controller before-SQLite-code expected inputs, not execution evidence",
+  "contract": "docs/architecture/05-session-storage.md#sqlite-backend; no-compaction zero-copy is frozen local representation",
+  "status": "Frozen expected inputs; not execution evidence",
   "commit_schedule": "one entry per transaction in listed order; no lane register required",
   "writes": [
     {
@@ -432,9 +432,7 @@
   ],
   "revision": 2,
   "correction": {
-    "original_path": "/tmp/rust-harness-s08-sqlite-branch-witness-20260908.json",
     "original_sha256": "b4a6d0c4158d2f3db9ceba1b9493a5ca5f2f853a96c509c500558c9237956f45",
-    "reviewer": "independent537",
     "reason": "M parent D is still exact original segment tip, so H773 requires extension; append O after N to force the capped-coverage fork. No runtime execution or sourcecontract change."
   },
   "tip_extension_observations": [

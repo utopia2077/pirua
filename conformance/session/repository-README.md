@@ -40,4 +40,4 @@ mapping; the artificial typed versions prove mechanics only. Persistent async
 publication/fencing/drop recovery, historical codecs and S07 are not claimed.
 
 Full acceptance remains `./scripts/verify.sh`, followed by independent fresh
-whole-S06 assembly review controlled by root. Author unit tests alone do not close S06.
+whole-S06 assembly review under independent review. Author unit tests alone do not close S06.

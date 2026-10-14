@@ -35,11 +35,10 @@ Twenty-two functions contain 34 bounded top-level loop scenarios. Sequential act
 within one scenario are not counted as separate histories. Independent public model,
 control and SQLite composition targets remain separately owned conformance evidence.
 
-The only prior test-file change is the controller-authorized genuine-Length input
+The only prior test-file change is the source-derived genuine-Length input
 in `runtime_r5_r7_deferred`: output is set to the captured model limit and total usage
 remains consistent. Existing assertions and other inputs remain intact. The new
 zero-output test retains the old input as the required overflow failure control.
 
-The unit's external evidence records exact commands, source identities, compiled
-red/green corrections and pre-execution source variants. Full repository acceptance
-is a separate controller gate; package tests do not substitute for it.
+Full repository acceptance requires the complete workspace gate; these finite
+package tests do not substitute for it.

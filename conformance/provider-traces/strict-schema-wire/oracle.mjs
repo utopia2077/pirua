@@ -1,6 +1,6 @@
-import {execFileSync} from 'node:child_process';import {stripTypeScriptTypes} from 'node:module';import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';import {stripTypeScriptTypes} from 'node:module';import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';import {upstreamRoot} from '../../upstream.mjs';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',path='packages/ai/src/api/constrained-sampling.ts';
-const source=execFileSync('git',['show',pin+':'+path],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show',pin+':'+path],{cwd:upstreamRoot,encoding:'utf8'});
 const js=stripTypeScriptTypes(source).replace(/^import[\s\S]*?;\s*$/gm,'').replace(/\bexport /g,'');
 const {makeStrictJsonSchema}=new Function(js+'\nreturn {makeStrictJsonSchema};')();
 const canonical=v=>Array.isArray(v)?'['+v.map(canonical).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v).sort((a,b)=>Buffer.compare(Buffer.from(a),Buffer.from(b))).map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);

@@ -1,10 +1,10 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {deepStrictEqual,strictEqual} from 'node:assert';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const source=p=>execFileSync('git',['show',pin+':packages/ai/src/'+p],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=p=>execFileSync('git',['show',pin+':packages/ai/src/'+p],{cwd:upstreamRoot,encoding:'utf8'});
 const clean=s=>stripTypeScriptTypes(s.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));
 const context=vm.createContext({Error,Date:class extends Date{static now(){return 7;}}});
 vm.runInContext(clean(source('utils/event-stream.ts'))+'\n'+clean(source('api/lazy.ts')),context);

@@ -1,5 +1,5 @@
 // Execute complete pinned runtime and wrappers with synthetic typed dependencies.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,symlinkSync,readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname,relative} from 'node:path';
@@ -7,7 +7,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {registerHooks} from 'node:module';
 import assert from 'node:assert/strict';
-const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream='upstream/pi-mono',here=dirname(fileURLToPath(import.meta.url));
+const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream=upstreamRoot,here=dirname(fileURLToPath(import.meta.url));
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const scratch=mkdtempSync(join(tmpdir(),'pi-images-runtime-source-'));
 const files={};

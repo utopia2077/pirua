@@ -1,4 +1,4 @@
-import { deepStrictEqual } from "node:assert";
+import { deepStrictEqual } from "node:assert";import {upstreamRoot} from '../../upstream.mjs';
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -6,7 +6,7 @@ import { stripTypeScriptTypes } from "node:module";
 
 const commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185";
 const sourcePath = "packages/ai/src/api/openai-responses-shared.ts";
-const source = execFileSync("git", ["show", `${commit}:${sourcePath}`], { cwd: "upstream/pi-mono", encoding: "utf8" });
+const source = execFileSync("git", ["show", `${commit}:${sourcePath}`], { cwd: upstreamRoot, encoding: "utf8" });
 const encode = source.slice(source.indexOf("function encodeTextSignatureV1("), source.indexOf("\nfunction parseTextSignature("));
 const processor = source.slice(source.indexOf("export async function processResponsesStream<")).replace(/^export /, "");
 const run = new Function("calculateCost", stripTypeScriptTypes(encode + "\n" + processor) + "\nreturn processResponsesStream;")(() => {});

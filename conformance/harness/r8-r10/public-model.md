@@ -23,7 +23,7 @@ Unknown whole-attempt recovery preserves durable preparation and never reruns it
 
 Usage observations combine actual Usage events across the same listener log and maintained
 SessionStats. Public entries/registers are inventoried; these are not a raw ledger scan
-or a ConditionalCommit ordered-write trace. Root/runtime owning tests cover that trace,
+or a ConditionalCommit ordered-write trace. Runtime owning tests cover that trace,
 the remaining nested gates/races, backend fencing, numeric goldens and classifier cases.
 No exhaustive scheduler claim, forged accepted operation, sleeps or live provider is used.
 Baseline public stubs must compile then fail behaviorally before a candidate is imported;

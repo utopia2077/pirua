@@ -1,8 +1,8 @@
-# Independent public SQLite structural histories719
+# Independent public SQLite structural histories
 
-Frozen against foundation52c684b before mutable public-runtime717 intake. Pinned
-Harness v3 H1269/1278/1289/1345–1362/1408–1423 and accepted structural3 define expected
-behavior. Only new public tests/support; no production state algorithm or fake commit.
+Pinned Harness v3 H1269/1278/1289/1345–1362/1408–1423 and the structural
+contract define expected behavior. These are public tests/support with actual
+production state algorithms and commits.
 
 Six named finite histories:
 
@@ -36,5 +36,5 @@ compare logical checkpoint/usage because a new writer lease may advance fencing.
 These are component public/backend histories, not an exhaustive scheduler, all-backend
 or complete nested-summary/recovery matrix. Other independent units own those axes.
 The foundation compiled baseline is expected to fail unfinished public structural
-behavior; compile diagnostics are recorded separately. Test-only commit waits for a
-controller-supplied valid production parent and explicit final grant.
+behavior; compile diagnostics are recorded separately. Test-only commit waits for an
+explicitly supplied valid production parent and final grant.

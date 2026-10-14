@@ -1,6 +1,6 @@
 {
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
-  "scope": "S13-B1 plus S13-D2 source-backed surface/runtime audit",
+  "scope": "Source-backed migration, public surface and runtime audit",
   "backends": ["memory", "jsonl", "sqlite"],
   "rows": [
     "first_attachment_live_state",

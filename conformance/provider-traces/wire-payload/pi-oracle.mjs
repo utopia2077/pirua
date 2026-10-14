@@ -1,10 +1,10 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {readFileSync} from 'node:fs';
 import {stripTypeScriptTypes, createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import {deepStrictEqual} from 'node:assert';
 import vm from 'node:vm';
-const upstream='upstream/pi-mono', commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const upstream=upstreamRoot, commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const require=createRequire(upstream+'/package.json'), hashes={};
 const source=path=>{const text=execFileSync('git',['show',`${commit}:packages/ai/src/${path}`],{cwd:upstream,encoding:'utf8'});hashes[path]=createHash('sha256').update(text).digest('hex');return text;};
 const clean=text=>stripTypeScriptTypes(text.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));

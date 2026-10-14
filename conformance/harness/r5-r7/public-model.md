@@ -4,7 +4,7 @@ Model689 drives actual exported RuntimeFactory/AgentLane, actual ModelsRegistry 
 capable deterministic adapter, and real MemorySessionRepo create/close/open. Driving
 never writes fabricated operation state or queued payloads. The small reference tracks
 publicly returned queue IDs, membership and consumed order; it does not implement core
-phase recipes. Existing S09 model251 remains separate and unchanged.
+phase recipes. The existing R1–R4 operation-state model remains separate and unchanged.
 
 Frozen finite case IDs (no selector; every final target run executes all cases):
 
@@ -35,13 +35,11 @@ Observation boundary: MemoryRepo does not expose its backend or ledger scanner. 
 read complete public entry/register inventories and stats, correlate actual Usage event
 rows, check pending/placed exclusivity at every deterministic pump/action boundary and
 record definitive pi.session.write spans. These are committed-state observations, NOT
-raw ConditionalCommit request/ordered-write logs. Root explicitly assigns exact ordered
-transaction spy coverage to owning runtime687 tests. The public cancellation arguments
+raw ConditionalCommit request/ordered-write logs. Exact ordered transaction spy coverage belongs to owning runtime tests. The public cancellation arguments
 cannot distinguish equal handles across sources alone; this model jointly checks durable
 source advancement and actual handle cancellation, while internal target-registration
 race evidence belongs to owning runtime tests. No runtime history/ledger read is added.
 
-Baseline must compile and fail on cdfd481 public stubs; that expected red is retained.
-Final candidate imports are root-owned and assertions remain unchanged. Candidate identity,
-commands, initial fixture compile issues, expected baseline-red and final results live
-under E/model689. No source mutation or full-S10 acceptance is supplied by this test unit.
+The model uses independently fixed expectations and unchanged public assertions.
+Baseline stubs cannot satisfy those assertions. This test unit does not provide
+source-mutation evidence or full runtime assembly acceptance.

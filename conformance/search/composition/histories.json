@@ -3,7 +3,7 @@
   "acceptedSourceCommit": "104ad48b39e8803b7736edd92a3ccaf9d8794fce",
   "sqliteRepoIntakeTree": "b9709b5776a5213ff34746df4b2cfa7e00fd5881",
   "sqliteRepoAcceptance": "pending; rebind exact final delta before execution",
-  "canonicalContract": "plan35/conventions57/S08",
+  "canonicalContract": "docs/architecture/05-session-storage.md#search-boundary",
   "textHistory": {
     "createClockMs": 42,
     "createOptions": {

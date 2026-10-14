@@ -35,7 +35,7 @@ existing pump drains the canonical child; it cannot reconstruct late usage from
 progress snapshots. No second result or terminal owner is added.
 
 Inherited normalization: setup cancellation remains Rust aborted/zero, whereas
-pinned lazy rejection is source error/zero. Controller explicitly retained that
+pinned lazy rejection is source error/zero. The contract explicitly retains that
 existing safe fallback; this change concerns post-handoff content/usage only.
 Child error text uses the existing fixed Rust cancellation message, not source
 JavaScript exception text. Canonical validated children and synchronous bounded

@@ -1,8 +1,8 @@
 """S05-only immutable admission policy and executed export/composition evidence.
 
-Approved intake: plan27/conventions47/export-closure.md. Independent tables below
-are controller-reviewed authority; candidate catalog fields cannot redefine them.
-The accepted S04 engine and its fingerprints remain separate and unchanged.
+Approved export contracts: docs/contracts/ai-integration/export-closure.md.
+Independent tables below are fixed authority; candidate fields cannot redefine them.
+The S04 source identities and independent evidence guards remain separate.
 """
 from __future__ import annotations
 import collections
@@ -16,11 +16,16 @@ import subprocess
 import tempfile
 import tomllib
 
+try:
+    from .upstream import resolve_upstream, upstream_environment
+except ImportError:
+    from upstream import resolve_upstream, upstream_environment
+
 ROOT = Path(__file__).resolve().parents[1]
 PIN = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-SCOPE_DIGEST = "e7ea5a0505582c17eb7bca608e88037023d815b93cd01b1e0a9939cf6daaceda"
+SCOPE_DIGEST = "c9fcb2d45dcde483d82a475fbb28f92868162199fee18b78cec0925fa17aaa3e"
 CATALOG = "conformance/ai-domain/s05-export-closure/evidence.json"
-CATALOG_DIGEST = "b2963674072684ff7f7c49e4b6019ea65ad36bc5e8fcb973b6793c6c3c2cd768"
+CATALOG_DIGEST = "dc6f1d6f8f06114025e0cf94ad7769e9d522ddaa286d04cda4ed8b5721a8899c"
 
 TEST_POLICY = {'pi-ai-providers/auth_foundation#auth_foundation_complete_pinned_source_and_hashes_remain_exact@': {'features': [],
                                                                                                      'kind': 'test',
@@ -4088,7 +4093,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                      'origins': ['packages/ai/src/auth/helpers.ts', 'packages/ai/src/auth/context.ts'],
                      'relation': 'complete-runtime',
                      'script': 'conformance/provider-traces/auth-foundation/source.mjs',
-                     'scriptSha256': '04c2817289989c2d43051e72f2c55c45d6a55b09734b614859ecb248c1e0cd6b'},
+                     'scriptSha256': '2cd4d25cb341f60f20acec19905559c1590c3225b483c1616d86c742a58b4ea5'},
  'catalog-generator': {'args': ['--check'],
                        'beforeScript': [],
                        'executable': 'python3',
@@ -4104,7 +4109,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                                    'packages/ai/scripts/generate-image-models.ts'],
                        'relation': 'dated-generator-to-selected-shard-provenance',
                        'script': 'scripts/generate_selected_catalogs.py',
-                       'scriptSha256': '1439c780f2e67371956a5db7f18e475000137336b44d53efdc7a1084ea04422a',
+                       'scriptSha256': 'c7bd8d222095710a4cf9b7ac2fdd5a0f7cbe62016eb2bfaca36f4e99247883b2',
                        'stdout': 'verified selected catalog: 450 text models; captured and historical image '
                                  'provenance kept separate\n'},
  'codex-cache': {'args': ['--check'],
@@ -4132,7 +4137,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                         'packages/ai/src/session-resources.ts'],
             'relation': 'complete-runtime',
             'script': 'conformance/ai-compat/facade/source.mjs',
-            'scriptSha256': 'dfbfe615e29920c923d0e3819a1ce7bdc3196eba0e1d0945662f49bc596c7bdb',
+            'scriptSha256': 'b343c2a6c35a3e93256893ad638ae53d3d4fe2f4af83627d7936806543ac5ae1',
             'stdout': 'FACADE_COMPLETE_SOURCE_PASS: '
                       'binding/order/direct/key/16aliases/images/resource-scope\n'},
  'image-wire': {'args': ['--check'],
@@ -4143,7 +4148,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                 'origins': ['packages/ai/src/api/openrouter-images.ts'],
                 'relation': 'complete-runtime',
                 'script': 'conformance/provider-traces/openrouter-images/source.mjs',
-                'scriptSha256': '4b821c12e81ab1ff183540d260fdba1047b0dd688f36d335d2dba3818bbd9c44',
+                'scriptSha256': '12e85a06395cdfcf9e140a4ff827864a9aa987bd26b01a0c30f3eca4698c02a9',
                 'stdout': 'OpenRouter image source: 49 cases verified\n'},
  'images-runtime': {'args': ['--check'],
                     'beforeScript': [],
@@ -4157,7 +4162,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                                 'packages/ai/src/providers/images/register-builtins.ts'],
                     'relation': 'complete-runtime',
                     'script': 'conformance/provider-traces/images-runtime/source.mjs',
-                    'scriptSha256': '3db6ebef96e4cdb067b698e224a80bdbd8eeaa39f10c948f88cd1186ded7eafb',
+                    'scriptSha256': 'd516568277ff95f480600db10c086d8e7863f67578e493bc60b39d21837d9265',
                     'stdout': 'Images runtime complete source verified: 16 generation cases plus '
                               'listing/refresh/auth/registry/lazy branches\n'},
  'legacy-env': {'args': [],
@@ -4168,7 +4173,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                 'origins': ['packages/ai/src/env-api-keys.ts', 'packages/ai/src/utils/provider-env.ts'],
                 'relation': 'complete-runtime',
                 'script': 'conformance/ai-domain/s05-export-closure/source-legacy-env.mjs',
-                'scriptSha256': 'a9920599f9254cc00afe9470ff4fa07c350706260d278ff426ad396248532a45'},
+                'scriptSha256': '6a8fba563b33dd0c233e73472dc69da20ec5f8cdc34f8367cddff529bfdf210a'},
  'oauth-cli': {'args': [],
                'beforeScript': [],
                'executable': 'node',
@@ -4177,7 +4182,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                'origins': ['packages/ai/src/cli.ts'],
                'relation': 'complete-runtime',
                'script': 'conformance/provider-traces/oauth-cli/source.mjs',
-               'scriptSha256': '04025622a9c904f32b7b0775a19ee19d2232c663a45b18b8c2fa1d31914a9d8f'},
+               'scriptSha256': '889a8d9bde3d4478de3d196a7794861653ac633deceb19ce2d2020e508d086e7'},
  'oauth-types': {'args': ['--check'],
                  'beforeScript': [],
                  'executable': 'python3',
@@ -4186,7 +4191,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                  'origins': ['packages/ai/src/compat/extension-oauth-types.ts'],
                  'relation': 'complete-declarations-and-export-alias',
                  'script': 'conformance/ai-compat/oauth-types/source.py',
-                 'scriptSha256': 'f7d736baaeb064ff0248a7b6835bf983c40c5744f66c252465736d4732a0b58b',
+                 'scriptSha256': 'b9adb75c57c38c8fa5f6a2ab101f855973061a13263496f92c84009ec679a8d5',
                  'stdout': 'seven symbols: complete pinned declaration and export proof matched\n'},
  'retry': {'args': [],
            'beforeScript': [],
@@ -4196,7 +4201,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
            'origins': ['packages/ai/src/utils/retry.ts'],
            'relation': 'complete-runtime',
            'script': 'conformance/ai-compat/retry/source.mjs',
-           'scriptSha256': 'af3ed6d1929e2f4c58ff8c8e08b14848bb11bcdf64b7b2f39c18d54b6b5737ed'},
+           'scriptSha256': '84c4dd4dbfef1d81d13f747099300c137799ca4c8df0e54b911eb1c282e9a31d'},
  'selected-factories': {'args': ['--check'],
                         'beforeScript': [],
                         'executable': 'node',
@@ -4212,7 +4217,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                                     'packages/ai/src/providers/openrouter-images.ts'],
                         'relation': 'complete-runtime',
                         'script': 'conformance/providers/selected/source.mjs',
-                        'scriptSha256': 'e69e31b85df4c24d7cdeac1f0e3434d5ecbe94e1d59627d5d1e65fa6791356dd',
+                        'scriptSha256': 'd3f55dfa20f27c3c851fd4a29d47829b8f2c85df619a0c2402e3e7405a6396ac',
                         'stdout': 'selected factories: seven complete bodies; all.ts; actual '
                                   'models/lazy/auth helpers; source order/passive/cache controls passed\n'},
  'selected-oauth': {'args': [],
@@ -4228,7 +4233,7 @@ SOURCE_POLICY = {'auth-foundation': {'args': [],
                                 'packages/ai/src/auth/oauth/oauth-page.ts'],
                     'relation': 'complete-runtime',
                     'script': 'conformance/provider-traces/oauth-selected/source.mjs',
-                    'scriptSha256': '2688dba2902ff0ed16ae6d06c6ddb311273b4d9034dee02f3af2bc2bcd3bbacd'}}
+                    'scriptSha256': 'ec6a679ee7627fb100e7a50350b2b4cece2c4108f85e2ab85339c05cd6be76c8'}}
 
 COMPOSITION_POLICY = {'catalog-developer-binaries': {'binaries': [{'name': 'catalog_gen',
                                               'path': 'src/bin/catalog_gen.rs',
@@ -4282,24 +4287,24 @@ COMPOSITION_POLICY = {'catalog-developer-binaries': {'binaries': [{'name': 'cata
 EVIDENCE_POLICY = {'conformance/ai-compat/facade/run.py': '39fc7af4bc79e0790917db8d0da78f8fd8eec2902593c4b5a1bb9db524770dea',
  'conformance/ai-compat/facade/runtime.rs': 'b8e914ccd1d1be3defd229cde28b10aaed9a8f0da2a6e996c14212ef2998e18a',
  'conformance/ai-compat/facade/source.json': 'c30769d90f3c034d02f8035597bbb1cdfa55ea44114201651233a3c93a53cf1b',
- 'conformance/ai-compat/facade/source.mjs': 'dfbfe615e29920c923d0e3819a1ce7bdc3196eba0e1d0945662f49bc596c7bdb',
- 'conformance/ai-compat/oauth-types/README.md': 'e1a6e5722e57e8886136328ab4d8e7a1de21c1f589b86cee43b19e96a7620a06',
+ 'conformance/ai-compat/facade/source.mjs': 'b343c2a6c35a3e93256893ad638ae53d3d4fe2f4af83627d7936806543ac5ae1',
+ 'conformance/ai-compat/oauth-types/README.md': '29d7bb2dff18aa8b5fa88fb7fa5e57715c3bde9c179b99a0f78ff9e9db07deda',
  'conformance/ai-compat/oauth-types/source-shape.json': 'e6bbbb89eece72d8b936b32aa0fecedc9e60bed24ba4460baa349e926ccb6416',
- 'conformance/ai-compat/oauth-types/source.py': 'f7d736baaeb064ff0248a7b6835bf983c40c5744f66c252465736d4732a0b58b',
+ 'conformance/ai-compat/oauth-types/source.py': 'b9adb75c57c38c8fa5f6a2ab101f855973061a13263496f92c84009ec679a8d5',
  'conformance/ai-compat/retry/README.md': 'f88c75ab3d14a54f67382b747cb4b57a8f14849d13f7752cde4ba3ce387ef5b0',
  'conformance/ai-compat/retry/cases.json': 'e76fd03b2bd30379b6075e9f6a20d4413c2309eff38cfd11aba603a9c657aae6',
- 'conformance/ai-compat/retry/causal.mjs': '9a17a1bd8c46f7eee69625703b8f2a027d8f48d18eccec06abfac92f47c14163',
+ 'conformance/ai-compat/retry/causal.mjs': '382a886d6922f85b312ecf64e74182cba64b306af495c988f9b17e588ac5ccfb',
  'conformance/ai-compat/retry/source-observations.json': '5f6bfe1c5ad04a4321e2ed491af7d40283a9d57cac23516e04478d9a3f496021',
- 'conformance/ai-compat/retry/source.mjs': 'af3ed6d1929e2f4c58ff8c8e08b14848bb11bcdf64b7b2f39c18d54b6b5737ed',
+ 'conformance/ai-compat/retry/source.mjs': '84c4dd4dbfef1d81d13f747099300c137799ca4c8df0e54b911eb1c282e9a31d',
  'conformance/ai-domain/s05-export-closure/legacy-env-observations.json': '3aadf3fd636d2f96da4ff0ef74341ab0907682cbd946c95844c170557c3b9815',
- 'conformance/ai-domain/s05-export-closure/source-legacy-env.mjs': 'a9920599f9254cc00afe9470ff4fa07c350706260d278ff426ad396248532a45',
- 'conformance/catalog/README.md': 'f2ae155ffca3c5ce32d78f850fdc2a8e1f247f579d5c901b9e25f1d15c69033b',
+ 'conformance/ai-domain/s05-export-closure/source-legacy-env.mjs': '6a8fba563b33dd0c233e73472dc69da20ec5f8cdc34f8367cddff529bfdf210a',
+ 'conformance/catalog/README.md': 'e8d33e175e8d5788767da581845428f42699100eb47b7582eb53eb94acb16212',
  'conformance/catalog/capture.json': '0898cbffc0d5befc26b4580894872954faa355661be1097484b430dd96da0475',
  'conformance/catalog/developer-tools.md': 'c8682d272a58c6a129c5911c27ec2e1dde52509f40656e9935208835310319b7',
  'conformance/catalog/generated/captured-image.ts': 'f3a70168ca69729cff00523359d97f1780a9e1767fd7c38a6134b397de0658b2',
  'conformance/catalog/generated/historical-images.json': '47eda2365d546d347b4e96d8276cac8014ec92f5b4247b0036f0a0ea04a0cdd3',
  'conformance/catalog/generated/images/openrouter.json': '5c825ff85e7ca93476ee116ad9b83fd8c94aac05b1a68f775bf814d6e0ffd3fb',
- 'conformance/catalog/generated/provenance.json': 'fe5f9d720d06778342b36abdb10213a2bf0fc0dbd1b2537c6c5b8c5fa3864f1e',
+ 'conformance/catalog/generated/provenance.json': '8501b26d58d96754510f4d67d5e3f6bd5ffc7bf14c405cac79247ac5f2141ef8',
  'conformance/catalog/generated/source-data-manifest.json': '6b47bcbf3cb3aa439e47ca9b7dfec10a7c11a1b8b5efd7bce2e89a1dc746275c',
  'conformance/catalog/generated/source-grouped.json': 'b614ae580356dc6786980dce2a5dad44971c5d22978a19b85fc37bb9cf086959',
  'conformance/catalog/generated/source-images.json': '0f61c704da068b2f1e8e75106d2c4f3782825cceafd999f0033f09c2f8ba0ba3',
@@ -4318,49 +4323,52 @@ EVIDENCE_POLICY = {'conformance/ai-compat/facade/run.py': '39fc7af4bc79e0790917d
  'conformance/catalog/offline-preload.mjs': '9ffe1a4ddaae04921fb367ee9fcd6561dd5c25056ea0b614391557926dd518f0',
  'conformance/catalog/project.mjs': '99369bb1219a47090d71556a1fa193d3d89598b899521b080ed0af426fbfcc7e',
  'conformance/catalog/source-manifest.json': '657fdb1217ed342982a63e7e77039a28df793378583fcb35aa39f5bb528d23f8',
- 'conformance/provider-traces/auth-foundation/README.md': '7031933b44a32e5f8c059200188636f38ef850eee71cb9870d81bb52d6ef76b4',
+ 'conformance/provider-traces/auth-foundation/README.md': '38e90b038e2e0a4a46c0b229507205b58d8970f4dcf045146eb1e99e6c43011d',
  'conformance/provider-traces/auth-foundation/source-observations.json': '7af62f36379791b1e50c1b22ad95d50b99d4959b2c12931197e842ccf7274a2d',
- 'conformance/provider-traces/auth-foundation/source.mjs': '04c2817289989c2d43051e72f2c55c45d6a55b09734b614859ecb248c1e0cd6b',
- 'conformance/provider-traces/images-runtime/README.md': '540fb2ce7e357974fd02917795cf26f60cfcfe69d74a39a389ee2b24b344c8f5',
+ 'conformance/provider-traces/auth-foundation/source.mjs': '2cd4d25cb341f60f20acec19905559c1590c3225b483c1616d86c742a58b4ea5',
+ 'conformance/provider-traces/images-runtime/README.md': '41ce4cb8eb44824bbd6360c48042b423cb2b02d69f67325de756c5f04fe5b536',
  'conformance/provider-traces/images-runtime/causal-check.py': '61fd6d05414787c39c1174e94d76537562caf591d2bbc82d7af3178660e91659',
- 'conformance/provider-traces/images-runtime/source.mjs': '3db6ebef96e4cdb067b698e224a80bdbd8eeaa39f10c948f88cd1186ded7eafb',
- 'conformance/provider-traces/images-runtime/trace.json': '4b7fa870efc3633bcab8ceb5d891b4c630e9dac86190e268e39cf127203c098f',
+ 'conformance/provider-traces/images-runtime/source.mjs': 'd516568277ff95f480600db10c086d8e7863f67578e493bc60b39d21837d9265',
+ 'conformance/provider-traces/images-runtime/trace.json': '51eaabc698e7b771a926551426e37f5b511a1828d46cb7c9037fe990b4524dc7',
  'conformance/provider-traces/oauth-cli/README.md': 'a78f7542c2b7b67549006b96baee373559c332adc039f7f822a1ed8d877803ad',
  'conformance/provider-traces/oauth-cli/causal-observations.json': 'ce25ceb99552e541c49b59f8c3ed067f27bef93de3de23626819bccfe5ea169e',
  'conformance/provider-traces/oauth-cli/observations.json': 'e2f13e103676219d1684747db8480a7c6324be96202bf47e69581c0a75aa9f6d',
  'conformance/provider-traces/oauth-cli/rust-source-hashes.json': 'f9959a1892edd3b0d1b7e03fe06640bad68919c545f58823c51af16491912724',
- 'conformance/provider-traces/oauth-cli/source.mjs': '04025622a9c904f32b7b0775a19ee19d2232c663a45b18b8c2fa1d31914a9d8f',
- 'conformance/provider-traces/oauth-selected/README.md': 'c9e99d5ad615635abc9747fd85015a17ebc38436a6fb2e47ad534bf06a1526cd',
+ 'conformance/provider-traces/oauth-cli/source.mjs': '889a8d9bde3d4478de3d196a7794861653ac633deceb19ce2d2020e508d086e7',
+ 'conformance/provider-traces/oauth-selected/README.md': '3498a586e3072afe119966b05956a2cbca131e88f386c490a8bcd9ea2031a877',
  'conformance/provider-traces/oauth-selected/source-observations.json': '1b99806d8afada3bd7865cd01746223ada52fc49cb5629c612762f6059fcf194',
- 'conformance/provider-traces/oauth-selected/source.mjs': '2688dba2902ff0ed16ae6d06c6ddb311273b4d9034dee02f3af2bc2bcd3bbacd',
+ 'conformance/provider-traces/oauth-selected/source.mjs': 'ec6a679ee7627fb100e7a50350b2b4cece2c4108f85e2ab85339c05cd6be76c8',
  'conformance/provider-traces/openai-codex-responses/README.md': 'ebbec1881d6dc37c36f7c433eb598e539ff3e126fad1ed21a3265e77ab9b2e85',
  'conformance/provider-traces/openai-codex-responses/account-oracle.mjs': '9b3c8db92b5e3abcb5913732ef0b9f80bc2be078d6acd400ae357c3027d3a2da',
  'conformance/provider-traces/openai-codex-responses/account.json': 'a358af79002237993c59c8e9e6f220b15e732ad4f4baf11b8b7457f165dbacbf',
  'conformance/provider-traces/openai-codex-responses/cache-oracle.mjs': 'b78fb463a37e40c83db5e9c08c0211ce1ca0c2639a08a335d39746315b1a7ae4',
- 'conformance/provider-traces/openai-codex-responses/cache.json': 'c022cafce66748857538c75c45004de11af615816e2494eed65ef673097de16d',
- 'conformance/provider-traces/openai-codex-responses/harness.mjs': '06925d653f34ad63f0a51e9fe5564225d5306cd5b4e2a7fb80c80f69ece57a97',
+ 'conformance/provider-traces/openai-codex-responses/cache.json': '93c4a17f47cf4cfc4b72c0d50ed84746c1c236ce1cb8bc4ecf9a399bc3385e00',
+ 'conformance/provider-traces/openai-codex-responses/harness.mjs': 'b53b2e660b5ce71307c80b4f06c52c9b6fb8b433daa5e283dbdf580c2e60fef7',
  'conformance/provider-traces/openai-codex-responses/metadata-oracle.mjs': '2667337ba30dc9c5cd781da31338ffdf94817bf2dd71026ac7b6aff99becf5a0',
  'conformance/provider-traces/openai-codex-responses/metadata.json': 'eb7c9216f8f0f5786d74ceee12d8a4f6028775ec99f2d5ad4e3ac2793a590d3f',
  'conformance/provider-traces/openai-codex-responses/native-frame-oracle.mjs': '92411a5cc36492f923d1ed6ef5810415af30012ab983e492e3b2dcc3983c2765',
  'conformance/provider-traces/openai-codex-responses/native-frames.json': '957253279a69d86f87e485966444980eb8f0b24832a1401106a9bd5eb857cb35',
  'conformance/provider-traces/openai-codex-responses/oracle.mjs': 'af636e21bf5e4f7a7b3855ea1dd567aa876fa62308b32e9aae14b0092c518140',
  'conformance/provider-traces/openai-codex-responses/payload-oracle.mjs': 'd188ed8a4bb6614c09bb87682b02b231aa19fc5764cecff0e59ddcce002c46ca',
- 'conformance/provider-traces/openai-codex-responses/payload.json': 'efafc43496c0528f01f22c8571c17f0a8584f6f31f09f463070d9aa51a2f9769',
+ 'conformance/provider-traces/openai-codex-responses/payload.json': '4278a16723cb5634252566e81eab8eb9e944e8e5552f63630839304be129793e',
  'conformance/provider-traces/openai-codex-responses/review-correction-oracle.mjs': '97760e5a824c3a5b545e3d1e04695d34d5237948899ebf9fef093c5993508d6a',
  'conformance/provider-traces/openai-codex-responses/review-correction.json': '2d4ff3e6284ff2f86017f969877b24dc4e2863fa5bb04aab7b83f1a82a62948b',
  'conformance/provider-traces/openai-codex-responses/source-comparison-check.mjs': '5bb735d2919b275e052e1b1e48c22f9554a91d1ea62e47cb9c968dadf126a699',
- 'conformance/provider-traces/openai-codex-responses/source-comparison.mjs': '6dfc73c485d6ac2bfcbfa058bd66f971fbac9142370ccf19219141a3ebe2a4bd',
+ 'conformance/provider-traces/openai-codex-responses/source-comparison.mjs': 'e63fea958af4093f59332c6f2821a5a13a025265b44d62788c5d4674ab904f31',
  'conformance/provider-traces/openai-codex-responses/timeout-oracle.mjs': '65b0d0e2565ffde3cff88fa3757acf64c5f05481d1af91e6c2442d0e5d1229e1',
  'conformance/provider-traces/openai-codex-responses/timeout.json': '760f3f3999dec1adc0654957f77a1dfc92cb5638e1cbb1d2a434777196dbf6f5',
- 'conformance/provider-traces/openai-codex-responses/trace.json': '5cf896ec02eb87bdd1b60b1e106b9848654eaebff84ac7e9fbab4efa44506db2',
- 'conformance/provider-traces/openrouter-images/README.md': 'a0fe88761122ff88e9e459fb4517598547542549da38f351d97f9353bbba843e',
+ 'conformance/provider-traces/openai-codex-responses/trace.json': '3eb690370fb92dfb9de16a4e5ce89110983cbd9286550f72ede0118b13ca62f9',
+ 'conformance/provider-traces/openrouter-images/README.md': 'df806a631f6b343d1802baf5bc1953a0b8d6a620411d2d88c17bf86ffcb786f8',
  'conformance/provider-traces/openrouter-images/causal-check.py': 'f0962c31f6a001f62b284101ff76b16f9eeda745c2f3c42ee38a7da3d4d744cd',
- 'conformance/provider-traces/openrouter-images/source.mjs': '4b821c12e81ab1ff183540d260fdba1047b0dd688f36d335d2dba3818bbd9c44',
- 'conformance/provider-traces/openrouter-images/trace.json': 'b25655bc3a17cef8762153f07c4129b9c2abd754e37e41c88eda5350487d0516',
+ 'conformance/provider-traces/openrouter-images/source.mjs': '12e85a06395cdfcf9e140a4ff827864a9aa987bd26b01a0c30f3eca4698c02a9',
+ 'conformance/provider-traces/openrouter-images/trace.json': '846ff8e5964d5efcd287a1a177fe07c68046522dd6a504df7dad3961e2370ca4',
  'conformance/providers/selected/linked.py': '05bcaf7c8421a2fdc912124b193362c184603d204b016490844b2ef5950c2db8',
- 'conformance/providers/selected/source.mjs': 'e69e31b85df4c24d7cdeac1f0e3434d5ecbe94e1d59627d5d1e65fa6791356dd',
+ 'conformance/providers/selected/source.mjs': 'd3f55dfa20f27c3c851fd4a29d47829b8f2c85df619a0c2402e3e7405a6396ac',
  'conformance/providers/selected/trace.json': '57858b2626b33180579494aca07bd87cf8565cefe01fe80697995686975398b3',
- 'scripts/generate_selected_catalogs.py': '1439c780f2e67371956a5db7f18e475000137336b44d53efdc7a1084ea04422a'}
+ 'conformance/upstream.mjs': '3e15611a45f97a6bf3f99b017270ac03a48640da0ac000852647de6174a8cfd2',
+ 'crates/pi-ai-transport/examples/loopback_tls.rs': '5b57ca9bbb939807cefd02e95ffb5d2ba41d14aa42259f17c57b1f2a87c6389b',
+ 'scripts/generate_selected_catalogs.py': 'c7bd8d222095710a4cf9b7ac2fdd5a0f7cbe62016eb2bfaca36f4e99247883b2',
+ 'scripts/upstream.py': '338ee17d061330fa7649281af7f2f0d322bd77292b5dcd416b7e020a4da7e5f9'}
 
 class ClosureError(ValueError):
     """A fixed S05 evidence relation or executed obligation changed."""
@@ -4585,7 +4593,7 @@ def execute_sources(sources, root=ROOT):
         require(hashlib.sha256((root / source["script"]).read_bytes()).hexdigest() == source["scriptSha256"], "S05 source program fingerprint changed")
         require(hashlib.sha256((root / source["expected"]).read_bytes()).hexdigest() == EVIDENCE_POLICY[source["expected"]], "S05 checked source artifact fingerprint changed")
         command = [source["executable"], *source["beforeScript"], str(root / source["script"]), *source["args"]]
-        result = subprocess.run(command, cwd=root, env={"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"}, capture_output=True, text=True)
+        result = subprocess.run(command, cwd=root, env=upstream_environment({"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"}, root=root), capture_output=True, text=True)
         require(result.returncode == 0, "S05 complete source command failed: " + source["id"] + "\n" + result.stderr)
         if source["mode"] == "json":
             try:

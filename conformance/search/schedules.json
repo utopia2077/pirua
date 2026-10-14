@@ -1,6 +1,6 @@
 {
   "status": "UNEXECUTED AUTHOR-ENTRY PREDICTIONS",
-  "authority": "bf106dd conventions57/plan35 S08; sourceH872-938",
+  "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/agent/docs/harness.md:H872-938; docs/architecture/05-session-storage.md#search-boundary",
   "scenarios": [
     {
       "id": "six-method-contract",
@@ -436,7 +436,7 @@
     },
     {
       "id": "remove-derived-and-rebuild",
-      "authorityClass": "source+plan35",
+      "authorityClass": "source+public-search-contract",
       "history": [
         "Catch up reference index over actual Memory/JSONL (and later SQLite) and capture normalized hit IDs/order/timestamps and canonical snapshots/bytes.",
         "Close all services/workers/connections, delete ONLY derived DB and its owned sidecars, create fresh index with same actual domain/policy and sync."

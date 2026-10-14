@@ -1,5 +1,5 @@
 // Complete pinned helper bodies, finite canonical inputs, no provider services.
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import { stripTypeScriptTypes } from 'node:module';
 import { deepStrictEqual, strictEqual, throws } from 'node:assert';
 import vm from 'node:vm';
@@ -7,7 +7,7 @@ const commit = '853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const context = vm.createContext({ structuredClone });
 for (const path of ['utils/estimate.ts', 'api/simple-options.ts', 'api/constrained-sampling.ts', 'api/github-copilot-headers.ts', 'api/openai-prompt-cache.ts']) {
   const text = execFileSync('git', ['show', `${commit}:packages/ai/src/${path}`], {
-    cwd: 'upstream/pi-mono', encoding: 'utf8', env: { PATH: '/usr/bin:/bin' },
+    cwd: upstreamRoot, encoding: 'utf8', env: { PATH: '/usr/bin:/bin' },
   });
   vm.runInContext(stripTypeScriptTypes(text.replace(/^import[\s\S]*?;\n/gm, '').replace(/^export /gm, '')), context, { filename: path });
 }

@@ -1,10 +1,10 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes,createRequire} from 'node:module';
 import {createHash} from 'node:crypto';
 import * as zlib from 'node:zlib';
 import assert from 'node:assert/strict';
 export const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const upstream='upstream/pi-mono',require=createRequire(upstream+'/package.json');
+const upstream=upstreamRoot,require=createRequire(upstream+'/package.json');
 const cache=new Map(),hashes={};
 function source(path){if(!cache.has(path)){const text=execFileSync('git',['show',pin+':packages/ai/src/'+path],{cwd:upstream,encoding:'utf8'});cache.set(path,text);hashes[path]=createHash('sha256').update(text).digest('hex');}return cache.get(path);}
 export const authority=()=>({pin,node:process.version,hashes});

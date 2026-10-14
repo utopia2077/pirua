@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 // Only these two execution roots are equivalent; no third raw marker is admitted.
-export const fixtureExecutionRoot = 'file://.-worktrees/s04-codex-final/';
+export const fixtureExecutionRoot = 'file:///pirua-conformance/';
 export const executionRoot = new URL('../../../', import.meta.url).href;
 
 function comparable(input) {

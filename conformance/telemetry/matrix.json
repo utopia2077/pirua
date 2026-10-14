@@ -1,6 +1,6 @@
 {
   "authority": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
-  "source": "f27aa7b + S13-D1 bounded witness",
+  "source": "conformance/telemetry/README.md; bounded telemetry witness",
   "mode": "source-backed-focused-conformance",
   "observer_panic": "propagates_at_receipt_boundary",
   "result_failure": "sink_local_disable",

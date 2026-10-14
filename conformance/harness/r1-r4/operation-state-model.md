@@ -3,7 +3,7 @@
 The `pi-harness-runtime` integration target `operation_state_model` complements
 S09's public-runtime tests. It runs accepted pure core recipes through actual
 MemoryStorage + RuntimeSession + SessionCodec conditional publication. It does not
-instantiate the public Harness factory, call Models/tools/hooks, or use runtime637's
+instantiate the public Harness factory, call Models/tools/hooks, or use the public runtime's
 private helpers. Its fixtures are constructed locally from accepted schema types;
 no fixed example table or simulated transaction publisher stands in for storage.
 
@@ -82,7 +82,7 @@ recursive Stop/Retry/Lost traversal; valid range 0–153. Tool seeds are DFS ord
 Out-of-bound or malformed replay values fail rather than reporting an empty success.
 Default and `--all-features` run the same bounded histories, offline.
 
-Excluded: public runtime637 execution, callback concurrency, manual gates,
+Excluded: public runtime execution, callback concurrency, manual gates,
 close/abort/queue APIs, physical close/reopen, deferred polling, structural/overflow
 work, live providers, and other storage backends. Configured Session roots and
 explicit fixture API/model/IDs avoid all three pending owner defaults. Unknown-at-cap
@@ -93,6 +93,5 @@ Author causal evidence perturbs only the test-owned recipe-to-Session boundary b
 omitting Usage writes. The real Session commits the resulting structurally valid
 transaction, then the independent R/U invariant fails on replay `generation:0`.
 No assertion or production guard is changed; exact source restoration passes.
-Execution identities, logs and hashes live in the external `runtime/model648/`
-evidence directory. This target is property evidence for accepted core/Session,
+This target is property evidence for accepted core/Session,
 not whole-S09 or public-runtime acceptance.

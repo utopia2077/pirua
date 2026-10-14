@@ -1,12 +1,12 @@
 // Execute the complete pinned module. Replace only deterministic host timers/producer/observers.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const path='packages/ai/src/utils/retry.ts';
-const source=execFileSync('/usr/bin/git',['-C','upstream/pi-mono','show',`${pin}:${path}`],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});
+const source=execFileSync('/usr/bin/git',['-C',upstreamRoot,'show',`${pin}:${path}`],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});
 const mutations={
  count:['policy.maxRetries : 0','Math.max(0, policy.maxRetries - 1) : 0'],
  order:['await callbacks?.onRetryAttemptStart?.();',''],

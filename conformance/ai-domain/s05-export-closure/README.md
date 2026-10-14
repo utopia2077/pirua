@@ -1,6 +1,6 @@
 # S05 cumulative export and composition evidence
 
-Authority: plan27/conventions47/export-closure.md and the approved consumer intake.
+Authority: [public export-closure contract](../../../docs/contracts/ai-integration/export-closure.md).
 Source pin853a80d26c90a14c1886f0ebb8ffaae133ca2185. This unit preserves the699
 source occurrence identities and327 original behavior rows. Its114 retained
 occurrences represent90 source symbols;87 owning expressions and108 route
@@ -58,7 +58,7 @@ pi-ai[compat] test calls the actual façade helpers and compares all source valu
 without credential diagnostics. No previous auth/facade evidence file is modified.
 
 Only the existing full ./scripts/verify.sh is repository acceptance. Full S05 source/
-composition execution includes fixed OAuth ports and requires the controller's
+composition execution includes fixed OAuth ports and requires the
 exclusive lease. Typed nested probes use target/ai-conformance-probe separately from
 the outer Cargo target. Pure policy controls and selected non-native checks are not
 substitutes for the final full gate, independent proof review or whole-runtime audit.

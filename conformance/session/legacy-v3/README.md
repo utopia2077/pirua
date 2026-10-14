@@ -22,15 +22,14 @@ sum48, and expected total cost is negative(-0.5).
 The expected file was authored from a fixed retained-node/parent/tail table and
 Python hashlib integer UUID bit placement, without calling production conversion.
 Known typed UsageCost values use floating-point JSON representation; arbitrary
-opaque details/data retain their original numbers. The author's generation recipe
-is retained as `/tmp/rust-harness-s07-legacy-implementation-fixtures-20260908.py`;
-no test regenerates expected results from the Rust implementation.
+opaque details/data retain their original numbers. No test regenerates expected
+results from the Rust implementation.
 
 `id-vectors.json` fixes the framed SHA256 outputs, including UTF-8 byte lengths,
 NUL-bearing IDs, domain separation and the first74 digest bits in UUIDv7 positions.
 `iso-vectors.json` uses independent Python datetime/civil iteration for epoch,
 leap/century, offset, fractional truncation and exact48-bit maximum literals.
-The generation recipe is an author oracle, distinct from root/reviewer literals.
+The generation recipe is an author oracle, distinct from independent expected literals.
 
 Owning tests are `legacy_v3_normalization`, `legacy_v3_ids_iso` and
 `legacy_v3_validation`. They exercise actual PreparedLegacy getters and actual

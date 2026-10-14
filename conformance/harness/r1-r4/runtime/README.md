@@ -10,10 +10,10 @@ match the same committed transaction sequence, not merely one another's end stat
 The same owning test target covers stamp-bounded restore, real publication during
 hydration/CAS, retained tasks/close/fault and callback ownership, request/context
 transports, retry/reopen, tools/replay, ordered finalization, usage and terminal
-cleanup. Runtime637's persistent report records commands, failed witnesses,
-corrections and causal controls. Root's separate `operation_state_model` target
-owns the deterministic generated-history property suite.
+cleanup. The separate `operation_state_model` target owns the deterministic
+generated-history property suite.
 
 Configuration-less initialization, reserved-usage/no-ledger interpretation and
-ordinary synthetic recovery API provenance remain explicit owner-held branches;
-these fixtures do not settle them. S10/S11 stages are not claimed as implemented.
+ordinary synthetic recovery API provenance are defined by the
+[recovery contract](../../../../docs/contracts/recovery.md). This fixture does not
+claim queue, deferred or structural runtime coverage.

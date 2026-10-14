@@ -1,5 +1,5 @@
 // Complete immutable helper modules; no algorithm extraction or body rewrite.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../../upstream.mjs';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
@@ -13,7 +13,7 @@ const scratch=mkdtempSync(join(tmpdir(),'summary-content710-'));
 const hashes={};
 try {
  for(const path of ['packages/agent/src/harness/compaction/compaction.ts','packages/agent/src/harness/compaction/branch-summarization.ts','packages/agent/src/harness/compaction/utils.ts','packages/agent/src/harness/messages.ts','packages/agent/src/harness/session/context.ts','packages/ai/src/utils/text.ts','packages/ai/src/utils/sanitize-unicode.ts','packages/ai/src/utils/estimate.ts','packages/ai/src/api/simple-options.ts']){
- const bytes=execFileSync('git',['-C','upstream/pi-mono','show',pin+':'+path],{env:{PATH:'/usr/bin:/bin'}});hashes[path]=createHash('sha256').update(bytes).digest('hex');const target=join(scratch,path);mkdirSync(dirname(target),{recursive:true});writeFileSync(target,bytes);
+ const bytes=execFileSync('git',['-C',upstreamRoot,'show',pin+':'+path],{env:{PATH:'/usr/bin:/bin'}});hashes[path]=createHash('sha256').update(bytes).digest('hex');const target=join(scratch,path);mkdirSync(dirname(target),{recursive:true});writeFileSync(target,bytes);
  }
  writeFileSync(join(scratch,'package.json'),'{"type":"module"}');
  // Bounded adapters only: transport retries invoke once; errors/result constructors;

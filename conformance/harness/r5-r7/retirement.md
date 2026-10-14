@@ -1,4 +1,4 @@
-# Independent retirement boundaries700
+# Independent retirement boundaries
 
 Exactly2 finite cases, actual public runtime/Models and actual MemoryBacking/Session:
 
@@ -7,7 +7,7 @@ Exactly2 finite cases, actual public runtime/Models and actual MemoryBacking/Ses
   invokes a trusted system prompt returning Fault; its call count and owner admission
   rejection prove the seal. The original accepted call must reject Fault, the projector
   future must be dropped, and no custom placement or later write/request may occur.
-  This does not duplicate687's independently retained close variant.
+  This retains a separate close variant.
 - `EXTERNAL-TERMINAL-FINALIZE-GATE`: real tool executes once and returns raw result;
   manual finalize_tool gate parks before after_tool. A legitimate Session transaction
   publishes that raw tool result/usage under its reserved ID, exact old RunAborted result
@@ -18,5 +18,4 @@ Exactly2 finite cases, actual public runtime/Models and actual MemoryBacking/Ses
 No fabricated accepted operation or fake backend. External terminal publication is
 explicitly the tested authorized Session action, not an asserted public prompt result.
 Bounded pump fairness uses positive callback/raw/tool/Fault markers rather than wall-clock
-sleep. Preserve v2 compiled-red and later unchanged candidate-green source identities in
-E/retirement700; original689/695 remain untouched. These2 joins do not claim fullS10.
+sleep. These two joins do not claim full runtime assembly coverage.

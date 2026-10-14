@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "sourceCommit": "853a80d26c90a14c1886f0ebb8ffaae133ca2185",
   "sourceManifestDigest": "sha256:9e0238edccb114d5dc7f9191e5e719ed86aab2fcb754ce8dd8b0b12b200c0237",
-  "mappingDigest": "sha256:6f3f3d95517291042656e7691160f43d54fe8b59670c1440cdca71b7238d55fe",
+  "mappingDigest": "sha256:63db9e4c90265c437b9bab3c3682790745bcd3c08b32eb450ed13c68da270e41",
   "expectedRows": 699,
   "dispositionTotals": {
     "s02-dto": 146,
@@ -32,7 +32,7 @@
       "rust-platform": 2
     },
     "decisionReference": "docs/scope.md#selected-provider-scope",
-    "digest": "e7ea5a0505582c17eb7bca608e88037023d815b93cd01b1e0a9939cf6daaceda"
+    "digest": "c9fcb2d45dcde483d82a475fbb28f92868162199fee18b78cec0925fa17aaa3e"
   },
   "rows": [
     {
@@ -210,7 +210,7 @@
       "ruleId": "rust-nonapplicable-option-types",
       "reason": "TypeScript conditional and intersection typing has no runtime contract.",
       "replacement": "Typed Rust request option structs and traits.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "A runtime-observable option-map contract appears upstream."
     },
     {
@@ -230,7 +230,7 @@
       "ruleId": "rust-nonapplicable-option-types",
       "reason": "TypeScript conditional and intersection typing has no runtime contract.",
       "replacement": "Typed Rust request option structs and traits.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "A runtime-observable option-map contract appears upstream."
     },
     {
@@ -3080,7 +3080,7 @@
       "ruleId": "rust-nonapplicable-option-types",
       "reason": "TypeScript conditional and intersection typing has no runtime contract.",
       "replacement": "Typed Rust request option structs and traits.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "A runtime-observable option-map contract appears upstream."
     },
     {
@@ -3471,7 +3471,7 @@
       "ruleId": "rust-nonapplicable-string-enum",
       "reason": "TypeBox runtime schema construction is external to the Rust type system.",
       "replacement": "Static Rust types plus serialized JSON Schema.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "The extension protocol requires dynamic enum-schema construction."
     },
     {
@@ -8431,7 +8431,7 @@
       "ruleId": "rust-nonapplicable-option-types",
       "reason": "TypeScript conditional and intersection typing has no runtime contract.",
       "replacement": "Typed Rust request option structs and traits.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "A runtime-observable option-map contract appears upstream."
     },
     {
@@ -8621,7 +8621,7 @@
       "ruleId": "rust-nonapplicable-option-types",
       "reason": "TypeScript conditional and intersection typing has no runtime contract.",
       "replacement": "Typed Rust request option structs and traits.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "A runtime-observable option-map contract appears upstream."
     },
     {
@@ -12098,7 +12098,7 @@
       "ruleId": "rust-nonapplicable-option-types",
       "reason": "TypeScript conditional and intersection typing has no runtime contract.",
       "replacement": "Typed Rust request option structs and traits.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "A runtime-observable option-map contract appears upstream."
     },
     {
@@ -12491,7 +12491,7 @@
       "ruleId": "rust-nonapplicable-string-enum",
       "reason": "TypeBox runtime schema construction is external to the Rust type system.",
       "replacement": "Static Rust types plus serialized JSON Schema.",
-      "decision_reference": "export-inventory.md#rust-nonapplicable-projections-22",
+      "decision_reference": "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22",
       "revisit_trigger": "The extension protocol requires dynamic enum-schema construction."
     },
     {

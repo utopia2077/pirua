@@ -1,6 +1,6 @@
-# Independent public R6 control matrix695
+# Independent public R6 control matrix
 
-Initial frozen catalog22 histories in4 functions, extended only by authority698 to23 histories in5 functions:
+The frozen catalog contains 23 finite histories in five functions:
 
 - phase matrix12: checkpoint-need/manual; checkpoint-may/manual;
   assistant-ready/manual; before-request-waiting/manual;
@@ -25,18 +25,15 @@ ownership. Automatic cases need not pretend repeated abort beats concurrently
 completed terminal; exact repeat and parked no-side-effect assertions use manual
 boundaries. Existing two order checkpoint/provider phases supply response/abort
 ordering. No S11 structural execution. Full close/fault/R5/R7/raw-transaction matrices
-remain runtime687's scope, not inferred from these cases.
+remain separate runtime obligations and are not inferred from these cases.
 
-Source/fixture details, empirical reachability corrections, exact executed case IDs,
-failed original receipts and final candidate identities are recorded in E/control695.
-This catalog states finite bounds, not exhaustive host schedules. Usage event rows and
-complete publicly readable state are observations, not raw ordered-write request logs.
+This catalog states finite bounds, not exhaustive host schedules. Usage event rows
+and complete publicly readable state are observations, not raw ordered-write requests.
 
-Authority698 / plan50 / conventions77 / runtime3 corrects the original derived
+The pinned control contract corrects the original derived
 termination rule: abort-first keeps raw result with terminate:false; hook-first
 keeps the complete finalized value, including an omitted-patch inherited true.
-Original failed assertion/source/receipt remain in E/control695; only that new
-hook-first assertion is corrected, preserving content/usage/RunAborted expectations.
+The hook-first observation preserves content, usage and RunAborted expectations.
 
 23rd case `after-tool-gate-abort-first/manual`: execute returns raw terminate:true,
 finalize_tool starts while running, then actual after_tool hook gate parks before

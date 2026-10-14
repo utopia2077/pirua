@@ -42,10 +42,9 @@ unknown/completed tools. R8–R10 remain outside this unit. Original runtime tes
 251 generated histories remain unchanged.
 
 The frozen authority distinguishes raw abort-first `terminate:false` from hook-first
-complete transformed results, including `terminate:true`. The added manual after-tool
-gate case distinguishes entry into finalization from actual hook start. An early 695
-assertion conflated these and was corrected by the controller after pinned-authority
-review; no production blanket clamp was introduced to satisfy it.
+complete transformed results, including `terminate:true`. The manual after-tool
+gate case distinguishes entry into finalization from actual hook start. No
+production blanket clamp is introduced to satisfy the fixture.
 
 Verification varies runtime behavior, execution mode, persistence boundary and oracle:
 public histories exercise actual implementation; selected cases compare automatic
@@ -55,9 +54,7 @@ transaction/event assertions. This is finite deterministic coverage, not exhaust
 thread-schedule enumeration. No live provider, native integration run, or whole S10
 acceptance is claimed by this unit.
 
-Two compiled controls remove only runtime enforcement: dropping pending-payload Seq
-predicates admits the stale public consumer transaction; retaining a consumed poll
-allowance starts three fetches in one resume instead of one. Before execution each
-control saves the exact baseline, mutant, patch, hashes and runner. Both unchanged
-public assertions fail with exit 101; exact restoration passes. Evidence lives in
-`runtime687/causal/` under the controller's S10 evidence directory.
+The causal controls remove runtime enforcement separately: omitting pending-payload
+Seq predicates admits a stale public consumer transaction; retaining a consumed
+poll allowance starts three fetches in one resume. Both controls must fail the
+unchanged public assertions, and exact restoration must pass.

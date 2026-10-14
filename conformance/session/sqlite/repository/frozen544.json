@@ -1,9 +1,9 @@
 {
   "status": "FROZEN PREDICTIONS ONLY; no SQLite execution",
-  "authority": {"docs":"2c45792 plan35/conventions57/S08", "shared":"b930371", "harness":"853a80d26c90a14c1886f0ebb8ffaae133ca2185 H606/H795-868/H940-943"},
+  "authority": {"docs":"docs/architecture/05-session-storage.md#sqlite-backend", "shared":"conformance/session/repository-README.md", "harness":"853a80d26c90a14c1886f0ebb8ffaae133ca2185 H606/H795-868/H940-943"},
   "preserved_references": [
-    {"path":"/tmp/rust-harness-s06-independent-repository-cases-20260908.json","sha256":"6801c9bf9093853e5853e0cca3f8badf283ce313cd17b61725d9b2f30e623342","reuse":"fork logical tree and selected-path predictions only; S06 synthetic migration obligations do not transfer to S2"},
-    {"path":"/tmp/rust-harness-s07-repository-review-preparation-20260908.native-source.jsonl","sha256":"3f1beab9dc20634b20497cbcfce9ad15bf5f4ca02ab1d333213c5dc75fb12656","reuse":"identity/usage-value inspiration only; not an invented SQLite JSONL import API"}
+    {"sha256":"6801c9bf9093853e5853e0cca3f8badf283ce313cd17b61725d9b2f30e623342","reuse":"fork logical tree and selected-path predictions only; S06 synthetic migration obligations do not transfer to S2"},
+    {"sha256":"3f1beab9dc20634b20497cbcfce9ad15bf5f4ca02ab1d333213c5dc75fb12656","reuse":"identity/usage-value inspiration only; not an invented SQLite JSONL import API"}
   ],
   "source_snapshot": {
     "metadata":{"id":"source544","createdAt":100,"storageVersion":1,"storeGeneration":0,"cwd":"/source"},

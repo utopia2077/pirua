@@ -1,8 +1,8 @@
-import { createRequire } from 'node:module';
+import { createRequire } from 'node:module';import {upstreamPath} from '../../upstream.mjs';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { deepStrictEqual } from 'node:assert';
-const root='upstream/pi-mono/node_modules';
+const root=upstreamPath('node_modules');
 const require=createRequire(`${root}/openai/package.json`);
 const families=[['openai','6.40.0'],['@anthropic-ai/sdk','0.91.1']];
 const sources={};

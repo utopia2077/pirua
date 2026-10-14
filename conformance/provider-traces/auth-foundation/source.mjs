@@ -1,11 +1,11 @@
 // Complete pinned helper/PKCE modules and complete Anthropic factory body.
 // Only module dependencies unrelated to auth are configured synthetic bindings.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {registerHooks,stripTypeScriptTypes} from 'node:module';
 import {createHash,webcrypto} from 'node:crypto';
 import assert from 'node:assert/strict';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const root='upstream/pi-mono';
+const root=upstreamRoot;
 const hashes={};
 registerHooks({resolve(specifier,context,next){
  if(specifier.startsWith('pinned:'))return {url:specifier,shortCircuit:true};

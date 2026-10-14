@@ -98,6 +98,9 @@ and native empty-body Content-Type/EOF behavior. The native test features are
 explicit; ordinary image wire depends only on the existing transport ports.
 
 ```sh
+cargo test -p pi-ai-providers --test openrouter_images --features wire-openrouter-images,native --locked --offline
+cargo test -p pi-ai-transport --test fetch_body_presence --features native --locked --offline
+python3 conformance/provider-traces/openrouter-images/causal-check.py
 ```
 
 The causal script temporarily adds a success-cancellation veto and then folds

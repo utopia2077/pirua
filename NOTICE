@@ -1,0 +1,55 @@
+Pirua — third-party attribution
+
+Pirua's original code and documentation are licensed under the root MIT LICENSE,
+Copyright (c) 2026 Pirua contributors. Third-party material retains its applicable
+copyright and permission notices.
+
+pi-mono
+-------
+The Rust contracts, implementations, conformance fixtures, and source-derived
+catalog evidence in this repository follow or derive from earendil-works/pi-mono:
+https://github.com/earendil-works/pi-mono
+Pinned revision: 853a80d26c90a14c1886f0ebb8ffaae133ca2185
+Copyright (c) 2025 Mario Zechner
+License: MIT; the exact root notice at that revision is retained in
+LICENSES/pi-mono-MIT.txt.
+Primary source:
+https://github.com/earendil-works/pi-mono/blob/853a80d26c90a14c1886f0ebb8ffaae133ca2185/LICENSE
+Notice SHA-256: 0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48
+
+models.dev
+----------
+The captured models.dev feed and derived catalog data include material from
+https://models.dev/ and https://github.com/anomalyco/models.dev.
+Copyright (c) 2025 models.dev
+License: MIT; the primary source notice is retained in LICENSES/models.dev-MIT.txt.
+Primary source: https://raw.githubusercontent.com/anomalyco/models.dev/dev/LICENSE
+Notice retrieved: 2026-10-14 (UTC)
+Notice SHA-256: dc2dc41c9fea2fd3c41c21c6f484844cab367800b88ff24781f980ad3a9d160a
+
+Captured catalog feeds
+----------------------
+All five feeds below were captured on 2026-09-07 (UTC), without account
+credentials. Exact retrieval timestamps, response metadata, lengths, and hashes
+are retained in conformance/catalog/capture.json; original bytes are retained in
+conformance/catalog/inputs/. The generated catalogs and evidence identify their
+source through conformance/catalog/generated/provenance.json and
+conformance/catalog/source-manifest.json.
+
+models.dev: https://models.dev/api.json
+OpenRouter text: https://openrouter.ai/api/v1/models
+OpenRouter images: https://openrouter.ai/api/v1/models?output_modalities=image
+Vercel AI Gateway: https://ai-gateway.vercel.sh/v1/models
+NVIDIA: https://integrate.api.nvidia.com/v1/models
+
+The models.dev MIT notice above applies to that source. Attribution and dated
+capture provenance for the other feeds do not establish their license terms or
+make all captured feed material subject to Pirua's MIT license. Consult the
+respective providers' terms for uses of their data.
+
+Dependencies
+------------
+Rust and upstream npm dependencies retain their own licenses and notices.
+Cargo.lock and the pinned upstream package-lock.json identify the exact dependency
+versions used by this snapshot; the two notices included here do not replace
+those dependencies' license obligations.

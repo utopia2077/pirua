@@ -1,11 +1,11 @@
-import net from 'node:net';
+import net from 'node:net';import {upstreamRoot} from '../../upstream.mjs';
 import {once} from 'node:events';
 import {execFileSync} from 'node:child_process';
 import {stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {deepStrictEqual} from 'node:assert';
-const source=execFileSync('git',['show','853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/ai/src/utils/headers.ts'],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show','853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/ai/src/utils/headers.ts'],{cwd:upstreamRoot,encoding:'utf8'});
 const headersToRecord=new Function(stripTypeScriptTypes(source.replace(/^import.*\n/gm,'').replace(/^export /gm,''))+'\nreturn headersToRecord;')();
 const rows=[];
 for(const values of [[' a '],[' a ',' b '],['a\t','\tb'],['',' b '],[' a ',''],['a','b'],['  ','\t'],['a  ',' b\t','c ']]) {

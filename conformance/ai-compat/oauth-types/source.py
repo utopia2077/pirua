@@ -7,6 +7,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+from upstream import resolve_upstream
+
 PIN = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
 MODULE = "packages/ai/src/compat/extension-oauth-types.ts"
 FIELDS = {
@@ -46,7 +49,7 @@ def export_names(text):
 def capture():
     sources = {}
     for path in [MODULE, "packages/ai/src/oauth.ts", "packages/ai/src/index.ts"]:
-        sources[path] = subprocess.check_output(["/usr/bin/git", "-C", "upstream/pi-mono", "show", f"{PIN}:{path}"], env={"PATH": "/usr/bin:/bin"}).decode()
+        sources[path] = subprocess.check_output(["/usr/bin/git", "-C", str(resolve_upstream()), "show", f"{PIN}:{path}"], env={"PATH": "/usr/bin:/bin"}).decode()
     shape(sources[MODULE])
     assert export_names(sources["packages/ai/src/oauth.ts"]) == EXPORTS
     assert export_names(sources["packages/ai/src/index.ts"]) == [s for s in EXPORTS if s != "OAuthCredentials"]

@@ -1,11 +1,11 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot, upstreamUrl} from '../../upstream.mjs';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import {deepStrictEqual} from 'node:assert';
 import vm from 'node:vm';
-import {GoogleGenAI,FinishReason,FunctionCallingConfigMode} from 'upstream/pi-mono/node_modules/@google/genai/dist/node/index.mjs';
-const upstream='upstream/pi-mono',commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const {GoogleGenAI,FinishReason,FunctionCallingConfigMode}=await import(upstreamUrl('node_modules/@google/genai/dist/node/index.mjs'));
+const upstream=upstreamRoot,commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const require=createRequire(upstream+'/package.json');
 const sdkPath=upstream+'/node_modules/@google/genai/dist/node/index.mjs';
 const authority={commit,sdk:JSON.parse(readFileSync(upstream+'/node_modules/@google/genai/package.json','utf8')).version,sha256:createHash('sha256').update(readFileSync(sdkPath)).digest('hex'),node:process.version};

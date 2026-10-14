@@ -1,9 +1,9 @@
-import {createRequire} from 'node:module';
+import {createRequire} from 'node:module';import {upstreamPath} from '../../upstream.mjs';
 import {createServer} from 'node:http2';
 import {once} from 'node:events';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const require=createRequire('upstream/pi-mono/package.json');const {NodeHttp2Handler}=require('@smithy/node-http-handler');const {HttpRequest}=require('@smithy/core/protocols');
+const require=createRequire(upstreamPath('package.json'));const {NodeHttp2Handler}=require('@smithy/node-http-handler');const {HttpRequest}=require('@smithy/core/protocols');
 assert.equal(require('@smithy/node-http-handler/package.json').version,'4.7.3');
 assert.equal(process.versions.node,'26.8.1');
 const server=createServer();const events=[];let finish;

@@ -14,6 +14,11 @@ from pathlib import Path
 import validate_docs as validator
 
 
+try:
+    from .upstream import resolve_upstream, upstream_environment
+except ImportError:
+    from upstream import resolve_upstream, upstream_environment
+
 ROOT = Path(__file__).resolve().parents[1]
 MAP_PATH = ROOT / "upstream-map.toml"
 TOPOLOGY_PATH = ROOT / "workspace-topology.toml"
@@ -712,7 +717,7 @@ def expected_outputs() -> dict[Path, str]:
     if errors:
         raise RuntimeError("; ".join(errors))
     upstream = map_data["upstream"]
-    checkout = Path(upstream["checkout"])
+    checkout = resolve_upstream(upstream["checkout"])
     commit = upstream["commit"]
     return {
         ROOT / "upstream/manifests/routes.toml": route_manifest(commit, entries),

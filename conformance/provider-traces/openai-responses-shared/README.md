@@ -55,14 +55,10 @@ Reproduce with `node numeric-wire-oracle.mjs --check`; it runs exact extracted
 processor/stop-mapper/text-signature bodies with calculateCost stubbed and costs
 excluded from observations. This is not an exhaustive raw IEEE-754 parser audit.
 
-The independent review of rejected commit `360ce760` found both the numeric
-signature-byte gap and premature status validation. The review report remains
-at `/tmp/rust-harness-s04-responses-shared-review.md`; the correction does not
-rewrite its findings. `wire-json.json` records additional executed native
-JSON.stringify oracle cases used by the pinned source, including nested numeric
-keys, integer Number variants outside the JS safe range, f64 spelling thresholds,
-negative zero, subnormals and Unicode escapes. Reproduce their exact expected
-string values with `node wire-json-oracle.mjs --check` from this directory.
+`wire-json.json` records executed native JSON.stringify oracle cases, including
+nested numeric keys, integer Number variants outside the JS safe range, f64
+spelling thresholds, negative zero, subnormals and Unicode escapes. Reproduce
+the exact expected strings with `node wire-json-oracle.mjs --check`.
 
 ## Public integration contract
 

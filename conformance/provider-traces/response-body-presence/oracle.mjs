@@ -1,11 +1,11 @@
-import {GoogleGenAI,FinishReason,FunctionCallingConfigMode,ResourceScope,ThinkingLevel} from 'upstream/pi-mono/node_modules/@google/genai/dist/node/index.mjs';
+const {GoogleGenAI,FinishReason,FunctionCallingConfigMode,ResourceScope,ThinkingLevel}=await import(upstreamUrl('node_modules/@google/genai/dist/node/index.mjs'));import {upstreamRoot, upstreamUrl} from '../../upstream.mjs';
 import {execFileSync} from 'node:child_process';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-const root='upstream/pi-mono',pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',require=createRequire(root+'/package.json'),hashes={};
+const root=upstreamRoot,pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',require=createRequire(root+'/package.json'),hashes={};
 const source=p=>{const s=execFileSync('git',['show',pin+':packages/ai/src/'+p],{cwd:root,encoding:'utf8'});hashes[p]=createHash('sha256').update(s).digest('hex');return s;};
 const clean=s=>stripTypeScriptTypes(s.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));
 globalThis.fetch=()=>{throw Error('unconfigured network forbidden');};

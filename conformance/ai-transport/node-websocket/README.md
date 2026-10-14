@@ -50,7 +50,7 @@ env -i PATH=/usr/bin:/bin NODE_NO_WARNINGS=1 node conformance/ai-transport/node-
 ```
 
 This deliberately exits1: bundled connection15608 calls `includes` on null when
-a response protocol exists but no request protocol was supplied. Controller
+a response protocol exists but no request protocol was supplied. The contract
 approved typed Protocol + resource release for this invalid source-fatal input.
 It is not a fabricated normal Node error/close golden, and does not authorize raw
 exception prose or a process crash. A dedicated native test proves the safe

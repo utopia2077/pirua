@@ -213,11 +213,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -248,11 +248,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -540,11 +540,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -575,11 +575,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -870,11 +870,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -905,11 +905,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -1202,11 +1202,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -1237,11 +1237,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -1535,11 +1535,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -1570,11 +1570,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -1746,7 +1746,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket transport is not available in this runtime",
-                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
+                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -1796,7 +1796,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket transport is not available in this runtime",
-                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
+                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -1848,7 +1848,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket transport is not available in this runtime",
-                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
+                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -1901,7 +1901,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket transport is not available in this runtime",
-                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
+                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -1938,11 +1938,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -1954,7 +1954,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket transport is not available in this runtime",
-                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
+                  "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -1991,11 +1991,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -2007,7 +2007,7 @@
             "error": {
               "name": "Error",
               "message": "WebSocket transport is not available in this runtime",
-              "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
+              "stack": "Error: WebSocket transport is not available in this runtime\n    at connectWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1032:9)\n    at async acquireWebSocket (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1116:18)\n    at async processWebSocketStream (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1456:45)\n    at async eval (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:285:7)"
             },
             "details": {
               "configuredTransport": "auto",
@@ -2188,7 +2188,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket error",
-                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -2238,7 +2238,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket error",
-                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -2290,7 +2290,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket error",
-                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -2343,7 +2343,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket error",
-                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -2380,11 +2380,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -2396,7 +2396,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket error",
-                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -2433,11 +2433,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -2449,7 +2449,7 @@
             "error": {
               "name": "Error",
               "message": "WebSocket error",
-              "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+              "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
             },
             "details": {
               "configuredTransport": "auto",
@@ -2714,7 +2714,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket error",
-                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                  "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -2757,7 +2757,7 @@
             "error": {
               "name": "Error",
               "message": "WebSocket error",
-              "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+              "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
             },
             "details": {
               "configuredTransport": "auto",
@@ -3062,11 +3062,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -3097,11 +3097,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -3455,11 +3455,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -3490,11 +3490,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -3836,11 +3836,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -3871,11 +3871,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -4168,11 +4168,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -4203,11 +4203,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -4647,11 +4647,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -4682,11 +4682,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -4987,11 +4987,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -5022,11 +5022,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -5326,11 +5326,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -5361,11 +5361,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -5657,11 +5657,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000045,
-                "output": 0.000015,
-                "cacheRead": 0.000015,
+                "input": 4.5e-05,
+                "output": 1.5e-05,
+                "cacheRead": 1.5e-05,
                 "cacheWrite": 0,
-                "total": 0.00007500000000000001
+                "total": 7.500000000000001e-05
               }
             },
             "stopReason": "stop",
@@ -5692,11 +5692,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000045,
-            "output": 0.000015,
-            "cacheRead": 0.000015,
+            "input": 4.5e-05,
+            "output": 1.5e-05,
+            "cacheRead": 1.5e-05,
             "cacheWrite": 0,
-            "total": 0.00007500000000000001
+            "total": 7.500000000000001e-05
           }
         },
         "stopReason": "stop",
@@ -5990,11 +5990,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000009,
-                "output": 0.000003,
-                "cacheRead": 0.000003,
+                "input": 9e-06,
+                "output": 3e-06,
+                "cacheRead": 3e-06,
                 "cacheWrite": 0,
-                "total": 0.000015
+                "total": 1.5e-05
               }
             },
             "stopReason": "stop",
@@ -6025,11 +6025,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000009,
-            "output": 0.000003,
-            "cacheRead": 0.000003,
+            "input": 9e-06,
+            "output": 3e-06,
+            "cacheRead": 3e-06,
             "cacheWrite": 0,
-            "total": 0.000015
+            "total": 1.5e-05
           }
         },
         "stopReason": "stop",
@@ -6323,11 +6323,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -6358,11 +6358,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -6656,11 +6656,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -6691,11 +6691,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -6993,11 +6993,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -7028,11 +7028,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -7325,11 +7325,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -7360,11 +7360,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -7659,11 +7659,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -7694,11 +7694,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -7991,11 +7991,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -8026,11 +8026,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -8335,11 +8335,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -8370,11 +8370,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -8723,11 +8723,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -8758,11 +8758,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -9305,11 +9305,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -9340,11 +9340,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -9696,11 +9696,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -9731,11 +9731,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -10087,11 +10087,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -10122,11 +10122,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -10478,11 +10478,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -10513,11 +10513,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -10870,11 +10870,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -10905,11 +10905,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -11454,11 +11454,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -11489,11 +11489,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -11842,11 +11842,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -11877,11 +11877,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -12222,11 +12222,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -12257,11 +12257,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -12616,11 +12616,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -12651,11 +12651,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -13095,11 +13095,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -13130,11 +13130,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -13896,7 +13896,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket connect timeout after 50ms",
-                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -13946,7 +13946,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket connect timeout after 50ms",
-                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -13998,7 +13998,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket connect timeout after 50ms",
-                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14051,7 +14051,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket connect timeout after 50ms",
-                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14088,11 +14088,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -14104,7 +14104,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket connect timeout after 50ms",
-                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14141,11 +14141,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -14157,7 +14157,7 @@
             "error": {
               "name": "Error",
               "message": "WebSocket connect timeout after 50ms",
-              "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+              "stack": "Error: WebSocket connect timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1092:10)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
             },
             "details": {
               "configuredTransport": "auto",
@@ -14363,7 +14363,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket idle timeout after 50ms",
-                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14413,7 +14413,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket idle timeout after 50ms",
-                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14465,7 +14465,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket idle timeout after 50ms",
-                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14518,7 +14518,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket idle timeout after 50ms",
-                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14555,11 +14555,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -14571,7 +14571,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket idle timeout after 50ms",
-                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14608,11 +14608,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -14624,7 +14624,7 @@
             "error": {
               "name": "Error",
               "message": "WebSocket idle timeout after 50ms",
-              "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+              "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
             },
             "details": {
               "configuredTransport": "auto",
@@ -14899,7 +14899,7 @@
                 "error": {
                   "name": "Error",
                   "message": "WebSocket idle timeout after 50ms",
-                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+                  "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
                 },
                 "details": {
                   "configuredTransport": "auto",
@@ -14942,7 +14942,7 @@
             "error": {
               "name": "Error",
               "message": "WebSocket idle timeout after 50ms",
-              "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
+              "stack": "Error: WebSocket idle timeout after 50ms\n    at Object.eval [as fn] (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1344:21)\n    at fire (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:29:220)\n    at drive (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:48:258)\n    at async Object.finish (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:49:832)\n    at async Object.run (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:50:107)\n    at async file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/oracle.mjs:27:70"
             },
             "details": {
               "configuredTransport": "auto",
@@ -15259,11 +15259,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -15294,11 +15294,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -15648,11 +15648,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -15683,11 +15683,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -16044,11 +16044,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -16079,11 +16079,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -16418,11 +16418,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -16453,11 +16453,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -16784,11 +16784,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -16819,11 +16819,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -17118,11 +17118,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -17153,11 +17153,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -17460,11 +17460,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -17495,11 +17495,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -17802,11 +17802,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -17837,11 +17837,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -18141,11 +18141,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -18176,11 +18176,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -18480,11 +18480,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000036,
-                "output": 0.000012,
-                "cacheRead": 0.000012,
+                "input": 3.6e-05,
+                "output": 1.2e-05,
+                "cacheRead": 1.2e-05,
                 "cacheWrite": 0,
-                "total": 0.00006
+                "total": 6e-05
               }
             },
             "stopReason": "stop",
@@ -18515,11 +18515,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000036,
-            "output": 0.000012,
-            "cacheRead": 0.000012,
+            "input": 3.6e-05,
+            "output": 1.2e-05,
+            "cacheRead": 1.2e-05,
             "cacheWrite": 0,
-            "total": 0.00006
+            "total": 6e-05
           }
         },
         "stopReason": "stop",
@@ -18814,11 +18814,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -18849,11 +18849,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -19154,11 +19154,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -19189,11 +19189,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -19498,11 +19498,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -19533,11 +19533,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -19833,11 +19833,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -19868,11 +19868,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -20168,11 +20168,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -20203,11 +20203,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -20546,11 +20546,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -20581,11 +20581,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -21016,11 +21016,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -21051,11 +21051,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -21513,11 +21513,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -21548,11 +21548,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -23536,11 +23536,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -23571,11 +23571,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -23927,11 +23927,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -23962,11 +23962,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -24318,11 +24318,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -24353,11 +24353,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -24709,11 +24709,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -24744,11 +24744,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -25100,11 +25100,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -25135,11 +25135,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -25491,11 +25491,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -25526,11 +25526,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -25882,11 +25882,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -25917,11 +25917,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -26273,11 +26273,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -26308,11 +26308,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -26651,11 +26651,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -26686,11 +26686,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -26981,11 +26981,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -27016,11 +27016,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -27311,11 +27311,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -27346,11 +27346,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -27641,11 +27641,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -27676,11 +27676,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -27971,11 +27971,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -28006,11 +28006,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -28301,11 +28301,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -28336,11 +28336,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",
@@ -28631,11 +28631,11 @@
               "reasoning": 0,
               "totalTokens": 23,
               "cost": {
-                "input": 0.000018,
-                "output": 0.000006,
-                "cacheRead": 0.000006,
+                "input": 1.8e-05,
+                "output": 6e-06,
+                "cacheRead": 6e-06,
                 "cacheWrite": 0,
-                "total": 0.00003
+                "total": 3e-05
               }
             },
             "stopReason": "stop",
@@ -28666,11 +28666,11 @@
           "reasoning": 0,
           "totalTokens": 23,
           "cost": {
-            "input": 0.000018,
-            "output": 0.000006,
-            "cacheRead": 0.000006,
+            "input": 1.8e-05,
+            "output": 6e-06,
+            "cacheRead": 6e-06,
             "cacheWrite": 0,
-            "total": 0.00003
+            "total": 3e-05
           }
         },
         "stopReason": "stop",

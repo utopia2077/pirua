@@ -94,8 +94,7 @@ adds seven real-listener controls: releasing and cancelling a deliberately
 noncooperative primary reply for each provider, plus OpenRouter's existing login
 timeout. The owning reply drops exactly once; accepted connections reach EOF and
 actual callback ports can rebind. The source's queued response can already finish
-while Rust still awaits the host ACK. This is the controller-approved plan 24 /
-conventions 44 normalization, not stalled-ACK scheduling parity. Browser token
+while Rust still awaits the host ACK. This is the explicit host-ACK normalization, not stalled-ACK scheduling parity. Browser token
 exchange may consequently wait for that primary ACK. Original cancellation stays
 live, and OpenRouter retains its existing timeout owner throughout the ACK wait.
 Invalid/duplicate reply futures are instead queued and polled beside login work;
@@ -138,7 +137,7 @@ runtime behavior are implemented; no factory/catalog/registry work is included;
 explicit native forwarding and exact feature guard admission complete the
 previously deferred foundation feature seam; no additional dependency version,
 core DTO/signature/default, ambient discovery, browser launcher or excluded OAuth
-flow is added. The controller's main gate and independent review remain acceptance
+flow is added. The complete workspace gate and independent review remain acceptance
 requirements after this unit's isolated full gate.
 
 ## OpenRouter review correction

@@ -18,7 +18,7 @@
     "packages/ai/src/utils/provider-retry.ts": "d0f68cfe9fe6a5d4be778eaefedc0b453021f89026810691dcd1479371dca699",
     "packages/ai/src/utils/sanitize-unicode.ts": "f8ef2c957f9f13a77df45ebf344f1b852dfe8f2e3d164d815127ea7290c12e22"
   },
-  "driverSha256": "3db6ebef96e4cdb067b698e224a80bdbd8eeaa39f10c948f88cd1186ded7eafb",
+  "driverSha256": "d516568277ff95f480600db10c086d8e7863f67578e493bc60b39d21837d9265",
   "model": {
     "id": "synthetic-model",
     "name": "Synthetic",

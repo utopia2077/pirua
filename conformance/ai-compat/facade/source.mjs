@@ -1,4 +1,4 @@
-import vm from 'node:vm';
+import vm from 'node:vm';import {upstreamRoot} from '../../upstream.mjs';
 import {readFileSync,writeFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -13,7 +13,7 @@ const mutations={
  shortcut:['compat.ts','candidate.api === model.api','candidate.id === model.id'],
  imageupsert:['providers/images/register-builtins.ts','registerImagesApiProvider({','false && registerImagesApiProvider({'],
 };
-function read(path){return sources[path]??=execFileSync('/usr/bin/git',['-C','upstream/pi-mono','show',`${pin}:packages/ai/src/${path}`],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});}
+function read(path){return sources[path]??=execFileSync('/usr/bin/git',['-C',upstreamRoot,'show',`${pin}:packages/ai/src/${path}`],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});}
 const context=vm.createContext({});
 let envCalls=0,key='env-key',direct=0,resolved=0,loads=0,onEnv;
 const factories=new Map();

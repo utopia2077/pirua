@@ -11,8 +11,9 @@ client responses, unterminated event construction and unknown trailing events.
 
 Source blob: `6c4ff62d08c2082e962ef79fdc913e35826fa4df`.
 Source SHA256: `c63b3cbe8afe2504bb5f60f2e7f7b8f773de68486a03cc0cc266c3c76f73f7f6`.
-The supplied initial oracle is retained byte-for-byte as `initial-oracle.mjs`,
-SHA256 `a26218a2e9fb47b383b1aebfcca24ce41508c5c425f89829c866071bb09df37f`.
+The initial oracle uses portable checkout resolution in `initial-oracle.mjs`,
+while retaining the pinned processor and source identities above. Script
+SHA256 `f8d491d5d3e7c0dcca0e2721cfb9e509756e8f68b302ce4355b1962ddd26b011`.
 
 ## Executed evidence
 

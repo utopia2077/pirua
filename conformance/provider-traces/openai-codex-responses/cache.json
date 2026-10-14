@@ -214,11 +214,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -249,11 +249,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -316,11 +316,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -488,11 +488,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -523,11 +523,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -911,11 +911,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -946,11 +946,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -1013,11 +1013,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -1185,11 +1185,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -1220,11 +1220,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -1589,11 +1589,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -1624,11 +1624,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -1691,11 +1691,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -1863,11 +1863,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -1898,11 +1898,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -2286,11 +2286,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -2321,11 +2321,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -2388,11 +2388,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -2560,11 +2560,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -2595,11 +2595,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -2964,11 +2964,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -2999,11 +2999,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -3200,11 +3200,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -3235,11 +3235,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -3592,11 +3592,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -3627,11 +3627,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -3828,11 +3828,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -3863,11 +3863,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -4249,11 +4249,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -4284,11 +4284,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -4485,11 +4485,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -4520,11 +4520,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -4906,11 +4906,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -4941,11 +4941,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -5142,11 +5142,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -5177,11 +5177,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -5568,11 +5568,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -5603,11 +5603,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -5804,11 +5804,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -5839,11 +5839,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -6228,11 +6228,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -6263,11 +6263,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -6464,11 +6464,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -6499,11 +6499,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -6849,11 +6849,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -6884,11 +6884,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -7085,11 +7085,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -7120,11 +7120,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -7386,7 +7386,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "auto",
@@ -7436,7 +7436,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "auto",
@@ -7488,7 +7488,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "auto",
@@ -7541,7 +7541,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "auto",
@@ -7578,11 +7578,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -7594,7 +7594,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "auto",
@@ -7631,11 +7631,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -7647,7 +7647,7 @@
               "error": {
                 "name": "Error",
                 "message": "WebSocket error",
-                "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
               },
               "details": {
                 "configuredTransport": "auto",
@@ -7850,11 +7850,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -7885,11 +7885,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -8086,11 +8086,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -8121,11 +8121,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -8603,11 +8603,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -8638,11 +8638,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -8839,11 +8839,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -8874,11 +8874,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -9237,11 +9237,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -9272,11 +9272,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -9339,11 +9339,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -9506,11 +9506,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -9541,11 +9541,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -9892,11 +9892,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -9927,11 +9927,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -9994,11 +9994,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -10166,11 +10166,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -10201,11 +10201,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -10638,11 +10638,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -10673,11 +10673,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -10740,11 +10740,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -10912,11 +10912,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -10947,11 +10947,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -11354,11 +11354,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -11389,11 +11389,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -11456,11 +11456,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -11628,11 +11628,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -11663,11 +11663,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -12123,11 +12123,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -12158,11 +12158,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -12225,11 +12225,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -12309,7 +12309,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "websocket-cached",
@@ -12361,7 +12361,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "websocket-cached",
@@ -12414,7 +12414,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "websocket-cached",
@@ -12451,11 +12451,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -12467,7 +12467,7 @@
                   "error": {
                     "name": "Error",
                     "message": "WebSocket error",
-                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                    "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
                   },
                   "details": {
                     "configuredTransport": "websocket-cached",
@@ -12504,11 +12504,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -12520,7 +12520,7 @@
               "error": {
                 "name": "Error",
                 "message": "WebSocket error",
-                "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file://.-worktrees/s04-codex-final/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
+                "stack": "Error: WebSocket error\n    at extractWebSocketError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1216:9)\n    at onError (eval at load (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:42:411), <anonymous>:1300:12)\n    at Socket.emit (file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:35:70)\n    at file:///pirua-conformance/conformance/provider-traces/openai-codex-responses/harness.mjs:36:420"
               },
               "details": {
                 "configuredTransport": "websocket-cached",
@@ -13069,11 +13069,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -13104,11 +13104,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -13171,11 +13171,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -13715,11 +13715,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -13750,11 +13750,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -13817,11 +13817,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -14294,11 +14294,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -14329,11 +14329,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -14396,11 +14396,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -14589,11 +14589,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -14624,11 +14624,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -15074,11 +15074,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -15109,11 +15109,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",
@@ -15176,11 +15176,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -15370,11 +15370,11 @@
                 "reasoning": 0,
                 "totalTokens": 23,
                 "cost": {
-                  "input": 0.000018,
-                  "output": 0.000006,
-                  "cacheRead": 0.000006,
+                  "input": 1.8e-05,
+                  "output": 6e-06,
+                  "cacheRead": 6e-06,
                   "cacheWrite": 0,
-                  "total": 0.00003
+                  "total": 3e-05
                 }
               },
               "stopReason": "stop",
@@ -15405,11 +15405,11 @@
             "reasoning": 0,
             "totalTokens": 23,
             "cost": {
-              "input": 0.000018,
-              "output": 0.000006,
-              "cacheRead": 0.000006,
+              "input": 1.8e-05,
+              "output": 6e-06,
+              "cacheRead": 6e-06,
               "cacheWrite": 0,
-              "total": 0.00003
+              "total": 3e-05
             }
           },
           "stopReason": "stop",

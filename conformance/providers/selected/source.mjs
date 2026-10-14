@@ -1,6 +1,6 @@
 // Complete pinned factory/all/model/lazy/auth source, with captured catalog inputs.
 // Excluded factories are classification-only sentinels; no excluded body is claimed.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {registerHooks} from 'node:module';
 import {dirname,resolve,join} from 'node:path';
@@ -9,7 +9,7 @@ import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../..');
-const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream='upstream/pi-mono';
+const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream=upstreamRoot;
 const ids=['anthropic','deepseek','google','openai','openai-codex','openrouter'];
 const temp=mkdtempSync(join(tmpdir(),'selected-factory-source-')),base=pathToFileURL(temp+'/').href,files={},inputs={};
 const hash=b=>createHash('sha256').update(b).digest('hex');

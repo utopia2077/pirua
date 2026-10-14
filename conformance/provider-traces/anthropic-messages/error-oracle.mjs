@@ -1,8 +1,8 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import vm from 'node:vm';
 const commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const root='upstream/pi-mono';const require=createRequire(`${root}/package.json`);
+const root=upstreamRoot;const require=createRequire(`${root}/package.json`);
 const SDK=require('@anthropic-ai/sdk').default;
 const source=path=>execFileSync('git',['show',`${commit}:packages/ai/src/utils/${path}`],{cwd:root,encoding:'utf8'});
 const context=vm.createContext({setTimeout,clearTimeout});

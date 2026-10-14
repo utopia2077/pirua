@@ -1,6 +1,6 @@
-import {createRequire} from 'node:module';
+import {createRequire} from 'node:module';import {upstreamPath} from '../../upstream.mjs';
 import assert from 'node:assert/strict';
-const require=createRequire('upstream/pi-mono/package.json');
+const require=createRequire(upstreamPath('package.json'));
 const {memoizeIdentityProvider,isIdentityExpired,doesIdentityRequireRefresh}=require('@smithy/core');
 let now=1000000;Date.now=()=>now;
 const rows=[];

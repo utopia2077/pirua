@@ -1,8 +1,8 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import vm from 'node:vm';
 const commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const source=execFileSync('git',['show',`${commit}:packages/ai/src/utils/headers.ts`],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show',`${commit}:packages/ai/src/utils/headers.ts`],{cwd:upstreamRoot,encoding:'utf8'});
 const runtime=vm.createContext({});
 vm.runInContext(stripTypeScriptTypes(source.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,'')),runtime);
 const raw=[['X-Repeat',' first '],['x-repeat','\tsecond\t'],['Cookie','a=1'],['cookie','b=2'],

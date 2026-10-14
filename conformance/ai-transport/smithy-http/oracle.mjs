@@ -1,4 +1,4 @@
-import {createRequire,stripTypeScriptTypes} from 'node:module';
+import {createRequire,stripTypeScriptTypes} from 'node:module';import {upstreamRoot, upstreamPath} from '../../upstream.mjs';
 import {execFileSync} from 'node:child_process';
 import {createServer as netServer} from 'node:net';
 import {createServer as h2Server} from 'node:http2';
@@ -8,13 +8,13 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {Readable} from 'node:stream';
 import {EventEmitter} from 'node:events';
-const require=createRequire('upstream/pi-mono/package.json');
+const require=createRequire(upstreamPath('package.json'));
 const {NodeHttpHandler,NodeHttp2Handler}=require('@smithy/node-http-handler');
 const {HttpRequest}=require('@smithy/core/protocols');
 assert.equal(require('@smithy/node-http-handler/package.json').version,'4.7.3');
 assert.equal(process.versions.node,'26.8.1');
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const source=execFileSync('git',['show',pin+':packages/ai/src/api/bedrock-converse-stream.ts'],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show',pin+':packages/ai/src/api/bedrock-converse-stream.ts'],{cwd:upstreamRoot,encoding:'utf8'});
 const begin=source.indexOf('function isSmithyHttpResponse('),end=source.indexOf('/**',begin);
 const project=new Function(stripTypeScriptTypes(source.slice(begin,end))+'\nreturn toProviderResponse;')();
 const raw=[['x-z','one'],['set-cookie','a=1'],['x-a','two'],['set-cookie','b=2'],['x-z','three'],['cookie','a=1'],['cookie','b=2'],['x-byte','\u00a0kept\u00a0'],['content-length','0']];
@@ -45,7 +45,7 @@ for(const fields of ['x-test: one\r\n two\r\n','x-test: one \t\r\n\t two \t\r\n'
  try{await handler.handle(new HttpRequest({protocol:'http:',hostname:'127.0.0.1',port:server.address().port,path:'/'}));assert.fail('invalid physical head must reject');}catch(error){code=error.code;assert.ok(code?.startsWith('HPE_'));}finally{handler.destroy();await new Promise(resolve=>server.close(resolve));}
  admission.push({head,errorCode:code});
 }
-const writerSource=readFileSync('upstream/pi-mono/node_modules/@smithy/node-http-handler/dist-es/write-request-body.js','utf8');
+const writerSource=readFileSync(upstreamPath('node_modules/@smithy/node-http-handler/dist-es/write-request-body.js'),'utf8');
 let graceCallback,graceMs;const ends=[];
 const writer=new Function('Readable','timing',writerSource.replace(/^import .*;$/gm,'').replace(/^export /gm,'')+'\nreturn writeRequestBody;')(Readable,{setTimeout:(callback,ms)=>{graceCallback=callback;graceMs=ms;return 1;},clearTimeout:()=>{}});
 const sink=new EventEmitter();sink.end=value=>ends.push(value);const write=writer(sink,{headers:{expect:'100-continue'},body:'{}'});assert.equal(graceMs,6000);assert.deepEqual(ends,[]);graceCallback();await write;assert.deepEqual(ends,['{}']);

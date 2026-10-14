@@ -1,9 +1,9 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import { stripTypeScriptTypes, createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { deepStrictEqual } from 'node:assert';
 import { createHash } from 'node:crypto';
-const upstream='upstream/pi-mono';
+const upstream=upstreamRoot;
 const commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const require=createRequire(`${upstream}/package.json`);
 const OpenAI=require('openai').default;

@@ -1,14 +1,14 @@
-import {createRequire} from 'node:module';
+import {createRequire} from 'node:module';import {upstreamPath, upstreamEnvironment} from '../../upstream.mjs';
 import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 if(process.argv[2]!=='child'){
  const rows=[];for(const flag of [null,'false','TRUE','1','true']){
-  const env={PATH:'/usr/bin:/bin',NODE_NO_WARNINGS:'1',...(flag===null?{}:{SMITHY_NEW_RETRIES_2026:flag})};
+  const env=upstreamEnvironment({PATH:'/usr/bin:/bin',NODE_NO_WARNINGS:'1',...(flag===null?{}:{SMITHY_NEW_RETRIES_2026:flag})});
   rows.push(JSON.parse(execFileSync(process.execPath,[import.meta.filename,'child'],{env,encoding:'utf8'})));
  }
  assert(rows.every(row=>row.active===(row.flag==='true')));console.log(JSON.stringify(rows,null,2));
 }else{
- const require=createRequire('upstream/pi-mono/package.json');
+ const require=createRequire(upstreamPath('package.json'));
  const r=require('@smithy/core/retry'),{HttpResponse}=require('@smithy/core/protocols');
  let now=1767323045000;Date.now=()=>now;Math.random=()=>0.5;
  const flag=process.env.SMITHY_NEW_RETRIES_2026??null,active=r.Retry.v2026;

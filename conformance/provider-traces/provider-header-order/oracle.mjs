@@ -1,10 +1,10 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {deepStrictEqual} from 'node:assert';
 import vm from 'node:vm';
-const upstream='upstream/pi-mono',commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const upstream=upstreamRoot,commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const require=createRequire(`${upstream}/package.json`);
 const OpenAI=require('openai').default,Anthropic=require('@anthropic-ai/sdk').default;
 deepStrictEqual(JSON.parse(readFileSync(`${upstream}/node_modules/openai/package.json`,'utf8')).version,'6.40.0');

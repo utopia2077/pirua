@@ -1,6 +1,6 @@
-import {createRequire} from 'node:module';
+import {createRequire} from 'node:module';import {upstreamPath} from '../../upstream.mjs';
 import assert from 'node:assert/strict';
-const require=createRequire('upstream/pi-mono/package.json');
+const require=createRequire(upstreamPath('package.json'));
 const {EventStreamCodec,Int64,getChunkedStream}=require('@smithy/core/event-streams');
 const {Crc32}=require('@aws-crypto/crc32');
 assert.equal(require('@smithy/core/package.json').version,'3.24.3');

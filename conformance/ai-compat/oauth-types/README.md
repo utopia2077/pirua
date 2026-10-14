@@ -52,4 +52,4 @@ flow, extension adapter, runtime/global facade, provider factory, durable protoc
 new dependency or callback scheduler implemented. `compat=[]` is empty/default-off.
 This proof does not establish extension RPC, live OAuth behavior, automatic signal
 handling or arbitrary host executor behavior. Cumulative export closure and root
-normal-profile verification remain controller-owned.
+normal-profile verification remain separately required.

@@ -1,8 +1,8 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {readFileSync} from 'node:fs';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import vm from 'node:vm';
-const root='upstream/pi-mono',commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
+const root=upstreamRoot,commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const require=createRequire(root+'/package.json');
 const source=p=>execFileSync('git',['show',commit+':packages/ai/src/'+p],{cwd:root,encoding:'utf8'});
 const clean=t=>stripTypeScriptTypes(t.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));

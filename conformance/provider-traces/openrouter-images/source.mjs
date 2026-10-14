@@ -1,5 +1,5 @@
 // Complete immutable image adapter + installed versioned SDK, fake Fetch only.
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, relative } from 'node:path';
@@ -7,7 +7,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const upstream='upstream/pi-mono';
+const upstream=upstreamRoot;
 const here=dirname(fileURLToPath(import.meta.url));
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const scratch=mkdtempSync(join(tmpdir(),'pi-openrouter-images-source-'));

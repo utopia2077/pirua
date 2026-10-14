@@ -1749,7 +1749,7 @@
         "packages/ai/src/api/openai-prompt-cache.ts",
         "packages/ai/src/api/simple-options.ts"
       ],
-      "scriptSha256": "52124765ceb1d247b1c9a2c3d52939f169667795f6386c9bdcc7c7971368e315"
+      "scriptSha256": "f4565d59e681735ac93f953308680487ee130a77f145151b888c390846c78f48"
     },
     {
       "id": "strict-wire",
@@ -1760,7 +1760,7 @@
       "origins": [
         "packages/ai/src/api/constrained-sampling.ts"
       ],
-      "scriptSha256": "5ba13a79c2e62cfff3bfa2cfde45885416ec5271e388382ac8f3493097dc17f5"
+      "scriptSha256": "4a7444f8c966e8a9f25723098a74c3384ab2d3c62afdf10acd2f653a2075f299"
     },
     {
       "id": "simple",
@@ -1771,7 +1771,7 @@
       "origins": [
         "packages/ai/src/api/simple-options.ts"
       ],
-      "scriptSha256": "e1ec675db0f05ed69de9bfea10c9dee0f1d7644c629116305ebd1b27e072e8f4"
+      "scriptSha256": "e9b15f1fd5f6472bc8b4a5d0194da56b338726beb37ef4d03f4ff3aeaf3b3d5f"
     },
     {
       "id": "google-shared",
@@ -1781,7 +1781,7 @@
         "packages/ai/src/api/google-shared.ts"
       ],
       "expected": "conformance/provider-helpers/google-shared/vectors.json",
-      "scriptSha256": "c5e684156d6ba32900eb59751492e187655cd1cc9d398b1b2d7807b49c502c41"
+      "scriptSha256": "b7b8e0d8e1dbf891af88782fa3ab37bac5e77534dac99e005e13ebb356efb1c9"
     },
     {
       "id": "responses-shared",
@@ -1791,7 +1791,7 @@
         "packages/ai/src/api/openai-responses-shared.ts"
       ],
       "expected": "conformance/provider-traces/openai-responses-shared/signature-bytes.json",
-      "scriptSha256": "1013be6a982c927759fe2e962eac2a9df8ef2a3c259f91831f71624025626724"
+      "scriptSha256": "9d137102d7ffbf7b988308682eb681038288aa24715b9e73d71b1a667973659b"
     },
     {
       "id": "lazy",
@@ -1812,7 +1812,7 @@
         "packages/ai/src/api/openai-responses.lazy.ts",
         "packages/ai/src/api/pi-messages.lazy.ts"
       ],
-      "scriptSha256": "031329d41961a28dc9275ccec6a7c72144fd8b8877fda8621d03de7cdac507b5"
+      "scriptSha256": "2fc543bfb673871792f66d9671791812e137c4b643c02cb27a06ef98018ff2e2"
     },
     {
       "id": "anthropic-messages",
@@ -1821,7 +1821,7 @@
       "origins": [
         "packages/ai/src/api/anthropic-messages.ts"
       ],
-      "scriptSha256": "9ea032425f15b007c6ac65da2f6e3384fb7f09437f09cbdf4da13a13896d1d5c",
+      "scriptSha256": "b856d8129ffd39fcb32348f516d59c9c0d63ff89f754d4808d36bfed16f32d5d",
       "expected": "conformance/provider-traces/anthropic-messages/trace.json"
     },
     {
@@ -1833,7 +1833,7 @@
       "origins": [
         "packages/ai/src/api/azure-openai-responses.ts"
       ],
-      "scriptSha256": "167f10e1766f8ce0af791a86a62c216fb3b892da18551847604f2853a5ea3f71"
+      "scriptSha256": "2d819f9c1d6f18d41c149149cb77e941e0ea534d3c6e569176a54512acb88962"
     },
     {
       "id": "openai-completions",
@@ -1844,7 +1844,7 @@
       "origins": [
         "packages/ai/src/api/openai-completions.ts"
       ],
-      "scriptSha256": "7447e15e4b48c846ece6f9963df3f46461a9cc462b4f1fb17f965b5d7afb0fb1"
+      "scriptSha256": "354cc42eb22d9bd632d2a4f060b65f208567e61b795cf592d2397a3689a8cfa3"
     },
     {
       "id": "openai-responses",
@@ -1855,7 +1855,7 @@
       "origins": [
         "packages/ai/src/api/openai-responses.ts"
       ],
-      "scriptSha256": "70ae8f99ecf687b21c2f40ff5db1ac6adde2d202918180ba11f7dc2f9e1c6975"
+      "scriptSha256": "11894b97eb79cfe193fdfd841a10bbf3e1b629a3983929550598f58c6ef1e9bd"
     },
     {
       "id": "google-generative-ai",
@@ -1866,7 +1866,7 @@
       "origins": [
         "packages/ai/src/api/google-generative-ai.ts"
       ],
-      "scriptSha256": "d6fd4917be83dd190ab4a7e12a87c924da92f6bcdc142127e6059a6d2740ddb1"
+      "scriptSha256": "b17903218736fc759046ea38e1dc797441826ad8c9edd189f801770af5ba53fb"
     },
     {
       "id": "google-vertex",
@@ -1877,7 +1877,7 @@
       "origins": [
         "packages/ai/src/api/google-vertex.ts"
       ],
-      "scriptSha256": "836fc9cef310e4f6062f63a21fa76c50d5cf8b98bea4cbe85c1fc97d8419846e"
+      "scriptSha256": "80ddf745dde2d0cf2e3e90d31d3788bab0f8e88716b50df0390709fc6cdd357e"
     },
     {
       "id": "mistral-conversations",
@@ -1886,7 +1886,7 @@
       "origins": [
         "packages/ai/src/api/mistral-conversations.ts"
       ],
-      "scriptSha256": "30934340d29d73873b4db715fb595080fbe0e89d2ac12eccb6b2089e4ed5a110",
+      "scriptSha256": "8fa11eaf5966b075ae197e77019378fe4503fe35db12f3ecd831e28ad129934b",
       "expected": "conformance/provider-traces/mistral-conversations/trace.json"
     },
     {
@@ -1898,7 +1898,7 @@
       "origins": [
         "packages/ai/src/api/pi-messages.ts"
       ],
-      "scriptSha256": "13f4d1eac1a131ae7826c4dffd9bb6a63d744ddbca58ddcc54a1acadcaf6cd3a"
+      "scriptSha256": "751778708ae8481d8164c2a921f4f00dd530abbb90197e9f9021ffa4b505c8b1"
     },
     {
       "id": "cloudflare",
@@ -1910,7 +1910,7 @@
         "packages/ai/src/api/cloudflare.ts",
         "packages/ai/src/api/cloudflare-gateway-binding.ts"
       ],
-      "scriptSha256": "05a055e5840468b4fbb26a36041566849f19b605e630b4bc55e98a75a061d293"
+      "scriptSha256": "9afb8a927bde33c505f63e68c992871962c274a661eb2b1b2570501c76172103"
     },
     {
       "id": "bedrock-family",
@@ -1919,7 +1919,7 @@
       "origins": [
         "packages/ai/src/api/bedrock-converse-stream.ts"
       ],
-      "scriptSha256": "c827556596ecb9a19c1d594ea6aee6b6f4729c584b7bad510a73f9ff57e0a7c6",
+      "scriptSha256": "148c93b6300069460fbcea652593219077666e1949f5b1be29263cda3e6ee8f8",
       "expected": "conformance/provider-traces/bedrock-converse-stream/family.json"
     },
     {
@@ -1931,7 +1931,7 @@
       "origins": [
         "packages/ai/src/api/bedrock-converse-stream.ts"
       ],
-      "scriptSha256": "f766bbf317aff02fc75ed4e9a49554209f6dc2e2ee5bebc46320969a7312afe6"
+      "scriptSha256": "3ca871bf9010a1200e4f41c0f9ea5165373a9c68f0909ee5d78a2e91a0c8d4bf"
     },
     {
       "id": "responses-deferred-order",
@@ -1942,7 +1942,7 @@
       "origins": [
         "packages/ai/src/api/openai-responses-shared.ts"
       ],
-      "scriptSha256": "ab52e1895f64cc17d11e666ce424743e3fc1391a04ea0b2060372e1cb3a3a837"
+      "scriptSha256": "cedd084e6ef0998385d4a61f91057fc84c6e0bbe9455a6d4e7899443b0aef2eb"
     },
     {
       "id": "codex-requests",
@@ -2012,14 +2012,17 @@
   "evidenceFiles": {
     "conformance/provider-traces/openai-codex-responses/account-oracle.mjs": "9b3c8db92b5e3abcb5913732ef0b9f80bc2be078d6acd400ae357c3027d3a2da",
     "conformance/provider-traces/openai-codex-responses/cache-oracle.mjs": "b78fb463a37e40c83db5e9c08c0211ce1ca0c2639a08a335d39746315b1a7ae4",
-    "conformance/provider-traces/openai-codex-responses/harness.mjs": "06925d653f34ad63f0a51e9fe5564225d5306cd5b4e2a7fb80c80f69ece57a97",
+    "conformance/provider-traces/openai-codex-responses/harness.mjs": "b53b2e660b5ce71307c80b4f06c52c9b6fb8b433daa5e283dbdf580c2e60fef7",
     "conformance/provider-traces/openai-codex-responses/metadata-oracle.mjs": "2667337ba30dc9c5cd781da31338ffdf94817bf2dd71026ac7b6aff99becf5a0",
     "conformance/provider-traces/openai-codex-responses/native-frame-oracle.mjs": "92411a5cc36492f923d1ed6ef5810415af30012ab983e492e3b2dcc3983c2765",
     "conformance/provider-traces/openai-codex-responses/oracle.mjs": "af636e21bf5e4f7a7b3855ea1dd567aa876fa62308b32e9aae14b0092c518140",
     "conformance/provider-traces/openai-codex-responses/payload-oracle.mjs": "d188ed8a4bb6614c09bb87682b02b231aa19fc5764cecff0e59ddcce002c46ca",
     "conformance/provider-traces/openai-codex-responses/review-correction-oracle.mjs": "97760e5a824c3a5b545e3d1e04695d34d5237948899ebf9fef093c5993508d6a",
     "conformance/provider-traces/openai-codex-responses/source-comparison-check.mjs": "5bb735d2919b275e052e1b1e48c22f9554a91d1ea62e47cb9c968dadf126a699",
-    "conformance/provider-traces/openai-codex-responses/source-comparison.mjs": "6dfc73c485d6ac2bfcbfa058bd66f971fbac9142370ccf19219141a3ebe2a4bd",
-    "conformance/provider-traces/openai-codex-responses/timeout-oracle.mjs": "65b0d0e2565ffde3cff88fa3757acf64c5f05481d1af91e6c2442d0e5d1229e1"
+    "conformance/provider-traces/openai-codex-responses/source-comparison.mjs": "e63fea958af4093f59332c6f2821a5a13a025265b44d62788c5d4674ab904f31",
+    "conformance/provider-traces/openai-codex-responses/timeout-oracle.mjs": "65b0d0e2565ffde3cff88fa3757acf64c5f05481d1af91e6c2442d0e5d1229e1",
+    "scripts/upstream.py": "338ee17d061330fa7649281af7f2f0d322bd77292b5dcd416b7e020a4da7e5f9",
+    "conformance/upstream.mjs": "3e15611a45f97a6bf3f99b017270ac03a48640da0ac000852647de6174a8cfd2",
+    "crates/pi-ai-transport/examples/loopback_tls.rs": "5b57ca9bbb939807cefd02e95ffb5d2ba41d14aa42259f17c57b1f2a87c6389b"
   }
 }

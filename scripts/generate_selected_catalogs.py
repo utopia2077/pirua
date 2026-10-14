@@ -11,6 +11,11 @@ import subprocess
 import tempfile
 import tomllib
 
+try:
+    from .upstream import resolve_upstream, upstream_environment
+except ImportError:
+    from upstream import resolve_upstream, upstream_environment
+
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = Path("conformance/catalog")
 PIN = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
@@ -104,8 +109,8 @@ def generate(destination: Path, root: Path = ROOT) -> None:
             path = entry["source"]
             if not path.startswith("packages/ai/") or ".." in Path(path).parts:
                 raise CatalogError("catalog source path changed")
-            data = subprocess.check_output(["git", "-C", upstream["checkout"], "show", PIN + ":" + path])
-            oid = subprocess.check_output(["git", "-C", upstream["checkout"], "rev-parse", PIN + ":" + path]).decode().strip()
+            data = subprocess.check_output(["git", "-C", str(resolve_upstream(upstream["checkout"], root=root)), "show", PIN + ":" + path])
+            oid = subprocess.check_output(["git", "-C", str(resolve_upstream(upstream["checkout"], root=root)), "rev-parse", PIN + ":" + path]).decode().strip()
             if digest(data) != entry["sha256"] or len(data) != entry["bytes"] or oid != entry["blobOid"]:
                 raise CatalogError("pinned catalog source bytes changed")
             target = source_root / path
@@ -136,6 +141,7 @@ def generate(destination: Path, root: Path = ROOT) -> None:
         "claim": "reproducible-parity-for-dated-captured-inputs-not-historical-text-catalog",
         "clock": CLOCK, "captureSha256": CAPTURE_SHA256, "sourcesSha256": SOURCES_SHA256,
         "generatorSha256": digest((root / "scripts/generate_selected_catalogs.py").read_bytes()),
+        "resolverSha256": digest((root / "scripts/upstream.py").read_bytes()),
         "nodeBinarySha256": digest(Path("/usr/bin/node").read_bytes()),
         "drivers": {name: digest((root / CATALOG / name).read_bytes()) for name in ("offline-preload.mjs", "project.mjs")},
         "executions": traces, "textCounts": TEXT_COUNTS,

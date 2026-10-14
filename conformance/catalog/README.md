@@ -4,7 +4,7 @@ This corpus proves reproducible parity for the exact dated public feed bytes in
 [capture.json](capture.json), using upstream generator revision
 `853a80d26c90a14c1886f0ebb8ffaae133ca2185`. It does **not** reconstruct the
 historical text catalog whose ignored input/output files are absent from Git.
-All five inputs were captured by the controller without account credentials;
+All five inputs were captured without account credentials;
 this unit independently checked their SHA-256 hashes and copied their original
 bytes. No feed was fetched again. Capture metadata retains URLs, effective URLs,
 retrieval times, status, lengths, response dates and hashes.
@@ -35,12 +35,11 @@ uses its unchanged `--strict` main. The clock is a reproducibility choice within
 the capture second, not a claim about historical generation time.
 
 `project.mjs` selects the six text providers only after complete generation and
-converts each source object into an ordered model array for Rust intake. It
-also exports both distinct image projections. `generated/source-text.json` and
+converts each source object into an ordered model array for Rust intake. It also
+exports both distinct image projections. `generated/source-text.json` and
 `source-grouped.json` retain complete generated provider observations as build
 evidence, including excluded products; only the selected arrays are runtime
-assets. The complete flat output independently matches the controller's earlier
-JSON-only probe byte-for-byte.
+assets.
 
 [Generated provenance](generated/provenance.json) binds every output hash and
 length, input/source manifest hashes, Python generator and JS driver hashes,

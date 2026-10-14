@@ -1,11 +1,11 @@
 // Entry intake only: complete pinned modules, synthetic environment/import services.
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {registerHooks,stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const paths=['packages/ai/src/env-api-keys.ts','packages/ai/src/utils/provider-env.ts'];
-const source=Object.fromEntries(paths.map(p=>[p,execFileSync('/usr/bin/git',['-C','upstream/pi-mono','show',`${pin}:${p}`],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}})]));
+const source=Object.fromEntries(paths.map(p=>[p,execFileSync('/usr/bin/git',['-C',upstreamRoot,'show',`${pin}:${p}`],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}})]));
 const hashes=Object.fromEntries(Object.entries(source).map(([p,s])=>[p,createHash('sha256').update(s).digest('hex')]));
 const imports=[],hostCalls=[];
 globalThis.envIntakeHost={imports,hostCalls};

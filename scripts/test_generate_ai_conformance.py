@@ -353,7 +353,7 @@ class AiConformanceGenerationTest(unittest.TestCase):
                                   and row["owner"] != "S05-platform-replacement"]
         self.assertEqual(len(original_nonapplicable), 22)
         self.assertEqual(generator.canonical_json_digest({"rows": original_nonapplicable}),
-            "001c3de26f703e4aa7ba1cc13034175452cb7a521b4066b7935ff77f3d84b9b1")
+            "3b299421b86261111412c16efc58d0bc56ba5d2ac31f1e0d524c714c74087fc0")
         self.assertEqual(generator.canonical_json_digest({"rows": [row for row in rows
             if row["evidence"].startswith("s04-export:")]}),
             "c9ea7f49563886c7145fd9b62a740433c1624d18364adae5c53712566fcbe9a0")
@@ -696,19 +696,25 @@ class S05ExportAdmissionTests(unittest.TestCase):
         source=next(s for s in self.document["sources"] if s["mode"]=="json")
         expected=(ROOT/source["expected"]).read_text()
         result=mock.Mock(returncode=0,stdout=expected,stderr="")
-        with mock.patch.object(self.s05.subprocess,"run",return_value=result) as run:
-            self.s05.execute_sources([source])
-            self.assertEqual(run.call_args.kwargs["env"],{"PATH":"/usr/bin:/bin","NODE_NO_WARNINGS":"1"})
-        for stdout in ("success", "{}", "[]", ""):
-            with mock.patch.object(self.s05.subprocess,"run",return_value=mock.Mock(returncode=0,stdout=stdout,stderr="")):
-                with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([source])
-        altered=copy.deepcopy(source);altered["executable"]="sh"
-        with mock.patch.object(self.s05.subprocess,"run") as run:
-            with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([altered])
-            run.assert_not_called()
-        checked=next(s for s in self.document["sources"] if s["mode"]=="check" and s["stdout"])
-        with mock.patch.object(self.s05.subprocess,"run",return_value=mock.Mock(returncode=0,stdout="arbitrary success\n",stderr="")):
-            with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([checked])
+        upstream_root = self.s05.resolve_upstream()
+        expected_environment = {"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1",
+                                "PIRUA_UPSTREAM_ROOT": str(upstream_root)}
+        # Keep this source-command mock independent of the resolver's Git calls.
+        resolver_module = sys.modules[self.s05.upstream_environment.__module__]
+        with mock.patch.object(resolver_module, "resolve_upstream", return_value=upstream_root):
+            with mock.patch.object(self.s05.subprocess,"run",return_value=result) as run:
+                self.s05.execute_sources([source])
+                self.assertEqual(run.call_args.kwargs["env"], expected_environment)
+            for stdout in ("success", "{}", "[]", ""):
+                with mock.patch.object(self.s05.subprocess,"run",return_value=mock.Mock(returncode=0,stdout=stdout,stderr="")):
+                    with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([source])
+            altered=copy.deepcopy(source);altered["executable"]="sh"
+            with mock.patch.object(self.s05.subprocess,"run") as run:
+                with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([altered])
+                run.assert_not_called()
+            checked=next(s for s in self.document["sources"] if s["mode"]=="check" and s["stdout"])
+            with mock.patch.object(self.s05.subprocess,"run",return_value=mock.Mock(returncode=0,stdout="arbitrary success\n",stderr="")):
+                with self.assertRaises(self.s05.ClosureError):self.s05.execute_sources([checked])
 
 
 

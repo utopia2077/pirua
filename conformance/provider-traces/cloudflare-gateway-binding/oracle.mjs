@@ -1,10 +1,10 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185', hashes={};
-const source=path=>{const text=execFileSync('git',['show',pin+':packages/ai/src/'+path],{cwd:'upstream/pi-mono',encoding:'utf8'});hashes[path]=createHash('sha256').update(text).digest('hex');return text;};
+const source=path=>{const text=execFileSync('git',['show',pin+':packages/ai/src/'+path],{cwd:upstreamRoot,encoding:'utf8'});hashes[path]=createHash('sha256').update(text).digest('hex');return text;};
 const load=path=>{const text=source(path),names=[...text.matchAll(/export (?:function|const) (\w+)/g)].map(m=>m[1]);const js=stripTypeScriptTypes(text).replace(/^import[\s\S]*?;\s*$/gm,'').replace(/\bexport /g,'');return new Function(js+`\nreturn {${names.join(',')}};`)();};
 const constants=load('api/cloudflare.ts');const {createGatewayBindingFetch,CLOUDFLARE_GATEWAY_BINDING_AUTH_SENTINEL}=load('api/cloudflare-gateway-binding.ts');
 const base='https://gateway.ai.cloudflare.com/v1/account/gateway';

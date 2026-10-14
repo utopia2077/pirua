@@ -3537,7 +3537,7 @@ rust_target = "static Rust request option types"
 evidence = "decision:docs/contracts/ai-domain/export-inventory.md"
 reason = "TypeScript conditional and intersection typing has no runtime contract."
 replacement = "Typed Rust request option structs and traits."
-decision_reference = "export-inventory.md#rust-nonapplicable-projections-22"
+decision_reference = "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22"
 revisit_trigger = "A runtime-observable option-map contract appears upstream."
 expected_occurrences = 6
 
@@ -3567,7 +3567,7 @@ rust_target = "static Rust enums and pi_ai::JsonSchema"
 evidence = "decision:docs/contracts/ai-domain/export-inventory.md"
 reason = "TypeBox runtime schema construction is external to the Rust type system."
 replacement = "Static Rust types plus serialized JSON Schema."
-decision_reference = "export-inventory.md#rust-nonapplicable-projections-22"
+decision_reference = "docs/contracts/ai-domain/export-inventory.md#rust-nonapplicable-projections-22"
 revisit_trigger = "The extension protocol requires dynamic enum-schema construction."
 expected_occurrences = 2
 

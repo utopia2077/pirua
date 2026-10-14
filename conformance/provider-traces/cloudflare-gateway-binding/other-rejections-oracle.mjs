@@ -1,10 +1,10 @@
-import {GoogleGenAI,FinishReason,FunctionCallingConfigMode} from 'upstream/pi-mono/node_modules/@google/genai/dist/node/index.mjs';
+const {GoogleGenAI,FinishReason,FunctionCallingConfigMode}=await import(upstreamUrl('node_modules/@google/genai/dist/node/index.mjs'));import {upstreamRoot, upstreamUrl} from '../../upstream.mjs';
 import {execFileSync} from 'node:child_process';
 import {createRequire,stripTypeScriptTypes} from 'node:module';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream='upstream/pi-mono';
+const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185',upstream=upstreamRoot;
 const require=createRequire(upstream+'/package.json');
 assert.equal(process.versions.node,'26.8.1');
 assert.equal(JSON.parse(readFileSync(upstream+'/node_modules/@anthropic-ai/sdk/package.json','utf8')).version,'0.91.1');

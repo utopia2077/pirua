@@ -89,7 +89,7 @@ connector, enabling TLS over a previously established proxy tunnel.
 
 Context7 lookup used `/snapview/tokio-tungstenite` (official repository) for TLS
 connector guidance; exact pinned crate sources supplied the final signatures.
-Controller separately verified the official Reqwest retry documentation.
+The official Reqwest retry documentation establishes this boundary.
 Native dependencies are default-off and do not add any internal workspace edge.
 
 ## Executed production-backend tests
@@ -171,7 +171,7 @@ versions/checksums and internal workspace edges remain unchanged.
 
 ## Dependency logging custody
 
-Controller clarification: owned public Debug/errors/diagnostics/telemetry are
+Owned public Debug/errors/diagnostics/telemetry are
 redacted. An embedding host enabling dependency wire tracing has selected
 privileged raw-wire instrumentation, equivalent in custody to explicit wire
 accessors. It is not sanitized telemetry. This crate installs no global logger,

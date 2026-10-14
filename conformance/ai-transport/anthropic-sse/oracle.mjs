@@ -1,11 +1,11 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {deepStrictEqual} from 'node:assert';
 import vm from 'node:vm';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const root='upstream/pi-mono';
+const root=upstreamRoot;
 const get=path=>execFileSync('git',['show',`${pin}:${path}`],{cwd:root,encoding:'utf8'});
 const path='packages/ai/src/api/anthropic-messages.ts';
 const source=get(path);

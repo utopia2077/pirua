@@ -82,7 +82,7 @@ core DTOs; raw SSE integral decimal/exponent spellings remain in source inputs.
   global registration, client I/O or credential discovery is invented.
 
 Raw Azure options have strict Serde and globally redacted Debug as approved by
-the controller. Raw input serialization is NOT authority to persist credential
+explicit review. Raw input serialization is NOT authority to persist credential
 URLs or pass them through foreign extension grants. Resolved config only holds a
 non-Serde RequestEndpoint, never writes back into the option/model, and never
 formats raw URL text into errors or telemetry. A synthetic credential-query test
@@ -121,7 +121,7 @@ fixtures and test assertions are unchanged by extraction and remain regressions.
 
 SSE/body/aggregate resource bounds are inherited from the accepted runtime/shared
 processor; no second HTTP client, timer or retry owner exists. Shared Fetch codec/
-default-header integration is separate controller-owned S04 work, not claimed from
+default-header integration is separate separately required S04 work, not claimed from
 this family loopback. No live Azure/provider/TLS/account interoperability, ADC/OAuth,
 provider registration, catalog or S05 facade breadth is established here.
 

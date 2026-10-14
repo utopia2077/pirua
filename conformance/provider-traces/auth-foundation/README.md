@@ -49,7 +49,7 @@ interval events are explicitly rejected, never rounded. Complete OAuth flows
 will bind this helper to their token-response stages in the next unit.
 
 Four-way variance: planned helper/native ports implemented; callback close is
-acknowledged asynchronously as controller-refined; no actual OAuth flow body or
+acknowledged asynchronously as contract-defined; no actual OAuth flow body or
 catalog/factory completion claimed; no extra provider-specific ambient behavior.
 Unverified: live accounts, browser interoperability on other platforms, TLS
 provider token requests, exact Node server wire formatting, hostile allocation

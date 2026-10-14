@@ -1,4 +1,4 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -6,7 +6,7 @@ import {deepStrictEqual} from 'node:assert';
 import vm from 'node:vm';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const path='packages/ai/src/api/anthropic-messages.ts';
-const source=execFileSync('git',['show',`${pin}:${path}`],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show',`${pin}:${path}`],{cwd:upstreamRoot,encoding:'utf8'});
 const hash=createHash('sha256').update(source).digest('hex');
 deepStrictEqual(hash,'c63b3cbe8afe2504bb5f60f2e7f7b8f773de68486a03cc0cc266c3c76f73f7f6');
 const context=vm.createContext({TextDecoder});

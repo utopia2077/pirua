@@ -1,8 +1,8 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot, upstreamUrl} from '../../upstream.mjs';
 import { createHash } from 'node:crypto';
 import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
-import { ApiError, FinishReason, FunctionCallingConfigMode, ThinkingLevel } from 'upstream/pi-mono/node_modules/@google/genai/dist/node/index.mjs';
+const { ApiError, FinishReason, FunctionCallingConfigMode, ThinkingLevel }=await import(upstreamUrl('node_modules/@google/genai/dist/node/index.mjs'));
 
 const revision = '853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const sources = {};
@@ -13,7 +13,7 @@ const math = Object.create(Math); math.random = () => 0.4;
 const sandbox = vm.createContext({ FinishReason, FunctionCallingConfigMode, structuredClone, Error, Headers,
   Date: FixedDate, Math: math, setTimeout: (fn, ms) => { delays.push(ms); queueMicrotask(fn); return 1; }, clearTimeout: () => {} });
 for (const path of ['utils/sanitize-unicode.ts', 'utils/provider-retry.ts', 'api/transform-messages.ts', 'api/constrained-sampling.ts', 'api/google-shared.ts']) {
-  const text = execFileSync('git', ['show', `${revision}:packages/ai/src/${path}`], { cwd: 'upstream/pi-mono', encoding: 'utf8' });
+  const text = execFileSync('git', ['show', `${revision}:packages/ai/src/${path}`], { cwd: upstreamRoot, encoding: 'utf8' });
   sources[path] = createHash('sha256').update(text).digest('hex');
   if (path === 'api/google-shared.ts') exportedNames = [...text.matchAll(/^export (?:type|function) (\w+)/gm)].map(match => match[1]);
   vm.runInContext(stripTypeScriptTypes(text.replace(/^import[\s\S]*?;\n/gm, '').replace(/^export /gm, '')), sandbox, { filename: path });

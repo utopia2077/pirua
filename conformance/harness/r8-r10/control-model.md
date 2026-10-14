@@ -14,7 +14,7 @@ This target has5 Rust test functions and13 finite public histories. It complemen
 All histories use actual RuntimeFactory/public lanes, ModelsRegistry/provider, real
 MemorySessionRepo and manual Effects gates. Crash histories physically close/open only
 after reaching the specified actual committed prefix. Gate names commit_transition,
-run_summary_request and settle_summary_request follow the controller-frozen existing
+run_summary_request and settle_summary_request follow the contract-defined existing
 Effects inventory; tests ALSO match structural status/attempt/index/usage IDs and
 provider start/response counters. No arbitrary durable operation is inserted.
 

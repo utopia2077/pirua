@@ -4,7 +4,7 @@ The frozen corpus contains eighteen positive rows and eighteen one-change
 causal negatives, with zero pending rows. Every positive keeps the exact S15
 scenario identity and source references. The bridge supplies fresh foundation,
 operation, lifecycle and extension observations. Independent acceptance and
-final whole-workspace closure remain controller responsibilities.
+final whole-workspace closure remain verification obligations.
 
 The [model implementation responsibility table](model-responsibilities.md)
 records selected catalog/overlay/default/selection/availability/credential

@@ -1,7 +1,7 @@
-import {createRequire} from 'node:module';
-const require=createRequire('upstream/pi-mono/package.json');
+import {createRequire} from 'node:module';import {upstreamPath} from '../../upstream.mjs';
+const require=createRequire(upstreamPath('package.json'));
 const {NormalizedSchema}=require('@smithy/core/schema');
-const schemas=require('upstream/pi-mono/node_modules/@aws-sdk/client-bedrock-runtime/dist-cjs/schemas/schemas_0.js');
+const schemas=require(upstreamPath('node_modules/@aws-sdk/client-bedrock-runtime/dist-cjs/schemas/schemas_0.js'));
 const graph={};
 function visit(input){const s=NormalizedSchema.of(input);const raw=s.getSchema();const name=typeof raw==='number'?'scalar_'+raw:s.getName();if(graph[name])return name;const row={};graph[name]=row;
  if(s.isStructSchema()){row.kind='struct';row.union=s.isUnionSchema();row.fields=[...s.structIterator()].map(([k,v])=>[k,visit(v)]);}

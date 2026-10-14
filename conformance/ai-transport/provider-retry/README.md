@@ -17,7 +17,7 @@ container diagnostics are redacted. Callbacks are trusted in-process Rust values
 The operation must call lower HTTP with `RetryProfile::None`, read/classify failed
 bodies and then return the typed failure. A successful response/body leaves the
 helper permanently. Existing status-only `send` behavior is intentionally
-unchanged; the controller will move SDK-backed wrappers onto this owner and
+unchanged; provider consumers must move SDK-backed wrappers onto this owner and
 compose Fetch redirect handling within each lower attempt.
 
 `oracle.mjs` executes exact pinned retry policy functions with injected jitter

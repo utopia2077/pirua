@@ -1,12 +1,12 @@
 // Bounded signature oracle: execute exact pinned processor bodies, no SDK/network.
-import { execFileSync } from "node:child_process";
+import { execFileSync } from "node:child_process";import {upstreamRoot} from '../../upstream.mjs';
 import { createHash } from "node:crypto";
 import { stripTypeScriptTypes } from "node:module";
 
 const commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185";
 const path = "packages/ai/src/api/openai-responses-shared.ts";
 const source = execFileSync("git", ["show", `${commit}:${path}`], {
-  cwd: "upstream/pi-mono", encoding: "utf8",
+  cwd: upstreamRoot, encoding: "utf8",
 });
 const encode = source.slice(source.indexOf("function encodeTextSignatureV1("), source.indexOf("\nfunction parseTextSignature("));
 const processor = source.slice(source.indexOf("export async function processResponsesStream<"));

@@ -22,7 +22,7 @@ Additional live witnesses in that test module:
 - `schema_resource_bounds_are_exact_and_do_not_fall_back`: accepted structural
   depth 128 and canonical compact JSON 256 KiB before any owned clone; resource
   errors remain distinct under prefer. Bounds cover inert data too. The
-  controller approved reuse of S03 bounds for this S04 helper.
+  the contract retains reuse of S03 bounds for this S04 helper.
 - `grammar_selection_input_shape_and_maps_follow_source`: Lark before regex,
   ECMAScript whitespace, unsupported-provider early return, exact one-required-
   string property and later duplicate name replacement;

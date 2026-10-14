@@ -126,6 +126,8 @@ concurrency, nested launch/completion order, cross-thread joins, cursor disposal
 rejection/discard, configured module identity, and waker-drop reentry.
 
 ```sh
+cargo test -p pi-ai-providers --test images_runtime --features wire-openrouter-images --locked --offline
+python3 conformance/provider-traces/images-runtime/causal-check.py
 ```
 
 The causal script temporarily catches the no-auth rejected future, folds header

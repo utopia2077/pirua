@@ -21,6 +21,11 @@ import validate_docs as validator
 import s05_export_closure as s05
 
 
+try:
+    from .upstream import resolve_upstream, upstream_environment
+except ImportError:
+    from upstream import resolve_upstream, upstream_environment
+
 ROOT = Path(__file__).resolve().parents[1]
 BEHAVIOR_OUTPUT = ROOT / "conformance/ai-domain/behavior-inventory.json"
 EXPORT_MAPPING = ROOT / "conformance/ai-domain/export-mapping.toml"
@@ -62,7 +67,7 @@ SELECTED_SCOPE_DECISION = "docs/scope.md#selected-provider-scope"
 SELECTED_TEXT_ENTRIES = ("openai", "google", "anthropic", "deepseek", "openai-codex", "openrouter")
 SELECTED_SCOPE_TOTALS = {"selected": 17, "shared": 97, "owner-excluded": 125, "rust-platform": 2}
 # Frozen scope identity and decision evidence; implementation progress does not rewrite this ledger.
-SELECTED_SCOPE_DIGEST = "e7ea5a0505582c17eb7bca608e88037023d815b93cd01b1e0a9939cf6daaceda"
+SELECTED_SCOPE_DIGEST = "c9fcb2d45dcde483d82a475fbb28f92868162199fee18b78cec0925fa17aaa3e"
 
 EXTERNAL_KEYS = {
     ".:Static",
@@ -87,16 +92,16 @@ FRAGMENTS = (
     ("conformance/ai-domain/session-resources-inventory.json", 12),
 )
 EXPECTED_FRAGMENT_DIGESTS = {
-    "conformance/ai-domain/stream-inventory.json": "8706960d4effb2c965140a2d594b284409ac83f9eee2ec5dc197d6ffe217e847",
-    "conformance/ai-models/auth-store-inventory.json": "84d9668cc341a418ee2aa881394909ec0a18f92fc4c9ea3a9f239461bb213c37",
-    "conformance/ai-models/registry-inventory.json": "3425d14ba300fa1f2d565709b3ae8c5c1b7de554e4e98b672d6c29e4a053bcbb",
+    "conformance/ai-domain/stream-inventory.json": "be84fcdb8b95663aa120db9931a02e475b4407fcdb53e88921c673d9e4769143",
+    "conformance/ai-models/auth-store-inventory.json": "9800887008551e36ae226bf146650b536686cc8bfad3156cfce985edec6cbb2f",
+    "conformance/ai-models/registry-inventory.json": "5a03dcc60b289847e76b3b2996a03e90724be43dda2539d353a92f8eea68b88a",
     "conformance/ai-domain/tool-validation-inventory.json": "3cfbccec91cb156c4f88b9071bec1cb483d399b5b8961c5621cc9a4ecac916e0",
     "conformance/ai-domain/message-transform-inventory.json": "6ea66ad888628f3e2908a7f05958aab4bb860904765c5c27b176bba2d118e33a",
-    "conformance/ai-domain/overflow-inventory.json": "18aeab2844e0229cad6fb89f78dea5384156a32dc9496661d7e038cd3da145c9",
+    "conformance/ai-domain/overflow-inventory.json": "7c423adc74fc60bcda119433428e407e52ae5261089c661bf8bbef66e14191e5",
     "conformance/ai-domain/retry-inventory.json": "a190d00c154d2ab272498d2e6ba7bcad265bf0cd4d56cc286b3cd4af82a9b24a",
     "conformance/ai-domain/models-helpers-inventory.json": "15cc02f90b0b17681dea7e65655c774b94a37213f91e3c20dadc0c2f3a26071f",
-    "conformance/ai-domain/portable-helpers-inventory.json": "8aea0cbef184e4cea14d7f71bf33e9f77a5959e3a8c365c5b81158cde46b8736",
-    "conformance/ai-domain/session-resources-inventory.json": "8cb1c74d1b99af601327e2c1fe94ef05a6c94cb0311c1a8036755713f70b7ee1",
+    "conformance/ai-domain/portable-helpers-inventory.json": "ef80564873b9302c086bab8cfc74baba1adcf766411728647707821b988a0f1d",
+    "conformance/ai-domain/session-resources-inventory.json": "4f298f67d0ef4d4f7d6b9f6422cbe0e2181bc34521cef7a2efc79c3bae396d12",
 }
 EXPECTED_TREE_PACKAGES = {
     "ahash": "0.8.12",
@@ -242,7 +247,7 @@ def validate_behavior_sources(
     checkout_value = upstream.get("checkout")
     if upstream.get("commit") != SOURCE_COMMIT or not isinstance(checkout_value, str):
         raise ConformanceError("behavior provenance lacks the pinned upstream checkout")
-    checkout = Path(checkout_value)
+    checkout = resolve_upstream(checkout_value)
     pinned_pattern = re.compile(
         r"^(?P<path>[^@]+)@(?P<commit>[0-9a-f]{40})"
         r"(?::(?P<start>[0-9]+)(?:-(?P<end>[0-9]+))?)?$"
@@ -366,7 +371,7 @@ def resolve_surfaces(
     checkout_value = map_data.get("upstream", {}).get("checkout")
     if commit != SOURCE_COMMIT or not isinstance(checkout_value, str):
         raise ConformanceError("upstream map does not identify the pinned AI checkout")
-    checkout = Path(checkout_value)
+    checkout = resolve_upstream(checkout_value)
     route_surface = {
         entry.get("path"): entry.get("surface")
         for entry in routes.get("entry", [])
@@ -1109,7 +1114,7 @@ def check_generated(path: Path, expected: str) -> None:
 
 S04_CLOSURE = "conformance/provider-traces/export-closure/evidence.json"
 # Frozen after dependency intake. Catalog changes require explicit evidence review.
-S04_CLOSURE_DIGEST = "00bc1ecd6cba6f75b435ef6375c86e7ceaf7cf3189daa76f4acd065dd0ce7a85"
+S04_CLOSURE_DIGEST = "05487cc30644d447dc81efdd4f952ca651f8055134671946efcd13a8e7069206"
 
 
 def closure_catalog(root: Path = ROOT) -> dict[str, Any]:
@@ -1252,7 +1257,7 @@ def execute_closure_sources(sources, root: Path = ROOT):
         if hashlib.sha256((root / source["script"]).read_bytes()).hexdigest() != source["scriptSha256"]:
             raise ConformanceError("S04 source oracle binding changed: " + source["id"])
         result = subprocess.run(["node", str(root / source["script"]), *source["args"]],
-            cwd=root, env={"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"},
+            cwd=root, env=upstream_environment({"PATH": "/usr/bin:/bin", "NODE_NO_WARNINGS": "1"}, root=root),
             capture_output=True, text=True)
         if result.returncode:
             raise ConformanceError("S04 source oracle failed: " + source["script"] + "\n" + result.stderr)

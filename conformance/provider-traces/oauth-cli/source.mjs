@@ -1,8 +1,8 @@
-import {execFileSync} from 'node:child_process';
+import {execFileSync} from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import {registerHooks,stripTypeScriptTypes} from 'node:module';
 import {createHash} from 'node:crypto';
 const pin='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const raw=execFileSync('git',['-C','upstream/pi-mono','show',`${pin}:packages/ai/src/cli.ts`],{encoding:'utf8'});
+const raw=execFileSync('git',['-C',upstreamRoot,'show',`${pin}:packages/ai/src/cli.ts`],{encoding:'utf8'});
 if(createHash('sha256').update(raw).digest('hex')!=='e04e6cd5f0e9da829d10b9b285592d5170d59eff29ae985aecf3f5f9bd15cb2d')throw Error('Pinned CLI mismatch');
 const js=stripTypeScriptTypes(raw);
 registerHooks({resolve(s,c,next){if(c.parentURL?.startsWith('data:')&&['node:fs','node:readline','./providers/all.ts'].includes(s))return {url:'fixture:'+s,shortCircuit:true};return next(s,c)},load(u,c,next){if(!u.startsWith('fixture:'))return next(u,c);let source=u==='fixture:node:fs'?'export const existsSync=(...x)=>globalThis.fixture.exists(...x),readFileSync=(...x)=>globalThis.fixture.read(...x),writeFileSync=(...x)=>globalThis.fixture.write(...x);':u==='fixture:node:readline'?'export const createInterface=()=>globalThis.fixture.rl();':'export const builtinProviders=()=>globalThis.fixture.providers;';return {format:'module',source,shortCircuit:true}}});

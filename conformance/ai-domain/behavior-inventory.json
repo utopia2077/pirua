@@ -14,16 +14,16 @@
     "conformance/ai-domain/session-resources-inventory.json"
   ],
   "fragmentDigests": {
-    "conformance/ai-domain/stream-inventory.json": "8706960d4effb2c965140a2d594b284409ac83f9eee2ec5dc197d6ffe217e847",
-    "conformance/ai-models/auth-store-inventory.json": "84d9668cc341a418ee2aa881394909ec0a18f92fc4c9ea3a9f239461bb213c37",
-    "conformance/ai-models/registry-inventory.json": "3425d14ba300fa1f2d565709b3ae8c5c1b7de554e4e98b672d6c29e4a053bcbb",
+    "conformance/ai-domain/stream-inventory.json": "be84fcdb8b95663aa120db9931a02e475b4407fcdb53e88921c673d9e4769143",
+    "conformance/ai-models/auth-store-inventory.json": "9800887008551e36ae226bf146650b536686cc8bfad3156cfce985edec6cbb2f",
+    "conformance/ai-models/registry-inventory.json": "5a03dcc60b289847e76b3b2996a03e90724be43dda2539d353a92f8eea68b88a",
     "conformance/ai-domain/tool-validation-inventory.json": "3cfbccec91cb156c4f88b9071bec1cb483d399b5b8961c5621cc9a4ecac916e0",
     "conformance/ai-domain/message-transform-inventory.json": "6ea66ad888628f3e2908a7f05958aab4bb860904765c5c27b176bba2d118e33a",
-    "conformance/ai-domain/overflow-inventory.json": "18aeab2844e0229cad6fb89f78dea5384156a32dc9496661d7e038cd3da145c9",
+    "conformance/ai-domain/overflow-inventory.json": "7c423adc74fc60bcda119433428e407e52ae5261089c661bf8bbef66e14191e5",
     "conformance/ai-domain/retry-inventory.json": "a190d00c154d2ab272498d2e6ba7bcad265bf0cd4d56cc286b3cd4af82a9b24a",
     "conformance/ai-domain/models-helpers-inventory.json": "15cc02f90b0b17681dea7e65655c774b94a37213f91e3c20dadc0c2f3a26071f",
-    "conformance/ai-domain/portable-helpers-inventory.json": "8aea0cbef184e4cea14d7f71bf33e9f77a5959e3a8c365c5b81158cde46b8736",
-    "conformance/ai-domain/session-resources-inventory.json": "8cb1c74d1b99af601327e2c1fe94ef05a6c94cb0311c1a8036755713f70b7ee1"
+    "conformance/ai-domain/portable-helpers-inventory.json": "ef80564873b9302c086bab8cfc74baba1adcf766411728647707821b988a0f1d",
+    "conformance/ai-domain/session-resources-inventory.json": "4f298f67d0ef4d4f7d6b9f6422cbe0e2181bc34521cef7a2efc79c3bae396d12"
   },
   "rows": [
     {
@@ -212,7 +212,7 @@
     },
     {
       "id": "credential.set-first-revision",
-      "source": "docs/contracts/ai-domain/auth-store.md:79",
+      "source": "docs/contracts/ai-domain/auth-store.md:71",
       "test": "credential_revision_tombstone_order_and_detachment",
       "polarity": "positive",
       "owner": "S03-auth-store",
@@ -220,7 +220,7 @@
     },
     {
       "id": "credential.set-equal-increments",
-      "source": "docs/contracts/ai-domain/auth-store.md:81",
+      "source": "docs/contracts/ai-domain/auth-store.md:73",
       "test": "credential_revision_tombstone_order_and_detachment",
       "polarity": "positive",
       "owner": "S03-auth-store",
@@ -236,7 +236,7 @@
     },
     {
       "id": "credential.delete-existing-tombstone",
-      "source": "docs/contracts/ai-domain/auth-store.md:83",
+      "source": "docs/contracts/ai-domain/auth-store.md:75",
       "test": "credential_revision_tombstone_order_and_detachment",
       "polarity": "positive",
       "owner": "S03-auth-store",
@@ -252,7 +252,7 @@
     },
     {
       "id": "credential.reinsert-revision-order",
-      "source": "docs/contracts/ai-domain/auth-store.md:92",
+      "source": "docs/contracts/ai-domain/auth-store.md:84",
       "test": "credential_revision_tombstone_order_and_detachment",
       "polarity": "positive",
       "owner": "S03-auth-store",
@@ -260,7 +260,7 @@
     },
     {
       "id": "credential.revision-exhausted",
-      "source": "docs/contracts/ai-domain/auth-store.md:85",
+      "source": "docs/contracts/ai-domain/auth-store.md:77",
       "test": "private_quarantine_reuses_reserved_max_revision_and_then_exhausts",
       "polarity": "negative",
       "owner": "S03-auth-store",
@@ -276,7 +276,7 @@
     },
     {
       "id": "credential.detached-values",
-      "source": "docs/contracts/ai-domain/auth-store.md:174",
+      "source": "docs/contracts/ai-domain/auth-store.md:166",
       "test": "credential_revision_tombstone_order_and_detachment",
       "polarity": "positive",
       "owner": "S03-auth-store",
@@ -292,7 +292,7 @@
     },
     {
       "id": "credential.gate-cross-provider",
-      "source": "docs/contracts/ai-domain/auth-store.md:173",
+      "source": "docs/contracts/ai-domain/auth-store.md:165",
       "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -308,7 +308,7 @@
     },
     {
       "id": "credential.gate-waiter-drop",
-      "source": "docs/contracts/ai-domain/auth-store.md:180",
+      "source": "docs/contracts/ai-domain/auth-store.md:172",
       "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -316,7 +316,7 @@
     },
     {
       "id": "credential.gate-granted-drop-handoff",
-      "source": "docs/contracts/ai-domain/auth-store.md:179",
+      "source": "docs/contracts/ai-domain/auth-store.md:171",
       "test": "credential_gate_is_fifo_cross_provider_and_hands_off_dropped_waiters",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -324,7 +324,7 @@
     },
     {
       "id": "credential.gate-reentrant-waker",
-      "source": "docs/contracts/ai-domain/auth-store.md:182",
+      "source": "docs/contracts/ai-domain/auth-store.md:174",
       "test": "grant_wake_callback_can_cancel_reenter_and_repoll_without_stranding_gate",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -332,7 +332,7 @@
     },
     {
       "id": "credential.lease-drop-no-write",
-      "source": "docs/contracts/ai-domain/auth-store.md:175",
+      "source": "docs/contracts/ai-domain/auth-store.md:167",
       "test": "credential_lease_drop_and_commit_cancellation_write_nothing",
       "polarity": "negative",
       "owner": "S03-auth-store",
@@ -340,7 +340,7 @@
     },
     {
       "id": "credential.commit-cancel-admission",
-      "source": "docs/contracts/ai-domain/auth-store.md:187",
+      "source": "docs/contracts/ai-domain/auth-store.md:179",
       "test": "credential_lease_drop_and_commit_cancellation_write_nothing",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -348,7 +348,7 @@
     },
     {
       "id": "credential.quarantine-sticky-reopen",
-      "source": "docs/contracts/ai-domain/auth-store.md:203",
+      "source": "docs/contracts/ai-domain/auth-store.md:195",
       "test": "private_quarantine_is_sticky_across_reopen_and_delete_clears_it",
       "polarity": "negative",
       "owner": "S03-auth-store",
@@ -356,7 +356,7 @@
     },
     {
       "id": "credential.reconcile-reserved-revision",
-      "source": "docs/contracts/ai-domain/auth-store.md:223",
+      "source": "docs/contracts/ai-domain/auth-store.md:215",
       "test": "stable_order_ticket_survives_unrelated_delete_before_reconcile",
       "polarity": "positive",
       "owner": "S03-auth-store",
@@ -396,7 +396,7 @@
     },
     {
       "id": "models-store.admission-cancel",
-      "source": "docs/contracts/ai-domain/auth-store.md:526",
+      "source": "docs/contracts/ai-domain/auth-store.md:518",
       "test": "models_store_is_detached_overwritable_deletable_and_cancel_admitted",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -404,7 +404,7 @@
     },
     {
       "id": "models-store.post-admission-cancel",
-      "source": "docs/contracts/ai-domain/auth-store.md:528",
+      "source": "docs/contracts/ai-domain/auth-store.md:520",
       "test": "dropped_admitted_model_write_finishes_to_one_complete_state",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -412,7 +412,7 @@
     },
     {
       "id": "models-store.failure-preserves-old",
-      "source": "docs/contracts/ai-domain/auth-store.md:529",
+      "source": "docs/contracts/ai-domain/auth-store.md:521",
       "test": "normal_model_store_failure_proves_old_complete_value",
       "polarity": "negative",
       "owner": "S03-auth-store",
@@ -420,7 +420,7 @@
     },
     {
       "id": "models-store.atomic-read-write-delete",
-      "source": "docs/contracts/ai-domain/auth-store.md:530",
+      "source": "docs/contracts/ai-domain/auth-store.md:522",
       "test": "in_memory_model_store_reads_only_atomic_old_new_or_deleted_multifield_snapshots",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -436,7 +436,7 @@
     },
     {
       "id": "auth.port-object-safety-redaction",
-      "source": "docs/contracts/ai-domain/auth-store.md:250",
+      "source": "docs/contracts/ai-domain/auth-store.md:242",
       "test": "dynamic_ports_are_object_safe_and_store_implementations_are_send_sync",
       "polarity": "negative",
       "owner": "S03-auth-store",
@@ -508,7 +508,7 @@
     },
     {
       "id": "auth.store-read-cancelled",
-      "source": "docs/contracts/ai-domain/auth-store.md:427",
+      "source": "docs/contracts/ai-domain/auth-store.md:419",
       "test": "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -516,7 +516,7 @@
     },
     {
       "id": "auth.store-outcome-unknown",
-      "source": "docs/contracts/ai-domain/auth-store.md:217",
+      "source": "docs/contracts/ai-domain/auth-store.md:209",
       "test": "credential_store_error_channels_remain_distinct_and_explicit_key_bypasses_store",
       "polarity": "negative",
       "owner": "S03-auth-store",
@@ -636,7 +636,7 @@
     },
     {
       "id": "auth.oauth-cancel-before-commit",
-      "source": "docs/contracts/ai-domain/auth-store.md:463",
+      "source": "docs/contracts/ai-domain/auth-store.md:455",
       "test": "cancellation_after_refresh_before_commit_preserves_old_credential",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -644,7 +644,7 @@
     },
     {
       "id": "auth.oauth-commit-shielded",
-      "source": "docs/contracts/ai-domain/auth-store.md:464",
+      "source": "docs/contracts/ai-domain/auth-store.md:456",
       "test": "admitted_commit_is_shielded_but_post_commit_derivation_observes_cancellation",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -652,7 +652,7 @@
     },
     {
       "id": "auth.oauth-to-auth-cancel-noncooperative",
-      "source": "docs/contracts/ai-domain/auth-store.md:470",
+      "source": "docs/contracts/ai-domain/auth-store.md:462",
       "test": "cancellation_drops_noncooperative_api_refresh_and_to_auth_futures",
       "polarity": "race",
       "owner": "S03-auth-store",
@@ -668,7 +668,7 @@
     },
     {
       "id": "registry.providers.order-replace-delete-clear",
-      "source": "docs/contracts/ai-domain/models-registry.md:274",
+      "source": "docs/contracts/ai-domain/models-registry.md:266",
       "test": "provider_mutations_preserve_order_and_slots",
       "polarity": "positive",
       "owner": "S03-models-registry",
@@ -716,7 +716,7 @@
     },
     {
       "id": "registry.refresh.offline-cache-only",
-      "source": "docs/contracts/ai-domain/models-registry.md:422",
+      "source": "docs/contracts/ai-domain/models-registry.md:414",
       "test": "offline_refresh_stops_after_cache_without_auth_or_network",
       "polarity": "boundary",
       "owner": "S03-models-registry",
@@ -724,7 +724,7 @@
     },
     {
       "id": "registry.refresh.unconfigured-cache-only",
-      "source": "docs/contracts/ai-domain/models-registry.md:424",
+      "source": "docs/contracts/ai-domain/models-registry.md:416",
       "test": "unconfigured_refresh_restores_cache_then_skips_network",
       "polarity": "boundary",
       "owner": "S03-models-registry",
@@ -748,7 +748,7 @@
     },
     {
       "id": "registry.supersede.replace-provider",
-      "source": "docs/contracts/ai-domain/models-registry.md:389",
+      "source": "docs/contracts/ai-domain/models-registry.md:381",
       "test": "provider_replacement_fences_old_generation",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -772,7 +772,7 @@
     },
     {
       "id": "registry.publication.same-provider-serial",
-      "source": "docs/contracts/ai-domain/models-registry.md:479",
+      "source": "docs/contracts/ai-domain/models-registry.md:471",
       "test": "same_provider_publications_follow_ticket_order",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -780,7 +780,7 @@
     },
     {
       "id": "registry.publication.cross-provider-concurrent",
-      "source": "docs/contracts/ai-domain/models-registry.md:480",
+      "source": "docs/contracts/ai-domain/models-registry.md:472",
       "test": "cross_provider_publications_can_overlap",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -788,7 +788,7 @@
     },
     {
       "id": "registry.publication.two-three-superseded-sequence",
-      "source": "docs/contracts/ai-domain/models-registry.md:467",
+      "source": "docs/contracts/ai-domain/models-registry.md:459",
       "test": "repeated_publication_two_three_and_superseded_stop_trace",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -796,7 +796,7 @@
     },
     {
       "id": "registry.publication.drop-prepoll-ticket",
-      "source": "docs/contracts/ai-domain/models-registry.md:458",
+      "source": "docs/contracts/ai-domain/models-registry.md:450",
       "test": "dropping_unpolled_publication_cancels_only_its_ticket",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -804,7 +804,7 @@
     },
     {
       "id": "registry.publication.drop-admitted-future",
-      "source": "docs/contracts/ai-domain/models-registry.md:471",
+      "source": "docs/contracts/ai-domain/models-registry.md:463",
       "test": "dropping_admitted_publication_finishes_before_next_ticket",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -812,7 +812,7 @@
     },
     {
       "id": "registry.publication.intent-matrix",
-      "source": "docs/contracts/ai-domain/models-registry.md:78",
+      "source": "docs/contracts/ai-domain/models-registry.md:70",
       "test": "memory_and_persistence_intents_are_independent_values",
       "polarity": "positive",
       "owner": "S03-models-registry",
@@ -820,7 +820,7 @@
     },
     {
       "id": "registry.publication.persistence-fence-matrix",
-      "source": "docs/contracts/ai-domain/models-registry.md:474",
+      "source": "docs/contracts/ai-domain/models-registry.md:466",
       "test": "persistence_fence_before_during_after_admission_matrix",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -852,7 +852,7 @@
     },
     {
       "id": "registry.login.quarantine-replace",
-      "source": "docs/contracts/ai-domain/models-registry.md:504",
+      "source": "docs/contracts/ai-domain/models-registry.md:496",
       "test": "explicit_login_reconciles_quarantine_at_reserved_revision",
       "polarity": "negative",
       "owner": "S03-models-registry",
@@ -860,7 +860,7 @@
     },
     {
       "id": "registry.logout.refresh-and-quarantine-delete",
-      "source": "docs/contracts/ai-domain/models-registry.md:512",
+      "source": "docs/contracts/ai-domain/models-registry.md:504",
       "test": "logout_refresh_race_and_quarantine_delete_matrix",
       "polarity": "race",
       "owner": "S03-models-registry",
@@ -876,7 +876,7 @@
     },
     {
       "id": "registry.headers.precedence-case-null",
-      "source": "docs/contracts/ai-domain/models-registry.md:530",
+      "source": "docs/contracts/ai-domain/models-registry.md:522",
       "test": "resolved_model_explicit_header_merge_case_and_null_matrix",
       "polarity": "boundary",
       "owner": "S03-models-registry",

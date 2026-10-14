@@ -121,7 +121,7 @@ fn session_resources_inventory_has_exact_rows_and_live_bindings() {
         let source = row["source"].as_str().expect("source");
         assert!(
             source.contains("@853a80d26c90a14c1886f0ebb8ffaae133ca2185")
-                || source.contains("/implementation-notes/S03/")
+                || source.contains("docs/contracts/ai-domain/")
                 || source.contains("upstream-map.toml:")
         );
         let binding = row["test"].as_str().expect("binding");

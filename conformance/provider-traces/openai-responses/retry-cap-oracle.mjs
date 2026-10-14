@@ -1,8 +1,8 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import { createRequire,stripTypeScriptTypes } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { deepStrictEqual } from 'node:assert';
-const upstream='upstream/pi-mono';
+const upstream=upstreamRoot;
 const commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 if(Object.keys(process.env).some(key=>/^(OPENAI_|PI_CACHE_RETENTION)/.test(key))) throw new Error('Run with env -i');
 const require=createRequire(`${upstream}/package.json`);

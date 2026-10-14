@@ -99,7 +99,7 @@ code-only quota veto can disappear in source cap rendering, while late billing
 can veto a cap even if normal display truncates it away. Final text contains only
 the selected semantic category; HTTP status remains structured diagnostic data.
 
-For cap classification only, the controller-approved fixed prefix
+For cap classification only, the approved fixed prefix
 `Server requested retry delay. ` is equivalent to the real numeric prefix for
 the pinned classifier set. It is not a reconstruction of actual cap display.
 The retry-delay phrase already supplies a positive retry match; neither prefix

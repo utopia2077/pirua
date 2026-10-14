@@ -1,11 +1,11 @@
-import net from 'node:net';
+import net from 'node:net';import {upstreamRoot} from '../../upstream.mjs';
 import {once} from 'node:events';
 import {execFileSync} from 'node:child_process';
 import {stripTypeScriptTypes} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {deepStrictEqual} from 'node:assert';
 import {createHash} from 'node:crypto';
-const source=execFileSync('git',['show','853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/ai/src/utils/provider-retry.ts'],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=execFileSync('git',['show','853a80d26c90a14c1886f0ebb8ffaae133ca2185:packages/ai/src/utils/provider-retry.ts'],{cwd:upstreamRoot,encoding:'utf8'});
 const retry=new Function(stripTypeScriptTypes(source.replace(/^export /gm,''))+'\nreturn retryProviderRequest;')();
 const cases=[];
 for(const network of [false,true])for(const [status,value]of [[500,'false '],[400,'true ']]){

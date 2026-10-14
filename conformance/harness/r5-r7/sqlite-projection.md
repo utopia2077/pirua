@@ -29,11 +29,10 @@ the fixture and cleaned after closing its owners.
 
 Heartbeat detection may seal the writer before the final commit checks. Either path must
 reject and retain the prefix. This test does not claim the final SQL transaction was the
-first expiry detector; backend682 independently proves its fresh post-validator lease
+first expiry detector; the backend independently proves its fresh post-validator lease
 check. These two actual public histories close that backend proof's missing asynchronous
 Harness-projector composition boundary; they do not claim all SQLite/runtime schedules.
 
 Command shape: `cargo test --offline --locked -p pi-agent --features sqlite --test
-runtime_sqlite_projection`; also run this target with `--all-features`. Final candidate
-identity, unchanged test hashes, terminal logs and review attribution reside in persistent
-E/sqlite697. Initial frozen-v1 empirical success is not whole-S10 acceptance.
+runtime_sqlite_projection`; also run this target with `--all-features`. These finite
+public histories do not prove complete runtime assembly.

@@ -1,8 +1,8 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';import {upstreamRoot} from '../../upstream.mjs';
 import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
 const commit='853a80d26c90a14c1886f0ebb8ffaae133ca2185';
-const source=path=>execFileSync('git',['show',`${commit}:${path}`],{cwd:'upstream/pi-mono',encoding:'utf8'});
+const source=path=>execFileSync('git',['show',`${commit}:${path}`],{cwd:upstreamRoot,encoding:'utf8'});
 const clean=text=>stripTypeScriptTypes(text.replace(/^import[\s\S]*?;\n/gm,'').replace(/^export /gm,''));
 const context=vm.createContext({Date:{now:()=>7}});
 vm.runInContext(clean(source('packages/ai/src/models.ts').match(/^export function calculateCost[\s\S]*?^}/m)[0]),context);

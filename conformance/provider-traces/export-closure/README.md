@@ -4,7 +4,7 @@ The frozen catalog covers all 108 source symbols through accepted S04 families.
 It produces 161 occurrence rows and 108 owning-crate target probes; together with
 the preserved 120 earlier probes, the derived total is 228 distinct targets.
 The final partition is 146 DTO, 284 implemented, 22 existing Rust-nonapplicable,
-241 S05 and six external projections. Root owns S04 acceptance.
+241 S05 and six external projections. The complete workspace gate validates transport assembly.
 
 The pinned source manifest retains 699 distinct export occurrences. The closure
 owns 161 text/helper occurrences, grouped by 108 exact `(origin, name)` symbols.

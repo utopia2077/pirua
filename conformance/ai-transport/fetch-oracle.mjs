@@ -1,14 +1,14 @@
 // Offline synthetic oracle: no installation, credentials or public endpoints.
-import http from 'node:http';
+import http from 'node:http';import {upstreamRoot, upstreamPath} from '../upstream.mjs';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { stripTypeScriptTypes } from 'node:module';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { strict as assert } from 'node:assert';
-const require = createRequire('upstream/pi-mono/package.json');
+const require = createRequire(upstreamPath('package.json'));
 const installed = require('undici');
-const root = 'upstream/pi-mono';
+const root = upstreamRoot;
 const pin = '853a80d26c90a14c1886f0ebb8ffaae133ca2185';
 const source = execFileSync('git', ['show', `${pin}:packages/ai/src/utils/provider-retry.ts`], { cwd: root, encoding: 'utf8' });
 const retry = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(source)).toString('base64')}`);

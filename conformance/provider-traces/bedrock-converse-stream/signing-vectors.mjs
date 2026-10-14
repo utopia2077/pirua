@@ -1,6 +1,6 @@
-import {createRequire} from 'node:module';
+import {createRequire} from 'node:module';import {upstreamPath} from '../../upstream.mjs';
 import assert from 'node:assert/strict';
-const require=createRequire('upstream/pi-mono/package.json');
+const require=createRequire(upstreamPath('package.json'));
 const {SignatureV4}=require('@smithy/signature-v4');const {HttpRequest}=require('@smithy/core/protocols');const {Hash}=require('@smithy/core/serde');
 assert.equal(require('@smithy/signature-v4/package.json').version,'5.4.3');
 const credentials={accessKeyId:'AKID_SYNTHETIC',secretAccessKey:'synthetic-secret',sessionToken:'synthetic-session'};
