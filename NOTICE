@@ -1,31 +1,31 @@
 Pirua — third-party attribution
 
-Pirua's original code and documentation are licensed under the root MIT LICENSE,
-Copyright (c) 2026 Pirua contributors. Third-party material retains its applicable
-copyright and permission notices.
+The root MIT LICENSE consolidates the copyright and permission notices for
+Pirua contributors, Mario Zechner, and models.dev. The sections below identify
+the material to which those notices apply. Other third-party material retains
+its applicable licenses and notices.
 
-pi-mono
--------
+Pi
+--
 The Rust contracts, implementations, conformance fixtures, and source-derived
-catalog evidence in this repository follow or derive from earendil-works/pi-mono:
-https://github.com/earendil-works/pi-mono
+catalog evidence in this repository follow or derive from earendil-works/pi:
+https://github.com/earendil-works/pi
 Pinned revision: 853a80d26c90a14c1886f0ebb8ffaae133ca2185
 Copyright (c) 2025 Mario Zechner
-License: MIT; the exact root notice at that revision is retained in
-LICENSES/pi-mono-MIT.txt.
+License: MIT; the copyright line and complete permission notice are retained in
+the root LICENSE.
 Primary source:
-https://github.com/earendil-works/pi-mono/blob/853a80d26c90a14c1886f0ebb8ffaae133ca2185/LICENSE
-Notice SHA-256: 0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48
+https://github.com/earendil-works/pi/blob/853a80d26c90a14c1886f0ebb8ffaae133ca2185/LICENSE
 
 models.dev
 ----------
 The captured models.dev feed and derived catalog data include material from
 https://models.dev/ and https://github.com/anomalyco/models.dev.
 Copyright (c) 2025 models.dev
-License: MIT; the primary source notice is retained in LICENSES/models.dev-MIT.txt.
+License: MIT; the copyright line and complete permission notice are retained in
+the root LICENSE.
 Primary source: https://raw.githubusercontent.com/anomalyco/models.dev/dev/LICENSE
 Notice retrieved: 2026-10-14 (UTC)
-Notice SHA-256: dc2dc41c9fea2fd3c41c21c6f484844cab367800b88ff24781f980ad3a9d160a
 
 Captured catalog feeds
 ----------------------
@@ -51,5 +51,5 @@ Dependencies
 ------------
 Rust and upstream npm dependencies retain their own licenses and notices.
 Cargo.lock and the pinned upstream package-lock.json identify the exact dependency
-versions used by this snapshot; the two notices included here do not replace
+versions used by this snapshot; the consolidated notices do not replace
 those dependencies' license obligations.

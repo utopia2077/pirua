@@ -1,188 +1,153 @@
-# Pirua
+<p align="center">
+  <img src="docs/assets/pirua.svg" width="80" height="80" alt="Pirua logo">
+</p>
 
-Pirua is a Rust workspace for AI requests, agents, durable Harness sessions, and
-headless coding runtime composition. It follows the contracts and observable
-behavior of [pi-mono](https://github.com/earendil-works/pi-mono) at revision
-`853a80d26c90a14c1886f0ebb8ffaae133ca2185`, using Rust traits and a language-neutral
-extension protocol at host boundaries.
+<h1 align="center">Pirua</h1>
 
-The workspace contains fifteen production crates. The crate names retain the
-`pi-` prefix used by the upstream responsibility map; they currently have version
-`0.0.0` and `publish = false`. See the [architecture](docs/architecture/index.md),
-[scope](docs/scope.md), and [verification plan](docs/verification-plan.md) for the
-full contracts, feature boundaries, and verification obligations.
+<p align="center">
+  <strong>A Rust rewrite of the <a href="https://github.com/earendil-works/pi">Pi agent harness</a>.</strong>
+</p>
 
-| Crate | Responsibility |
-|---|---|
-| `pi-telemetry` | Telemetry contracts, redaction metadata, no-op and in-memory references |
-| `pi-extension-protocol` | Framing, negotiation, capabilities, generations, and bounded extension endpoints |
-| `pi-ai-core` | Provider-neutral messages, streams, models, authentication, and store contracts |
-| `pi-ai-transport` | HTTP, SSE, WebSocket, retry, proxy, and native transport support |
-| `pi-ai-providers` | Wire adapters, selected provider factories, OAuth, images, and catalog shards |
-| `pi-ai` | AI facade, compatibility interfaces, and developer catalog/OAuth tools |
-| `pi-agent-schema` | Shared Agent and durable Harness data schemas |
-| `pi-agent-loop` | Agent loop compatibility and shared executable tool phases |
-| `pi-agent-session` | Sessions, repositories, Memory/JSONL storage, and migration orchestration |
-| `pi-agent-sqlite` | SQLite sessions and repositories with fenced writer ownership |
-| `pi-harness-core` | Pure state validation, planning, transitions, and settlement |
-| `pi-harness-runtime` | Durable execution, effects, hooks, events, resources, compaction, and tools |
-| `pi-agent-search` | Derived session search and optional SQLite FTS implementation |
-| `pi-agent` | Public Agent and Harness composition facade |
-| `pi-coding-runtime` | Coding tools, models, prompts, resources, and session lifecycle composition |
+<p align="center">
+  <a href="rust-toolchain.toml"><img src="https://img.shields.io/badge/Rust-1.98.0-52697a?style=flat-square" alt="Rust 1.98.0"></a>
+  <a href="#current-status"><img src="https://img.shields.io/badge/status-pre--release-776b54?style=flat-square" alt="Status: pre-release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-526b61?style=flat-square" alt="License: MIT"></a>
+</p>
 
-The built-in product scope is six text entrances: `openai`, `google`,
-`anthropic`, `deepseek`, `openai-codex`, and `openrouter`; the image entrance is
-`openrouter-images`. OpenRouter models are retained regardless of their underlying
-vendor. Additional shared wire adapters have conformance coverage, which does
-not admit the corresponding provider products into this selected scope.
+<p align="center">
+  <a href="#upstream">Upstream</a> ·
+  <a href="#getting-started">Getting started</a> ·
+  <a href="docs/architecture/index.md">Architecture</a> ·
+  <a href="docs/development.md">Development</a>
+</p>
 
-Provider, catalog, image, OAuth, and native transport features are explicit
-choices. For example, `pi-ai` exposes `provider-openai`, `images-openrouter`,
-`oauth-openai-codex`, and `native`; its default feature set is empty. Provider
-selectors include their catalog and wire adapter, while OAuth is independently
-selected. `pi-agent` offers `sqlite` and `search-sqlite`; `pi-coding-runtime`
-offers selected `provider-*`, image/OAuth selectors, `sqlite-sessions`,
-`remote-catalog`, and `extensions`. Inspect each crate's `Cargo.toml` before
-selecting an umbrella such as `all-providers` or `compat`.
+Pirua reimplements Pi's AI, agent, and headless coding runtime layers in Rust.
+It follows a pinned upstream baseline, with explicit mappings from upstream
+contracts and observable behavior to Rust implementations and conformance evidence.
+The current workspace provides libraries for embedding these runtime layers in
+an application.
 
-The current coding builder composes a host-owned `ModelsRegistry`,
-`RuntimeFactory`, and session. Detached provider/model composition accepts
-injected providers, catalog models, and host-owned credential capabilities;
-required capabilities are checked before runtime admission. It does not build
-provider transports or refresh credentials. Coding tools use an `ExecutionEnv`,
-including a local implementation, so the host controls filesystem and process
-access. These APIs provide headless library composition; the developer binaries
-in `pi-ai` are catalog and OAuth utilities.
+## Upstream
 
-Extension endpoints require host-established authentication, grants, an ordered
-channel, and finite limits. The coding adapter's remote tool registration is
-currently limited to deterministic `echo`; provider profile registration is
-catalog/no-auth only. The host supplies provider HTTP, runtime endpoints,
-credentials, process lifecycle, transport authentication, and any OS sandbox or
-network isolation. Durable recovery and cancellation do not promise exactly-once
-external provider or tool effects. Telemetry supplies contracts and process-local
-references; exporters are supplied by the host.
+[Pi](https://github.com/earendil-works/pi), created by
+[Mario Zechner](https://github.com/badlogic), is the upstream project. Pirua's
+scope follows its AI and agent contracts and selected coding-agent runtime
+responsibilities. The Rust APIs use traits and detached values at host boundaries;
+the extension boundary uses a language-neutral protocol.
 
-## Build and test
+If you know Pi, these are the main entry points into this workspace:
 
-The checked-in toolchain is Rust `1.98.0`, with `rustfmt` and `clippy`. Install that
-toolchain and populate Cargo's dependency cache before entering an offline
-environment:
+| Pi area at the pinned baseline | Rust entry points | What lives here |
+|---|---|---|
+| `packages/ai` | [`pi-ai`](crates/pi-ai) | Model and provider contracts, messages, streaming, authentication, and selected provider integrations |
+| `packages/agent` | [`pi-agent`](crates/pi-agent), [`pi-harness-core`](crates/pi-harness-core), [`pi-harness-runtime`](crates/pi-harness-runtime) | Agent loop compatibility, Harness planning, execution, hooks, and recovery |
+| Harness session and backend contracts | [`pi-agent-session`](crates/pi-agent-session), [`pi-agent-sqlite`](crates/pi-agent-sqlite), [`pi-agent-search`](crates/pi-agent-search) | Session trees, Memory/JSONL/SQLite storage, migration, and search |
+| Headless parts of `packages/coding-agent` | [`pi-coding-runtime`](crates/pi-coding-runtime) | Coding tools, model composition, prompts, resources, and session lifecycle |
+| `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and local reference implementations |
+
+The full [fifteen-crate map](docs/architecture/02-crate-topology.md) explains
+ownership and dependencies. Crate names retain the upstream `pi-` prefix.
+
+### Upstream baseline
+
+The current baseline is
+[`853a80d26c90`](https://github.com/earendil-works/pi/tree/853a80d26c90a14c1886f0ebb8ffaae133ca2185).
+Alignment is evaluated against that pinned revision and its applicable contracts,
+rather than the latest upstream branch. The [ownership map](upstream-map.toml),
+[conformance registry](conformance/assembly.json), and
+[upstream update guide](docs/upstream-drift.md) make the correspondence reviewable.
+
+## Current status
+
+**Pre-release.** Workspace crates are version `0.0.0` with `publish = false`;
+consume them from this checkout while the public API develops. The current scope
+is the headless library runtime. Pi's interactive CLI/TUI and JavaScript extension
+loading remain outside this workspace's scope.
+
+Built-in text integrations cover **OpenAI, Google Gemini, Anthropic, DeepSeek,
+OpenAI Codex, and OpenRouter**. Image integration is through **OpenRouter Images**.
+Provider, OAuth, image, and storage features are selected explicitly. See the
+[accepted scope](docs/scope.md) and
+[feature and host boundaries](docs/development.md#feature-and-host-boundaries)
+for the exact selectors and integration responsibilities.
+
+Conformance includes source, contract, and offline behavior checks. The
+[verification guide](docs/development.md#assembly-consistency) records tested
+behavior, accepted compatibility gaps, and evidence boundaries.
+
+## Getting started
+
+Clone the repository and prepare the checked-in Rust toolchain:
 
 ```sh
+git clone https://github.com/utopia2077/pirua.git
+cd pirua
 rustup toolchain install 1.98.0 --profile minimal --component rustfmt --component clippy
 cargo fetch --locked
-cargo fetch --manifest-path crates/pi-extension-protocol/codegen/Cargo.toml --locked
 ```
 
-Once the dependencies are cached, compiling Rust targets requires no upstream
-checkout or live provider credentials:
+Run the [offline Agent example](crates/pi-agent/examples/offline_agent.rs):
+
+```sh
+cargo run -p pi-agent --example offline_agent --locked --offline
+```
+
+It sends a prompt through the compatibility Agent loop and prints the settled
+transcript. A deterministic local response is injected in place of a provider,
+so this example needs no API key, network access, or upstream checkout after
+dependencies are cached. Its central flow is:
+
+```rust
+let agent = Agent::new(local_options());
+agent.prompt(vec![user("Hello, Pirua!")]).await?;
+
+let state = agent.state();
+println!("{}", serde_json::to_string_pretty(&state.messages)?);
+```
+
+The complete source includes the model, message, and response helpers. For a
+provider-backed host, supply the provider/model callbacks and credentials through
+the documented composition boundaries.
+
+To check all Rust targets:
 
 ```sh
 cargo check --workspace --all-targets --locked --offline
-cargo check --workspace --all-targets --all-features --locked --offline
 ```
 
-Tests also execute Node/Python peers and pinned upstream source oracles. Complete
-verification requires a POSIX environment, Python 3.11 or newer with `protobuf`
-and `jsonschema` installed, Bash, Git, Node.js, npm for dependency preparation,
-and `protoc` reporting exactly `libprotoc 3.20.3`. Rust tests use POSIX process
-groups and utilities including `kill`, `getconf`, and `sha256sum`. Prepare the
-ignored repository-relative checkout while network access is available:
+Full conformance also runs Node/Python peers and pinned upstream oracles. Follow
+[Development and verification](docs/development.md) to prepare those inputs.
 
-```sh
-git clone https://github.com/earendil-works/pi-mono.git upstream/pi-mono
-git -C upstream/pi-mono checkout --detach 853a80d26c90a14c1886f0ebb8ffaae133ca2185
-npm --prefix upstream/pi-mono ci --ignore-scripts
+## Runtime layout
+
+```mermaid
+flowchart TD
+    Host["Host application"] --> Coding["pi-coding-runtime<br/>Tools · models · resources"]
+    Coding --> Agent["Agent / Harness runtime"]
+    Coding --> AI["pi-ai<br/>Providers · messages · streams"]
+    Agent --> Sessions["Session storage<br/>Memory · JSONL · SQLite"]
 ```
 
-The repository-relative checkout above is the default. To use an existing
-checkout containing that exact Git object and installed lockfile dependencies,
-set `PIRUA_UPSTREAM_ROOT` for script checks. For the full suite, also record the
-checkout in this repository's local Git configuration, since some Rust tests
-clear their child environment:
+This is a composition overview. The
+[architecture](docs/architecture/index.md) describes the full crate graph,
+runtime contracts, extension protocol, and host responsibilities.
 
-```sh
-export PIRUA_UPSTREAM_ROOT=/absolute/path/to/pi-mono
-git config --local pirua.upstreamRoot /absolute/path/to/pi-mono
-```
+## Documentation
 
-Scripts prefer the environment setting, then the local Git setting, then
-`upstream/pi-mono` resolved relative to this repository. Source conformance reads
-immutable pinned Git objects rather than working-tree source files. Prepare npm
-dependencies from the pinned revision; the oracles also check installed SDK bytes.
+| Start here | Contents |
+|---|---|
+| [Architecture](docs/architecture/index.md) | System boundaries, crate ownership, storage, extensions, and coding integration |
+| [Scope](docs/scope.md) | Included upstream responsibilities, provider selection, and exclusions |
+| [Development](docs/development.md) | Features, prerequisites, builds, tests, and verification commands |
+| [Upstream updates](docs/upstream-drift.md) | Compare pinned revisions and review classified changes |
 
-The frozen catalog provenance records Node `v26.8.1`, ICU `78.3`, locale `en-US`,
-and the Node executable SHA-256 in
-[generated provenance](conformance/catalog/generated/provenance.json). The
-catalog check fingerprints `/usr/bin/node`; a different runtime or SDK build can
-fail verification even if it is API compatible. These fixed provenance checks
-must be retained when reproducing this snapshot.
+## Acknowledgements and license
 
-After preparing those inputs, run all-feature Rust tests or the complete entry
-point from the repository root:
+Pirua follows the work of Mario Zechner and the
+[Pi contributors](https://github.com/earendil-works/pi). Upstream contracts,
+implementations, and tests inform the Rust rewrite and its conformance suite.
+Captured catalog data also includes material from [models.dev](https://models.dev/).
 
-```sh
-cargo test --workspace --all-targets --all-features --locked --offline
-bash scripts/verify.sh
-```
-
-It checks upstream ownership, local baseline drift, assembly consistency,
-source/export/behavior inventories, captured catalog regeneration, documentation,
-workspace topology, formatting, default and all-feature
-builds, Clippy, tests, and generated Rust documentation. Cargo runs offline;
-source oracles use captured feeds and synthetic local transports. The checks do
-not prove live account access or ongoing provider service compatibility. Catalog
-values describe the dated input capture, and the missing historical upstream
-text-catalog inputs are explicitly excluded from value-parity claims.
-
-The local drift tool compares immutable commits in the prepared Git object
-database. With no arguments it compares the pin to itself. A candidate comparison
-uses full commit ids and reports responsible owners and proof suites:
-
-```sh
-python3 scripts/upstream_drift.py
-python3 scripts/upstream_drift.py --old FULL_OLD_COMMIT --new FULL_NEW_COMMIT
-```
-
-It returns 2 for classified changes awaiting review, 3 for invalid or uncertain
-inputs, and 4 for unavailable objects or tools. Every added path needs explicit
-intake, including a path already matched by a broad route. Complete acknowledgements
-are required for exit 0. Guarded candidate patches additionally require bound
-local proof receipts and complete applicable provenance. The tool performs no
-fetch, executes no review-supplied command, and does not apply patches or change
-the pin. See [comparison and review](docs/upstream-drift.md) for the exact wire
-formats, receipt boundaries and separate production pin-intake requirements.
-
-The pure assembly check resolves pinned paths, public exports, provider scope,
-Harness selectors, legacy behavior and coding operations through the canonical
-ownership map and [proof registry](conformance/assembly.json):
-
-```sh
-python3 scripts/check_assembly.py
-python3 -m unittest scripts/test_check_assembly.py
-```
-
-It validates current test targets and evidence anchors without executing the
-registered proof commands. Accepted gaps remain visible, including full legacy
-proxy/iterator parity, the bounded remote JSONL matrix, historical catalog feed
-provenance and host/native certification. The five-row legacy actual-observation
-bridge, twelve-row legacy corpus and eighteen-row coding corpus retain separate
-denominators. See [upstream assembly consistency](docs/architecture/08-upstream-sync.md#assembly-consistency)
-for the exact inventory and evidence boundary.
-
-An additional publication check scans the index and current tracked/unignored
-files for stored private keys, owner paths, private workflow records, and known
-internal metadata. Add `--history` to include every reachable Git object and historical
-path; `--self-check` runs isolated rejection controls. Findings contain paths,
-hashes, and categories, without matching values. This bounded scanner supplements
-the conformance entry point:
-
-```sh
-python3 scripts/check_publication.py --history
-python3 scripts/check_publication.py --self-check
-```
-
-Pirua's original work is licensed under [MIT](LICENSE). [NOTICE](NOTICE) identifies
-upstream-derived material and captured catalog sources, with the applicable
-third-party license texts in [LICENSES](LICENSES).
+[MIT](LICENSE). Copyright notices for Pirua contributors, Mario Zechner, and
+models.dev are retained together in the root license. [NOTICE](NOTICE) records
+source attribution, the pinned baseline, and captured-data provenance.
