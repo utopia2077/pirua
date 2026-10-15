@@ -11,7 +11,8 @@ surface. This design separates two concepts:
 
 The original fifteen-crate baseline keeps fine-grained mappings as internal
 modules. The standalone Coding session store and shared SQLite infrastructure
-add two independent owners for the v1.4.0 upgrade. The inventory below is the
+add independent owners for the v1.4.0 upgrade, alongside the local CodeMode
+executor. The inventory below is the
 current workspace; the formal upstream baseline remains separately pinned.
 
 ## Crate inventory
@@ -35,6 +36,7 @@ current workspace; the formal upstream baseline remains separately pinned.
 | 15 | `pi-coding-runtime` | headless coding models, tools and composition | selected coding-agent core/server modules |
 | 16 | `pi-sqlite` | shared SQLite connection, snapshots and transactions | Rust-native storage infrastructure |
 | 17 | `pi-coding-session` | Coding transcript trees, projections and SQLite/Memory stores | v1.4.0 `coding-agent/src/core/session-manager.ts`, `messages.ts` |
+| 18 | `pi-codemode` | controlled local JavaScript worker, tool bridge and replay inputs | v1.4.0 `packages/codemode` |
 
 ## Internal synchronization modules
 
@@ -184,6 +186,7 @@ an absent edge is forbidden even if Cargo could technically resolve it.
 | `pi-coding-runtime` | `pi-ai`, `pi-agent`, `pi-agent-session`, `pi-harness-runtime`, `pi-telemetry` | `pi-ai-transport` through `remote-catalog`; `pi-ai-providers` through `provider-selection`; `pi-agent-sqlite` through `sqlite-sessions`; `pi-extension-protocol` through `extensions` |
 | `pi-sqlite` | none | none |
 | `pi-coding-session` | `pi-sqlite` | none |
+| `pi-codemode` | none | none |
 
 The test-only internal edge is listed separately from production dependencies:
 
@@ -201,7 +204,7 @@ pi-extension-protocol, pi-telemetry,
 pi-ai-core, pi-agent-schema, pi-ai-transport, pi-harness-core,
 pi-agent-session, pi-agent-loop, pi-ai-providers,
 pi-agent-search, pi-agent-sqlite, pi-harness-runtime,
-pi-ai, pi-agent, pi-coding-runtime, pi-sqlite, pi-coding-session
+pi-ai, pi-agent, pi-coding-runtime, pi-sqlite, pi-coding-session, pi-codemode
 ```
 
 Default and all-feature graph checks reject a cycle or unlisted internal edge.

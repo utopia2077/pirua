@@ -18,6 +18,7 @@ members = [
     "crates/pi-coding-runtime",
     "crates/pi-sqlite",
     "crates/pi-coding-session",
+    "crates/pi-codemode",
 ]
 
 [workspace.package]
@@ -30,6 +31,8 @@ publish = false
 [workspace.dependencies]
 pi-sqlite = { path = "crates/pi-sqlite" }
 pi-coding-session = { path = "crates/pi-coding-session" }
+rquickjs = { version = "=0.14.0", default-features = false, features = ["std"] }
+pi-codemode = { path = "crates/pi-codemode" }
 rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
 ring = { version = "=0.17.14", default-features = false, features = ["alloc"] }
 zlib-rs = { version = "=0.6.7", default-features = false, features = ["std"] }
