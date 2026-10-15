@@ -135,6 +135,23 @@ not prove live account access or ongoing provider service compatibility. Catalog
 values describe the dated input capture, and the missing historical upstream
 text-catalog inputs are explicitly excluded from value-parity claims.
 
+The pure assembly check resolves pinned paths, public exports, provider scope,
+Harness selectors, legacy behavior and coding operations through the canonical
+ownership map and [proof registry](conformance/assembly.json):
+
+```sh
+python3 scripts/check_assembly.py
+python3 -m unittest scripts/test_check_assembly.py
+```
+
+It validates current test targets and evidence anchors without executing the
+registered proof commands. Accepted gaps remain visible, including full legacy
+proxy/iterator parity, the bounded remote JSONL matrix, historical catalog feed
+provenance and host/native certification. The five-row legacy actual-observation
+bridge, twelve-row legacy corpus and eighteen-row coding corpus retain separate
+denominators. See [upstream assembly consistency](docs/architecture/08-upstream-sync.md#assembly-consistency)
+for the exact inventory and evidence boundary.
+
 An additional publication check scans the index and current tracked/unignored
 files for stored private keys, owner paths, private workflow records, and known
 internal metadata. Add `--history` to include every reachable Git object and historical

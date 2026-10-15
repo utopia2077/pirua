@@ -1,0 +1,2269 @@
+{
+  "schema_version": 1,
+  "description": "Proof routing only. Ownership derives from upstream-map.toml. Commands are definitions, not execution receipts. Historical fixture sourceReferences retain their original provenance; these references name current public evidence.",
+  "suites": [
+    {
+      "id": "conformance/agent-loop",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent",
+          "--test",
+          "agent_conformance"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent",
+          "--test",
+          "agent_observation_bridge"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent",
+          "--test",
+          "agent_facade"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-loop",
+          "--test",
+          "agent_loop"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-loop",
+          "--test",
+          "tool_phases"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent/tests/agent_conformance.rs",
+          "anchor": "test:corpus_manifest_has_exact_denominator_statuses_and_one_negative_each"
+        },
+        {
+          "path": "crates/pi-agent/tests/agent_observation_bridge.rs",
+          "anchor": "test:actual_rust_agent_observations_compare_through_node_for_representable_rows"
+        },
+        {
+          "path": "crates/pi-agent/tests/agent_facade.rs",
+          "anchor": "test:prompt_reduces_state_and_listener_order_is_awaited"
+        },
+        {
+          "path": "crates/pi-agent-loop/tests/agent_loop.rs",
+          "anchor": "test:prompt_emits_legacy_lifecycle_and_returns_prompt_plus_assistant"
+        },
+        {
+          "path": "crates/pi-agent-loop/tests/tool_phases.rs",
+          "anchor": "test:actual_rewrite_replacement_context_and_explicit_patch_values"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/agent-loop/README.md",
+          "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+        }
+      ]
+    },
+    {
+      "id": "conformance/agent-proxy",
+      "status": "accepted-limit",
+      "commands": [],
+      "evidence": [
+        {
+          "path": "conformance/agent-loop/manifest.json",
+          "anchor": "json:/denominator/11"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/agent-loop/manifest.json",
+          "anchor": "json:/denominator/11"
+        },
+        {
+          "path": "conformance/agent-loop/README.md",
+          "anchor": "text:proxy and stream parity are not silently omitted."
+        }
+      ]
+    },
+    {
+      "id": "conformance/ai-compat",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai",
+          "--test",
+          "retry"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai/tests/retry.rs",
+          "anchor": "test:retry_rejected_operations_preserve_source_stage"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/ai-compat/retry",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai",
+          "--test",
+          "retry"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai/tests/retry.rs",
+          "anchor": "test:retry_rejected_operations_preserve_source_stage"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/ai-domain",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_ai_conformance.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "conformance/ai-domain/inventory.json",
+          "anchor": "json:/rows"
+        },
+        {
+          "path": "conformance/ai-domain/behavior-inventory.json",
+          "anchor": "json:/rows"
+        },
+        {
+          "path": "scripts/generate_ai_conformance.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/ai-faux",
+      "status": "accepted-limit",
+      "commands": [],
+      "evidence": [
+        {
+          "path": "conformance/ai-domain/selected-provider-scope.json",
+          "anchor": "json:/scopeTotals/owner-excluded"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "docs/scope.md",
+          "anchor": "text:上游 `faux` provider 的公开兼容接口"
+        }
+      ]
+    },
+    {
+      "id": "conformance/ai-models",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-core",
+          "--test",
+          "auth_store"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-core",
+          "--test",
+          "models_registry"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-core/tests/auth_store.rs",
+          "anchor": "test:credential_revision_tombstone_order_and_detachment"
+        },
+        {
+          "path": "crates/pi-ai-core/tests/models_registry.rs",
+          "anchor": "test:provider_mutations_preserve_order_and_slots"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/ai-transport",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-transport",
+          "--test",
+          "portable"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-transport",
+          "--test",
+          "provider_retry"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-transport/tests/portable.rs",
+          "anchor": "test:retries_only_failed_acquisition_and_closes_rejected_body"
+        },
+        {
+          "path": "crates/pi-ai-transport/tests/provider_retry.rs",
+          "anchor": "test:source_status_headers_delays_dates_and_caps_match_executed_vectors"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/catalog/generator",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_selected_catalogs.py",
+          "--check"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai",
+          "--test",
+          "selected_catalog_profiles",
+          "--features",
+          "all-providers,all-images"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "conformance/catalog/README.md"
+        },
+        {
+          "path": "scripts/generate_selected_catalogs.py",
+          "anchor": "python:main"
+        },
+        {
+          "path": "crates/pi-ai/tests/selected_catalog_profiles.rs",
+          "anchor": "test:actual_facade_catalog_selection_order_unknowns_and_capture_timestamp"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "docs/architecture/08-upstream-sync.md",
+          "anchor": "text:missing-intake-snapshot"
+        }
+      ]
+    },
+    {
+      "id": "conformance/catalog/projection",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_selected_catalogs.py",
+          "--check"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai",
+          "--test",
+          "selected_catalog_profiles",
+          "--features",
+          "all-providers,all-images"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "conformance/catalog/README.md"
+        },
+        {
+          "path": "scripts/generate_selected_catalogs.py",
+          "anchor": "python:main"
+        },
+        {
+          "path": "crates/pi-ai/tests/selected_catalog_profiles.rs",
+          "anchor": "test:actual_facade_catalog_selection_order_unknowns_and_capture_timestamp"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "docs/architecture/08-upstream-sync.md",
+          "anchor": "text:missing-intake-snapshot"
+        }
+      ]
+    },
+    {
+      "id": "conformance/catalog/runtime",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_selected_catalogs.py",
+          "--check"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai",
+          "--test",
+          "selected_catalog_profiles",
+          "--features",
+          "all-providers,all-images"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "conformance/catalog/README.md"
+        },
+        {
+          "path": "scripts/generate_selected_catalogs.py",
+          "anchor": "python:main"
+        },
+        {
+          "path": "crates/pi-ai/tests/selected_catalog_profiles.rs",
+          "anchor": "test:actual_facade_catalog_selection_order_unknowns_and_capture_timestamp"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "docs/architecture/08-upstream-sync.md",
+          "anchor": "text:missing-intake-snapshot"
+        }
+      ]
+    },
+    {
+      "id": "conformance/coding-runtime",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "coding_runtime_conformance"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "coding_runtime_conformance",
+          "--features",
+          "extensions"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "coding_runtime_conformance",
+          "--all-features"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-coding-runtime/tests/coding_runtime_conformance.rs",
+          "anchor": "test:assembled_coding_runtime_rows_compare_through_node"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/coding_runtime_conformance.rs",
+          "anchor": "test:assembled_coding_runtime_rows_compare_through_node"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/coding-runtime/model-responsibilities.md",
+          "anchor": "text:summary, deferred, compaction and remote-provider overlay behavior are not certified"
+        },
+        {
+          "path": "conformance/coding-runtime/README.md",
+          "anchor": "text:Opening in place remains the explicit upstream copy-semantics boundary."
+        }
+      ]
+    },
+    {
+      "id": "conformance/coding-runtime/models",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "model_composition"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "model_defaults"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-coding-runtime/tests/model_composition.rs",
+          "anchor": "test:selected_scope_is_exactly_six_text_plus_one_image"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/model_defaults.rs",
+          "anchor": "test:each_pinned_default_beats_earlier_nonpreferred_models"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/coding-runtime/model-responsibilities.md",
+          "anchor": "text:summary, deferred, compaction and remote-provider overlay behavior are not certified"
+        },
+        {
+          "path": "conformance/coding-runtime/README.md",
+          "anchor": "text:Opening in place remains the explicit upstream copy-semantics boundary."
+        }
+      ]
+    },
+    {
+      "id": "conformance/coding-runtime/session-behavior",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "coding_runtime_conformance"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-coding-runtime/tests/coding_runtime_conformance.rs",
+          "anchor": "test:assembled_coding_runtime_rows_compare_through_node"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/coding-runtime/model-responsibilities.md",
+          "anchor": "text:summary, deferred, compaction and remote-provider overlay behavior are not certified"
+        },
+        {
+          "path": "conformance/coding-runtime/README.md",
+          "anchor": "text:Opening in place remains the explicit upstream copy-semantics boundary."
+        }
+      ]
+    },
+    {
+      "id": "conformance/coding-runtime/session-lifecycle",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "m4_lifecycle"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "coding_runtime_conformance"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-coding-runtime/tests/m4_lifecycle.rs",
+          "anchor": "test:builder_first_attachment_and_lifecycle_replacement_use_one_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/coding_runtime_conformance.rs",
+          "anchor": "test:assembled_coding_runtime_rows_compare_through_node"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/coding-runtime/model-responsibilities.md",
+          "anchor": "text:summary, deferred, compaction and remote-provider overlay behavior are not certified"
+        },
+        {
+          "path": "conformance/coding-runtime/README.md",
+          "anchor": "text:Opening in place remains the explicit upstream copy-semantics boundary."
+        }
+      ]
+    },
+    {
+      "id": "conformance/coding-runtime/tools",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-coding-runtime",
+          "--test",
+          "tools"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-coding-runtime/tests/tools.rs",
+          "anchor": "test:local_file_tools_read_write_edit_search_and_list"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/coding-runtime/model-responsibilities.md",
+          "anchor": "text:summary, deferred, compaction and remote-provider overlay behavior are not certified"
+        },
+        {
+          "path": "conformance/coding-runtime/README.md",
+          "anchor": "text:Opening in place remains the explicit upstream copy-semantics boundary."
+        }
+      ]
+    },
+    {
+      "id": "conformance/extension-protocol",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-extension-protocol",
+          "--test",
+          "profile_live"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_extension_profiles",
+          "--features",
+          "extensions"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-extension-protocol/tests/profile_live.rs",
+          "anchor": "test:first_terminal_retained_exact_identity_across_loss_drain_duplicate_and_retire"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs",
+          "anchor": "test:real_jsonl_provider_hook_telemetry_profile_parity_all_minor_pairs"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "docs/architecture/06-extension-protocol.md",
+          "anchor": "heading:Trust and deployment boundary",
+          "reason": "Authenticated host endpoint required; no process launch, sandbox, transport authentication or credential broker certification."
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs",
+          "anchor": "text:#[ignore = \"explicit allocator evidence witness; run with --ignored --exact\"]",
+          "reason": "Ordinary suite definitions retain explicitly ignored native resource witnesses; this resolver does not certify machine code, resources or an independent external oracle."
+        },
+        {
+          "path": "crates/pi-harness-runtime/src/extensions/transport.rs",
+          "anchor": "text:NativeRefused",
+          "reason": "Native refusal remains an explicit outcome; structural proof routing does not certify adoption."
+        }
+      ]
+    },
+    {
+      "id": "conformance/harness",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-core",
+          "--test",
+          "current_validation"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_first_attachment"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-harness-core/tests/current_validation.rs",
+          "anchor": "test:all_27_labels_and_idle_have_exact_inventory_and_cas_projection"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_first_attachment.rs",
+          "anchor": "test:fresh_memory_repo_requires_explicit_first_attachment_then_runs_real_prompt"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/harness/r11-r12/README.md",
+          "anchor": "text:The witness does not claim the full JSONL resource/action/watch or crash matrix."
+        }
+      ]
+    },
+    {
+      "id": "conformance/harness/core",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-core",
+          "--test",
+          "r1_r4_planner"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-core",
+          "--test",
+          "r5_r7_planner"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-core",
+          "--test",
+          "r8_r10_planner"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-core",
+          "--test",
+          "current_validation"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-harness-core/tests/r1_r4_planner.rs",
+          "anchor": "test:checkpoint_captures_configuration_options_retry_and_all_tokens"
+        },
+        {
+          "path": "crates/pi-harness-core/tests/r5_r7_planner.rs",
+          "anchor": "test:selection_modes_skip_and_order_survive_state_roundtrip"
+        },
+        {
+          "path": "crates/pi-harness-core/tests/r8_r10_planner.rs",
+          "anchor": "test:nested_intents_and_usage_keep_one_outer_identity_and_reject_wrong_tuples"
+        },
+        {
+          "path": "crates/pi-harness-core/tests/current_validation.rs",
+          "anchor": "test:all_27_labels_and_idle_have_exact_inventory_and_cas_projection"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/harness/migrations",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "migration_engine"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "jsonl_contract"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent-session/tests/migration_engine.rs",
+          "anchor": "test:synthetic_version_gate_uses_authoritative_store_and_never_calls_missing_mappings"
+        },
+        {
+          "path": "crates/pi-agent-session/tests/jsonl_contract.rs",
+          "anchor": "test:jsonl_literal_query_contract"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "docs/architecture/05-session-storage.md",
+          "anchor": "text:Storage version 1 has no historical state variant",
+          "reason": "No invented historical OperationState version or speculative migration."
+        }
+      ]
+    },
+    {
+      "id": "conformance/harness/public",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_first_attachment"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "r5_r7_public_model"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "r8_r10_public_model"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_extension_profiles",
+          "--features",
+          "extensions"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_first_attachment.rs",
+          "anchor": "test:fresh_memory_repo_requires_explicit_first_attachment_then_runs_real_prompt"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/r5_r7_public_model.rs",
+          "anchor": "test:public_r5_next_run_cancel_and_prompt_order"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/r8_r10_public_model.rs",
+          "anchor": "test:empty_compaction_preserves_every_public_row"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs",
+          "anchor": "test:real_jsonl_provider_hook_telemetry_profile_parity_all_minor_pairs"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/harness/r11-r12/README.md",
+          "anchor": "text:The witness does not claim the full JSONL resource/action/watch or crash matrix."
+        }
+      ]
+    },
+    {
+      "id": "conformance/harness/runtime",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_r1_r4"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_generation_recovery"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_r5_r7"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_r6_control_matrix"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-harness-runtime",
+          "--test",
+          "runtime_r8_r10"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_r1_r4.rs",
+          "anchor": "test:configured_public_create_is_effect_free_and_claims_actual_backend"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_generation_recovery.rs",
+          "anchor": "test:reopened_pending_cap_uses_captured_ids_without_provider_and_matches_manual"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_r5_r7.rs",
+          "anchor": "test:public_next_queue_cancel_capture_and_adjustment"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_r6_control_matrix.rs",
+          "anchor": "test:public_abort_reconciles_each_existing_non_tool_phase"
+        },
+        {
+          "path": "crates/pi-harness-runtime/tests/runtime_r8_r10.rs",
+          "anchor": "test:manual_compaction_publishes_real_summary_and_separate_usage"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/harness/schema",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-schema",
+          "--test",
+          "state_golden"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-schema",
+          "--test",
+          "surface_inventory"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent-schema/tests/state_golden.rs",
+          "anchor": "test:every_physical_v1_state_golden_round_trips"
+        },
+        {
+          "path": "crates/pi-agent-schema/tests/surface_inventory.rs",
+          "anchor": "test:rev20_inventory_counts_are_exact"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/images",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "images_runtime"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openrouter_images",
+          "--features",
+          "wire-openrouter-images"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:complete_source_generation_cases_preserve_auth_branch_rejection_and_exact_merge"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openrouter_images.rs",
+          "anchor": "test:complete_pinned_image_source_matches_payload_fetch_callback_and_partial_result_stages"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/images/fixtures",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openrouter_images",
+          "--features",
+          "wire-openrouter-images"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-providers/tests/openrouter_images.rs",
+          "anchor": "test:complete_pinned_image_source_matches_payload_fetch_callback_and_partial_result_stages"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/manifests/agent-exports",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_upstream_manifests.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "upstream/manifests/agent-exports.toml",
+          "anchor": "text:source_commit ="
+        },
+        {
+          "path": "scripts/generate_upstream_manifests.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/manifests/agent-tests",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_upstream_manifests.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "upstream/manifests/tests.toml",
+          "anchor": "text:source_commit ="
+        },
+        {
+          "path": "scripts/generate_upstream_manifests.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/manifests/ai-exports",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_upstream_manifests.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "upstream/manifests/ai-exports.toml",
+          "anchor": "text:source_commit ="
+        },
+        {
+          "path": "scripts/generate_upstream_manifests.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/manifests/ai-tests",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_upstream_manifests.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "upstream/manifests/tests.toml",
+          "anchor": "text:source_commit ="
+        },
+        {
+          "path": "scripts/generate_upstream_manifests.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/manifests/coding-tests",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_upstream_manifests.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "upstream/manifests/tests.toml",
+          "anchor": "text:source_commit ="
+        },
+        {
+          "path": "scripts/generate_upstream_manifests.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/manifests/providers",
+      "status": "executable",
+      "commands": [
+        [
+          "python3",
+          "scripts/generate_upstream_manifests.py",
+          "--check"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "upstream/manifests/providers.toml",
+          "anchor": "text:source_commit ="
+        },
+        {
+          "path": "scripts/generate_upstream_manifests.py",
+          "anchor": "python:main"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/oauth",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "oauth_selected",
+          "--features",
+          "all-oauth"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-providers/tests/oauth_selected.rs",
+          "anchor": "test:oauth_selected_complete_source_trace_parity"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/provider-traces",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "anthropic_messages",
+          "--features",
+          "wire-anthropic-messages"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "azure_openai_responses",
+          "--features",
+          "wire-azure-openai-responses"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "bedrock_converse_stream",
+          "--features",
+          "wire-bedrock-converse-stream"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "cloudflare_gateway_binding",
+          "--features",
+          "cloudflare-gateway-binding"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "google_genai",
+          "--features",
+          "wire-google-genai"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "google_shared"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "google_vertex",
+          "--features",
+          "wire-google-vertex"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "images_runtime",
+          "--features",
+          "wire-openrouter-images"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "lazy"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "mistral_conversations",
+          "--features",
+          "wire-mistral-conversations"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openai_codex",
+          "--features",
+          "wire-openai-codex-responses"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openai_completions",
+          "--features",
+          "wire-openai-completions"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openai_responses",
+          "--features",
+          "wire-openai-responses"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openai_responses_shared"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "openrouter_images",
+          "--features",
+          "wire-openrouter-images"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "pi_messages",
+          "--features",
+          "wire-pi-messages"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "provider_helpers"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "responses_deferred_order"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "simple_options"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "strict_schema_wire"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-providers/tests/anthropic_messages.rs",
+          "anchor": "test:installed_sdk_request_and_complete_pinned_event_snapshots"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/anthropic_messages.rs",
+          "anchor": "test:simple_reasoning_budget_adaptive_custom_mapping_and_raw_option_admission"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/azure_openai_responses.rs",
+          "anchor": "test:azure_defaults_and_simple_auth_failure_do_not_borrow_standard_semantics"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/azure_openai_responses.rs",
+          "anchor": "test:pinned_azure_sdk_full_requests_and_snapshots_match_75_cases"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/bedrock_converse_stream.rs",
+          "anchor": "test:complete_pinned_wrapper_sdk_wire_blob_hooks_and_binary_events_match"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/bedrock_converse_stream.rs",
+          "anchor": "test:priming_long_body_fallback"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/bedrock_converse_stream.rs",
+          "anchor": "test:stream_long_body_outside_preview"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/cloudflare_gateway_binding.rs",
+          "anchor": "test:literals_and_complete_binding_source_matrix_match"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_genai.rs",
+          "anchor": "test:pinned_sdk_requests_and_complete_event_snapshots_match_all_cases"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_genai.rs",
+          "anchor": "test:typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_shared.rs",
+          "anchor": "test:all_complete_message_projections_match_executed_source_without_mutation"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_shared.rs",
+          "anchor": "test:all_thinking_mappings_markers_and_retention_match_pinned_execution"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_shared.rs",
+          "anchor": "test:exact_export_inventory_and_installed_sdk_enums_are_complete"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_shared.rs",
+          "anchor": "test:google_missing_headers_normalization_and_retry_policy_match_executed_sdk_errors"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_shared.rs",
+          "anchor": "test:prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_source"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_shared.rs",
+          "anchor": "test:schema_arrays_are_not_sanitized_and_strict_mode_short_circuits_exactly"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_vertex.rs",
+          "anchor": "test:pinned_sdk_requests_and_complete_event_snapshots_match_all_cases"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/google_vertex.rs",
+          "anchor": "test:raw_vertex_option_domains_and_missing_configured_port_fail_before_payload"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:all_provider_refresh_admits_every_future_and_settles_failures_best_effort"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:cached_load_survives_caller_drop_and_shared_failure_releases_all_waiters"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:complete_source_generation_cases_preserve_auth_branch_rejection_and_exact_merge"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:complete_source_lazy_modes_preserve_per_call_loading_and_cached_success_or_failure"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:complete_source_live_listing_and_refresh_admission_preserve_bounded_membership_reentry"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:complete_source_nested_refresh_launch_and_completion_clear_current_flight_without_fencing"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:configured_loader_retains_one_adapter_and_dropped_waiter_waker_can_reenter"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:explicit_registry_replacement_retains_old_binding_checks_and_missing_api_rejects"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:shared_refresh_retains_old_models_on_failure_retries_and_outlives_dropped_waiters"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:source_ordered_membership_best_effort_lists_and_first_match_remain_instance_owned"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:source_synchronous_refresh_throw_stays_memoized_while_async_rejection_retries"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/images_runtime.rs",
+          "anchor": "test:wire_integration::complete_runtime_auth_dispatch_to_accepted_wire_preserves_endpoint_and_callback_cancel_success"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/lazy.rs",
+          "anchor": "test:all_ten_text_factories_compile_and_delegate_raw_and_simple_without_discovery"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/lazy.rs",
+          "anchor": "test:bedrock_global_override_samples_before_pending_load_and_replacement_and_reset"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/lazy.rs",
+          "anchor": "test:child_usage_only_cancellation_and_queued_prefix_are_forwarded_unchanged"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/lazy.rs",
+          "anchor": "test:every_operation_invokes_load_before_return_and_advertisement_precedes_loading"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/lazy.rs",
+          "anchor": "test:pending_setup_cancellation_drops_noncooperative_future_and_pre_cancel_still_invokes"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/mistral_conversations.rs",
+          "anchor": "test:pinned_full_event_snapshots_and_every_byte_split"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/mistral_conversations.rs",
+          "anchor": "test:simple_reasoning_selection_base_cap_and_raw_sampling_is_not_spread"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_codex.rs",
+          "anchor": "test:dropped_graceful_completion_aborts_and_explicit_busy_close_flushes_without_reset"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_codex.rs",
+          "anchor": "test:pinned_complete_codex_requests_events_retries_and_error_boundaries"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_codex.rs",
+          "anchor": "test:pinned_multiturn_full_delta_cache_reset_close_age_and_sticky_sequences"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_codex.rs",
+          "anchor": "test:review_first_completion_start_matches_mapper_stage_and_http_control"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_codex.rs",
+          "anchor": "test:review_retained_close_futures_preserve_slot_budget_and_drop_recovers_capacity"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_completions.rs",
+          "anchor": "test:raw_family_options_keep_exact_null_and_tool_selector_domains"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_responses.rs",
+          "anchor": "test:complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_responses.rs",
+          "anchor": "test:pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_responses_shared.rs",
+          "anchor": "test:interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_responses_shared.rs",
+          "anchor": "test:opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_responses_shared.rs",
+          "anchor": "test:replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openai_responses_shared.rs",
+          "anchor": "test:tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openrouter_images.rs",
+          "anchor": "test:callback_cancellation_does_not_add_a_success_veto_and_errors_keep_partial_output"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openrouter_images.rs",
+          "anchor": "test:complete_pinned_image_source_matches_payload_fetch_callback_and_partial_result_stages"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/openrouter_images.rs",
+          "anchor": "test:inherited_numeric_admission_is_checked_without_changing_usage_math"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/pi_messages.rs",
+          "anchor": "test:raw_defaults_and_simple_options_have_separate_reasoning_ownership"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/pi_messages.rs",
+          "anchor": "test:redacted_response_error_retains_only_explicit_code_inspection"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/pi_messages.rs",
+          "anchor": "test:source_derived_request_and_complete_event_snapshots_match_at_every_byte_split"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/provider_helpers.rs",
+          "anchor": "test:copilot_metadata_uses_last_role_and_all_user_tool_images"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/provider_helpers.rs",
+          "anchor": "test:grammar_json_deltas_are_escaped_monotone_and_atomic"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/provider_helpers.rs",
+          "anchor": "test:grammar_selection_input_shape_and_maps_follow_source"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/provider_helpers.rs",
+          "anchor": "test:prompt_cache_counts_unicode_codepoints"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/provider_helpers.rs",
+          "anchor": "test:strict_schema_rejections_are_atomic_and_prefer_only_swallows_unsupported"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/responses_deferred_order.rs",
+          "anchor": "test:deferred_function_slots_match_complete_pinned_converter"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/simple_options.rs",
+          "anchor": "test:all_reasoning_levels_and_zero_custom_budget_match_pinned_source"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/simple_options.rs",
+          "anchor": "test:answer_room_and_safe_maximum_vectors_match_executed_pinned_oracle"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/simple_options.rs",
+          "anchor": "test:base_preserves_neutral_fields_and_merges_sampling_before_context_cap"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/strict_schema_wire.rs",
+          "anchor": "test:ordered_strict_parameters_match_executed_source_and_preserve_existing_slots"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/providers",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "selected_factories",
+          "--features",
+          "all-providers,all-images,all-oauth"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-ai-providers",
+          "--test",
+          "selected_factories_source",
+          "--features",
+          "all-providers,all-images,all-oauth"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-ai-providers/tests/selected_factories.rs",
+          "anchor": "test:source_metadata_catalog_order_static_capabilities_and_passive_modules"
+        },
+        {
+          "path": "crates/pi-ai-providers/tests/selected_factories_source.rs",
+          "anchor": "test:complete_pinned_selected_factory_source_and_capture_are_fresh"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/search",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent",
+          "--test",
+          "search_composition",
+          "--features",
+          "search-sqlite,sqlite"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent/tests/composition/legacy.rs",
+          "anchor": "test:actual_jsonl_legacy_conversion_preserves_search_progress"
+        },
+        {
+          "path": "crates/pi-agent/tests/composition/sqlite.rs",
+          "anchor": "test:real_sqlite_rewrite_resets_search_and_erases_old_text"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/search/current",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent",
+          "--test",
+          "search_contract"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent/tests/search_contract.rs",
+          "anchor": "test:forwarded_search_contract_has_the_same_schema_identity"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/session",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "memory_storage"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "jsonl_contract"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "session_context"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "repository_forks"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent-session/tests/memory_storage.rs",
+          "anchor": "test:literal_branch_and_inventory_contract"
+        },
+        {
+          "path": "crates/pi-agent-session/tests/jsonl_contract.rs",
+          "anchor": "test:jsonl_literal_query_contract"
+        },
+        {
+          "path": "crates/pi-agent-session/tests/session_context.rs",
+          "anchor": "test:bounded_compaction_tail_filters_and_explicit_callback_order"
+        },
+        {
+          "path": "crates/pi-agent-session/tests/repository_forks.rs",
+          "anchor": "test:branch_at_before_and_side_forks_preserve_literal_rows_facts_and_provenance"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/session/legacy-v3",
+      "status": "accepted-limit",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "legacy_v3_ids_iso"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "legacy_v3_normalization"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-session",
+          "--test",
+          "legacy_v3_validation"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent-session/tests/legacy_v3_ids_iso.rs",
+          "anchor": "test:independent_sha256_uuid_literals_match_exact_framing_and_bits"
+        },
+        {
+          "path": "crates/pi-agent-session/tests/legacy_v3_normalization.rs",
+          "anchor": "test:sealed_preparation_consumes_actual_memory_and_session_api"
+        },
+        {
+          "path": "crates/pi-agent-session/tests/legacy_v3_validation.rs",
+          "anchor": "test:source_envelopes_versions_and_original_ancestry_fail_closed"
+        }
+      ],
+      "limitations": [
+        {
+          "path": "conformance/coding-runtime/model-responsibilities.md",
+          "anchor": "text:summary, deferred, compaction and remote-provider overlay behavior are not certified"
+        },
+        {
+          "path": "conformance/coding-runtime/README.md",
+          "anchor": "text:Opening in place remains the explicit upstream copy-semantics boundary."
+        }
+      ]
+    },
+    {
+      "id": "conformance/session/sqlite",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-sqlite",
+          "--test",
+          "contract"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-sqlite",
+          "--test",
+          "runtime_capability"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent-sqlite/tests/contract.rs",
+          "anchor": "test:sqlite_literal_query_contract"
+        },
+        {
+          "path": "crates/pi-agent-sqlite/tests/runtime_capability.rs",
+          "anchor": "test:sqlite_publication_attachment_repair_and_reopen"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/telemetry",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-telemetry",
+          "--test",
+          "contract"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-telemetry/tests/contract.rs",
+          "anchor": "test:telemetry_traits_are_object_safe_and_handles_are_send_sync"
+        }
+      ],
+      "limitations": []
+    },
+    {
+      "id": "conformance/telemetry/agent-schema",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent",
+          "--test",
+          "telemetry_facade"
+        ],
+        [
+          "cargo",
+          "test",
+          "--offline",
+          "--locked",
+          "-p",
+          "pi-agent-schema",
+          "--test",
+          "surface_inventory"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-agent/tests/telemetry_facade.rs",
+          "anchor": "test:facade_exposes_detached_telemetry_recording"
+        },
+        {
+          "path": "crates/pi-agent-schema/tests/surface_inventory.rs",
+          "anchor": "test:rev20_inventory_counts_are_exact"
+        }
+      ],
+      "limitations": []
+    }
+  ],
+  "behavior_contract_sources": {
+    "docs/contracts/ai-domain/auth-store.md": [
+      "packages/ai/src/auth/credential-store.ts"
+    ],
+    "docs/contracts/ai-domain/models-registry.md": [
+      "packages/ai/src/models.ts"
+    ],
+    "docs/contracts/ai-domain/domain.md": [
+      "packages/ai/src/types.ts"
+    ],
+    "docs/contracts/ai-domain/final-domain-runtime.md": [
+      "packages/ai/src/types.ts"
+    ],
+    "docs/contracts/ai-domain/stream-request.md": [
+      "packages/ai/src/utils/event-stream.ts"
+    ],
+    "upstream-map.toml": [
+      "packages/ai/src/types.ts",
+      "packages/ai/src/auth/types.ts"
+    ]
+  },
+  "legacy_sources": {
+    "U1": "packages/agent/src/agent.ts",
+    "U2": "packages/agent/src/agent.ts",
+    "U3": "packages/agent/src/agent.ts",
+    "U4": "packages/agent/src/agent.ts",
+    "U5": "packages/agent/src/agent.ts",
+    "U6": "packages/agent/src/agent.ts",
+    "U7": "packages/agent/src/agent.ts",
+    "U8": "packages/agent/src/agent.ts",
+    "U9": "packages/agent/src/agent.ts",
+    "U10": "packages/agent/src/agent.ts",
+    "U11": "packages/agent/src/agent.ts",
+    "U12": "packages/agent/src/proxy.ts",
+    "U13": "packages/agent/src/agent.ts",
+    "U14": "packages/agent/src/agent.ts"
+  },
+  "legacy_limits": {
+    "U4": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U5": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U6": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U8": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U10": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U12": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U13": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    },
+    "U14": {
+      "path": "conformance/agent-loop/README.md",
+      "anchor": "text:A denominator row that combines a witnessed sub-behavior"
+    }
+  },
+  "coding_sources": {
+    "model.credentials_catalog": [
+      "packages/coding-agent/src/core/model-registry.ts",
+      "packages/coding-agent/src/core/auth-storage.ts"
+    ],
+    "prompt.system_resources": [
+      "packages/coding-agent/src/core/system-prompt.ts"
+    ],
+    "prompt.settings_snapshot": [
+      "packages/coding-agent/src/core/settings-manager.ts"
+    ],
+    "tools.validate_progress_settle": [
+      "packages/coding-agent/src/core/tools/index.ts"
+    ],
+    "tools.coding_operations": [
+      "packages/coding-agent/src/core/tools/index.ts"
+    ],
+    "legacy_import.format3": [
+      "packages/coding-agent/src/core/session-manager.ts"
+    ],
+    "extension.participation_ordering": [
+      "packages/coding-agent/src/core/extensions/runner.ts"
+    ],
+    "queue.steer_during_turn": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "queue.follow_up_after_turn": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "retry.overflow_precedence": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "retry.provider_recovery": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "abort.active_stream_cleanup": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "compaction.context_projection": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "branch.fork_atomic_publish": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "restart.recover_session": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "model_switch.next_run": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "lifecycle.builder_replace": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ],
+    "capability.required_prestart_failure": [
+      "packages/coding-agent/src/core/sdk.ts"
+    ]
+  },
+  "preserved_inputs": [
+    {
+      "path": "conformance/agent-loop/fixtures.json",
+      "sha256": "8640c6d414e0ceae1aad9b5471917cd0d0d0982a9e84afe410016a047738ce98"
+    },
+    {
+      "path": "conformance/agent-loop/manifest.json",
+      "sha256": "8e4012496f4b8fde7d7545af903dd1cc60b1fb42136f37478932c144fa833e6f"
+    },
+    {
+      "path": "conformance/ai-domain/behavior-inventory.json",
+      "sha256": "c7e36b7ce6427cb28f5adac8bc8240e84c51637a6f7245c43e1b11f7d316f7b6"
+    },
+    {
+      "path": "conformance/ai-domain/inventory.json",
+      "sha256": "c8ff699128aa4d19c919714b86120241b44fa4dadfe5e02b46995ae0fe373d27"
+    },
+    {
+      "path": "conformance/ai-domain/message-transform-inventory.json",
+      "sha256": "6a2863f4175165734d05482ac5f5d0a7e6cba0c71bdc71acf74689920e1cb0ac"
+    },
+    {
+      "path": "conformance/ai-domain/models-helpers-inventory.json",
+      "sha256": "6ba8ebea93ca162bce7768182765d99001c099f46472f10a5c97d2d8552c4327"
+    },
+    {
+      "path": "conformance/ai-domain/overflow-inventory.json",
+      "sha256": "1e8d674d8638d84b126f081e524db277475d8e5c502c4f8d96c54c6c9cbaa2d2"
+    },
+    {
+      "path": "conformance/ai-domain/portable-helpers-inventory.json",
+      "sha256": "91f7f2edd42c0cd96b7cfd5d4630b986da4a1832f5f3e0c76156c0f4066a4ac7"
+    },
+    {
+      "path": "conformance/ai-domain/retry-inventory.json",
+      "sha256": "db737440c27adcc4f00d3ba0cdb9c7d413e9e840972c810f14c4917ad99d5928"
+    },
+    {
+      "path": "conformance/ai-domain/selected-provider-scope.json",
+      "sha256": "698aa83005c7cdb471422b3c75bb1a17c5abe661c66905c9a837c85293b8db1e"
+    },
+    {
+      "path": "conformance/ai-domain/session-resources-inventory.json",
+      "sha256": "3b462ca617fc40ca869ec4ad7925fb6d3b1ca1bd5ed3fa7017d2096d4c15a819"
+    },
+    {
+      "path": "conformance/ai-domain/stream-inventory.json",
+      "sha256": "7910bf5730c4a023ce218d0089cc90f37e16b60af7a249248beae551fc70e9e0"
+    },
+    {
+      "path": "conformance/ai-domain/tool-validation-inventory.json",
+      "sha256": "45b7f4854dc074d70eed25b65f28b826cd3999da160a807e1df5dddb99740df3"
+    },
+    {
+      "path": "conformance/ai-models/auth-store-inventory.json",
+      "sha256": "308a144b144b62c58a0de1b7b4defa0e97b225b072c767e2323f8c9502830b30"
+    },
+    {
+      "path": "conformance/ai-models/registry-inventory.json",
+      "sha256": "b2526758bc8087afaf3b990e0e9519202e7d678762400ac61e02433148fbedcc"
+    },
+    {
+      "path": "conformance/coding-runtime/fixtures.json",
+      "sha256": "e7c90ae25d74c81910467978e4785f63ae00ff7437c017dd146698b240d2205f"
+    },
+    {
+      "path": "conformance/coding-runtime/manifest.json",
+      "sha256": "fec5b0ef482252d47cf930bba0cea98399f950cfd166d89ac4af16fb1de9ca7c"
+    },
+    {
+      "path": "upstream/manifests/agent-exports.toml",
+      "sha256": "815e8c6140184b4a5f1917eca1f37b3d82a2d3cb874c20f1d0af3aa012fa190b"
+    },
+    {
+      "path": "upstream/manifests/ai-exports.toml",
+      "sha256": "fcb57bab14a13f4dcb0416d58be37b3e39d6366033e0d1b1522f908a68bd94bd"
+    },
+    {
+      "path": "upstream/manifests/catalog-inputs.toml",
+      "sha256": "70ac8c7dffc9ae2068912739be54aafe4b2410c03af3df2c6ca55e1ab9109bf0"
+    },
+    {
+      "path": "upstream/manifests/harness-headings.toml",
+      "sha256": "33a73437af950d9d8135b36c927d1e9481c35a7cb7529761ffc37d658662c216"
+    },
+    {
+      "path": "upstream/manifests/providers.toml",
+      "sha256": "47fc2e2c8ea25784a4f2c0c21cf4141449bf9272ec6cc5c3302c5fea44c55eaa"
+    },
+    {
+      "path": "upstream/manifests/routes.toml",
+      "sha256": "917a8eefd35876d582e94234051f99a460b3afd2b58eed37740dd635c1d8b5ad"
+    },
+    {
+      "path": "upstream/manifests/tests.toml",
+      "sha256": "02dfbeee8f20cde9ebfbcb95a0f092d501a5c11f444be7a4f8e67768eeaeac94"
+    }
+  ]
+}

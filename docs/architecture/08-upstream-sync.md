@@ -196,6 +196,42 @@ input/source/output hashes support reproducible captured-value parity. Generated
 TypeScript at the pin remains projection evidence and does not reconstruct the
 missing historical feeds.
 
+## Assembly consistency
+
+`python3 scripts/check_assembly.py` performs a pure join from the pinned source
+projections through `upstream-map.toml` to current public evidence. It reuses the
+existing Git-object reader, route and selector validation, seven manifest
+projections, and AI inventory validators. It does not evaluate upstream source
+or run the conformance commands recorded in [the proof registry](../../conformance/assembly.json).
+An optional `--map` or `--registry` selects a temporary input; `--json` includes
+every resolved obligation. Exit 0 means zero unresolved mappings; exit 1 names
+an invalid source, owner, inventory or proof binding.
+
+The joined universes remain separate: 1,144 watched paths; 699 AI and 675 Agent
+export occurrences; 42 provider identities, with six selected text entrances,
+one selected image entrance, 34 excluded text entrances and excluded public
+Faux compatibility; 327 AI behavior rows and 241 source-scope occurrences;
+37 Harness selectors and 18 build rows; legacy U1–U14, twelve corpus rows and
+exactly five actual bridge definitions; and eighteen coding operations.
+All excluded and disposable source identities remain traceable.
+
+Agent package reexports resolve through watched package names and entrypoints.
+Pinned named-export clauses retain aliases such as `TelemetrySpanAttributes`
+for `SpanAttributes`; a value reexport may use the value namespace of a class
+that also supplies a type. The six TypeBox occurrences retain their explicit
+external-schema projection. Scaffold exports route to their intake owner and
+do not become source-port obligations.
+
+The registry contains logical suite names, known argv, current evidence anchors
+and accepted limitations. It never duplicates map ownership. `executable`
+means a concrete current proof definition is reachable; `accepted-limit`
+retains public boundary evidence and may also name bounded implemented tests.
+Neither status attests a new run or complete parity for an unwitnessed contract.
+Proxy ownership is required for its six exports and U12 despite its accepted
+unwitnessed implementation/parity boundary. Historical fixture provenance and
+source statuses remain unchanged. Pin intake still requires validated new
+inventories, decisions and actual applicable proof evidence.
+
 ## Normative drift algorithm
 
 S16 remains unstarted. Its required executable must implement this algorithm:

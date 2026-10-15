@@ -277,9 +277,14 @@ type.
 
 ## S05 boundary
 
-S05 owns 48 provider-factory files, concrete OAuth flows, images runtime,
-generated/static catalog data, faux provider behavior, compat registration,
-CLI/developer entrypoints, and provider-feature matrices. It registers S04's
+The original provider boundary enumerated 48 provider-factory files, concrete OAuth
+flows, images runtime, generated/static catalog data, faux behavior, compatibility
+registration, and developer entrypoints. Current product intake follows the
+[selected provider scope](../../scope.md#selected-provider-scope): six text
+entrances and the separate OpenRouter image entrance. The other 34 text
+entrances and public Faux compatibility remain explicitly owner-excluded.
+Accepted shared wire/API adapters retain their original source identities and
+evidence. The selected composition registers S04's
 session resource and retains the non-clone S03 handle for the provider
 composition lifetime. S03 defines only the provider/auth/image ports needed by
 those implementations.
@@ -312,11 +317,23 @@ occurrences, including root and compat duplicates, and one disposition:
 
 ```text
 implemented | s02-dto | mapped-s04 | mapped-s05 |
-rust-nonapplicable | external-schema-projection
+rust-nonapplicable | owner-excluded | external-schema-projection
 ```
 
 No entry may be silently absent, and no implementation claim may be satisfied
-by an empty public stub. The contract freezes the expected disposition totals as
+by an empty public stub. The original domain-boundary acceptance froze the totals as
 146 `s02-dto`, 123 `implemented` after S03 closure, 22
 `rust-nonapplicable`, 163 `mapped-s04`, 239 `mapped-s05`, and six
 `external-schema-projection` rows.
+
+The current aggregate preserves those same 699 source occurrences and records
+146 `s02-dto`, 398 `implemented`, 24 `rust-nonapplicable`, 125 `owner-excluded`,
+and six `external-schema-projection` rows. There are no remaining `mapped-s04`
+or `mapped-s05` rows in that aggregate. The 327 behavior rows and the separate
+241-occurrence selected-source ledger retain their own denominators. None of
+these counts is a provider pass count or a new execution receipt.
+
+The [assembly consistency check](../../../scripts/check_assembly.py) joins these
+inventories to canonical map owners and current proof definitions. Its
+[registry](../../../conformance/assembly.json) records executable suites and
+accepted limitations separately; the check does not execute their commands.

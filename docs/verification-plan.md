@@ -726,6 +726,15 @@ support individual contracts and do not replace the complete verification.
   Rust fixture or an explicit reviewed non-applicability record.
 - Causal check: a fixture that swaps two normative events fails trace matching.
 
+Current legacy acceptance is bounded by the
+[U1–U14 denominator](../conformance/agent-loop/README.md). U4/U5/U6/U8/U10/U12/U13
+remain test-unwitnessed as complete contracts; U14 retains its non-applicability
+decision. The actual Rust-to-Node bridge covers exactly five named rows, while
+the twelve-row corpus also has separate comparator causal checks. The proxy
+responsibility remains owned and is not certified by a workspace-wide pass.
+These accepted limits qualify the current evidence without removing the
+compatibility obligations above.
+
 ### S15: The headless coding runtime composes the completed Rust surfaces
 
 **Depends on**: S13, S14
@@ -766,6 +775,16 @@ support individual contracts and do not replace the complete verification.
   external extension all pass.
 - Causal check: disabling a required capability makes composition fail before
   the operation starts.
+
+Current coding evidence retains eighteen positive and eighteen negative rows,
+with zero pending rows. The default bridge covers seventeen applicable rows;
+the extension participation row requires the `extensions` feature. The
+[model responsibility table](../conformance/coding-runtime/model-responsibilities.md)
+and [coding corpus](../conformance/coding-runtime/README.md) retain the accepted
+boundaries for host discovery/credentials, in-place legacy import, ordinary
+request model metadata, finite logical progress bounds and measured preflight
+side effects. These are bounded observations rather than live-provider,
+process-isolation or allocator certification.
 
 ### S16: Upstream drift detection and the final assembly audit prove completion
 
@@ -811,3 +830,10 @@ support individual contracts and do not replace the complete verification.
   authority, Rust owner, and proof suite and exits non-zero until acknowledged.
 - Causal check: remove one owner mapping in a temporary copy; assembly audit
   must fail, then restore the source.
+- Command: `python3 scripts/check_assembly.py` and
+  `python3 -m unittest scripts/test_check_assembly.py`.
+- Expected: all enumerated source obligations resolve to canonical owners and
+  concrete current proof definitions or explicit accepted limitations. The
+  pure check executes zero registered proof commands. Its temporary-map causal
+  removes the proxy owner while retaining the six exports and U12, requires
+  named failure, restores exact bytes and requires zero unresolved mappings.

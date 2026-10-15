@@ -376,7 +376,17 @@ handler, profile, and schema digest may serve a new live binding.
 - listeners settle in registration order;
 - `agent_end` listeners are part of idle settlement;
 - steering/follow-up semantics and current tool events remain testable;
-- proxy SSE behavior remains available.
+- proxy SSE reconstruction, error, and abort mapping retain an explicit
+  compatibility owner; complete implementation/parity is unwitnessed (U12).
+
+The [legacy conformance denominator](../../conformance/agent-loop/README.md)
+retains U1–U14, including the accepted unwitnessed proxy and low-level iterator
+boundaries. Its actual Rust-to-Node bridge covers five named rows. The twelve-row
+corpus and its causal comparator checks are separate evidence; they do not
+establish twelve actual bridge observations or full legacy parity. The
+[assembly proof registry](../../conformance/assembly.json) resolves the proxy
+suite as an accepted limit and requires its registered owner even though no
+proxy runner is available.
 
 Rust-native applications are encouraged to use Harness v3; compatibility does
 not constrain the durable schema.
