@@ -8,11 +8,13 @@ every included semantic surface has one primary Rust owner, explicit
 collaborators, an accepted authority class, synchronization dimensions,
 conformance seams, and lifecycle metadata.
 
-S01 establishes an exhaustive, revision-bound baseline and the normative drift
-algorithm. It does **not** claim that continuous automated intake is already
-operational. S16 implements arbitrary old/new comparison, acknowledgement, and
-pin advancement. Until then the precise claim is: “the pinned baseline is
-exhaustively classified for future drift tooling.”
+The pinned baseline is exhaustively classified. The local
+[comparison and review tool](../upstream-drift.md) also extracts arbitrary
+old/new Git snapshots, reports changes and uncertainty, validates explicit
+intake and acknowledgements, and emits a guarded candidate-map patch. The
+complete verification entry runs baseline comparison and assembly consistency.
+Applying a new production pin remains a separate intake decision with reconciled
+historical evidence; emitting a candidate does not establish that baseline.
 
 ## Upstream-map v2
 
@@ -93,7 +95,7 @@ decision promotes a specific algorithm.
 
 ### Watches and routes
 
-S01 watches complete Git trees:
+The ownership map watches complete Git trees:
 
 | Watch | Root | Pinned path count | Baseline rule |
 |---|---|---:|---|
@@ -177,8 +179,9 @@ Revision-bound generated manifests complement the ownership map:
   outside `scripts/**`.
 
 The manifests are projections created from pinned blobs and contain their input
-oids/digest. S01 seeds and validates them; S16 automates semantic extraction and
-comparison.
+oids/digest. The historical manifests retain their fixed-pin byte formats and
+assertions. The local comparison tool independently extracts strict candidate
+inventories; it never rewrites those historical projections.
 
 ### Model catalog provenance
 
@@ -234,7 +237,9 @@ inventories, decisions and actual applicable proof evidence.
 
 ## Normative drift algorithm
 
-S16 remains unstarted. Its required executable must implement this algorithm:
+`scripts/upstream_drift.py` implements the following local comparison contract.
+See [the tool documentation](../upstream-drift.md) for CLI arguments, wire
+formats, supported syntax and blocking uncertainty:
 
 1. Require full old/new commit ids present locally; default verification never
    fetches.
@@ -257,7 +262,7 @@ S16 remains unstarted. Its required executable must implement this algorithm:
 Exit codes are stable:
 
 ```text
-0  no unexplained drift, or every supplied acknowledgement is valid
+0  no unexplained drift, or every item has a valid acknowledgement
 2  classified drift remains pending
 3  invalid map, route, inventory, selector, manifest, or acknowledgement
 4  missing Git object or tool failure
@@ -293,9 +298,19 @@ Unmatched additions first require an intake overlay with candidate commit,
 route/selectors, and proposed surface. The pin advances only when both
 inventories validate, all items are acknowledged, referenced conformance passes,
 divergence records are complete, generated provenance is valid, and no
-uncertainty remains. The tool emits an advanced-map patch; it never mutates the
-Accepted pin advancement records old/new commits,
-the report digest, and acknowledgement decisions.
+uncertainty remains. Required proof receipts bind actual local execution
+attestations to commands, source/tool/parser inputs and log/artifact hashes;
+the tool validates their bindings without executing review-supplied commands.
+Cargo evidence must be active under its declared feature profile, and retained
+provider adapter families must have complete applicable proof routes.
+
+The tool emits a separate candidate bundle containing an advanced-map patch,
+candidate inventory and advancement record bound to old/new commits, report,
+decisions and proof receipts. It never applies the patch, changes the current
+ownership map or upstream checkout, or rewrites historical manifests. A real
+production pin change additionally requires reconciled fixed-pin source,
+fixture and captured-feed evidence. The existing guards continue to enforce
+those identities; local attestations are not authenticated execution proof.
 
 ## Representative ownership records
 

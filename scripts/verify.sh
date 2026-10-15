@@ -8,6 +8,10 @@ export RUSTFLAGS="${RUSTFLAGS:+${RUSTFLAGS} }-D warnings"
 export RUSTDOCFLAGS="${RUSTDOCFLAGS:+${RUSTDOCFLAGS} }-D warnings"
 
 python3 scripts/generate_upstream_manifests.py --check
+python3 scripts/upstream_drift.py
+python3 scripts/check_assembly.py
+python3 -m unittest scripts/test_upstream_drift.py
+python3 -m unittest scripts/test_check_assembly.py
 python3 scripts/generate_ai_conformance.py --check
 python3 scripts/generate_selected_catalogs.py --check
 python3 scripts/validate_docs.py

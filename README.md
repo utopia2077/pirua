@@ -127,13 +127,32 @@ cargo test --workspace --all-targets --all-features --locked --offline
 bash scripts/verify.sh
 ```
 
-It checks upstream ownership, source/export/behavior inventories, captured catalog
-regeneration, documentation, workspace topology, formatting, default and all-feature
+It checks upstream ownership, local baseline drift, assembly consistency,
+source/export/behavior inventories, captured catalog regeneration, documentation,
+workspace topology, formatting, default and all-feature
 builds, Clippy, tests, and generated Rust documentation. Cargo runs offline;
 source oracles use captured feeds and synthetic local transports. The checks do
 not prove live account access or ongoing provider service compatibility. Catalog
 values describe the dated input capture, and the missing historical upstream
 text-catalog inputs are explicitly excluded from value-parity claims.
+
+The local drift tool compares immutable commits in the prepared Git object
+database. With no arguments it compares the pin to itself. A candidate comparison
+uses full commit ids and reports responsible owners and proof suites:
+
+```sh
+python3 scripts/upstream_drift.py
+python3 scripts/upstream_drift.py --old FULL_OLD_COMMIT --new FULL_NEW_COMMIT
+```
+
+It returns 2 for classified changes awaiting review, 3 for invalid or uncertain
+inputs, and 4 for unavailable objects or tools. Every added path needs explicit
+intake, including a path already matched by a broad route. Complete acknowledgements
+are required for exit 0. Guarded candidate patches additionally require bound
+local proof receipts and complete applicable provenance. The tool performs no
+fetch, executes no review-supplied command, and does not apply patches or change
+the pin. See [comparison and review](docs/upstream-drift.md) for the exact wire
+formats, receipt boundaries and separate production pin-intake requirements.
 
 The pure assembly check resolves pinned paths, public exports, provider scope,
 Harness selectors, legacy behavior and coding operations through the canonical

@@ -1,14 +1,15 @@
 ---
-revision: 252
+revision: 253
 upstream: 853a80d26c90a14c1886f0ebb8ffaae133ca2185
 ---
 
 # Verification plan
 
-The coding runtime and its foundations are implemented through S15. The drift
-detector in S16 remains planned and unstarted. The contracts below
-define required behavior and proof obligations; they do not assert that the final
-drift detector or a stable public release has been completed.
+The coding runtime and its foundations, local upstream drift comparison and
+assembly consistency checks are implemented. The contracts below define their
+required behavior and proof obligations. Explicit accepted limitations remain
+part of the evidence boundary; implementation and a complete verification run
+do not establish live-provider parity or a stable public release.
 
 Provider coverage follows [the accepted scope](scope.md#selected-provider-scope).
 `scripts/verify.sh` is the complete verification entry point. Focused checks
@@ -824,10 +825,16 @@ process-isolation or allocator certification.
 - Expected: clean checkout-equivalent offline run passes formatting, dependency
   policy, lints, unit/property/integration/conformance/doc tests, SDK tests, and
   inventory/drift checks.
-- Command: upstream drift tool against the pinned baseline and a synthetic
-  changed fixture.
-- Expected: baseline reports zero unexplained drift; synthetic change names its
-  authority, Rust owner, and proof suite and exits non-zero until acknowledged.
+- Command: `python3 scripts/upstream_drift.py` and
+  `python3 -m unittest scripts/test_upstream_drift.py`.
+- Expected: baseline reports zero unexplained drift. True-Git synthetic changes
+  name their authority, Rust owner and proof suite, remain nonzero until valid
+  intake and complete acknowledgements, and block structural uncertainty.
+  Cross-owner renames require explicit responsibility migration. Candidate
+  patch emission requires bound actual fixture-suite receipts; stale inputs,
+  failed execution or tampered logs/artifacts block it. Positive patch
+  applicability is verified in an isolated fixture, separate from production
+  pin intake and unchanged historical evidence guards.
 - Causal check: remove one owner mapping in a temporary copy; assembly audit
   must fail, then restore the source.
 - Command: `python3 scripts/check_assembly.py` and
