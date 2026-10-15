@@ -485,8 +485,8 @@ def validate_workspace(
     errors: list[str] = []
     validate_s05_facade_topology(topology, errors)
     crates = topology.get("production_crates", [])
-    if len(crates) != 15 or len(set(crates)) != 15:
-        errors.append("workspace-topology.toml must name exactly 15 unique production crates")
+    if not crates or len(set(crates)) != len(crates):
+        errors.append("workspace-topology.toml must name unique production crates")
         return errors
     crate_names = set(crates)
     test_only_package = validate_test_only_package_policy(

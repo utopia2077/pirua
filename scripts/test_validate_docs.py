@@ -39,7 +39,7 @@ class ValidatorCausalTests(unittest.TestCase):
         result = run_validator()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_fourteen_crates_are_rejected(self) -> None:
+    def test_missing_inventory_row_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory(prefix="rust-harness-topology-") as directory:
             probe = Path(directory) / "topology.md"
             text = TOPOLOGY.read_text(encoding="utf-8")
@@ -48,7 +48,7 @@ class ValidatorCausalTests(unittest.TestCase):
                 encoding="utf-8",
             )
             result = run_validator("--topology", str(probe), "--skip-manifests")
-            self.assert_rejected(result, "crate inventory numbers must be 1..15")
+            self.assert_rejected(result, "crate inventory numbers must be 1..")
 
     def test_missing_primary_owner_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory(prefix="rust-harness-owner-") as directory:

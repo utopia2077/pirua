@@ -16,6 +16,8 @@ members = [
     "crates/pi-agent-search",
     "crates/pi-agent",
     "crates/pi-coding-runtime",
+    "crates/pi-sqlite",
+    "crates/pi-coding-session",
 ]
 
 [workspace.package]
@@ -26,6 +28,8 @@ license = "MIT"
 publish = false
 
 [workspace.dependencies]
+pi-sqlite = { path = "crates/pi-sqlite" }
+pi-coding-session = { path = "crates/pi-coding-session" }
 rusqlite = { version = "=0.40.2", default-features = false, features = ["bundled"] }
 ring = { version = "=0.17.14", default-features = false, features = ["alloc"] }
 zlib-rs = { version = "=0.6.7", default-features = false, features = ["std"] }

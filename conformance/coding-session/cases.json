@@ -1,0 +1,62 @@
+[
+  {
+    "name": "branch-settings-and-assistant-model",
+    "snapshot": {
+      "header": {"id":"basic","cwd":"/fixture","timestamp":0}, "revision":0, "leafId":"a",
+      "entries": [
+        {"id":"model","parentId":null,"timestamp":1,"type":"model_change","provider":"deepseek","modelId":"deepseek-chat"},
+        {"id":"think","parentId":"model","timestamp":2,"type":"thinking_level_change","thinkingLevel":"high"},
+        {"id":"u","parentId":"think","timestamp":3,"type":"message","message":{"role":"user","content":"hello","timestamp":3}},
+        {"id":"a","parentId":"u","timestamp":4,"type":"message","message":{"role":"assistant","provider":"openai","model":"test","content":[{"type":"text","text":"hi"}],"timestamp":4}},
+        {"id":"other","parentId":"u","timestamp":5,"type":"message","message":{"role":"user","content":"other branch","timestamp":5}}
+      ]
+    }
+  },
+  {
+    "name": "compaction-checkpoint-tail-and-system-patch",
+    "snapshot": {
+      "header":{"id":"compact","cwd":"/fixture","timestamp":0},"revision":0,"leafId":"after",
+      "entries":[
+        {"id":"sys","parentId":null,"timestamp":1,"type":"message","message":{"role":"system","content":"initial","timestamp":1}},
+        {"id":"old","parentId":"sys","timestamp":2,"type":"message","message":{"role":"user","content":"old","timestamp":2}},
+        {"id":"keep","parentId":"old","timestamp":3,"type":"message","message":{"role":"user","content":"tail","timestamp":3}},
+        {"id":"patch","parentId":"keep","timestamp":4,"type":"message","message":{"role":"system","content":"patch","timestamp":4}},
+        {"id":"compact","parentId":"patch","timestamp":5,"type":"compaction","summary":"summary","firstKeptEntryId":"keep","tokensBefore":1000,"systemMessage":{"role":"system","content":"folded","timestamp":5}},
+        {"id":"after","parentId":"compact","timestamp":6,"type":"message","message":{"role":"user","content":"after","timestamp":6}}
+      ]
+    }
+  },
+  {
+    "name":"context-edits-and-custom-state",
+    "snapshot":{
+      "header":{"id":"edits","cwd":"/fixture","timestamp":0},"revision":0,"leafId":"edit2",
+      "entries":[
+        {"id":"u","parentId":null,"timestamp":1,"type":"message","message":{"role":"user","content":"omit","timestamp":1}},
+        {"id":"a","parentId":"u","timestamp":2,"type":"message","message":{"role":"assistant","provider":"openai","model":"test","content":[{"type":"text","text":"before"}],"timestamp":2}},
+        {"id":"custom","parentId":"a","timestamp":3,"type":"custom_message","customType":"note","content":"visible","display":false,"details":{"key":1}},
+        {"id":"state","parentId":"custom","timestamp":4,"type":"custom","customType":"codemode-store","data":{"key":2}},
+        {"id":"edit1","parentId":"state","timestamp":5,"type":"context_edit","targetId":"u","replacement":null},
+        {"id":"edit2","parentId":"edit1","timestamp":6,"type":"context_edit","targetId":"a","replacement":{"content":"after"}}
+      ]
+    }
+  },
+  {
+    "name":"older-compaction-inside-retained-range",
+    "snapshot":{
+      "header":{"id":"two-compactions","cwd":"/fixture","timestamp":0},"revision":0,"leafId":"c2",
+      "entries":[
+        {"id":"u","parentId":null,"timestamp":1,"type":"message","message":{"role":"user","content":"old","timestamp":1}},
+        {"id":"c1","parentId":"u","timestamp":2,"type":"compaction","summary":"first","firstKeptEntryId":"c1","tokensBefore":10},
+        {"id":"b","parentId":"c1","timestamp":3,"type":"branch_summary","fromId":"elsewhere","summary":"branch"},
+        {"id":"c2","parentId":"b","timestamp":4,"type":"compaction","summary":"second","firstKeptEntryId":"c1","tokensBefore":20}
+      ]
+    }
+  },
+  {
+    "name":"empty-selected-branch",
+    "snapshot":{
+      "header":{"id":"empty","cwd":"/fixture","timestamp":0},"revision":0,"leafId":null,
+      "entries":[{"id":"u","parentId":null,"timestamp":1,"type":"message","message":{"role":"user","content":"unselected","timestamp":1}}]
+    }
+  }
+]

@@ -76,7 +76,7 @@ class WorkspaceCheckerTests(unittest.TestCase):
     def test_exact_test_only_package_is_accepted_in_both_metadata_profiles(self):
         errors = self.validate_metadata(self.default_metadata, self.all_feature_metadata)
         self.assertEqual(errors, [])
-        self.assertEqual(len(self.topology["production_crates"]), 15)
+        self.assertEqual(len(self.topology["production_crates"]), len(set(self.topology["production_crates"])))
         expected_path = (
             ROOT / self.topology["test_only_package"]["path"] / "Cargo.toml"
         ).resolve()
@@ -87,7 +87,7 @@ class WorkspaceCheckerTests(unittest.TestCase):
                 if package["name"] in self.topology["production_crates"]
                 and package["id"] in metadata["workspace_members"]
             ]
-            self.assertEqual(len(production), 15)
+            self.assertEqual({package["name"] for package in production}, set(self.topology["production_crates"]))
             support = self.package(metadata, self.topology["test_only_package"]["name"])
             self.assertEqual(Path(support["manifest_path"]).resolve(), expected_path)
 

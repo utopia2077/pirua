@@ -1291,6 +1291,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pi-coding-session"
+version = "0.0.0"
+dependencies = [
+ "pi-sqlite",
+ "ring",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "pi-extension-protocol"
 version = "0.0.0"
 dependencies = [
@@ -1326,6 +1336,13 @@ dependencies = [
  "rusqlite",
  "ryu-js",
  "serde_json",
+]
+
+[[package]]
+name = "pi-sqlite"
+version = "0.0.0"
+dependencies = [
+ "rusqlite",
 ]
 
 [[package]]

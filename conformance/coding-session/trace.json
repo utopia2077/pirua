@@ -1,0 +1,740 @@
+{
+  "upstream": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "sources": {
+    "packages/coding-agent/src/core/session-manager.ts": "450d82c529933214e088b8422f00061815e617f352f6c834689787a314064bff",
+    "packages/coding-agent/src/core/messages.ts": "5397e3c96c9504266e4ee8b6e88d5098b3280ee7dbb0c687b74708c62a06c8d4"
+  },
+  "cases": [
+    {
+      "name": "branch-settings-and-assistant-model",
+      "snapshot": {
+        "header": {
+          "id": "basic",
+          "cwd": "/fixture",
+          "timestamp": 0
+        },
+        "revision": 0,
+        "leafId": "a",
+        "entries": [
+          {
+            "id": "model",
+            "parentId": null,
+            "timestamp": 1,
+            "type": "model_change",
+            "provider": "deepseek",
+            "modelId": "deepseek-chat"
+          },
+          {
+            "id": "think",
+            "parentId": "model",
+            "timestamp": 2,
+            "type": "thinking_level_change",
+            "thinkingLevel": "high"
+          },
+          {
+            "id": "u",
+            "parentId": "think",
+            "timestamp": 3,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "hello",
+              "timestamp": 3
+            }
+          },
+          {
+            "id": "a",
+            "parentId": "u",
+            "timestamp": 4,
+            "type": "message",
+            "message": {
+              "role": "assistant",
+              "provider": "openai",
+              "model": "test",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "hi"
+                }
+              ],
+              "timestamp": 4
+            }
+          },
+          {
+            "id": "other",
+            "parentId": "u",
+            "timestamp": 5,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "other branch",
+              "timestamp": 5
+            }
+          }
+        ]
+      },
+      "expected": {
+        "entries": [
+          {
+            "sourceEntry": {
+              "id": "model",
+              "parentId": null,
+              "timestamp": 1,
+              "type": "model_change",
+              "provider": "deepseek",
+              "modelId": "deepseek-chat"
+            },
+            "messages": []
+          },
+          {
+            "sourceEntry": {
+              "id": "think",
+              "parentId": "model",
+              "timestamp": 2,
+              "type": "thinking_level_change",
+              "thinkingLevel": "high"
+            },
+            "messages": []
+          },
+          {
+            "sourceEntry": {
+              "id": "u",
+              "parentId": "think",
+              "timestamp": 3,
+              "type": "message",
+              "message": {
+                "role": "user",
+                "content": "hello",
+                "timestamp": 3
+              }
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello",
+                "timestamp": 3
+              }
+            ]
+          },
+          {
+            "sourceEntry": {
+              "id": "a",
+              "parentId": "u",
+              "timestamp": 4,
+              "type": "message",
+              "message": {
+                "role": "assistant",
+                "provider": "openai",
+                "model": "test",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hi"
+                  }
+                ],
+                "timestamp": 4
+              }
+            },
+            "messages": [
+              {
+                "role": "assistant",
+                "provider": "openai",
+                "model": "test",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "hi"
+                  }
+                ],
+                "timestamp": 4
+              }
+            ]
+          }
+        ],
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello",
+            "timestamp": 3
+          },
+          {
+            "role": "assistant",
+            "provider": "openai",
+            "model": "test",
+            "content": [
+              {
+                "type": "text",
+                "text": "hi"
+              }
+            ],
+            "timestamp": 4
+          }
+        ],
+        "thinkingLevel": "high",
+        "model": {
+          "provider": "openai",
+          "modelId": "test"
+        }
+      }
+    },
+    {
+      "name": "compaction-checkpoint-tail-and-system-patch",
+      "snapshot": {
+        "header": {
+          "id": "compact",
+          "cwd": "/fixture",
+          "timestamp": 0
+        },
+        "revision": 0,
+        "leafId": "after",
+        "entries": [
+          {
+            "id": "sys",
+            "parentId": null,
+            "timestamp": 1,
+            "type": "message",
+            "message": {
+              "role": "system",
+              "content": "initial",
+              "timestamp": 1
+            }
+          },
+          {
+            "id": "old",
+            "parentId": "sys",
+            "timestamp": 2,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "old",
+              "timestamp": 2
+            }
+          },
+          {
+            "id": "keep",
+            "parentId": "old",
+            "timestamp": 3,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "tail",
+              "timestamp": 3
+            }
+          },
+          {
+            "id": "patch",
+            "parentId": "keep",
+            "timestamp": 4,
+            "type": "message",
+            "message": {
+              "role": "system",
+              "content": "patch",
+              "timestamp": 4
+            }
+          },
+          {
+            "id": "compact",
+            "parentId": "patch",
+            "timestamp": 5,
+            "type": "compaction",
+            "summary": "summary",
+            "firstKeptEntryId": "keep",
+            "tokensBefore": 1000,
+            "systemMessage": {
+              "role": "system",
+              "content": "folded",
+              "timestamp": 5
+            }
+          },
+          {
+            "id": "after",
+            "parentId": "compact",
+            "timestamp": 6,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "after",
+              "timestamp": 6
+            }
+          }
+        ]
+      },
+      "expected": {
+        "entries": [
+          {
+            "sourceEntry": {
+              "id": "compact",
+              "parentId": "patch",
+              "timestamp": 5,
+              "type": "compaction",
+              "summary": "summary",
+              "firstKeptEntryId": "keep",
+              "tokensBefore": 1000,
+              "systemMessage": {
+                "role": "system",
+                "content": "folded",
+                "timestamp": 5
+              }
+            },
+            "messages": [
+              {
+                "role": "system",
+                "content": "folded",
+                "timestamp": 5
+              },
+              {
+                "role": "compactionSummary",
+                "summary": "summary",
+                "tokensBefore": 1000,
+                "timestamp": 5
+              }
+            ]
+          },
+          {
+            "sourceEntry": {
+              "id": "keep",
+              "parentId": "old",
+              "timestamp": 3,
+              "type": "message",
+              "message": {
+                "role": "user",
+                "content": "tail",
+                "timestamp": 3
+              }
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "tail",
+                "timestamp": 3
+              }
+            ]
+          },
+          {
+            "sourceEntry": {
+              "id": "after",
+              "parentId": "compact",
+              "timestamp": 6,
+              "type": "message",
+              "message": {
+                "role": "user",
+                "content": "after",
+                "timestamp": 6
+              }
+            },
+            "messages": [
+              {
+                "role": "user",
+                "content": "after",
+                "timestamp": 6
+              }
+            ]
+          }
+        ],
+        "messages": [
+          {
+            "role": "system",
+            "content": "folded",
+            "timestamp": 5
+          },
+          {
+            "role": "compactionSummary",
+            "summary": "summary",
+            "tokensBefore": 1000,
+            "timestamp": 5
+          },
+          {
+            "role": "user",
+            "content": "tail",
+            "timestamp": 3
+          },
+          {
+            "role": "user",
+            "content": "after",
+            "timestamp": 6
+          }
+        ],
+        "thinkingLevel": "off",
+        "model": null
+      }
+    },
+    {
+      "name": "context-edits-and-custom-state",
+      "snapshot": {
+        "header": {
+          "id": "edits",
+          "cwd": "/fixture",
+          "timestamp": 0
+        },
+        "revision": 0,
+        "leafId": "edit2",
+        "entries": [
+          {
+            "id": "u",
+            "parentId": null,
+            "timestamp": 1,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "omit",
+              "timestamp": 1
+            }
+          },
+          {
+            "id": "a",
+            "parentId": "u",
+            "timestamp": 2,
+            "type": "message",
+            "message": {
+              "role": "assistant",
+              "provider": "openai",
+              "model": "test",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "before"
+                }
+              ],
+              "timestamp": 2
+            }
+          },
+          {
+            "id": "custom",
+            "parentId": "a",
+            "timestamp": 3,
+            "type": "custom_message",
+            "customType": "note",
+            "content": "visible",
+            "display": false,
+            "details": {
+              "key": 1
+            }
+          },
+          {
+            "id": "state",
+            "parentId": "custom",
+            "timestamp": 4,
+            "type": "custom",
+            "customType": "codemode-store",
+            "data": {
+              "key": 2
+            }
+          },
+          {
+            "id": "edit1",
+            "parentId": "state",
+            "timestamp": 5,
+            "type": "context_edit",
+            "targetId": "u",
+            "replacement": null
+          },
+          {
+            "id": "edit2",
+            "parentId": "edit1",
+            "timestamp": 6,
+            "type": "context_edit",
+            "targetId": "a",
+            "replacement": {
+              "content": "after"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "entries": [
+          {
+            "sourceEntry": {
+              "id": "u",
+              "parentId": null,
+              "timestamp": 1,
+              "type": "message",
+              "message": {
+                "role": "user",
+                "content": "omit",
+                "timestamp": 1
+              }
+            },
+            "messages": []
+          },
+          {
+            "sourceEntry": {
+              "id": "a",
+              "parentId": "u",
+              "timestamp": 2,
+              "type": "message",
+              "message": {
+                "role": "assistant",
+                "provider": "openai",
+                "model": "test",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "before"
+                  }
+                ],
+                "timestamp": 2
+              }
+            },
+            "messages": [
+              {
+                "role": "assistant",
+                "provider": "openai",
+                "model": "test",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "after"
+                  }
+                ],
+                "timestamp": 2
+              }
+            ]
+          },
+          {
+            "sourceEntry": {
+              "id": "custom",
+              "parentId": "a",
+              "timestamp": 3,
+              "type": "custom_message",
+              "customType": "note",
+              "content": "visible",
+              "display": false,
+              "details": {
+                "key": 1
+              }
+            },
+            "messages": [
+              {
+                "role": "custom",
+                "customType": "note",
+                "content": "visible",
+                "display": false,
+                "details": {
+                  "key": 1
+                },
+                "timestamp": 3
+              }
+            ]
+          },
+          {
+            "sourceEntry": {
+              "id": "state",
+              "parentId": "custom",
+              "timestamp": 4,
+              "type": "custom",
+              "customType": "codemode-store",
+              "data": {
+                "key": 2
+              }
+            },
+            "messages": []
+          },
+          {
+            "sourceEntry": {
+              "id": "edit1",
+              "parentId": "state",
+              "timestamp": 5,
+              "type": "context_edit",
+              "targetId": "u",
+              "replacement": null
+            },
+            "messages": []
+          },
+          {
+            "sourceEntry": {
+              "id": "edit2",
+              "parentId": "edit1",
+              "timestamp": 6,
+              "type": "context_edit",
+              "targetId": "a",
+              "replacement": {
+                "content": "after"
+              }
+            },
+            "messages": []
+          }
+        ],
+        "messages": [
+          {
+            "role": "assistant",
+            "provider": "openai",
+            "model": "test",
+            "content": [
+              {
+                "type": "text",
+                "text": "after"
+              }
+            ],
+            "timestamp": 2
+          },
+          {
+            "role": "custom",
+            "customType": "note",
+            "content": "visible",
+            "display": false,
+            "details": {
+              "key": 1
+            },
+            "timestamp": 3
+          }
+        ],
+        "thinkingLevel": "off",
+        "model": {
+          "provider": "openai",
+          "modelId": "test"
+        }
+      }
+    },
+    {
+      "name": "older-compaction-inside-retained-range",
+      "snapshot": {
+        "header": {
+          "id": "two-compactions",
+          "cwd": "/fixture",
+          "timestamp": 0
+        },
+        "revision": 0,
+        "leafId": "c2",
+        "entries": [
+          {
+            "id": "u",
+            "parentId": null,
+            "timestamp": 1,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "old",
+              "timestamp": 1
+            }
+          },
+          {
+            "id": "c1",
+            "parentId": "u",
+            "timestamp": 2,
+            "type": "compaction",
+            "summary": "first",
+            "firstKeptEntryId": "c1",
+            "tokensBefore": 10
+          },
+          {
+            "id": "b",
+            "parentId": "c1",
+            "timestamp": 3,
+            "type": "branch_summary",
+            "fromId": "elsewhere",
+            "summary": "branch"
+          },
+          {
+            "id": "c2",
+            "parentId": "b",
+            "timestamp": 4,
+            "type": "compaction",
+            "summary": "second",
+            "firstKeptEntryId": "c1",
+            "tokensBefore": 20
+          }
+        ]
+      },
+      "expected": {
+        "entries": [
+          {
+            "sourceEntry": {
+              "id": "c2",
+              "parentId": "b",
+              "timestamp": 4,
+              "type": "compaction",
+              "summary": "second",
+              "firstKeptEntryId": "c1",
+              "tokensBefore": 20
+            },
+            "messages": [
+              {
+                "role": "compactionSummary",
+                "summary": "second",
+                "tokensBefore": 20,
+                "timestamp": 4
+              }
+            ]
+          },
+          {
+            "sourceEntry": {
+              "id": "c1",
+              "parentId": "u",
+              "timestamp": 2,
+              "type": "compaction",
+              "summary": "first",
+              "firstKeptEntryId": "c1",
+              "tokensBefore": 10
+            },
+            "messages": []
+          },
+          {
+            "sourceEntry": {
+              "id": "b",
+              "parentId": "c1",
+              "timestamp": 3,
+              "type": "branch_summary",
+              "fromId": "elsewhere",
+              "summary": "branch"
+            },
+            "messages": [
+              {
+                "role": "branchSummary",
+                "summary": "branch",
+                "fromId": "elsewhere",
+                "timestamp": 3
+              }
+            ]
+          }
+        ],
+        "messages": [
+          {
+            "role": "compactionSummary",
+            "summary": "second",
+            "tokensBefore": 20,
+            "timestamp": 4
+          },
+          {
+            "role": "branchSummary",
+            "summary": "branch",
+            "fromId": "elsewhere",
+            "timestamp": 3
+          }
+        ],
+        "thinkingLevel": "off",
+        "model": null
+      }
+    },
+    {
+      "name": "empty-selected-branch",
+      "snapshot": {
+        "header": {
+          "id": "empty",
+          "cwd": "/fixture",
+          "timestamp": 0
+        },
+        "revision": 0,
+        "leafId": null,
+        "entries": [
+          {
+            "id": "u",
+            "parentId": null,
+            "timestamp": 1,
+            "type": "message",
+            "message": {
+              "role": "user",
+              "content": "unselected",
+              "timestamp": 1
+            }
+          }
+        ]
+      },
+      "expected": {
+        "entries": [],
+        "messages": [],
+        "thinkingLevel": "off",
+        "model": null
+      }
+    }
+  ]
+}

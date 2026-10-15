@@ -1,6 +1,6 @@
-# Fifteen-crate Topology
+# Crate topology
 
-## Why fifteen
+## Dependency and ownership boundaries
 
 The earlier 26-crate model used each synchronization boundary as a Cargo
 boundary. That created unnecessary build, dependency, versioning, and release
@@ -9,8 +9,10 @@ surface. This design separates two concepts:
 - **Crates** are dependency, feature, and ownership boundaries.
 - **Modules** are upstream synchronization boundaries.
 
-Fifteen production crates reduce the original count by 42% while preserving all
-fine-grained mappings as internal modules.
+The original fifteen-crate baseline keeps fine-grained mappings as internal
+modules. The standalone Coding session store and shared SQLite infrastructure
+add two independent owners for the v1.4.0 upgrade. The inventory below is the
+current workspace; the formal upstream baseline remains separately pinned.
 
 ## Crate inventory
 
@@ -31,6 +33,8 @@ fine-grained mappings as internal modules.
 | 13 | `pi-agent-search` | standalone search service | Harness S3 and search projection |
 | 14 | `pi-agent` | public façade and conformance/testkit modules | agent root exports and session/testing |
 | 15 | `pi-coding-runtime` | headless coding models, tools and composition | selected coding-agent core/server modules |
+| 16 | `pi-sqlite` | shared SQLite connection, snapshots and transactions | Rust-native storage infrastructure |
+| 17 | `pi-coding-session` | Coding transcript trees, projections and SQLite/Memory stores | v1.4.0 `coding-agent/src/core/session-manager.ts`, `messages.ts` |
 
 ## Internal synchronization modules
 
@@ -178,6 +182,8 @@ an absent edge is forbidden even if Cargo could technically resolve it.
 | `pi-agent-search` | `pi-agent-schema`, `pi-agent-session` | none; `sqlite-fts` owns its external SQLite dependency |
 | `pi-agent` | `pi-ai-core`, `pi-telemetry`, `pi-agent-schema`, `pi-agent-loop`, `pi-agent-session`, `pi-harness-core`, `pi-harness-runtime`, `pi-agent-search` | `pi-agent-sqlite` through `sqlite` |
 | `pi-coding-runtime` | `pi-ai`, `pi-agent`, `pi-agent-session`, `pi-harness-runtime`, `pi-telemetry` | `pi-ai-transport` through `remote-catalog`; `pi-ai-providers` through `provider-selection`; `pi-agent-sqlite` through `sqlite-sessions`; `pi-extension-protocol` through `extensions` |
+| `pi-sqlite` | none | none |
+| `pi-coding-session` | `pi-sqlite` | none |
 
 The test-only internal edge is listed separately from production dependencies:
 
@@ -195,7 +201,7 @@ pi-extension-protocol, pi-telemetry,
 pi-ai-core, pi-agent-schema, pi-ai-transport, pi-harness-core,
 pi-agent-session, pi-agent-loop, pi-ai-providers,
 pi-agent-search, pi-agent-sqlite, pi-harness-runtime,
-pi-ai, pi-agent, pi-coding-runtime
+pi-ai, pi-agent, pi-coding-runtime, pi-sqlite, pi-coding-session
 ```
 
 Default and all-feature graph checks reject a cycle or unlisted internal edge.
@@ -253,7 +259,7 @@ Endpoint construction requires a host-supplied authenticated peer identity,
 connection generation, granted capability set, and ordered byte transport.
 
 `pi-harness-runtime::extensions` owns wire/domain conversion, live invocation
-bindings, authorization checks, and settlement mapping. The 15-crate workspace
+bindings, authorization checks, and settlement mapping. The extension protocol
 does not claim process launch/termination, transport authentication, OS sandbox,
 environment/network isolation, or secret brokering. Those belong to a future
 privileged host design. A self-declared manifest id is never authentication, and

@@ -293,15 +293,17 @@ def validate_topology(
     rows = [(int(number), name) for number, name in CRATE_ROW.findall(text)]
     numbers = [number for number, _ in rows]
     documented = [name for _, name in rows]
-    if numbers != list(range(1, 16)):
-        errors.append(f"crate inventory numbers must be 1..15, got {numbers}")
-    if len(documented) != 15 or len(set(documented)) != 15:
-        errors.append(f"production crate inventory must contain 15 unique rows, got {documented}")
-
     data = load_toml(topology_map)
     if data.get("schema_version") != 1:
         errors.append("workspace topology schema_version must be 1")
     crates = data.get("production_crates", [])
+    count = len(crates)
+    if not crates or len(set(crates)) != count:
+        errors.append("workspace-topology must contain unique production crates")
+    if numbers != list(range(1, count + 1)):
+        errors.append(f"crate inventory numbers must be 1..{count}, got {numbers}")
+    if len(documented) != count or len(set(documented)) != count:
+        errors.append(f"production crate inventory must contain {count} unique rows, got {documented}")
     if crates != documented:
         errors.append("workspace-topology production_crates must equal the documented order")
     crate_set = set(crates)

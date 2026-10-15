@@ -15,6 +15,8 @@ production_crates = [
   "pi-agent-search",
   "pi-agent",
   "pi-coding-runtime",
+  "pi-sqlite",
+  "pi-coding-session",
 ]
 
 [test_only_package]
@@ -29,6 +31,11 @@ members = ["provider-*", "oauth-*", "images-*", "catalog-gen"]
 [[feature_group]]
 id = "ai-facade-provider-selection"
 members = ["compat", "catalog-anthropic", "catalog-deepseek", "catalog-google", "catalog-openai", "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images", "provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "provider-openai-codex", "provider-openrouter", "images-runtime", "images-openrouter", "oauth-anthropic", "oauth-openai-codex", "oauth-openrouter", "all-providers", "all-images", "all-oauth", "native", "auth-native", "catalog-gen", "dev-oauth-cli"]
+
+[[edge]]
+consumer = "pi-coding-session"
+dependency = "pi-sqlite"
+kind = "required"
 
 [[edge]]
 consumer = "pi-ai-core"
