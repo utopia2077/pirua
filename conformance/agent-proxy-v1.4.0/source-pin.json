@@ -1,0 +1,14 @@
+{
+  "upstreamTag": "v1.4.0",
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "sources": {
+    "packages/agent/src/proxy.ts": "cf33691a899323b77026ecbfeface4bf33a8ca3f9f07397c97c80e9dde618306",
+    "packages/agent/test/proxy.test.ts": "d38ade78d744fa0dc22a6167a60a54ceb202ff0ba44be18bdf49b3a01388ca73"
+  },
+  "releaseHelpers": {
+    "utils/event-stream.js": "fe0d774b75db25ff0149d4267884bc4fd34db82d53c26843758d0eda2467ce65",
+    "utils/json-parse.js": "ffb5960ed8ba38a01ea338e129dbca589088c211c9da623ffb61102a1d27ce56",
+    "index.js": "7808fc618b4c816322005628af2726a53c4db678b37fb311163210c4fbab5ed0"
+  },
+  "piAiTarballSha256": "b40e2ba8bb6fc332908f8b96e837dc2d1fdfb45eb9cd382f5aed111462981e3c"
+}

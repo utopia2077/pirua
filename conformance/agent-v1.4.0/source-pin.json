@@ -1,0 +1,31 @@
+{
+  "upstreamTag": "v1.4.0",
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "sources": {
+    "packages/agent/src/agent-loop.ts": "9d7589b5071ea3b8b3e3c624f9cfc09a976ebf7436024a58213837de4645167d",
+    "packages/agent/src/agent.ts": "6d0e56bf4443f0cfc5c6a82ce31a3b99f15ff816075bed36403dfa0c95a609c6",
+    "packages/agent/src/types.ts": "2e116ef60fdaca4e26be5a1ace8d8b47f545d648d365de60b8c9f9d1ba629ee4",
+    "packages/agent/src/stream-fn.ts": "1f9dee101a5ce1052558458d9ce47e53e05187224e879217899059a80d90bc45",
+    "packages/agent/test/agent-loop.test.ts": "0bb740569480a344b406552fa9f1fcbe5f22764028e9223b3c8e26dbcc70837b",
+    "packages/agent/test/agent.test.ts": "405ae25913af9c8629a96ff441d1e363b613ed8a01d71f9367bfc3cc66fd3f49",
+    "packages/ai/src/utils/transcript.ts": "1b20f9436a4f7e60008224d3e22098b2a7731731efdfb9c66f4c78a580cbe1e2",
+    "packages/ai/src/utils/validation.ts": "e4b8029c184bd6df830e0ee2cb7034a39d49b5ecb8c068c26af9564c20246594",
+    "packages/ai/src/utils/identity.ts": "873fded86c5310497e6cc375256f3c85fffb2a9528145d96e6464142778ba1de",
+    "packages/ai/src/utils/event-stream.ts": "9fd5e33a8e295d88b5911af71d7afbfd437c9620288808d18331f16811e24dac"
+  },
+  "artifacts": {
+    "catalog/v1.4.0/pi-ai-1.4.0.tgz": "b40e2ba8bb6fc332908f8b96e837dc2d1fdfb45eb9cd382f5aed111462981e3c",
+    "provider-traces/v1.4.0/pi-telemetry-1.4.0.tgz": "28b832f393921d8303db5200463a0b0c7143cd753286cd8a814cd1dfc548d9c8"
+  },
+  "releaseHelpers": {
+    "utils/transcript.js": "c14b3b49d72cf18f62e99398c6f75d289899efdc2d187c3596dbd05dd6e0698c",
+    "utils/validation.js": "a45b42f298937ea475f326c4181b515c909b240fb82df58891907cce9954c700",
+    "utils/identity.js": "32b45824054a8a6125a7f3caedd9ff1c594f1a109fd2af4fa1b5729f4578ab62",
+    "utils/event-stream.js": "fe0d774b75db25ff0149d4267884bc4fd34db82d53c26843758d0eda2467ce65"
+  },
+  "dependencyVersions": {
+    "@earendil-works/pi-ai": "1.4.0",
+    "@earendil-works/pi-telemetry": "1.4.0",
+    "typebox": "1.3.27"
+  }
+}

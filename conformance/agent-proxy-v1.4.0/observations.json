@@ -1,0 +1,748 @@
+{
+  "formatVersion": 1,
+  "observations": [
+    {
+      "id": "fragmented-content",
+      "input": {
+        "id": "fragmented-content",
+        "wire": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"你好🙂\"}\n\ndata: {\"type\":\"text_end\",\"contentIndex\":0,\"contentSignature\":\"text-sig\"}\n\ndata: {\"type\":\"thinking_start\",\"contentIndex\":1}\n\ndata: {\"type\":\"thinking_delta\",\"contentIndex\":1,\"delta\":\"consider\"}\n\ndata: {\"type\":\"thinking_end\",\"contentIndex\":1,\"contentSignature\":\"thinking-sig\"}\n\ndata: {\"type\":\"toolcall_start\",\"contentIndex\":2,\"id\":\"old-id\",\"toolName\":\"lookup\"}\n\ndata: {\"type\":\"toolcall_delta\",\"contentIndex\":2,\"delta\":\"{\\\"value\\\":\\\"你\"}\n\ndata: {\"type\":\"toolcall_delta\",\"contentIndex\":2,\"delta\":\"好\\\"}\"}\n\ndata: {\"type\":\"toolcall_end\",\"contentIndex\":2,\"toolCall\":{\"type\":\"toolCall\",\"id\":\"final-id\",\"name\":\"lookup-final\",\"arguments\":{\"value\":\"你好\"},\"namespace\":\"dynamic_tools\",\"thoughtSignature\":\"tool-sig\"}}\n\ndata: {\"type\":\"done\",\"reason\":\"toolUse\",\"usage\":{\"input\":5,\"output\":7,\"cacheRead\":1,\"cacheWrite\":2,\"totalTokens\":15,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"providerThinkingLevel\":\"xhigh\"}",
+        "fragmented": true
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "start"
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "你好🙂"
+        },
+        {
+          "type": "text_end",
+          "contentIndex": 0,
+          "content": "你好🙂"
+        },
+        {
+          "type": "thinking_start",
+          "contentIndex": 1
+        },
+        {
+          "type": "thinking_delta",
+          "contentIndex": 1,
+          "delta": "consider"
+        },
+        {
+          "type": "thinking_end",
+          "contentIndex": 1,
+          "content": "consider"
+        },
+        {
+          "type": "toolcall_start",
+          "contentIndex": 2
+        },
+        {
+          "type": "toolcall_delta",
+          "contentIndex": 2,
+          "delta": "{\"value\":\"你"
+        },
+        {
+          "type": "toolcall_delta",
+          "contentIndex": 2,
+          "delta": "好\"}"
+        },
+        {
+          "type": "toolcall_end",
+          "contentIndex": 2,
+          "toolCall": {
+            "type": "toolCall",
+            "id": "final-id",
+            "name": "lookup-final",
+            "arguments": {
+              "value": "你好"
+            },
+            "namespace": "dynamic_tools",
+            "thoughtSignature": "tool-sig"
+          }
+        },
+        {
+          "type": "done",
+          "reason": "toolUse"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "toolUse",
+        "content": [
+          {
+            "type": "text",
+            "text": "你好🙂",
+            "textSignature": "text-sig"
+          },
+          {
+            "type": "thinking",
+            "thinking": "consider",
+            "thinkingSignature": "thinking-sig"
+          },
+          {
+            "type": "toolCall",
+            "id": "final-id",
+            "name": "lookup-final",
+            "arguments": {
+              "value": "你好"
+            },
+            "namespace": "dynamic_tools",
+            "thoughtSignature": "tool-sig"
+          }
+        ],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 5,
+          "output": 7,
+          "cacheRead": 1,
+          "cacheWrite": 2,
+          "totalTokens": 15,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "providerThinkingLevel": "xhigh",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "body-allowlist",
+      "input": {
+        "id": "body-allowlist",
+        "wire": "data: {\"type\":\"done\",\"reason\":\"stop\",\"usage\":{\"input\":5,\"output\":7,\"cacheRead\":1,\"cacheWrite\":2,\"totalTokens\":15,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"providerThinkingLevel\":\"high\"}",
+        "options": {
+          "temperature": 0.5,
+          "samplingParams": {
+            "seed": 9
+          },
+          "maxTokens": 22,
+          "reasoning": "high",
+          "cacheRetention": "long",
+          "sessionId": "session",
+          "headers": {
+            "X-Explicit": "yes",
+            "remove": null
+          },
+          "metadata": {
+            "task": "test"
+          },
+          "transport": "sse",
+          "thinkingBudgets": {
+            "high": 19
+          },
+          "maxRetryDelayMs": 71,
+          "identity": {
+            "attribution": {
+              "name": "secret-app",
+              "url": "https://private.invalid"
+            }
+          },
+          "apiKey": "provider-secret",
+          "timeoutMs": 33,
+          "maxRetries": 4,
+          "websocketConnectTimeoutMs": 44,
+          "toolChoice": "none",
+          "deferred": true
+        }
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {
+            "temperature": 0.5,
+            "samplingParams": {
+              "seed": 9
+            },
+            "maxTokens": 22,
+            "reasoning": "high",
+            "cacheRetention": "long",
+            "sessionId": "session",
+            "headers": {
+              "X-Explicit": "yes",
+              "remove": null
+            },
+            "metadata": {
+              "task": "test"
+            },
+            "transport": "sse",
+            "thinkingBudgets": {
+              "high": 19
+            },
+            "maxRetryDelayMs": 71
+          }
+        }
+      },
+      "events": [
+        {
+          "type": "done",
+          "reason": "stop"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "stop",
+        "content": [],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 5,
+          "output": 7,
+          "cacheRead": 1,
+          "cacheWrite": 2,
+          "totalTokens": 15,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "providerThinkingLevel": "high",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "line-framing",
+      "input": {
+        "id": "line-framing",
+        "wire": "﻿: comment\ndata:{ignored}\ndata: \n\nevent: ignored\ndata: {\"type\":\"future_event\"}\ndata: {\"type\":\"start\"}\r\ndata: {\"type\":\"done\",\"reason\":\"stop\",\"usage\":{\"input\":5,\"output\":7,\"cacheRead\":1,\"cacheWrite\":2,\"totalTokens\":15,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"providerThinkingLevel\":\"high\"}"
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "start"
+        },
+        {
+          "type": "done",
+          "reason": "stop"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "stop",
+        "content": [],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 5,
+          "output": 7,
+          "cacheRead": 1,
+          "cacheWrite": 2,
+          "totalTokens": 15,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "providerThinkingLevel": "high",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "eof-partial",
+      "input": {
+        "id": "eof-partial",
+        "wire": "data: {\"type\":\"start\"}\n\ndata: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"partial\"}\n\n"
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "start"
+        },
+        {
+          "type": "text_start",
+          "contentIndex": 0
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "partial"
+        },
+        {
+          "type": "error",
+          "reason": "error"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "error",
+        "content": [
+          {
+            "type": "text",
+            "text": "partial"
+          }
+        ],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "errorMessage": "Connection closed by proxy server before the response completed",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "reported-error",
+      "input": {
+        "id": "reported-error",
+        "wire": "data: {\"type\":\"text_start\",\"contentIndex\":0}\n\ndata: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"partial\"}\n\ndata: {\"type\":\"error\",\"reason\":\"aborted\",\"errorMessage\":\"server cancelled\",\"usage\":{\"input\":5,\"output\":7,\"cacheRead\":1,\"cacheWrite\":2,\"totalTokens\":15,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"providerThinkingLevel\":\"native-effort\"}"
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "text_start",
+          "contentIndex": 0
+        },
+        {
+          "type": "text_delta",
+          "contentIndex": 0,
+          "delta": "partial"
+        },
+        {
+          "type": "error",
+          "reason": "aborted"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "aborted",
+        "content": [
+          {
+            "type": "text",
+            "text": "partial"
+          }
+        ],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 5,
+          "output": 7,
+          "cacheRead": 1,
+          "cacheWrite": 2,
+          "totalTokens": 15,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "errorMessage": "server cancelled",
+        "providerThinkingLevel": "native-effort",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "wrong-content",
+      "input": {
+        "id": "wrong-content",
+        "wire": "data: {\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"x\"}\n\n"
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "error",
+          "reason": "error"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "error",
+        "content": [],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "errorMessage": "Received text_delta for non-text content",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "http-error",
+      "input": {
+        "id": "http-error",
+        "wire": "{\"error\":\"rate limited\"}",
+        "status": 502,
+        "statusText": "Bad Gateway"
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "error",
+          "reason": "error"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "error",
+        "content": [],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "errorMessage": "Proxy error: rate limited",
+        "durationMs": "<durationMs>"
+      }
+    },
+    {
+      "id": "http-status-fallback",
+      "input": {
+        "id": "http-status-fallback",
+        "wire": "not JSON",
+        "status": 502,
+        "statusText": "Bad Gateway"
+      },
+      "request": {
+        "url": "https://proxy.invalid/base/api/stream",
+        "method": "POST",
+        "headers": {
+          "authorization": "Bearer proxy-secret",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": {
+            "id": "test-model",
+            "name": "Test model",
+            "api": "openai-responses",
+            "provider": "openai",
+            "baseUrl": "https://provider.invalid/v1",
+            "reasoning": true,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 10000,
+            "maxTokens": 1000
+          },
+          "context": {
+            "messages": []
+          },
+          "options": {}
+        }
+      },
+      "events": [
+        {
+          "type": "error",
+          "reason": "error"
+        }
+      ],
+      "result": {
+        "role": "assistant",
+        "stopReason": "error",
+        "content": [],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "test-model",
+        "usage": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "totalTokens": 0,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 7,
+        "errorMessage": "Proxy error: 502 Bad Gateway",
+        "durationMs": "<durationMs>"
+      }
+    }
+  ]
+}

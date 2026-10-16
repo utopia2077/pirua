@@ -7,6 +7,9 @@ members = [
     "crates/pi-ai-transport",
     "crates/pi-ai-providers",
     "crates/pi-ai",
+    "crates/pi-agent-schema",
+    "crates/pi-agent-loop",
+    "crates/pi-agent",
     "crates/pi-sqlite",
     "crates/pi-coding-session",
     "crates/pi-codemode",
@@ -21,6 +24,9 @@ license = "MIT"
 publish = false
 
 [workspace.dependencies]
+pi-agent-schema = { path = "crates/pi-agent-schema" }
+pi-agent-loop = { path = "crates/pi-agent-loop" }
+pi-agent = { path = "crates/pi-agent" }
 pi-sqlite = { path = "crates/pi-sqlite" }
 pi-coding-session = { path = "crates/pi-coding-session" }
 rquickjs = { version = "=0.14.0", default-features = false, features = ["std"] }

@@ -1,0 +1,10 @@
+{
+  "name": "pirua-agent-v140-source-oracle",
+  "private": true,
+  "type": "module",
+  "description": "Offline observations from pinned Pi Agent source and exact release AI helpers",
+  "dependencies": {
+    "@earendil-works/pi-ai": "file:.runtime/pi-ai-1.4.0.tgz",
+    "@earendil-works/pi-telemetry": "file:.runtime/pi-telemetry-1.4.0.tgz"
+  }
+}
