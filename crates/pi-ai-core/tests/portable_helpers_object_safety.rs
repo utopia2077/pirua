@@ -4,18 +4,18 @@ use std::sync::Arc;
 
 use pi_ai_core::{
     AssistantContent, Clock, ContentTextInput, ContextEstimateInput, ContextUsageEstimate,
-    DeferredToolsSplit, InputContent, JsonParseError, JsonParseErrorCode, JsonValue, Message,
-    NumericError, SafeUnsigned, TextAndImageContentRef, ToolName, ToolNameNormalizer, Usage,
-    UuidV7Entropy, UuidV7EntropyError, UuidV7Error, UuidV7ErrorCode, UuidV7Generator,
-    calculate_context_tokens, content_text, content_text_with_separator, estimate_context_tokens,
-    estimate_message_tokens, estimate_text_and_image_content_tokens, estimate_text_tokens,
-    parse_json_with_repair, parse_streaming_json, repair_json, short_hash, split_deferred_tools,
+    InputContent, JsonParseError, JsonParseErrorCode, JsonValue, Message, NumericError,
+    SafeUnsigned, TextAndImageContentRef, Usage, UuidV7Entropy, UuidV7EntropyError, UuidV7Error,
+    UuidV7ErrorCode, UuidV7Generator, calculate_context_tokens, content_text,
+    content_text_with_separator, estimate_context_tokens, estimate_message_tokens,
+    estimate_text_and_image_content_tokens, estimate_text_tokens, parse_json_with_repair,
+    parse_streaming_json, repair_json, short_hash,
 };
 
 const INVENTORY: &str =
     include_str!("../../../conformance/ai-domain/portable-helpers-inventory.json");
 const TESTS: &str = include_str!("portable_helpers.rs");
-const EXPECTED_IDS: [&str; 27] = [
+const EXPECTED_IDS: [&str; 23] = [
     "helper.context.usage-total-fallback",
     "helper.context.utf16-text-image",
     "helper.context.message-roles",
@@ -39,10 +39,6 @@ const EXPECTED_IDS: [&str; 27] = [
     "helper.uuid.sequence-rollover",
     "helper.uuid.clock-rollback",
     "helper.uuid.instance-concurrency-error",
-    "helper.deferred-tools.disabled-dedup-order",
-    "helper.deferred-tools.marker-use-order",
-    "helper.deferred-tools.normalization-collision",
-    "helper.deferred-tools.empty-unknown-nonmutation",
 ];
 
 fn assert_value<T: Clone + std::fmt::Debug + PartialEq + Send + Sync + 'static>() {}
@@ -50,10 +46,6 @@ fn assert_error<T: std::fmt::Debug + Error + Send + Sync + 'static>() {}
 
 fn random_bytes(entropy: &dyn UuidV7Entropy) -> Result<[u8; 16], UuidV7EntropyError> {
     entropy.random_bytes()
-}
-
-fn normalize_name(normalizer: &dyn ToolNameNormalizer, name: &ToolName) -> ToolName {
-    normalizer.normalize_tool_name(name)
 }
 
 fn input_variant(value: &[InputContent]) -> ContentTextInput<'_> {
@@ -82,11 +74,6 @@ fn portable_helper_public_api_is_exact_and_object_safe() {
     let _content: fn(ContentTextInput<'_>) -> String = content_text;
     let _content_separator: fn(ContentTextInput<'_>, &str) -> String = content_text_with_separator;
     let _hash: fn(&str) -> String = short_hash;
-    let _split: fn(
-        &pi_ai_core::Context,
-        bool,
-        Option<&dyn ToolNameNormalizer>,
-    ) -> DeferredToolsSplit = split_deferred_tools;
     let _uuid_new: fn(Arc<dyn Clock>, Arc<dyn UuidV7Entropy>) -> UuidV7Generator =
         UuidV7Generator::new;
     let _uuid_generate: fn(&UuidV7Generator) -> Result<String, UuidV7Error> =
@@ -94,14 +81,10 @@ fn portable_helper_public_api_is_exact_and_object_safe() {
     let _uuid_code: fn(&UuidV7Error) -> UuidV7ErrorCode = UuidV7Error::code;
 
     fn accepts_entropy(_: &dyn UuidV7Entropy) {}
-    fn accepts_normalizer(_: &dyn ToolNameNormalizer) {}
     let _entropy: fn(&dyn UuidV7Entropy) = accepts_entropy;
-    let _normalizer: fn(&dyn ToolNameNormalizer) = accepts_normalizer;
     let _random: fn(&dyn UuidV7Entropy) -> Result<[u8; 16], UuidV7EntropyError> = random_bytes;
-    let _normalize: fn(&dyn ToolNameNormalizer, &ToolName) -> ToolName = normalize_name;
 
     assert_value::<ContextUsageEstimate>();
-    assert_value::<DeferredToolsSplit>();
     assert_error::<JsonParseError>();
     assert_error::<UuidV7EntropyError>();
     assert_error::<UuidV7Error>();
@@ -123,7 +106,7 @@ fn portable_helper_public_api_is_exact_and_object_safe() {
 fn portable_helpers_inventory_has_exact_rows_and_live_bindings() {
     let document: serde_json::Value = serde_json::from_str(INVENTORY).expect("valid inventory");
     assert_eq!(document["suite"], "portable-helpers");
-    assert_eq!(document["expectedRows"], 27);
+    assert_eq!(document["expectedRows"], 23);
     let rows = document["rows"].as_array().expect("rows");
     assert_eq!(rows.len(), EXPECTED_IDS.len());
     let keys = ["expected", "id", "owner", "polarity", "source", "test"]

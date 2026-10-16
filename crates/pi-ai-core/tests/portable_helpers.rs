@@ -8,13 +8,12 @@ use std::time::Duration;
 
 use pi_ai_core::{
     AssistantContent, BoxFuture, CancellationToken, Cancelled, Clock, ContentTextInput, Context,
-    ContextEstimateInput, DeferredToolsSplit, FiniteF64, InputContent, JsonObject,
-    JsonParseErrorCode, JsonSchema, JsonValue, Message, SafeUnsigned, TextAndImageContentRef, Tool,
-    ToolName, ToolNameNormalizer, Usage, UsageCost, UuidV7Entropy, UuidV7EntropyError,
-    UuidV7ErrorCode, UuidV7Generator, calculate_context_tokens, content_text,
-    content_text_with_separator, estimate_context_tokens, estimate_message_tokens,
+    ContextEstimateInput, FiniteF64, InputContent, JsonObject, JsonParseErrorCode, JsonSchema,
+    JsonValue, Message, SafeUnsigned, TextAndImageContentRef, Tool, ToolName, Usage, UsageCost,
+    UuidV7Entropy, UuidV7EntropyError, UuidV7ErrorCode, UuidV7Generator, calculate_context_tokens,
+    content_text, content_text_with_separator, estimate_context_tokens, estimate_message_tokens,
     estimate_text_and_image_content_tokens, estimate_text_tokens, parse_json_with_repair,
-    parse_streaming_json, repair_json, short_hash, split_deferred_tools,
+    parse_streaming_json, repair_json, short_hash,
 };
 
 fn safe(value: u64) -> SafeUnsigned {
@@ -267,8 +266,7 @@ fn post_checkpoint_markers_add_only_named_available_tool_definitions() {
     .expect("tool estimate")
     .tokens;
     let marker = message(serde_json::json!({
-        "role":"toolResult","toolCallId":"call","toolName":"loader","content":[],
-        "addedToolNames":["later","unknown"],"isError":false,"timestamp":2
+        "role":"system","content":"", "toolsAdded":[selected.clone()], "timestamp":2
     }));
     let estimate = estimate_context_tokens(ContextEstimateInput::Context(&Context {
         system_prompt: Some("ignored".to_owned()),
@@ -681,153 +679,4 @@ fn instances_are_explicit_and_concurrent_generation_is_unique_and_bounded() {
             .expect("state stayed empty")
             .starts_with("00000000-0001-7000-8000-")
     );
-}
-
-#[derive(Default)]
-struct LowercaseNormalizer {
-    calls: Mutex<Vec<String>>,
-}
-
-impl ToolNameNormalizer for LowercaseNormalizer {
-    fn normalize_tool_name(&self, name: &ToolName) -> ToolName {
-        self.calls
-            .lock()
-            .unwrap_or_else(|poison| poison.into_inner())
-            .push(name.as_str().to_owned());
-        ToolName::new(name.as_str().to_ascii_lowercase()).expect("normalized name")
-    }
-}
-
-fn deferred_context(tools: Option<Vec<Tool>>, messages: Vec<Message>) -> Context {
-    Context {
-        system_prompt: None,
-        messages,
-        tools,
-    }
-}
-
-fn tool_call(name: &str, timestamp: u64) -> Message {
-    message(serde_json::json!({
-        "role":"assistant",
-        "content":[{"type":"toolCall","id":format!("call-{timestamp}"),"name":name,"arguments":{}}],
-        "api":"api","provider":"provider","model":"model",
-        "usage":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":0,
-          "cost":{"input":0.0,"output":0.0,"cacheRead":0.0,"cacheWrite":0.0,"total":0.0}},
-        "stopReason":"toolUse","timestamp":timestamp
-    }))
-}
-
-fn marker(names: &[&str], timestamp: u64) -> Message {
-    message(serde_json::json!({
-        "role":"toolResult","toolCallId":format!("loader-{timestamp}"),"toolName":"loader",
-        "content":[],"addedToolNames":names,"isError":false,"timestamp":timestamp
-    }))
-}
-
-#[test]
-fn disabled_split_deduplicates_last_value_in_first_source_slot() {
-    let normalizer = LowercaseNormalizer::default();
-    let split = split_deferred_tools(
-        &deferred_context(
-            Some(vec![
-                tool("Alpha", "first"),
-                tool("ALPHA", "last"),
-                tool("Beta", "b"),
-            ]),
-            vec![tool_call("TRANSCRIPT_MUST_NOT_BE_SCANNED", 1)],
-        ),
-        false,
-        Some(&normalizer),
-    );
-    assert_eq!(
-        split
-            .immediate
-            .iter()
-            .map(|tool| (tool.name.as_str(), tool.description.as_str()))
-            .collect::<Vec<_>>(),
-        vec![("ALPHA", "last"), ("Beta", "b")]
-    );
-    assert!(split.deferred.is_empty());
-    assert_eq!(
-        normalizer
-            .calls
-            .lock()
-            .unwrap_or_else(|poison| poison.into_inner())
-            .as_slice(),
-        &["Alpha", "ALPHA", "Beta"]
-    );
-}
-
-#[test]
-fn markers_defer_only_tools_not_used_before_their_load_point() {
-    let split = split_deferred_tools(
-        &deferred_context(
-            Some(vec![
-                tool("used", "u"),
-                tool("later", "l"),
-                tool("always", "a"),
-            ]),
-            vec![
-                tool_call("used", 1),
-                marker(&["used", "later", "unknown"], 2),
-                tool_call("later", 3),
-            ],
-        ),
-        true,
-        None,
-    );
-    assert_eq!(
-        split
-            .immediate
-            .iter()
-            .map(|tool| tool.name.as_str())
-            .collect::<Vec<_>>(),
-        vec!["used", "always"]
-    );
-    assert_eq!(split.deferred.len(), 1);
-    assert_eq!(split.deferred[0].normalized_name.as_str(), "later");
-    assert_eq!(split.deferred[0].tool.name.as_str(), "later");
-}
-
-#[test]
-fn normalizer_applies_consistently_and_collisions_keep_first_slot_last_value() {
-    let normalizer = LowercaseNormalizer::default();
-    let context = deferred_context(
-        Some(vec![
-            tool("Alpha", "first"),
-            tool("ALPHA", "last"),
-            tool("Beta", "b"),
-        ]),
-        vec![tool_call("BETA", 1), marker(&["alpha"], 2)],
-    );
-    let split = split_deferred_tools(&context, true, Some(&normalizer));
-    assert_eq!(split.immediate.len(), 1);
-    assert_eq!(split.immediate[0].name.as_str(), "Beta");
-    assert_eq!(split.deferred.len(), 1);
-    assert_eq!(split.deferred[0].normalized_name.as_str(), "alpha");
-    assert_eq!(split.deferred[0].tool.name.as_str(), "ALPHA");
-    assert_eq!(split.deferred[0].tool.description, "last");
-    assert_eq!(
-        normalizer
-            .calls
-            .lock()
-            .unwrap_or_else(|poison| poison.into_inner())
-            .as_slice(),
-        &["Alpha", "ALPHA", "Beta", "BETA", "alpha"]
-    );
-}
-
-#[test]
-fn split_empty_unknown_and_nonmutation_matrix() {
-    let empty = split_deferred_tools(&deferred_context(None, Vec::new()), true, None);
-    assert_eq!(empty, DeferredToolsSplit::default());
-    let context = deferred_context(
-        Some(vec![tool("known", "value")]),
-        vec![marker(&["unknown"], 1)],
-    );
-    let before = context.clone();
-    let split = split_deferred_tools(&context, true, None);
-    assert_eq!(split.immediate.len(), 1);
-    assert!(split.deferred.is_empty());
-    assert_eq!(context, before);
 }

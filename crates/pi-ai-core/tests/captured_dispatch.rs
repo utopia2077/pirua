@@ -71,6 +71,9 @@ impl Adapter {
             provider: r.resolved.model.provider,
             model: r.resolved.model.id,
             response_model: None,
+            provider_thinking_level: None,
+            thinking_level: None,
+            duration_ms: None,
             response_id: None,
             diagnostics: None,
             usage: Usage::zero(),
@@ -203,6 +206,7 @@ fn product(lifecycle: bool, missing_api: bool, wait: bool) -> (Arc<Product>, Arc
 }
 fn registry(executor: Arc<Executor>) -> ModelsRegistry {
     ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(InMemoryModelsStore::new()),
         auth_context: Arc::new(Host),
@@ -347,22 +351,17 @@ impl TaskSpawner for Inline {
     }
 }
 #[test]
-fn captured_dispatch_supports_inline_host_polling_and_runtime_endpoint_model() {
+fn captured_dispatch_supports_inline_host_polling_and_public_endpoint() {
     let e = Arc::new(Executor::default());
     let r = registry(e.clone());
     let (p, _) = product(true, false, false);
     e.drive(r.set_provider(p.clone())).unwrap();
     let token = r.provider_registration(&p.adapter.model.provider).unwrap();
     let mut m = model();
-    m.api = ApiId::new("azure-openai-responses").unwrap();
-    m.base_url = ModelBaseUrl::RuntimeResolved;
+    m.base_url =
+        ModelBaseUrl::Public(PublicModelBaseUrl::new("https://captured.invalid/runtime").unwrap());
     let captured = r.capture_text_dispatch(&token, m).unwrap();
-    let overrides = ModelsRequestOverrides {
-        runtime_endpoint: Some(
-            RequestEndpoint::new_resolved("https://captured.invalid/runtime").unwrap(),
-        ),
-        ..Default::default()
-    };
+    let overrides = ModelsRequestOverrides::default();
     let stream = r
         .stream_simple_captured_with_lifecycle(
             captured,

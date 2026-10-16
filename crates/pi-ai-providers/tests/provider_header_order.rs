@@ -1,17 +1,9 @@
-#![cfg(all(
-    feature = "wire-pi-messages",
-    feature = "wire-mistral-conversations",
-    feature = "wire-anthropic-messages",
-    feature = "wire-openai-responses",
-    feature = "wire-openai-completions"
-))]
-
+#![cfg(feature = "all-providers")]
 use pi_ai_core::*;
 use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{
-    anthropic_messages::AnthropicMessagesApi, mistral_conversations::MistralApi,
-    openai_completions::OpenAICompletionsApi, openai_responses::OpenAIResponsesApi,
-    pi_messages::PiMessagesApi, runtime::*,
+    anthropic_messages::AnthropicMessagesApi, openai_completions::OpenAICompletionsApi,
+    openai_responses::OpenAIResponsesApi, runtime::*,
 };
 use pi_ai_transport::*;
 use serde_json::{Value, json};
@@ -117,13 +109,18 @@ impl RetryJitter for NoJitter {
 }
 
 #[test]
-fn five_family_raw_dispatch_matches_pinned_source_permutations_without_changing_hook_stages() {
+fn selected_family_raw_dispatch_matches_pinned_source_permutations_without_changing_hook_stages() {
     let fixture: Value = serde_json::from_str(include_str!(
         "../../../conformance/provider-traces/provider-header-order/trace.json"
     ))
     .unwrap();
     assert_eq!(fixture["cases"].as_array().unwrap().len(), 95);
-    for case in fixture["cases"].as_array().unwrap() {
+    for case in fixture["cases"].as_array().unwrap().iter().filter(|case| {
+        matches!(
+            case["family"].as_str(),
+            Some("anthropic-messages" | "openai-completions" | "openai-responses")
+        )
+    }) {
         let family = case["family"].as_str().unwrap();
         let observed = Arc::new(Observed::default());
         let mut services = AdapterServices::new(Arc::new(
@@ -133,8 +130,6 @@ fn five_family_raw_dispatch_matches_pinned_source_permutations_without_changing_
         services.payload = Some(observed.clone());
         services.response = Some(observed.clone());
         let adapter: Box<dyn ApiAdapter> = match family {
-            "pi-messages" => Box::new(PiMessagesApi::new(services)),
-            "mistral-conversations" => Box::new(MistralApi::new(services)),
             "anthropic-messages" => Box::new(AnthropicMessagesApi::new(services)),
             "openai-responses" => Box::new(OpenAIResponsesApi::new(services)),
             "openai-completions" => Box::new(OpenAICompletionsApi::new(services)),
@@ -142,7 +137,6 @@ fn five_family_raw_dispatch_matches_pinned_source_permutations_without_changing_
         };
         let provider = match family {
             "anthropic-messages" => "anthropic",
-            "mistral-conversations" => "mistral",
             _ => "custom",
         };
         let spawner = Arc::new(Spawner::default());

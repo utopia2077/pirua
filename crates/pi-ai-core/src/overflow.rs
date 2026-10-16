@@ -155,7 +155,7 @@ fn compile_legacy_regex(source: &str) -> Regex {
         .unwrap_or_else(|_| panic!("translated classifier pattern must compile"))
 }
 
-fn translate_legacy_regex(source: &str) -> Result<String, ()> {
+pub(crate) fn translate_legacy_regex(source: &str) -> Result<String, ()> {
     let mut translated = String::with_capacity(source.len() * 2);
     let mut characters = source.chars().peekable();
     let mut in_class = false;

@@ -11,30 +11,18 @@ use std::fmt;
 mod response_record;
 pub use response_record::{ResponseHeaderRecord, ResponseHeaderValue};
 #[cfg(any(
-    feature = "wire-pi-messages",
-    feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
-    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-openai-codex-responses",
-    feature = "wire-google-vertex",
-    feature = "wire-bedrock-converse-stream"
 ))]
 use std::future::{Future, poll_fn};
 use std::sync::Arc;
 #[cfg(any(
-    feature = "wire-pi-messages",
-    feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
-    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-openai-codex-responses",
-    feature = "wire-google-vertex",
-    feature = "wire-bedrock-converse-stream"
 ))]
 use std::task::Poll;
 
@@ -43,16 +31,10 @@ use pi_ai_core::{BoxFuture, ModelsError, ProviderEnv, TextStreamRequest};
 use pi_ai_transport::{HttpHeaders, HttpTransport, SseLimits, TransportError, TransportErrorKind};
 
 #[cfg(any(
-    feature = "wire-pi-messages",
-    feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
-    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-openai-codex-responses",
-    feature = "wire-google-vertex",
-    feature = "wire-bedrock-converse-stream"
 ))]
 use pi_ai_core::{CancellationToken, Cancelled};
 
@@ -218,16 +200,10 @@ impl<P> fmt::Debug for AdapterServices<P> {
 
 /// Drops a non-cooperative operation when the original caller cancels.
 #[cfg(any(
-    feature = "wire-pi-messages",
-    feature = "wire-mistral-conversations",
     feature = "wire-anthropic-messages",
     feature = "wire-openai-responses",
-    feature = "wire-azure-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-google-genai",
-    feature = "wire-openai-codex-responses",
-    feature = "wire-google-vertex",
-    feature = "wire-bedrock-converse-stream"
 ))]
 pub(crate) async fn cancellable<T>(
     mut operation: BoxFuture<'_, T>,
@@ -246,4 +222,25 @@ pub(crate) async fn cancellable<T>(
         }
     })
     .await
+}
+
+#[cfg(any(
+    feature = "wire-anthropic-messages",
+    feature = "wire-openai-completions",
+    feature = "wire-google-genai"
+))]
+/// Calls a request-local provider-event observer under the request cancellation boundary.
+pub(crate) async fn observe_provider_event(
+    request: &TextStreamRequest,
+    event: &serde_json::Value,
+) -> Result<(), ModelsError> {
+    if let Some(observer) = &request.options.runtime.provider_event_observer {
+        cancellable(
+            observer.on_provider_stream_event(event, &request.resolved.model),
+            &request.options.runtime.cancellation,
+        )
+        .await
+        .map_err(|_| ModelsError::new(pi_ai_core::ModelsErrorCode::Provider))??;
+    }
+    Ok(())
 }

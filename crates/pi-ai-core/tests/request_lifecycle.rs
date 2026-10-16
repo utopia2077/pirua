@@ -110,6 +110,7 @@ fn unsupported_observed_dispatch_fails_before_adapter_but_ordinary_never_queries
         calls: AtomicUsize::new(0),
     });
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(InMemoryModelsStore::new()),
         auth_context: Arc::new(Host),

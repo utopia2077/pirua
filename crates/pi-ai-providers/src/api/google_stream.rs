@@ -68,7 +68,6 @@ pub struct GoogleOptions {
     pub thinking: Option<GoogleThinking>,
 }
 static TOOL_CALL_COUNTER: AtomicU64 = AtomicU64::new(0);
-static VERTEX_TOOL_CALL_COUNTER: AtomicU64 = AtomicU64::new(0);
 /// Explicit trusted counter injection. Default adapters share the module counter.
 pub struct GoogleToolCallCounter(AtomicU64);
 impl GoogleToolCallCounter {
@@ -103,8 +102,6 @@ pub struct GoogleGenAiApi {
     pub defaults: GoogleOptions,
     pub limits: GoogleGenAiLimits,
     counter: Option<Arc<GoogleToolCallCounter>>,
-    #[cfg(feature = "wire-google-vertex")]
-    vertex: Option<super::google_vertex::Invocation>,
 }
 impl fmt::Debug for GoogleGenAiApi {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -174,27 +171,13 @@ impl GoogleGenAiApi {
             defaults: GoogleOptions::default(),
             limits: GoogleGenAiLimits::default(),
             counter: None,
-            #[cfg(feature = "wire-google-vertex")]
-            vertex: None,
         }
     }
     pub fn with_tool_call_counter(mut self, counter: Arc<GoogleToolCallCounter>) -> Self {
         self.counter = Some(counter);
         self
     }
-    #[cfg(feature = "wire-google-vertex")]
-    pub(crate) fn vertex(
-        services: AdapterServices,
-        invocation: super::google_vertex::Invocation,
-    ) -> Self {
-        let mut engine = Self::new(services);
-        engine.api = "google-vertex".parse().expect("constant API");
-        engine.vertex = Some(invocation);
-        engine
-    }
-    fn is_vertex(&self) -> bool {
-        self.api.as_str() == "google-vertex"
-    }
+
     pub fn stream_with_options(
         &self,
         request: TextStreamRequest,
@@ -207,11 +190,7 @@ impl GoogleGenAiApi {
             .counter
             .as_ref()
             .map(|c| &c.0)
-            .unwrap_or(if self.is_vertex() {
-                &VERTEX_TOOL_CALL_COUNTER
-            } else {
-                &TOOL_CALL_COUNTER
-            });
+            .unwrap_or(&TOOL_CALL_COUNTER);
         let previous = counter
             .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |v| {
                 v.checked_add(1).filter(|v| *v <= SafeUnsigned::MAX.get())
@@ -272,22 +251,15 @@ impl GoogleGenAiApi {
         producer: &AssistantStreamProducer,
         reducer: &mut Reducer,
     ) -> Result<(), Failure> {
-        if !self.is_vertex()
-            && request
-                .auth
-                .api_key
-                .as_ref()
-                .is_none_or(|k| k.expose_secret().is_empty())
+        if request
+            .auth
+            .api_key
+            .as_ref()
+            .is_none_or(|k| k.expose_secret().is_empty())
         {
             return Err(Failure::local());
         }
-        #[cfg(feature = "wire-google-vertex")]
-        let vertex_client = self
-            .vertex
-            .as_ref()
-            .map(|v| v.client(request, &self.services.env))
-            .transpose()
-            .map_err(|_| Failure::local())?;
+
         let mut params = super::wire_json::WirePayload::new(build_params(request, options)?);
         if let Some(hook) = &self.services.payload
             && let Some(replacement) = cancellable(
@@ -323,91 +295,11 @@ impl GoogleGenAiApi {
             },
             || -> BoxFuture<'_, _> {
                 Box::pin(async {
-                    let prepared = sdk::prepare(
-                        request,
-                        &params,
-                        &self.services.env,
-                        #[cfg(feature = "wire-google-vertex")]
-                        vertex_client.as_ref().map(|c| &c.routing),
-                    )
-                    .map_err(|e| shared::GoogleRequestFailure::Other(Failure::sdk(e, template)))?;
-                    #[cfg(feature = "wire-google-vertex")]
-                    let prepared = if let Some(client) = &vertex_client {
-                        use super::google_vertex::GoogleVertexAuthError;
-                        let mut prepared = prepared;
-                        if let Some(session) = &client.session {
-                            if prepared
-                                .request
-                                .headers
-                                .iter_for_wire()
-                                .any(|(_, v)| v.chars().any(|c| c as u32 > 255))
-                            {
-                                return Err(shared::GoogleRequestFailure::Other(Failure::local()));
-                            }
-                            let began = runtime.clock.now_unix_ms();
-                            let headers = cancellable(
-                                session.get_request_headers(&prepared.request.endpoint, runtime),
-                                &runtime.cancellation,
-                            )
-                            .await
-                            .map_err(|_| shared::GoogleRequestFailure::Other(Failure::local()))?
-                            .map_err(|e| match e {
-                                GoogleVertexAuthError::Other(_) => {
-                                    shared::GoogleRequestFailure::Other(Failure::local())
-                                }
-                                GoogleVertexAuthError::Provider { status, .. } => {
-                                    shared::GoogleRequestFailure::ApiError {
-                                        status,
-                                        error: Failure {
-                                            status,
-                                            ..Failure::local()
-                                        },
-                                    }
-                                }
-                            })?;
-                            for (name, entry) in headers.iter_for_fetch() {
-                                if prepared.request.headers.get_for_wire(name).is_none() {
-                                    // Headers.entries yields Set-Cookie separately. The
-                                    // source missing-name check admits only its first entry.
-                                    let value = if name == "set-cookie" {
-                                        Some(entry.to_owned())
-                                    } else {
-                                        headers.get_for_fetch(name)
-                                    }
-                                    .ok_or_else(|| {
-                                        shared::GoogleRequestFailure::Other(Failure::local())
-                                    })?;
-                                    if value.chars().any(|c| c as u32 > 255) {
-                                        return Err(shared::GoogleRequestFailure::Other(
-                                            Failure::local(),
-                                        ));
-                                    }
-                                    prepared.request.headers.append(name, value).map_err(|_| {
-                                        shared::GoogleRequestFailure::Other(Failure::local())
-                                    })?;
-                                }
-                            }
-                            if let Some(timeout) = prepared.timeout {
-                                let elapsed = std::time::Duration::from_millis(
-                                    runtime.clock.now_unix_ms().saturating_sub(began),
-                                );
-                                prepared.timeout = Some(
-                                    timeout
-                                        .checked_sub(elapsed)
-                                        .filter(|d| !d.is_zero())
-                                        .ok_or_else(|| {
-                                            shared::GoogleRequestFailure::Other(transport_failure(
-                                                TransportErrorKind::Timeout,
-                                                template,
-                                            ))
-                                        })?,
-                                );
-                            }
-                        }
-                        prepared
-                    } else {
-                        prepared
-                    };
+                    let prepared =
+                        sdk::prepare(request, &params, &self.services.env).map_err(|e| {
+                            shared::GoogleRequestFailure::Other(Failure::sdk(e, template))
+                        })?;
+
                     let mut response = self
                         .services
                         .transport
@@ -500,8 +392,12 @@ impl GoogleGenAiApi {
                         .map_err(|e| Failure::sdk(e, &reducer.partial))?;
                     let parsed: Value =
                         serde_json::from_str(&data).map_err(|_| Failure::local())?;
-                    let chunk = sdk::response(parsed, cloud)
+                    let mut chunk = sdk::response(parsed, cloud)
                         .map_err(|e| Failure::sdk(e, &reducer.partial))?;
+                    chunk["sdkHttpResponse"]=json!({"headers":response.headers.iter_for_wire().map(|(name,_)|(name.to_ascii_lowercase(),response.headers.get_for_fetch(name).unwrap_or_default())).collect::<std::collections::BTreeMap<_,_>>()});
+                    super::runtime::observe_provider_event(request, &chunk)
+                        .await
+                        .map_err(|_| Failure::local())?;
                     reducer.chunk(self, request, producer, &chunk)?;
                 }
                 match cancellable(response.body.next(runtime), &runtime.cancellation)
@@ -548,11 +444,7 @@ impl GoogleGenAiApi {
                 StopReason::Pending => {
                     return Err(Failure::message(
                         None,
-                        if self.is_vertex() {
-                            "Google Vertex stream ended without a finish reason"
-                        } else {
-                            "Google stream ended without a finish reason"
-                        },
+                        "Google stream ended without a finish reason",
                         &reducer.partial,
                     ));
                 }
@@ -641,6 +533,9 @@ fn empty(request: &TextStreamRequest) -> AssistantMessage {
         provider: request.resolved.model.provider.clone(),
         model: request.resolved.model.id.clone(),
         response_model: None,
+        provider_thinking_level: None,
+        thinking_level: None,
+        duration_ms: None,
         response_id: None,
         diagnostics: None,
         usage: Usage::zero(),
@@ -731,6 +626,29 @@ fn flash3(id: &str) -> bool {
             "gemini-flash-latest" | "gemini-flash-lite-latest"
         )
 }
+fn uses_thinking_level(id: &str) -> bool {
+    let id = id.to_lowercase();
+    model_generation(&id, "-pro")
+        || flash3(&id)
+        || gemma4(&id)
+        || id.match_indices("gemini-").any(|(at, _)| {
+            let digits: String = id[at + 7..]
+                .chars()
+                .take_while(char::is_ascii_digit)
+                .collect();
+            digits.starts_with(['4', '5', '6', '7', '8', '9'])
+                || (digits.len() >= 2 && !digits.starts_with('0'))
+        })
+}
+fn google_level(level: shared::ResolvedGoogleThinkingLevel) -> shared::GoogleApiThinkingLevel {
+    use shared::{GoogleApiThinkingLevel as G, ResolvedGoogleThinkingLevel as R};
+    match level {
+        R::Minimal => G::Minimal,
+        R::Low => G::Low,
+        R::Medium => G::Medium,
+        R::High => G::High,
+    }
+}
 fn build_params(request: &TextStreamRequest, options: &GoogleOptions) -> Result<Value, Failure> {
     let model = &request.resolved.model;
     let mut config = json!({});
@@ -740,16 +658,14 @@ fn build_params(request: &TextStreamRequest, options: &GoogleOptions) -> Result<
     if let Some(v) = request.options.wire.max_tokens {
         config["maxOutputTokens"] = json!(v);
     }
-    if let Some(prompt) = request
-        .context
-        .system_prompt
-        .as_ref()
-        .filter(|s| !s.is_empty())
-    {
+    let prompt = pi_ai_core::get_current_system_prompt(&request.context.messages);
+    if !prompt.is_empty() {
         config["systemInstruction"] = json!(prompt);
     }
     let strict = shared::supports_google_strict_tool_sampling(model.id.as_str());
-    if let Some(tools) = request.context.tools.as_ref().filter(|t| !t.is_empty()) {
+    let tools = pi_ai_core::get_current_tools(&request.context.messages);
+    if !tools.is_empty() {
+        let tools = tools.as_slice();
         let choice = options.tool_choice.map(|v| match v {
             GoogleToolChoice::Auto => "auto",
             GoogleToolChoice::None => "none",
@@ -776,12 +692,13 @@ fn build_params(request: &TextStreamRequest, options: &GoogleOptions) -> Result<
                 c["thinkingBudget"] = json!(budget);
             }
             c
-        } else if model_generation(model.id.as_str(), "-pro") {
-            json!({"thinkingLevel":"LOW"})
-        } else if flash3(model.id.as_str())
-            || (model.api.as_str() != "google-vertex" && gemma4(model.id.as_str()))
-        {
-            json!({"thinkingLevel":"MINIMAL"})
+        } else if uses_thinking_level(model.id.as_str()) {
+            let fallback = clamp_thinking_level(model, ModelThinkingLevel::Off);
+            if fallback == ModelThinkingLevel::Off {
+                json!({"thinkingBudget":0})
+            } else {
+                json!({"thinkingLevel":google_level(shared::resolve_google_thinking_level(model,fallback).map_err(|_| Failure::local())?)})
+            }
         } else {
             json!({"thinkingBudget":0})
         };
@@ -812,33 +729,19 @@ fn simple_options(request: &SimpleStreamRequest) -> Result<GoogleOptions, Failur
         let model = &request.resolved.model;
         let level: ModelThinkingLevel =
             serde_json::from_value(json!(level)).map_err(|_| Failure::local())?;
-        let resolved =
-            shared::resolve_google_thinking_level(model, clamp_thinking_level(model, level))
-                .map_err(|_| Failure::local())?;
-        thinking.enabled = true;
-        use shared::{GoogleApiThinkingLevel as G, ResolvedGoogleThinkingLevel as R};
-        if model_generation(model.id.as_str(), "-pro")
-            || flash3(model.id.as_str())
-            || (model.api.as_str() != "google-vertex" && gemma4(model.id.as_str()))
-        {
-            thinking.level = Some(if model_generation(model.id.as_str(), "-pro") {
-                match resolved {
-                    R::Minimal | R::Low => G::Low,
-                    _ => G::High,
-                }
-            } else if gemma4(model.id.as_str()) {
-                match resolved {
-                    R::Minimal | R::Low => G::Minimal,
-                    _ => G::High,
-                }
-            } else {
-                match resolved {
-                    R::Minimal => G::Minimal,
-                    R::Low => G::Low,
-                    R::Medium => G::Medium,
-                    R::High => G::High,
-                }
+        let clamped = clamp_thinking_level(model, level);
+        if clamped == ModelThinkingLevel::Off {
+            return Ok(GoogleOptions {
+                tool_choice: choice,
+                thinking: Some(thinking),
             });
+        }
+        let resolved =
+            shared::resolve_google_thinking_level(model, clamped).map_err(|_| Failure::local())?;
+        thinking.enabled = true;
+        use shared::ResolvedGoogleThinkingLevel as R;
+        if uses_thinking_level(model.id.as_str()) {
+            thinking.level = Some(google_level(resolved));
         } else {
             let custom =
                 request
@@ -857,9 +760,7 @@ fn simple_options(request: &SimpleStreamRequest) -> Result<GoogleOptions, Failur
                 if id.contains("2.5-pro") || id.contains("2.5-flash") {
                     match resolved {
                         R::Minimal => {
-                            if model.api.as_str() != "google-vertex"
-                                && id.contains("2.5-flash-lite")
-                            {
+                            if id.contains("2.5-flash-lite") {
                                 512.0
                             } else {
                                 128.0
@@ -1087,6 +988,7 @@ impl Reducer {
                         id,
                         name,
                         arguments: serde_json::from_value(args).map_err(|_| Failure::local())?,
+                        arguments_error: None,
                         thought_signature: signature,
                         namespace: None,
                     };

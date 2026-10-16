@@ -462,7 +462,10 @@ impl Reducer {
             }
             state.args.push_str(args);
             text = args.to_owned();
-            self.value["content"][i]["arguments"] = json!(parse_streaming_json(Some(&state.args)));
+            self.value["content"][i]["arguments"] = match parse_streaming_json(Some(&state.args)) {
+                pi_ai_core::JsonValue::Object(arguments) => json!(arguments),
+                _ => json!({}),
+            };
         } else if let Some(input) = delta["custom"]["input"].as_str().filter(|s| !s.is_empty())
             && let Some((property, buffer)) = &mut state.custom
         {
@@ -500,8 +503,11 @@ impl Reducer {
                         )?;
                     }
                 } else {
-                    self.value["content"][i]["arguments"] =
-                        json!(parse_streaming_json(Some(&state.args)));
+                    let parsed = pi_ai_core::parse_tool_call_arguments(Some(&state.args));
+                    self.value["content"][i]["arguments"] = json!(parsed.arguments);
+                    if let Some(error) = parsed.arguments_error {
+                        self.value["content"][i]["argumentsError"] = json!(error);
+                    }
                 }
                 self.publish(json!({"type":"toolcall_end","contentIndex":i,"toolCall":self.value["content"][i]}),producer)?;
             } else if Some(i) == self.thinking {

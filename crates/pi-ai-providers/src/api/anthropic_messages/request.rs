@@ -77,43 +77,31 @@ fn set(
 
 pub(super) fn build(
     request: &TextStreamRequest,
-    options: &AnthropicOptions,
+    _options: &AnthropicOptions,
     services: &AdapterServices,
     payload: &Value,
 ) -> Result<HttpRequest, Failure> {
     let model = &request.resolved.model;
     let c = compat(model)?;
     let oauth = is_oauth(request);
-    let mut betas = vec![];
-    if request
-        .context
-        .tools
-        .as_ref()
-        .is_some_and(|tools| !tools.is_empty())
-        && !c.supports_eager_tool_input_streaming.unwrap_or(true)
-    {
-        betas.push("fine-grained-tool-streaming-2025-05-14");
-    }
-    if options.interleaved_thinking.unwrap_or(true) && c.force_adaptive_thinking != Some(true) {
-        betas.push("interleaved-thinking-2025-05-14");
-    }
-    if c.allowed_fallback_models
-        .as_ref()
-        .is_some_and(|models| !models.is_empty())
-    {
-        betas.push("server-side-fallback-2026-07-01");
-    }
+    let betas = payload
+        .get("betas")
+        .and_then(Value::as_array)
+        .map(|values| values.iter().filter_map(Value::as_str).collect::<Vec<_>>())
+        .unwrap_or_default();
     let mut defaults = vec![
-        ("User-Agent".into(), Some("pi-ai-rust".into())),
+        (
+            "User-Agent".into(),
+            Some(pi_ai_core::format_user_agent(
+                request.options.wire.identity.as_ref(),
+            )),
+        ),
         ("accept".into(), Some("application/json".into())),
         (
             "anthropic-dangerous-direct-browser-access".into(),
             Some("true".into()),
         ),
     ];
-    if oauth {
-        betas.splice(0..0, ["claude-code-20250219", "oauth-2025-04-20"]);
-    }
     if !betas.is_empty() {
         assign(&mut defaults, "anthropic-beta", Some(betas.join(",")));
     }
@@ -121,7 +109,7 @@ pub(super) fn build(
         assign(
             &mut defaults,
             "user-agent",
-            Some("claude-cli/2.1.75".into()),
+            Some("claude-cli/2.1.280".into()),
         );
         assign(&mut defaults, "x-app", Some("cli".into()));
     }
@@ -137,6 +125,15 @@ pub(super) fn build(
             .filter(|value| !value.is_empty())
     {
         assign(&mut defaults, "x-session-affinity", Some(session.clone()));
+    }
+    for (name, value) in pi_ai_core::get_identity_headers(
+        model.provider.as_str(),
+        request.resolved.endpoint.expose_for_transport(),
+        request.options.wire.identity.as_ref(),
+    ) {
+        if !name.eq_ignore_ascii_case("user-agent") {
+            assign(&mut defaults, &name, Some(value));
+        }
     }
     if let Some(headers) = &model.headers {
         for (name, value) in headers.as_map() {
@@ -252,11 +249,15 @@ pub(super) fn build(
             .join("&");
         url.set_query(Some(&query));
     }
+    let mut wire_body = payload.clone();
+    if let Some(object) = wire_body.as_object_mut() {
+        object.remove("betas");
+    }
     Ok(HttpRequest {
         endpoint: RequestEndpoint::new_resolved(url.as_str()).map_err(|_| Failure::Protocol)?,
         method: "POST".into(),
         headers,
-        body: stringify_wire_json(payload)
+        body: stringify_wire_json(&wire_body)
             .map_err(|_| Failure::Protocol)?
             .into_bytes(),
         proxy: None,

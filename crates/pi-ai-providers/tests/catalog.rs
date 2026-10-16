@@ -1,4 +1,4 @@
-use pi_ai_core::{ImagesProviderId, ModelHeaderPolicy, ProviderId};
+use pi_ai_core::{ModelHeaderPolicy, ProviderId};
 use pi_ai_providers::catalog::*;
 use serde_json::{Value, json};
 
@@ -88,64 +88,6 @@ fn catalog_intake_reuses_core_endpoint_numeric_and_unknown_field_admission() {
     );
 }
 
-#[test]
-fn image_catalog_intake_reuses_header_endpoint_and_identity_admission() {
-    let original: Value = serde_json::from_slice(include_bytes!(
-        "../../../conformance/catalog/generated/images/openrouter.json"
-    ))
-    .unwrap();
-    let provider = ImagesProviderId::new("openrouter").unwrap();
-    let mut changed = original.clone();
-    changed[0]["baseUrl"] = json!("");
-    assert_eq!(
-        decode_image_catalog(
-            &serde_json::to_vec(&changed).unwrap(),
-            &provider,
-            &ModelHeaderPolicy::default()
-        )
-        .unwrap_err()
-        .kind(),
-        CatalogErrorKind::Validation
-    );
-    changed = original.clone();
-    changed[0]["headers"] = json!({"x-api-key":"SYNTHETIC-CATALOG-SECRET"});
-    let error = decode_image_catalog(
-        &serde_json::to_vec(&changed).unwrap(),
-        &provider,
-        &ModelHeaderPolicy::default(),
-    )
-    .unwrap_err();
-    assert_eq!(error.kind(), CatalogErrorKind::Validation);
-    assert!(!format!("{error:?} {error}").contains("SYNTHETIC-CATALOG-SECRET"));
-    changed = original.clone();
-    changed.as_array_mut().unwrap().push(original[0].clone());
-    assert_eq!(
-        decode_image_catalog(
-            &serde_json::to_vec(&changed).unwrap(),
-            &provider,
-            &ModelHeaderPolicy::default()
-        )
-        .unwrap_err()
-        .kind(),
-        CatalogErrorKind::Identity
-    );
-    let other = ImagesProviderId::new("other").unwrap();
-    assert_eq!(
-        decode_image_catalog(
-            &serde_json::to_vec(&original).unwrap(),
-            &other,
-            &ModelHeaderPolicy::default()
-        )
-        .unwrap_err()
-        .kind(),
-        CatalogErrorKind::Identity
-    );
-}
-
-// Core numeric DTOs serialize finite rates as floating-point JSON numbers, so
-// compare numeric values rather than spelling 0 versus 0.0. Arrays stay ordered;
-// no model field, null, modality, routing price or compatibility entry is omitted.
-#[allow(dead_code)]
 fn assert_source_values(actual: &Value, expected: &Value) {
     match (actual, expected) {
         (Value::Number(a), Value::Number(b)) => assert_eq!(a.as_f64(), b.as_f64()),
@@ -183,67 +125,26 @@ catalog_test!(
     captured_openai_matches_complete_source,
     openai_models,
     "../../../conformance/catalog/generated/text/openai.json",
-    39
+    42
 );
 catalog_test!(
     "catalog-google",
     captured_google_matches_complete_source,
     google_models,
     "../../../conformance/catalog/generated/text/google.json",
-    22
+    24
 );
 catalog_test!(
     "catalog-anthropic",
     captured_anthropic_matches_complete_source,
     anthropic_models,
     "../../../conformance/catalog/generated/text/anthropic.json",
-    14
+    17
 );
 catalog_test!(
     "catalog-deepseek",
     captured_deepseek_matches_complete_source,
     deepseek_models,
     "../../../conformance/catalog/generated/text/deepseek.json",
-    3
+    2
 );
-catalog_test!(
-    "catalog-openai-codex",
-    captured_codex_matches_complete_source,
-    openai_codex_models,
-    "../../../conformance/catalog/generated/text/openai-codex.json",
-    7
-);
-catalog_test!(
-    "catalog-openrouter",
-    captured_openrouter_matches_complete_source,
-    openrouter_models,
-    "../../../conformance/catalog/generated/text/openrouter.json",
-    365
-);
-catalog_test!(
-    "catalog-openrouter-images",
-    captured_images_match_complete_source,
-    openrouter_image_models,
-    "../../../conformance/catalog/generated/images/openrouter.json",
-    52
-);
-
-#[cfg(feature = "catalog-openrouter-images")]
-#[test]
-fn captured_image_routing_prices_remain_negative_and_historical_projection_is_separate() {
-    let models = serde_json::to_value(openrouter_image_models().unwrap()).unwrap();
-    let automatic = models
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|model| model["id"] == "openrouter/auto")
-        .unwrap();
-    assert_eq!(automatic["cost"]["input"].as_f64(), Some(-1_000_000.0));
-    assert_eq!(automatic["cost"]["output"].as_f64(), Some(-1_000_000.0));
-    let historical: Value = serde_json::from_slice(include_bytes!(
-        "../../../conformance/catalog/generated/historical-images.json"
-    ))
-    .unwrap();
-    assert_eq!(historical["openrouter"].as_object().unwrap().len(), 50);
-    assert_eq!(models.as_array().unwrap().len(), 52);
-}

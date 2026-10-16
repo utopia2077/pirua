@@ -2,7 +2,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::content::InputContent;
 use crate::message::Message;
 use crate::tool::Tool;
 
@@ -26,12 +25,4 @@ pub struct Context {
         skip_serializing_if = "Option::is_none"
     )]
     pub tools: Option<Vec<Tool>>,
-}
-
-/// Image-generation request context.
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ImagesContext {
-    /// Text and image prompt blocks.
-    pub input: Vec<InputContent>,
 }

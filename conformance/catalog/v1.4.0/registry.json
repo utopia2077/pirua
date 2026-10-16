@@ -1,0 +1,27 @@
+{
+  "name": "@earendil-works/pi-ai",
+  "version": "1.4.0",
+  "dist": {
+    "shasum": "2ddca1029bbe97e26298d998d3a66d09db7759e2",
+    "tarball": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz",
+    "fileCount": 845,
+    "integrity": "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==",
+    "signatures": [
+      {
+        "sig": "MEUCIA6hpf7lcjYuSgv1+Qp5JBKMkX2hfSCF9qv6a9X/st6QAiEAtlV+T7bqMRWWh3NVxSxZonKX7xTN39h/VNVB1woeCQk=",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      },
+      {
+        "sig": "MEYCIQDnajo/OewnO42Tik1oqJ/CAzWA5dcQ/Gy5DxuLfAYG1wIhAOJGJGC85vouLb/6iEXNI+PLqoigQfbM5MByX2IpwmN9",
+        "keyid": "SHA256:DhQ8wR5APBvFHLF/+Tc+AYvPOdTpcIDqOhxsBHRwC7U"
+      }
+    ],
+    "attestations": {
+      "url": "https://registry.npmjs.org/-/npm/v1/attestations/@earendil-works%2fpi-ai@1.4.0",
+      "provenance": {
+        "predicateType": "https://slsa.dev/provenance/v1"
+      }
+    },
+    "unpackedSize": 4303837
+  }
+}

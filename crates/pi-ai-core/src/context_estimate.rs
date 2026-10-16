@@ -1,12 +1,10 @@
 //! Deterministic context token estimation.
 
-use std::collections::BTreeSet;
-
 use serde_json::Value as SerdeValue;
 
 use crate::{
     AssistantContent, Context, InputContent, JsonNumber, JsonObject, JsonValue, Message,
-    NumericError, SafeUnsigned, StopReason, Tool, ToolName, Usage, UserContent,
+    NumericError, SafeUnsigned, StopReason, Tool, Usage, UserContent,
 };
 
 const CHARS_PER_TOKEN: u64 = 4;
@@ -91,6 +89,12 @@ pub fn estimate_text_and_image_content_tokens(
 /// Estimates one message using its role-specific content rules.
 pub fn estimate_message_tokens(message: &Message) -> Result<SafeUnsigned, NumericError> {
     match message {
+        Message::System(message) => {
+            let prompt = estimate_text_tokens(&crate::get_system_message_text(message))?;
+            let tools =
+                estimate_tools_tokens(&message.tools_added.iter().flatten().collect::<Vec<_>>())?;
+            safe_sum([prompt.get(), tools.get()])
+        }
         Message::User(message) => match &message.content {
             UserContent::Text(text) => {
                 estimate_text_and_image_content_tokens(TextAndImageContentRef::Text(text))
@@ -129,28 +133,8 @@ pub fn estimate_context_tokens(
         ContextEstimateInput::Messages(messages) => estimate_messages(messages),
         ContextEstimateInput::Context(context) => {
             let mut estimate = estimate_messages(&context.messages)?;
-            let prefix = if let Some(index) = estimate.last_usage_index {
-                let start = usize::try_from(index.get())
-                    .map_err(|_| numeric_overflow())?
-                    .checked_add(1)
-                    .ok_or_else(numeric_overflow)?;
-                let added_names = context.messages[start..]
-                    .iter()
-                    .filter_map(|message| match message {
-                        Message::ToolResult(message) => message.added_tool_names.as_deref(),
-                        Message::User(_) | Message::Assistant(_) => None,
-                    })
-                    .flatten()
-                    .cloned()
-                    .collect::<BTreeSet<ToolName>>();
-                let added_tools = context
-                    .tools
-                    .as_deref()
-                    .unwrap_or_default()
-                    .iter()
-                    .filter(|tool| added_names.contains(&tool.name))
-                    .collect::<Vec<_>>();
-                estimate_tools_tokens(&added_tools)?
+            let prefix = if estimate.last_usage_index.is_some() {
+                safe_zero()
             } else {
                 let system = context
                     .system_prompt
@@ -222,6 +206,7 @@ fn last_assistant_usage(messages: &[Message]) -> Result<Option<(&Usage, usize)>,
 
 fn message_timestamp(message: &Message) -> SafeUnsigned {
     match message {
+        Message::System(message) => message.timestamp,
         Message::User(message) => message.timestamp,
         Message::Assistant(message) => message.timestamp,
         Message::ToolResult(message) => message.timestamp,

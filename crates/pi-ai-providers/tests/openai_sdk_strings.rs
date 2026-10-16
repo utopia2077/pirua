@@ -1,5 +1,6 @@
 #![cfg(all(feature = "wire-openai-responses", feature = "wire-openai-completions"))]
 
+mod retained_support;
 use pi_ai_core::*;
 use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{
@@ -160,7 +161,7 @@ fn matrix(completions: bool) {
         include_str!("../../../conformance/provider-traces/openai-sdk-strings/responses.json")
     })
     .unwrap();
-    compare(corpus);
+    compare(retained_support::fixture(&corpus.to_string()));
 }
 fn compare(corpus: Value) {
     let mut failures = Vec::new();
@@ -223,10 +224,12 @@ fn compare(corpus: Value) {
         };
         let mut stream = adapter.stream(request);
         ready(host.0.lock().unwrap().pop().unwrap());
-        let message = ready(stream.result());
+        let message = retained_support::message(ready(stream.result()));
         let mut events = Vec::new();
         while let Some(event) = ready(stream.next()) {
-            events.push(serde_json::to_value(event).unwrap());
+            events.push(retained_support::without_duration(
+                serde_json::to_value(event).unwrap(),
+            ));
         }
         let actual = json!({"requests":*seen.requests.lock().unwrap(),"order":*seen.order.lock().unwrap(),"events":public_snapshot(json!(events)),"retryable":is_retryable_assistant_error(&message),"contextOverflow":is_context_overflow(&message,None)});
         let expected = json!({"requests":case["requests"],"order":case["order"],"events":public_snapshot(case["events"].clone()),"retryable":case["retryable"],"contextOverflow":case["contextOverflow"]});
@@ -256,20 +259,14 @@ fn completions_sdk_string_boundaries_match_full_source() {
 
 #[test]
 fn responses_custom_record_settles_before_validation() {
-    compare(
-        serde_json::from_str(include_str!(
-            "../../../conformance/provider-traces/openai-sdk-strings/responses-custom-record.json"
-        ))
-        .unwrap(),
-    );
+    compare(retained_support::fixture(include_str!(
+        "../../../conformance/provider-traces/openai-sdk-strings/responses-custom-record.json"
+    )));
 }
 
 #[test]
 fn completions_custom_record_settles_before_validation() {
-    compare(
-        serde_json::from_str(include_str!(
-            "../../../conformance/provider-traces/openai-sdk-strings/completions-custom-record.json"
-        ))
-        .unwrap(),
-    );
+    compare(retained_support::fixture(include_str!(
+        "../../../conformance/provider-traces/openai-sdk-strings/completions-custom-record.json"
+    )));
 }

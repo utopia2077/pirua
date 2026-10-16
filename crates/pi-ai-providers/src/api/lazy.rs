@@ -14,7 +14,7 @@ use pi_ai_core::{
 use std::{
     fmt,
     future::{Future, poll_fn},
-    sync::{Arc, Mutex},
+    sync::Arc,
     task::Poll,
 };
 
@@ -177,39 +177,6 @@ impl ApiAdapter for LazyApi {
     }
 }
 
-static BEDROCK_MODULE: Mutex<Option<Arc<dyn ApiAdapter>>> = Mutex::new(None);
-
-/// Replaces the source-global trusted Bedrock module; `None` restores fallback.
-/// Old modules are released outside the lock, including reentrant destructors.
-pub fn set_bedrock_provider_module(module: Option<Arc<dyn ApiAdapter>>) {
-    let previous = std::mem::replace(
-        &mut *BEDROCK_MODULE.lock().unwrap_or_else(|p| p.into_inner()),
-        module,
-    );
-    drop(previous);
-}
-struct BedrockLoader(Arc<dyn LazyApiLoader>);
-impl LazyApiLoader for BedrockLoader {
-    fn load(self: Arc<Self>) -> BoxFuture<'static, Result<Arc<dyn ApiAdapter>, ModelsError>> {
-        let selected = BEDROCK_MODULE
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .clone();
-        match selected {
-            Some(module) => Box::pin(async move { Ok(module) }),
-            None => self.0.clone().load(),
-        }
-    }
-}
-
-/// Uses the current global override or immediately invokes the supplied fallback.
-pub fn bedrock_converse_stream_api(loader: Arc<dyn LazyApiLoader>) -> LazyApi {
-    lazy_api(
-        ApiId::new("bedrock-converse-stream").expect("constant API"),
-        Arc::new(BedrockLoader(loader)),
-        LazyApiCapabilities::default(),
-    )
-}
 macro_rules! family {
     ($name:ident, $id:literal) => {
         #[doc = concat!("Creates the pinned `", $id, "` lazy factory with a supplied host loader.")]
@@ -223,11 +190,6 @@ macro_rules! family {
     };
 }
 family!(anthropic_messages_api, "anthropic-messages");
-family!(azure_openai_responses_api, "azure-openai-responses");
 family!(google_generative_ai_api, "google-generative-ai");
-family!(google_vertex_api, "google-vertex");
-family!(mistral_conversations_api, "mistral-conversations");
-family!(openai_codex_responses_api, "openai-codex-responses");
 family!(openai_completions_api, "openai-completions");
 family!(openai_responses_api, "openai-responses");
-family!(pi_messages_api, "pi-messages");

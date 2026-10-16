@@ -1,0 +1,35 @@
+{
+  "upstreamTag": "v1.4.0",
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "package": "@earendil-works/pi-ai",
+  "version": "1.4.0",
+  "tarball": "https://registry.npmjs.org/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz",
+  "integrity": "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==",
+  "sha256": "b40e2ba8bb6fc332908f8b96e837dc2d1fdfb45eb9cd382f5aed111462981e3c",
+  "files": {
+    "openai": {
+      "packagePath": "dist/providers/data/openai.json",
+      "packageDataSha256": "cf5e119eb05f47bbf1dbad179de6a07b904bf7673e96691be72ab0b1fe40a781",
+      "selectedSha256": "5066d3b8f3bca037067d257b61eb777426622e44177d0a8da79432d49eb58cc9",
+      "chatModels": 42
+    },
+    "anthropic": {
+      "packagePath": "dist/providers/data/anthropic.json",
+      "packageDataSha256": "91f5da01452c7746645d3405bc91e09f849e4e4687c7c7ff22d8976eafe64b87",
+      "selectedSha256": "6d3e10815f8d9e7a7d26ac9fc69bf108a5126e72fd34f058c8863567e5491270",
+      "chatModels": 17
+    },
+    "google": {
+      "packagePath": "dist/providers/data/google.json",
+      "packageDataSha256": "b61fb0e27da5be60e1112e46955c5923656cb4d62bb221f834a9463d764ef5de",
+      "selectedSha256": "79593462b61a7b53e8b343d2ef2f8f6ee7820002dad50809e5bcf920f6ce79eb",
+      "chatModels": 24
+    },
+    "deepseek": {
+      "packagePath": "dist/providers/data/deepseek.json",
+      "packageDataSha256": "10a296fb3e898f7715c80890c8af0af4f5fd58f22dbcd6612fdc5d762157ccdc",
+      "selectedSha256": "9efccf0af21534a4b77d518e94cab7896c9bc168a3952f4db342dcf5379f6e99",
+      "chatModels": 2
+    }
+  }
+}

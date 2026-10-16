@@ -387,6 +387,7 @@ impl HttpTransport {
             .as_deref()
             .filter(|s| !s.is_empty())
             .and_then(parse_float_prefix)
+            .filter(|delay| delay.is_finite())
             .or_else(|| {
                 headers
                     .get_for_fetch("retry-after")
@@ -402,7 +403,8 @@ impl HttpTransport {
                                     .unwrap_or(f64::NAN)
                             })
                     })
-            });
+            })
+            .filter(|delay| delay.is_finite());
         if let Some(delay) = delay {
             let cap = cap.unwrap_or(60_000);
             if cap > 0 && delay > cap as f64 {

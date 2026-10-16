@@ -33,3 +33,22 @@ pub const NOOP_TELEMETRY_CONTEXT: NoopTelemetryContext = NoopTelemetryContext;
 
 /// Shared no-op span implementation.
 pub const NOOP_TELEMETRY_SPAN: NoopTelemetrySpan = NoopTelemetrySpan;
+
+impl TelemetryContext for NoopTelemetrySpan {
+    fn start_span(&self, _options: SpanOptions) -> SpanGuard {
+        SpanGuard::new(*self)
+    }
+}
+/// Stateless no-op propagation adapter.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct NoopTelemetryPropagation;
+impl crate::TelemetryPropagation for NoopTelemetryPropagation {
+    fn inject(&self, _: &dyn TelemetryContext) -> Option<crate::TelemetryCarrier> {
+        None
+    }
+    fn extract(&self, _: Option<&crate::TelemetryCarrier>) -> std::sync::Arc<dyn TelemetryContext> {
+        std::sync::Arc::new(NoopTelemetryContext)
+    }
+}
+/// Shared no-op propagation adapter.
+pub const NOOP_TELEMETRY_PROPAGATION: NoopTelemetryPropagation = NoopTelemetryPropagation;

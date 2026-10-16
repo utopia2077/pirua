@@ -2,14 +2,14 @@
 
 use std::fmt;
 
+use crate::TranscriptContext;
 use crate::auth::SecretString;
-use crate::context::{Context, ImagesContext};
 use crate::error::RequestEndpointError;
 use crate::message::DeferredHandle;
-use crate::model::{ImagesModel, Model};
+use crate::model::Model;
 use crate::options::{ProviderEnv, ProviderHeaders};
 use crate::runtime::{
-    DeferredCancelOptions, DeferredFetchOptions, ImagesOptions, SimpleStreamOptions, StreamOptions,
+    DeferredCancelOptions, DeferredFetchOptions, SimpleStreamOptions, StreamOptions,
 };
 
 /// An already-resolved request endpoint exposed only to transport adapters.
@@ -127,7 +127,7 @@ pub struct TextStreamRequest {
     /// Validated model and transient endpoint.
     pub resolved: ResolvedRequest<Model>,
     /// Provider-neutral request context.
-    pub context: Context,
+    pub context: TranscriptContext,
     /// Transient resolved authentication.
     pub auth: ResolvedAuth,
     /// Raw-stream wire values and process-local runtime.
@@ -149,7 +149,7 @@ pub struct SimpleStreamRequest {
     /// Validated model and transient endpoint.
     pub resolved: ResolvedRequest<Model>,
     /// Provider-neutral request context.
-    pub context: Context,
+    pub context: TranscriptContext,
     /// Transient resolved authentication.
     pub auth: ResolvedAuth,
     /// Simple-stream wire values and process-local runtime.
@@ -200,28 +200,6 @@ pub struct DeferredCancelRequest {
     pub options: DeferredCancelOptions,
 }
 
-/// Nominal resolved image-generation request root.
-///
-/// ```compile_fail
-/// fn requires_serialize<T: serde::Serialize>() {}
-/// requires_serialize::<pi_ai_core::ImageGenerationRequest>();
-/// ```
-///
-/// ```compile_fail
-/// fn requires_deserialize<T: serde::de::DeserializeOwned>() {}
-/// requires_deserialize::<pi_ai_core::ImageGenerationRequest>();
-/// ```
-pub struct ImageGenerationRequest {
-    /// Validated image model and transient endpoint.
-    pub resolved: ResolvedRequest<ImagesModel>,
-    /// Provider-neutral image request context.
-    pub context: ImagesContext,
-    /// Transient resolved authentication.
-    pub auth: ResolvedAuth,
-    /// Image wire values and process-local runtime.
-    pub options: ImagesOptions,
-}
-
 macro_rules! redacted_request_debug {
     ($($name:ident),+ $(,)?) => {
         $(
@@ -239,5 +217,4 @@ redacted_request_debug!(
     SimpleStreamRequest,
     DeferredFetchRequest,
     DeferredCancelRequest,
-    ImageGenerationRequest,
 );

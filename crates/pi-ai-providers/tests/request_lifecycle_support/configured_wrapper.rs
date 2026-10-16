@@ -118,6 +118,7 @@ fn rt(executor: Arc<Executor>, cancellation: CancellationToken) -> RequestRuntim
 }
 fn registry(executor: Arc<Executor>, provider: Arc<dyn Provider>) -> ModelsRegistry {
     let registry = ModelsRegistry::new_with_child_cancellation(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(InMemoryModelsStore::new()),
         auth_context: Arc::new(Host),
@@ -228,7 +229,7 @@ fn configured_lazy_setup_cancel_spawn_reject_consumer_drop_and_completing_poll_t
                 cap.stream_simple_with_lifecycle(
                     SimpleStreamRequest {
                         resolved,
-                        context: context(),
+                        context: normalize_context(context()),
                         auth: Default::default(),
                         options: SimpleStreamOptions {
                             wire: Default::default(),
@@ -241,7 +242,7 @@ fn configured_lazy_setup_cancel_spawn_reject_consumer_drop_and_completing_poll_t
                 cap.stream_with_lifecycle(
                     TextStreamRequest {
                         resolved,
-                        context: context(),
+                        context: normalize_context(context()),
                         auth: Default::default(),
                         options: StreamOptions {
                             wire: Default::default(),

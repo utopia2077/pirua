@@ -47,12 +47,16 @@ struct StreamState<E, R> {
 }
 
 struct StreamShared<E, R> {
+    created: std::time::Instant,
+    created_unix_ms: u64,
     state: Mutex<StreamState<E, R>>,
 }
 
 impl<E, R> StreamShared<E, R> {
-    fn new() -> Self {
+    fn new(created_unix_ms: u64) -> Self {
         Self {
+            created: std::time::Instant::now(),
+            created_unix_ms,
             state: Mutex::new(StreamState {
                 events: VecDeque::new(),
                 settlement: Settlement::Open,
@@ -330,6 +334,9 @@ impl AssistantFallback {
                 provider: self.provider.clone(),
                 model: self.model.clone(),
                 response_model: None,
+                provider_thinking_level: None,
+                thinking_level: None,
+                duration_ms: None,
                 response_id: None,
                 diagnostics: None,
                 usage: Usage::zero(),
@@ -355,12 +362,8 @@ impl StreamShared<AssistantMessageEvent, AssistantMessage> {
         use_cancellation_snapshot: bool,
     ) -> Result<(), StreamProtocolError> {
         event.validate()?;
-        let mut result = match &event {
-            AssistantMessageEvent::Done { message, .. } => Some(message.as_ref().clone()),
-            AssistantMessageEvent::Error { error, .. } => Some(error.as_ref().clone()),
-            _ => None,
-        };
 
+        let mut result: Option<AssistantMessage> = None;
         let mut displaced_candidate = None;
         let mut discarded_snapshot = None;
         let (next_waker, result_waiters, cancellation_link) = {
@@ -379,6 +382,28 @@ impl StreamShared<AssistantMessageEvent, AssistantMessage> {
                     result.replace(snapshot_result),
                 ));
             }
+            let terminal = match &mut event {
+                AssistantMessageEvent::Done { message, .. } => Some(message),
+                AssistantMessageEvent::Error { error, .. } => Some(error),
+                _ => None,
+            };
+            if let Some(message) = terminal
+                && message.duration_ms.is_none()
+                && message.timestamp.get() >= self.created_unix_ms
+            {
+                message.duration_ms = crate::SafeUnsigned::new(
+                    self.created
+                        .elapsed()
+                        .as_millis()
+                        .min(crate::JS_SAFE_INTEGER_MAX as u128) as u64,
+                )
+                .ok();
+            }
+            let result = match &event {
+                AssistantMessageEvent::Done { message, .. } => Some(message.as_ref().clone()),
+                AssistantMessageEvent::Error { error, .. } => Some(error.as_ref().clone()),
+                _ => None,
+            };
             state.events.push_back(event);
             let next_waker = state.next_waiter.take().map(|waiter| waiter.waker);
             match result {
@@ -605,7 +630,7 @@ impl fmt::Debug for AssistantStreamInit {
 pub fn create_assistant_message_event_stream(
     init: AssistantStreamInit,
 ) -> (AssistantMessageEventStream, AssistantStreamProducer) {
-    let shared = Arc::new(StreamShared::new());
+    let shared = Arc::new(StreamShared::new(init.clock.now_unix_ms()));
     let fallback = Arc::new(AssistantFallback {
         api: init.api,
         provider: init.provider,

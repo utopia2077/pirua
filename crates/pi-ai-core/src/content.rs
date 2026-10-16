@@ -138,6 +138,13 @@ pub struct ToolCall {
     pub name: ToolName,
     /// Object-only tool arguments.
     pub arguments: JsonObject,
+    /// Complete malformed argument text diagnostic; arguments is empty when present.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub arguments_error: Option<String>,
     /// Optional Google thought signature.
     #[serde(
         default,

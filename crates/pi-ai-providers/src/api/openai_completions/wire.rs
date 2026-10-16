@@ -169,6 +169,9 @@ fn empty_message(request: &TextStreamRequest) -> AssistantMessage {
         provider: request.resolved.model.provider.clone(),
         model: request.resolved.model.id.clone(),
         response_model: None,
+        provider_thinking_level: None,
+        thinking_level: None,
+        duration_ms: None,
         response_id: None,
         diagnostics: None,
         usage: Usage::zero(),
@@ -268,7 +271,13 @@ fn headers(
             set(&mut h, k, v)?;
         }
     }
-    set(&mut h, "user-agent", "pi-ai-rust")?;
+    for (name, value) in pi_ai_core::get_identity_headers(
+        request.resolved.model.provider.as_str(),
+        request.resolved.endpoint.expose_for_transport(),
+        request.options.wire.identity.as_ref(),
+    ) {
+        set(&mut h, &name, &value)?;
+    }
     if let Some(model) = &request.resolved.model.headers {
         for (k, v) in model.as_map() {
             set(&mut h, k, v)?;
@@ -467,7 +476,7 @@ async fn run(
     let compat =
         ResolvedCompletionsCompat::resolve(&request.resolved.model, &request.resolved.endpoint);
     let grammar = create_grammar_tool_input_properties(
-        request.context.tools.as_deref(),
+        Some(pi_ai_core::get_current_tools(&request.context.messages).as_slice()),
         compat.flag("supportsOpenAIGrammarTools"),
     )
     .map_err(|_| Failure::plain("grammar"))?;
@@ -548,7 +557,7 @@ async fn run(
             .unwrap_or_default()
             .trim_matches(whitespace);
         let is_json = media.contains("application/json") || media.ends_with("+json");
-        // OpenAI6.40.0 internal/parse.ts returns undefined without touching a
+        // OpenAI 7.19.0 internal/parse.ts returns undefined without touching a
         // JSON body whose Fetch-projected Content-Length is exactly "0".
         if !(is_json && response.headers.get_for_fetch("content-length").as_deref() == Some("0")) {
             let bytes = read_body_limited(
@@ -592,6 +601,9 @@ async fn run(
         if !streaming {
             if let Some(events) = buffered.as_array() {
                 for event in events {
+                    super::super::runtime::observe_provider_event(request, event)
+                        .await
+                        .map_err(|_| Failure::plain("provider_event"))?;
                     reducer.chunk(event, &request.resolved.model, &grammar, producer)?;
                 }
             } else if !buffered.is_string() {
@@ -629,6 +641,9 @@ async fn run(
                     if chunk.get("error").is_some_and(truthy) {
                         return Err(sdk_failure(None, frame.data.as_bytes(), output));
                     }
+                    super::super::runtime::observe_provider_event(request, &chunk)
+                        .await
+                        .map_err(|_| Failure::plain("provider_event"))?;
                     reducer.chunk(&chunk, &request.resolved.model, &grammar, producer)?;
                     if let Ok(partial) = reducer.safe_partial() {
                         *output = partial;

@@ -11,24 +11,61 @@
     "requiresThinkingAsText": false,
     "requiresReasoningContentOnAssistantMessages": true,
     "thinkingFormat": "openrouter",
-    "chatTemplateKwargs": { "enabled": true, "budget": { "$var": "thinking.budget" } },
-    "chatTemplateArgs": { "effort": { "$var": "thinking.effort", "omitWhenOff": false } },
+    "chatTemplateKwargs": {
+      "enabled": true,
+      "budget": {
+        "$var": "thinking.budget"
+      }
+    },
+    "chatTemplateArgs": {
+      "effort": {
+        "$var": "thinking.effort",
+        "omitWhenOff": false
+      }
+    },
     "openRouterRouting": {
       "allow_fallbacks": true,
       "require_parameters": false,
       "data_collection": "allow",
       "zdr": false,
       "enforce_distillable_text": true,
-      "order": ["one"],
-      "only": ["one"],
-      "ignore": ["two"],
-      "quantizations": ["fp8"],
+      "order": [
+        "one"
+      ],
+      "only": [
+        "one"
+      ],
+      "ignore": [
+        "two"
+      ],
+      "quantizations": [
+        "fp8"
+      ],
       "sort": "latency",
-      "max_price": { "prompt": 1, "completion": "2", "image": 3.5, "audio": 4, "request": "5" },
-      "preferred_min_throughput": { "p50": 1, "p75": 2, "p90": 3, "p99": 4 },
+      "max_price": {
+        "prompt": 1,
+        "completion": "2",
+        "image": 3.5,
+        "audio": 4,
+        "request": "5"
+      },
+      "preferred_min_throughput": {
+        "p50": 1,
+        "p75": 2,
+        "p90": 3,
+        "p99": 4
+      },
       "preferred_max_latency": 5
     },
-    "vercelGatewayRouting": { "only": ["anthropic"], "order": ["anthropic", "openai"] },
+    "vercelGatewayRouting": {
+      "only": [
+        "anthropic"
+      ],
+      "order": [
+        "anthropic",
+        "openai"
+      ]
+    },
     "zaiToolStream": true,
     "thinkingTokenBudgetField": "thinking_budget_tokens",
     "supportsThinkingTokenBudget": false,
@@ -36,7 +73,6 @@
     "supportsStrictMode": true,
     "cacheControlFormat": "anthropic",
     "sendSessionAffinityHeaders": true,
-    "deferredToolsMode": "kimi",
     "sessionAffinityFormat": "openrouter",
     "supportsLongCacheRetention": true
   },
@@ -59,8 +95,17 @@
     "forceAdaptiveThinking": true,
     "allowEmptySignature": false,
     "supportsStrictTools": true,
-    "allowedFallbackModels": [{ "provider": "future-provider", "model": "fallback", "cost": { "input": 1.0, "output": 2.0, "cacheRead": 0.0, "cacheWrite": 0.0 } }],
-    "supportsToolReferences": true
-  },
-  "bedrock": { "supportsStrictMode": true }
+    "allowedFallbackModels": [
+      {
+        "provider": "future-provider",
+        "model": "fallback",
+        "cost": {
+          "input": 1.0,
+          "output": 2.0,
+          "cacheRead": 0.0,
+          "cacheWrite": 0.0
+        }
+      }
+    ]
+  }
 }

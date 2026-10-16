@@ -2,10 +2,8 @@
 
 use crate::error::{CapabilityError, ModelsError};
 use crate::id::ApiId;
-use crate::message::AssistantImages;
 use crate::request::{
-    DeferredCancelRequest, DeferredFetchRequest, ImageGenerationRequest, SimpleStreamRequest,
-    TextStreamRequest,
+    DeferredCancelRequest, DeferredFetchRequest, SimpleStreamRequest, TextStreamRequest,
 };
 use crate::runtime::BoxFuture;
 use crate::stream::AssistantStream;
@@ -41,10 +39,4 @@ pub trait ApiAdapter: Send + Sync {
         &'a self,
         request: DeferredCancelRequest,
     ) -> BoxFuture<'a, Result<(), ModelsError>>;
-}
-
-/// Object-safe image-generation adapter.
-pub trait ImagesApiAdapter: Send + Sync {
-    /// Generates images and represents provider failure in the returned result DTO.
-    fn generate<'a>(&'a self, request: ImageGenerationRequest) -> BoxFuture<'a, AssistantImages>;
 }

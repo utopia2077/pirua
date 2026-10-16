@@ -22,32 +22,24 @@ use std::time::Duration;
 pub(super) enum Family {
     #[cfg(feature = "wire-openai-responses")]
     Standard,
-    #[cfg(feature = "wire-azure-openai-responses")]
-    Azure,
 }
 impl Family {
     fn error_prefix(self) -> &'static str {
         match self {
             #[cfg(feature = "wire-openai-responses")]
             Self::Standard => "OpenAI API error",
-            #[cfg(feature = "wire-azure-openai-responses")]
-            Self::Azure => "Azure OpenAI API error",
         }
     }
     fn failure_text(self) -> &'static str {
         match self {
             #[cfg(feature = "wire-openai-responses")]
             Self::Standard => "OpenAI Responses request failed",
-            #[cfg(feature = "wire-azure-openai-responses")]
-            Self::Azure => "Azure OpenAI Responses request failed",
         }
     }
     fn diagnostic_type(self) -> &'static str {
         match self {
             #[cfg(feature = "wire-openai-responses")]
             Self::Standard => "openai_responses_failure",
-            #[cfg(feature = "wire-azure-openai-responses")]
-            Self::Azure => "azure_openai_responses_failure",
         }
     }
 }
@@ -74,7 +66,7 @@ pub enum OpenAIResponsesAllowedToolsMode {
     Required,
 }
 
-/// Complete closed hosted-tool selector from OpenAI 6.40.0 ToolChoiceTypes.
+/// Selected hosted-tool selectors from OpenAI 7.19.0; image generation is excluded.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OpenAIResponsesHostedTool {
@@ -85,7 +77,6 @@ pub enum OpenAIResponsesHostedTool {
     ComputerUse,
     #[serde(rename = "web_search_preview_2025_03_11")]
     WebSearchPreview20250311,
-    ImageGeneration,
     CodeInterpreter,
     Mcp,
 }
@@ -609,6 +600,9 @@ pub(super) fn empty_message(request: &TextStreamRequest) -> AssistantMessage {
         provider: request.resolved.model.provider.clone(),
         model: request.resolved.model.id.clone(),
         response_model: None,
+        provider_thinking_level: None,
+        thinking_level: None,
+        duration_ms: None,
         response_id: None,
         diagnostics: None,
         usage: Usage::zero(),

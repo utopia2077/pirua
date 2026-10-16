@@ -318,6 +318,7 @@ fn product(config: Config) -> (Arc<Product>, Arc<AtomicUsize>) {
 }
 fn registry(e: Arc<Executor>) -> ModelsRegistry {
     ModelsRegistry::new_with_child_cancellation(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(InMemoryModelsStore::new()),
         auth_context: Arc::new(Host),
@@ -570,8 +571,8 @@ fn captured_cancel_retains_deleted_provider_and_ordinary_selects_new_auth() {
     e.drive(r.set_provider(old.clone())).unwrap();
     let token = CancellationToken::new();
     let mut m = model();
-    m.api = ApiId::new("azure-openai-responses").unwrap();
-    m.base_url = ModelBaseUrl::RuntimeResolved;
+    m.base_url =
+        ModelBaseUrl::Public(PublicModelBaseUrl::new("https://fixture.invalid/cancel").unwrap());
     let captured = r
         .capture_text_dispatch(&r.provider_registration(&m.provider).unwrap(), m)
         .unwrap();
@@ -583,9 +584,6 @@ fn captured_cancel_retains_deleted_provider_and_ordinary_selects_new_auth() {
             handle(),
             ModelsRequestOverrides {
                 headers: headers.clone(),
-                runtime_endpoint: Some(
-                    RequestEndpoint::new_resolved("https://fixture.invalid/cancel").unwrap(),
-                ),
                 ..Default::default()
             },
             cancel_options(e.clone(), token),

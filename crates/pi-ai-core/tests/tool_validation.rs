@@ -34,6 +34,7 @@ fn call(arguments: JsonObject) -> ToolCall {
         id: ToolCallId::new("call-1").expect("valid tool call id"),
         name: ToolName::new("different-name").expect("valid tool name"),
         arguments,
+        arguments_error: None,
         thought_signature: None,
         namespace: None,
     }
@@ -45,6 +46,34 @@ fn parse_object(source: &str) -> JsonObject {
 
 fn parse_value(source: &str) -> JsonValue {
     serde_json::from_str(source).expect("valid bounded JSON value")
+}
+
+#[test]
+fn explicit_model_feedback_preserves_parse_diagnostic_and_native_schema_details() {
+    let declaration = tool(parse_object(
+        r#"{"type":"object","properties":{"value":{"type":"string"}},"required":["value"]}"#,
+    ));
+    let mut invocation = call(parse_object(r#"{"value":{"private":"received-secret"}}"#));
+    invocation.name = declaration.name.clone();
+    let error = validate_tool_arguments(&declaration, &invocation).unwrap_err();
+    assert!(!format!("{error:?} {error}").contains("received-secret"));
+    let feedback = pi_ai_core::format_tool_validation_feedback(&invocation, &error);
+    assert!(feedback.starts_with("Validation failed for tool \"echo\":\n  - value [type]: "));
+    assert!(feedback.contains("string"));
+    assert!(feedback.contains("\n\nReceived arguments:\n"));
+    assert!(feedback.contains("received-secret"));
+    assert_eq!(
+        invocation.arguments,
+        parse_object(r#"{"value":{"private":"received-secret"}}"#)
+    );
+
+    invocation.arguments_error = Some("unterminated JSON".into());
+    let error = validate_tool_arguments(&declaration, &invocation).unwrap_err();
+    assert_eq!(
+        pi_ai_core::format_tool_validation_feedback(&invocation, &error),
+        "Invalid arguments for tool \"echo\": unterminated JSON"
+    );
+    assert_eq!(error.to_string(), "malformed tool arguments");
 }
 
 fn nested_object(depth: usize) -> JsonObject {

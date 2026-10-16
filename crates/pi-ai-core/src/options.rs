@@ -276,6 +276,13 @@ impl fmt::Debug for ProviderEnv {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StreamOptionsWire {
+    /// Explicit calling-application identity.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub identity: Option<crate::ClientIdentity>,
     /// Provider request timeout in milliseconds.
     #[serde(
         default,
@@ -402,6 +409,11 @@ struct SimpleStreamOptionsWireDef {
         default,
         deserialize_with = "crate::json::deserialize_optional_non_null"
     )]
+    identity: Option<crate::ClientIdentity>,
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null"
+    )]
     timeout_ms: Option<SafeUnsigned>,
     #[serde(
         default,
@@ -483,6 +495,7 @@ impl<'de> Deserialize<'de> for SimpleStreamOptionsWire {
         let value = SimpleStreamOptionsWireDef::deserialize(deserializer)?;
         Ok(Self {
             stream: StreamOptionsWire {
+                identity: value.identity,
                 timeout_ms: value.timeout_ms,
                 max_retries: value.max_retries,
                 max_retry_delay_ms: value.max_retry_delay_ms,
@@ -564,40 +577,6 @@ pub struct DeferredCancelOptionsWire {
     pub max_retry_delay_ms: Option<SafeUnsigned>,
 }
 
-/// Serializable image-generation options.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ImagesOptionsWire {
-    /// Provider request timeout in milliseconds.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub timeout_ms: Option<SafeUnsigned>,
-    /// Maximum provider-client retry attempts.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub max_retries: Option<SafeUnsigned>,
-    /// Maximum provider-requested retry delay in milliseconds.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub max_retry_delay_ms: Option<SafeUnsigned>,
-    /// Provider-readable detached metadata.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub metadata: Option<JsonObject>,
-}
-
 /// Retry count whose normalized `maxRetries + 1` attempt count remains safe.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct MaxRetries(SafeUnsigned);
@@ -656,4 +635,11 @@ pub struct RetryPolicy {
     pub max_retries: MaxRetries,
     /// Base exponential-backoff delay in milliseconds.
     pub base_delay_ms: SafeUnsigned,
+    /// Maximum agent retry backoff, defaulting to sixty seconds.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_agent_delay_ms: Option<SafeUnsigned>,
 }

@@ -1,8 +1,8 @@
 use std::fmt;
 
 use pi_ai_core::{
-    AssistantContent, AssistantMessage, Context, ImageContent, InputContent, JsonObject, Message,
-    Model, ModelInput, SafeUnsigned, ToolCallId, ToolCallIdNormalizer, UserContent,
+    AssistantContent, AssistantMessage, ImageContent, InputContent, JsonObject, Message, Model,
+    ModelInput, SafeUnsigned, ToolCallId, ToolCallIdNormalizer, TranscriptContext, UserContent,
     transform_messages,
 };
 use serde::Serialize;
@@ -171,9 +171,10 @@ impl ToolCallIdNormalizer for IdNormalizer {
 /// Rust UTF-8 strings cannot contain the lone surrogates removed upstream.
 pub fn convert_messages(
     model: &Model,
-    context: &Context,
+    context: &TranscriptContext,
     synthetic_result_timestamp: SafeUnsigned,
 ) -> Result<Vec<GoogleContent>, GoogleSharedError> {
+    let context = pi_ai_core::collapse_system_messages(context.clone());
     let messages = transform_messages(
         &context.messages,
         model,
@@ -184,6 +185,7 @@ pub fn convert_messages(
     let mut contents: Vec<GoogleContent> = vec![];
     for message in messages {
         match message {
+            Message::System(_) => continue,
             Message::User(message) => {
                 let parts = match &message.content {
                     UserContent::Text(text) => vec![GooglePart {

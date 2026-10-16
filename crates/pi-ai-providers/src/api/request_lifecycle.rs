@@ -3,9 +3,7 @@
     feature = "wire-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-anthropic-messages",
-    feature = "wire-openai-codex-responses",
     feature = "wire-google-genai",
-    feature = "wire-google-vertex"
 ))]
 mod payload {
     use super::super::{runtime::AdapterServices, wire_json::WirePayload};
@@ -39,17 +37,13 @@ mod payload {
     feature = "wire-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-anthropic-messages",
-    feature = "wire-openai-codex-responses",
     feature = "wire-google-genai",
-    feature = "wire-google-vertex"
 ))]
 pub(super) use payload::{bind, transform};
 #[cfg(any(
     feature = "wire-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-anthropic-messages",
-    feature = "wire-openai-codex-responses",
-    feature = "wire-azure-openai-responses"
 ))]
 mod response {
     use super::super::runtime::{AdapterResponseHead, AdapterServices};
@@ -96,7 +90,5 @@ mod response {
     feature = "wire-openai-responses",
     feature = "wire-openai-completions",
     feature = "wire-anthropic-messages",
-    feature = "wire-openai-codex-responses",
-    feature = "wire-azure-openai-responses"
 ))]
 pub(super) use response::{observe_only, record};

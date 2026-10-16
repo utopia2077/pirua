@@ -1,8 +1,8 @@
 use crate::auth::OAuthServices;
-#[cfg(any(feature = "oauth-anthropic", feature = "oauth-openai-codex"))]
+#[cfg(feature = "oauth-anthropic")]
 use crate::auth::checked_oauth_expiry;
 use pi_ai_core::{AuthProviderError, CancellationToken, RequestEndpoint, SecretString};
-#[cfg(any(feature = "oauth-anthropic", feature = "oauth-openai-codex"))]
+#[cfg(feature = "oauth-anthropic")]
 use pi_ai_core::{OAuthCredential, OAuthCredentialType, OAuthCredentials, OAuthExtraFields};
 use pi_ai_transport::{
     FetchBody, FetchHeaderRecord, FetchHeaders, FetchRequest, RetryProfile, TimeoutProfile,
@@ -22,11 +22,7 @@ pub enum OAuthFlowErrorKind {
     Exchange,
     Host,
     UnknownMethod,
-    DeviceDisabled,
-    DeviceDenied,
     AuthorizationDenied,
-    DeviceTimeout,
-    DeviceSlowDownTimeout,
 }
 #[derive(Clone)]
 pub struct OAuthFlowError {
@@ -69,18 +65,6 @@ impl OAuthFlowError {
             callback_message: None,
         }
     }
-    #[cfg(feature = "oauth-openrouter")]
-    pub(super) fn with_callback_message(mut self, message: String) -> Self {
-        self.callback_message = Some(SecretString::new(message));
-        self
-    }
-    #[cfg(feature = "oauth-openrouter")]
-    pub(super) fn callback_message(&self) -> String {
-        self.callback_message
-            .as_ref()
-            .map(|m| m.expose_secret().to_owned())
-            .unwrap_or_else(|| self.to_string())
-    }
 }
 impl fmt::Debug for OAuthFlowError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -103,11 +87,7 @@ impl fmt::Display for OAuthFlowError {
             OAuthFlowErrorKind::Exchange => "OAuth token exchange failed",
             OAuthFlowErrorKind::Host => "OAuth host operation failed",
             OAuthFlowErrorKind::UnknownMethod => "Unknown OAuth login method",
-            OAuthFlowErrorKind::DeviceDisabled => "Device code login is not enabled",
-            OAuthFlowErrorKind::DeviceDenied => "Device authorization failed",
             OAuthFlowErrorKind::AuthorizationDenied => "OAuth authorization denied",
-            OAuthFlowErrorKind::DeviceTimeout => "Device flow timed out",
-            OAuthFlowErrorKind::DeviceSlowDownTimeout => "Device flow timed out after slow_down",
         })
     }
 }
@@ -174,36 +154,16 @@ impl TokenResponse {
 pub(super) enum TokenRead {
     #[cfg(feature = "oauth-anthropic")]
     Anthropic,
-    #[cfg(feature = "oauth-openai-codex")]
-    Codex,
-    #[cfg(feature = "oauth-openai-codex")]
-    CodexPoll,
-    #[cfg(feature = "oauth-openai-codex")]
-    CodexDeviceStart,
-    #[cfg(feature = "oauth-openrouter")]
-    OpenRouter,
+    #[cfg(feature = "oauth-openai-chatgpt")]
+    ChatGPT,
 }
 impl TokenRead {
-    fn skip(self, status: u16) -> bool {
-        match self {
-            #[cfg(feature = "oauth-openai-codex")]
-            Self::CodexPoll => matches!(status, 403 | 404),
-            #[cfg(feature = "oauth-openai-codex")]
-            Self::CodexDeviceStart => status == 404,
-            _ => {
-                let _ = status;
-                false
-            }
-        }
-    }
     fn error_body_best_effort(self) -> bool {
         match self {
             #[cfg(feature = "oauth-anthropic")]
             Self::Anthropic => false,
-            #[cfg(feature = "oauth-openai-codex")]
-            Self::Codex | Self::CodexPoll | Self::CodexDeviceStart => true,
-            #[cfg(feature = "oauth-openrouter")]
-            Self::OpenRouter => true,
+            #[cfg(feature = "oauth-openai-chatgpt")]
+            Self::ChatGPT => true,
         }
     }
 }
@@ -250,10 +210,7 @@ pub(super) async fn post(
         .await
         .map_err(map)?;
     checkpoint().await;
-    let body = if read.skip(response.status) {
-        response.body.close();
-        Vec::new()
-    } else {
+    let body = {
         match read_body_limited(response.body.as_mut(), &runtime, s.max_token_response_bytes).await
         {
             Ok(body) => body,
@@ -261,21 +218,6 @@ pub(super) async fn post(
                 Vec::new()
             }
             Err(error) => {
-                #[cfg(feature = "oauth-openrouter")]
-                if matches!(read, TokenRead::OpenRouter) && (200..300).contains(&response.status) {
-                    // response.json() rejects at this provider's admission stage.
-                    // Its outer catch still gives caller cancellation and timeout priority.
-                    if c.is_cancelled() || error.kind() == TransportErrorKind::Cancelled {
-                        return Err(OAuthFlowError::source(OAuthFlowErrorKind::Cancelled, error));
-                    }
-                    if error.kind() != TransportErrorKind::Timeout {
-                        return Err(OAuthFlowError::source(
-                            OAuthFlowErrorKind::InvalidResponse,
-                            error,
-                        )
-                        .with_callback_message("OpenRouter OAuth returned invalid JSON".into()));
-                    }
-                }
                 return Err(map(error));
             }
         }
@@ -285,7 +227,7 @@ pub(super) async fn post(
         body,
     })
 }
-#[cfg(any(feature = "oauth-anthropic", feature = "oauth-openai-codex"))]
+#[cfg(feature = "oauth-anthropic")]
 pub(super) fn token(value: &Value, now: u64, margin: u64) -> Result<OAuthCredential> {
     let access = value
         .get("access_token")
@@ -309,6 +251,7 @@ pub(super) fn token(value: &Value, now: u64, margin: u64) -> Result<OAuthCredent
         },
     })
 }
+#[cfg(feature = "oauth-anthropic")]
 pub(super) fn ecma_space(c: char) -> bool {
     matches!(c,'\u{0009}'..='\u{000d}'|'\u{0020}'|'\u{00a0}'|'\u{1680}'|'\u{2000}'..='\u{200a}'|'\u{2028}'|'\u{2029}'|'\u{202f}'|'\u{205f}'|'\u{3000}'|'\u{feff}')
 }
@@ -317,6 +260,7 @@ pub(super) fn query(url: &url::Url, name: &str) -> Option<String> {
         .find(|(key, _)| key == name)
         .map(|(_, v)| v.into_owned())
 }
+#[cfg(feature = "oauth-anthropic")]
 pub(super) fn parse_input(input: &str, hash_state: bool) -> (Option<String>, Option<String>) {
     let value = input.trim_matches(ecma_space);
     if value.is_empty() {
@@ -347,12 +291,6 @@ pub(super) fn parse_input(input: &str, hash_state: bool) -> (Option<String>, Opt
     }
     (Some(value.into()), None)
 }
-pub(super) fn callback_url(target: &str) -> Result<url::Url> {
-    url::Url::parse("http://localhost")
-        .map_err(host)?
-        .join(target)
-        .map_err(host)
-}
 pub(super) fn form(pairs: &[(&str, &str)]) -> String {
     url::form_urlencoded::Serializer::new(String::new())
         .extend_pairs(pairs.iter().copied())
@@ -361,11 +299,13 @@ pub(super) fn form(pairs: &[(&str, &str)]) -> String {
 
 /// Pending writes for callbacks that do not settle authentication. A queued
 /// response cannot pause the manual input, token exchange or login deadline.
+#[cfg(feature = "oauth-anthropic")]
 pub(super) struct Responses<'a> {
     pending:
         Vec<pi_ai_core::BoxFuture<'a, std::result::Result<(), pi_ai_transport::AuthHostError>>>,
     limit: usize,
 }
+#[cfg(feature = "oauth-anthropic")]
 impl<'a> Responses<'a> {
     pub fn new(limit: usize) -> Self {
         Self {
@@ -407,7 +347,6 @@ impl<'a> Responses<'a> {
 
 /// Browser flow cancellation owns this race even for a host that never wakes
 /// or observes the supplied cancellation token while acknowledging a reply.
-#[cfg(any(feature = "oauth-anthropic", feature = "oauth-openai-codex"))]
 pub(super) async fn acknowledge(
     reply: Box<dyn pi_ai_transport::CallbackReply>,
     response: pi_ai_transport::CallbackResponse,

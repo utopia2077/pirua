@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use pi_ai::{
     BoxFuture, CancellationToken, Cancelled, Clock, ContentTextInput, JsonParseError,
-    ToolNameNormalizer, UuidV7Entropy, UuidV7EntropyError, UuidV7Error, UuidV7Generator,
-    content_text, parse_json_with_repair, parse_streaming_json, repair_json, short_hash,
+    UuidV7Entropy, UuidV7EntropyError, UuidV7Error, UuidV7Generator, content_text,
+    parse_json_with_repair, parse_streaming_json, repair_json, short_hash,
 };
 
 struct FixedClock;
@@ -38,7 +38,6 @@ fn portable_helpers_facade_reexports_exact_surface() {
         parse_json_with_repair::<serde_json::Value>;
     let _streaming: fn(Option<&str>) -> pi_ai::JsonValue = parse_streaming_json;
     let _hash: fn(&str) -> String = short_hash;
-    let _normalizer: Option<&dyn ToolNameNormalizer> = None;
     let generator = UuidV7Generator::new(Arc::new(FixedClock), Arc::new(FixedEntropy));
     let uuid: Result<String, UuidV7Error> = generator.generate();
     assert!(uuid.expect("UUID").starts_with("00000000-0001-7000-8000-"));

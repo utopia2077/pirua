@@ -51,23 +51,13 @@ flow!(
     true,
     None
 );
-#[cfg(feature = "provider-openai-codex")]
+#[cfg(feature = "provider-openai")]
 flow!(
-    CodexLoader,
-    openai_codex,
-    "oauth-openai-codex",
-    OpenAICodexOAuth,
-    "OpenAI (ChatGPT Plus/Pro)",
+    ChatGPTLoader,
+    openai_chatgpt,
+    "oauth-openai-chatgpt",
+    OpenAIChatGPTOAuth,
+    "OpenAI (ChatGPT subscription)",
     true,
-    None
-);
-#[cfg(any(feature = "provider-openrouter", feature = "images-openrouter"))]
-flow!(
-    OpenRouterLoader,
-    openrouter,
-    "oauth-openrouter",
-    OpenRouterOAuth,
-    "OpenRouter OAuth",
-    false,
-    Some("Sign in with OpenRouter".into())
+    Some("Sign in with ChatGPT".into())
 );

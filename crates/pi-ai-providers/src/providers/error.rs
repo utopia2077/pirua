@@ -8,9 +8,6 @@ impl ProviderFactoryError {
         feature = "provider-deepseek",
         feature = "provider-google",
         feature = "provider-openai",
-        feature = "provider-openai-codex",
-        feature = "provider-openrouter",
-        feature = "images-openrouter"
     ))]
     pub(super) fn from_source(error: impl Error + Send + Sync + 'static) -> Self {
         Self(Box::new(error))

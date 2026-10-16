@@ -6,37 +6,46 @@
     "provider": "custom-provider",
     "baseUrl": "https://example.invalid",
     "reasoning": false,
-    "input": ["text"],
-    "cost": { "input": 0.0, "output": 0.0, "cacheRead": 0.0, "cacheWrite": 0.0 },
+    "input": [
+      "text"
+    ],
+    "cost": {
+      "input": 0.0,
+      "output": 0.0,
+      "cacheRead": 0.0,
+      "cacheWrite": 0.0
+    },
     "contextWindow": 1000,
     "maxTokens": 100,
-    "headers": { "x-public-model": "public-value" }
-  },
-  "imagesModel": {
-    "id": "image-with-public-header",
-    "name": "Header Image Model",
-    "api": "openrouter-images",
-    "provider": "openrouter",
-    "baseUrl": "https://example.invalid",
-    "input": ["text"],
-    "output": ["image"],
-    "cost": { "input": 0.0, "output": 0.0, "cacheRead": 0.0, "cacheWrite": 0.0 },
-    "headers": { "x-public-image": "public-value" }
+    "headers": {
+      "x-public-model": "public-value"
+    }
   },
   "store": {
-    "models": [{
-      "id": "stored-header-model",
-      "name": "Stored Header Model",
-      "api": "openai-responses",
-      "provider": "custom-provider",
-      "baseUrl": "https://example.invalid",
-      "reasoning": false,
-      "input": ["text"],
-      "cost": { "input": 0.0, "output": 0.0, "cacheRead": 0.0, "cacheWrite": 0.0 },
-      "contextWindow": 1000,
-      "maxTokens": 100,
-      "headers": { "x-public-model": "public-value" }
-    }],
+    "models": [
+      {
+        "id": "stored-header-model",
+        "name": "Stored Header Model",
+        "api": "openai-responses",
+        "provider": "custom-provider",
+        "baseUrl": "https://example.invalid",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0.0,
+          "output": 0.0,
+          "cacheRead": 0.0,
+          "cacheWrite": 0.0
+        },
+        "contextWindow": 1000,
+        "maxTokens": 100,
+        "headers": {
+          "x-public-model": "public-value"
+        }
+      }
+    ],
     "checkedAt": 1
   }
 }

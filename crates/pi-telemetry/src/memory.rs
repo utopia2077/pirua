@@ -1,14 +1,15 @@
 //! Detached in-memory telemetry recording.
 
 use crate::{
-    AttributeValue, SpanAttributes, SpanGuard, SpanOptions, SpanStatus, TelemetryContext,
-    TelemetrySpan,
+    AttributeValue, SpanAttributes, SpanGuard, SpanLink, SpanOptions, SpanStatus, TelemetryCarrier,
+    TelemetryContext, TelemetryPropagation, TelemetrySpan,
 };
 use std::fmt;
 use std::sync::{Arc, Mutex};
 
 struct InMemoryTelemetryState {
     spans: Vec<MutableRecordedTelemetrySpan>,
+    scope: String,
     next_span_id: u64,
     next_end_sequence: u64,
 }
@@ -17,6 +18,7 @@ impl Default for InMemoryTelemetryState {
     fn default() -> Self {
         Self {
             spans: Vec::new(),
+            scope: next_scope(),
             next_span_id: 1,
             next_end_sequence: 1,
         }
@@ -26,6 +28,8 @@ impl Default for InMemoryTelemetryState {
 struct MutableRecordedTelemetrySpan {
     id: u64,
     parent_id: Option<u64>,
+    carrier: TelemetryCarrier,
+    links: Vec<RecordedSpanLink>,
     name: String,
     attributes: SpanAttributes,
     events: Vec<RecordedTelemetryEvent>,
@@ -61,6 +65,12 @@ pub struct RecordedTelemetrySpan {
     pub id: u64,
     /// Parent span id, or `None` for a root span.
     pub parent_id: Option<u64>,
+    /// Opaque trace identity, retained across extraction.
+    pub trace_id: String,
+    /// Opaque parent span identity, including external parents.
+    pub parent_span_id: Option<String>,
+    /// Detached causal links.
+    pub links: Vec<RecordedSpanLink>,
     /// Span name.
     pub name: String,
     /// Detached span attributes after all successful merges.
@@ -141,6 +151,7 @@ impl InMemoryTelemetryContext {
 
 impl TelemetryContext for InMemoryTelemetryContext {
     fn start_span(&self, options: SpanOptions) -> SpanGuard {
+        let links = record_links(options.links);
         let Ok(mut state) = self.state.lock() else {
             return SpanGuard::noop();
         };
@@ -150,6 +161,8 @@ impl TelemetryContext for InMemoryTelemetryContext {
         let span = MutableRecordedTelemetrySpan {
             id,
             parent_id: None,
+            carrier: carrier(&state.scope, id, None),
+            links,
             name: options.name,
             attributes: options.attributes,
             events: Vec::new(),
@@ -185,6 +198,7 @@ impl InMemoryTelemetrySpan {
     }
 
     fn start_child(&self, options: SpanOptions) -> SpanGuard {
+        let links = record_links(options.links);
         let Ok(mut state) = self.state.lock() else {
             return SpanGuard::noop();
         };
@@ -195,11 +209,15 @@ impl InMemoryTelemetrySpan {
             return SpanGuard::noop();
         }
         let parent_id = parent.id;
+        let parent_carrier = parent.carrier.clone();
         let id = state.next_span_id;
         state.next_span_id = state.next_span_id.saturating_add(1);
+        let scope = state.scope.clone();
         state.spans.push(MutableRecordedTelemetrySpan {
             id,
             parent_id: Some(parent_id),
+            carrier: child_carrier(&scope, id, &parent_carrier),
+            links,
             name: options.name,
             attributes: options.attributes,
             events: Vec::new(),
@@ -216,7 +234,24 @@ impl InMemoryTelemetrySpan {
     }
 }
 
+impl TelemetryContext for InMemoryTelemetrySpan {
+    fn start_span(&self, options: SpanOptions) -> SpanGuard {
+        self.start_child(options)
+    }
+    fn propagation_carrier(&self) -> Option<TelemetryCarrier> {
+        self.with_span(|span| span.carrier.clone())
+    }
+}
 impl TelemetrySpan for InMemoryTelemetrySpan {
+    fn add_link(&self, link: SpanLink) {
+        let links = record_links(vec![link]);
+        let _ = self.with_span(|span| {
+            if !span.settled {
+                span.links.extend(links);
+            }
+        });
+    }
+
     fn start_child(&self, options: SpanOptions) -> SpanGuard {
         self.start_child(options)
     }
@@ -275,6 +310,13 @@ impl From<&MutableRecordedTelemetrySpan> for RecordedTelemetrySpan {
         Self {
             id: span.id,
             parent_id: span.parent_id,
+            trace_id: span
+                .carrier
+                .get("pi-memory-trace")
+                .cloned()
+                .unwrap_or_default(),
+            parent_span_id: span.carrier.get("pi-memory-parent").cloned(),
+            links: span.links.clone(),
             name: span.name.clone(),
             attributes: span.attributes.clone(),
             events: span.events.clone(),
@@ -313,6 +355,7 @@ mod tests {
     fn settled_spans_ignore_late_operations_and_children() {
         let context = InMemoryTelemetryContext::new();
         let span = context.start_span(SpanOptions {
+            links: Vec::new(),
             name: "root".to_owned(),
             attributes: SpanAttributes::new(),
         });
@@ -334,6 +377,8 @@ mod tests {
             .push(MutableRecordedTelemetrySpan {
                 id: 1,
                 parent_id: None,
+                carrier: carrier("fixture", 1, None),
+                links: Vec::new(),
                 name: "root".to_owned(),
                 attributes: SpanAttributes::new(),
                 events: Vec::new(),
@@ -363,6 +408,7 @@ mod tests {
         span.add_event("after", &SpanAttributes::new());
         span.set_status(SpanStatus::Ok);
         let child = span.start_child(SpanOptions {
+            links: Vec::new(),
             name: "late-child".to_owned(),
             attributes: SpanAttributes::new(),
         });
@@ -376,5 +422,119 @@ mod tests {
         assert_eq!(recorded.status, SpanStatus::Error { error: None });
         assert!(recorded.settled);
         assert_eq!(recorded.end_sequence, Some(1));
+    }
+}
+
+/// Detached link identities and attributes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RecordedSpanLink {
+    /// Trace identity.
+    pub trace_id: String,
+    /// Span identity.
+    pub span_id: String,
+    /// Detached attributes.
+    pub attributes: SpanAttributes,
+}
+fn next_scope() -> String {
+    static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    format!(
+        "memory-{}",
+        NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    )
+}
+fn carrier(scope: &str, id: u64, trace: Option<&str>) -> TelemetryCarrier {
+    TelemetryCarrier::from([
+        ("pi-memory-scope".into(), scope.into()),
+        ("pi-memory-span".into(), id.to_string()),
+        (
+            "pi-memory-trace".into(),
+            trace
+                .map(str::to_owned)
+                .unwrap_or_else(|| format!("{scope}:{id}")),
+        ),
+    ])
+}
+fn child_carrier(scope: &str, id: u64, parent: &TelemetryCarrier) -> TelemetryCarrier {
+    let mut result = carrier(scope, id, parent.get("pi-memory-trace").map(String::as_str));
+    if let Some(span) = parent.get("pi-memory-span") {
+        result.insert("pi-memory-parent".into(), span.clone());
+    }
+    result
+}
+fn record_links(links: Vec<SpanLink>) -> Vec<RecordedSpanLink> {
+    links
+        .into_iter()
+        .filter_map(|link| {
+            let carrier = link.context.propagation_carrier()?;
+            Some(RecordedSpanLink {
+                trace_id: carrier.get("pi-memory-trace")?.clone(),
+                span_id: carrier.get("pi-memory-span")?.clone(),
+                attributes: link.attributes,
+            })
+        })
+        .collect()
+}
+struct ExtractedParent {
+    recorder: InMemoryTelemetryContext,
+    carrier: TelemetryCarrier,
+}
+impl TelemetryContext for ExtractedParent {
+    fn propagation_carrier(&self) -> Option<TelemetryCarrier> {
+        Some(self.carrier.clone())
+    }
+    fn start_span(&self, options: SpanOptions) -> SpanGuard {
+        let links = record_links(options.links);
+        let Ok(mut state) = self.recorder.state.lock() else {
+            return SpanGuard::noop();
+        };
+        let id = state.next_span_id;
+        state.next_span_id = state.next_span_id.saturating_add(1);
+        let scope = state.scope.clone();
+        let parent_id = (self.carrier.get("pi-memory-scope") == Some(&scope))
+            .then(|| {
+                self.carrier
+                    .get("pi-memory-span")
+                    .and_then(|id| id.parse().ok())
+            })
+            .flatten();
+        state.spans.push(MutableRecordedTelemetrySpan {
+            id,
+            parent_id,
+            carrier: child_carrier(&scope, id, &self.carrier),
+            links,
+            name: options.name,
+            attributes: options.attributes,
+            events: Vec::new(),
+            status: SpanStatus::Ok,
+            explicit_status: false,
+            settled: false,
+            end_sequence: None,
+        });
+        drop(state);
+        SpanGuard::new(InMemoryTelemetrySpan {
+            state: self.recorder.state.clone(),
+            id,
+        })
+    }
+}
+impl TelemetryPropagation for InMemoryTelemetryContext {
+    fn inject(&self, context: &dyn TelemetryContext) -> Option<TelemetryCarrier> {
+        context.propagation_carrier().map(|mut carrier| {
+            carrier.remove("pi-memory-parent");
+            carrier
+        })
+    }
+    fn extract(&self, carrier: Option<&TelemetryCarrier>) -> Arc<dyn TelemetryContext> {
+        match carrier.filter(|carrier| {
+            ["pi-memory-scope", "pi-memory-span", "pi-memory-trace"]
+                .iter()
+                .all(|key| carrier.contains_key(*key))
+        }) {
+            Some(carrier) => Arc::new(ExtractedParent {
+                recorder: self.clone(),
+                carrier: carrier.clone(),
+            }),
+            None => Arc::new(self.clone()),
+        }
     }
 }

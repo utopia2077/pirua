@@ -1,4 +1,4 @@
-//! Standard OpenAI Responses wrapper, pinned to pi-mono 853a80d and OpenAI 6.40.0.
+//! Standard OpenAI Responses wrapper, pinned to Pi v1.4.0 and OpenAI 7.19.0.
 //! Neutral options, auth and endpoint custody remain on the nominal request.
 //! SDK platform identity is normalized to Rust; no environment is read implicitly.
 
@@ -11,7 +11,7 @@ use pi_ai_core::{
     DeferredFetchRequest, FiniteF64, JsonValue, Model, ModelThinkingLevel, ModelsError,
     ModelsErrorCode, Presence, RequestEndpoint, SafeUnsigned, SimpleStreamRequest, StreamOptions,
     StreamSetupFailure, TextStreamRequest, ThinkingLevel, ToolChoice, Usage, clamp_thinking_level,
-    create_assistant_message_event_stream, split_deferred_tools,
+    create_assistant_message_event_stream,
 };
 use pi_ai_transport::{HttpHeaders, HttpRequest, TransportErrorKind};
 use serde::{Deserialize, Serialize};
@@ -23,9 +23,8 @@ use super::github_copilot_headers::{build_copilot_dynamic_headers, has_copilot_v
 use super::openai_prompt_cache::clamp_openai_prompt_cache_key;
 use super::openai_responses_shared::{
     ConvertResponsesMessagesOptions, ConvertResponsesToolsOptions, OpenAIResponsesStreamOptions,
-    ResponsesDeferredToolsMode, ResponsesError, ResponsesErrorKind, ResponsesServiceTier,
-    ResponsesServiceTierPolicy, ResponsesServiceTierPricing, convert_responses_messages,
-    convert_responses_tools,
+    ResponsesError, ResponsesErrorKind, ResponsesServiceTier, ResponsesServiceTierPolicy,
+    ResponsesServiceTierPricing, convert_responses_messages, convert_responses_tools,
 };
 use super::openai_sdk_strings;
 use super::runtime::{AdapterServices, cancellable};
@@ -305,19 +304,43 @@ fn payload(
 ) -> Result<super::wire_json::WirePayload, Failure> {
     let model = &request.resolved.model;
     let wire = &request.options.wire;
-    let mode = if compat_bool(model, "supportsAdditionalTools", false) {
-        Some(ResponsesDeferredToolsMode::AdditionalTools)
-    } else if compat_bool(model, "supportsToolSearch", false) {
-        Some(ResponsesDeferredToolsMode::ToolSearch)
+    let chatgpt = request.resolved.model.provider.as_str() == "openai"
+        && request.resolved.endpoint.expose_for_transport() == "https://api.openai.com/v1"
+        && request
+            .auth
+            .api_key
+            .as_ref()
+            .is_some_and(|key| !key.expose_secret().starts_with("sk-"));
+    let configuration_effort = if compat_bool(model, "supportsMidConvoEffort", false) && !chatgpt {
+        options.reasoning_effort.map(|level| {
+            model
+                .thinking_level_map
+                .as_ref()
+                .and_then(|map| map.as_map().get(&model_level(level)))
+                .and_then(Option::as_ref)
+                .cloned()
+                .unwrap_or_else(|| {
+                    serde_json::to_value(level)
+                        .expect("thinking effort")
+                        .as_str()
+                        .expect("effort string")
+                        .to_owned()
+                })
+        })
     } else {
         None
     };
-    let placement = split_deferred_tools(&request.context, mode.is_some(), None);
-    let deferred = placement
-        .deferred
-        .into_iter()
-        .map(|v| (v.normalized_name.as_str().to_owned(), v.tool))
-        .collect();
+
+    let support = super::openai_responses_shared::get_responses_tool_support(
+        Some(compat_bool(model, "supportsMidConvoSystemMessages", false)),
+        Some(compat_bool(model, "supportsAdditionalTools", false)),
+        Some(compat_bool(model, "supportsToolSearch", false)),
+    );
+    let normalized = pi_ai_core::resolve_transcript(
+        request.context.clone(),
+        compat_bool(model, "supportsMidConvoSystemMessages", false),
+    );
+    let placement = pi_ai_core::resolve_transcript_tools(&normalized.messages, support);
     let tool_options = ConvertResponsesToolsOptions {
         supports_strict_mode: Some(compat_bool(model, "supportsStrictMode", false)),
         supports_openai_grammar_tools: Some(compat_bool(
@@ -337,8 +360,14 @@ fn payload(
         ]),
         &ConvertResponsesMessagesOptions {
             grammar_tool_input_properties: Some(grammar),
-            deferred_tools: Some(&deferred),
-            deferred_tools_mode: mode,
+            supports_mid_convo_system_messages: Some(compat_bool(
+                model,
+                "supportsMidConvoSystemMessages",
+                false,
+            )),
+            supports_additional_tools: Some(compat_bool(model, "supportsAdditionalTools", false)),
+            supports_tool_search: Some(compat_bool(model, "supportsToolSearch", false)),
+            configuration_update_effort: configuration_effort.as_deref(),
             tool_options: Some(&tool_options),
             ..Default::default()
         },
@@ -348,24 +377,38 @@ fn payload(
         if let Some(key) = clamp_openai_prompt_cache_key(wire.session_id.as_deref()) {
             params["prompt_cache_key"] = json!(key);
         }
-    } else if compat_bool(model, "supportsExplicitPromptCacheMode", false) {
+    } else if !chatgpt && compat_bool(model, "supportsExplicitPromptCacheMode", false) {
         params["prompt_cache_options"] = json!({"mode":"explicit"});
     }
-    if cache == CacheRetention::Long && compat_bool(model, "supportsLongCacheRetention", true) {
+    if !chatgpt
+        && cache == CacheRetention::Long
+        && compat_bool(model, "supportsLongCacheRetention", true)
+        && !compat_bool(model, "supportsExplicitPromptCacheMode", false)
+    {
         params["prompt_cache_retention"] = json!("24h");
     }
-    if let Some(max) = wire.max_tokens.filter(|v| v.get() > 0) {
+    if !chatgpt
+        && compat_bool(model, "supportsMaxOutputTokens", true)
+        && let Some(max) = wire.max_tokens.filter(|v| v.get() > 0)
+    {
         params["max_output_tokens"] = json!(max.get().max(16));
     }
-    if let Some(value) = wire.temperature {
+    if !chatgpt && let Some(value) = wire.temperature {
         params["temperature"] = json!(value);
+    }
+    if !chatgpt
+        && cache == CacheRetention::Long
+        && compat_bool(model, "supportsExplicitPromptCacheMode", false)
+        && compat_bool(model, "supportsLongCacheRetention", true)
+    {
+        params["prompt_cache_options"] = json!({"ttl":"30m"});
     }
     if !options.service_tier.is_missing() {
         params["service_tier"] = json!(options.service_tier);
     }
-    if !placement.immediate.is_empty() {
+    if !placement.request_tools.is_empty() {
         params["tools"] = json!(convert_responses_tools(
-            &placement.immediate,
+            &placement.request_tools,
             &tool_options
         )?);
     }
@@ -388,6 +431,11 @@ fn payload(
                 Presence::Value(v) => json!(v),
                 _ => json!("auto"),
             };
+            let effort = if configuration_effort.is_some() {
+                json!("medium")
+            } else {
+                effort
+            };
             params["reasoning"] = json!({"effort":effort,"summary":summary});
             params["include"] = json!(["reasoning.encrypted_content"]);
         } else if model.provider.as_str() != "github-copilot"
@@ -399,7 +447,15 @@ fn payload(
             params["include"] = json!(["reasoning.encrypted_content"]);
         }
     }
-    if let Some(sampling) = &wire.sampling_params {
+    let sampling = super::simple_options::resolve_sampling_params(
+        model,
+        options
+            .reasoning_effort
+            .map(model_level)
+            .unwrap_or(ModelThinkingLevel::Off),
+        wire.sampling_params.as_ref(),
+    );
+    if let Some(sampling) = &sampling {
         for (key, value) in sampling.as_map() {
             params[key] = json!(value);
         }
@@ -460,7 +516,13 @@ fn headers(
         }
     }
     // Pi's user agent overrides SDK/env defaults; its identity is normalized.
-    set_header(&mut headers, "user-agent", "pi-ai-rust")?;
+    for (name, value) in pi_ai_core::get_identity_headers(
+        request.resolved.model.provider.as_str(),
+        request.resolved.endpoint.expose_for_transport(),
+        request.options.wire.identity.as_ref(),
+    ) {
+        set_header(&mut headers, &name, &value)?;
+    }
     if let Some(model_headers) = &request.resolved.model.headers {
         for (name, value) in model_headers.as_map() {
             set_header(&mut headers, name, value)?;
@@ -537,8 +599,35 @@ async fn run(
 ) -> Result<(), Failure> {
     let key = client_api_key(request)?;
     let cache = cache_retention(request, services);
+    if compat_bool(&request.resolved.model, "supportsMidConvoEffort", false)
+        && !(request.resolved.model.provider.as_str() == "openai"
+            && request.resolved.endpoint.expose_for_transport() == "https://api.openai.com/v1"
+            && request
+                .auth
+                .api_key
+                .as_ref()
+                .is_some_and(|key| !key.expose_secret().starts_with("sk-")))
+    {
+        output.provider_thinking_level = options.reasoning_effort.map(|level| {
+            request
+                .resolved
+                .model
+                .thinking_level_map
+                .as_ref()
+                .and_then(|map| map.as_map().get(&model_level(level)))
+                .and_then(Option::as_ref)
+                .cloned()
+                .unwrap_or_else(|| {
+                    serde_json::to_value(level)
+                        .expect("effort")
+                        .as_str()
+                        .expect("string")
+                        .to_owned()
+                })
+        });
+    }
     let grammar = create_grammar_tool_input_properties(
-        request.context.tools.as_deref(),
+        Some(pi_ai_core::get_current_tools(&request.context.messages).as_slice()),
         compat_bool(&request.resolved.model, "supportsOpenAIGrammarTools", false),
     )
     .map_err(|_| Failure::Setup("grammar"))?;
@@ -633,6 +722,11 @@ async fn run(
             streaming,
             max_stream_bytes,
             stream_options: OpenAIResponsesStreamOptions {
+                on_provider_stream_event: request
+                    .options
+                    .runtime
+                    .provider_event_observer
+                    .as_deref(),
                 preserve_end_turn: false,
                 service_tier: options.service_tier.clone(),
                 grammar_tool_input_properties: Some(&grammar),
@@ -682,10 +776,12 @@ impl ResponsesServiceTierPricing for Pricing<'_> {
     ) -> Result<(), ResponsesError> {
         let multiplier = match tier {
             Presence::Value(ResponsesServiceTier::Flex) => 0.5,
-            Presence::Value(ResponsesServiceTier::Priority) if self.0.id.as_str() == "gpt-5.5" => {
+            Presence::Value(ResponsesServiceTier::Priority | ResponsesServiceTier::Fast)
+                if self.0.id.as_str() == "gpt-5.5" =>
+            {
                 2.5
             }
-            Presence::Value(ResponsesServiceTier::Priority) => 2.0,
+            Presence::Value(ResponsesServiceTier::Priority | ResponsesServiceTier::Fast) => 2.0,
             _ => return Ok(()),
         };
         for value in [

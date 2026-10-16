@@ -24,7 +24,7 @@ use super::constrained_sampling::{
 };
 use super::wire_json::{WireJsonError, stringify_wire_json};
 
-/// Google SDK 1.52.0 thinking discriminants, including the unspecified value.
+/// Google SDK 2.21.0 thinking discriminants, including the unspecified value.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum GoogleApiThinkingLevel {
@@ -78,6 +78,7 @@ pub enum GoogleFinishReason {
     NoImage,
     ImageRecitation,
     ImageOther,
+    TooManyToolCalls,
 }
 
 /// Redacted, typed helper rejection; no schema, model ID or content is formatted.
@@ -116,15 +117,12 @@ impl From<ConstrainedSamplingError> for GoogleSharedError {
     }
 }
 
-/// Off resolves to high before inspecting mappings. Null mappings fall back to
+/// Null mappings fall back to
 /// the logical level; strings are lowercased, but never whitespace-trimmed.
 pub fn resolve_google_thinking_level(
     model: &Model,
     level: ModelThinkingLevel,
 ) -> Result<ResolvedGoogleThinkingLevel, GoogleSharedError> {
-    if level == ModelThinkingLevel::Off {
-        return Ok(ResolvedGoogleThinkingLevel::High);
-    }
     let mapped = model
         .thinking_level_map
         .as_ref()
@@ -244,7 +242,8 @@ pub fn map_stop_reason(reason: GoogleFinishReason) -> StopReason {
         | GoogleFinishReason::ImageProhibitedContent
         | GoogleFinishReason::NoImage
         | GoogleFinishReason::ImageRecitation
-        | GoogleFinishReason::ImageOther => StopReason::Error,
+        | GoogleFinishReason::ImageOther
+        | GoogleFinishReason::TooManyToolCalls => StopReason::Error,
     }
 }
 

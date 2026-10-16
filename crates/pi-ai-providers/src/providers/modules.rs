@@ -2,7 +2,7 @@ use super::ProviderFactoryError;
 use crate::auth::OAuthServices;
 use pi_ai_core::TaskSpawner;
 use std::{fmt, sync::Arc};
-/// Explicit host capabilities, captured without accessing them.
+/// Host capabilities captured without invoking them.
 #[derive(Clone)]
 pub struct FactoryAuthServices {
     pub spawner: Arc<dyn TaskSpawner>,
@@ -13,7 +13,6 @@ impl fmt::Debug for FactoryAuthServices {
         f.write_str("FactoryAuthServices([REDACTED])")
     }
 }
-/// Only the enabled factories require service fields.
 pub struct BuiltinProviderServices {
     #[cfg(feature = "provider-anthropic")]
     pub anthropic: crate::api::runtime::AdapterServices,
@@ -21,21 +20,11 @@ pub struct BuiltinProviderServices {
     pub google: crate::api::runtime::AdapterServices,
     #[cfg(feature = "provider-openai")]
     pub openai: crate::api::runtime::AdapterServices,
-    #[cfg(any(feature = "provider-deepseek", feature = "provider-openrouter"))]
+    #[cfg(feature = "provider-deepseek")]
     pub completions: crate::api::runtime::AdapterServices,
-    #[cfg(feature = "provider-openai-codex")]
-    pub codex: crate::api::openai_codex_responses::CodexServices,
-    #[cfg(feature = "images-openrouter")]
-    pub images: crate::images::ImageAdapterServices,
-    #[cfg(any(
-        feature = "provider-anthropic",
-        feature = "provider-openai-codex",
-        feature = "provider-openrouter",
-        feature = "images-openrouter"
-    ))]
+    #[cfg(any(feature = "provider-anthropic", feature = "provider-openai"))]
     pub auth: FactoryAuthServices,
 }
-/// Retains each configured concrete module exactly once.
 pub struct BuiltinProviderModules {
     #[cfg(feature = "provider-anthropic")]
     anthropic: Arc<crate::api::anthropic_messages::AnthropicMessagesApi>,
@@ -43,18 +32,9 @@ pub struct BuiltinProviderModules {
     google: Arc<crate::api::google_genai::GoogleGenAiApi>,
     #[cfg(feature = "provider-openai")]
     openai: Arc<crate::api::openai_responses::OpenAIResponsesApi>,
-    #[cfg(any(feature = "provider-deepseek", feature = "provider-openrouter"))]
+    #[cfg(feature = "provider-deepseek")]
     completions: Arc<crate::api::openai_completions::OpenAICompletionsApi>,
-    #[cfg(feature = "provider-openai-codex")]
-    codex: Arc<crate::api::openai_codex_responses::OpenAICodexResponsesApi>,
-    #[cfg(feature = "images-openrouter")]
-    images: Arc<crate::images::openrouter::OpenRouterImagesApi>,
-    #[cfg(any(
-        feature = "provider-anthropic",
-        feature = "provider-openai-codex",
-        feature = "provider-openrouter",
-        feature = "images-openrouter"
-    ))]
+    #[cfg(any(feature = "provider-anthropic", feature = "provider-openai"))]
     auth: FactoryAuthServices,
 }
 impl BuiltinProviderModules {
@@ -73,25 +53,11 @@ impl BuiltinProviderModules {
             openai: Arc::new(crate::api::openai_responses::OpenAIResponsesApi::new(
                 services.openai,
             )),
-            #[cfg(any(feature = "provider-deepseek", feature = "provider-openrouter"))]
+            #[cfg(feature = "provider-deepseek")]
             completions: Arc::new(crate::api::openai_completions::OpenAICompletionsApi::new(
                 services.completions,
             )),
-            #[cfg(feature = "provider-openai-codex")]
-            codex: Arc::new(
-                crate::api::openai_codex_responses::OpenAICodexResponsesApi::new(services.codex)
-                    .map_err(ProviderFactoryError::from_source)?,
-            ),
-            #[cfg(feature = "images-openrouter")]
-            images: Arc::new(crate::images::openrouter::OpenRouterImagesApi::new(
-                services.images,
-            )),
-            #[cfg(any(
-                feature = "provider-anthropic",
-                feature = "provider-openai-codex",
-                feature = "provider-openrouter",
-                feature = "images-openrouter"
-            ))]
+            #[cfg(any(feature = "provider-anthropic", feature = "provider-openai"))]
             auth: services.auth,
         })
     }
@@ -107,24 +73,11 @@ impl BuiltinProviderModules {
     pub fn openai(&self) -> Arc<crate::api::openai_responses::OpenAIResponsesApi> {
         self.openai.clone()
     }
-    #[cfg(any(feature = "provider-deepseek", feature = "provider-openrouter"))]
+    #[cfg(feature = "provider-deepseek")]
     pub fn completions(&self) -> Arc<crate::api::openai_completions::OpenAICompletionsApi> {
         self.completions.clone()
     }
-    #[cfg(feature = "provider-openai-codex")]
-    pub fn codex(&self) -> Arc<crate::api::openai_codex_responses::OpenAICodexResponsesApi> {
-        self.codex.clone()
-    }
-    #[cfg(feature = "images-openrouter")]
-    pub fn images(&self) -> Arc<crate::images::openrouter::OpenRouterImagesApi> {
-        self.images.clone()
-    }
-    #[cfg(any(
-        feature = "provider-anthropic",
-        feature = "provider-openai-codex",
-        feature = "provider-openrouter",
-        feature = "images-openrouter"
-    ))]
+    #[cfg(any(feature = "provider-anthropic", feature = "provider-openai"))]
     pub fn auth(&self) -> &FactoryAuthServices {
         &self.auth
     }

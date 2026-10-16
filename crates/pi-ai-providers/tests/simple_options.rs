@@ -1,4 +1,6 @@
-use pi_ai_core::{Context, Model, SafeUnsigned, StreamOptionsWire, ThinkingBudgets, ThinkingLevel};
+use pi_ai_core::{
+    Model, SafeUnsigned, StreamOptionsWire, ThinkingBudgets, ThinkingLevel, TranscriptContext,
+};
 use pi_ai_providers::api::simple_options::*;
 use serde_json::{Value, json};
 
@@ -8,7 +10,7 @@ fn safe(value: u64) -> SafeUnsigned {
 fn model(window: u64) -> Model {
     serde_json::from_value(json!({"id":"model","name":"Model","api":"openai-responses","provider":"openai","baseUrl":"https://example.invalid","reasoning":true,"input":["text"],"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0},"contextWindow":window,"maxTokens":10000,"samplingParams":{"a":1,"b":2}})).unwrap()
 }
-fn context() -> Context {
+fn context() -> TranscriptContext {
     serde_json::from_value(json!({"messages":[{"role":"user","content":"abcd","timestamp":0}]}))
         .unwrap()
 }

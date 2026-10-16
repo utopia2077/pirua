@@ -1200,80 +1200,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
-name = "pi-agent"
-version = "0.0.0"
-dependencies = [
- "pi-agent-loop",
- "pi-agent-schema",
- "pi-agent-search",
- "pi-agent-session",
- "pi-agent-sqlite",
- "pi-ai-core",
- "pi-harness-core",
- "pi-harness-runtime",
- "pi-telemetry",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "pi-agent-loop"
-version = "0.0.0"
-dependencies = [
- "pi-agent-schema",
- "pi-ai-core",
- "pi-ai-transport",
- "pi-telemetry",
- "serde_json",
- "tokio",
-]
-
-[[package]]
-name = "pi-agent-schema"
-version = "0.0.0"
-dependencies = [
- "pi-ai-core",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "pi-agent-search"
-version = "0.0.0"
-dependencies = [
- "pi-agent-schema",
- "pi-agent-session",
- "rusqlite",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "pi-agent-session"
-version = "0.0.0"
-dependencies = [
- "jsonschema",
- "pi-agent-schema",
- "pi-telemetry",
- "ring",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "pi-agent-sqlite"
-version = "0.0.0"
-dependencies = [
- "pi-agent-schema",
- "pi-agent-session",
- "ring",
- "rusqlite",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "pi-ai"
 version = "0.0.0"
 dependencies = [
@@ -1301,7 +1227,6 @@ version = "0.0.0"
 dependencies = [
  "pi-ai-core",
  "pi-ai-transport",
- "ring",
  "ryu-js",
  "serde",
  "serde_json",
@@ -1348,28 +1273,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pi-coding-runtime"
-version = "0.0.0"
-dependencies = [
- "base64 0.23.1",
- "pi-agent",
- "pi-agent-session",
- "pi-agent-sqlite",
- "pi-ai",
- "pi-ai-providers",
- "pi-ai-transport",
- "pi-extension-protocol",
- "pi-harness-runtime",
- "pi-telemetry",
- "prost",
- "regex",
- "serde",
- "serde_json",
- "tokio",
- "unicode-normalization",
-]
-
-[[package]]
 name = "pi-coding-session"
 version = "0.0.0"
 dependencies = [
@@ -1387,33 +1290,6 @@ dependencies = [
  "ring",
  "ryu-js",
  "serde",
- "serde_json",
-]
-
-[[package]]
-name = "pi-harness-core"
-version = "0.0.0"
-dependencies = [
- "pi-agent-schema",
- "serde_json",
-]
-
-[[package]]
-name = "pi-harness-runtime"
-version = "0.0.0"
-dependencies = [
- "pi-agent-loop",
- "pi-agent-schema",
- "pi-agent-session",
- "pi-agent-sqlite",
- "pi-ai-core",
- "pi-extension-protocol",
- "pi-harness-core",
- "pi-telemetry",
- "prost",
- "runtime-extension-profiles-alloc",
- "rusqlite",
- "ryu-js",
  "serde_json",
 ]
 
@@ -1783,10 +1659,6 @@ checksum = "cee271d0eeba64f0915b846cb7ae02e16faf3dfdffdca91731101d9d30fe3423"
 dependencies = [
  "cc",
 ]
-
-[[package]]
-name = "runtime-extension-profiles-alloc"
-version = "0.0.0"
 
 [[package]]
 name = "rusqlite"
@@ -2429,15 +2301,6 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
-
-[[package]]
-name = "unicode-normalization"
-version = "0.1.25"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
-dependencies = [
- "tinyvec",
-]
 
 [[package]]
 name = "untrusted"

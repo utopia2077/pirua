@@ -1,8 +1,8 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use pi_ai_core::{
-    AssistantContent, AssistantMessage, Context, InputContent, JsonValue, Message, Model,
-    ModelInput, SafeUnsigned, Tool, ToolCallId, ToolCallIdNormalizer, short_hash,
+    AssistantContent, AssistantMessage, InputContent, JsonValue, Message, Model, ModelInput,
+    SafeUnsigned, Tool, ToolCallId, ToolCallIdNormalizer, TranscriptContext, short_hash,
     transform_messages,
 };
 use serde_json::{Value, json};
@@ -66,7 +66,7 @@ impl ResolvedCompletionsCompat {
             "requiresReasoningContentOnAssistantMessages":deep,
             "thinkingFormat":if deep {"deepseek"} else if zai {"zai"} else if together {"together"} else if ant {"ant-ling"} else if router {"openrouter"} else {"openai"},
             "openRouterRouting":{},"vercelGatewayRouting":{},"chatTemplateKwargs":{},"chatTemplateArgs":{},
-            "zaiToolStream":false,"supportsThinkingTokenBudget":false,"supportsStrictMode":!(moon || together || gateway || nvidia),
+            "zaiToolStream":false,"supportsThinkingTokenBudget":false,"supportsStrictMode":false,
             "supportsOpenAIGrammarTools":false,"sendSessionAffinityHeaders":false,
             "sessionAffinityFormat":if router {"openrouter"} else {"openai"},
             "supportsLongCacheRetention":!(together || workers || gateway || nvidia || ant)
@@ -203,11 +203,15 @@ pub(super) fn convert_tools(
 /// Converts transcript after the accepted source repair and tool-id normalization.
 pub fn convert_messages(
     model: &Model,
-    context: &Context,
+    context: &TranscriptContext,
     compat: &ResolvedCompletionsCompat,
     options: &ConvertCompletionsMessagesOptions<'_>,
 ) -> Result<Vec<Value>, CompletionsError> {
     let mut normalizer = Normalizer { invalid: false };
+    let context = pi_ai_core::resolve_transcript(
+        context.clone(),
+        compat.flag("supportsMidConvoSystemMessages"),
+    );
     let transformed = transform_messages(
         &context.messages,
         model,
@@ -221,9 +225,15 @@ pub fn convert_messages(
         return Err(CompletionsError::Conversion);
     }
     let mut params = Vec::new();
-    if let Some(prompt) = context.system_prompt.as_deref().filter(|s| !s.is_empty()) {
-        params.push(json!({"role":if model.reasoning && compat.flag("supportsDeveloperRole") {"developer"} else {"system"},"content":prompt}));
-    }
+    let support = if compat.flag("supportsMidConvoSystemMessages")
+        && compat.flag("supportsMidConvoToolAdditions")
+    {
+        pi_ai_core::TranscriptToolSupport::Additions
+    } else {
+        pi_ai_core::TranscriptToolSupport::None
+    };
+    let placement = pi_ai_core::resolve_transcript_tools(&context.messages, support);
+    let mut system_index = 0;
     let mut last_tool = false;
     let mut i = 0;
     while i < transformed.len() {
@@ -235,6 +245,25 @@ pub fn convert_messages(
             params.push(json!({"role":"assistant","content":"I have processed the tool results."}));
         }
         match msg {
+            Message::System(system) => {
+                let added = if system_index >= placement.folded_system_messages {
+                    system.tools_added.as_deref().unwrap_or_default()
+                } else {
+                    &[]
+                };
+                system_index += 1;
+                if !added.is_empty() {
+                    params.push(json!({"role":"system","tools":convert_tools(added,compat)?}));
+                }
+                let text = if i == 0 {
+                    pi_ai_core::get_system_message_text(system)
+                } else {
+                    pi_ai_core::render_system_message_update(system)
+                };
+                if !text.is_empty() {
+                    params.push(json!({"role":if model.reasoning&&compat.flag("supportsDeveloperRole"){"developer"}else{"system"},"content":text}));
+                }
+            }
             Message::User(user) => {
                 let content = match &user.content {
                     pi_ai_core::UserContent::Text(t) => json!(t),
@@ -360,8 +389,7 @@ pub fn convert_messages(
             }
             Message::ToolResult(_) => {
                 let mut images = Vec::new();
-                let mut names = Vec::new();
-                let mut seen = BTreeSet::new();
+
                 while let Some(Message::ToolResult(t)) = transformed.get(i) {
                     let text = t
                         .content
@@ -376,7 +404,7 @@ pub fn convert_messages(
                         .content
                         .iter()
                         .any(|v| matches!(v, InputContent::Image(_)));
-                    let result = if !text.is_empty() {
+                    let result = if !text.trim().is_empty() {
                         text.as_str()
                     } else if has_images {
                         "(see attached image)"
@@ -389,13 +417,6 @@ pub fn convert_messages(
                         wire["name"] = json!(t.tool_name);
                     }
                     params.push(wire);
-                    if compat.text("deferredToolsMode") == "kimi" {
-                        for name in t.added_tool_names.as_deref().unwrap_or_default() {
-                            if seen.insert(name.clone()) {
-                                names.push(name.clone());
-                            }
-                        }
-                    }
                     if model.input.contains(&ModelInput::Image) {
                         images.extend(t.content.iter().filter_map(|b| match b {
                             InputContent::Image(v) => Some(image_wire(v)),
@@ -413,22 +434,6 @@ pub fn convert_messages(
                         vec![json!({"type":"text","text":"Attached image(s) from tool result:"})];
                     content.extend(images);
                     params.push(json!({"role":"user","content":content}));
-                }
-                let tools: Vec<_> = names
-                    .iter()
-                    .filter_map(|name| {
-                        context
-                            .tools
-                            .as_deref()
-                            .unwrap_or_default()
-                            .iter()
-                            .rev()
-                            .find(|t| t.name == *name)
-                            .cloned()
-                    })
-                    .collect();
-                if !tools.is_empty() {
-                    params.push(json!({"role":"system","tools":convert_tools(&tools,compat)?}));
                 }
                 continue;
             }

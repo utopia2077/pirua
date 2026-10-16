@@ -242,8 +242,6 @@ pub struct ModelsRequestOverrides {
     pub auth: AuthResolutionOverrides,
     /// Explicit request headers.
     pub headers: ProviderHeaders,
-    /// Already-resolved endpoint for a runtime-resolved model sentinel.
-    pub runtime_endpoint: Option<RequestEndpoint>,
 }
 
 impl fmt::Debug for ModelsRequestOverrides {
@@ -252,7 +250,6 @@ impl fmt::Debug for ModelsRequestOverrides {
             .debug_struct("ModelsRequestOverrides")
             .field("auth", &self.auth)
             .field("headers", &self.headers)
-            .field("runtime_endpoint_present", &self.runtime_endpoint.is_some())
             .finish()
     }
 }
@@ -285,6 +282,8 @@ impl fmt::Debug for ModelsRequestOverrides {
 /// # }
 /// ```
 pub struct ModelsRegistryOptions {
+    /// Default calling application identity, merged with each request.
+    pub identity: Option<crate::ClientIdentity>,
     /// Credential storage and per-provider mutation serialization.
     pub credentials: Arc<dyn CredentialStore>,
     /// Exclusively consumed model-cache storage.
@@ -2115,7 +2114,7 @@ async fn assemble_request_from_record(
     inner: &RegistryInner,
     record: Arc<ProviderRecord>,
     model: Model,
-    mut overrides: ModelsRequestOverrides,
+    overrides: ModelsRequestOverrides,
     cancellation: &CancellationToken,
 ) -> Result<AssembledRequest, SetupAssemblyError> {
     if record.provider.auth().is_no_auth() {
@@ -2139,10 +2138,6 @@ async fn assemble_request_from_record(
                 RequestEndpoint::new_resolved(base_url.as_str().to_owned())
                     .map_err(|_| SetupAssemblyError::Endpoint)?
             }
-            ModelBaseUrl::RuntimeResolved => overrides
-                .runtime_endpoint
-                .take()
-                .ok_or(SetupAssemblyError::Endpoint)?,
         };
         return Ok(AssembledRequest {
             record,
@@ -2212,10 +2207,6 @@ async fn assemble_request_from_record(
                 RequestEndpoint::new_resolved(base_url.as_str().to_owned())
                     .map_err(|_| SetupAssemblyError::Endpoint)?
             }
-            ModelBaseUrl::RuntimeResolved => overrides
-                .runtime_endpoint
-                .take()
-                .ok_or(SetupAssemblyError::Endpoint)?,
         }
     };
     Ok(AssembledRequest {
@@ -2292,6 +2283,20 @@ fn start_dispatch_selected(
     request: DispatchRequest,
     captured: Option<Arc<ProviderRecord>>,
 ) -> AssistantStream {
+    let mut request = request;
+    let identity = match &mut request {
+        DispatchRequest::Stream { options, .. } => Some(&mut options.wire.identity),
+        DispatchRequest::Simple { options, .. } => Some(&mut options.wire.stream.identity),
+        DispatchRequest::Fetch { .. } => None,
+    };
+    if let Some(identity) = identity
+        && (inner.options.identity.is_some() || identity.is_some())
+    {
+        *identity = Some(crate::merge_client_identity(
+            inner.options.identity.as_ref(),
+            identity.as_ref(),
+        ));
+    }
     let cancellation = request.cancellation();
     let outer_cancellation = if child_cancellation {
         CancellationToken::new()
@@ -2357,7 +2362,7 @@ fn start_dispatch_selected(
                         model: assembled.model,
                         endpoint: assembled.endpoint,
                     },
-                    context,
+                    context: crate::normalize_context(context),
                     auth: assembled.auth,
                     options,
                 };
@@ -2382,7 +2387,7 @@ fn start_dispatch_selected(
                         model: assembled.model,
                         endpoint: assembled.endpoint,
                     },
-                    context,
+                    context: crate::normalize_context(context),
                     auth: assembled.auth,
                     options,
                 };
@@ -3383,6 +3388,7 @@ mod tests {
     fn registry_inner(spawner: Arc<CountingSpawner>) -> Arc<RegistryInner> {
         Arc::new(RegistryInner {
             options: ModelsRegistryOptions {
+                identity: None,
                 credentials: Arc::new(InMemoryCredentialStore::new()),
                 models_store: Box::new(InMemoryModelsStore::new()),
                 auth_context: Arc::new(DummyContext),

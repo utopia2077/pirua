@@ -1,3 +1,4 @@
+mod retained_support;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::future::{Future, pending};
 use std::pin::pin;
@@ -9,7 +10,8 @@ use std::time::Duration;
 use pi_ai_core::{
     AssistantMessage, AssistantMessageEvent, AssistantMessageEventStream, AssistantStreamInit,
     AssistantStreamProducer, BoxFuture, CancellationToken, Cancelled, Clock, Context, DoneReason,
-    Message, Model, Presence, StopReason, Tool, Usage, create_assistant_message_event_stream,
+    Message, Model, Presence, StopReason, Tool, TranscriptContext, Usage,
+    create_assistant_message_event_stream,
 };
 use pi_ai_providers::api::openai_responses_shared::*;
 use pi_ai_providers::api::wire_json::{
@@ -128,12 +130,12 @@ fn normalize_signatures(value: &mut Value) {
         _ => {}
     }
 }
-fn context(messages: Vec<Message>) -> Context {
-    Context {
+fn context(messages: Vec<Message>) -> TranscriptContext {
+    pi_ai_core::normalize_context(Context {
         system_prompt: None,
         messages,
         tools: None,
-    }
+    })
 }
 fn tool(name: &str) -> Tool {
     serde_json::from_value(json!({"name":name,"description":"synthetic","parameters":{"type":"object","properties":{"p":{"type":"string"}},"required":["p"]}})).unwrap()
@@ -141,10 +143,9 @@ fn tool(name: &str) -> Tool {
 
 #[test]
 fn interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses-shared/interleaved.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(fixture["evidenceClass"], "source-confirmed");
     let mut source = Events::new(fixture["events"].as_array().unwrap().clone());
     let token = CancellationToken::new();
@@ -200,7 +201,7 @@ fn interleaved_slots_preserve_complete_progress_snapshots_and_terminal_backfill(
             message: Box::new(result.clone()),
         })
         .unwrap();
-    assert_eq!(ready(consumer.result()), result);
+    assert_eq!(retained_support::message(ready(consumer.result())), result);
 }
 
 #[test]
@@ -416,7 +417,7 @@ fn tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar()
         std::slice::from_ref(&plain),
         &ConvertResponsesToolsOptions {
             supports_strict_mode: Some(false),
-            defer_loading: Some(false),
+            tool_search_result: Some(false),
             ..Default::default()
         },
     )
@@ -429,7 +430,7 @@ fn tools_preserve_default_false_explicit_null_unsupported_omission_and_grammar()
             &[grammar],
             &ConvertResponsesToolsOptions {
                 supports_openai_grammar_tools: Some(true),
-                defer_loading: Some(true),
+                tool_search_result: Some(true),
                 ..Default::default()
             }
         )
@@ -452,7 +453,10 @@ fn replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules() {
     ])).unwrap();
     let result:Message=serde_json::from_value(json!({"role":"toolResult","toolCallId":"call|fc_item","toolName":"lookup","content":[{"type":"text","text":"one"},{"type":"text","text":"two"},{"type":"image","data":"AA==","mimeType":"image/png"}],"isError":false,"timestamp":1})).unwrap();
     let mut context = context(vec![Message::Assistant(Box::new(assistant)), result]);
-    context.system_prompt = Some("system".to_owned());
+    context.messages.insert(
+        0,
+        Message::System(pi_ai_core::create_initial_system_message(Some("system"), None).unwrap()),
+    );
     let allowed = BTreeSet::from(["openai".to_owned()]);
     let wire = convert_responses_messages(
         &model,
@@ -494,38 +498,40 @@ fn replay_signature_fallback_ids_multimodal_outputs_and_namespace_rules() {
 }
 
 #[test]
-fn deferred_definitions_load_once_after_markers_and_tools_search_is_paired() {
-    let result:Message=serde_json::from_value(json!({"role":"toolResult","toolCallId":"call","toolName":"base","content":[],"addedToolNames":["late","missing","late"],"isError":false,"timestamp":1})).unwrap();
-    let context = context(vec![result.clone(), result]);
-    let deferred = BTreeMap::from([("late".to_owned(), tool("late"))]);
-    for mode in [
-        ResponsesDeferredToolsMode::AdditionalTools,
-        ResponsesDeferredToolsMode::ToolSearch,
-    ] {
+fn anchored_definitions_and_tool_search_follow_transcript_positions() {
+    let context=pi_ai_core::normalize_context(serde_json::from_value(json!({"tools":[tool("base")],"messages":[{"role":"user","content":"load","timestamp":0},{"role":"system","content":"","toolsAdded":[tool("late")],"timestamp":1}]})).unwrap());
+    for additional in [true, false] {
         let wire = convert_responses_messages(
             &model(),
             &context,
             &BTreeSet::new(),
             &ConvertResponsesMessagesOptions {
-                deferred_tools: Some(&deferred),
-                deferred_tools_mode: Some(mode),
+                supports_mid_convo_system_messages: Some(true),
+                supports_additional_tools: Some(additional),
+                supports_tool_search: Some(!additional),
                 ..Default::default()
             },
         )
         .unwrap();
-        assert_eq!(wire[0]["type"], "function_call_output");
-        assert_eq!(wire[0]["output"], "(no tool output)");
-        if mode == ResponsesDeferredToolsMode::AdditionalTools {
-            assert_eq!(wire.len(), 3);
-            assert_eq!(wire[1]["type"], "additional_tools");
-            assert_eq!(wire[1]["role"], "developer");
-            assert!(wire[1]["tools"][0].get("defer_loading").is_none());
+        if additional {
+            assert_eq!(wire[0]["type"], "additional_tools");
+            assert_eq!(
+                wire.iter()
+                    .filter(|item| item["type"] == "additional_tools")
+                    .count(),
+                2
+            );
         } else {
-            assert_eq!(wire.len(), 4);
-            assert_eq!(wire[1]["type"], "tool_search_call");
-            assert_eq!(wire[1]["call_id"], wire[2]["call_id"]);
-            assert_eq!(wire[1]["arguments"], json!({"query":"late","limit":1}));
-            assert_eq!(wire[2]["tools"][0]["defer_loading"], true);
+            let call = wire
+                .iter()
+                .find(|item| item["type"] == "tool_search_call")
+                .unwrap();
+            let output = wire
+                .iter()
+                .find(|item| item["type"] == "tool_search_output")
+                .unwrap();
+            assert_eq!(call["call_id"], output["call_id"]);
+            assert_eq!(output["tools"][0]["defer_loading"], true);
         }
     }
 }
@@ -840,10 +846,9 @@ fn policy_failure_preserves_loaded_usage_and_cancellation_sees_the_prior_publica
 
 #[test]
 fn opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses-shared/signature-bytes.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(
         fixture["evidenceClass"],
         "executed-pinned-processor-signature-oracle"
@@ -887,10 +892,9 @@ fn opaque_signature_bytes_match_executed_pinned_processor_with_nested_wire_order
 
 #[test]
 fn checked_wire_stringify_matches_executed_number_key_and_escape_oracles() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses-shared/wire-json.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(fixture["evidenceClass"], "executed-js-stringify");
     for case in fixture["cases"].as_array().unwrap() {
         let value: Value = serde_json::from_str(case["raw"].as_str().unwrap()).unwrap();
@@ -1077,10 +1081,9 @@ fn wire_unsigned_checks_mathematical_values_without_changing_durable_decoders() 
 
 #[test]
 fn numeric_slot_and_usage_spellings_match_executed_pinned_processor() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses-shared/numeric-wire.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(
         fixture["evidenceClass"],
         "executed-pinned-processor-numeric-oracle"

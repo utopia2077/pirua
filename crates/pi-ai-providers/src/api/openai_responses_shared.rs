@@ -11,10 +11,10 @@ use std::task::Poll;
 
 use pi_ai_core::{
     AssistantContent, AssistantMessage, AssistantMessageEvent, AssistantStreamProducer, BoxFuture,
-    CancellationToken, Context, InputContent, JsonObject, JsonValue, LiteralOne, Message, Model,
-    ModelInput, Presence, RawStopReason, ResponseId, SafeUnsigned, StopReason, TextContent,
-    TextContentType, TextSignaturePhase, TextSignatureV1, ThinkingContent, ThinkingContentType,
-    Tool, ToolCall, ToolCallId, ToolCallIdNormalizer, ToolCallType, ToolName, Usage,
+    CancellationToken, InputContent, JsonObject, JsonValue, LiteralOne, Message, Model, ModelInput,
+    Presence, RawStopReason, ResponseId, SafeUnsigned, StopReason, TextContent, TextContentType,
+    TextSignaturePhase, TextSignatureV1, ThinkingContent, ThinkingContentType, Tool, ToolCall,
+    ToolCallId, ToolCallIdNormalizer, ToolCallType, ToolName, TranscriptContext, Usage,
     calculate_cost, is_context_overflow, is_retryable_assistant_error, parse_streaming_json,
     short_hash, transform_messages,
 };
@@ -97,7 +97,7 @@ pub trait ResponsesEventSource: Send {
     fn next(&mut self) -> BoxFuture<'_, Result<Option<Value>, ResponsesError>>;
 }
 
-/// Closed service-tier values in OpenAI 6.40.0 Responses create parameters.
+/// Closed service-tier values in the target OpenAI 7.19.0 contract.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ResponsesServiceTier {
@@ -109,6 +109,8 @@ pub enum ResponsesServiceTier {
     Flex,
     /// Scale tier.
     Scale,
+    /// Fast processing.
+    Fast,
     /// Priority processing.
     Priority,
 }
@@ -145,6 +147,8 @@ pub trait ResponsesServiceTierPolicy: Send + Sync {
 /// Shared streaming controls, separate from HTTP options and terminal ownership.
 #[derive(Default)]
 pub struct OpenAIResponsesStreamOptions<'a> {
+    /// Request-local raw provider-event observer.
+    pub on_provider_stream_event: Option<&'a dyn pi_ai_core::ProviderStreamEventObserver>,
     /// Codex-only completion metadata; ordinary Responses leaves endTurn untouched.
     pub preserve_end_turn: bool,
     /// Requested service tier, preserving omission and explicit null.
@@ -164,8 +168,8 @@ pub struct ConvertResponsesToolsOptions {
     pub supports_strict_mode: Option<bool>,
     /// Omitted means unsupported.
     pub supports_openai_grammar_tools: Option<bool>,
-    /// Only explicit true emits defer_loading.
-    pub defer_loading: Option<bool>,
+    /// Only explicit true emits tool_search_result.
+    pub tool_search_result: Option<bool>,
 }
 
 /// Deferred tool-definition replay shape.
@@ -184,10 +188,14 @@ pub struct ConvertResponsesMessagesOptions<'a> {
     pub include_system_prompt: Option<bool>,
     /// Grammar tool-name to string-property projection.
     pub grammar_tool_input_properties: Option<&'a BTreeMap<String, String>>,
-    /// Active definitions eligible at addedToolNames markers.
-    pub deferred_tools: Option<&'a BTreeMap<String, Tool>>,
-    /// Deferred replay mechanism.
-    pub deferred_tools_mode: Option<ResponsesDeferredToolsMode>,
+    /// Whether system updates remain anchored.
+    pub supports_mid_convo_system_messages: Option<bool>,
+    /// Whether all tool definitions can be anchored.
+    pub supports_additional_tools: Option<bool>,
+    /// Whether later tool additions use synthetic tool search.
+    pub supports_tool_search: Option<bool>,
+    /// Current native effort, emitted using configuration_update items.
+    pub configuration_update_effort: Option<&'a str>,
     /// Options for emitted deferred definitions.
     pub tool_options: Option<&'a ConvertResponsesToolsOptions>,
     /// Injected synthetic tool-result timestamp; omitted selects zero.
@@ -224,7 +232,7 @@ pub fn convert_responses_tools(
                 "type":"function", "name":tool.name, "description":tool.description,
                 "parameters":parameters.as_value()
             });
-            if options.defer_loading == Some(true) {
+            if options.tool_search_result == Some(true) {
                 wire["defer_loading"] = Value::Bool(true);
             }
             if supports_strict {
@@ -233,7 +241,7 @@ pub fn convert_responses_tools(
             }
             wire
         };
-        if options.defer_loading == Some(true) {
+        if options.tool_search_result == Some(true) {
             wire["defer_loading"] = Value::Bool(true);
         }
         Ok(wire)
@@ -358,10 +366,28 @@ fn text_signature(signature: Option<&str>) -> Option<(String, Option<String>)> {
     Some((signature.to_owned(), None))
 }
 
+/// Resolves anchored Responses tool support.
+pub fn get_responses_tool_support(
+    system: Option<bool>,
+    additional: Option<bool>,
+    search: Option<bool>,
+) -> pi_ai_core::TranscriptToolSupport {
+    if system == Some(true) && additional == Some(true) {
+        pi_ai_core::TranscriptToolSupport::Changes
+    } else if search == Some(true) {
+        pi_ai_core::TranscriptToolSupport::Additions
+    } else {
+        pi_ai_core::TranscriptToolSupport::None
+    }
+}
+fn insert_configuration_update(messages: &mut Vec<Value>, effort: &str) {
+    messages.push(json!({"type":"configuration_update","reasoning":{"effort":effort}}));
+}
+
 /// Converts a detached transcript, using the accepted transform/repair policy first.
 pub fn convert_responses_messages(
     model: &Model,
-    context: &Context,
+    context: &TranscriptContext,
     allowed_tool_call_providers: &BTreeSet<String>,
     options: &ConvertResponsesMessagesOptions<'_>,
 ) -> Result<Vec<Value>, ResponsesError> {
@@ -372,6 +398,10 @@ pub fn convert_responses_messages(
     let timestamp = options.synthetic_result_timestamp.unwrap_or(
         SafeUnsigned::new(0).map_err(|_| ResponsesError::new(ResponsesErrorKind::Conversion))?,
     );
+    let context = pi_ai_core::resolve_transcript(
+        context.clone(),
+        options.supports_mid_convo_system_messages.unwrap_or(false),
+    );
     let transformed =
         transform_messages(&context.messages, model, timestamp, Some(&mut normalizer))
             .map_err(|_| ResponsesError::new(ResponsesErrorKind::Conversion))?;
@@ -379,23 +409,113 @@ pub fn convert_responses_messages(
         return Err(ResponsesError::new(ResponsesErrorKind::Conversion));
     }
     let mut messages = Vec::new();
-    let mut loaded = BTreeSet::new();
-    if options.include_system_prompt.unwrap_or(true)
-        && let Some(prompt) = context
-            .system_prompt
-            .as_deref()
-            .filter(|value| !value.is_empty())
-    {
-        let supports_developer = model
-            .compat
-            .as_ref()
-            .and_then(|compat| compat.0.as_map().get("supportsDeveloperRole"))
-            != Some(&JsonValue::Bool(false));
-        messages.push(json!({"role":if model.reasoning && supports_developer {"developer"} else {"system"},"content":prompt}));
-    }
+    let support = get_responses_tool_support(
+        options.supports_mid_convo_system_messages,
+        options.supports_additional_tools,
+        options.supports_tool_search,
+    );
+    let placement = pi_ai_core::resolve_transcript_tools(&context.messages, support);
+    let supports_developer = model
+        .compat
+        .as_ref()
+        .and_then(|compat| compat.0.as_map().get("supportsDeveloperRole"))
+        != Some(&JsonValue::Bool(false));
+    let instruction_role = if model.reasoning && supports_developer {
+        "developer"
+    } else {
+        "system"
+    };
+    let mut system_index = 0;
+    let mut declared_additional = false;
+    let mut unavailable: Vec<String> = Vec::new();
     let mut message_index = 0;
-    for message in transformed {
+    for (source_index, message) in transformed.into_iter().enumerate() {
+        let is_leading = source_index == 0 && matches!(&message, Message::System(_));
         match message {
+            Message::System(system) => {
+                let anchored = system_index >= placement.folded_system_messages;
+                system_index += 1;
+                let added = system.tools_added.as_deref().unwrap_or_default();
+                for tool in added {
+                    unavailable.retain(|name| name != tool.name.as_str());
+                }
+                if anchored && !added.is_empty() {
+                    let tool_options = options.tool_options.cloned().unwrap_or_default();
+                    match support {
+                        pi_ai_core::TranscriptToolSupport::Changes => {
+                            if declared_additional {
+                                let mut notice="This is an incremental tools update. Previously declared tools remain available unless explicitly marked unavailable. A tool declared again here is available again, and its latest definition replaces the earlier one.".to_owned();
+                                if !unavailable.is_empty() {
+                                    notice.push_str(&format!(
+                                        "\nStill unavailable: {}.",
+                                        unavailable.join(", ")
+                                    ));
+                                }
+                                messages.push(json!({"role":instruction_role,"content":notice}));
+                            }
+                            declared_additional = true;
+                            messages.push(json!({"type":"additional_tools","role":"developer","tools":convert_responses_tools(added,&tool_options)?}));
+                        }
+                        pi_ai_core::TranscriptToolSupport::Additions => {
+                            let names = added
+                                .iter()
+                                .map(|tool| tool.name.as_str())
+                                .collect::<Vec<_>>();
+                            let id = format!(
+                                "pi_tool_load_{}",
+                                short_hash(&format!(
+                                    "system:{}:{}",
+                                    message_index,
+                                    names.join(",")
+                                ))
+                            );
+                            messages.push(json!({"type":"tool_search_call","call_id":id,"execution":"client","status":"completed","arguments":{"query":names.join(" "),"limit":names.len()}}));
+                            messages.push(json!({"type":"tool_search_output","call_id":id,"execution":"client","status":"completed","tools":convert_responses_tools(added,&ConvertResponsesToolsOptions{tool_search_result:Some(true),..tool_options})?}));
+                        }
+                        pi_ai_core::TranscriptToolSupport::None => {}
+                    }
+                }
+                if !is_leading || options.include_system_prompt.unwrap_or(true) {
+                    let mut text = if is_leading {
+                        pi_ai_core::get_system_message_text(&system)
+                    } else {
+                        pi_ai_core::render_system_message_update(&system)
+                    };
+                    if anchored {
+                        let removed = system
+                            .tools_removed
+                            .iter()
+                            .flatten()
+                            .filter(|removed| !added.iter().any(|tool| tool.name == removed.name))
+                            .map(|tool| tool.name.as_str())
+                            .collect::<Vec<_>>();
+                        if !removed.is_empty() {
+                            if !text.is_empty() {
+                                text.push_str("\n\n");
+                            }
+                            text.push_str(
+                                "The following tools are no longer available. Do not call them:\n",
+                            );
+                            text.push_str(
+                                &removed
+                                    .iter()
+                                    .map(|name| format!("- {name}"))
+                                    .collect::<Vec<_>>()
+                                    .join("\n"),
+                            );
+                            for name in removed {
+                                if !unavailable.iter().any(|old| old == name) {
+                                    unavailable.push(name.into());
+                                }
+                            }
+                        }
+                    }
+                    if !text.is_empty() {
+                        messages.push(json!({"role":instruction_role,"content":text}));
+                    }
+                }
+            }
+
             Message::User(message) => {
                 let content: Vec<_> = match &message.content {
                     pi_ai_core::UserContent::Text(text) => {
@@ -477,9 +597,9 @@ pub fn convert_responses_messages(
                                 item["id"] = Value::String(id.to_owned());
                             }
                             if (same_model
-                                || options
-                                    .deferred_tools
-                                    .is_some_and(|map| map.contains_key(call.name.as_str())))
+                                || pi_ai_core::get_declared_tools(&context.messages)
+                                    .iter()
+                                    .any(|tool| tool.name == call.name))
                                 && let Some(namespace) = &call.namespace
                             {
                                 item["namespace"] = Value::String(namespace.clone());
@@ -490,6 +610,12 @@ pub fn convert_responses_messages(
                 }
                 if converted.is_empty() {
                     continue;
+                }
+                if options.configuration_update_effort.is_some()
+                    && same_model
+                    && let Some(effort) = &message.provider_thinking_level
+                {
+                    insert_configuration_update(&mut messages, effort);
                 }
                 messages.extend(converted);
             }
@@ -504,32 +630,14 @@ pub fn convert_responses_messages(
                     .grammar_tool_input_properties
                     .is_some_and(|map| map.contains_key(message.tool_name.as_str()));
                 messages.push(json!({"type":if custom {"custom_tool_call_output"} else {"function_call_output"},"call_id":call_id,"output":tool_output(model,&message.content)}));
-                let mut tools = Vec::new();
-                for name in message.added_tool_names.iter().flatten() {
-                    if let Some(tool) = options
-                        .deferred_tools
-                        .and_then(|map| map.get(name.as_str()))
-                        && loaded.insert(name.clone())
-                    {
-                        tools.push(tool.clone());
-                    }
-                }
-                if !tools.is_empty() {
-                    let tool_options = options.tool_options.cloned().unwrap_or_default();
-                    match options.deferred_tools_mode {
-                        Some(ResponsesDeferredToolsMode::AdditionalTools) => messages.push(json!({"type":"additional_tools","role":"developer","tools":convert_responses_tools(&tools,&tool_options)?})),
-                        Some(ResponsesDeferredToolsMode::ToolSearch) => {
-                            let names = tools.iter().map(|tool|tool.name.as_str()).collect::<Vec<_>>();
-                            let id = format!("pi_tool_load_{}",short_hash(&format!("{}:{}",message.tool_call_id.as_str(),names.join(","))));
-                            messages.push(json!({"type":"tool_search_call","call_id":id,"execution":"client","status":"completed","arguments":{"query":names.join(" "),"limit":names.len()}}));
-                            messages.push(json!({"type":"tool_search_output","call_id":id,"execution":"client","status":"completed","tools":convert_responses_tools(&tools,&ConvertResponsesToolsOptions {defer_loading:Some(true),..tool_options})?}));
-                        }
-                        None => {}
-                    }
-                }
             }
         }
-        message_index += 1;
+        if !is_leading {
+            message_index += 1;
+        }
+    }
+    if let Some(effort) = options.configuration_update_effort {
+        insert_configuration_update(&mut messages, effort);
     }
     Ok(messages)
 }
@@ -733,6 +841,7 @@ impl Processor<'_, '_> {
                     name: ToolName::new(name)
                         .map_err(|_| ResponsesError::new(ResponsesErrorKind::InvalidWire))?,
                     arguments,
+                    arguments_error: None,
                     thought_signature: None,
                     namespace: item
                         .get("namespace")
@@ -830,9 +939,10 @@ impl Processor<'_, '_> {
                     .as_str()
                     .filter(|value| !value.is_empty())
                     .unwrap_or(if partial.is_empty() { "{}" } else { partial });
-                let arguments = parse_arguments(arguments)?;
+                let parsed = pi_ai_core::parse_tool_call_arguments(Some(arguments));
                 if let AssistantContent::ToolCall(block) = &mut self.output.content[index] {
-                    block.arguments = arguments;
+                    block.arguments = parsed.arguments;
+                    block.arguments_error = parsed.arguments_error;
                 }
             }
             ("custom_tool_call", SlotKind::Custom { property, .. }) => {
@@ -1120,7 +1230,13 @@ impl Processor<'_, '_> {
                 } else {
                     wire_string(&event, "arguments")?.to_owned()
                 };
-                let arguments = parse_arguments(&next)?;
+                let parsed = kind
+                    .ends_with(".done")
+                    .then(|| pi_ai_core::parse_tool_call_arguments(Some(&next)));
+                let arguments = match &parsed {
+                    Some(parsed) => parsed.arguments.clone(),
+                    None => parse_arguments(&next)?,
+                };
                 let delta = if kind.ends_with(".delta") {
                     Some(wire_string(&event, "delta")?.to_owned())
                 } else {
@@ -1132,6 +1248,9 @@ impl Processor<'_, '_> {
                 let index = slot.index;
                 if let AssistantContent::ToolCall(block) = &mut self.output.content[index] {
                     block.arguments = arguments;
+                    if let Some(parsed) = parsed {
+                        block.arguments_error = parsed.arguments_error;
+                    }
                 }
                 if let Some(delta) = delta {
                     self.emit(index, Emission::Delta(delta))?;
@@ -1192,7 +1311,7 @@ fn parse_arguments(input: &str) -> Result<JsonObject, ResponsesError> {
     }
     match parse_streaming_json(Some(input)) {
         JsonValue::Object(object) => Ok(object),
-        _ => Err(ResponsesError::new(ResponsesErrorKind::InvalidWire)),
+        _ => Ok(JsonObject::default()),
     }
 }
 
@@ -1250,6 +1369,12 @@ pub async fn process_responses_stream(
             break;
         };
         validate_wire(&event)?;
+        if let Some(observer) = options.on_provider_stream_event {
+            observer
+                .on_provider_stream_event(&event, model)
+                .await
+                .map_err(|_| ResponsesError::new(ResponsesErrorKind::InvalidWire))?;
+        }
         processor.event(event)?;
     }
     if !processor.terminal {

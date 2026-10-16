@@ -5,12 +5,12 @@ use pi_ai_core::{
 };
 use std::{error::Error, fmt, sync::Arc, time::Duration};
 
-/// Raw ECMAScript exponential delay, including positive infinity and NaN.
+/// Capped, JavaScript-safe retry delay.
 /// This observation is process-local and deliberately not serializable.
 #[derive(Clone, Copy, Debug)]
 pub struct RetryDelay(f64);
 impl RetryDelay {
-    /// The exact source numeric observation, before timer admission.
+    /// The exact capped delay before timer admission.
     pub fn raw_milliseconds(self) -> f64 {
         self.0
     }
@@ -23,14 +23,20 @@ impl RetryDelay {
         };
         Duration::from_millis(ms)
     }
-    fn exponential(base: SafeUnsigned, attempt: u64) -> Self {
-        let exponent = attempt - 1;
-        let power = if exponent >= 1024 {
-            f64::INFINITY
+    fn exponential(base: SafeUnsigned, attempt: u64, cap: Option<SafeUnsigned>) -> Self {
+        let exponent = attempt.saturating_sub(1);
+        let delay = if base.get() == 0 && exponent < 1024 {
+            0
+        } else if exponent >= 64 {
+            u64::MAX
         } else {
-            2.0_f64.powi(exponent as i32)
+            base.get().saturating_mul(1u64 << exponent as u32)
         };
-        Self(base.get() as f64 * power)
+        Self(
+            delay
+                .min(9_007_199_254_740_991)
+                .min(cap.map_or(60_000, SafeUnsigned::get)) as f64,
+        )
     }
 }
 /// Rejected producer, observer or sleeper operation. Formatting never exposes its source.
@@ -175,7 +181,11 @@ pub async fn retry_assistant_call(
         // Existing MaxRetries bounds guarantee both count and increment remain JS-safe.
         attempt = SafeUnsigned::new(attempt.get() + 1).expect("admitted retry budget is safe");
         let policy = policy.expect("positive retry budget requires policy");
-        let delay = RetryDelay::exponential(policy.base_delay_ms, attempt.get());
+        let delay = RetryDelay::exponential(
+            policy.base_delay_ms,
+            attempt.get(),
+            policy.max_agent_delay_ms,
+        );
         let message = response
             .error_message
             .as_deref()
@@ -208,6 +218,34 @@ pub async fn retry_assistant_call(
         }
         if let Some(observer) = callbacks {
             observer.on_retry_attempt_start().await?;
+        }
+    }
+}
+
+#[cfg(test)]
+mod release_tests {
+    use super::*;
+    #[test]
+    fn capped_retry_delays_match_exact_release_source() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../conformance/provider-traces/v1.4.0/wire-observations.json"
+        ))
+        .unwrap();
+        for case in fixture["helpers"]["retryDelays"].as_array().unwrap() {
+            let mut policy = case["policy"].clone();
+            policy["enabled"] = true.into();
+            policy["maxRetries"] = 1025.into();
+            let policy: RetryPolicy = serde_json::from_value(policy).unwrap();
+            assert_eq!(
+                RetryDelay::exponential(
+                    policy.base_delay_ms,
+                    case["attempt"].as_u64().unwrap(),
+                    policy.max_agent_delay_ms
+                )
+                .raw_milliseconds(),
+                case["delay"].as_f64().unwrap(),
+                "{case}"
+            );
         }
     }
 }

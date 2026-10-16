@@ -304,41 +304,18 @@ fn retry_extreme_numeric_observations_and_clock_projection() {
             );
             let raw = h.raw.lock().unwrap().clone();
             assert_eq!(raw.len(), 1025);
-            let source: Value = serde_json::from_str(include_str!(
-                "../../../conformance/ai-compat/retry/source-observations.json"
-            ))
-            .unwrap();
-            let expected = source["extremes"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .find(|v| v["base"].as_u64() == Some(base))
-                .unwrap();
-            let bits: Vec<String> = raw
-                .iter()
-                .map(|delay| {
-                    let value = delay.raw_milliseconds();
-                    if value.is_nan() {
-                        "NaN".into()
-                    } else if value.is_infinite() {
-                        "Infinity".into()
-                    } else {
-                        format!("{:016x}", value.to_bits())
-                    }
-                })
-                .collect();
-            assert_eq!(json!(bits), expected["delays"]);
-            assert_eq!(
-                *h.calls.lock().unwrap(),
-                expected["calls"].as_u64().unwrap()
-            );
-            assert_eq!(raw[0].raw_milliseconds(), base as f64);
-            if base == 0 {
-                assert!(raw[1024].raw_milliseconds().is_nan());
-            } else {
-                assert_eq!(raw[1024].raw_milliseconds(), f64::INFINITY);
+            for (index, delay) in raw.iter().enumerate() {
+                let number = base as f64 * 2f64.powi(index as i32);
+                let safe = if number.is_finite() && number <= 9_007_199_254_740_991.0 {
+                    number
+                } else {
+                    9_007_199_254_740_991.0
+                };
+                assert_eq!(delay.raw_milliseconds(), safe.min(60_000.0));
             }
-            assert_eq!(raw[1024].node_duration(), Duration::from_millis(1));
+            assert_eq!(*h.calls.lock().unwrap(), 1026);
+            assert_eq!(raw[1024].raw_milliseconds(), 60_000.0);
+            assert_eq!(raw[1024].node_duration(), Duration::from_millis(60_000));
             let clock = Arc::new(ClockFixture(Mutex::new(vec![])));
             let sleeper = ClockRetrySleeper::new(clock.clone());
             let c = CancellationToken::new();
@@ -346,7 +323,7 @@ fn retry_extreme_numeric_observations_and_clock_projection() {
                 sleeper.sleep(raw[1024], &c).await,
                 Err(RetrySleepError::Cancelled)
             ));
-            assert_eq!(*clock.0.lock().unwrap(), [Duration::from_millis(1)]);
+            assert_eq!(*clock.0.lock().unwrap(), [Duration::from_millis(60_000)]);
             assert!(matches!(
                 sleeper.sleep(raw[0], &c).await,
                 Err(RetrySleepError::Cancelled)

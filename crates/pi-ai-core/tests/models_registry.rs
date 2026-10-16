@@ -18,18 +18,18 @@ use pi_ai_core::{
     CredentialRevision, CredentialStore, CredentialStoreError, CredentialStoreErrorCode,
     DeferredCancelOptions, DeferredCancelOptionsWire, DeferredCancelRequest, DeferredFetchOptions,
     DeferredFetchOptionsWire, DeferredFetchRequest, DeferredHandle, DeferredId, DoneReason,
-    InMemoryCredentialStore, Model, ModelAuth, ModelBaseUrl, ModelHeaderPolicy, ModelId,
-    ModelsError, ModelsErrorCode, ModelsMemoryIntent, ModelsPersistenceIntent, ModelsPublication,
+    InMemoryCredentialStore, Model, ModelAuth, ModelHeaderPolicy, ModelId, ModelsError,
+    ModelsErrorCode, ModelsMemoryIntent, ModelsPersistenceIntent, ModelsPublication,
     ModelsRefreshOptions, ModelsRegistry, ModelsRegistryOptions, ModelsRequestOverrides,
     ModelsStore, ModelsStoreEntry, ModelsStoreError, OAuthAuth, OAuthCredential,
     OAuthCredentialType, OAuthCredentials, OAuthExtraFields, Provider, ProviderAuth, ProviderEnv,
     ProviderHeaders, ProviderId, ProviderModelsRefresher, PublicationOutcome, RawModel,
-    RawModelHeaders, RawModelsStoreEntry, RequestEndpoint, RequestRuntime, ResolvedAuth,
-    SafeUnsigned, SecretString, SimpleStreamOptions, SimpleStreamOptionsWire, SimpleStreamRequest,
-    SpawnError, StopReason, StreamOptions, StreamOptionsWire, TaskSpawner, TextStreamRequest,
-    Usage, VersionedCredential, create_assistant_message_event_stream,
+    RawModelHeaders, RawModelsStoreEntry, RequestRuntime, ResolvedAuth, SafeUnsigned, SecretString,
+    SimpleStreamOptions, SimpleStreamOptionsWire, SimpleStreamRequest, SpawnError, StopReason,
+    StreamOptions, StreamOptionsWire, TaskSpawner, TextStreamRequest, Usage, VersionedCredential,
+    create_assistant_message_event_stream,
 };
-use pi_telemetry::{NOOP_TELEMETRY_CONTEXT, TelemetryContext};
+use pi_telemetry::{NOOP_TELEMETRY_SPAN, TelemetrySpan};
 
 const MODEL_FIXTURE: &str =
     include_str!("../../../conformance/schema/ai/models-options.golden.json");
@@ -1603,6 +1603,7 @@ impl ProviderModelsRefresher for TestRefresher {
 #[derive(Default)]
 struct AdapterLog {
     roots: Mutex<Vec<String>>,
+    identities: Mutex<Vec<Option<pi_ai_core::ClientIdentity>>>,
     models: Mutex<Vec<ModelId>>,
     endpoints: Mutex<Vec<String>>,
     headers: Mutex<Vec<ProviderHeaders>>,
@@ -1642,6 +1643,9 @@ fn terminal_stream(
                 provider: model.provider,
                 model: model.id,
                 response_model: None,
+                provider_thinking_level: None,
+                thinking_level: None,
+                duration_ms: None,
                 response_id: None,
                 diagnostics: None,
                 usage: Usage::zero(),
@@ -1724,6 +1728,11 @@ impl ApiAdapter for TestAdapter {
     }
 
     fn stream(&self, request: TextStreamRequest) -> AssistantStream {
+        self.log
+            .identities
+            .lock()
+            .unwrap()
+            .push(request.options.wire.identity.clone());
         self.record(
             "stream",
             &request.resolved,
@@ -1739,6 +1748,11 @@ impl ApiAdapter for TestAdapter {
     }
 
     fn stream_simple(&self, request: SimpleStreamRequest) -> AssistantStream {
+        self.log
+            .identities
+            .lock()
+            .unwrap()
+            .push(request.options.wire.stream.identity.clone());
         self.record(
             "simple",
             &request.resolved,
@@ -1959,11 +1973,18 @@ struct BlockingOAuthFixture {
 }
 
 fn fixture(policy: ModelHeaderPolicy) -> Fixture {
+    fixture_identity(policy, None)
+}
+fn fixture_identity(
+    policy: ModelHeaderPolicy,
+    identity: Option<pi_ai_core::ClientIdentity>,
+) -> Fixture {
     let spawner = Arc::new(ManualSpawner::default());
     let store = Arc::new(StoreState::default());
     let credentials = Arc::new(InMemoryCredentialStore::new());
     let clock = Arc::new(TestClock::new(100));
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity,
         credentials: credentials.clone(),
         models_store: Box::new(TestModelsStore {
             state: Arc::clone(&store),
@@ -1986,6 +2007,7 @@ fn blocking_fixture() -> BlockingFixture {
     let spawner = Arc::new(ManualSpawner::default());
     let store = Arc::new(BlockingStoreState::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(BlockingModelsStore {
             state: Arc::clone(&store),
@@ -2006,6 +2028,7 @@ fn reentrant_blocking_fixture() -> ReentrantBlockingFixture {
     let spawner = Arc::new(ReentrantSpawner::default());
     let store = Arc::new(BlockingStoreState::default());
     let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(BlockingModelsStore {
             state: Arc::clone(&store),
@@ -2035,6 +2058,7 @@ fn blocking_oauth_fixture() -> BlockingOAuthFixture {
         refresh_callback: Mutex::new(None),
     });
     let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(BlockingCredentialStore {
             state: credentials.clone(),
         }),
@@ -2113,10 +2137,11 @@ fn assert_setup_terminal(result: &AssistantMessage, message: &str) {
 }
 
 fn runtime(spawner: Arc<ManualSpawner>, clock: Arc<TestClock>) -> RequestRuntime {
-    let telemetry: Arc<dyn TelemetryContext> = Arc::new(NOOP_TELEMETRY_CONTEXT);
+    let telemetry: Arc<dyn TelemetrySpan> = Arc::new(NOOP_TELEMETRY_SPAN);
     RequestRuntime {
         cancellation: CancellationToken::new(),
         telemetry,
+        provider_event_observer: None,
         clock,
         spawner,
     }
@@ -2358,6 +2383,7 @@ fn provider_mutations_preserve_order_and_slots() {
     let spawner = Arc::new(ManualSpawner::default());
     spawner.set_fail(true);
     let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(TestModelsStore {
             state: Arc::new(StoreState::default()),
@@ -2391,6 +2417,7 @@ fn provider_mutations_preserve_order_and_slots() {
         let spawner = Arc::new(ReentrantSpawner::default());
         spawner.fail_outer.store(fail_outer, Ordering::Release);
         let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
+            identity: None,
             credentials: Arc::new(InMemoryCredentialStore::new()),
             models_store: Box::new(TestModelsStore {
                 state: Arc::new(StoreState::default()),
@@ -2921,6 +2948,7 @@ fn memory_and_persistence_intents_are_independent_values() {
 
     let spawner = Arc::new(ManualSpawner::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(FailingModelsStore),
         auth_context: Arc::new(EmptyContext),
@@ -2974,6 +3002,7 @@ fn memory_and_persistence_intents_are_independent_values() {
     let callback = Arc::new(Mutex::new(None));
     let spawner = Arc::new(ManualSpawner::default());
     let registry = Arc::new(ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(ReentrantFailingModelsStore {
             callback: callback.clone(),
@@ -3175,7 +3204,7 @@ fn login_api_key_oauth_unknown_and_unsupported_matrix() {
 }
 
 #[test]
-fn endpoint_override_public_runtime_missing_and_custody_matrix() {
+fn endpoint_override_public_and_custody_matrix() {
     let fixture = fixture(ModelHeaderPolicy::default());
     let log = Arc::new(AdapterLog::default());
     let adapter = Arc::new(TestAdapter {
@@ -3222,9 +3251,6 @@ fn endpoint_override_public_runtime_missing_and_custody_matrix() {
         model("p", "m"),
         empty_context(),
         ModelsRequestOverrides {
-            runtime_endpoint: Some(
-                RequestEndpoint::new_resolved("https://ignored.invalid").expect("endpoint"),
-            ),
             ..ModelsRequestOverrides::default()
         },
         StreamOptions {
@@ -3241,73 +3267,6 @@ fn endpoint_override_public_runtime_missing_and_custody_matrix() {
         "https://credential.invalid"
     );
     auth.auth.lock().unwrap_or_else(|p| p.into_inner()).base_url = None;
-
-    let mut sentinel = model("p", "azure");
-    sentinel.api = ApiId::new(ApiId::AZURE_OPENAI_RESPONSES).expect("api");
-    sentinel.base_url = ModelBaseUrl::RuntimeResolved;
-    let result = fixture.registry.stream(
-        sentinel,
-        empty_context(),
-        ModelsRequestOverrides::default(),
-        StreamOptions {
-            wire: StreamOptionsWire::default(),
-            runtime: runtime(request_spawner.clone(), fixture.clock.clone()),
-        },
-    );
-    let result = drive(result.result(), &request_spawner);
-    assert_eq!(result.stop_reason, StopReason::Error);
-
-    let azure_log = Arc::new(AdapterLog::default());
-    let azure_adapter = Arc::new(TestAdapter {
-        api: ApiId::new(ApiId::AZURE_OPENAI_RESPONSES).expect("api"),
-        log: azure_log.clone(),
-        fetch_supported: true,
-        cancel_supported: true,
-    });
-    let azure_auth = Arc::new(TestApiKey::configured());
-    let mut azure_model = model("azure", "m");
-    azure_model.api = ApiId::new(ApiId::AZURE_OPENAI_RESPONSES).expect("api");
-    azure_model.base_url = ModelBaseUrl::RuntimeResolved;
-    set_provider(
-        &fixture,
-        provider(
-            "azure",
-            vec![azure_model.clone()],
-            azure_auth,
-            None,
-            Some(azure_adapter),
-        ),
-    );
-    let stream = fixture.registry.stream(
-        azure_model.clone(),
-        empty_context(),
-        ModelsRequestOverrides {
-            runtime_endpoint: Some(
-                RequestEndpoint::new_resolved("https://runtime.invalid").expect("endpoint"),
-            ),
-            ..ModelsRequestOverrides::default()
-        },
-        StreamOptions {
-            wire: StreamOptionsWire::default(),
-            runtime: runtime(request_spawner.clone(), fixture.clock.clone()),
-        },
-    );
-    assert_eq!(
-        drive(stream.result(), &request_spawner).stop_reason,
-        StopReason::Stop
-    );
-    assert_eq!(
-        azure_log
-            .endpoints
-            .lock()
-            .unwrap_or_else(|p| p.into_inner())
-            .as_slice(),
-        ["https://runtime.invalid"]
-    );
-    assert!(matches!(
-        azure_model.base_url,
-        ModelBaseUrl::RuntimeResolved
-    ));
 }
 
 #[test]
@@ -3379,7 +3338,6 @@ fn resolved_model_explicit_header_merge_case_and_null_matrix() {
                 min_oauth_validity_ms: None,
             },
             headers: ProviderHeaders::new(BTreeMap::from([("x-TEST".to_owned(), None)])),
-            ..ModelsRequestOverrides::default()
         },
         StreamOptions {
             wire: StreamOptionsWire::default(),
@@ -3765,45 +3723,6 @@ fn dispatch_setup_failures_are_in_band_cancel_distinct_and_redacted() {
     let result = drive(stream.result(), &auth_spawner);
     assert_setup_terminal(&result, "stream authentication failed");
 
-    let endpoint_log = Arc::new(AdapterLog::default());
-    let endpoint_adapter = Arc::new(TestAdapter {
-        api: ApiId::new(ApiId::AZURE_OPENAI_RESPONSES).expect("api"),
-        log: endpoint_log,
-        fetch_supported: true,
-        cancel_supported: true,
-    });
-    let endpoint_auth = Arc::new(TestApiKey::configured());
-    endpoint_auth
-        .auth
-        .lock()
-        .unwrap_or_else(|p| p.into_inner())
-        .api_key = Some(SecretString::new(SECRET_SENTINEL));
-    let mut endpoint_model = model("endpoint-fail", "m");
-    endpoint_model.api = ApiId::new(ApiId::AZURE_OPENAI_RESPONSES).expect("api");
-    endpoint_model.base_url = ModelBaseUrl::RuntimeResolved;
-    set_provider(
-        &fixture,
-        provider(
-            "endpoint-fail",
-            vec![endpoint_model.clone()],
-            endpoint_auth,
-            None,
-            Some(endpoint_adapter),
-        ),
-    );
-    let endpoint_spawner = Arc::new(ManualSpawner::default());
-    let stream = fixture.registry.stream(
-        endpoint_model,
-        empty_context(),
-        ModelsRequestOverrides::default(),
-        StreamOptions {
-            wire: StreamOptionsWire::default(),
-            runtime: runtime(endpoint_spawner.clone(), fixture.clock.clone()),
-        },
-    );
-    let result = drive(stream.result(), &endpoint_spawner);
-    assert_setup_terminal(&result, "stream adapter setup failed");
-
     let missing_adapter_auth = Arc::new(TestApiKey::configured());
     missing_adapter_auth
         .auth
@@ -3866,7 +3785,7 @@ fn dispatch_setup_failures_are_in_band_cancel_distinct_and_redacted() {
 
     let cancelled = CancellationToken::new();
     cancelled.cancel();
-    let telemetry: Arc<dyn TelemetryContext> = Arc::new(NOOP_TELEMETRY_CONTEXT);
+    let telemetry: Arc<dyn TelemetrySpan> = Arc::new(NOOP_TELEMETRY_SPAN);
     let cancel_spawner = Arc::new(ManualSpawner::default());
     let stream = fixture.registry.stream(
         model("missing", "m"),
@@ -3877,6 +3796,7 @@ fn dispatch_setup_failures_are_in_band_cancel_distinct_and_redacted() {
             runtime: RequestRuntime {
                 cancellation: cancelled,
                 telemetry,
+                provider_event_observer: None,
                 clock: fixture.clock.clone(),
                 spawner: cancel_spawner,
             },
@@ -4075,6 +3995,7 @@ fn cache_publication_precedes_any_credential_read() {
     let trace = Arc::new(Mutex::new(Vec::new()));
     let spawner = Arc::new(ManualSpawner::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(TraceCredentialStore {
             trace: trace.clone(),
         }),
@@ -4139,6 +4060,7 @@ fn restore_reclassifies_raw_headers_under_current_policy() {
     let trace = Arc::new(Mutex::new(Vec::new()));
     let spawner = Arc::new(ManualSpawner::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(TraceCredentialStore {
             trace: trace.clone(),
         }),
@@ -4210,6 +4132,7 @@ fn login_cancellation_before_queue_and_after_commit_admission() {
     let spawner = Arc::new(ManualSpawner::default());
     let state = Arc::new(BlockingCredentialState::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(BlockingCredentialStore {
             state: state.clone(),
         }),
@@ -4260,6 +4183,7 @@ fn explicit_login_reconciles_quarantine_at_reserved_revision() {
     let spawner = Arc::new(ManualSpawner::default());
     let credentials = Arc::new(QuarantineCredentialStore::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: credentials.clone(),
         models_store: Box::new(TestModelsStore {
             state: Arc::new(StoreState::default()),
@@ -4299,6 +4223,7 @@ fn explicit_login_reconciles_quarantine_at_reserved_revision() {
     let spawner = Arc::new(ManualSpawner::default());
     let state = Arc::new(BlockingQuarantineState::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(BlockingQuarantineStore {
             state: state.clone(),
         }),
@@ -4368,6 +4293,7 @@ fn logout_refresh_race_and_quarantine_delete_matrix() {
     let spawner = Arc::new(ManualSpawner::default());
     let quarantined = Arc::new(QuarantineCredentialStore::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: quarantined.clone(),
         models_store: Box::new(TestModelsStore {
             state: Arc::new(StoreState::default()),
@@ -4389,6 +4315,7 @@ fn logout_refresh_race_and_quarantine_delete_matrix() {
 
     let state = Arc::new(BlockingQuarantineState::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(BlockingQuarantineStore {
             state: state.clone(),
         }),
@@ -4423,6 +4350,7 @@ fn logout_refresh_race_and_quarantine_delete_matrix() {
         state: oauth_state.clone(),
     });
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: credentials.clone(),
         models_store: Box::new(TestModelsStore {
             state: Arc::new(StoreState::default()),
@@ -5585,6 +5513,69 @@ fn persistence_fence_before_during_after_admission_matrix() {
                 outcomes.is_empty() || outcomes.as_slice() == [PublicationOutcome::Superseded],
                 "stale publication may be dropped by generation cancellation or observe Superseded"
             );
+        }
+    }
+}
+
+#[test]
+fn registry_identity_defaults_merge_with_raw_and_simple_requests() {
+    let source: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/provider-traces/v1.4.0/wire-observations.json"
+    ))
+    .unwrap();
+    for case in source["helpers"]["identities"].as_array().unwrap() {
+        let base = serde_json::from_value(case["base"].clone()).unwrap();
+        let fixture = fixture_identity(ModelHeaderPolicy::default(), Some(base));
+        let log = Arc::new(AdapterLog::default());
+        let adapter = Arc::new(TestAdapter {
+            api: ApiId::new(ApiId::OPENAI_COMPLETIONS).unwrap(),
+            log: log.clone(),
+            fetch_supported: false,
+            cancel_supported: false,
+        });
+        set_provider(
+            &fixture,
+            provider(
+                "p",
+                vec![model("p", "m")],
+                Arc::new(TestApiKey::configured()),
+                None,
+                Some(adapter),
+            ),
+        );
+        let spawner = Arc::new(ManualSpawner::default());
+        let wire: StreamOptionsWire =
+            serde_json::from_value(serde_json::json!({"identity":case["request"]})).unwrap();
+        let raw = fixture.registry.stream(
+            model("p", "m"),
+            empty_context(),
+            Default::default(),
+            StreamOptions {
+                wire: wire.clone(),
+                runtime: runtime(spawner.clone(), fixture.clock.clone()),
+            },
+        );
+        assert_eq!(drive(raw.result(), &spawner).stop_reason, StopReason::Stop);
+        let simple = fixture.registry.stream_simple(
+            model("p", "m"),
+            empty_context(),
+            Default::default(),
+            SimpleStreamOptions {
+                wire: SimpleStreamOptionsWire {
+                    stream: wire,
+                    ..Default::default()
+                },
+                runtime: runtime(spawner.clone(), fixture.clock.clone()),
+            },
+        );
+        assert_eq!(
+            drive(simple.result(), &spawner).stop_reason,
+            StopReason::Stop
+        );
+        let identities = log.identities.lock().unwrap();
+        assert_eq!(identities.len(), 2);
+        for observed in identities.iter() {
+            assert_eq!(serde_json::to_value(observed).unwrap(), case["merged"]);
         }
     }
 }

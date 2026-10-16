@@ -6,7 +6,7 @@ use std::task::{Context as TaskContext, Poll, Waker};
 use std::time::Duration;
 
 use pi_ai_core::*;
-use pi_telemetry::NOOP_TELEMETRY_CONTEXT;
+use pi_telemetry::NOOP_TELEMETRY_SPAN;
 
 fn poll<F: Future + ?Sized>(future: Pin<&mut F>) -> Poll<F::Output> {
     future.poll(&mut TaskContext::from_waker(Waker::noop()))
@@ -226,6 +226,7 @@ impl Fixture {
     fn new(opt_in: bool, pending_auth: bool, handoff_cancel: bool, unsupported: bool) -> Self {
         let executor = Arc::new(Executor::default());
         let options = ModelsRegistryOptions {
+            identity: None,
             credentials: Arc::new(InMemoryCredentialStore::new()),
             models_store: Box::new(InMemoryModelsStore::new()),
             auth_context: Arc::new(Host),
@@ -270,7 +271,8 @@ impl Fixture {
     fn runtime(&self) -> RequestRuntime {
         RequestRuntime {
             cancellation: self.token.clone(),
-            telemetry: Arc::new(NOOP_TELEMETRY_CONTEXT),
+            telemetry: Arc::new(NOOP_TELEMETRY_SPAN),
+            provider_event_observer: None,
             clock: Arc::new(TestClock),
             spawner: self.executor.clone(),
         }
@@ -518,6 +520,7 @@ fn ready_success_terminal_wins_later_cancellation_before_forwarding() {
     f.executor.tick();
     let mut terminal = message(&model(), 23);
     terminal.stop_reason = StopReason::Stop;
+    terminal.duration_ms = Some(SafeUnsigned::new(0).unwrap());
     f.child
         .producer
         .lock()

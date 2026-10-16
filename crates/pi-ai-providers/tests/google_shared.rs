@@ -63,6 +63,12 @@ fn exact_export_inventory_and_installed_sdk_enums_are_complete() {
         let mode: GoogleFunctionCallingConfigMode = serde_json::from_value(value.clone()).unwrap();
         assert_eq!(serde_json::to_value(mode).unwrap(), *value);
     }
+    assert_eq!(
+        map_stop_reason(
+            serde_json::from_value::<GoogleFinishReason>(json!("TOO_MANY_TOOL_CALLS")).unwrap()
+        ),
+        StopReason::Error
+    );
     assert_eq!(f["enums"]["FinishReason"].as_object().unwrap().len(), 17);
     for value in [json!(null), json!("FUTURE"), json!(true), json!(0)] {
         assert!(serde_json::from_value::<GoogleApiThinkingLevel>(value.clone()).is_err());
@@ -75,7 +81,11 @@ fn exact_export_inventory_and_installed_sdk_enums_are_complete() {
 #[test]
 fn all_thinking_mappings_markers_and_retention_match_pinned_execution() {
     let f = fixture();
-    for case in f["thinking"].as_array().unwrap() {
+    let release: Value = serde_json::from_str(include_str!(
+        "../../../conformance/provider-traces/v1.4.0/wire-observations.json"
+    ))
+    .unwrap();
+    for case in release["helpers"]["googleThinking"].as_array().unwrap() {
         let level: ModelThinkingLevel = serde_json::from_value(case["level"].clone()).unwrap();
         let result = resolve_google_thinking_level(&model(&case["model"]), level);
         if case["error"] == true {
@@ -146,7 +156,9 @@ fn prefix_case_sensitivity_versions_choices_and_both_stop_dispatches_match_sourc
 fn all_complete_message_projections_match_executed_source_without_mutation() {
     for case in fixture()["messages"].as_array().unwrap() {
         let m = model(&case["model"]);
-        let context: Context = serde_json::from_value(case["context"].clone()).unwrap();
+        let context = pi_ai_core::normalize_context(
+            serde_json::from_value::<Context>(case["context"].clone()).unwrap(),
+        );
         let before = serde_json::to_value(&context).unwrap();
         let output = convert_messages(&m, &context, safe(7)).unwrap();
         assert_eq!(json!(output), case["expected"], "{}", case["id"]);
@@ -164,7 +176,9 @@ fn signed_empty_blocks_are_preserved_as_distinct_parts() {
         .iter()
         .find(|case| case["id"] == "signature-2")
         .unwrap();
-    let context: Context = serde_json::from_value(case["context"].clone()).unwrap();
+    let context = pi_ai_core::normalize_context(
+        serde_json::from_value::<Context>(case["context"].clone()).unwrap(),
+    );
     let output = convert_messages(&model(&case["model"]), &context, safe(7)).unwrap();
     assert_eq!(output[0].parts.len(), 3);
     assert_eq!(output[0].parts[0].text.as_deref(), Some(""));
@@ -257,7 +271,7 @@ fn core_identity_collision_and_schema_resource_limits_are_not_silently_weakened(
     value["messages"][0]["content"] = json!([
         {"type":"toolCall","id":"a|b","name":"read","arguments":{}},
         {"type":"toolCall","id":"a/b","name":"read","arguments":{}}]);
-    let context: Context = serde_json::from_value(value).unwrap();
+    let context = pi_ai_core::normalize_context(serde_json::from_value::<Context>(value).unwrap());
     assert!(matches!(
         convert_messages(&model(&case["model"]), &context, safe(7)),
         Err(GoogleSharedError::MessageTransform(_))

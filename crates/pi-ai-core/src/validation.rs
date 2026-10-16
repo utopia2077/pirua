@@ -83,11 +83,23 @@ static VALIDATOR_CACHE: OnceLock<Mutex<BoundedCache<CompiledToolSchema>>> = Once
 ///     message: "unbounded",
 /// };
 /// ```
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct ToolValidationIssue {
     path: String,
     keyword: String,
     message: &'static str,
+    model_diagnostic: String,
+}
+
+impl fmt::Debug for ToolValidationIssue {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ToolValidationIssue")
+            .field("path", &self.path)
+            .field("keyword", &self.keyword)
+            .field("message", &self.message)
+            .finish_non_exhaustive()
+    }
 }
 
 impl ToolValidationIssue {
@@ -161,6 +173,8 @@ impl fmt::Display for ToolValidationReport {
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum ToolValidationError {
+    /// Complete model arguments failed JSON-object parsing.
+    MalformedArguments,
     /// No declaration has the requested exact, case-sensitive tool name.
     ToolNotFound,
     /// The tool schema is invalid or exceeds a validation bound.
@@ -172,6 +186,7 @@ pub enum ToolValidationError {
 impl fmt::Display for ToolValidationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
+            Self::MalformedArguments => "malformed tool arguments",
             Self::ToolNotFound => "tool not found",
             Self::InvalidSchema => "invalid tool schema",
             Self::InvalidArguments(_) => "tool arguments failed validation",
@@ -180,6 +195,53 @@ impl fmt::Display for ToolValidationError {
 }
 
 impl std::error::Error for ToolValidationError {}
+
+/// Formats validation feedback for a model-visible tool result.
+///
+/// Unlike the error's redacted `Display` and `Debug`, this explicit operation
+/// includes the original arguments and native JSON Schema diagnostics. Paths
+/// and keywords come from the same validation pass; English diagnostic wording
+/// follows the native validator rather than TypeBox.
+pub fn format_tool_validation_feedback(
+    tool_call: &ToolCall,
+    error: &ToolValidationError,
+) -> String {
+    match error {
+        ToolValidationError::MalformedArguments => format!(
+            "Invalid arguments for tool \"{}\": {}",
+            tool_call.name,
+            tool_call
+                .arguments_error
+                .as_deref()
+                .unwrap_or("malformed tool arguments")
+        ),
+        ToolValidationError::ToolNotFound => format!("Tool \"{}\" not found", tool_call.name),
+        ToolValidationError::InvalidSchema => {
+            format!("Invalid schema for tool \"{}\"", tool_call.name)
+        }
+        ToolValidationError::InvalidArguments(report) => {
+            let mut feedback = format!("Validation failed for tool \"{}\":\n", tool_call.name);
+            for issue in report.issues() {
+                feedback.push_str(&format!(
+                    "  - {} [{}]: {}\n",
+                    issue.path, issue.keyword, issue.model_diagnostic
+                ));
+            }
+            if report.omitted_issue_count.get() > 0 {
+                feedback.push_str(&format!(
+                    "  - {} additional issues omitted\n",
+                    report.omitted_issue_count.get()
+                ));
+            }
+            feedback.push_str("\nReceived arguments:\n");
+            feedback.push_str(
+                &serde_json::to_string_pretty(&tool_call.arguments)
+                    .expect("tool arguments are JSON values"),
+            );
+            feedback
+        }
+    }
+}
 
 /// Finds the first exact tool-name match and validates its call arguments.
 pub fn validate_tool_call(
@@ -201,6 +263,9 @@ pub fn validate_tool_arguments(
     tool: &Tool,
     tool_call: &ToolCall,
 ) -> Result<JsonObject, ToolValidationError> {
+    if tool_call.arguments_error.is_some() {
+        return Err(ToolValidationError::MalformedArguments);
+    }
     preflight_structure(&tool.parameters.0, MAX_SCHEMA_BYTES)
         .map_err(|()| ToolValidationError::InvalidSchema)?;
     preflight_arguments(&tool_call.arguments, MAX_ARGUMENT_BYTES)
@@ -412,6 +477,8 @@ fn pattern_property_runtime_report(
                                     path: "root".to_owned(),
                                     keyword: "patternProperties".to_owned(),
                                     message: "pattern evaluation limit exceeded",
+                                    model_diagnostic: "pattern evaluation limit exceeded"
+                                        .to_owned(),
                                 }],
                                 omitted_issue_count: safe_unsigned(0),
                             });
@@ -788,6 +855,7 @@ fn invalid_argument_preflight_report() -> ToolValidationError {
             path: "root".to_owned(),
             keyword: "preflight".to_owned(),
             message: "arguments exceed validation limits",
+            model_diagnostic: "arguments exceed validation limits".to_owned(),
         }],
         omitted_issue_count: safe_unsigned(0),
     })
@@ -839,6 +907,7 @@ fn issue_from_error(error: &jsonschema::ValidationError<'_>) -> ToolValidationIs
         path,
         keyword: bounded_string(error.kind().keyword(), MAX_KEYWORD_BYTES),
         message: fixed_message(error.kind()),
+        model_diagnostic: error.to_string(),
     }
 }
 

@@ -1,7 +1,6 @@
 use pi_ai_core::*;
 use pi_ai_providers::api::{
-    anthropic_messages::*, google_genai::*, openai_codex_responses::*, openai_completions::*,
-    openai_responses::*, runtime::*,
+    anthropic_messages::*, google_genai::*, openai_completions::*, openai_responses::*, runtime::*,
 };
 use pi_ai_transport::*;
 use serde_json::{Value, json};
@@ -118,7 +117,7 @@ pub fn body(family: &str) -> String {
     match family {
   "anthropic"=>"event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m1\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":17,\"output_tokens\":0}}}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":0}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n".into(),
   "google"=>format!("data: {}\n\n",json!({"candidates":[{"content":{"parts":[{"text":"synthetic"}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":17,"candidatesTokenCount":0,"totalTokenCount":17}})),
-  "openai"|"openai-codex"=>format!("data: {}\n\n",json!({"type":"response.completed","response":{"id":"r1","status":"completed","output":[],"usage":{"input_tokens":17,"output_tokens":0,"total_tokens":17}}})),
+  "openai"=>format!("data: {}\n\n",json!({"type":"response.completed","response":{"id":"r1","status":"completed","output":[],"usage":{"input_tokens":17,"output_tokens":0,"total_tokens":17}}})),
   _=>format!("data: {}\n\ndata: {}\n\ndata: [DONE]\n\n",json!({"id":"c1","choices":[],"usage":{"prompt_tokens":17,"completion_tokens":0,"total_tokens":17}}),json!({"id":"c1","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]})),
  }
 }
@@ -202,17 +201,9 @@ pub fn wire() -> StreamOptionsWire {
 pub async fn registry(provider: Arc<dyn Provider>) -> (ModelsRegistry, Model) {
     let model = provider.models().unwrap()[0].clone();
     let credentials = Arc::new(InMemoryCredentialStore::new());
-    if model.provider.as_str() == "openai-codex" && provider.auth().oauth().is_some() {
-        let credential:Credential=serde_json::from_value(json!({"type":"oauth","access":"e30.eyJodHRwczovL2FwaS5vcGVuYWkuY29tL2F1dGgiOiB7ImNoYXRncHRfYWNjb3VudF9pZCI6ICJzeW50aGV0aWMtYWNjb3VudCJ9fQ.synthetic","refresh":"SYNTHETIC_REFRESH","expires":1700003600000u64})).unwrap();
-        credentials
-            .begin_mutation(&model.provider, &CancellationToken::new())
-            .await
-            .unwrap()
-            .commit(CredentialMutationValue::Set(credential))
-            .await
-            .unwrap();
-    }
+
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials,
         models_store: Box::new(InMemoryModelsStore::new()),
         auth_context: Arc::new(Host),
@@ -226,29 +217,13 @@ pub async fn registry(provider: Arc<dyn Provider>) -> (ModelsRegistry, Model) {
 pub fn services(peer: Arc<Peer>) -> AdapterServices {
     AdapterServices::new(Arc::new(HttpTransport::new_custom(peer, Arc::new(Host))))
 }
-pub fn codex(
-    services: AdapterServices,
-    websocket: Option<Arc<dyn PersistentWebSocketConnector>>,
-) -> OpenAICodexResponsesApi {
-    OpenAICodexResponsesApi::new(CodexServices {
-        adapter: services,
-        websocket,
-        request_ids: Arc::new(UuidV7Generator::new(Arc::new(Host), Arc::new(Host))),
-        date_parser: Arc::new(HttpRetryDateParser),
-        signal_presence: CodexSourceSignalPresence::Present,
-        compression: None,
-        limits: Default::default(),
-    })
-    .unwrap()
-}
+
 pub fn configured(family: &str, adapter: Arc<dyn ApiAdapter>) -> Arc<dyn Provider> {
     let models = match family {
         "anthropic" => pi_ai_providers::catalog::anthropic_models().unwrap(),
         "google" => pi_ai_providers::catalog::google_models().unwrap(),
         "openai" => pi_ai_providers::catalog::openai_models().unwrap(),
-        "openai-codex" => pi_ai_providers::catalog::openai_codex_models().unwrap(),
         "deepseek" => pi_ai_providers::catalog::deepseek_models().unwrap(),
-        "openrouter" => pi_ai_providers::catalog::openrouter_models().unwrap(),
         _ => panic!("family"),
     };
     create_provider(CreateProviderOptions {
@@ -274,8 +249,7 @@ pub fn provider(family: &str, services: AdapterServices) -> Arc<dyn Provider> {
         "anthropic" => Arc::new(AnthropicMessagesApi::new(services)),
         "google" => Arc::new(GoogleGenAiApi::new(services)),
         "openai" => Arc::new(OpenAIResponsesApi::new(services)),
-        "openai-codex" => Arc::new(codex(services, None)),
-        "deepseek" | "openrouter" => Arc::new(OpenAICompletionsApi::new(services)),
+        "deepseek" => Arc::new(OpenAICompletionsApi::new(services)),
         _ => panic!("family"),
     };
     configured(family, adapter)
@@ -291,7 +265,6 @@ pub async fn drain(mut stream: AssistantStream) -> (AssistantMessage, Vec<Value>
     }
     (result, events)
 }
-pub mod websocket;
 
 pub fn selected_factory(family: &str, services: AdapterServices) -> Arc<dyn Provider> {
     use pi_ai_providers::providers::*;
@@ -304,6 +277,8 @@ pub fn selected_factory(family: &str, services: AdapterServices) -> Arc<dyn Prov
             crypto: Arc::new(Host),
             callbacks: Arc::new(Host),
             callback_host: "127.0.0.1".into(),
+            device_id: None,
+            agent_name: None,
             callback_limits: Default::default(),
             max_token_response_bytes: 65536,
         }),
@@ -313,12 +288,9 @@ pub fn selected_factory(family: &str, services: AdapterServices) -> Arc<dyn Prov
             anthropic_provider(Arc::new(AnthropicMessagesApi::new(services)), &auth).unwrap()
         }
         "google" => google_provider(Arc::new(GoogleGenAiApi::new(services))).unwrap(),
-        "openai" => openai_provider(Arc::new(OpenAIResponsesApi::new(services))).unwrap(),
-        "openai-codex" => openai_codex_provider(Arc::new(codex(services, None)), &auth).unwrap(),
+        "openai" => openai_provider(Arc::new(OpenAIResponsesApi::new(services)), &auth).unwrap(),
         "deepseek" => deepseek_provider(Arc::new(OpenAICompletionsApi::new(services))).unwrap(),
-        "openrouter" => {
-            openrouter_provider(Arc::new(OpenAICompletionsApi::new(services)), &auth).unwrap()
-        }
+
         _ => panic!("family"),
     }
 }

@@ -7,15 +7,6 @@ members = [
     "crates/pi-ai-transport",
     "crates/pi-ai-providers",
     "crates/pi-ai",
-    "crates/pi-agent-schema",
-    "crates/pi-agent-loop",
-    "crates/pi-agent-session",
-    "crates/pi-agent-sqlite",
-    "crates/pi-harness-core",
-    "crates/pi-harness-runtime",
-    "crates/pi-agent-search",
-    "crates/pi-agent",
-    "crates/pi-coding-runtime",
     "crates/pi-sqlite",
     "crates/pi-coding-session",
     "crates/pi-codemode",
@@ -58,19 +49,11 @@ rustls-platform-verifier = { version = "=0.7.0", default-features = false }
 h2 = { version = "=0.4.19", default-features = false }
 url = "=2.5.8"
 jsonschema = { version = "=0.52.1", default-features = false }
-pi-agent = { path = "crates/pi-agent" }
-pi-agent-loop = { path = "crates/pi-agent-loop" }
-pi-agent-schema = { path = "crates/pi-agent-schema" }
-pi-agent-search = { path = "crates/pi-agent-search" }
-pi-agent-session = { path = "crates/pi-agent-session" }
-pi-agent-sqlite = { path = "crates/pi-agent-sqlite" }
 pi-ai = { path = "crates/pi-ai" }
 pi-ai-core = { path = "crates/pi-ai-core" }
 pi-ai-providers = { path = "crates/pi-ai-providers" }
 pi-ai-transport = { path = "crates/pi-ai-transport" }
 pi-extension-protocol = { path = "crates/pi-extension-protocol" }
-pi-harness-core = { path = "crates/pi-harness-core" }
-pi-harness-runtime = { path = "crates/pi-harness-runtime" }
 pi-telemetry = { path = "crates/pi-telemetry" }
 regex = { version = "=1.13.1", default-features = false, features = ["std"] }
 ryu-js = { version = "=1.0.3", default-features = false }

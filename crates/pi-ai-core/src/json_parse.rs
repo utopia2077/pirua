@@ -426,3 +426,40 @@ impl<'a> PartialParser<'a> {
         }
     }
 }
+
+/// Complete model-generated tool arguments and an optional parse diagnostic.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParsedToolCallArguments {
+    /// Object arguments; empty on malformed complete input.
+    pub arguments: JsonObject,
+    /// Diagnostic retaining the model's complete received text.
+    pub arguments_error: Option<String>,
+}
+/// Parses a finished call without keeping a partially parsed prefix.
+pub fn parse_tool_call_arguments(input: Option<&str>) -> ParsedToolCallArguments {
+    let input = input.unwrap_or_default();
+    if input.trim().is_empty() {
+        return ParsedToolCallArguments {
+            arguments: JsonObject::default(),
+            arguments_error: None,
+        };
+    }
+    let parsed = parse_json_with_repair::<JsonValue>(input);
+    match parsed {
+        Ok(JsonValue::Object(arguments)) => ParsedToolCallArguments {
+            arguments,
+            arguments_error: None,
+        },
+        result => ParsedToolCallArguments {
+            arguments: JsonObject::default(),
+            arguments_error: Some(format!(
+                "{}\n\nReceived arguments:\n{input}",
+                if result.is_ok() {
+                    "Tool arguments must be a JSON object"
+                } else {
+                    "Invalid JSON tool arguments"
+                }
+            )),
+        },
+    }
+}

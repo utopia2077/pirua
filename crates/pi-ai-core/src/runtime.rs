@@ -8,13 +8,12 @@ use std::sync::{Arc, Mutex, Weak};
 use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
-use pi_telemetry::{NOOP_TELEMETRY_CONTEXT, TelemetryContext};
+use pi_telemetry::{NOOP_TELEMETRY_SPAN, TelemetrySpan};
 
 use crate::error::{Cancelled, SpawnError};
 use crate::json::{JS_SAFE_INTEGER_MAX, SafeUnsigned};
 use crate::options::{
-    DeferredCancelOptionsWire, DeferredFetchOptionsWire, ImagesOptionsWire,
-    SimpleStreamOptionsWire, StreamOptionsWire,
+    DeferredCancelOptionsWire, DeferredFetchOptionsWire, SimpleStreamOptionsWire, StreamOptionsWire,
 };
 
 /// A boxed, sendable future that may borrow inputs for one explicit lifetime.
@@ -359,7 +358,9 @@ pub struct RequestRuntime {
     /// Caller cancellation.
     pub cancellation: CancellationToken,
     /// Explicit telemetry parent context.
-    pub telemetry: Arc<dyn TelemetryContext>,
+    pub telemetry: Arc<dyn TelemetrySpan>,
+    /// Observer of parsed provider events before Pi normalization.
+    pub provider_event_observer: Option<Arc<dyn ProviderStreamEventObserver>>,
     /// Injected clock.
     pub clock: Arc<dyn Clock>,
     /// Injected task spawner.
@@ -378,7 +379,8 @@ impl RequestRuntime {
     ) -> Self {
         Self {
             cancellation,
-            telemetry: Arc::new(NOOP_TELEMETRY_CONTEXT),
+            telemetry: Arc::new(NOOP_TELEMETRY_SPAN),
+            provider_event_observer: None,
             clock,
             spawner,
         }
@@ -424,12 +426,21 @@ runtime_options!(StreamOptions, StreamOptionsWire);
 runtime_options!(SimpleStreamOptions, SimpleStreamOptionsWire);
 runtime_options!(DeferredFetchOptions, DeferredFetchOptionsWire);
 runtime_options!(DeferredCancelOptions, DeferredCancelOptionsWire);
-runtime_options!(ImagesOptions, ImagesOptionsWire);
 
 /// Saturates an injected clock value at JavaScript's exact-integer boundary.
 pub(crate) fn safe_timestamp(clock: &dyn Clock) -> SafeUnsigned {
     SafeUnsigned::new(clock.now_unix_ms().min(JS_SAFE_INTEGER_MAX))
         .expect("a saturated timestamp is JavaScript-safe")
+}
+
+/// Passive observer for adapter-owned parsed provider stream events.
+pub trait ProviderStreamEventObserver: Send + Sync {
+    /// Observes an event before normalization. Failure terminates the request stream.
+    fn on_provider_stream_event<'a>(
+        &'a self,
+        data: &'a serde_json::Value,
+        model: &'a crate::Model,
+    ) -> BoxFuture<'a, Result<(), crate::ModelsError>>;
 }
 
 #[cfg(test)]

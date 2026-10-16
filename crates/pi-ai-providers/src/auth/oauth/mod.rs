@@ -1,18 +1,14 @@
-//! Selected OAuth flows. All host effects come from explicit OAuthServices.
+//! Selected OAuth flows; host effects use explicit services.
 #[cfg(feature = "oauth-anthropic")]
 mod anthropic;
-#[cfg(any(feature = "oauth-anthropic", feature = "oauth-openai-codex"))]
+#[cfg(feature = "oauth-anthropic")]
 mod browser;
-#[cfg(feature = "oauth-openai-codex")]
-mod codex;
+#[cfg(feature = "oauth-openai-chatgpt")]
+mod chatgpt;
 mod common;
-#[cfg(feature = "oauth-openrouter")]
-mod openrouter;
 mod page;
 #[cfg(feature = "oauth-anthropic")]
 pub use anthropic::AnthropicOAuth;
-#[cfg(feature = "oauth-openai-codex")]
-pub use codex::OpenAICodexOAuth;
+#[cfg(feature = "oauth-openai-chatgpt")]
+pub use chatgpt::OpenAIChatGPTOAuth;
 pub use common::{OAuthFlowError, OAuthFlowErrorKind};
-#[cfg(feature = "oauth-openrouter")]
-pub use openrouter::OpenRouterOAuth;

@@ -1,0 +1,13 @@
+{
+  "name": "pirua-pi-v140-oracle",
+  "private": true,
+  "type": "module",
+  "description": "Offline differential dependencies from exact Pi AI 1.4.0 package metadata",
+  "dependencies": {
+    "openai": "7.19.0",
+    "@anthropic-ai/sdk": "0.129.0",
+    "@google/genai": "2.21.0",
+    "typebox": "1.3.27",
+    "partial-json": "0.1.7"
+  }
+}

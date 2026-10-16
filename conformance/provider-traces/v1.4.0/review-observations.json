@@ -1,0 +1,4302 @@
+[
+  {
+    "id": "anthropic-effort-after-unmarked-assistant",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "first"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "second"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "low"
+        },
+        {
+          "role": "user",
+          "content": "three",
+          "timestamp": 4
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "first"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": "two"
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "low"
+            }
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "second"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "three",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-effort-invalid-level",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "first"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "arbitrary-native-value"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "first"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "two",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-failed-tool-result-image",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "toolCall",
+              "id": "c1",
+              "name": "lookup",
+              "arguments": {}
+            },
+            {
+              "type": "toolCall",
+              "id": "c2",
+              "name": "lookup",
+              "arguments": {}
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 2
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "c1",
+          "toolName": "lookup",
+          "isError": true,
+          "content": [
+            {
+              "type": "text",
+              "text": "failed"
+            },
+            {
+              "type": "image",
+              "data": "AQ==",
+              "mimeType": "image/png"
+            }
+          ],
+          "timestamp": 3
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "c2",
+          "toolName": "lookup",
+          "isError": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "ok"
+            }
+          ],
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "tool_use",
+                "id": "c1",
+                "name": "lookup",
+                "input": {}
+              },
+              {
+                "type": "tool_use",
+                "id": "c2",
+                "name": "lookup",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "c1",
+                "content": "failed\n(image attached after the tool results)",
+                "is_error": true
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "c2",
+                "content": "ok",
+                "is_error": false
+              },
+              {
+                "type": "text",
+                "text": "Images from the error result of tool call c1 (lookup):"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AQ=="
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "responses-other-model-effort",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "openai-responses",
+      "provider": "openai",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "different-model",
+          "content": [
+            {
+              "type": "text",
+              "text": "foreign-model-answer"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "xhigh"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "reasoningEffort": "high"
+    },
+    "terminal": "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"r\",\"status\":\"completed\",\"output\":[],\"usage\":{\"input_tokens\":5,\"output_tokens\":2,\"total_tokens\":7}}}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "one"
+              }
+            ]
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "foreign-model-answer",
+                "annotations": []
+              }
+            ],
+            "status": "completed",
+            "id": "msg_pi_1"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "two"
+              }
+            ]
+          },
+          {
+            "type": "configuration_update",
+            "reasoning": {
+              "effort": "high"
+            }
+          }
+        ],
+        "stream": true,
+        "store": false,
+        "max_output_tokens": 20,
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "responses-other-api-effort",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "openai-responses",
+      "provider": "openai",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "openai-completions",
+          "provider": "openai",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "foreign-api-answer"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "xhigh"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "reasoningEffort": "high"
+    },
+    "terminal": "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"r\",\"status\":\"completed\",\"output\":[],\"usage\":{\"input_tokens\":5,\"output_tokens\":2,\"total_tokens\":7}}}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "one"
+              }
+            ]
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "foreign-api-answer",
+                "annotations": []
+              }
+            ],
+            "status": "completed",
+            "id": "msg_pi_1"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "two"
+              }
+            ]
+          },
+          {
+            "type": "configuration_update",
+            "reasoning": {
+              "effort": "high"
+            }
+          }
+        ],
+        "stream": true,
+        "store": false,
+        "max_output_tokens": 20,
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-prefer-strict-limit-fallback",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "stop",
+    "expectedDiagnostics": [
+      {
+        "type": "anthropic_strict_tools_fallback",
+        "timestamp": 7,
+        "error": {
+          "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+        },
+        "details": {
+          "reason": "strict_tool_limits_exceeded"
+        }
+      }
+    ]
+  },
+  {
+    "id": "anthropic-effort-other-api",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "openai-completions",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "prior"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "low"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prior"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "two",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-effort-other-provider",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "custom",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "prior"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "low"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prior"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "two",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-effort-empty-and-pending-system",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "low"
+        },
+        {
+          "role": "system",
+          "content": "delta",
+          "timestamp": 3
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "prior"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "low"
+        },
+        {
+          "role": "user",
+          "content": "three",
+          "timestamp": 4
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "user",
+            "content": "two"
+          },
+          {
+            "role": "system",
+            "content": [
+              {
+                "type": "text",
+                "text": "delta"
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "low"
+            }
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "prior"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "three",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "responses-empty-effort",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "openai-responses",
+      "provider": "openai",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "synthetic",
+          "content": [],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "xhigh"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "reasoningEffort": "high"
+    },
+    "terminal": "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"r\",\"status\":\"completed\",\"output\":[],\"usage\":{\"input_tokens\":5,\"output_tokens\":2,\"total_tokens\":7}}}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "one"
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "two"
+              }
+            ]
+          },
+          {
+            "type": "configuration_update",
+            "reasoning": {
+              "effort": "high"
+            }
+          }
+        ],
+        "stream": true,
+        "store": false,
+        "max_output_tokens": 20,
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "responses-same-model-effort",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "openai-responses",
+      "provider": "openai",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "prior"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "xhigh"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "reasoningEffort": "high"
+    },
+    "terminal": "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"r\",\"status\":\"completed\",\"output\":[],\"usage\":{\"input_tokens\":5,\"output_tokens\":2,\"total_tokens\":7}}}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "one"
+              }
+            ]
+          },
+          {
+            "type": "configuration_update",
+            "reasoning": {
+              "effort": "xhigh"
+            }
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "prior",
+                "annotations": []
+              }
+            ],
+            "status": "completed",
+            "id": "msg_pi_1"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "two"
+              }
+            ]
+          },
+          {
+            "type": "configuration_update",
+            "reasoning": {
+              "effort": "high"
+            }
+          }
+        ],
+        "stream": true,
+        "store": false,
+        "max_output_tokens": 20,
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "responses-other-provider-effort",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "openai-responses",
+      "provider": "openai",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "custom",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "text",
+              "text": "prior"
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 2,
+          "providerThinkingLevel": "xhigh"
+        },
+        {
+          "role": "user",
+          "content": "two",
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "reasoningEffort": "high"
+    },
+    "terminal": "data: {\"type\":\"response.completed\",\"response\":{\"id\":\"r\",\"status\":\"completed\",\"output\":[],\"usage\":{\"input_tokens\":5,\"output_tokens\":2,\"total_tokens\":7}}}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "one"
+              }
+            ]
+          },
+          {
+            "type": "message",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "prior",
+                "annotations": []
+              }
+            ],
+            "status": "completed",
+            "id": "msg_pi_1"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "two"
+              }
+            ]
+          },
+          {
+            "type": "configuration_update",
+            "reasoning": {
+              "effort": "high"
+            }
+          }
+        ],
+        "stream": true,
+        "store": false,
+        "max_output_tokens": 20,
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-error-image-runs-and-normal-image",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsMidConvoSystemMessages": true,
+        "supportsMidConvoEffort": true,
+        "forceAdaptiveThinking": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "api": "anthropic-messages",
+          "provider": "anthropic",
+          "model": "synthetic",
+          "content": [
+            {
+              "type": "toolCall",
+              "id": "c1",
+              "name": "lookup",
+              "arguments": {}
+            },
+            {
+              "type": "toolCall",
+              "id": "c2",
+              "name": "lookup",
+              "arguments": {}
+            }
+          ],
+          "usage": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "totalTokens": 0,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "toolUse",
+          "timestamp": 2
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "c1",
+          "toolName": "lookup",
+          "isError": true,
+          "content": [
+            {
+              "type": "image",
+              "data": "AQ==",
+              "mimeType": "image/png"
+            },
+            {
+              "type": "image",
+              "data": "AQ==",
+              "mimeType": "image/png"
+            },
+            {
+              "type": "text",
+              "text": "between"
+            },
+            {
+              "type": "image",
+              "data": "AQ==",
+              "mimeType": "image/png"
+            }
+          ],
+          "timestamp": 3
+        },
+        {
+          "role": "toolResult",
+          "toolCallId": "c2",
+          "toolName": "lookup",
+          "isError": false,
+          "content": [
+            {
+              "type": "text",
+              "text": "ok"
+            },
+            {
+              "type": "image",
+              "data": "AQ==",
+              "mimeType": "image/png"
+            }
+          ],
+          "timestamp": 3
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": "one"
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "tool_use",
+                "id": "c1",
+                "name": "lookup",
+                "input": {}
+              },
+              {
+                "type": "tool_use",
+                "id": "c2",
+                "name": "lookup",
+                "input": {}
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "tool_result",
+                "tool_use_id": "c1",
+                "content": "(image attached after the tool results)\nbetween\n(image attached after the tool results)",
+                "is_error": true
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "c2",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "ok"
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "base64",
+                      "media_type": "image/png",
+                      "data": "AQ=="
+                    }
+                  }
+                ],
+                "is_error": false
+              },
+              {
+                "type": "text",
+                "text": "Images from the error result of tool call c1 (lookup):"
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AQ=="
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AQ=="
+                }
+              },
+              {
+                "type": "image",
+                "source": {
+                  "type": "base64",
+                  "media_type": "image/png",
+                  "data": "AQ=="
+                },
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          },
+          {
+            "role": "system",
+            "content": [],
+            "output_config": {
+              "effort": "high"
+            }
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "mid-conversation-output-config-2026-07-01",
+          "thinking-binding-controls-2026-08-01"
+        ],
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized",
+          "block_binding": {
+            "prefix_mismatch_behavior": "drop_block"
+          }
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    ],
+    "expectedRequests": [],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-prefer-strict-redacts-error-detail",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large: fixture-sensitive-detail\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "stop",
+    "expectedDiagnostics": [
+      {
+        "type": "anthropic_strict_tools_fallback",
+        "timestamp": 7,
+        "error": {
+          "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large: fixture-sensitive-detail\"}}"
+        },
+        "details": {
+          "reason": "strict_tool_limits_exceeded"
+        }
+      }
+    ]
+  },
+  {
+    "id": "anthropic-prefer-strict-too-many-tools",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Too many strict tools (21)\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "stop",
+    "expectedDiagnostics": [
+      {
+        "type": "anthropic_strict_tools_fallback",
+        "timestamp": 7,
+        "error": {
+          "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Too many strict tools (21)\"}}"
+        },
+        "details": {
+          "reason": "strict_tool_limits_exceeded"
+        }
+      }
+    ]
+  },
+  {
+    "id": "anthropic-prefer-strict-union-limit",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Schemas contains too many parameters with union types (17)\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "stop",
+    "expectedDiagnostics": [
+      {
+        "type": "anthropic_strict_tools_fallback",
+        "timestamp": 7,
+        "error": {
+          "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Schemas contains too many parameters with union types (17)\"}}"
+        },
+        "details": {
+          "reason": "strict_tool_limits_exceeded"
+        }
+      }
+    ]
+  },
+  {
+    "id": "anthropic-require-strict-no-fallback",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "require"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-unrelated400-no-fallback",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"Unrelated invalid request\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-wrong-error-type-no-fallback",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"api_error\",\"message\":\"The compiled grammar is too large\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-no-preferred-strict-no-fallback",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": false
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  },
+  {
+    "id": "anthropic-strict-fallback-at-most-once",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+      },
+      {
+        "status": 400,
+        "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      },
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ]
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": [
+      {
+        "type": "anthropic_strict_tools_fallback",
+        "timestamp": 7,
+        "error": {
+          "message": "400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}"
+        },
+        "details": {
+          "reason": "strict_tool_limits_exceeded"
+        }
+      }
+    ]
+  },
+  {
+    "id": "anthropic-started-stream-no-fallback",
+    "model": {
+      "id": "synthetic",
+      "name": "Synthetic",
+      "api": "anthropic-messages",
+      "provider": "anthropic",
+      "baseUrl": "https://example.invalid/v1",
+      "reasoning": true,
+      "input": [
+        "text",
+        "image"
+      ],
+      "cost": {
+        "input": 1,
+        "output": 2,
+        "cacheRead": 0.1,
+        "cacheWrite": 0.2
+      },
+      "contextWindow": 100000,
+      "maxTokens": 1000,
+      "compat": {
+        "supportsStrictTools": true
+      }
+    },
+    "context": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "one",
+          "timestamp": 1
+        }
+      ],
+      "tools": [
+        {
+          "name": "lookup",
+          "description": "lookup",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "key"
+            ]
+          },
+          "constrainedSampling": {
+            "type": "json_schema",
+            "strict": "prefer"
+          }
+        }
+      ]
+    },
+    "options": {
+      "apiKey": "sk-synthetic",
+      "maxRetries": 0,
+      "identity": {
+        "userAgent": {
+          "custom": "pi-v140-oracle"
+        }
+      },
+      "maxTokens": 20,
+      "thinkingEnabled": true,
+      "effort": "high"
+    },
+    "terminal": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "retryProbe": true,
+    "responses": [
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: error\ndata: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The compiled grammar is too large\"}}\n\n"
+      },
+      {
+        "status": 200,
+        "body": "event: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"m\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[],\"model\":\"synthetic\",\"usage\":{\"input_tokens\":5,\"output_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"done\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":2}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+      }
+    ],
+    "expected": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "betas": [
+          "interleaved-thinking-2025-05-14"
+        ],
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedRequests": [
+      {
+        "model": "synthetic",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "one",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "max_tokens": 20,
+        "stream": true,
+        "tools": [
+          {
+            "name": "lookup",
+            "description": "lookup",
+            "eager_input_streaming": true,
+            "strict": true,
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 1024,
+          "display": "summarized"
+        }
+      }
+    ],
+    "expectedStopReason": "error",
+    "expectedDiagnostics": []
+  }
+]

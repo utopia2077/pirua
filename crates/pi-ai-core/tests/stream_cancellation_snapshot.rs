@@ -549,7 +549,7 @@ fn fallback_clock_runs_outside_lock_and_cancellation_uses_latest_snapshot() {
     let (mut stream, producer) = make_stream(token.clone(), clock.clone());
     *clock.producer.lock().unwrap() = Some(producer.clone());
     token.cancel();
-    assert_eq!(clock.calls.load(Ordering::SeqCst), 1);
+    assert_eq!(clock.calls.load(Ordering::SeqCst), 2);
     assert_single_abort(&mut stream, expected_abort(fixture()));
 }
 
@@ -564,9 +564,43 @@ fn snapshot_publication_does_not_poll_or_retain_a_host_callback() {
     for _ in 0..8 {
         producer.publish_cancellation_snapshot(fixture()).unwrap();
     }
-    assert_eq!(clock.calls.load(Ordering::SeqCst), 0);
+    assert_eq!(clock.calls.load(Ordering::SeqCst), 1);
     assert_eq!(Arc::strong_count(&clock), clock_owners);
     drop(producer);
     drop(stream);
     assert_eq!(Arc::strong_count(&clock), 1);
+}
+
+#[test]
+fn duration_belongs_to_new_terminal_messages_and_preserves_forwarded_timing() {
+    for (timestamp, existing, expected) in [
+        (99, None, true),
+        (100, None, true),
+        (7, None, false),
+        (99, Some(31), true),
+    ] {
+        let (mut stream, producer) = make_stream(CancellationToken::new(), Arc::new(FixedClock));
+        let mut message = fixture();
+        message.timestamp = SafeUnsigned::new(timestamp).unwrap();
+        message.stop_reason = StopReason::Stop;
+        message.duration_ms = existing.map(|v| SafeUnsigned::new(v).unwrap());
+        std::thread::sleep(Duration::from_millis(8));
+        producer
+            .push(AssistantMessageEvent::Done {
+                reason: DoneReason::Stop,
+                message: Box::new(message),
+            })
+            .unwrap();
+        let result = ready(stream.result());
+        assert_eq!(result.duration_ms.is_some(), expected);
+        if let Some(existing) = existing {
+            assert_eq!(result.duration_ms.unwrap().get(), existing);
+        } else if expected {
+            assert!(result.duration_ms.unwrap().get() >= 5);
+        }
+        match ready(stream.next()).unwrap() {
+            AssistantMessageEvent::Done { message, .. } => assert_eq!(*message, result),
+            _ => panic!("terminal event"),
+        }
+    }
 }

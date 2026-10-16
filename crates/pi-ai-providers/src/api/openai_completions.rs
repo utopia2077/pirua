@@ -1,4 +1,4 @@
-//! Pinned OpenAI 6.40.0 Chat Completions adapter and vendor conversions.
+//! Pinned OpenAI 7.19.0 Chat Completions adapter and vendor conversions.
 
 use std::fmt;
 

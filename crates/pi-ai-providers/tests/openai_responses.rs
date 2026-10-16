@@ -1,5 +1,6 @@
 #![cfg(feature = "wire-openai-responses")]
 
+mod retained_support;
 use pi_ai_core::{
     ApiAdapter, AssistantMessageEvent, BoxFuture, CancellationToken, Cancelled, Clock, ModelsError,
     ProviderEnv, ProviderHeaders, RequestEndpoint, RequestRuntime, ResolvedAuth, ResolvedRequest,
@@ -26,10 +27,9 @@ use std::task::{Context as TaskContext, Poll, Waker};
 use std::time::Duration;
 
 fn fixture() -> Value {
-    serde_json::from_str(include_str!(
+    retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses/trace.json"
     ))
-    .unwrap()
 }
 fn first() -> Value {
     fixture()["cases"][0].clone()
@@ -322,7 +322,7 @@ fn setup(
 #[test]
 fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases() {
     let fixture = fixture();
-    assert_eq!(fixture["cases"].as_array().unwrap().len(), 52);
+    assert_eq!(fixture["cases"].as_array().unwrap().len(), 50);
     for case in fixture["cases"].as_array().unwrap() {
         let (api, spawner, observed, clock, request, options) = setup(
             case,
@@ -356,7 +356,7 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases() {
             api.stream_with_options(request, options)
         };
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(
             is_retryable_assistant_error(&result),
             case["retryable"].as_bool().unwrap(),
@@ -371,7 +371,9 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_52_cases() {
         );
         let mut events = Vec::new();
         while let Some(event) = ready(stream.next()) {
-            events.push(serde_json::to_value(event).unwrap());
+            events.push(retained_support::without_duration(
+                serde_json::to_value(event).unwrap(),
+            ));
         }
         // Core costs are finite-f64 while JS has one Number kind. Decode both
         // complete snapshots through the DTO; signature strings remain byte-exact.
@@ -460,7 +462,6 @@ fn complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict() {
             "computer_use_preview",
             "computer_use",
             "web_search_preview_2025_03_11",
-            "image_generation",
             "code_interpreter",
             "mcp",
         ]
@@ -471,6 +472,7 @@ fn complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict() {
         assert_eq!(serde_json::to_value(parsed).unwrap(), raw);
     }
     for raw in [
+        json!({"toolChoice":{"type":"image_generation"}}),
         json!({"reasoningEffort":null}),
         json!({"reasoningEffort":"off"}),
         json!({"toolChoice":null}),
@@ -497,10 +499,9 @@ fn complete_sdk_tool_choice_shapes_and_nullable_fields_are_strict() {
 
 #[test]
 fn sdk_decode_stage_finishes_before_response_hook_and_start() {
-    let corpus: Value = serde_json::from_str(include_str!(
+    let corpus: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses/decode-stage.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(corpus["cases"].as_array().unwrap().len(), 68);
     for case in corpus["cases"].as_array().unwrap() {
         let mut input = first();
@@ -526,7 +527,7 @@ fn sdk_decode_stage_finishes_before_response_hook_and_start() {
         );
         let mut stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         let mut events = vec![];
         while let Some(event) = ready(stream.next()) {
             events.push(json!(event)["type"].clone());
@@ -654,7 +655,7 @@ fn malformed_eof_and_classified_http_errors_retain_partial_and_hide_raw_text() {
             setup(&first(), status, vec![body.as_bytes().to_vec()], false);
         let mut stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(
             is_retryable_assistant_error(&result),
             retry,
@@ -690,7 +691,7 @@ fn malformed_eof_and_classified_http_errors_retain_partial_and_hide_raw_text() {
         );
         let stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(result.stop_reason, StopReason::Error);
         assert_eq!(
             serde_json::to_value(&result).unwrap()["content"][0]["text"],
@@ -748,10 +749,9 @@ impl ResponseBody for ReadFailureBody {
 
 #[test]
 fn complete_sdk_errors_and_cap_prefix_classify_final_messages_from_source() {
-    let oracle: Value = serde_json::from_str(include_str!(
+    let oracle: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses/retry-cap.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(oracle["cases"].as_array().unwrap().len(), 36);
     for case in oracle["cases"].as_array().unwrap() {
         let (mut api, spawner, observed, _, mut request, options) =
@@ -787,7 +787,7 @@ fn complete_sdk_errors_and_cap_prefix_classify_final_messages_from_source() {
         ));
         let mut stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let message = ready(stream.result());
+        let message = retained_support::message(ready(stream.result()));
         assert_eq!(
             (
                 is_context_overflow(&message, None),
@@ -981,7 +981,7 @@ fn cancellation_after_usage_only_update_preserves_snapshot_and_drops_pending_bod
             .is_pending()
     );
     token.cancel();
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Aborted);
     assert_eq!(result.usage.input.get(), 98);
     assert_eq!(
@@ -1170,7 +1170,7 @@ fn sdk_timeout_retry_defaults_and_explicit_overrides_have_one_owner() {
     });
     let stream = api.stream_with_options(request, options);
     ready(spawner.take());
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Error);
     assert!(is_retryable_assistant_error(&result));
     assert_eq!(clock.sleeps.lock().unwrap().len(), 0);
@@ -1249,16 +1249,15 @@ fn sdk_environment_defaults_are_explicit_and_request_headers_override_them() {
     assert_eq!(headers["openai-organization"], "org");
     assert_eq!(headers["openai-project"], "project");
     assert_eq!(headers["accept"], "env");
-    assert_eq!(headers["user-agent"], "pi-ai-rust");
+    assert_eq!(headers["user-agent"], pi_ai_core::format_user_agent(None));
     assert!(headers.get("x-custom").is_none());
 }
 
 #[test]
 fn response_callback_receives_exact_pinned_own_header_record() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-helpers/response-head/headers.json"
-    ))
-    .unwrap();
+    ));
     let case = first();
     let (mut api, spawner, observed, _, request, options) = setup(&case, 200, vec![], false);
     let mut headers = HttpHeaders::new();
@@ -1306,10 +1305,9 @@ fn response_callback_receives_exact_pinned_own_header_record() {
 
 #[test]
 fn sdk_client_default_header_validation_keeps_its_eager_or_lazy_stage() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-responses/header-stage.json"
-    ))
-    .unwrap();
+    ));
     for case in fixture["cases"].as_array().unwrap() {
         let (mut api, spawner, observed, clock, request, options) = setup(case, 200, vec![], false);
         if let Some(custom) = case["clientCustomHeaders"].as_str() {
@@ -1320,7 +1318,7 @@ fn sdk_client_default_header_validation_keeps_its_eager_or_lazy_stage() {
         }
         let stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(result.stop_reason, StopReason::Error);
         assert!(!is_retryable_assistant_error(&result));
         assert_eq!(
@@ -1449,10 +1447,10 @@ fn native_redirect_chain_preserves_success_trace_and_final_error_body_veto() {
                 let worker = tokio::spawn(worker);
                 let mut events = Vec::new();
                 while let Some(event) = stream.next().await {
-                    events.push(event);
+                    events.push(retained_support::untimed(event));
                 }
                 worker.await.unwrap();
-                (stream.result().await, events)
+                (retained_support::message(stream.result().await), events)
             })
             .await
             .unwrap()
@@ -1601,7 +1599,7 @@ fn native_loopback_request_fragmented_sse_and_abort_release_the_socket() {
                     }
                 }
                 worker.await.unwrap();
-                stream.result().await
+                retained_support::message(stream.result().await)
             })
             .await
             .unwrap()

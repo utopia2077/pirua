@@ -87,6 +87,7 @@ fn tool_call(id: &str, name: &str, thought_signature: Option<&str>) -> Assistant
         id: ToolCallId::new(id).expect("fixture id is nonempty"),
         name: ToolName::new(name).expect("fixture name is nonempty"),
         arguments: JsonObject::default(),
+        arguments_error: None,
         thought_signature: thought_signature.map(str::to_owned),
         namespace: Some("fixture-namespace".to_owned()),
     })
@@ -145,6 +146,9 @@ fn assistant_with_identity(
         provider: ProviderId::new(provider).expect("fixture provider"),
         model: ModelId::new(model).expect("fixture model"),
         response_model: None,
+        provider_thinking_level: None,
+        thinking_level: None,
+        duration_ms: None,
         response_id: None,
         diagnostics: None,
         usage: Usage::zero(),
@@ -166,7 +170,8 @@ fn tool_result(id: &str, name: &str, content: Vec<InputContent>, is_error: bool)
         content,
         details: Presence::Missing,
         usage: None,
-        added_tool_names: None,
+        nested_calls: None,
+        duration_ms: None,
         is_error,
         timestamp: safe(3),
     }))
@@ -725,7 +730,7 @@ fn normalization_collision_is_rejected_without_partial_output() {
             .filter_map(|message| match message {
                 Message::ToolResult(result) =>
                     Some((result.tool_call_id.as_str(), result.is_error,)),
-                Message::User(_) | Message::Assistant(_) => None,
+                Message::User(_) | Message::Assistant(_) | Message::System(_) => None,
             })
             .collect::<Vec<_>>(),
         [
@@ -984,7 +989,8 @@ fn synthetic_results_use_injected_timestamp_and_exact_shape() {
     assert_eq!(result.content, vec![text("No result provided")]);
     assert_eq!(result.details, Presence::Missing);
     assert_eq!(result.usage, None);
-    assert_eq!(result.added_tool_names, None);
+    assert_eq!(result.nested_calls, None);
+    assert_eq!(result.duration_ms, None);
     assert!(result.is_error);
     assert_eq!(result.timestamp, timestamp);
 }

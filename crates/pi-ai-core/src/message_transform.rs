@@ -77,6 +77,7 @@ pub fn transform_messages(
 
     for message in messages {
         match message {
+            Message::System(system) => transformed.push(Message::System(system.clone())),
             Message::User(source) => {
                 let mut message = source.clone();
                 if !supports_images && let UserContent::Blocks(content) = &source.content {
@@ -195,6 +196,7 @@ pub fn transform_messages(
 
     for message in transformed {
         match message {
+            Message::System(system) => result.push(Message::System(system)),
             Message::Assistant(assistant) => {
                 flush_pending_tool_calls(
                     &mut result,
@@ -299,7 +301,8 @@ fn flush_pending_tool_calls(
                 })],
                 details: Presence::Missing,
                 usage: None,
-                added_tool_names: None,
+                nested_calls: None,
+                duration_ms: None,
                 is_error: true,
                 timestamp,
             })));

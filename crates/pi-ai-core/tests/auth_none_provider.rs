@@ -156,6 +156,7 @@ fn fixture() -> (
         filters: Mutex::new(Vec::new()),
     });
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: credentials.clone(),
         models_store: Box::new(InMemoryModelsStore::new()),
         auth_context: Arc::new(Host),

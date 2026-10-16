@@ -23,7 +23,7 @@ fn deferred_function_slots_match_complete_pinned_converter() {
             &[tool],
             &ConvertResponsesToolsOptions {
                 strict,
-                defer_loading: options["deferLoading"].as_bool(),
+                tool_search_result: options["deferLoading"].as_bool(),
                 supports_strict_mode: options["supportsStrictMode"].as_bool(),
                 ..Default::default()
             },

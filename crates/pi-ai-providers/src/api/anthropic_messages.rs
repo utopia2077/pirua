@@ -148,6 +148,7 @@ pub struct AnthropicResponseError {
     pub retryable: bool,
     retry_delay_retryable: bool,
     retry_delay_context_overflow: bool,
+    strict_limit_reason: Option<&'static str>,
 }
 impl AnthropicResponseError {
     /// Trusted custom clients classify their complete SDK error before returning.
@@ -164,6 +165,7 @@ impl AnthropicResponseError {
             retryable,
             retry_delay_retryable: is_retryable_assistant_error(&probe),
             retry_delay_context_overflow: is_context_overflow(&probe, None),
+            strict_limit_reason: None,
         }
     }
     pub fn from_response(
@@ -201,7 +203,25 @@ impl AnthropicResponseError {
         } else {
             format!("{status} {message}")
         };
-        Ok(Self::from_message(Some(status), &message, template))
+        let mut error = Self::from_message(Some(status), &message, template);
+        // Retain only a bounded recognized reason, never the response body or SDK message.
+        if status == 400
+            && parsed
+                .as_ref()
+                .and_then(|value| value.get("error"))
+                .and_then(|error| error.get("type"))
+                .and_then(serde_json::Value::as_str)
+                == Some("invalid_request_error")
+        {
+            error.strict_limit_reason = [
+                "The compiled grammar is too large",
+                "Too many strict tools (",
+                "Schemas contains too many parameters with union types (",
+            ]
+            .into_iter()
+            .find(|reason| message.contains(reason));
+        }
+        Ok(error)
     }
     fn safe_message(&self, delay: bool) -> String {
         let retryable = if delay {
@@ -364,42 +384,59 @@ impl AnthropicMessagesApi {
             request::assert_auth(request)?;
         }
         let oauth = self.client.is_none() && request::is_oauth(request);
-        let mut params = super::wire_json::WirePayload::new(payload::build(
-            request,
-            options,
-            mapped_effort,
-            &self.services,
-            oauth,
-        )?);
-        if let Some(hook) = &self.services.payload
-            && let Some(replacement) =
-                cancellable(hook.on_payload(request, &mut params), &runtime.cancellation)
-                    .await
-                    .map_err(|_| Failure::Cancelled)?
-                    .map_err(|_| Failure::Middleware)?
-        {
-            params = replacement;
-        }
-        if let Some(handler) = &self.services.request_payload
-            && let Some(replacement) = cancellable(
-                super::request_lifecycle::transform(handler.as_ref(), request, &mut params),
-                &runtime.cancellation,
-            )
-            .await
-            .map_err(|_| Failure::Cancelled)?
-            .map_err(|_| Failure::Middleware)?
-        {
-            params = replacement;
-        }
-        let wire = request::force_stream(params.into_value())?;
-        let params = super::wire_json::WirePayload::new(wire.clone());
-        let http = if self.client.is_none() {
-            Some(request::build(request, options, &self.services, &wire)?)
-        } else {
-            None
-        };
-        let template = &reducer.partial;
-        let mut response=self.services.transport.retry_provider_request(runtime,RetryProfile::SharedProvider{
+        let mut disable_preferred_strict_tools = false;
+        let mut response = loop {
+            // Preserve the existing first-build captured middleware construction
+            // boundary; only a new fallback attempt checks before rebuilding.
+            if disable_preferred_strict_tools && runtime.cancellation.is_cancelled() {
+                return Err(Failure::Cancelled);
+            }
+            let built = payload::build(
+                request,
+                options,
+                mapped_effort,
+                &self.services,
+                oauth,
+                disable_preferred_strict_tools,
+            )?;
+            let has_preferred_strict_tools = built.has_preferred_strict_tools;
+            let mut params = super::wire_json::WirePayload::new(built.params);
+            if let Some(effort) = params.as_value()["messages"]
+                .as_array()
+                .and_then(|messages| messages.last())
+                .and_then(|message| message["output_config"]["effort"].as_str())
+            {
+                reducer.partial.provider_thinking_level = Some(effort.to_owned());
+            }
+            if let Some(hook) = &self.services.payload
+                && let Some(replacement) =
+                    cancellable(hook.on_payload(request, &mut params), &runtime.cancellation)
+                        .await
+                        .map_err(|_| Failure::Cancelled)?
+                        .map_err(|_| Failure::Middleware)?
+            {
+                params = replacement;
+            }
+            if let Some(handler) = &self.services.request_payload
+                && let Some(replacement) = cancellable(
+                    super::request_lifecycle::transform(handler.as_ref(), request, &mut params),
+                    &runtime.cancellation,
+                )
+                .await
+                .map_err(|_| Failure::Cancelled)?
+                .map_err(|_| Failure::Middleware)?
+            {
+                params = replacement;
+            }
+            let wire = request::force_stream(params.into_value())?;
+            let params = super::wire_json::WirePayload::new(wire.clone());
+            let http = if self.client.is_none() {
+                Some(request::build(request, options, &self.services, &wire)?)
+            } else {
+                None
+            };
+            let template = &reducer.partial;
+            let response=self.services.transport.retry_provider_request(runtime,RetryProfile::SharedProvider{
             max_retries:request.options.wire.max_retries.map_or(0,SafeUnsigned::get),max_retry_delay_ms:request.options.wire.max_retry_delay_ms.map(SafeUnsigned::get)
         },||->BoxFuture<'_,Result<HttpResponse,ProviderAttemptFailure<AnthropicResponseError>>>{
             Box::pin(async{
@@ -427,14 +464,56 @@ impl AnthropicMessagesApi {
                 }
                 Ok(response)
             })
-        }).await.map_err(|error|match error{
-            ProviderRetryError::Attempt(error)=>Failure::Classified(attempt_error(error)),
-            ProviderRetryError::Cancelled{..}=>Failure::Cancelled,
-            ProviderRetryError::Policy{error,previous}=>match previous{
-                Some(previous) if error.kind()==TransportErrorKind::RetryDelayExceeded=>Failure::RetryCap(attempt_error(previous)),
-                Some(previous)=>Failure::Classified(attempt_error(previous)),None=>Failure::Protocol,
+        }).await;
+            if let Err(ProviderRetryError::Attempt(ProviderAttemptFailure::Provider {
+                status: Some(400),
+                error,
+                ..
+            })) = &response
+                && !runtime.cancellation.is_cancelled()
+                && !disable_preferred_strict_tools
+                && has_preferred_strict_tools
+                && error.status == Some(400)
+                && let Some(reason) = error.strict_limit_reason
+            {
+                disable_preferred_strict_tools = true;
+                reducer
+                    .partial
+                    .diagnostics
+                    .get_or_insert_with(Vec::new)
+                    .push(AssistantMessageDiagnostic {
+                        diagnostic_type: "anthropic_strict_tools_fallback"
+                            .parse()
+                            .expect("constant diagnostic"),
+                        timestamp: SafeUnsigned::new(runtime.clock.now_unix_ms())
+                            .unwrap_or(SafeUnsigned::MAX),
+                        error: Some(DiagnosticErrorInfo {
+                            name: None,
+                            message: reason.into(),
+                            stack: None,
+                            code: None,
+                        }),
+                        details: Some(
+                            serde_json::from_value(
+                                serde_json::json!({"reason":"strict_tool_limits_exceeded"}),
+                            )
+                            .expect("fixed diagnostic"),
+                        ),
+                    });
+                continue;
             }
-        })?;
+            break response.map_err(|error| match error {
+                ProviderRetryError::Attempt(error) => Failure::Classified(attempt_error(error)),
+                ProviderRetryError::Cancelled { .. } => Failure::Cancelled,
+                ProviderRetryError::Policy { error, previous } => match previous {
+                    Some(previous) if error.kind() == TransportErrorKind::RetryDelayExceeded => {
+                        Failure::RetryCap(attempt_error(previous))
+                    }
+                    Some(previous) => Failure::Classified(attempt_error(previous)),
+                    None => Failure::Protocol,
+                },
+            })?;
+        };
         if let Some(hook) = &self.services.response {
             let head = AdapterResponseHead::from_http(response.status, &response.headers)?;
             cancellable(hook.on_response(request, &head), &runtime.cancellation)
@@ -468,6 +547,7 @@ impl AnthropicMessagesApi {
         let result = async {
             loop {
                 while let Some(frame) = decoder.next_frame().map_err(|_| Failure::Protocol)? {
+                    observe_frame(request, &frame).await?;
                     reducer.consume(request, producer, oauth, &frame)?;
                 }
                 match cancellable(response.body.next(runtime), &runtime.cancellation)
@@ -486,6 +566,7 @@ impl AnthropicMessagesApi {
                         while let Some(frame) =
                             decoder.next_frame().map_err(|_| Failure::Protocol)?
                         {
+                            observe_frame(request, &frame).await?;
                             reducer.consume(request, producer, oauth, &frame)?;
                         }
                         return Ok(());
@@ -643,6 +724,9 @@ fn empty_message(request: &TextStreamRequest) -> AssistantMessage {
         provider: request.resolved.model.provider.clone(),
         model: request.resolved.model.id.clone(),
         response_model: None,
+        provider_thinking_level: None,
+        thinking_level: None,
+        duration_ms: None,
         response_id: None,
         diagnostics: None,
         usage: Usage::zero(),
@@ -681,9 +765,9 @@ fn publish_failure(
         classified.map_or_else(|| text.into(), |(error, delay)| error.safe_message(delay))
     });
     if !aborted && let Some((error, delay)) = classified {
-        partial.diagnostics=Some(vec![AssistantMessageDiagnostic{diagnostic_type:"anthropic_response_failure".parse().expect("constant diagnostic"),timestamp:partial.timestamp,error:None,
+        partial.diagnostics.get_or_insert_with(Vec::new).push(AssistantMessageDiagnostic{diagnostic_type:"anthropic_response_failure".parse().expect("constant diagnostic"),timestamp:partial.timestamp,error:None,
             details:Some(serde_json::from_value(serde_json::json!({"version":1,"status":error.status,"contextOverflow":if delay{error.retry_delay_context_overflow}else{error.context_overflow},
-                "retryable":if delay{error.retry_delay_retryable}else{error.retryable},"retryDelayExceeded":delay})).expect("safe diagnostic"))}]);
+                "retryable":if delay{error.retry_delay_retryable}else{error.retryable},"retryDelayExceeded":delay})).expect("safe diagnostic"))});
     }
     partial.stop_reason = if aborted {
         StopReason::Aborted
@@ -738,4 +822,20 @@ impl pi_ai_core::RequestLifecycleAdapter for AnthropicMessagesApi {
         super::request_lifecycle::bind(&mut scoped.services, lifecycle);
         scoped.stream_simple(request)
     }
+}
+
+async fn observe_frame(
+    request: &TextStreamRequest,
+    frame: &pi_ai_transport::SseFrame,
+) -> Result<(), Failure> {
+    if frame.event.as_deref() != Some("error")
+        && request.options.runtime.provider_event_observer.is_some()
+    {
+        let event: serde_json::Value =
+            serde_json::from_str(&frame.data).map_err(|_| Failure::Protocol)?;
+        super::runtime::observe_provider_event(request, &event)
+            .await
+            .map_err(|_| Failure::Middleware)?;
+    }
+    Ok(())
 }

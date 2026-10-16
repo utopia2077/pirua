@@ -2,25 +2,34 @@
 
 use std::sync::LazyLock;
 
-use regex::RegexSet;
+use regex::{RegexSet, RegexSetBuilder};
 
 use crate::overflow::compile_legacy_regex_set;
 use crate::{AssistantMessage, StopReason};
 
-pub(crate) const RETRYABLE_PATTERN_SOURCES: [&str; 41] = [
+pub(crate) const RETRYABLE_PATTERN_SOURCES: &[&str] = &[
     "overloaded",
+    "server_busy",
+    "servers are currently busy",
+    "currently experiencing high demand",
+    "model is at capacity",
+    "(^|[^a-z0-9])(?:429|500|502|503|504|520|524)([^a-z0-9]|$)",
+    "unable to forward upstream",
+    "upstream.?request.?failed",
+    "upstream_stream_read_error",
+    "stream was interrupted",
+    "http/?2 stream failed",
+    "request to \\S+ failed, reason:",
+    "stream disconnected before completion",
+    "pending stream has been canceled",
+    "subscription_sharing_usage_unavailable",
+    "subscription_sharing_user_unavailable",
     "rate.?limit",
     "too many requests",
-    "429",
-    "500",
-    "502",
-    "503",
-    "504",
-    "524",
-    "service.?unavailable",
+    "service.?(?:is.?)?(?:temporarily.?)?unavailable",
     "server.?error",
     "internal.?error",
-    "provider.?returned.?error",
+    "provider.?returned.?(?:an.?)?error",
     "exceeded request buffer limit while retrying upstream",
     "network.?error",
     "connection.?error",
@@ -51,7 +60,7 @@ pub(crate) const RETRYABLE_PATTERN_SOURCES: [&str; 41] = [
     "ResourceExhausted",
 ];
 
-pub(crate) const NON_RETRYABLE_PATTERN_SOURCES: [&str; 8] = [
+pub(crate) const NON_RETRYABLE_PATTERN_SOURCES: [&str; 10] = [
     "GoUsageLimitError",
     "FreeUsageLimitError",
     "Monthly usage limit reached",
@@ -60,10 +69,26 @@ pub(crate) const NON_RETRYABLE_PATTERN_SOURCES: [&str; 8] = [
     "out of budget",
     "quota exceeded",
     "billing",
+    "subscription_sharing_usage_limit_exceeded",
+    "subscription_sharing_workplace_individual_usage_limit_exceeded",
 ];
 
-static RETRYABLE_PATTERNS: LazyLock<RegexSet> =
-    LazyLock::new(|| compile_legacy_regex_set(&RETRYABLE_PATTERN_SOURCES));
+static RETRYABLE_PATTERNS: LazyLock<RegexSet> = LazyLock::new(|| {
+    let patterns = RETRYABLE_PATTERN_SOURCES
+        .iter()
+        .map(|pattern| {
+            if pattern.starts_with("(^|[^a-z0-9])") {
+                pattern.replace("a-z0-9", "a-zA-Z0-9")
+            } else {
+                crate::overflow::translate_legacy_regex(pattern)
+                    .expect("target pattern is within the portable subset")
+            }
+        })
+        .collect::<Vec<_>>();
+    RegexSetBuilder::new(patterns)
+        .build()
+        .expect("target retry patterns compile")
+});
 static NON_RETRYABLE_PATTERNS: LazyLock<RegexSet> =
     LazyLock::new(|| compile_legacy_regex_set(&NON_RETRYABLE_PATTERN_SOURCES));
 

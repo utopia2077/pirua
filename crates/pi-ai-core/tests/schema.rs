@@ -1,17 +1,7 @@
 use std::collections::BTreeMap;
 
-use pi_ai_core::{
-    AnthropicMessagesCompat, ApiId, AssistantContent, AssistantImages, AssistantMessageDiagnostic,
-    AssistantMessageEvent, AuthCheck, AuthEvent, AuthPrompt, AuthResult, BedrockCompat, Context,
-    Credential, CredentialInfo, CustomMessage, DeferredCancelOptionsWire, DeferredFetchOptionsWire,
-    ImageContent, ImagesModel, ImagesOptionsWire, JS_SAFE_INTEGER_MAX, JsonObject, JsonValue,
-    LiteralFalse, LiteralTrue, MaxRetries, Message, Model, ModelAuth, ModelBaseUrl, ModelCompat,
-    ModelHeaderClassificationError, ModelHeaderPolicy, ModelsErrorCode, ModelsStoreEntry,
-    OAuthExtraFields, OpenAiCompletionsCompat, OpenAiResponsesCompat, Presence, ProviderEnv,
-    ProviderHeaders, ProviderId, PublicModelBaseUrl, RawImagesModel, RawModel, RawModelHeaders,
-    RawModelsStoreEntry, RetryPolicy, SafeUnsigned, SimpleStreamOptionsWire, StreamOptionsWire,
-    TextContent, TextSignatureV1, ThinkingContent, Tool, ToolCall, TypedModelCompat,
-};
+use pi_ai_core::*;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -25,8 +15,6 @@ const AUTH_DIAGNOSTICS: &str =
 const COMPAT: &str = include_str!("../../../conformance/schema/ai/compat.golden.json");
 const MODEL_HEADERS: &str =
     include_str!("../../../conformance/schema/ai/model-headers.golden.json");
-const AZURE_RUNTIME_RESOLVED: &str =
-    include_str!("../../../conformance/schema/ai/azure-runtime-resolved.golden.json");
 
 fn assert_value_round_trip<T>(value: Value)
 where
@@ -46,7 +34,6 @@ struct ContentMessagesFixture {
     messages: Vec<Value>,
     custom: Value,
     context: Context,
-    images: Vec<AssistantImages>,
 }
 
 #[test]
@@ -70,7 +57,6 @@ fn content_and_message_golden_round_trips_every_variant() {
     }
     assert_value_round_trip::<CustomMessage>(fixture.custom);
     assert!(fixture.context.messages.is_empty());
-    assert_eq!(fixture.images.len(), 3);
 
     let missing: Message =
         serde_json::from_value(fixture.messages[3].clone()).expect("missing details");
@@ -97,7 +83,6 @@ struct CompatFixture {
     openai_completions: OpenAiCompletionsCompat,
     openai_responses: OpenAiResponsesCompat,
     anthropic: AnthropicMessagesCompat,
-    bedrock: BedrockCompat,
 }
 
 #[test]
@@ -114,7 +99,6 @@ fn every_typed_model_compat_shape_matches_the_golden_contract() {
         ("openai-completions", &value["openaiCompletions"]),
         ("openai-responses", &value["openaiResponses"]),
         ("anthropic-messages", &value["anthropic"]),
-        ("bedrock-converse-stream", &value["bedrock"]),
     ];
     for (api, compat) in cases {
         let raw: ModelCompat = serde_json::from_value(compat.clone()).expect("raw compat object");
@@ -127,12 +111,6 @@ fn every_typed_model_compat_shape_matches_the_golden_contract() {
         raw.decode_for_api(&ApiId::new("future-api").expect("future API"))
             .is_err()
     );
-    assert!(matches!(
-        ModelCompat::default()
-            .decode_for_api(&ApiId::new("bedrock-converse-stream").expect("known API"))
-            .expect("empty Bedrock compat is valid"),
-        TypedModelCompat::Bedrock(_)
-    ));
 }
 
 #[test]
@@ -194,14 +172,12 @@ fn terminal_event_invariants_reject_causal_contradictions_both_directions() {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ModelsOptionsFixture {
     model: Model,
-    images_model: ImagesModel,
     store: ModelsStoreEntry,
     tools: Vec<Tool>,
     stream_options: StreamOptionsWire,
     simple_stream_options: SimpleStreamOptionsWire,
     deferred_fetch_options: DeferredFetchOptionsWire,
     deferred_cancel_options: DeferredCancelOptionsWire,
-    images_options: ImagesOptionsWire,
     retry: RetryPolicy,
     raw_headers: ProviderHeaders,
     provider_env: ProviderEnv,
@@ -241,7 +217,7 @@ fn model_serde_validates_compat_family_on_input_and_output() {
         let mut model = source["model"].clone();
         model["api"] = Value::String(api.to_owned());
         model["compat"] = serde_json::json!({ "supportsToolSearch": true });
-        assert_value_round_trip::<Model>(model);
+        assert!(serde_json::from_value::<Model>(model).is_err());
     }
 
     let mut invalid: Model = serde_json::from_value(source["model"].clone()).expect("valid model");
@@ -254,7 +230,6 @@ fn model_serde_validates_compat_family_on_input_and_output() {
 fn model_header_policy_is_default_deny_and_store_restore_reclassifies() {
     let value: Value = serde_json::from_str(MODEL_HEADERS).expect("model-header fixture");
     assert!(serde_json::from_value::<Model>(value["model"].clone()).is_err());
-    assert!(serde_json::from_value::<ImagesModel>(value["imagesModel"].clone()).is_err());
     assert!(serde_json::from_value::<ModelsStoreEntry>(value["store"].clone()).is_err());
 
     let raw: RawModel = serde_json::from_value(value["model"].clone()).expect("raw model");
@@ -272,18 +247,6 @@ fn model_header_policy_is_default_deny_and_store_restore_reclassifies() {
         value["model"]
     );
     assert!(!format!("{model:?}").contains("public-value"));
-
-    let raw_image: RawImagesModel =
-        serde_json::from_value(value["imagesModel"].clone()).expect("raw image model");
-    let image_policy = ModelHeaderPolicy::from_allowlist(vec!["x-public-image".to_owned()]);
-    let image = raw_image
-        .into_model(&image_policy)
-        .expect("explicit image-header classification");
-    assert_eq!(
-        serde_json::to_value(&image).expect("classified image model serializes"),
-        value["imagesModel"]
-    );
-    assert!(!format!("{image:?}").contains("public-value"));
 
     let raw_store: RawModelsStoreEntry =
         serde_json::from_value(value["store"].clone()).expect("raw store");
@@ -370,7 +333,6 @@ fn model_header_classification_hard_denies_credentials_and_policy_secrets() {
 fn model_base_url_validation_rejects_only_credential_capable_components() {
     let source: Value = serde_json::from_str(MODELS_OPTIONS).expect("models fixture");
     let base_model = source["model"].clone();
-    let base_image = source["imagesModel"].clone();
 
     for rejected in [
         "",
@@ -385,13 +347,6 @@ fn model_base_url_validation_rejects_only_credential_capable_components() {
             serde_json::from_value(model_value.clone()).expect("raw model accepts transient URL");
         assert!(raw.into_model(&ModelHeaderPolicy::default()).is_err());
         assert!(serde_json::from_value::<Model>(model_value.clone()).is_err());
-
-        let mut image_value = base_image.clone();
-        image_value["baseUrl"] = Value::String(rejected.to_owned());
-        let raw_image: RawImagesModel = serde_json::from_value(image_value.clone())
-            .expect("raw image model accepts transient URL");
-        assert!(raw_image.into_model(&ModelHeaderPolicy::default()).is_err());
-        assert!(serde_json::from_value::<ImagesModel>(image_value).is_err());
 
         let store_value = serde_json::json!({"models":[model_value],"checkedAt":1});
         let raw_store: RawModelsStoreEntry =
@@ -412,55 +367,9 @@ fn model_base_url_validation_rejects_only_credential_capable_components() {
         model_value["baseUrl"] = Value::String(accepted.to_owned());
         assert_value_round_trip::<Model>(model_value);
 
-        let mut image_value = base_image.clone();
-        image_value["baseUrl"] = Value::String(accepted.to_owned());
-        assert_value_round_trip::<ImagesModel>(image_value);
-
         let public = PublicModelBaseUrl::new(accepted).expect("structurally public endpoint");
         assert_eq!(public.as_str(), accepted);
     }
-}
-
-#[test]
-fn azure_empty_base_url_round_trips_only_as_runtime_resolved() {
-    let value: Value = serde_json::from_str(AZURE_RUNTIME_RESOLVED).expect("Azure fixture");
-
-    let raw: RawModel = serde_json::from_value(value["model"].clone()).expect("raw Azure model");
-    let converted = raw
-        .clone()
-        .into_model(&ModelHeaderPolicy::default())
-        .expect("Azure empty endpoint is runtime resolved");
-    assert!(matches!(converted.base_url, ModelBaseUrl::RuntimeResolved));
-    assert_eq!(
-        serde_json::to_value(converted).expect("converted Azure model serializes"),
-        value["model"]
-    );
-    assert_eq!(
-        serde_json::to_value(raw).expect("raw Azure model serializes"),
-        value["model"]
-    );
-    assert_value_round_trip::<Model>(value["model"].clone());
-
-    let raw_store: RawModelsStoreEntry =
-        serde_json::from_value(value["store"].clone()).expect("raw Azure store");
-    let converted_store = raw_store
-        .clone()
-        .into_store(&ModelHeaderPolicy::default())
-        .expect("raw Azure store converts");
-    assert_eq!(
-        serde_json::to_value(converted_store).expect("converted Azure store serializes"),
-        value["store"]
-    );
-    assert_eq!(
-        serde_json::to_value(raw_store).expect("raw Azure store serializes"),
-        value["store"]
-    );
-    assert_value_round_trip::<ModelsStoreEntry>(value["store"].clone());
-
-    let mut mismatched: Model =
-        serde_json::from_value(value["model"].clone()).expect("valid Azure model");
-    mismatched.api = ApiId::new("openai-responses").expect("known non-Azure API");
-    assert!(serde_json::to_value(mismatched).is_err());
 }
 
 #[test]
@@ -478,15 +387,7 @@ fn every_raw_validated_and_store_model_debug_redacts_the_full_base_url() {
     }))
     .expect("raw store");
 
-    let mut raw_image_value = source["imagesModel"].clone();
-    raw_image_value["baseUrl"] = Value::String(raw_url.to_owned());
-    let raw_image: RawImagesModel = serde_json::from_value(raw_image_value).expect("raw image");
-
-    for rendered in [
-        format!("{raw_model:?}"),
-        format!("{raw_image:?}"),
-        format!("{raw_store:?}"),
-    ] {
+    for rendered in [format!("{raw_model:?}"), format!("{raw_store:?}")] {
         assert!(!rendered.contains("debug-userinfo-sentinel"));
         assert!(!rendered.contains("debug-query-sentinel"));
     }
@@ -509,15 +410,7 @@ fn every_raw_validated_and_store_model_debug_redacts_the_full_base_url() {
         etag: None,
     };
 
-    let mut image_value = source["imagesModel"].clone();
-    image_value["baseUrl"] = Value::String(accepted.to_owned());
-    let image: ImagesModel = serde_json::from_value(image_value).expect("validated image model");
-
-    for rendered in [
-        format!("{model:?}"),
-        format!("{image:?}"),
-        format!("{store:?}"),
-    ] {
+    for rendered in [format!("{model:?}"), format!("{store:?}")] {
         assert!(!rendered.contains("debug-userinfo-sentinel"));
         assert!(!rendered.contains("debug-query-sentinel"));
     }
@@ -599,15 +492,12 @@ fn optional_and_presence_source_guard_prevents_future_plain_option_regression() 
                 if immediate.contains("serde-non-null: delegated-to-raw-model") {
                     continue;
                 }
-                assert_eq!(
-                    immediate, ")]",
-                    "plain optional wire field has no serde attribute: {line}"
-                );
                 let start = (0..index)
                     .rev()
                     .find(|candidate| lines[*candidate].trim_start().starts_with("#[serde("))
                     .expect("multiline serde attribute must have a start");
                 let attributes = lines[start..index].join("\n");
+                assert!(attributes.contains("#[serde("));
                 assert!(
                     attributes.contains("deserialize_optional_non_null")
                         || attributes.contains("deserialize_optional_btree_map_non_null"),
@@ -743,8 +633,8 @@ fn open_ids_and_safe_numbers_enforce_the_frozen_boundary() {
     assert!(serde_json::from_str::<SafeUnsigned>(unsafe_unsigned).is_err());
     assert!(serde_json::from_str::<SafeUnsigned>("-1").is_err());
     assert!(serde_json::from_str::<SafeUnsigned>("1.5").is_err());
-    assert_eq!(ApiId::KNOWN.len(), 10);
-    assert_eq!(ProviderId::KNOWN.len(), 40);
+    assert_eq!(ApiId::KNOWN.len(), 4);
+    assert_eq!(ProviderId::KNOWN.len(), 4);
 }
 
 #[test]

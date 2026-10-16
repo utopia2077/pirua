@@ -10,7 +10,7 @@ use crate::api::{
 };
 use pi_ai_core::*;
 use serde_json::{Value, json};
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 const CLAUDE_CODE_TOOLS: &[&str] = &[
     "Read",
@@ -43,13 +43,11 @@ pub(super) fn outbound_name(name: &str, oauth: bool) -> String {
     }
     name.into()
 }
-pub(super) fn inbound_name(name: &str, context: &Context, oauth: bool) -> String {
+pub(super) fn inbound_name(name: &str, context: &TranscriptContext, oauth: bool) -> String {
     if oauth {
         let lower = name.to_lowercase();
-        if let Some(tool) = context
-            .tools
-            .as_deref()
-            .unwrap_or_default()
+        if let Some(tool) = pi_ai_core::get_current_tools(&context.messages)
+            .as_slice()
             .iter()
             .find(|tool| tool.name.as_str().to_lowercase() == lower)
         {
@@ -57,14 +55,6 @@ pub(super) fn inbound_name(name: &str, context: &Context, oauth: bool) -> String
         }
     }
     name.into()
-}
-struct NameNormalizer(bool);
-impl ToolNameNormalizer for NameNormalizer {
-    fn normalize_tool_name(&self, name: &ToolName) -> ToolName {
-        outbound_name(name.as_str(), self.0)
-            .parse()
-            .expect("nonempty normalized tool name")
-    }
 }
 struct IdNormalizer;
 impl ToolCallIdNormalizer for IdNormalizer {
@@ -129,35 +119,23 @@ fn add_cache(value: &mut Value, cache: Option<&Value>) {
     }
 }
 
-pub(super) fn default_tool_references(model: &Model) -> bool {
-    if model.provider.as_str() != "anthropic" || model.id.as_str().contains("haiku") {
-        return false;
-    }
-    let mut pieces = model.id.as_str().split('-');
-    if pieces.next() != Some("claude")
-        || !matches!(pieces.next(), Some("opus" | "sonnet" | "fable"))
-    {
-        return false;
-    }
-    let Some(major) = pieces
-        .next()
-        .filter(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()))
-    else {
-        return false;
-    };
-    let major = major.trim_start_matches('0');
-    if major.len() > 1 || major.as_bytes().first().is_some_and(|digit| *digit > b'4') {
-        return true;
-    }
-    if major != "4" {
-        return false;
-    }
-    let minor = pieces
-        .next()
-        .filter(|s| !s.is_empty() && s.len() < 8 && s.bytes().all(|b| b.is_ascii_digit()))
-        .and_then(|s| s.parse::<u32>().ok())
-        .unwrap_or(0);
-    minor >= 5
+pub(super) struct BuiltParams {
+    pub params: Value,
+    pub has_preferred_strict_tools: bool,
+}
+struct StrictTools {
+    disable_preferred: bool,
+    has_preferred: bool,
+}
+fn prefers_strict(tool: &Tool) -> bool {
+    matches!(
+        tool.constrained_sampling,
+        Some(ConstrainedSampling::Config(
+            ConstrainedSamplingConfig::JsonSchema {
+                strict: JsonSchemaStrictness::Prefer
+            }
+        ))
+    )
 }
 
 pub(super) fn build(
@@ -166,11 +144,19 @@ pub(super) fn build(
     mapped_effort: Option<&str>,
     services: &AdapterServices,
     oauth: bool,
-) -> Result<Value, Failure> {
+    disable_preferred_strict_tools: bool,
+) -> Result<BuiltParams, Failure> {
     let model = &request.resolved.model;
     let c = compat(model)?;
     let cache = cache_control(request, services, &c);
-    let mut context = request.context.clone();
+    let mut strict_tools = StrictTools {
+        disable_preferred: disable_preferred_strict_tools,
+        has_preferred: false,
+    };
+    let mut context = resolve_transcript(
+        request.context.clone(),
+        c.supports_mid_convo_system_messages.unwrap_or(false),
+    );
     context.messages = transform_messages(
         &context.messages,
         model,
@@ -178,32 +164,72 @@ pub(super) fn build(
         Some(&mut IdNormalizer),
     )
     .map_err(|_| Failure::Protocol)?;
-    let normalizer = NameNormalizer(oauth);
-    let mut split = split_deferred_tools(
-        &context,
-        c.supports_tool_references
-            .unwrap_or_else(|| default_tool_references(model)),
-        Some(&normalizer),
-    );
-    if split.immediate.is_empty() && !split.deferred.is_empty() {
-        split.immediate = split.deferred.drain(..).map(|entry| entry.tool).collect();
+    let initial = get_initial_system_message(&context.messages);
+    let initial_tools = initial
+        .and_then(|system| system.tools_added.as_deref())
+        .unwrap_or_default();
+    let native = c.supports_mid_convo_system_messages == Some(true)
+        && c.supports_mid_convo_tool_changes == Some(true)
+        && !initial_tools.is_empty();
+    let conversation = if initial.is_some() {
+        &context.messages[1..]
+    } else {
+        context.messages.as_slice()
+    };
+    let (converted_messages, historical_efforts) = messages(
+        conversation,
+        oauth,
+        cache.as_ref(),
+        c.allow_empty_signature.unwrap_or(false),
+        native.then_some(&c),
+        &model.provider,
+        &mut strict_tools,
+    )?;
+    let mut converted = Vec::new();
+    let thinking_disabled = model.reasoning
+        && options.thinking_enabled == Some(false)
+        && model
+            .thinking_level_map
+            .as_ref()
+            .is_none_or(|map| map.as_map().get(&ModelThinkingLevel::Off) != Some(&None));
+    if c.supports_mid_convo_effort == Some(true) && !thinking_disabled {
+        let active = mapped_effort
+            .map(str::to_owned)
+            .or_else(|| {
+                options.effort.map(|effort| {
+                    serde_json::to_value(effort)
+                        .expect("effort")
+                        .as_str()
+                        .expect("string effort")
+                        .to_owned()
+                })
+            })
+            .unwrap_or_else(|| "high".into());
+        for (index, message) in converted_messages.into_iter().enumerate() {
+            if let Some(effort) = historical_efforts.get(&index) {
+                converted
+                    .push(json!({"role":"system","content":[],"output_config":{"effort":effort}}));
+            }
+            converted.push(message);
+        }
+        converted.push(json!({"role":"system","content":[],"output_config":{"effort":active}}));
+    } else {
+        converted = converted_messages;
     }
-    let deferred_names: BTreeSet<String> = split
-        .deferred
-        .iter()
-        .map(|entry| entry.normalized_name.as_str().into())
-        .collect();
-    let mut result = json!({"model":model.id,"messages":messages(&context.messages,oauth,cache.as_ref(),c.allow_empty_signature.unwrap_or(false),&deferred_names)?,
+    let mut result = json!({"model":model.id,"messages":converted,
         "max_tokens":request.options.wire.max_tokens.unwrap_or(model.max_tokens),"stream":true});
+    let betas = beta_features(request, options, &c, oauth, native);
+    if !betas.is_empty() {
+        result["betas"] = json!(betas);
+    }
     let mut system = vec![];
     if oauth {
         let mut identity = json!({"type":"text","text":"You are Claude Code, Anthropic's official CLI for Claude."});
         add_cache(&mut identity, cache.as_ref());
         system.push(identity);
     }
-    if let Some(text) = &context.system_prompt
-        && !text.is_empty()
-    {
+    let text = initial.map(get_system_message_text).unwrap_or_default();
+    if !text.is_empty() {
         let mut block = json!({"type":"text","text":text});
         add_cache(&mut block, cache.as_ref());
         system.push(block);
@@ -212,22 +238,30 @@ pub(super) fn build(
         result["system"] = json!(system);
     }
     if options.thinking_enabled != Some(true)
+        && c.supports_mid_convo_effort != Some(true)
         && c.supports_temperature.unwrap_or(true)
         && let Some(temperature) = request.options.wire.temperature
     {
         result["temperature"] = json!(temperature);
     }
+    let tools = if native {
+        initial_tools.to_vec()
+    } else {
+        get_current_tools(&context.messages)
+    };
     let mut tools = convert_tools(
-        &split.immediate,
+        &tools,
         oauth,
         &c,
         cache
             .as_ref()
             .filter(|_| c.supports_cache_control_on_tools.unwrap_or(true)),
         false,
+        &mut strict_tools,
     )?;
-    let deferred: Vec<Tool> = split.deferred.into_iter().map(|entry| entry.tool).collect();
-    tools.extend(convert_tools(&deferred, oauth, &c, None, true)?);
+    if native {
+        tools.push(json!({"name":"__pi_deferred_placeholder__","description":"Reserved placeholder. Never available. Never call this.","input_schema":{"type":"object","properties":{},"required":[]},"defer_loading":true}));
+    }
     if !tools.is_empty() {
         result["tools"] = json!(tools);
     }
@@ -292,8 +326,15 @@ pub(super) fn build(
                 .collect::<Vec<_>>()
         );
     }
-    // Unlike OpenAI, this pinned builder does not spread samplingParams.
-    Ok(result)
+    if c.supports_mid_convo_effort == Some(true) && !thinking_disabled {
+        result["thinking"] = json!({"type":"adaptive","display":options.thinking_display.unwrap_or(AnthropicThinkingDisplay::Summarized),"block_binding":{"prefix_mismatch_behavior":"drop_block"}});
+        result["output_config"] = json!({"effort":"high"});
+    }
+    // Anthropic does not spread samplingParams.
+    Ok(BuiltParams {
+        params: result,
+        has_preferred_strict_tools: strict_tools.has_preferred,
+    })
 }
 
 fn input_block(block: &InputContent) -> Value {
@@ -335,13 +376,38 @@ fn messages(
     oauth: bool,
     cache: Option<&Value>,
     allow_empty: bool,
-    deferred: &BTreeSet<String>,
-) -> Result<Vec<Value>, Failure> {
+    native: Option<&AnthropicMessagesCompat>,
+    provider: &ProviderId,
+    strict_tools: &mut StrictTools,
+) -> Result<(Vec<Value>, BTreeMap<usize, String>), Failure> {
     let mut result = Vec::new();
-    let mut loaded = BTreeSet::new();
+    let mut historical_efforts = BTreeMap::new();
+    let mut pending = Vec::new();
     let mut i = 0;
     while i < messages.len() {
         match &messages[i] {
+            Message::System(system) => {
+                let mut blocks = Vec::new();
+                let text = render_system_message_update(system);
+                if !text.is_empty() {
+                    blocks.push(json!({"type":"text","text":text}));
+                }
+                if let Some(c) = native {
+                    let added = system.tools_added.as_deref().unwrap_or_default();
+                    for removed in system.tools_removed.iter().flatten() {
+                        if !added.iter().any(|tool| tool.name == removed.name) {
+                            blocks.push(json!({"type":"tool_removal","tool":{"type":"tool_reference","name":outbound_name(removed.name.as_str(),oauth)}}));
+                        }
+                    }
+                    for definition in convert_tools(added, oauth, c, None, false, strict_tools)? {
+                        blocks.push(json!({"type":"tool_addition","tool":{"type":"tool_definition","definition":definition}}));
+                    }
+                }
+                if !blocks.is_empty() {
+                    pending.push(json!({"role":"system","content":blocks}));
+                }
+            }
+
             Message::User(message) => match &message.content {
                 UserContent::Text(text) if !text.trim_matches(ecma_whitespace).is_empty() => {
                     result.push(json!({"role":"user","content":text}))
@@ -364,6 +430,7 @@ fn messages(
                 _ => {}
             },
             Message::Assistant(message) => {
+                result.append(&mut pending);
                 let mut blocks = vec![];
                 for block in &message.content {
                     match block {
@@ -379,46 +446,67 @@ fn messages(
                     }
                 }
                 if !blocks.is_empty() {
+                    if message.provider == *provider
+                        && message.api.as_str() == "anthropic-messages"
+                        && let Some(effort) = &message.provider_thinking_level
+                        && matches!(effort.as_str(), "low" | "medium" | "high" | "xhigh" | "max")
+                    {
+                        historical_efforts.insert(result.len(), effort.clone());
+                    }
                     result.push(json!({"role":"assistant","content":blocks}));
                 }
             }
             Message::ToolResult(_) => {
                 let mut results = vec![];
-                let mut siblings = vec![];
+                let mut error_images = vec![];
+
                 while let Some(Message::ToolResult(message)) = messages.get(i) {
-                    let mut references = vec![];
-                    for name in message.added_tool_names.as_deref().unwrap_or_default() {
-                        let name = outbound_name(name.as_str(), oauth);
-                        if deferred.contains(&name) && loaded.insert(name.clone()) {
-                            references.push(json!({"type":"tool_reference","tool_name":name}));
-                        }
-                    }
-                    let content = convert_content(&message.content);
-                    let content = if references.is_empty() {
-                        content
-                    } else {
-                        match content {
-                            Value::String(text) => {
-                                siblings.push(json!({"type":"text","text":text}))
+                    let content = if message.is_error
+                        && message
+                            .content
+                            .iter()
+                            .any(|block| matches!(block, InputContent::Image(_)))
+                    {
+                        let mut text = Vec::new();
+                        let mut previous_placeholder = false;
+                        error_images.push(json!({"type":"text","text":format!("Images from the error result of tool call {} ({}):", message.tool_call_id, message.tool_name)}));
+                        for block in &message.content {
+                            match block {
+                                InputContent::Image(_) => {
+                                    if !previous_placeholder {
+                                        text.push(
+                                            "(image attached after the tool results)".to_owned(),
+                                        );
+                                    }
+                                    previous_placeholder = true;
+                                    error_images.push(input_block(block));
+                                }
+                                InputContent::Text(block) => {
+                                    text.push(block.text.clone());
+                                    previous_placeholder =
+                                        block.text == "(image attached after the tool results)";
+                                }
                             }
-                            Value::Array(blocks) => siblings.extend(blocks),
-                            _ => return Err(Failure::Protocol),
                         }
-                        json!(references)
+                        json!(text.join("\n"))
+                    } else {
+                        convert_content(&message.content)
                     };
                     results.push(json!({"type":"tool_result","tool_use_id":message.tool_call_id,"content":content,"is_error":message.is_error}));
                     i += 1;
                 }
-                results.extend(siblings);
+
+                results.extend(error_images);
                 result.push(json!({"role":"user","content":results}));
                 continue;
             }
         }
         i += 1;
     }
+    result.append(&mut pending);
     if let Some(cache) = cache
         && let Some(last) = result.last_mut()
-        && last["role"] == "user"
+        && (last["role"] == "user" || last["role"] == "system")
     {
         if let Some(text) = last["content"].as_str() {
             last["content"] = json!([{"type":"text","text":text,"cache_control":cache}]);
@@ -427,13 +515,13 @@ fn messages(
             .and_then(|blocks| blocks.last_mut())
             && matches!(
                 last_block["type"].as_str(),
-                Some("text" | "image" | "tool_result")
+                Some("text" | "image" | "tool_result" | "tool_addition" | "tool_removal")
             )
         {
             add_cache(last_block, Some(cache));
         }
     }
-    Ok(result)
+    Ok((result, historical_efforts))
 }
 
 fn convert_tools(
@@ -442,9 +530,13 @@ fn convert_tools(
     c: &AnthropicMessagesCompat,
     cache: Option<&Value>,
     deferred: bool,
+    strict_tools: &mut StrictTools,
 ) -> Result<Vec<Value>, Failure> {
     tools.iter().enumerate().map(|(index,tool)|{
-        let strict=resolve_json_schema_strict_sampling(tool,c.supports_strict_tools.unwrap_or(false)).map_err(|_|Failure::Protocol)?;
+        let strict=if strict_tools.disable_preferred && prefers_strict(tool) {None} else {
+            resolve_json_schema_strict_sampling(tool,c.supports_strict_tools.unwrap_or(false)).map_err(|_|Failure::Protocol)?
+        };
+        strict_tools.has_preferred |= strict == Some(true) && prefers_strict(tool);
         let parameters=get_wire_json_schema_tool_parameters(tool,strict).map_err(|_|Failure::Protocol)?;
         let parameters=parameters.into_value();
         let mut schema=if strict==Some(true){parameters.clone()}else{json!({})};
@@ -457,4 +549,75 @@ fn convert_tools(
         if index+1==tools.len(){add_cache(&mut result,cache);}
         Ok(result)
     }).collect()
+}
+
+pub(super) fn beta_features(
+    request: &TextStreamRequest,
+    options: &AnthropicOptions,
+    c: &AnthropicMessagesCompat,
+    oauth: bool,
+    native: bool,
+) -> Vec<String> {
+    let mut configured = None;
+    if let Some(headers) = &request.resolved.model.headers {
+        for (name, value) in headers.as_map() {
+            if name.eq_ignore_ascii_case("anthropic-beta") {
+                configured = Some(Some(value.as_str()));
+            }
+        }
+    }
+    for (name, value) in request.auth.headers.iter_for_dispatch() {
+        if name.eq_ignore_ascii_case("anthropic-beta") {
+            configured = Some(value.as_deref());
+        }
+    }
+    if let Some(configured) = configured {
+        let mut features = Vec::new();
+        for feature in configured
+            .unwrap_or_default()
+            .split(',')
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            if !features.iter().any(|old| old == feature) {
+                features.push(feature.to_owned());
+            }
+        }
+        return features;
+    }
+    let mut features = Vec::new();
+    if oauth {
+        features.extend(["claude-code-20250219", "oauth-2025-04-20"].map(str::to_owned));
+    }
+    if !get_current_tools(&request.context.messages).is_empty()
+        && !c.supports_eager_tool_input_streaming.unwrap_or(true)
+    {
+        features.push("fine-grained-tool-streaming-2025-05-14".into());
+    }
+    if request.resolved.model.reasoning
+        && options.thinking_enabled == Some(true)
+        && options.interleaved_thinking.unwrap_or(true)
+        && c.force_adaptive_thinking != Some(true)
+    {
+        features.push("interleaved-thinking-2025-05-14".into());
+    }
+    if c.allowed_fallback_models
+        .as_ref()
+        .is_some_and(|models| !models.is_empty())
+    {
+        features.push("server-side-fallback-2026-07-01".into());
+    }
+    if c.supports_mid_convo_effort == Some(true) {
+        features.extend(
+            [
+                "mid-conversation-output-config-2026-07-01",
+                "thinking-binding-controls-2026-08-01",
+            ]
+            .map(str::to_owned),
+        );
+    }
+    if native {
+        features.push("inline-tools-2026-09-15".into());
+    }
+    features
 }

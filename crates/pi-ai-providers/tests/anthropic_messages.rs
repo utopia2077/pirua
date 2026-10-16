@@ -1,4 +1,5 @@
 #![cfg(feature = "wire-anthropic-messages")]
+mod retained_support;
 use pi_ai_core::*;
 use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{anthropic_messages::*, runtime::*};
@@ -17,10 +18,9 @@ use std::{
 };
 
 fn fixture() -> Value {
-    serde_json::from_str(include_str!(
+    retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/trace.json"
     ))
-    .unwrap()
 }
 #[derive(Default)]
 struct TestClock {
@@ -256,10 +256,12 @@ fn complete(s: Setup, options: AnthropicOptions) -> (AssistantMessage, Vec<Value
     if !s.spawner.tasks.lock().unwrap().is_empty() {
         ready(s.spawner.take());
     }
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     let mut events = vec![];
     while let Some(event) = ready(stream.next()) {
-        events.push(serde_json::to_value(event).unwrap());
+        events.push(retained_support::without_duration(
+            serde_json::to_value(event).unwrap(),
+        ));
     }
     (result, events)
 }
@@ -413,7 +415,7 @@ fn caller_abort_retains_usage_only_fallback_and_signature_only_updates() {
         let mut task = s.spawner.take();
         assert!(poll(task.as_mut()).is_pending());
         token.cancel();
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(result.stop_reason, StopReason::Aborted);
         assert_eq!(result.model.as_str(), "claude-fable-5");
         assert_eq!(result.response_id.unwrap().as_str(), "msg_fixture");
@@ -607,10 +609,9 @@ fn middleware_mutation_replacement_failure_and_cancellation() {
 
 #[test]
 fn sdk_body_classifier_matrix_and_retry_cap_preserve_negative_vetoes() {
-    let vectors: Value = serde_json::from_str(include_str!(
+    let vectors: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/errors.json"
-    ))
-    .unwrap();
+    ));
     for case in vectors["cases"].as_array().unwrap() {
         for cap in [false, true] {
             let status = case["status"].as_u64().unwrap() as u16;
@@ -844,10 +845,9 @@ fn raw_integral_decimal_exponents_and_initial_vs_delta_null_semantics() {
 
 #[test]
 fn sdk_request_matrix_auth_betas_cache_thinking_metadata_and_url() {
-    let vectors: Value = serde_json::from_str(include_str!(
+    let vectors: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/requests.json"
-    ))
-    .unwrap();
+    ));
     for case in vectors["cases"].as_array().unwrap() {
         let mut s = setup(200, vec![], false);
         let hook = hooks(&mut s);
@@ -928,7 +928,7 @@ fn sdk_request_matrix_auth_betas_cache_thinking_metadata_and_url() {
 }
 
 #[test]
-fn replay_signatures_and_deferred_reference_results_keep_sibling_order_and_cache() {
+fn replay_signatures_and_tool_results_keep_sibling_order_and_cache() {
     let mut s = setup(200, vec![sse(&ending())], false);
     let observed = s.observed.clone();
     let mut assistant = fixture()["result"].clone();
@@ -943,7 +943,7 @@ fn replay_signatures_and_deferred_reference_results_keep_sibling_order_and_cache
         {"name":"late","description":"Late","parameters":{"type":"object","properties":{}}}]);
     s.request.context=serde_json::from_value(json!({"messages":[
         {"role":"user","content":"start","timestamp":7},assistant,
-        {"role":"toolResult","toolCallId":"call_1","toolName":"base","content":[{"type":"text","text":"loaded"},{"type":"image","mimeType":"image/png","data":"eA=="}],"addedToolNames":["late","late"],"isError":false,"timestamp":7},
+        {"role":"toolResult","toolCallId":"call_1","toolName":"base","content":[{"type":"text","text":"loaded"},{"type":"image","mimeType":"image/png","data":"eA=="}],"isError":false,"timestamp":7},
         {"role":"toolResult","toolCallId":"call_2","toolName":"base","content":[{"type":"text","text":"second"}],"isError":true,"timestamp":7}],"tools":tools})).unwrap();
     assert_eq!(
         complete(s, AnthropicOptions::default()).0.stop_reason,
@@ -962,22 +962,20 @@ fn replay_signatures_and_deferred_reference_results_keep_sibling_order_and_cache
     assert_eq!(
         wire["messages"][2]["content"],
         json!([
-        {"type":"tool_result","tool_use_id":"call_1","content":[{"type":"tool_reference","tool_name":"late"}],"is_error":false},
-        {"type":"tool_result","tool_use_id":"call_2","content":"second","is_error":true},
-        {"type":"text","text":"loaded"},
-        {"type":"image","source":{"type":"base64","media_type":"image/png","data":"eA=="},"cache_control":{"type":"ephemeral"}}])
-    );
-    assert_eq!(
-        wire["tools"][0]["cache_control"],
-        json!({"type":"ephemeral"})
+            {"type":"tool_result","tool_use_id":"call_1","content":[{"type":"text","text":"loaded"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"eA=="}}],"is_error":false},
+            {"type":"tool_result","tool_use_id":"call_2","content":"second","is_error":true,"cache_control":{"type":"ephemeral"}}
+        ])
     );
     assert!(wire["tools"][0].get("defer_loading").is_none());
-    assert_eq!(wire["tools"][1]["defer_loading"], true);
-    assert!(wire["tools"][1].get("cache_control").is_none());
+    assert_eq!(
+        wire["tools"][1]["cache_control"],
+        json!({"type":"ephemeral"})
+    );
+    assert!(wire["tools"][1].get("defer_loading").is_none());
 }
 
 #[test]
-fn empty_signature_compat_and_all_deferred_fallback_match_source() {
+fn empty_signature_compat_and_ordinary_tool_results_match_source() {
     for allow in [false, true] {
         let mut s = setup(200, vec![sse(&ending())], false);
         let observed = s.observed.clone();
@@ -987,7 +985,7 @@ fn empty_signature_compat_and_all_deferred_fallback_match_source() {
         assistant["model"] = json!("claude-opus-4-6");
         assistant["content"] = json!([
             {"type":"thinking","thinking":"reason","thinkingSignature":" "},{"type":"toolCall","id":"call","name":"base","arguments":{}}]);
-        s.request.context=serde_json::from_value(json!({"messages":[assistant,{"role":"toolResult","toolCallId":"call","toolName":"base","content":[{"type":"text","text":"loaded"}],"addedToolNames":["late"],"isError":false,"timestamp":7}],
+        s.request.context=serde_json::from_value(json!({"messages":[assistant,{"role":"toolResult","toolCallId":"call","toolName":"base","content":[{"type":"text","text":"loaded"}],"isError":false,"timestamp":7}],
             "tools":[{"name":"late","description":"Late","parameters":{"type":"object","properties":{}}}]})).unwrap();
         complete(s, AnthropicOptions::default());
         let requests = observed.requests.lock().unwrap();
@@ -1074,7 +1072,7 @@ fn oauth_tool_names_round_trip_without_invented_find_mapping() {
             false,
         );
         s.request.auth.api_key = Some(SecretString::new("sk-ant-oat-fixture"));
-        s.request.context.tools=Some(serde_json::from_value(json!([{"name":name,"description":"tool","parameters":{"type":"object","properties":{}}}])).unwrap());
+        s.request.context.messages.insert(0,Message::System(create_initial_system_message(None,Some(&serde_json::from_value::<Vec<Tool>>(json!([{"name":name,"description":"tool","parameters":{"type":"object","properties":{}}}])).unwrap())).unwrap()));
         let result = complete(s, AnthropicOptions::default()).0;
         assert_eq!(result.stop_reason, StopReason::ToolUse);
         assert_eq!(json!(result.content)[0]["name"], name);
@@ -1267,10 +1265,9 @@ fn callback_header_record_projection_matches_executed_helper_and_preserves_raw()
             })
         }
     }
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/headers.json"
-    ))
-    .unwrap();
+    ));
     let raw_entries: Vec<(String, String)> =
         serde_json::from_value(fixture["raw"].clone()).unwrap();
     let expected: Vec<(String, String)> =
@@ -1304,10 +1301,9 @@ fn callback_header_record_projection_matches_executed_helper_and_preserves_raw()
 
 #[test]
 fn independent_malformed_raw_lines_classification() {
-    let probes: Value = serde_json::from_str(include_str!(
+    let probes: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/parse-review.json"
-    ))
-    .unwrap();
+    ));
     let mut mismatches = vec![];
     for case in probes["cases"].as_array().unwrap() {
         let mut s = setup(
@@ -1336,10 +1332,9 @@ fn independent_malformed_raw_lines_classification() {
 
 #[test]
 fn independent_complete_sdk_attempt_caps() {
-    let probes: Value = serde_json::from_str(include_str!(
+    let probes: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/parse-review.json"
-    ))
-    .unwrap();
+    ));
     for case in probes["cap"].as_array().unwrap() {
         let mut s = setup(
             case["status"].as_u64().unwrap() as u16,
@@ -1392,10 +1387,9 @@ fn independent_failed_body_cancel_prevents_second_attempt() {
 
 #[test]
 fn source_parse_error_raw_context_controls_and_partial_snapshots() {
-    let vectors: Value = serde_json::from_str(include_str!(
+    let vectors: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/anthropic-messages/parse-errors.json"
-    ))
-    .unwrap();
+    ));
     for case in vectors["cases"].as_array().unwrap() {
         let chunks: Vec<Vec<u8>> = case["chunks"]
             .as_array()
@@ -1468,7 +1462,7 @@ fn raw_context_cancellation_and_resource_failures_remain_closed() {
     assert!(poll(worker.as_mut()).is_pending());
     token.cancel();
     ready(worker);
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Aborted);
     assert_eq!(result.usage.input.get(), 12);
     assert_eq!(result.model.as_str(), "claude-fable-5");

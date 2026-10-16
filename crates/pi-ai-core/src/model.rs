@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 use serde::de::{MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de, ser};
 
-use crate::id::{ApiId, ImagesApiId, ImagesProviderId, ModelId, ProviderId};
+use crate::id::{ApiId, ModelId, ProviderId};
 use crate::json::{FiniteF64, JsonNumber, JsonObject, Presence, SafeUnsigned};
 
 const HARD_DENIED_MODEL_HEADERS: [&str; 7] = [
@@ -269,15 +269,12 @@ impl fmt::Debug for PublicModelBaseUrl {
 pub enum ModelBaseUrl {
     /// Public, credential-free endpoint metadata.
     Public(PublicModelBaseUrl),
-    /// Azure endpoint resolved from runtime request configuration.
-    RuntimeResolved,
 }
 
 impl ModelBaseUrl {
     fn wire_value(&self) -> &str {
         match self {
             Self::Public(value) => value.as_str(),
-            Self::RuntimeResolved => "",
         }
     }
 }
@@ -806,6 +803,20 @@ pub enum SessionAffinityFormat {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OpenAiCompletionsCompat {
+    /// Whether new tool definitions can be anchored in later system messages.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_tool_additions: Option<bool>,
+    /// Whether this protocol can preserve the corresponding anchored transcript update.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_system_messages: Option<bool>,
     /// Whether the provider accepts `store`.
     #[serde(
         default,
@@ -961,13 +972,6 @@ pub struct OpenAiCompletionsCompat {
         skip_serializing_if = "Option::is_none"
     )]
     pub send_session_affinity_headers: Option<bool>,
-    /// Provider-specific deferred-tool serialization.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub deferred_tools_mode: Option<KimiDeferredToolsMode>,
     /// Session-affinity header format.
     #[serde(
         default,
@@ -992,18 +996,31 @@ pub enum AnthropicCacheControlFormat {
     Anthropic,
 }
 
-/// Literal Kimi deferred-tool mode.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum KimiDeferredToolsMode {
-    /// Kimi deferred-tool serialization.
-    #[serde(rename = "kimi")]
-    Kimi,
-}
-
 /// OpenAI Responses behavior overrides.
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct OpenAiResponsesCompat {
+    /// Whether an explicit output token limit is accepted.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_max_output_tokens: Option<bool>,
+    /// Whether this protocol can preserve the corresponding anchored transcript update.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_system_messages: Option<bool>,
+    /// Whether this protocol can preserve the corresponding anchored transcript update.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_effort: Option<bool>,
     /// Whether the developer role is supported.
     #[serde(
         default,
@@ -1079,6 +1096,27 @@ pub struct AnthropicAllowedFallbackModel {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AnthropicMessagesCompat {
+    /// Whether this protocol can preserve the corresponding anchored transcript update.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_system_messages: Option<bool>,
+    /// Whether this protocol can preserve the corresponding anchored transcript update.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_tool_changes: Option<bool>,
+    /// Whether this protocol can preserve the corresponding anchored transcript update.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_mid_convo_effort: Option<bool>,
     /// Whether eager tool input streaming is supported.
     #[serde(
         default,
@@ -1142,26 +1180,6 @@ pub struct AnthropicMessagesCompat {
         skip_serializing_if = "Option::is_none"
     )]
     pub allowed_fallback_models: Option<Vec<AnthropicAllowedFallbackModel>>,
-    /// Whether deferred tool references are supported.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub supports_tool_references: Option<bool>,
-}
-
-/// Amazon Bedrock behavior overrides.
-#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct BedrockCompat {
-    /// Whether strict tool schemas are supported.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub supports_strict_mode: Option<bool>,
 }
 
 /// Raw untagged compatibility object carried by a model.
@@ -1181,8 +1199,6 @@ pub enum TypedModelCompat {
     OpenAiResponses(OpenAiResponsesCompat),
     /// Anthropic Messages settings.
     AnthropicMessages(Box<AnthropicMessagesCompat>),
-    /// Amazon Bedrock settings.
-    Bedrock(BedrockCompat),
 }
 
 /// Error validating a raw model compatibility object.
@@ -1224,23 +1240,134 @@ impl ModelCompat {
                 .decode()
                 .map(Box::new)
                 .map(TypedModelCompat::OpenAiCompletions),
-            ApiId::OPENAI_RESPONSES
-            | ApiId::AZURE_OPENAI_RESPONSES
-            | ApiId::OPENAI_CODEX_RESPONSES => self.decode().map(TypedModelCompat::OpenAiResponses),
+            ApiId::OPENAI_RESPONSES => self.decode().map(TypedModelCompat::OpenAiResponses),
             ApiId::ANTHROPIC_MESSAGES => self
                 .decode()
                 .map(Box::new)
                 .map(TypedModelCompat::AnthropicMessages),
-            ApiId::BEDROCK_CONVERSE_STREAM => self.decode().map(TypedModelCompat::Bedrock),
             _ => Err(ModelCompatError::UnsupportedApi(api.clone())),
         }
     }
+}
+
+/// Cache-safe image preprocessing limits.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ModelImageResizeOptions {
+    /// Maximum image width.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_width: Option<SafeUnsigned>,
+    /// Maximum image height.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_height: Option<SafeUnsigned>,
+    /// Maximum base64 payload bytes.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_bytes: Option<SafeUnsigned>,
+    /// JPEG quality from one to one hundred.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub jpeg_quality: Option<SafeUnsigned>,
+}
+/// Provider image input limits.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ModelImageInputLimits {
+    /// Preprocessing profile applied before storing image input.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub resize: Option<ModelImageResizeOptions>,
+    /// Maximum images in one message.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_per_message: Option<SafeUnsigned>,
+    /// Maximum images across a request.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_per_request: Option<SafeUnsigned>,
+}
+/// Provider request and image limits.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ModelInputLimits {
+    /// Maximum serialized request bytes.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_request_bytes: Option<SafeUnsigned>,
+    /// Image input limits.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub images: Option<ModelImageInputLimits>,
+}
+/// Known prompt-cache lifetimes in seconds.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelPromptCache {
+    /// Short retention lifetime.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub short: Option<FiniteF64>,
+    /// Long retention lifetime.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub long: Option<FiniteF64>,
+}
+
+/// Catalog discriminator for chat models.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChatModelType {
+    /// A streaming chat model.
+    #[serde(rename = "chat")]
+    Chat,
 }
 
 /// Transient raw text-model intake with unclassified headers.
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RawModel {
+    /// Optional chat catalog discriminator.
+    #[serde(
+        default,
+        rename = "type",
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub model_type: Option<ChatModelType>,
     /// Provider-scoped model identity.
     pub id: ModelId,
     /// Human-readable model name.
@@ -1262,6 +1389,27 @@ pub struct RawModel {
     pub thinking_level_map: Option<ThinkingLevelMap>,
     /// Accepted input modalities.
     pub input: Vec<ModelInput>,
+    /// Sampling overrides by effective thinking level.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub sampling_params_by_thinking_level: Option<BTreeMap<ModelThinkingLevel, JsonObject>>,
+    /// Known prompt cache lifetimes.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub prompt_cache: Option<ModelPromptCache>,
+    /// Provider input limits.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub input_limits: Option<ModelInputLimits>,
     /// Pricing metadata.
     pub cost: ModelCost,
     /// Context-window tokens.
@@ -1320,8 +1468,6 @@ pub enum ModelValidationError {
     Compat(ModelCompatError),
     /// Public model endpoint validation failed.
     BaseUrl(PublicModelBaseUrlError),
-    /// Runtime-resolved endpoint sentinel was paired with a non-Azure API.
-    RuntimeResolvedApiMismatch,
     /// Model-header classification failed.
     Headers(ModelHeaderClassificationError),
 }
@@ -1331,9 +1477,6 @@ impl fmt::Display for ModelValidationError {
         match self {
             Self::Compat(error) => error.fmt(formatter),
             Self::BaseUrl(error) => error.fmt(formatter),
-            Self::RuntimeResolvedApiMismatch => {
-                formatter.write_str("runtime-resolved baseUrl requires azure-openai-responses")
-            }
             Self::Headers(error) => error.fmt(formatter),
         }
     }
@@ -1354,20 +1497,11 @@ impl RawModel {
             .map(|headers| headers.classify(policy))
             .transpose()
             .map_err(ModelValidationError::Headers)?;
-        let base_url = if self.base_url.is_empty() {
-            if self.api.as_str() == ApiId::AZURE_OPENAI_RESPONSES {
-                ModelBaseUrl::RuntimeResolved
-            } else {
-                return Err(ModelValidationError::BaseUrl(
-                    PublicModelBaseUrlError::Empty,
-                ));
-            }
-        } else {
-            ModelBaseUrl::Public(
-                PublicModelBaseUrl::new(self.base_url).map_err(ModelValidationError::BaseUrl)?,
-            )
-        };
+        let base_url = ModelBaseUrl::Public(
+            PublicModelBaseUrl::new(self.base_url).map_err(ModelValidationError::BaseUrl)?,
+        );
         Ok(Model {
+            model_type: self.model_type,
             id: self.id,
             name: self.name,
             api: self.api,
@@ -1375,6 +1509,9 @@ impl RawModel {
             base_url,
             reasoning: self.reasoning,
             thinking_level_map: self.thinking_level_map,
+            sampling_params_by_thinking_level: self.sampling_params_by_thinking_level,
+            prompt_cache: self.prompt_cache,
+            input_limits: self.input_limits,
             input: self.input,
             cost: self.cost,
             context_window: self.context_window,
@@ -1389,6 +1526,9 @@ impl RawModel {
 /// Validated provider-neutral text model safe for model storage.
 #[derive(Clone, PartialEq)]
 pub struct Model {
+    /// Optional chat discriminator.
+    // serde-non-null: delegated-to-raw-model
+    pub model_type: Option<ChatModelType>,
     /// Provider-scoped model identity.
     pub id: ModelId,
     /// Human-readable model name.
@@ -1406,6 +1546,15 @@ pub struct Model {
     pub thinking_level_map: Option<ThinkingLevelMap>,
     /// Accepted input modalities.
     pub input: Vec<ModelInput>,
+    /// Sampling overrides by effective thinking level.
+    // serde-non-null: delegated-to-raw-model
+    pub sampling_params_by_thinking_level: Option<BTreeMap<ModelThinkingLevel, JsonObject>>,
+    /// Known prompt cache lifetimes.
+    // serde-non-null: delegated-to-raw-model
+    pub prompt_cache: Option<ModelPromptCache>,
+    /// Provider input limits.
+    // serde-non-null: delegated-to-raw-model
+    pub input_limits: Option<ModelInputLimits>,
     /// Pricing metadata.
     pub cost: ModelCost,
     /// Context-window tokens.
@@ -1430,15 +1579,6 @@ impl Model {
             .as_ref()
             .map(|compat| compat.decode_for_api(&self.api))
             .transpose()
-    }
-
-    fn validate_base_url(&self) -> Result<(), ModelValidationError> {
-        if matches!(self.base_url, ModelBaseUrl::RuntimeResolved)
-            && self.api.as_str() != ApiId::AZURE_OPENAI_RESPONSES
-        {
-            return Err(ModelValidationError::RuntimeResolvedApiMismatch);
-        }
-        Ok(())
     }
 }
 
@@ -1467,6 +1607,7 @@ impl fmt::Debug for Model {
 impl From<&Model> for RawModel {
     fn from(model: &Model) -> Self {
         Self {
+            model_type: model.model_type,
             id: model.id.clone(),
             name: model.name.clone(),
             api: model.api.clone(),
@@ -1474,6 +1615,9 @@ impl From<&Model> for RawModel {
             base_url: model.base_url.wire_value().to_owned(),
             reasoning: model.reasoning,
             thinking_level_map: model.thinking_level_map.clone(),
+            sampling_params_by_thinking_level: model.sampling_params_by_thinking_level.clone(),
+            prompt_cache: model.prompt_cache.clone(),
+            input_limits: model.input_limits.clone(),
             input: model.input.clone(),
             cost: model.cost.clone(),
             context_window: model.context_window,
@@ -1494,7 +1638,6 @@ impl Serialize for Model {
         S: Serializer,
     {
         self.typed_compat().map_err(ser::Error::custom)?;
-        self.validate_base_url().map_err(ser::Error::custom)?;
         RawModel::from(self).serialize(serializer)
     }
 }
@@ -1505,173 +1648,6 @@ impl<'de> Deserialize<'de> for Model {
         D: Deserializer<'de>,
     {
         RawModel::deserialize(deserializer)?
-            .into_model(&ModelHeaderPolicy::default())
-            .map_err(de::Error::custom)
-    }
-}
-
-/// Transient raw image-model intake with unclassified headers.
-#[derive(Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct RawImagesModel {
-    /// Provider-scoped model identity.
-    pub id: ModelId,
-    /// Human-readable model name.
-    pub name: String,
-    /// Image API protocol.
-    pub api: ImagesApiId,
-    /// Image provider identity.
-    pub provider: ImagesProviderId,
-    /// Provider base URL.
-    pub base_url: String,
-    /// Accepted input modalities.
-    pub input: Vec<ModelInput>,
-    /// Produced output modalities.
-    pub output: Vec<ModelInput>,
-    /// Pricing metadata.
-    pub cost: ModelCost,
-    /// Default arbitrary sampling parameters.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub sampling_params: Option<JsonObject>,
-    /// Transient unclassified model headers.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub headers: Option<RawModelHeaders>,
-}
-
-impl fmt::Debug for RawImagesModel {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("RawImagesModel")
-            .field("id", &self.id)
-            .field("name", &self.name)
-            .field("api", &self.api)
-            .field("provider", &self.provider)
-            .field("base_url", &"[REDACTED]")
-            .field("input", &self.input)
-            .field("output", &self.output)
-            .field("cost", &self.cost)
-            .field("sampling_params", &self.sampling_params)
-            .field("headers", &self.headers)
-            .finish()
-    }
-}
-
-impl RawImagesModel {
-    /// Consumes raw intake and classifies headers under the supplied policy.
-    pub fn into_model(
-        self,
-        policy: &ModelHeaderPolicy,
-    ) -> Result<ImagesModel, ModelValidationError> {
-        let headers = self
-            .headers
-            .map(|headers| headers.classify(policy))
-            .transpose()
-            .map_err(ModelValidationError::Headers)?;
-        let base_url =
-            PublicModelBaseUrl::new(self.base_url).map_err(ModelValidationError::BaseUrl)?;
-        Ok(ImagesModel {
-            id: self.id,
-            name: self.name,
-            api: self.api,
-            provider: self.provider,
-            base_url,
-            input: self.input,
-            output: self.output,
-            cost: self.cost,
-            sampling_params: self.sampling_params,
-            headers,
-        })
-    }
-}
-
-/// Validated image-generation model safe for model storage.
-#[derive(Clone, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ImagesModel {
-    /// Provider-scoped model identity.
-    pub id: ModelId,
-    /// Human-readable model name.
-    pub name: String,
-    /// Image API protocol.
-    pub api: ImagesApiId,
-    /// Image provider identity.
-    pub provider: ImagesProviderId,
-    /// Provider base URL.
-    pub base_url: PublicModelBaseUrl,
-    /// Accepted input modalities.
-    pub input: Vec<ModelInput>,
-    /// Produced output modalities.
-    pub output: Vec<ModelInput>,
-    /// Pricing metadata.
-    pub cost: ModelCost,
-    /// Default arbitrary sampling parameters.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub sampling_params: Option<JsonObject>,
-    /// Host-policy-classified public model headers.
-    #[serde(
-        default,
-        deserialize_with = "crate::json::deserialize_optional_non_null",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub headers: Option<PublicModelHeaders>,
-}
-
-impl fmt::Debug for ImagesModel {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("ImagesModel")
-            .field("id", &self.id)
-            .field("name", &self.name)
-            .field("api", &self.api)
-            .field("provider", &self.provider)
-            .field("base_url", &"[REDACTED]")
-            .field("input", &self.input)
-            .field("output", &self.output)
-            .field("cost", &self.cost)
-            .field("sampling_params", &self.sampling_params)
-            .field("headers", &self.headers)
-            .finish()
-    }
-}
-
-impl From<&ImagesModel> for RawImagesModel {
-    fn from(model: &ImagesModel) -> Self {
-        Self {
-            id: model.id.clone(),
-            name: model.name.clone(),
-            api: model.api.clone(),
-            provider: model.provider.clone(),
-            base_url: model.base_url.as_str().to_owned(),
-            input: model.input.clone(),
-            output: model.output.clone(),
-            cost: model.cost.clone(),
-            sampling_params: model.sampling_params.clone(),
-            headers: model
-                .headers
-                .as_ref()
-                .map(|headers| RawModelHeaders(headers.0.clone())),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for ImagesModel {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        RawImagesModel::deserialize(deserializer)?
             .into_model(&ModelHeaderPolicy::default())
             .map_err(de::Error::custom)
     }

@@ -5,18 +5,16 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use pi_ai_core::{
-    ApiAdapter, ApiId, AssistantImages, AssistantMessageEventStream, AssistantStreamInit,
-    BoxFuture, CancellationToken, Cancelled, CapabilityError, Clock, Context,
-    DeferredCancelOptions, DeferredCancelOptionsWire, DeferredCancelRequest, DeferredFetchOptions,
-    DeferredFetchOptionsWire, DeferredFetchRequest, DeferredHandle, DeferredId,
-    ImageGenerationRequest, ImagesApiAdapter, ImagesContext, ImagesModel, ImagesOptions,
-    ImagesOptionsWire, Model, ModelsError, ModelsErrorCode, ProviderEnv, ProviderHeaders,
-    RequestEndpoint, RequestRuntime, ResolvedAuth, ResolvedRequest, SecretString,
-    SimpleStreamOptions, SimpleStreamOptionsWire, SimpleStreamRequest, SpawnError, StreamOptions,
-    StreamOptionsWire, StreamSetupFailure, TaskSpawner, TextStreamRequest,
-    create_assistant_message_event_stream,
+    ApiAdapter, ApiId, AssistantMessageEventStream, AssistantStreamInit, BoxFuture,
+    CancellationToken, Cancelled, CapabilityError, Clock, Context, DeferredCancelOptions,
+    DeferredCancelOptionsWire, DeferredCancelRequest, DeferredFetchOptions,
+    DeferredFetchOptionsWire, DeferredFetchRequest, DeferredHandle, DeferredId, Model, ModelsError,
+    ModelsErrorCode, ProviderEnv, ProviderHeaders, RequestEndpoint, RequestRuntime, ResolvedAuth,
+    ResolvedRequest, SecretString, SimpleStreamOptions, SimpleStreamOptionsWire,
+    SimpleStreamRequest, SpawnError, StreamOptions, StreamOptionsWire, StreamSetupFailure,
+    TaskSpawner, TextStreamRequest, create_assistant_message_event_stream,
 };
-use pi_telemetry::{NOOP_TELEMETRY_CONTEXT, TelemetryContext};
+use pi_telemetry::{NOOP_TELEMETRY_SPAN, TelemetrySpan};
 
 const MODELS_OPTIONS: &str =
     include_str!("../../../conformance/schema/ai/models-options.golden.json");
@@ -53,11 +51,12 @@ impl TaskSpawner for TestSpawner {
 
 fn runtime() -> (RequestRuntime, Arc<dyn Clock>) {
     let clock: Arc<dyn Clock> = Arc::new(TestClock);
-    let telemetry: Arc<dyn TelemetryContext> = Arc::new(NOOP_TELEMETRY_CONTEXT);
+    let telemetry: Arc<dyn TelemetrySpan> = Arc::new(NOOP_TELEMETRY_SPAN);
     (
         RequestRuntime {
             cancellation: CancellationToken::new(),
             telemetry,
+            provider_event_observer: None,
             clock: Arc::clone(&clock),
             spawner: Arc::new(TestSpawner),
         },
@@ -65,12 +64,9 @@ fn runtime() -> (RequestRuntime, Arc<dyn Clock>) {
     )
 }
 
-fn models() -> (Model, ImagesModel) {
-    let value: serde_json::Value = serde_json::from_str(MODELS_OPTIONS).expect("valid fixture");
-    (
-        serde_json::from_value(value["model"].clone()).expect("valid model"),
-        serde_json::from_value(value["imagesModel"].clone()).expect("valid image model"),
-    )
+fn models() -> Model {
+    let value: serde_json::Value = serde_json::from_str(MODELS_OPTIONS).unwrap();
+    serde_json::from_value(value["model"].clone()).unwrap()
 }
 
 fn endpoint() -> RequestEndpoint {
@@ -141,7 +137,7 @@ fn resolved_auth_debug_lists_only_presence_and_keys() {
 
 #[test]
 fn all_five_nominal_roots_carry_their_exact_runtime_wrapper() {
-    let (model, image_model) = models();
+    let model = models();
     let request_handle = handle(&model);
     let (runtime, clock) = runtime();
     let text = TextStreamRequest {
@@ -149,11 +145,11 @@ fn all_five_nominal_roots_carry_their_exact_runtime_wrapper() {
             model: model.clone(),
             endpoint: endpoint(),
         },
-        context: Context {
+        context: pi_ai_core::normalize_context(Context {
             system_prompt: None,
             messages: Vec::new(),
             tools: None,
-        },
+        }),
         auth: auth(),
         options: StreamOptions {
             wire: StreamOptionsWire::default(),
@@ -168,11 +164,11 @@ fn all_five_nominal_roots_carry_their_exact_runtime_wrapper() {
             model: model.clone(),
             endpoint: endpoint(),
         },
-        context: Context {
+        context: pi_ai_core::normalize_context(Context {
             system_prompt: None,
             messages: Vec::new(),
             tools: None,
-        },
+        }),
         auth: auth(),
         options: SimpleStreamOptions {
             wire: SimpleStreamOptionsWire::default(),
@@ -208,24 +204,10 @@ fn all_five_nominal_roots_carry_their_exact_runtime_wrapper() {
         },
     };
     assert!(Arc::ptr_eq(&cancel.options.runtime.clock, &clock));
-
-    let image = ImageGenerationRequest {
-        resolved: ResolvedRequest {
-            model: image_model,
-            endpoint: endpoint(),
-        },
-        context: ImagesContext { input: Vec::new() },
-        auth: auth(),
-        options: ImagesOptions {
-            wire: ImagesOptionsWire::default(),
-            runtime,
-        },
-    };
-    assert!(Arc::ptr_eq(&image.options.runtime.clock, &clock));
 }
 
 #[test]
-fn deferred_and_image_wire_fields_are_exact_and_non_null() {
+fn deferred_wire_fields_are_exact_and_non_null() {
     let fetch: DeferredFetchOptionsWire = serde_json::from_value(serde_json::json!({
         "timeoutMs": 1,
         "maxRetries": 2,
@@ -246,15 +228,6 @@ fn deferred_and_image_wire_fields_are_exact_and_non_null() {
         Some(3)
     );
 
-    let images: ImagesOptionsWire = serde_json::from_value(serde_json::json!({
-        "timeoutMs": 1,
-        "maxRetries": 2,
-        "maxRetryDelayMs": 3,
-        "metadata": {"purpose": "test"}
-    }))
-    .expect("complete images shape");
-    assert!(images.metadata.is_some());
-
     for invalid in [
         serde_json::json!({"wait": null}),
         serde_json::json!({"timeoutMs": null}),
@@ -268,7 +241,6 @@ fn deferred_and_image_wire_fields_are_exact_and_non_null() {
         serde_json::from_value::<DeferredCancelOptionsWire>(serde_json::json!({"wait": 1}))
             .is_err()
     );
-    assert!(serde_json::from_value::<ImagesOptionsWire>(serde_json::json!({"wait": 1})).is_err());
 }
 
 struct AdapterProbe {
@@ -323,33 +295,13 @@ impl ApiAdapter for AdapterProbe {
     }
 }
 
-impl ImagesApiAdapter for AdapterProbe {
-    fn generate<'a>(&'a self, request: ImageGenerationRequest) -> BoxFuture<'a, AssistantImages> {
-        Box::pin(async move {
-            AssistantImages {
-                api: request.resolved.model.api,
-                provider: request.resolved.model.provider,
-                model: request.resolved.model.id,
-                output: Vec::new(),
-                response_id: None,
-                usage: None,
-                stop_reason: pi_ai_core::ImagesStopReason::Error,
-                error_message: Some("image request failed".to_owned()),
-                timestamp: pi_ai_core::SafeUnsigned::new(1).expect("safe timestamp"),
-            }
-        })
-    }
-}
-
 #[test]
 fn adapter_ports_are_object_safe_and_factory_signature_is_exact() {
     fn accepts_api(_adapter: &dyn ApiAdapter) {}
-    fn accepts_images(_adapter: &dyn ImagesApiAdapter) {}
     let adapter = AdapterProbe {
         api: ApiId::new("probe").expect("nonempty API"),
     };
     accepts_api(&adapter);
-    accepts_images(&adapter);
     let _factory: fn(
         AssistantStreamInit,
     ) -> (

@@ -1,19 +1,16 @@
-//! Validated catalogs generated from the dated public input capture.
+//! Validated selected chat catalogs from the exact Pi v1.4.0 release.
 //!
 //! SHA-256 input/source/output provenance is verified offline by the build tooling.
 //! Runtime catalog bytes are immutable and feature-selected; decoding still applies
 //! the ordinary core model, header policy, endpoint and compatibility invariants.
 
-use pi_ai_core::{
-    ImagesModel, ImagesProviderId, Model, ModelHeaderPolicy, ProviderId, RawImagesModel, RawModel,
-};
+use pi_ai_core::{Model, ModelHeaderPolicy, ProviderId, RawModel};
 use std::{collections::BTreeSet, error::Error, fmt};
 
-/// Immutable upstream generator revision, not the capture date of its mutable feeds.
-pub const SOURCE_COMMIT: &str = "853a80d26c90a14c1886f0ebb8ffaae133ca2185";
-/// Fixed generation clock for the dated public capture; historical text values are unknown.
-pub const GENERATED_AT: &str = "2026-09-07T06:59:46.000Z";
-
+/// Exact target release source commit.
+pub const SOURCE_COMMIT: &str = "4a080252f06caf63a525d7873c5d94d3c23887e0";
+/// Published package whose published provenance identifies the target commit.
+pub const SOURCE_PACKAGE: &str = "@earendil-works/pi-ai@1.4.0";
 /// Sanitized reason why an entire catalog was rejected.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -98,33 +95,10 @@ pub fn decode_text_catalog(
         .collect()
 }
 
-/// Decodes an ordered image-model array atomically under the supplied header policy.
-///
-/// Image provider IDs occupy their own namespace. Input data gains no provenance claim.
-pub fn decode_image_catalog(
-    bytes: &[u8],
-    provider: &ImagesProviderId,
-    policy: &ModelHeaderPolicy,
-) -> Result<Vec<ImagesModel>, CatalogError> {
-    let raw: Vec<RawImagesModel> = serde_json::from_slice(bytes)
-        .map_err(|error| CatalogError::source(CatalogErrorKind::Decode, error))?;
-    let mut ids = BTreeSet::new();
-    raw.into_iter()
-        .map(|model| {
-            if &model.provider != provider || !ids.insert(model.id.clone()) {
-                return Err(CatalogError::identity());
-            }
-            model
-                .into_model(policy)
-                .map_err(|error| CatalogError::source(CatalogErrorKind::Validation, error))
-        })
-        .collect()
-}
-
 macro_rules! text_catalog {
     ($feature:literal, $function:ident, $provider:literal, $file:literal) => {
         #[cfg(feature = $feature)]
-        #[doc = concat!("Returns the validated ", $provider, " catalog from the dated capture, in source order.")]
+        #[doc = concat!("Returns the validated ", $provider, " catalog from Pi v1.4.0, in source order.")]
         pub fn $function() -> Result<Vec<Model>, CatalogError> {
             let provider = ProviderId::new($provider)
                 .map_err(|error| CatalogError::source(CatalogErrorKind::Identity, error))?;
@@ -157,27 +131,3 @@ text_catalog!(
     "deepseek",
     "../../../../conformance/catalog/generated/text/deepseek.json"
 );
-text_catalog!(
-    "catalog-openai-codex",
-    openai_codex_models,
-    "openai-codex",
-    "../../../../conformance/catalog/generated/text/openai-codex.json"
-);
-text_catalog!(
-    "catalog-openrouter",
-    openrouter_models,
-    "openrouter",
-    "../../../../conformance/catalog/generated/text/openrouter.json"
-);
-
-/// Returns captured OpenRouter image models; the historical pinned projection is evidence only.
-#[cfg(feature = "catalog-openrouter-images")]
-pub fn openrouter_image_models() -> Result<Vec<ImagesModel>, CatalogError> {
-    let provider = ImagesProviderId::new("openrouter")
-        .map_err(|error| CatalogError::source(CatalogErrorKind::Identity, error))?;
-    decode_image_catalog(
-        include_bytes!("../../../../conformance/catalog/generated/images/openrouter.json"),
-        &provider,
-        &ModelHeaderPolicy::default(),
-    )
-}

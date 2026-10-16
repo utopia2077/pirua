@@ -1,8 +1,5 @@
 //! Explicit builtin registration. Construction never mutates a global registry.
 use pi_ai_core::{ModelsError, ModelsRegistry, ModelsRegistryOptions, Provider};
-use pi_ai_providers::images::{
-    ImagesModelsOptions, ImagesProvider, MutableImagesModels, create_images_models,
-};
 pub use pi_ai_providers::providers::{
     BuiltinProviderModules, BuiltinProviderServices, FactoryAuthServices, ProviderFactoryError,
 };
@@ -39,20 +36,7 @@ pub fn builtin_providers(
         #[cfg(feature = "provider-google")]
         pi_ai_providers::providers::google_provider(modules.google())?,
         #[cfg(feature = "provider-openai")]
-        pi_ai_providers::providers::openai_provider(modules.openai())?,
-        #[cfg(feature = "provider-openai-codex")]
-        pi_ai_providers::providers::openai_codex_provider(modules.codex(), modules.auth())?,
-        #[cfg(feature = "provider-openrouter")]
-        pi_ai_providers::providers::openrouter_provider(modules.completions(), modules.auth())?,
-    ])
-}
-pub fn builtin_images_providers(
-    modules: &BuiltinProviderModules,
-) -> Result<Vec<Arc<dyn ImagesProvider>>, ProviderFactoryError> {
-    let _ = modules;
-    Ok(vec![
-        #[cfg(feature = "images-openrouter")]
-        pi_ai_providers::providers::openrouter_images_provider(modules.images(), modules.auth())?,
+        pi_ai_providers::providers::openai_provider(modules.openai(), modules.auth())?,
     ])
 }
 pub async fn builtin_models(
@@ -66,17 +50,6 @@ pub async fn builtin_models(
             .set_provider(provider)
             .await
             .map_err(BuiltinCompositionError::Registration)?;
-    }
-    Ok(models)
-}
-pub fn builtin_images_models(
-    modules: &BuiltinProviderModules,
-    options: ImagesModelsOptions,
-) -> Result<MutableImagesModels, ProviderFactoryError> {
-    let providers = builtin_images_providers(modules)?;
-    let models = create_images_models(options);
-    for provider in providers {
-        models.set_provider(provider);
     }
     Ok(models)
 }

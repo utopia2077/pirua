@@ -8,7 +8,7 @@ use pi_ai_core::{InputContent, Message, UserContent};
 pub fn infer_copilot_initiator(messages: &[Message]) -> &'static str {
     match messages.last() {
         None | Some(Message::User(_)) => "user",
-        Some(Message::Assistant(_) | Message::ToolResult(_)) => "agent",
+        Some(Message::Assistant(_) | Message::ToolResult(_) | Message::System(_)) => "agent",
     }
 }
 
@@ -21,7 +21,7 @@ pub fn has_copilot_vision_input(messages: &[Message]) -> bool {
                 UserContent::Blocks(blocks) => blocks,
             },
             Message::ToolResult(message) => &message.content,
-            Message::Assistant(_) => return false,
+            Message::Assistant(_) | Message::System(_) => return false,
         };
         blocks
             .iter()

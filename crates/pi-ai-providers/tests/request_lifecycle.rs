@@ -1,4 +1,4 @@
-#![cfg(all(feature = "all-providers", feature = "oauth-openai-codex"))]
+#![cfg(feature = "all-providers")]
 use pi_ai_providers::api;
 #[path = "request_lifecycle_support/configured_wrapper.rs"]
 mod configured_wrapper_tests;
@@ -70,14 +70,7 @@ fn actual_selected_factories_raw_simple_mutation_replacement_and_ordinary_isolat
     run(selected_paths(true));
 }
 async fn selected_paths(factory: bool) {
-    for family in [
-        "openai",
-        "deepseek",
-        "openrouter",
-        "google",
-        "anthropic",
-        "openai-codex",
-    ] {
+    for family in ["openai", "deepseek", "google", "anthropic"] {
         for replacement in [false, true] {
             let peer = Arc::new(Peer::default());
             let mut services = services(peer.clone());
@@ -472,294 +465,10 @@ fn abort_before_during_and_between_captured_and_scoped_callbacks_preserves_cance
     });
 }
 
-struct FailSecond {
-    calls: AtomicUsize,
-}
-impl ResponseMiddleware for FailSecond {
-    fn on_response<'a>(
-        &'a self,
-        _: &'a TextStreamRequest,
-        _: &'a AdapterResponseHead,
-    ) -> BoxFuture<'a, Result<(), ModelsError>> {
-        Box::pin(async move {
-            if self.calls.fetch_add(1, Ordering::SeqCst) == 0 {
-                Ok(())
-            } else {
-                Err(ModelsError::new(ModelsErrorCode::Provider))
-            }
-        })
-    }
-}
-#[test]
-fn codex_received_error_then_no_response_or_callback_failure_preserves_latest_successful_observation()
- {
-    run(async {
-        for callback_failure in [false, true] {
-            let peer = Arc::new(Peer::default());
-            peer.script.lock().unwrap().push_back(Ok(response(
-                503,
-                "first-head",
-                "{\"error\":{\"message\":\"retry\"}}".into(),
-            )));
-            peer.script.lock().unwrap().push_back(if callback_failure {
-                Ok(response(200, "second-head", body("openai-codex")))
-            } else {
-                Err(pi_ai_transport::TransportError::new(
-                    pi_ai_transport::TransportErrorKind::Connection,
-                ))
-            });
-            let hook = Arc::new(FailSecond {
-                calls: AtomicUsize::new(0),
-            });
-            let mut svc = services(peer.clone());
-            if callback_failure {
-                svc.response = Some(hook.clone());
-            }
-            let (registry, model) = registry(selected_factory("openai-codex", svc)).await;
-            let mut w = wire();
-            w.max_retries = Some(SafeUnsigned::new(1).unwrap());
-            let observed = registry.stream_with_lifecycle(
-                model,
-                context(),
-                overrides(),
-                StreamOptions {
-                    wire: w,
-                    runtime: runtime(),
-                },
-                Default::default(),
-            );
-            assert_eq!(
-                drain(observed.stream).await.0.stop_reason,
-                StopReason::Error
-            );
-            let head = observed.metadata.snapshot().unwrap();
-            assert_eq!(head.status, 503);
-            assert!(head.headers.contains(&(
-                "x-observed".into(),
-                RequestResponseHeaderValue::Text("first-head".into())
-            )));
-            assert_eq!(peer.calls.lock().unwrap().len(), 2);
-            assert_eq!(
-                hook.calls.load(Ordering::SeqCst),
-                if callback_failure { 2 } else { 0 }
-            );
-        }
-    });
-}
-
-#[test]
-fn codex_scoped_websocket_shares_owner_and_does_not_retain_or_redirect_next_exchange() {
-    run(async {
-        let peer = Arc::new(Peer::default());
-        let ws = Arc::new(websocket::WsPeer::default());
-        let api = Arc::new(codex(services(peer.clone()), Some(ws.connector())));
-        let (registry, model) = registry(configured("openai-codex", api.clone())).await;
-        let transform = Arc::new(Transform::default());
-        let weak = Arc::downgrade(&transform);
-        let mut w = wire();
-        w.transport = Some(Transport::WebSocketCached);
-        w.session_id = Some("bridge-session".into());
-        let observed = registry.stream_with_lifecycle(
-            model.clone(),
-            context(),
-            overrides(),
-            StreamOptions {
-                wire: w.clone(),
-                runtime: runtime(),
-            },
-            RequestLifecycleOptions {
-                payload: Some(transform.clone()),
-            },
-        );
-        assert_eq!(drain(observed.stream).await.0.stop_reason, StopReason::Stop);
-        assert!(observed.metadata.snapshot().is_none());
-        assert_eq!(ws.closed.load(Ordering::SeqCst), 0);
-        {
-            let seen = transform.seen.lock().unwrap();
-            assert_eq!(seen.len(), 1);
-            assert!(seen[0].1.get("type").is_none());
-            assert!(seen[0].1.get("previous_response_id").is_none());
-        }
-        drop(transform);
-        assert!(weak.upgrade().is_none());
-        let next = registry.stream(
-            model,
-            context(),
-            overrides(),
-            StreamOptions {
-                wire: w,
-                runtime: runtime(),
-            },
-        );
-        assert_eq!(drain(next).await.0.stop_reason, StopReason::Stop);
-        assert_eq!(ws.connects.load(Ordering::SeqCst), 1);
-        let sent = ws.sent.lock().unwrap().clone();
-        assert_eq!(sent.len(), 2);
-        assert_eq!(sent[0]["type"], "response.create");
-        assert_eq!(sent[0]["temperature"], 0.25);
-        assert!(sent[1].get("temperature").is_none());
-        assert!(sent[1].get("previous_response_id").is_none());
-        assert!(!sent[1]["input"].as_array().unwrap().is_empty());
-        assert!(peer.calls.lock().unwrap().is_empty());
-        let weak_api = Arc::downgrade(&api);
-        drop(registry);
-        drop(api);
-        for _ in 0..4 {
-            tokio::task::yield_now().await;
-        }
-        assert!(weak_api.upgrade().is_none());
-        assert_eq!(ws.closed.load(Ordering::SeqCst), 1);
-        assert!(observed.metadata.snapshot().is_none());
-    });
-}
-
-#[test]
-fn codex_internal_websocket_retry_and_sse_fallback_transform_once_before_framing() {
-    run(async {
-        for fallback in [false, true] {
-            let peer = Arc::new(Peer::default());
-            let ws = Arc::new(websocket::WsPeer::default());
-            if fallback {
-                ws.fail_first.store(true, Ordering::SeqCst);
-            } else {
-                ws.retry_first.store(true, Ordering::SeqCst);
-            }
-            let api = Arc::new(codex(services(peer.clone()), Some(ws.connector())));
-            let (registry, model) = registry(configured("openai-codex", api.clone())).await;
-            let transform = Arc::new(Transform::default());
-            let mut w = wire();
-            w.transport = Some(Transport::WebSocketCached);
-            w.session_id = Some("bridge-retry".into());
-            let observed = registry.stream_with_lifecycle(
-                model,
-                context(),
-                overrides(),
-                StreamOptions {
-                    wire: w,
-                    runtime: runtime(),
-                },
-                RequestLifecycleOptions {
-                    payload: Some(transform.clone()),
-                },
-            );
-            let result = drain(observed.stream).await.0;
-            assert_eq!(
-                result.stop_reason,
-                StopReason::Stop,
-                "{fallback}: {result:?}"
-            );
-            assert_eq!(transform.seen.lock().unwrap().len(), 1);
-            assert_eq!(observed.metadata.snapshot().is_some(), fallback);
-            assert_eq!(ws.sent.lock().unwrap().len(), if fallback { 1 } else { 2 });
-            assert_eq!(peer.calls.lock().unwrap().len(), usize::from(fallback));
-            api.close_openai_codex_websocket_sessions(None, runtime())
-                .await
-                .unwrap();
-            assert_eq!(
-                ws.closed.load(Ordering::SeqCst),
-                ws.connects.load(Ordering::SeqCst)
-            );
-        }
-    });
-}
-
-#[test]
-fn codex_cancelled_exchange_releases_scoped_handler_and_active_socket() {
-    run(async {
-        let peer = Arc::new(Peer::default());
-        let ws = Arc::new(websocket::WsPeer::default());
-        ws.hold.store(true, Ordering::SeqCst);
-        let api = Arc::new(codex(services(peer), Some(ws.connector())));
-        let (registry, model) = registry(configured("openai-codex", api.clone())).await;
-        let transform = Arc::new(Transform::default());
-        let weak = Arc::downgrade(&transform);
-        let rt = runtime();
-        let token = rt.cancellation.clone();
-        let mut w = wire();
-        w.transport = Some(Transport::WebSocketCached);
-        w.session_id = Some("bridge-cancel".into());
-        let observed = registry.stream_with_lifecycle(
-            model,
-            context(),
-            overrides(),
-            StreamOptions {
-                wire: w,
-                runtime: rt,
-            },
-            RequestLifecycleOptions {
-                payload: Some(transform.clone()),
-            },
-        );
-        drop(transform);
-        for _ in 0..20 {
-            if !ws.sent.lock().unwrap().is_empty() {
-                break;
-            }
-            tokio::task::yield_now().await;
-        }
-        assert_eq!(ws.sent.lock().unwrap().len(), 1);
-        token.cancel();
-        assert_eq!(
-            drain(observed.stream).await.0.stop_reason,
-            StopReason::Aborted
-        );
-        assert!(weak.upgrade().is_none());
-        assert!(observed.metadata.snapshot().is_none());
-        api.close_openai_codex_websocket_sessions(None, runtime())
-            .await
-            .unwrap();
-        assert_eq!(ws.closed.load(Ordering::SeqCst), 1);
-    });
-}
-
-#[test]
-fn codex_scoped_callback_sees_complete_logical_input_before_cached_delta() {
-    run(async {
-        let ws = Arc::new(websocket::WsPeer::default());
-        let api = Arc::new(codex(
-            services(Arc::new(Peer::default())),
-            Some(ws.connector()),
-        ));
-        let (registry, model) = registry(configured("openai-codex", api.clone())).await;
-        let transform = Arc::new(Transform::default());
-        let mut w = wire();
-        w.transport = Some(Transport::WebSocketCached);
-        w.session_id = Some("bridge-delta".into());
-        for _ in 0..2 {
-            let observed = registry.stream_with_lifecycle(
-                model.clone(),
-                context(),
-                overrides(),
-                StreamOptions {
-                    wire: w.clone(),
-                    runtime: runtime(),
-                },
-                RequestLifecycleOptions {
-                    payload: Some(transform.clone()),
-                },
-            );
-            assert_eq!(drain(observed.stream).await.0.stop_reason, StopReason::Stop);
-            assert!(observed.metadata.snapshot().is_none());
-        }
-        let seen = transform.seen.lock().unwrap().clone();
-        assert_eq!(seen.len(), 2);
-        assert_eq!(seen[0].1["input"], seen[1].1["input"]);
-        assert!(!seen[1].1["input"].as_array().unwrap().is_empty());
-        assert!(seen[1].1.get("previous_response_id").is_none());
-        let sent = ws.sent.lock().unwrap().clone();
-        assert_eq!(sent[1]["previous_response_id"], "r1");
-        assert_eq!(sent[1]["input"], json!([]));
-        assert_eq!(ws.connects.load(Ordering::SeqCst), 1);
-        api.close_openai_codex_websocket_sessions(None, runtime())
-            .await
-            .unwrap();
-    });
-}
-
 #[test]
 fn captured_response_success_and_failure_keep_original_family_policy() {
     run(async {
-        for family in ["openai", "deepseek", "google", "anthropic", "openai-codex"] {
+        for family in ["openai", "deepseek", "google", "anthropic"] {
             for fail in [false, true] {
                 let peer = Arc::new(Peer::default());
                 let hook = Arc::new(ResponseHook {
@@ -812,44 +521,6 @@ fn captured_response_success_and_failure_keep_original_family_policy() {
     });
 }
 
-#[test]
-fn codex_observation_projection_failure_keeps_previous_complete_head_and_successful_body() {
-    run(async {
-        let peer = Arc::new(Peer::default());
-        peer.script.lock().unwrap().push_back(Ok(response(
-            503,
-            "first-complete",
-            "{\"error\":{\"message\":\"retry\"}}".into(),
-        )));
-        peer.script
-            .lock()
-            .unwrap()
-            .push_back(Ok(response(200, "\u{100}", body("openai-codex"))));
-        let (registry, model) =
-            registry(selected_factory("openai-codex", services(peer.clone()))).await;
-        let mut w = wire();
-        w.max_retries = Some(SafeUnsigned::new(1).unwrap());
-        let observed = registry.stream_with_lifecycle(
-            model,
-            context(),
-            overrides(),
-            StreamOptions {
-                wire: w,
-                runtime: runtime(),
-            },
-            Default::default(),
-        );
-        assert_eq!(drain(observed.stream).await.0.stop_reason, StopReason::Stop);
-        let head = observed.metadata.snapshot().unwrap();
-        assert_eq!(head.status, 503);
-        assert!(head.headers.contains(&(
-            "x-observed".into(),
-            RequestResponseHeaderValue::Text("first-complete".into())
-        )));
-        assert_eq!(peer.calls.lock().unwrap().len(), 2);
-    });
-}
-
 struct ConstructingPayload {
     constructions: AtomicUsize,
     polls: AtomicUsize,
@@ -892,7 +563,7 @@ async fn construction_timing(pre_cancel: bool) {
                 model,
                 endpoint: RequestEndpoint::new_resolved("https://example.invalid").unwrap(),
             },
-            context: context(),
+            context: normalize_context(context()),
             auth: ResolvedAuth {
                 api_key: Some(SecretString::new("fixture")),
                 ..Default::default()

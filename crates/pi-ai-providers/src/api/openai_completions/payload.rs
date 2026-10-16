@@ -9,7 +9,7 @@ use pi_ai_core::{
     CacheRetention, Message, Model, ModelThinkingLevel, TextStreamRequest, ThinkingLevel,
 };
 use serde_json::{Value, json};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 pub(super) fn model_level(level: ThinkingLevel) -> ModelThinkingLevel {
     match level {
@@ -132,29 +132,18 @@ pub(super) fn build(
     if let Some(temp) = wire.temperature {
         params["temperature"] = json!(temp);
     }
-    let mut deferred = BTreeSet::new();
-    if compat.text("deferredToolsMode") == "kimi" {
-        for msg in &request.context.messages {
-            if let Message::ToolResult(t) = msg {
-                deferred.extend(
-                    t.added_tool_names
-                        .as_deref()
-                        .unwrap_or_default()
-                        .iter()
-                        .cloned(),
-                );
-            }
-        }
-    }
-    let active: Vec<_> = request
-        .context
-        .tools
-        .as_deref()
-        .unwrap_or_default()
-        .iter()
-        .filter(|t| !deferred.contains(&t.name))
-        .cloned()
-        .collect();
+    let normalized = pi_ai_core::resolve_transcript(
+        request.context.clone(),
+        compat.flag("supportsMidConvoSystemMessages"),
+    );
+    let support = if compat.flag("supportsMidConvoSystemMessages")
+        && compat.flag("supportsMidConvoToolAdditions")
+    {
+        pi_ai_core::TranscriptToolSupport::Additions
+    } else {
+        pi_ai_core::TranscriptToolSupport::None
+    };
+    let active = pi_ai_core::resolve_transcript_tools(&normalized.messages, support).request_tools;
     if !active.is_empty() {
         params["tools"] = json!(convert_tools(&active,compat)?);
         if compat.flag("zaiToolStream") {params["tool_stream"] = json!(true);}
@@ -315,7 +304,15 @@ pub(super) fn build(
             }
         }
     }
-    if let Some(sampling) = &wire.sampling_params {
+    let sampling = crate::api::simple_options::resolve_sampling_params(
+        model,
+        options
+            .reasoning_effort
+            .map(model_level)
+            .unwrap_or(ModelThinkingLevel::Off),
+        wire.sampling_params.as_ref(),
+    );
+    if let Some(sampling) = &sampling {
         for (k, v) in sampling.as_map() {
             params[k] = json!(v);
         }

@@ -125,21 +125,6 @@ struct Limits {
     bytes: usize,
 }
 
-/// Pi historically had no fixed outgoing depth/byte cap. This internal policy
-/// shares the JS projection without weakening the checked public serializer.
-#[cfg(feature = "wire-pi-messages")]
-pub(crate) fn stringify_wire_json_without_fixed_limits(
-    value: &Value,
-) -> Result<String, WireJsonError> {
-    stringify_with_limits(
-        value,
-        Limits {
-            depth: usize::MAX,
-            bytes: usize::MAX,
-        },
-    )
-}
-
 fn stringify_with_limits(value: &Value, limits: Limits) -> Result<String, WireJsonError> {
     let mut output = String::new();
     write_value(&mut output, value, 0, limits)?;

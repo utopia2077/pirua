@@ -228,6 +228,7 @@ impl Reducer {
                                 .unwrap_or(json!({})),
                         )
                         .map_err(|_| Failure::Protocol)?,
+                        arguments_error: None,
                         thought_signature: None,
                         namespace: None,
                     }),
@@ -346,13 +347,11 @@ impl Reducer {
                 {
                     self.blocks[position].index = None;
                     if let AssistantContent::ToolCall(block) = &mut self.partial.content[position] {
-                        block.arguments = arguments(
-                            self.blocks[position]
-                                .tool_json
-                                .take()
-                                .as_deref()
-                                .unwrap_or(""),
-                        )?;
+                        let parsed = pi_ai_core::parse_tool_call_arguments(
+                            self.blocks[position].tool_json.take().as_deref(),
+                        );
+                        block.arguments = parsed.arguments;
+                        block.arguments_error = parsed.arguments_error;
                     }
                     let content_index = Self::index(position);
                     let partial = Box::new(self.partial.clone());
@@ -489,6 +488,6 @@ fn nullable_text(value: Option<&Value>) -> Result<&str, Failure> {
 fn arguments(buffer: &str) -> Result<JsonObject, Failure> {
     match parse_streaming_json(Some(buffer)) {
         JsonValue::Object(object) => Ok(object),
-        _ => Err(Failure::Protocol),
+        _ => Ok(JsonObject::default()),
     }
 }

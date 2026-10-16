@@ -13,10 +13,14 @@ mod schema;
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt;
+use std::sync::Arc;
 
-pub use memory::{InMemoryTelemetryContext, RecordedTelemetryEvent, RecordedTelemetrySpan};
+pub use memory::{
+    InMemoryTelemetryContext, RecordedSpanLink, RecordedTelemetryEvent, RecordedTelemetrySpan,
+};
 pub use noop::{
-    NOOP_TELEMETRY_CONTEXT, NOOP_TELEMETRY_SPAN, NoopTelemetryContext, NoopTelemetrySpan,
+    NOOP_TELEMETRY_CONTEXT, NOOP_TELEMETRY_PROPAGATION, NOOP_TELEMETRY_SPAN, NoopTelemetryContext,
+    NoopTelemetryPropagation, NoopTelemetrySpan,
 };
 pub use schema::{
     DuplicateTelemetrySpanNames, TelemetryAttributeDefinition, TelemetryAttributeMetadata,
@@ -128,6 +132,8 @@ pub struct SpanOptions {
     pub name: String,
     /// Initial span attributes.
     pub attributes: SpanAttributes,
+    /// Causal links independent of the parent relation.
+    pub links: Vec<SpanLink>,
 }
 
 impl fmt::Debug for SpanOptions {
@@ -179,6 +185,11 @@ pub enum SpanStatus {
 /// not rolled back or replayed. Implementations must not make a second durable
 /// write while observing, and [`SpanGuard`] does not catch panics.
 pub trait TelemetryContext: Send + Sync {
+    /// Adapter-owned propagation carrier, absent for unrecognized/root contexts.
+    fn propagation_carrier(&self) -> Option<TelemetryCarrier> {
+        None
+    }
+
     /// Starts a span owned by the returned settlement guard.
     fn start_span(&self, options: SpanOptions) -> SpanGuard;
 }
@@ -189,7 +200,10 @@ pub trait TelemetryContext: Send + Sync {
 /// no-ops, and [`finish`](Self::finish) is idempotent. Observer panics
 /// propagate to the caller at the invocation boundary; [`SpanGuard`] does not
 /// catch them.
-pub trait TelemetrySpan: Send + Sync {
+pub trait TelemetrySpan: TelemetryContext {
+    /// Adds a causal link while the span is live.
+    fn add_link(&self, _link: SpanLink) {}
+
     /// Starts a child span, or returns a no-op guard when recording is unavailable.
     fn start_child(&self, options: SpanOptions) -> SpanGuard;
 
@@ -217,23 +231,39 @@ pub trait TelemetrySpan: Send + Sync {
 /// let guard = NOOP_TELEMETRY_CONTEXT.start_span(SpanOptions {
 ///     name: "operation".to_owned(),
 ///     attributes: Default::default(),
+///     links: Vec::new(),
 /// });
 /// let _duplicate = guard.clone();
 /// ```
 pub struct SpanGuard {
-    span: Option<Box<dyn TelemetrySpan>>,
+    span: Option<Arc<dyn TelemetrySpan>>,
 }
 
 impl SpanGuard {
     /// Creates a guard that uniquely owns a backend span handle.
     pub fn new(span: impl TelemetrySpan + 'static) -> Self {
         Self {
-            span: Some(Box::new(span)),
+            span: Some(Arc::new(span)),
         }
     }
 
     pub(crate) fn noop() -> Self {
         Self::new(NoopTelemetrySpan)
+    }
+
+    /// Shares this live parent without transferring its unique settlement owner.
+    pub fn parent(&self) -> Arc<dyn TelemetrySpan> {
+        self.span
+            .as_ref()
+            .cloned()
+            .unwrap_or_else(|| Arc::new(NoopTelemetrySpan))
+    }
+
+    /// Adds a causal link to this span.
+    pub fn add_link(&self, link: SpanLink) {
+        if let Some(span) = &self.span {
+            span.add_link(link);
+        }
     }
 
     /// Starts a child of this span.
@@ -289,5 +319,38 @@ impl fmt::Debug for SpanGuard {
 impl Drop for SpanGuard {
     fn drop(&mut self) {
         self.settle();
+    }
+}
+
+/// Opaque string propagation fields owned by a telemetry adapter.
+pub type TelemetryCarrier = BTreeMap<String, String>;
+
+/// Optional transport propagation capability.
+pub trait TelemetryPropagation: Send + Sync {
+    /// Injects a known context, including a settled span.
+    fn inject(&self, context: &dyn TelemetryContext) -> Option<TelemetryCarrier>;
+    /// Extracts a recognized context; absent carriers return the root.
+    fn extract(&self, carrier: Option<&TelemetryCarrier>) -> Arc<dyn TelemetryContext>;
+}
+
+/// Causal link to another local or extracted context.
+#[derive(Clone)]
+pub struct SpanLink {
+    /// Opaque linked context.
+    pub context: Arc<dyn TelemetryContext>,
+    /// Detached optional link attributes.
+    pub attributes: SpanAttributes,
+}
+impl PartialEq for SpanLink {
+    fn eq(&self, other: &Self) -> bool {
+        self.context.propagation_carrier() == other.context.propagation_carrier()
+            && self.attributes == other.attributes
+    }
+}
+impl fmt::Debug for SpanLink {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SpanLink")
+            .field("attribute_count", &self.attributes.len())
+            .finish_non_exhaustive()
     }
 }

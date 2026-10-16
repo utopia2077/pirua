@@ -1,4 +1,4 @@
-//! OpenAI 6.40.0 string projections, not general HTTP/header/env normalization.
+//! OpenAI 7.19.0 string projections, not general HTTP/header/env normalization.
 
 use pi_ai_core::ProviderEnv;
 

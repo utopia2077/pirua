@@ -1,5 +1,6 @@
 #![cfg(feature = "wire-openai-completions")]
 
+mod retained_support;
 use pi_ai_core::ProviderHeaders;
 use pi_ai_core::{
     ApiAdapter, AssistantMessageEvent, BoxFuture, CancellationToken, Cancelled, Clock, ModelsError,
@@ -24,10 +25,9 @@ use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 #[test]
 fn complete_sdk_errors_and_cap_prefix_classify_final_messages_from_source() {
-    let oracle: Value = serde_json::from_str(include_str!(
+    let oracle: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-completions/retry-cap.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(oracle["cases"].as_array().unwrap().len(), 36);
     for case in oracle["cases"].as_array().unwrap() {
         let (mut api, spawner, observed, _, mut request, options) =
@@ -63,7 +63,7 @@ fn complete_sdk_errors_and_cap_prefix_classify_final_messages_from_source() {
         ));
         let mut stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let message = ready(stream.result());
+        let message = retained_support::message(ready(stream.result()));
         assert_eq!(
             (
                 is_context_overflow(&message, None),
@@ -328,10 +328,10 @@ fn native_redirect_chain_preserves_success_trace_and_final_error_body_veto() {
                 let worker = tokio::spawn(worker);
                 let mut events = Vec::new();
                 while let Some(event) = stream.next().await {
-                    events.push(event);
+                    events.push(retained_support::untimed(event));
                 }
                 worker.await.unwrap();
-                (stream.result().await, events)
+                (retained_support::message(stream.result().await), events)
             })
             .await
             .unwrap()
@@ -423,7 +423,7 @@ fn cancellation_after_usage_only_update_preserves_snapshot_and_drops_pending_bod
             .is_pending()
     );
     token.cancel();
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Aborted);
     assert_eq!(result.usage.input.get(), 97);
     assert_eq!(
@@ -612,7 +612,7 @@ fn sdk_timeout_retry_defaults_and_explicit_overrides_have_one_owner() {
     });
     let stream = api.stream_with_options(request, options);
     ready(spawner.take());
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Error);
     assert!(is_retryable_assistant_error(&result));
     assert_eq!(clock.sleeps.lock().unwrap().len(), 0);
@@ -764,7 +764,7 @@ fn native_loopback_request_fragmented_sse_and_abort_release_the_socket() {
                     }
                 }
                 worker.await.unwrap();
-                stream.result().await
+                retained_support::message(stream.result().await)
             })
             .await
             .unwrap()
@@ -797,10 +797,9 @@ use std::task::{Context as TaskContext, Poll, Waker};
 use std::time::Duration;
 
 fn fixture() -> Value {
-    serde_json::from_str(include_str!(
+    retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-completions/trace.json"
     ))
-    .unwrap()
 }
 fn first() -> Value {
     fixture()["cases"]
@@ -814,10 +813,9 @@ fn first() -> Value {
 
 #[test]
 fn correction_unresolved_usage_and_model_only_chunks_refresh_cancellation_snapshot() {
-    let corpus: Value = serde_json::from_str(include_str!(
+    let corpus: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-completions/corrections.json"
-    ))
-    .unwrap();
+    ));
     let cases = corpus["observations"].as_array().unwrap();
     for case in cases
         .iter()
@@ -839,7 +837,7 @@ fn correction_unresolved_usage_and_model_only_chunks_refresh_cancellation_snapsh
                 .is_pending()
         );
         token.cancel();
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         let expected_usage: pi_ai_core::Usage =
             serde_json::from_value(case["result"]["usage"].clone()).unwrap();
         assert_eq!(result.usage, expected_usage, "{}", case["id"]);
@@ -872,10 +870,9 @@ fn correction_unresolved_usage_and_model_only_chunks_refresh_cancellation_snapsh
 
 #[test]
 fn correction_sdk_nonstream_parser_skips_only_the_source_defined_bodies() {
-    let corpus: Value = serde_json::from_str(include_str!(
+    let corpus: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/openai-completions/corrections.json"
-    ))
-    .unwrap();
+    ));
     for case in corpus["observations"]
         .as_array()
         .unwrap()
@@ -915,7 +912,7 @@ fn correction_sdk_nonstream_parser_skips_only_the_source_defined_bodies() {
         ));
         let mut stream = api.stream_with_options(request, options);
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(
             json!(result.stop_reason),
             case["result"]["stopReason"],
@@ -951,7 +948,7 @@ fn correction_sdk_nonstream_parser_skips_only_the_source_defined_bodies() {
         );
         let mut events = Vec::new();
         while let Some(e) = ready(stream.next()) {
-            events.push(json!(e));
+            events.push(retained_support::without_duration(json!(e)));
         }
         let normalize = |mut events: Value| {
             for e in events.as_array_mut().unwrap() {
@@ -1004,7 +1001,7 @@ fn split_identity_eof_and_cancel_preserve_only_the_representable_prefix() {
             token.cancel();
         }
         ready(worker);
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(
             result.stop_reason,
             if cancel {
@@ -1019,7 +1016,7 @@ fn split_identity_eof_and_cancel_preserve_only_the_representable_prefix() {
         );
         let mut events = Vec::new();
         while let Some(e) = ready(stream.next()) {
-            events.push(json!(e));
+            events.push(retained_support::without_duration(json!(e)));
         }
         assert!(
             events
@@ -1110,7 +1107,7 @@ fn numeric_wire_spelling_and_missing_finish_semantics_follow_javascript() {
         setup(&first(), 200, vec![sse.as_bytes().to_vec()], false);
     let stream = api.stream_with_options(request, options);
     ready(spawner.take());
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(
         (
             result.usage.input.get(),
@@ -1195,7 +1192,7 @@ fn native_truncated_error_body_keeps_status_and_retry_header_eligibility() {
         let result = engine.block_on(async {
             tokio::time::timeout(Duration::from_secs(5), async {
                 worker.await;
-                stream.result().await
+                retained_support::message(stream.result().await)
             })
             .await
             .unwrap()
@@ -1235,7 +1232,7 @@ fn unresolved_identity_queue_is_bounded_and_never_publishes_invalid_calls() {
     let (api, spawner, observed, _, request, options) = setup(&first(), 200, chunks, false);
     let mut stream = api.stream_with_options(request, options);
     ready(spawner.take());
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Error);
     assert!(result.content.is_empty());
     assert_eq!(
@@ -1530,7 +1527,7 @@ fn setup(
 #[test]
 fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases() {
     let fixture = fixture();
-    assert_eq!(fixture["cases"].as_array().unwrap().len(), 101);
+    assert_eq!(fixture["cases"].as_array().unwrap().len(), 100);
     for case in fixture["cases"].as_array().unwrap() {
         if case["invalidIdentity"] == true {
             continue;
@@ -1567,7 +1564,7 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases() {
             api.stream_with_options(request, options)
         };
         ready(spawner.take());
-        let result = ready(stream.result());
+        let result = retained_support::message(ready(stream.result()));
         assert_eq!(
             is_retryable_assistant_error(&result),
             case["retryable"].as_bool().unwrap(),
@@ -1582,7 +1579,9 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases() {
         );
         let mut events = Vec::new();
         while let Some(event) = ready(stream.next()) {
-            events.push(serde_json::to_value(event).unwrap());
+            events.push(retained_support::without_duration(
+                serde_json::to_value(event).unwrap(),
+            ));
         }
         // Core costs are finite-f64 while JS has one Number kind. Decode both
         // complete snapshots through the DTO; signature strings remain byte-exact.
@@ -1648,9 +1647,16 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases() {
                 .map(|v| v.as_str().unwrap())
                 .collect::<Vec<_>>()
         );
-        assert!(observed.closed.load(Ordering::SeqCst) >= 1);
+        if !case["requests"].as_array().unwrap().is_empty() {
+            assert!(observed.closed.load(Ordering::SeqCst) >= 1);
+        } else {
+            assert_eq!(observed.closed.load(Ordering::SeqCst), 0);
+        }
         let order = observed.order.lock().unwrap();
-        if case["requests"][0]["body"]["stream"] == true
+        if case["requests"]
+            .as_array()
+            .is_some_and(|requests| !requests.is_empty())
+            && case["requests"][0]["body"]["stream"] == true
             && case["status"].as_u64().unwrap() < 300
             && let (Some(response), Some(body)) = (
                 order.iter().position(|v| *v == "response"),
@@ -1662,9 +1668,13 @@ fn pinned_wrapper_sdk_requests_and_complete_snapshots_match_101_cases() {
                 "streaming response middleware precedes body reduction"
             );
         }
-        assert_eq!(
-            clock.sleeps.lock().unwrap()[0].as_millis(),
-            case["options"]["timeoutMs"].as_u64().unwrap_or(600000) as u128
-        );
+        if case["requests"].as_array().unwrap().is_empty() {
+            assert!(clock.sleeps.lock().unwrap().is_empty());
+        } else {
+            assert_eq!(
+                clock.sleeps.lock().unwrap()[0].as_millis(),
+                case["options"]["timeoutMs"].as_u64().unwrap_or(600000) as u128
+            );
+        }
     }
 }

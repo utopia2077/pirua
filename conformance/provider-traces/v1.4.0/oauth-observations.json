@@ -1,0 +1,474 @@
+{
+  "target": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "sources": {
+    "anthropic": "f72cd3bdb5d4fc8cc647487a69ed38464548c397062fbc2acfcef6431c9c0b0c",
+    "openai-chatgpt": "ad9dbdd7ffa52fcbaff1d1be2d0ba97b643476aaf8930e6dd67147bf35c837de"
+  },
+  "cases": [
+    {
+      "spec": {
+        "id": "anthropic-copy",
+        "provider": "anthropic",
+        "method": "copy_code"
+      },
+      "error": false,
+      "authorization": {
+        "code": "true",
+        "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+        "response_type": "code",
+        "redirect_uri": "https://platform.claude.com/oauth/code/callback",
+        "scope": "org:create_api_key user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [],
+      "requests": [
+        {
+          "url": "https://platform.claude.com/v1/oauth/token",
+          "body": {
+            "grant_type": "authorization_code",
+            "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+            "code": "synthetic-code",
+            "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+            "redirect_uri": "https://platform.claude.com/oauth/code/callback",
+            "code_verifier": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+          }
+        }
+      ],
+      "prompts": [
+        "select",
+        "manual_code"
+      ],
+      "closed": false,
+      "credential": {
+        "type": "oauth",
+        "refresh": "synthetic-refresh",
+        "access": "synthetic-access",
+        "expires": 3300007
+      }
+    },
+    {
+      "spec": {
+        "id": "anthropic-browser",
+        "provider": "anthropic",
+        "method": "browser"
+      },
+      "error": false,
+      "authorization": {
+        "code": "true",
+        "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+        "response_type": "code",
+        "redirect_uri": "http://localhost:53692/callback",
+        "scope": "org:create_api_key user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        53692
+      ],
+      "requests": [
+        {
+          "url": "https://platform.claude.com/v1/oauth/token",
+          "body": {
+            "grant_type": "authorization_code",
+            "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+            "code": "synthetic-code",
+            "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+            "redirect_uri": "http://localhost:53692/callback",
+            "code_verifier": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+          }
+        }
+      ],
+      "prompts": [
+        "select",
+        "manual_code"
+      ],
+      "closed": true,
+      "credential": {
+        "type": "oauth",
+        "refresh": "synthetic-refresh",
+        "access": "synthetic-access",
+        "expires": 3300007
+      }
+    },
+    {
+      "spec": {
+        "id": "anthropic-ephemeral",
+        "provider": "anthropic",
+        "method": "browser",
+        "failPreferred": true
+      },
+      "error": false,
+      "authorization": {
+        "code": "true",
+        "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+        "response_type": "code",
+        "redirect_uri": "http://localhost:41234/callback",
+        "scope": "org:create_api_key user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        53692,
+        0
+      ],
+      "requests": [
+        {
+          "url": "https://platform.claude.com/v1/oauth/token",
+          "body": {
+            "grant_type": "authorization_code",
+            "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+            "code": "synthetic-code",
+            "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+            "redirect_uri": "http://localhost:41234/callback",
+            "code_verifier": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+          }
+        }
+      ],
+      "prompts": [
+        "select",
+        "manual_code"
+      ],
+      "closed": true,
+      "credential": {
+        "type": "oauth",
+        "refresh": "synthetic-refresh",
+        "access": "synthetic-access",
+        "expires": 3300007
+      }
+    },
+    {
+      "spec": {
+        "id": "anthropic-manual",
+        "provider": "anthropic",
+        "method": "browser",
+        "failAll": true
+      },
+      "error": false,
+      "authorization": {
+        "code": "true",
+        "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+        "response_type": "code",
+        "redirect_uri": "http://localhost:53692/callback",
+        "scope": "org:create_api_key user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        53692,
+        0
+      ],
+      "requests": [
+        {
+          "url": "https://platform.claude.com/v1/oauth/token",
+          "body": {
+            "grant_type": "authorization_code",
+            "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+            "code": "synthetic-code",
+            "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+            "redirect_uri": "http://localhost:53692/callback",
+            "code_verifier": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+          }
+        }
+      ],
+      "prompts": [
+        "select",
+        "manual_code"
+      ],
+      "closed": false,
+      "credential": {
+        "type": "oauth",
+        "refresh": "synthetic-refresh",
+        "access": "synthetic-access",
+        "expires": 3300007
+      }
+    },
+    {
+      "spec": {
+        "id": "anthropic-refresh",
+        "provider": "anthropic",
+        "refresh": true
+      },
+      "error": false,
+      "authorization": null,
+      "binds": [],
+      "requests": [
+        {
+          "url": "https://platform.claude.com/v1/oauth/token",
+          "body": {
+            "grant_type": "refresh_token",
+            "client_id": "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
+            "refresh_token": "synthetic-old-refresh"
+          }
+        }
+      ],
+      "prompts": [],
+      "closed": false,
+      "credential": {
+        "type": "oauth",
+        "refresh": "synthetic-refresh",
+        "access": "synthetic-access",
+        "expires": 3300007
+      }
+    },
+    {
+      "spec": {
+        "id": "chatgpt-login",
+        "provider": "chatgpt"
+      },
+      "error": false,
+      "authorization": {
+        "client_id": "dynamic_agent_client",
+        "agent_name_hint": "Pirua",
+        "ext_agent_host_id": "urn:uuid:abcdef01-2345-6789-abcd-ef0123456789",
+        "response_type": "code",
+        "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+        "resource": "https://api.openai.com/v1",
+        "scope": "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        1455
+      ],
+      "requests": [
+        {
+          "url": "https://auth.openai.com/api/accounts/oauth/token",
+          "body": {
+            "grant_type": "authorization_code",
+            "client_id": "issued-client",
+            "code": "synthetic-code",
+            "code_verifier": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+            "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+            "resource": "https://api.openai.com/v1"
+          }
+        }
+      ],
+      "prompts": [
+        "manual_code"
+      ],
+      "closed": true,
+      "credential": {
+        "type": "oauth",
+        "access": "synthetic-access",
+        "refresh": "synthetic-refresh",
+        "expires": 3420007,
+        "clientId": "issued-client",
+        "scopes": [
+          "openid",
+          "chatgpt.tokens.use.direct"
+        ]
+      }
+    },
+    {
+      "spec": {
+        "id": "chatgpt-refresh",
+        "provider": "chatgpt",
+        "refresh": true
+      },
+      "error": false,
+      "authorization": null,
+      "binds": [],
+      "requests": [
+        {
+          "url": "https://auth.openai.com/api/accounts/oauth/token",
+          "body": {
+            "grant_type": "refresh_token",
+            "client_id": "issued-client",
+            "refresh_token": "synthetic-old-refresh",
+            "resource": "https://api.openai.com/v1"
+          }
+        }
+      ],
+      "prompts": [],
+      "closed": false,
+      "credential": {
+        "type": "oauth",
+        "access": "synthetic-access",
+        "refresh": "synthetic-refresh",
+        "expires": 3420007,
+        "clientId": "issued-client",
+        "scopes": [
+          "openid",
+          "chatgpt.tokens.use.direct"
+        ]
+      }
+    },
+    {
+      "spec": {
+        "id": "chatgpt-scope-denied",
+        "provider": "chatgpt",
+        "badScope": true
+      },
+      "error": true,
+      "authorization": {
+        "client_id": "dynamic_agent_client",
+        "agent_name_hint": "Pirua",
+        "ext_agent_host_id": "urn:uuid:abcdef01-2345-6789-abcd-ef0123456789",
+        "response_type": "code",
+        "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+        "resource": "https://api.openai.com/v1",
+        "scope": "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        1455
+      ],
+      "requests": [
+        {
+          "url": "https://auth.openai.com/api/accounts/oauth/token",
+          "body": {
+            "grant_type": "authorization_code",
+            "client_id": "issued-client",
+            "code": "synthetic-code",
+            "code_verifier": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+            "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+            "resource": "https://api.openai.com/v1"
+          }
+        }
+      ],
+      "prompts": [
+        "manual_code"
+      ],
+      "closed": true
+    },
+    {
+      "spec": {
+        "id": "chatgpt-missing-issued-client",
+        "provider": "chatgpt",
+        "missingClient": true
+      },
+      "error": true,
+      "authorization": {
+        "client_id": "dynamic_agent_client",
+        "agent_name_hint": "Pirua",
+        "ext_agent_host_id": "urn:uuid:abcdef01-2345-6789-abcd-ef0123456789",
+        "response_type": "code",
+        "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+        "resource": "https://api.openai.com/v1",
+        "scope": "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        1455
+      ],
+      "requests": [],
+      "prompts": [
+        "manual_code"
+      ],
+      "closed": true
+    },
+    {
+      "spec": {
+        "id": "chatgpt-state-mismatch",
+        "provider": "chatgpt",
+        "wrongState": true
+      },
+      "error": true,
+      "authorization": {
+        "client_id": "dynamic_agent_client",
+        "agent_name_hint": "Pirua",
+        "ext_agent_host_id": "urn:uuid:abcdef01-2345-6789-abcd-ef0123456789",
+        "response_type": "code",
+        "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+        "resource": "https://api.openai.com/v1",
+        "scope": "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        1455
+      ],
+      "requests": [],
+      "prompts": [
+        "manual_code"
+      ],
+      "closed": true
+    },
+    {
+      "spec": {
+        "id": "chatgpt-wrong-origin",
+        "provider": "chatgpt",
+        "wrongOrigin": true
+      },
+      "error": true,
+      "authorization": {
+        "client_id": "dynamic_agent_client",
+        "agent_name_hint": "Pirua",
+        "ext_agent_host_id": "urn:uuid:abcdef01-2345-6789-abcd-ef0123456789",
+        "response_type": "code",
+        "redirect_uri": "http://127.0.0.1:1455/auth/callback",
+        "resource": "https://api.openai.com/v1",
+        "scope": "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct",
+        "state": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+        "code_challenge": "AgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgI",
+        "code_challenge_method": "S256",
+        "nonce": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+      },
+      "binds": [
+        1455
+      ],
+      "requests": [],
+      "prompts": [
+        "manual_code"
+      ],
+      "closed": true
+    },
+    {
+      "spec": {
+        "id": "chatgpt-bind-failure",
+        "provider": "chatgpt",
+        "failAll": true
+      },
+      "error": true,
+      "authorization": null,
+      "binds": [
+        1455
+      ],
+      "requests": [],
+      "prompts": [],
+      "closed": false
+    },
+    {
+      "spec": {
+        "id": "chatgpt-missing-device",
+        "provider": "chatgpt",
+        "noDevice": true
+      },
+      "error": true,
+      "authorization": null,
+      "binds": [],
+      "requests": [],
+      "prompts": [],
+      "closed": false
+    },
+    {
+      "spec": {
+        "id": "chatgpt-refresh-missing-client",
+        "provider": "chatgpt",
+        "refresh": true,
+        "missingStoredClient": true
+      },
+      "error": true,
+      "authorization": null,
+      "binds": [],
+      "requests": [],
+      "prompts": [],
+      "closed": false
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 #![cfg(feature = "wire-google-genai")]
+mod retained_support;
 use pi_ai_core::*;
 use pi_ai_providers::api::wire_json::WirePayload;
 use pi_ai_providers::api::{google_genai::*, runtime::*};
@@ -16,10 +17,9 @@ use std::{
     time::Duration,
 };
 fn corpus() -> Value {
-    serde_json::from_str(include_str!(
+    retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/google-genai/trace.json"
     ))
-    .unwrap()
 }
 fn hex(value: &str) -> Vec<u8> {
     value
@@ -310,10 +310,10 @@ fn execute(mut s: Setup, case: &Value) -> (AssistantMessage, Vec<Value>) {
             .stream_with_options(s.request, serde_json::from_value(family).unwrap())
     };
     ready(s.spawner.take());
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     let mut events = Vec::new();
     while let Some(e) = ready(stream.next()) {
-        events.push(json!(e));
+        events.push(retained_support::without_duration(json!(e)));
     }
     (result, events)
 }
@@ -426,10 +426,9 @@ fn typed_raw_options_preserve_fractional_dynamic_budget_and_reject_null() {
 
 #[test]
 fn sdk_read_boundaries_utf8_and_metadata_errors_match_source() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/google-genai/stream.json"
-    ))
-    .unwrap();
+    ));
     for spec in fixture["cases"].as_array().unwrap() {
         let mut case = spec.clone();
         case["model"] = fixture["model"].clone();
@@ -472,10 +471,9 @@ fn sdk_read_boundaries_utf8_and_metadata_errors_match_source() {
 
 #[test]
 fn metadata_template_operands_and_context_match_source() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/google-genai/metadata.json"
-    ))
-    .unwrap();
+    ));
     for spec in fixture["cases"].as_array().unwrap() {
         let mut case = spec.clone();
         case["model"] = fixture["model"].clone();
@@ -589,7 +587,7 @@ fn usage_only_cancellation_snapshot_and_noncooperative_hooks_release() {
     let mut worker = s.spawner.take();
     assert!(poll(worker.as_mut()).is_pending());
     token.cancel();
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     assert_eq!(result.stop_reason, StopReason::Aborted);
     assert_eq!(result.response_id.as_ref().unwrap().as_str(), "retained");
     assert_eq!(result.usage.input.get(), 17);
@@ -755,10 +753,10 @@ mod native {
                         if cancel && matches!(event, AssistantMessageEvent::TextDelta { .. }) {
                             token.cancel();
                         }
-                        events.push(json!(event));
+                        events.push(retained_support::without_duration(json!(event)));
                     }
                     worker.await.unwrap();
-                    let result = stream.result().await;
+                    let result = retained_support::message(stream.result().await);
                     if cancel {
                         assert_eq!(result.stop_reason, StopReason::Aborted);
                         assert_eq!(result.usage.input.get(), 17);
@@ -837,7 +835,7 @@ mod native {
                 engine.block_on(async {
                     tokio::time::timeout(Duration::from_secs(5), async {
                         let worker = tokio::spawn(worker);
-                        let result = stream.result().await;
+                        let result = retained_support::message(stream.result().await);
                         worker.await.unwrap();
                         assert_eq!(
                             (
@@ -888,7 +886,7 @@ mod native {
         engine.block_on(async {
             tokio::time::timeout(Duration::from_secs(5), async {
                 let worker = tokio::spawn(worker);
-                let result = stream.result().await;
+                let result = retained_support::message(stream.result().await);
                 worker.await.unwrap();
                 assert_eq!(result.stop_reason, StopReason::Error);
                 assert!(!token.is_cancelled());

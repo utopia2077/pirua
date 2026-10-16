@@ -185,6 +185,7 @@ fn assert_well_formed_json(input: &str) {
 
 fn options(name: &str) -> SpanOptions {
     SpanOptions {
+        links: Vec::new(),
         name: name.to_owned(),
         attributes: BTreeMap::new(),
     }
@@ -255,6 +256,7 @@ fn noop_context_and_span_accept_the_complete_observer_surface() {
     attributes.insert("enabled".to_owned(), AttributeValue::Boolean(true));
 
     let parent = NOOP_TELEMETRY_CONTEXT.start_span(SpanOptions {
+        links: Vec::new(),
         name: "parent".to_owned(),
         attributes: attributes.clone(),
     });
@@ -361,6 +363,7 @@ fn debug_output_redacts_attribute_values_and_error_messages() {
         AttributeValue::Strings(vec![SECRET.to_owned()]),
     );
     let options = SpanOptions {
+        links: Vec::new(),
         name: "safe-span-name".to_owned(),
         attributes: attributes.clone(),
     };
@@ -394,6 +397,7 @@ fn in_memory_recorder_tracks_parentage_events_attributes_status_and_end_order() 
     let mut root_attributes = SpanAttributes::new();
     root_attributes.insert("kind".to_owned(), AttributeValue::String("root".to_owned()));
     let root = context.start_span(SpanOptions {
+        links: Vec::new(),
         name: "root".to_owned(),
         attributes: root_attributes,
     });
@@ -437,6 +441,7 @@ fn in_memory_recorder_clones_inputs_and_snapshots_are_detached() {
         AttributeValue::Strings(vec!["initial".to_owned()]),
     );
     let root = context.start_span(SpanOptions {
+        links: Vec::new(),
         name: "snapshot".to_owned(),
         attributes: start_attributes,
     });
@@ -598,4 +603,15 @@ fn telemetry_schema_is_detached_serializable_and_rejects_duplicate_span_names() 
     let duplicate = pi_telemetry::validate_unique_telemetry_span_names(&[&schema, &schema])
         .expect_err("duplicate span names must be rejected");
     assert_eq!(duplicate.names, vec!["operation".to_owned()]);
+}
+
+impl TelemetryContext for FinishCounterSpan {
+    fn start_span(&self, options: SpanOptions) -> SpanGuard {
+        self.start_child(options)
+    }
+}
+impl TelemetryContext for ParentSpan {
+    fn start_span(&self, options: SpanOptions) -> SpanGuard {
+        self.start_child(options)
+    }
 }

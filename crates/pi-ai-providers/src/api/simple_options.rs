@@ -2,8 +2,8 @@
 //! Runtime, credentials and middleware stay on the nominal resolved request.
 
 use pi_ai_core::{
-    Context, ContextEstimateInput, JsonObject, Model, NumericError, SafeUnsigned,
-    StreamOptionsWire, ThinkingBudgets, ThinkingLevel, estimate_context_tokens,
+    ContextEstimateInput, JsonObject, Model, NumericError, SafeUnsigned, StreamOptionsWire,
+    ThinkingBudgets, ThinkingLevel, TranscriptContext, estimate_context_tokens,
 };
 
 pub const MIN_ANSWER_TOKENS: u64 = 1024;
@@ -23,13 +23,13 @@ const fn safe(value: u64) -> SafeUnsigned {
 
 pub fn clamp_max_tokens_to_context(
     model: &Model,
-    context: &Context,
+    context: &TranscriptContext,
     max_tokens: SafeUnsigned,
 ) -> Result<SafeUnsigned, NumericError> {
     if model.context_window.get() == 0 {
         return SafeUnsigned::new(max_tokens.get().max(1));
     }
-    let estimate = estimate_context_tokens(ContextEstimateInput::Context(context))?;
+    let estimate = estimate_context_tokens(ContextEstimateInput::Messages(&context.messages))?;
     SafeUnsigned::new(
         max_tokens.get().min(
             model
@@ -45,7 +45,7 @@ pub fn clamp_max_tokens_to_context(
 /// Named neutral options are cloned; only sampling merge and token cap change.
 pub fn build_base_options(
     model: &Model,
-    context: &Context,
+    context: &TranscriptContext,
     options: &StreamOptionsWire,
 ) -> Result<StreamOptionsWire, NumericError> {
     let mut result = options.clone();
@@ -126,4 +126,32 @@ pub fn adjust_max_tokens_for_thinking(
         max_tokens,
         thinking_budget,
     }
+}
+
+/// Merges catalog defaults, effective thinking-level overrides, and request keys.
+pub fn resolve_sampling_params(
+    model: &Model,
+    thinking_level: pi_ai_core::ModelThinkingLevel,
+    request: Option<&JsonObject>,
+) -> Option<JsonObject> {
+    let effective = pi_ai_core::clamp_thinking_level(model, thinking_level);
+    let by_level = model
+        .sampling_params_by_thinking_level
+        .as_ref()
+        .and_then(|params| params.get(&effective));
+    if model.sampling_params.is_none() && by_level.is_none() && request.is_none() {
+        return None;
+    }
+    let mut params = model
+        .sampling_params
+        .as_ref()
+        .map(|params| params.as_map().clone())
+        .unwrap_or_default();
+    if let Some(overrides) = by_level {
+        params.extend(overrides.as_map().clone());
+    }
+    if let Some(overrides) = request {
+        params.extend(overrides.as_map().clone());
+    }
+    Some(JsonObject::new(params))
 }

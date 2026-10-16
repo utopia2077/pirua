@@ -1,9 +1,8 @@
-#![cfg(all(feature = "wire-google-genai", feature = "wire-pi-messages"))]
+#![cfg(feature = "wire-google-genai")]
 
+mod retained_support;
 use pi_ai_core::*;
-use pi_ai_providers::api::{
-    google_genai::GoogleGenAiApi, pi_messages::PiMessagesApi, runtime::*, wire_json::*,
-};
+use pi_ai_providers::api::{google_genai::GoogleGenAiApi, runtime::*, wire_json::*};
 use pi_ai_transport::*;
 use serde_json::{Value, json};
 use std::{
@@ -213,26 +212,22 @@ fn execute(
             ),
         },
     };
-    let mut stream = if google {
-        GoogleGenAiApi::new(services).stream(request)
-    } else {
-        PiMessagesApi::new(services).stream(request)
-    };
+    assert!(google);
+    let mut stream = GoogleGenAiApi::new(services).stream(request);
     ready(spawner.0.lock().unwrap().pop().unwrap());
-    let result = ready(stream.result());
+    let result = retained_support::message(ready(stream.result()));
     let mut events = Vec::new();
     while let Some(event) = ready(stream.next()) {
-        events.push(json!(event));
+        events.push(retained_support::without_duration(json!(event)));
     }
     (observed, result, json!(events))
 }
 
 #[test]
 fn complete_google_sdk_ordered_replacement_mutation_and_noop_match_source() {
-    let fixture: Value = serde_json::from_str(include_str!(
+    let fixture: Value = retained_support::fixture(include_str!(
         "../../../conformance/provider-traces/wire-payload/google.json"
-    ))
-    .unwrap();
+    ));
     assert_eq!(fixture["cases"].as_array().unwrap().len(), 6);
     for case in fixture["cases"].as_array().unwrap() {
         let (observed, result, events) = execute(case, case["model"].clone(), case["context"].clone(), case.get("replacement").cloned(), b"data: {\"candidates\":[{\"finishReason\":\"STOP\",\"content\":{\"parts\":[{\"text\":\"done\"}]}}]}\n\n".to_vec(), true);
@@ -270,68 +265,6 @@ fn complete_google_sdk_ordered_replacement_mutation_and_noop_match_source() {
 fn nested(depth: usize) -> Value {
     (0..depth).fold(Value::Null, |value, _| Value::Array(vec![value]))
 }
-#[test]
-fn pi_retains_large_deep_domain_and_consumes_after_hook_with_js_spelling() {
-    let fixture: Value = serde_json::from_str(include_str!(
-        "../../../conformance/provider-traces/wire-payload/pi.json"
-    ))
-    .unwrap();
-    assert_eq!(fixture["cases"].as_array().unwrap().len(), 9);
-    for case in fixture["cases"].as_array().unwrap() {
-        let replacement = if case["kind"] == "ordered" {
-            Some(serde_json::from_str::<Value>(r#"{"z":1,"10":"ten","2":"two","01":"leading","4294967295":"nonindex","4294967294":"index","a":1e20,"zero":-0,"rounded":9007199254740993}"#).unwrap())
-        } else if let Some(size) = case["size"].as_u64() {
-            Some(json!("x".repeat(size as usize)))
-        } else {
-            case["depth"].as_u64().map(|depth| nested(depth as usize))
-        };
-        let context = if let Some(size) = case["size"].as_u64() {
-            json!({"systemPrompt":"x".repeat(size as usize),"messages":[]})
-        } else {
-            json!({"messages":[]})
-        };
-        let data = format!(
-            "data: {}\n\n",
-            json!({"type":"done","reason":"stop","usage":fixture["usage"]})
-        )
-        .into_bytes();
-        let (observed, result, events) = execute(
-            case,
-            fixture["model"].clone(),
-            context,
-            replacement,
-            data,
-            false,
-        );
-        let bodies = observed.bodies.lock().unwrap();
-        assert_eq!(bodies.len(), 1, "{} must send", case["id"]);
-        assert_eq!(
-            bodies[0].len() as u64,
-            case["bytes"].as_u64().unwrap(),
-            "{} bytes",
-            case["id"]
-        );
-        let expected = case["wire"].as_str().map(str::to_owned).unwrap_or_else(|| {
-            format!(
-                "\"{}\"",
-                "x".repeat(case["size"].as_u64().unwrap() as usize)
-            )
-        });
-        assert_eq!(bodies[0], expected.as_bytes(), "{} wire", case["id"]);
-        assert_eq!(json!(*observed.keys.lock().unwrap()), case["keys"]);
-        assert_eq!(json!(*observed.order.lock().unwrap()), case["order"]);
-        assert_eq!(
-            serde_json::from_value::<Vec<AssistantMessageEvent>>(events).unwrap(),
-            serde_json::from_value::<Vec<AssistantMessageEvent>>(case["events"].clone()).unwrap()
-        );
-        assert_eq!(
-            result,
-            serde_json::from_value::<AssistantMessage>(case["result"].clone()).unwrap()
-        );
-        assert_eq!(observed.closes.load(Ordering::SeqCst), 1);
-    }
-}
-
 #[test]
 fn carrier_is_ordered_redacted_unvalidated_and_existing_wire_limits_are_unchanged() {
     let value: Value =

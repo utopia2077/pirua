@@ -1,33 +1,194 @@
 {
   "suite": "portable-helpers",
-  "expectedRows": 27,
+  "expectedRows": 23,
   "rows": [
-    {"id": "helper.context.usage-total-fallback", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:17", "test": "context_usage_prefers_nonzero_total_and_falls_back_to_components", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "nonzero total wins; zero sums four components"},
-    {"id": "helper.context.utf16-text-image", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:29", "test": "text_and_image_estimates_use_utf16_units_and_fixed_image_cost", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "UTF-16 ceil-by-four and 4,800 image units"},
-    {"id": "helper.context.message-roles", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:45", "test": "message_estimates_cover_each_role_and_assistant_block", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "exact user/tool/assistant block accounting"},
-    {"id": "helper.context.no-checkpoint-prefix", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:134-135", "test": "context_without_checkpoint_adds_system_tools_and_all_messages", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "all messages, system, and tools count"},
-    {"id": "helper.context.checkpoint-trailing", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:89", "test": "context_checkpoint_reuses_usage_and_estimates_only_trailing_content", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "usage plus trailing estimate"},
-    {"id": "helper.context.invalid-checkpoint-matrix", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63", "test": "stale_failed_aborted_and_zero_usage_are_not_checkpoints", "polarity": "negative", "owner": "S03-portable-helpers", "expected": "all invalid checkpoint dimensions are excluded"},
-    {"id": "helper.context.newer-checkpoint", "source": "packages/ai/test/context-estimate.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63", "test": "newer_assistant_usage_restores_checkpoint", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "later valid response restores checkpoint"},
-    {"id": "helper.context.added-tools-after-checkpoint", "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:119", "test": "post_checkpoint_markers_add_only_named_available_tool_definitions", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "only named later available tools count"},
-    {"id": "helper.json.repair-valid", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:32", "test": "repair_json_preserves_valid_json_and_escape_sequences", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "valid JSON remains byte-equal"},
-    {"id": "helper.json.repair-controls", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:79", "test": "repair_json_escapes_only_raw_string_control_characters", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "controls inside strings repair; outside remain"},
-    {"id": "helper.json.repair-invalid-escapes", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:53", "test": "repair_json_doubles_invalid_and_trailing_backslashes", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "invalid/incomplete/trailing escapes repair"},
-    {"id": "helper.json.parse-repair-order", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:85", "test": "parse_json_uses_original_then_repaired_input_without_mutation", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "original precedes repaired parse"},
-    {"id": "helper.json.parse-error-redaction", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:88", "test": "invalid_json_returns_typed_bounded_error_without_input", "polarity": "negative", "owner": "S03-portable-helpers", "expected": "error has no input sentinel"},
-    {"id": "helper.json.streaming-fallback", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:104", "test": "streaming_json_empty_null_and_malformed_fallback_matrix", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "empty/malformed become object; complete null remains null"},
-    {"id": "helper.json.streaming-partial", "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:112", "test": "streaming_json_recovers_partial_collections_atoms_and_invalid_escapes", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "bounded raw/repaired order with pinned completed-prefix recovery"},
-    {"id": "helper.text.string-separator", "source": "packages/ai/src/utils/text.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:6", "test": "content_text_preserves_strings_and_supports_default_and_custom_separators", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "string pass-through and newline/custom join"},
-    {"id": "helper.text.block-filtering", "source": "packages/ai/src/utils/text.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:8", "test": "content_text_selects_only_text_blocks_from_input_and_assistant_content", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "non-text blocks are ignored"},
-    {"id": "helper.hash.wrapping-base36", "source": "packages/ai/src/utils/hash.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:2", "test": "short_hash_matches_ascii_wrapping_and_base36_vectors", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "exact wrapping/base36 vectors"},
-    {"id": "helper.hash.utf16", "source": "packages/ai/src/utils/hash.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:5", "test": "short_hash_hashes_utf16_code_units_for_non_bmp_text", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "non-BMP input hashes surrogate units"},
-    {"id": "helper.uuid.rfc-layout", "source": "packages/ai/test/uuid.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:16", "test": "uuid_v7_matches_rfc_layout_version_variant_and_lowercase_vector", "polarity": "positive", "owner": "S03-portable-helpers", "expected": "exact layout/version/variant/vector"},
-    {"id": "helper.uuid.sequence-rollover", "source": "packages/ai/src/utils/uuid.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:25", "test": "same_millisecond_sequence_rollover_advances_synthetic_timestamp", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "sequence wrap advances time"},
-    {"id": "helper.uuid.clock-rollback", "source": "packages/ai/src/utils/uuid.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:23", "test": "clock_rollback_preserves_lexicographic_monotonicity", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "rollback increments sequence"},
-    {"id": "helper.uuid.instance-concurrency-error", "source": "docs/contracts/ai-domain/domain.md#uuidv7", "test": "instances_are_explicit_and_concurrent_generation_is_unique_and_bounded", "polarity": "race", "owner": "S03-portable-helpers", "expected": "object safety, concurrency, entropy and clock errors"},
-    {"id": "helper.deferred-tools.disabled-dedup-order", "source": "packages/ai/src/utils/deferred-tools.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:13", "test": "disabled_split_deduplicates_last_value_in_first_source_slot", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "disabled still deduplicates with first slot/last value"},
-    {"id": "helper.deferred-tools.marker-use-order", "source": "packages/ai/src/utils/deferred-tools.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:17", "test": "markers_defer_only_tools_not_used_before_their_load_point", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "prior use prevents deferral; unknown marker ignored"},
-    {"id": "helper.deferred-tools.normalization-collision", "source": "packages/ai/src/utils/deferred-tools.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:14", "test": "normalizer_applies_consistently_and_collisions_keep_first_slot_last_value", "polarity": "boundary", "owner": "S03-portable-helpers", "expected": "all names normalize; collision order is stable"},
-    {"id": "helper.deferred-tools.empty-unknown-nonmutation", "source": "docs/contracts/ai-domain/domain.md#deferred-tools", "test": "split_empty_unknown_and_nonmutation_matrix", "polarity": "negative", "owner": "S03-portable-helpers", "expected": "empty/unknown cases and source immutability"}
-  ]
+    {
+      "id": "helper.context.usage-total-fallback",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:17",
+      "test": "context_usage_prefers_nonzero_total_and_falls_back_to_components",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "nonzero total wins; zero sums four components"
+    },
+    {
+      "id": "helper.context.utf16-text-image",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:29",
+      "test": "text_and_image_estimates_use_utf16_units_and_fixed_image_cost",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "UTF-16 ceil-by-four and 4,800 image units"
+    },
+    {
+      "id": "helper.context.message-roles",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:45",
+      "test": "message_estimates_cover_each_role_and_assistant_block",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "exact user/tool/assistant block accounting"
+    },
+    {
+      "id": "helper.context.no-checkpoint-prefix",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:134-135",
+      "test": "context_without_checkpoint_adds_system_tools_and_all_messages",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "all messages, system, and tools count"
+    },
+    {
+      "id": "helper.context.checkpoint-trailing",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:89",
+      "test": "context_checkpoint_reuses_usage_and_estimates_only_trailing_content",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "usage plus trailing estimate"
+    },
+    {
+      "id": "helper.context.invalid-checkpoint-matrix",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63",
+      "test": "stale_failed_aborted_and_zero_usage_are_not_checkpoints",
+      "polarity": "negative",
+      "owner": "S03-portable-helpers",
+      "expected": "all invalid checkpoint dimensions are excluded"
+    },
+    {
+      "id": "helper.context.newer-checkpoint",
+      "source": "packages/ai/test/context-estimate.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:63",
+      "test": "newer_assistant_usage_restores_checkpoint",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "later valid response restores checkpoint"
+    },
+    {
+      "id": "helper.context.added-tools-after-checkpoint",
+      "source": "packages/ai/src/utils/estimate.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:119",
+      "test": "post_checkpoint_markers_add_only_named_available_tool_definitions",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "only named later available tools count"
+    },
+    {
+      "id": "helper.json.repair-valid",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:32",
+      "test": "repair_json_preserves_valid_json_and_escape_sequences",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "valid JSON remains byte-equal"
+    },
+    {
+      "id": "helper.json.repair-controls",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:79",
+      "test": "repair_json_escapes_only_raw_string_control_characters",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "controls inside strings repair; outside remain"
+    },
+    {
+      "id": "helper.json.repair-invalid-escapes",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:53",
+      "test": "repair_json_doubles_invalid_and_trailing_backslashes",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "invalid/incomplete/trailing escapes repair"
+    },
+    {
+      "id": "helper.json.parse-repair-order",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:85",
+      "test": "parse_json_uses_original_then_repaired_input_without_mutation",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "original precedes repaired parse"
+    },
+    {
+      "id": "helper.json.parse-error-redaction",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:88",
+      "test": "invalid_json_returns_typed_bounded_error_without_input",
+      "polarity": "negative",
+      "owner": "S03-portable-helpers",
+      "expected": "error has no input sentinel"
+    },
+    {
+      "id": "helper.json.streaming-fallback",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:104",
+      "test": "streaming_json_empty_null_and_malformed_fallback_matrix",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "empty/malformed become object; complete null remains null"
+    },
+    {
+      "id": "helper.json.streaming-partial",
+      "source": "packages/ai/src/utils/json-parse.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:112",
+      "test": "streaming_json_recovers_partial_collections_atoms_and_invalid_escapes",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "bounded raw/repaired order with pinned completed-prefix recovery"
+    },
+    {
+      "id": "helper.text.string-separator",
+      "source": "packages/ai/src/utils/text.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:6",
+      "test": "content_text_preserves_strings_and_supports_default_and_custom_separators",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "string pass-through and newline/custom join"
+    },
+    {
+      "id": "helper.text.block-filtering",
+      "source": "packages/ai/src/utils/text.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:8",
+      "test": "content_text_selects_only_text_blocks_from_input_and_assistant_content",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "non-text blocks are ignored"
+    },
+    {
+      "id": "helper.hash.wrapping-base36",
+      "source": "packages/ai/src/utils/hash.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:2",
+      "test": "short_hash_matches_ascii_wrapping_and_base36_vectors",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "exact wrapping/base36 vectors"
+    },
+    {
+      "id": "helper.hash.utf16",
+      "source": "packages/ai/src/utils/hash.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:5",
+      "test": "short_hash_hashes_utf16_code_units_for_non_bmp_text",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "non-BMP input hashes surrogate units"
+    },
+    {
+      "id": "helper.uuid.rfc-layout",
+      "source": "packages/ai/test/uuid.test.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:16",
+      "test": "uuid_v7_matches_rfc_layout_version_variant_and_lowercase_vector",
+      "polarity": "positive",
+      "owner": "S03-portable-helpers",
+      "expected": "exact layout/version/variant/vector"
+    },
+    {
+      "id": "helper.uuid.sequence-rollover",
+      "source": "packages/ai/src/utils/uuid.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:25",
+      "test": "same_millisecond_sequence_rollover_advances_synthetic_timestamp",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "sequence wrap advances time"
+    },
+    {
+      "id": "helper.uuid.clock-rollback",
+      "source": "packages/ai/src/utils/uuid.ts@853a80d26c90a14c1886f0ebb8ffaae133ca2185:23",
+      "test": "clock_rollback_preserves_lexicographic_monotonicity",
+      "polarity": "boundary",
+      "owner": "S03-portable-helpers",
+      "expected": "rollback increments sequence"
+    },
+    {
+      "id": "helper.uuid.instance-concurrency-error",
+      "source": "docs/contracts/ai-domain/domain.md#uuidv7",
+      "test": "instances_are_explicit_and_concurrent_generation_is_unique_and_bounded",
+      "polarity": "race",
+      "owner": "S03-portable-helpers",
+      "expected": "object safety, concurrency, entropy and clock errors"
+    }
+  ],
+  "removedInTarget": {
+    "upstreamTag": "v1.4.0",
+    "reason": "Deferred tool load markers were replaced by SystemMessage toolsAdded/toolsRemoved; target transcript tests own the replacement."
+  }
 }

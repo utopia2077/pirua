@@ -12,6 +12,10 @@ pub struct OAuthServices {
     pub crypto: Arc<dyn OAuthCrypto>,
     pub callbacks: Arc<dyn CallbackListener>,
     pub callback_host: String,
+    /// Stable installation UUID required by ChatGPT OAuth.
+    pub device_id: Option<String>,
+    /// Optional app name presented during ChatGPT authorization.
+    pub agent_name: Option<String>,
     pub callback_limits: CallbackLimits,
     pub max_token_response_bytes: usize,
 }

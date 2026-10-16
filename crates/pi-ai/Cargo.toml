@@ -12,29 +12,18 @@ workspace = true
 [features]
 default = []
 dev-catalog-tools = []
-dev-oauth-cli = ["all-oauth", "auth-native", "dep:tokio"]
-compat = ["provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "provider-openai-codex", "provider-openrouter", "images-openrouter", "pi-ai-providers/wire-azure-openai-responses", "pi-ai-providers/wire-google-vertex", "pi-ai-providers/wire-mistral-conversations", "pi-ai-providers/wire-bedrock-converse-stream", "pi-ai-providers/wire-pi-messages"]
 catalog-anthropic = ["dep:pi-ai-providers", "pi-ai-providers/catalog-anthropic"]
 catalog-deepseek = ["dep:pi-ai-providers", "pi-ai-providers/catalog-deepseek"]
 catalog-google = ["dep:pi-ai-providers", "pi-ai-providers/catalog-google"]
 catalog-openai = ["dep:pi-ai-providers", "pi-ai-providers/catalog-openai"]
-catalog-openai-codex = ["dep:pi-ai-providers", "pi-ai-providers/catalog-openai-codex"]
-catalog-openrouter = ["dep:pi-ai-providers", "pi-ai-providers/catalog-openrouter"]
-catalog-openrouter-images = ["dep:pi-ai-providers", "pi-ai-providers/catalog-openrouter-images"]
 provider-anthropic = ["catalog-anthropic", "pi-ai-providers/provider-anthropic"]
 provider-deepseek = ["catalog-deepseek", "pi-ai-providers/provider-deepseek"]
 provider-google = ["catalog-google", "pi-ai-providers/provider-google"]
 provider-openai = ["catalog-openai", "pi-ai-providers/provider-openai"]
-provider-openai-codex = ["catalog-openai-codex", "pi-ai-providers/provider-openai-codex"]
-provider-openrouter = ["catalog-openrouter", "pi-ai-providers/provider-openrouter"]
-images-runtime = ["dep:pi-ai-providers"]
-images-openrouter = ["images-runtime", "catalog-openrouter-images", "pi-ai-providers/images-openrouter"]
+oauth-openai-chatgpt = ["dep:pi-ai-providers", "pi-ai-providers/oauth-openai-chatgpt"]
 oauth-anthropic = ["dep:pi-ai-providers", "pi-ai-providers/oauth-anthropic"]
-oauth-openai-codex = ["dep:pi-ai-providers", "pi-ai-providers/oauth-openai-codex"]
-oauth-openrouter = ["dep:pi-ai-providers", "pi-ai-providers/oauth-openrouter"]
-all-providers = ["provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "provider-openai-codex", "provider-openrouter"]
-all-images = ["images-openrouter"]
-all-oauth = ["oauth-anthropic", "oauth-openai-codex", "oauth-openrouter"]
+all-providers = ["provider-anthropic", "provider-deepseek", "provider-google", "provider-openai"]
+all-oauth = ["oauth-anthropic", "oauth-openai-chatgpt"]
 native = ["dep:pi-ai-providers", "pi-ai-providers/native"]
 auth-native = ["native", "pi-ai-providers/auth-native"]
 
@@ -51,13 +40,3 @@ tokio.workspace = true
 name = "catalog_gen"
 path = "src/bin/catalog_gen.rs"
 required-features = ["dev-catalog-tools"]
-
-[[bin]]
-name = "image_catalog_gen"
-path = "src/bin/image_catalog_gen.rs"
-required-features = ["dev-catalog-tools"]
-
-[[bin]]
-name = "pi_ai_cli"
-path = "src/bin/pi_ai_cli.rs"
-required-features = ["dev-oauth-cli"]

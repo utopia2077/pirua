@@ -289,6 +289,7 @@ fn provider_builder_overlay_replaces_first_id_and_appends() {
     .expect("preload store");
     let spawner = Arc::new(ManualSpawner::default());
     let registry = ModelsRegistry::new(ModelsRegistryOptions {
+        identity: None,
         credentials: Arc::new(InMemoryCredentialStore::new()),
         models_store: Box::new(store),
         auth_context: Arc::new(DummyAuthContext),
