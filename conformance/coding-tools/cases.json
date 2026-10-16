@@ -1,0 +1,498 @@
+[
+  {
+    "id": "empty",
+    "kind": "truncate",
+    "text": ""
+  },
+  {
+    "id": "newlines",
+    "kind": "truncate",
+    "text": "a\nb\n"
+  },
+  {
+    "id": "head-lines",
+    "kind": "truncate",
+    "text": "x\n",
+    "repeat": 2001
+  },
+  {
+    "id": "tail-lines",
+    "kind": "truncate",
+    "text": "x\n",
+    "repeat": 2001,
+    "tail": true
+  },
+  {
+    "id": "head-long-unicode",
+    "kind": "truncate",
+    "text": "🦀",
+    "repeat": 13000
+  },
+  {
+    "id": "tail-long-unicode",
+    "kind": "truncate",
+    "text": "🦀",
+    "repeat": 13000,
+    "tail": true
+  },
+  {
+    "id": "quoted-empty",
+    "kind": "args",
+    "arguments": "a '' \"b c\"",
+    "template": "$1|$2|${2:-fallback}|$3|$@|${@:2:2}"
+  },
+  {
+    "id": "nonrecursive",
+    "kind": "args",
+    "arguments": "'$2' z",
+    "template": "$1|${3:-$1}|${@:0:1}|$ARGUMENTS|${ARGUMENTS:-empty}"
+  },
+  {
+    "id": "skills-bash",
+    "kind": "skills",
+    "reader": "bash",
+    "skills": [
+      {
+        "name": "a&b",
+        "description": "<test> \"'",
+        "filePath": "/tmp/SKILL.md"
+      },
+      {
+        "name": "hidden",
+        "description": "hidden",
+        "filePath": "/hidden",
+        "disableModelInvocation": true
+      }
+    ]
+  },
+  {
+    "id": "skills-indirect",
+    "kind": "skills",
+    "reader": "indirect",
+    "skills": [
+      {
+        "name": "test",
+        "description": "do it",
+        "filePath": "/a"
+      }
+    ]
+  },
+  {
+    "id": "prompt-default",
+    "kind": "prompt",
+    "options": {
+      "cwd": "C:\\work",
+      "selectedTools": [
+        "read",
+        "bash",
+        "edit"
+      ],
+      "toolSnippets": {
+        "read": "Read",
+        "bash": "Execute",
+        "edit": "Edit"
+      },
+      "toolGuidelines": {
+        "edit": [
+          " precise ",
+          "precise"
+        ]
+      },
+      "promptGuidelines": [
+        "precise",
+        "extra"
+      ],
+      "contextFiles": [
+        {
+          "path": "/a/AGENTS.md",
+          "content": "instructions"
+        }
+      ],
+      "sections": {
+        "notes": "remember"
+      },
+      "skills": [
+        {
+          "name": "test",
+          "description": "test",
+          "filePath": "/a/SKILL.md"
+        }
+      ]
+    }
+  },
+  {
+    "id": "prompt-hidden",
+    "kind": "prompt",
+    "options": {
+      "cwd": "/work",
+      "selectedTools": [
+        "read",
+        "bash"
+      ],
+      "hiddenTools": [
+        "read",
+        "bash"
+      ],
+      "customPrompt": "custom",
+      "appendSystemPrompt": "append",
+      "sections": {
+        "cwd": "override"
+      },
+      "skills": [
+        {
+          "name": "test",
+          "description": "test",
+          "filePath": "/a"
+        }
+      ]
+    }
+  },
+  {
+    "id": "prompt-forced-empty",
+    "kind": "prompt",
+    "options": {
+      "cwd": "/work",
+      "forceSystemPrompt": "",
+      "sections": {
+        "Invalid": "ignored by force"
+      }
+    }
+  },
+  {
+    "id": "prompt-invalid-section",
+    "kind": "prompt",
+    "options": {
+      "cwd": "/work",
+      "sections": {
+        "preamble": "bad"
+      }
+    }
+  },
+  {
+    "id": "exact-before-thinking",
+    "kind": "model",
+    "request": {
+      "text": "custom/model:high",
+      "thinkingSuffix": "strict",
+      "fuzzy": true
+    },
+    "models": [
+      {
+        "provider": "custom",
+        "id": "model:high",
+        "name": "literal"
+      },
+      {
+        "provider": "custom",
+        "id": "model",
+        "name": "base"
+      }
+    ],
+    "usable": [
+      "custom"
+    ]
+  },
+  {
+    "id": "suffix",
+    "kind": "model",
+    "request": {
+      "text": "openai/model:high",
+      "thinkingSuffix": "strict",
+      "fuzzy": true
+    },
+    "models": [
+      {
+        "provider": "openai",
+        "id": "model",
+        "name": "base"
+      }
+    ],
+    "usable": []
+  },
+  {
+    "id": "named-vs-raw",
+    "kind": "model",
+    "request": {
+      "text": "custom/model",
+      "thinkingSuffix": "none",
+      "fuzzy": true
+    },
+    "models": [
+      {
+        "provider": "custom",
+        "id": "model",
+        "name": "base"
+      },
+      {
+        "provider": "gateway",
+        "id": "custom/model",
+        "name": "raw"
+      }
+    ],
+    "usable": [
+      "gateway"
+    ]
+  },
+  {
+    "id": "ambiguous-exact",
+    "kind": "model",
+    "request": {
+      "text": "model",
+      "thinkingSuffix": "none",
+      "fuzzy": false
+    },
+    "models": [
+      {
+        "provider": "custom",
+        "id": "model",
+        "name": "base"
+      },
+      {
+        "provider": "openai",
+        "id": "model",
+        "name": "base"
+      }
+    ],
+    "usable": [
+      "custom",
+      "openai"
+    ]
+  },
+  {
+    "id": "alias-before-date",
+    "kind": "model",
+    "request": {
+      "text": "sonnet",
+      "thinkingSuffix": "strict",
+      "fuzzy": true
+    },
+    "models": [
+      {
+        "provider": "anthropic",
+        "id": "sonnet-20260101",
+        "name": "dated"
+      },
+      {
+        "provider": "anthropic",
+        "id": "sonnet",
+        "name": "alias"
+      }
+    ],
+    "usable": []
+  },
+  {
+    "id": "fuzzy-latest",
+    "kind": "model",
+    "request": {
+      "text": "shared",
+      "thinkingSuffix": "strict",
+      "fuzzy": true
+    },
+    "models": [
+      {
+        "provider": "custom",
+        "id": "shared-one",
+        "name": "a"
+      },
+      {
+        "provider": "custom",
+        "id": "shared-two",
+        "name": "b"
+      }
+    ],
+    "usable": []
+  },
+  {
+    "id": "invalid-lenient",
+    "kind": "model",
+    "request": {
+      "text": "model:nope",
+      "thinkingSuffix": "lenient",
+      "fuzzy": true
+    },
+    "models": [
+      {
+        "provider": "openai",
+        "id": "model",
+        "name": "base"
+      }
+    ],
+    "usable": []
+  },
+  {
+    "id": "not-found-target",
+    "kind": "model",
+    "request": {
+      "text": "OPENAI/unknown:high",
+      "thinkingSuffix": "strict",
+      "fuzzy": false
+    },
+    "models": [
+      {
+        "provider": "openai",
+        "id": "model",
+        "name": "base"
+      }
+    ],
+    "usable": []
+  },
+  {
+    "id": "edit-fuzzy-touched-line",
+    "kind": "edit",
+    "content": "wide　line  \nkeep  \n",
+    "edits": [
+      {
+        "oldText": "wide line",
+        "newText": "changed"
+      }
+    ]
+  },
+  {
+    "id": "edit-disjoint",
+    "kind": "edit",
+    "content": "alpha\nbeta\ngamma\ndelta\n",
+    "edits": [
+      {
+        "oldText": "alpha",
+        "newText": "first"
+      },
+      {
+        "oldText": "delta",
+        "newText": "last"
+      }
+    ]
+  },
+  {
+    "id": "edit-overlap",
+    "kind": "edit",
+    "content": "abcdef\n",
+    "edits": [
+      {
+        "oldText": "abc",
+        "newText": "a"
+      },
+      {
+        "oldText": "bcde",
+        "newText": "b"
+      }
+    ]
+  },
+  {
+    "id": "edit-duplicate",
+    "kind": "edit",
+    "content": "same\nsame\n",
+    "edits": [
+      {
+        "oldText": "same",
+        "newText": "new"
+      }
+    ]
+  },
+  {
+    "id": "edit-newline",
+    "kind": "edit",
+    "content": "a\nb\n",
+    "edits": [
+      {
+        "oldText": "a\r\nb",
+        "newText": "c\r\nd"
+      }
+    ]
+  },
+  {
+    "id": "edit-empty-old",
+    "kind": "edit",
+    "content": "abc\n",
+    "edits": [
+      {
+        "oldText": "",
+        "newText": "x"
+      }
+    ]
+  },
+  {
+    "id": "edit-no-change",
+    "kind": "edit",
+    "content": "abc\n",
+    "edits": [
+      {
+        "oldText": "abc",
+        "newText": "abc"
+      }
+    ]
+  },
+  {
+    "id": "edit-unicode-line",
+    "kind": "edit",
+    "content": "outside  \n“old” fullwidth　  \nuntouched　 \n",
+    "edits": [
+      {
+        "oldText": "\"old\"",
+        "newText": "\"new\""
+      }
+    ]
+  },
+  {
+    "id": "edit-far-hunks",
+    "kind": "edit",
+    "content": "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n",
+    "edits": [
+      {
+        "oldText": "\n2\n",
+        "newText": "\ntwo\n"
+      },
+      {
+        "oldText": "\n23\n",
+        "newText": "\ntwentythree\n"
+      }
+    ]
+  },
+  {
+    "id": "edit-no-final-newline",
+    "kind": "edit",
+    "content": "alpha\nbeta",
+    "edits": [
+      {
+        "oldText": "beta",
+        "newText": "gamma\n"
+      }
+    ]
+  },
+  {
+    "id": "default-fallback-order",
+    "kind": "default-model",
+    "models": [
+      {
+        "provider": "custom-provider",
+        "id": "z-first",
+        "name": "first"
+      },
+      {
+        "provider": "anthropic",
+        "id": "a-later",
+        "name": "later"
+      }
+    ]
+  },
+  {
+    "id": "default-preferred-order",
+    "kind": "default-model",
+    "models": [
+      {
+        "provider": "openai",
+        "id": "gpt-5.5",
+        "name": "openai"
+      },
+      {
+        "provider": "anthropic",
+        "id": "claude-opus-4-8",
+        "name": "anthropic"
+      }
+    ]
+  },
+  {
+    "id": "default-none",
+    "kind": "default-model",
+    "models": []
+  }
+]
