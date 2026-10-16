@@ -18,6 +18,7 @@ production_crates = [
   "pi-sqlite",
   "pi-coding-session",
   "pi-codemode",
+  "pi-mcp",
 ]
 
 [test_only_package]

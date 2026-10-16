@@ -1,7 +1,7 @@
 Pirua — third-party attribution
 
 The root MIT LICENSE consolidates the copyright and permission notices for
-Pirua contributors, Mario Zechner, and models.dev. The sections below identify
+Pirua contributors, Mario Zechner, models.dev, and Anthropic, PBC. The sections below identify
 the material to which those notices apply. Other third-party material retains
 its applicable licenses and notices.
 
@@ -46,6 +46,15 @@ The models.dev MIT notice above applies to that source. Attribution and dated
 capture provenance for the other feeds do not establish their license terms or
 make all captured feed material subject to Pirua's MIT license. Consult the
 respective providers' terms for uses of their data.
+
+Model Context Protocol TypeScript SDK
+------------------------------------
+The MCP OAuth implementation follows Pi's implementation and its source-derived
+helpers from the Model Context Protocol TypeScript SDK v1.29.0.
+Copyright (c) 2024 Anthropic, PBC
+License: MIT; the copyright line and complete permission notice are retained in
+the root LICENSE.
+Primary source: https://github.com/modelcontextprotocol/typescript-sdk
 
 Dependencies
 ------------
