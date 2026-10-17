@@ -1,0 +1,1473 @@
+[
+  {
+    "id": "tokens-unicode",
+    "kind": "tokens",
+    "message": {
+      "role": "user",
+      "content": "你好🦀abc",
+      "timestamp": 1
+    }
+  },
+  {
+    "id": "tokens-image",
+    "kind": "tokens",
+    "message": {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "hi"
+        },
+        {
+          "type": "image",
+          "data": "ignored",
+          "mimeType": "image/png"
+        }
+      ],
+      "timestamp": 1
+    }
+  },
+  {
+    "id": "tokens-thinking",
+    "kind": "tokens",
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "abcdefgh"
+        },
+        {
+          "type": "toolCall",
+          "name": "read",
+          "arguments": {
+            "path": "a"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "tokens-system",
+    "kind": "tokens",
+    "message": {
+      "role": "system",
+      "content": "base",
+      "sections": {
+        "a": "abc",
+        "b": null
+      },
+      "toolsAdded": [],
+      "timestamp": 1
+    }
+  },
+  {
+    "id": "tokens-bash",
+    "kind": "tokens",
+    "message": {
+      "role": "bashExecution",
+      "command": "pwd",
+      "output": "12345",
+      "timestamp": 1
+    }
+  },
+  {
+    "id": "convert-coding",
+    "kind": "convert",
+    "messages": [
+      {
+        "role": "bashExecution",
+        "command": "false",
+        "output": "",
+        "exitCode": 1,
+        "cancelled": false,
+        "truncated": false,
+        "timestamp": 1
+      },
+      {
+        "role": "bashExecution",
+        "command": "hidden",
+        "output": "secret",
+        "excludeFromContext": true,
+        "timestamp": 2
+      },
+      {
+        "role": "custom",
+        "customType": "note",
+        "content": "context",
+        "display": false,
+        "timestamp": 3
+      },
+      {
+        "role": "branchSummary",
+        "summary": "branch",
+        "fromId": "a",
+        "timestamp": 4
+      },
+      {
+        "role": "compactionSummary",
+        "summary": "compact",
+        "tokensBefore": 20,
+        "timestamp": 5
+      }
+    ]
+  },
+  {
+    "id": "delay-0",
+    "kind": "cache-delay",
+    "ttl": 0
+  },
+  {
+    "id": "delay-10000",
+    "kind": "cache-delay",
+    "ttl": 10000
+  },
+  {
+    "id": "delay-10001",
+    "kind": "cache-delay",
+    "ttl": 10001
+  },
+  {
+    "id": "delay-300000",
+    "kind": "cache-delay",
+    "ttl": 300000
+  },
+  {
+    "id": "delay-3600000",
+    "kind": "cache-delay",
+    "ttl": 3600000
+  },
+  {
+    "id": "ttl-none",
+    "kind": "cache-ttl",
+    "model": {
+      "promptCache": {
+        "short": 300,
+        "long": 3600
+      }
+    },
+    "options": {
+      "cacheRetention": "none"
+    }
+  },
+  {
+    "id": "ttl-short",
+    "kind": "cache-ttl",
+    "model": {
+      "promptCache": {
+        "short": 300,
+        "long": 3600
+      }
+    },
+    "options": {
+      "cacheRetention": "short"
+    }
+  },
+  {
+    "id": "ttl-long",
+    "kind": "cache-ttl",
+    "model": {
+      "promptCache": {
+        "short": 300,
+        "long": 3600
+      }
+    },
+    "options": {
+      "cacheRetention": "long"
+    }
+  },
+  {
+    "id": "replay-anthropic-False",
+    "kind": "replayable",
+    "model": {
+      "api": "anthropic-messages",
+      "compat": {
+        "forceAdaptiveThinking": false
+      }
+    },
+    "options": {
+      "reasoning": "high"
+    }
+  },
+  {
+    "id": "replay-anthropic-True",
+    "kind": "replayable",
+    "model": {
+      "api": "anthropic-messages",
+      "compat": {
+        "forceAdaptiveThinking": true
+      }
+    },
+    "options": {
+      "reasoning": "high"
+    }
+  },
+  {
+    "id": "estimate-usage-tail",
+    "kind": "estimate",
+    "messages": [
+      {
+        "role": "user",
+        "content": "first",
+        "timestamp": 1
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "answer"
+          }
+        ],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "fixture",
+        "usage": {
+          "input": 100,
+          "output": 20,
+          "cacheRead": 30,
+          "cacheWrite": 40,
+          "totalTokens": 190,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 3
+      },
+      {
+        "role": "user",
+        "content": "123456789",
+        "timestamp": 4
+      }
+    ]
+  },
+  {
+    "id": "prepare-1",
+    "kind": "prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      }
+    ],
+    "settings": {
+      "enabled": true,
+      "reserveTokens": 16384,
+      "keepRecentTokens": 1
+    }
+  },
+  {
+    "id": "prepare-5",
+    "kind": "prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      }
+    ],
+    "settings": {
+      "enabled": true,
+      "reserveTokens": 16384,
+      "keepRecentTokens": 5
+    }
+  },
+  {
+    "id": "prepare-10000",
+    "kind": "prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      }
+    ],
+    "settings": {
+      "enabled": true,
+      "reserveTokens": 16384,
+      "keepRecentTokens": 10000
+    }
+  },
+  {
+    "id": "prepare-edited",
+    "kind": "prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      },
+      {
+        "id": "edit",
+        "parentId": "e3",
+        "timestamp": 6,
+        "type": "context_edit",
+        "targetId": "e1",
+        "replacement": {
+          "content": [
+            {
+              "type": "text",
+              "text": "redacted"
+            }
+          ]
+        }
+      }
+    ],
+    "settings": {
+      "enabled": true,
+      "reserveTokens": 10,
+      "keepRecentTokens": 5
+    }
+  },
+  {
+    "id": "serialize-tools",
+    "kind": "serialize",
+    "messages": [
+      {
+        "role": "user",
+        "content": "question",
+        "timestamp": 1
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "must omit"
+          },
+          {
+            "type": "text",
+            "text": "visible"
+          },
+          {
+            "type": "toolCall",
+            "name": "read",
+            "arguments": {
+              "path": "x"
+            }
+          }
+        ],
+        "api": "openai-responses",
+        "provider": "openai",
+        "model": "fixture",
+        "usage": {
+          "input": 100,
+          "output": 20,
+          "cacheRead": 30,
+          "cacheWrite": 40,
+          "totalTokens": 190,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "stopReason": "stop",
+        "timestamp": 3
+      },
+      {
+        "role": "toolResult",
+        "content": [
+          {
+            "type": "text",
+            "text": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "failure-length",
+    "kind": "failure",
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "answer"
+        }
+      ],
+      "api": "openai-responses",
+      "provider": "openai",
+      "model": "fixture",
+      "usage": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 30,
+        "cacheWrite": 40,
+        "totalTokens": 190,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "length",
+      "timestamp": 3,
+      "errorMessage": "overloaded"
+    },
+    "label": "Summarization"
+  },
+  {
+    "id": "failure-error",
+    "kind": "failure",
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "answer"
+        }
+      ],
+      "api": "openai-responses",
+      "provider": "openai",
+      "model": "fixture",
+      "usage": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 30,
+        "cacheWrite": 40,
+        "totalTokens": 190,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "error",
+      "timestamp": 3,
+      "errorMessage": "overloaded"
+    },
+    "label": "Summarization"
+  },
+  {
+    "id": "failure-aborted",
+    "kind": "failure",
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "answer"
+        }
+      ],
+      "api": "openai-responses",
+      "provider": "openai",
+      "model": "fixture",
+      "usage": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 30,
+        "cacheWrite": 40,
+        "totalTokens": 190,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "aborted",
+      "timestamp": 3,
+      "errorMessage": "overloaded"
+    },
+    "label": "Summarization"
+  },
+  {
+    "id": "failure-stop",
+    "kind": "failure",
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "answer"
+        }
+      ],
+      "api": "openai-responses",
+      "provider": "openai",
+      "model": "fixture",
+      "usage": {
+        "input": 100,
+        "output": 20,
+        "cacheRead": 30,
+        "cacheWrite": 40,
+        "totalTokens": 190,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "stop",
+      "timestamp": 3,
+      "errorMessage": "overloaded"
+    },
+    "label": "Summarization"
+  },
+  {
+    "id": "branch-budget-0",
+    "kind": "branch-prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      }
+    ],
+    "tokenBudget": 0
+  },
+  {
+    "id": "branch-budget-5",
+    "kind": "branch-prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      }
+    ],
+    "tokenBudget": 5
+  },
+  {
+    "id": "branch-budget-30",
+    "kind": "branch-prepare",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 3,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        }
+      },
+      {
+        "id": "e3",
+        "parentId": "e2",
+        "timestamp": 4,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      }
+    ],
+    "tokenBudget": 30
+  },
+  {
+    "id": "branch-summary-priority",
+    "kind": "branch-prepare",
+    "entries": [
+      {
+        "id": "summary",
+        "parentId": null,
+        "timestamp": 1,
+        "type": "branch_summary",
+        "fromId": "old",
+        "summary": "long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long ",
+        "details": {
+          "readFiles": [
+            "a"
+          ],
+          "modifiedFiles": [
+            "b"
+          ]
+        }
+      },
+      {
+        "id": "new",
+        "parentId": "summary",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "user",
+          "content": "new",
+          "timestamp": 2
+        }
+      }
+    ],
+    "tokenBudget": 20
+  },
+  {
+    "id": "virtual-selection-held",
+    "kind": "branch-selection",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 0,
+        "type": "model_change",
+        "provider": "openai",
+        "modelId": "router"
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "physical",
+          "content": [],
+          "stopReason": "stop",
+          "timestamp": 1
+        }
+      }
+    ],
+    "virtualRegistered": true
+  },
+  {
+    "id": "virtual-selection-removed",
+    "kind": "branch-selection",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 0,
+        "type": "model_change",
+        "provider": "openai",
+        "modelId": "router"
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "physical",
+          "content": [],
+          "stopReason": "stop",
+          "timestamp": 1
+        }
+      }
+    ],
+    "virtualRegistered": false
+  },
+  {
+    "id": "virtual-failed-record-skipped",
+    "kind": "branch-selection",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 0,
+        "type": "model_change",
+        "provider": "openai",
+        "modelId": "router"
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "physical",
+          "content": [],
+          "stopReason": "stop",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 2,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "api": "pi-virtual",
+          "provider": "openai",
+          "model": "router",
+          "content": [],
+          "stopReason": "error",
+          "timestamp": 2
+        }
+      }
+    ],
+    "virtualRegistered": false
+  },
+  {
+    "id": "virtual-last-change-wins",
+    "kind": "branch-selection",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 0,
+        "type": "model_change",
+        "provider": "openai",
+        "modelId": "router"
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 1,
+        "type": "message",
+        "message": {
+          "role": "assistant",
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "physical",
+          "content": [],
+          "stopReason": "stop",
+          "timestamp": 1
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 2,
+        "type": "model_change",
+        "provider": "openai",
+        "modelId": "next"
+      }
+    ],
+    "virtualRegistered": true
+  },
+  {
+    "id": "virtual-state-scoped-latest",
+    "kind": "virtual-state",
+    "provider": "openai",
+    "modelId": "router",
+    "entries": [
+      {
+        "id": "e0",
+        "parentId": null,
+        "timestamp": 0,
+        "type": "custom",
+        "customType": "pi.virtual-model-state",
+        "data": {
+          "provider": "openai",
+          "modelId": "router",
+          "state": {
+            "count": 1
+          }
+        }
+      },
+      {
+        "id": "e1",
+        "parentId": "e0",
+        "timestamp": 1,
+        "type": "custom",
+        "customType": "pi.virtual-model-state",
+        "data": {
+          "provider": "openai",
+          "modelId": "other",
+          "state": {
+            "count": 9
+          }
+        }
+      },
+      {
+        "id": "e2",
+        "parentId": "e1",
+        "timestamp": 2,
+        "type": "custom",
+        "customType": "pi.virtual-model-state",
+        "data": {
+          "provider": "openai",
+          "modelId": "router",
+          "state": {
+            "count": 2
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "bash-split-csi",
+    "kind": "bash-sanitize",
+    "chunks": [
+      [
+        97,
+        27,
+        91,
+        51
+      ],
+      [
+        49,
+        109,
+        98,
+        27,
+        91,
+        48,
+        109,
+        13,
+        10
+      ]
+    ],
+    "exitCode": 7
+  },
+  {
+    "id": "bash-split-osc",
+    "kind": "bash-sanitize",
+    "chunks": [
+      [
+        27,
+        93,
+        48,
+        59,
+        116,
+        105,
+        116,
+        108,
+        101
+      ],
+      [
+        27,
+        92,
+        118,
+        105,
+        115,
+        105,
+        98,
+        108,
+        101,
+        0,
+        7,
+        9,
+        33
+      ]
+    ],
+    "exitCode": 7
+  },
+  {
+    "id": "bash-split-utf8",
+    "kind": "bash-sanitize",
+    "chunks": [
+      [
+        240,
+        159
+      ],
+      [
+        166,
+        128,
+        255,
+        226,
+        130
+      ]
+    ],
+    "exitCode": 7
+  },
+  {
+    "id": "bash-incomplete-ansi",
+    "kind": "bash-sanitize",
+    "chunks": [
+      [
+        107,
+        101,
+        101,
+        112,
+        27,
+        91,
+        51,
+        49
+      ]
+    ],
+    "exitCode": 7
+  }
+]

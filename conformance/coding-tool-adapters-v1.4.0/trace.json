@@ -1,0 +1,274 @@
+{
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "sources": {
+    "packages/coding-agent/src/core/tools/truncate.ts": "8e4507c3ed7ca7548cf7c2d7f77d07f2ae63a38b756789cbb44e9062db6c8762",
+    "packages/mcp/src/protocol/content.ts": "d4d06f1c3a788a262a073297a8cf503dc673523d2e6f34f29a590d4074794540",
+    "packages/coding-agent/src/extensions/mcp/tools.ts": "cd3245946deb3cb3df2e7b521a07837525f886d281c5e4600527eb2aed95e2ac",
+    "packages/codemode/src/source.ts": "3938c223954116cd067de277bcf4ef0ff77b6f61986e2e746db82017b4b7bd36",
+    "packages/coding-agent/src/extensions/codemode/execute.ts": "2f7cdf2ec0497b5bbcd05e8db6476c792ae6a8c05e019a5dad94e3417449a556",
+    "packages/coding-agent/src/extensions/tool-search/tool.ts": "5f844578e69f5d56c2f1d96f5cf1812e8bc11be1da9f40b43a44888c364f684c"
+  },
+  "observations": {
+    "name-sanitize": "mcp__my_server__a_b",
+    "name-collision": "mcp__s__a_b_ed3867d6",
+    "name-long": "mcp__server_with_an_extremely_long_identifier_that_will_4cc865eb",
+    "result-schema": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": [
+                  "text",
+                  "image",
+                  "audio",
+                  "resource_link",
+                  "resource"
+                ]
+              },
+              "text": {
+                "type": "string"
+              },
+              "data": {
+                "type": "string"
+              },
+              "mimeType": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "structuredContent": {
+          "$ref": "#/properties/structuredContent/$defs/Item",
+          "$defs": {
+            "Item": {
+              "type": "object",
+              "properties": {
+                "$ref": {
+                  "const": {
+                    "$ref": "#"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#"
+          },
+          "properties": {
+            "$ref": {
+              "$ref": "#/properties/structuredContent"
+            }
+          }
+        },
+        "isError": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": true
+    },
+    "result-text-image": {
+      "content": [
+        {
+          "type": "text",
+          "text": "hello"
+        },
+        {
+          "type": "image",
+          "data": "aGk=",
+          "mimeType": "image/png"
+        }
+      ],
+      "details": {
+        "server": "server",
+        "tool": "tool"
+      },
+      "structuredContent": {
+        "content": [
+          {
+            "type": "text",
+            "text": "hello",
+            "_meta": {
+              "block": "keep"
+            }
+          },
+          {
+            "type": "image",
+            "data": "aGk=",
+            "mimeType": "image/png"
+          }
+        ],
+        "structuredContent": {
+          "answer": 42
+        }
+      }
+    },
+    "result-resources": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[Resource resource://x \"Title\" (text/plain, 2.0KB). Read it with read_mcp_resource (server \"server\")]"
+        },
+        {
+          "type": "text",
+          "text": "{\"a\":1}"
+        },
+        {
+          "type": "text",
+          "text": "[Binary resource resource://x.bin (application/octet-stream, 3B) saved to /fixture/output]"
+        },
+        {
+          "type": "text",
+          "text": "[audio audio/wav omitted]"
+        }
+      ],
+      "details": {
+        "server": "server",
+        "tool": "tool"
+      },
+      "structuredContent": {
+        "content": [
+          {
+            "type": "resource_link",
+            "uri": "resource://x",
+            "name": "x",
+            "title": "Title",
+            "mimeType": "text/plain",
+            "size": 2048
+          },
+          {
+            "type": "resource",
+            "resource": {
+              "uri": "resource://text",
+              "mimeType": "application/json",
+              "blob": "eyJhIjoxfQ=="
+            }
+          },
+          {
+            "type": "resource",
+            "resource": {
+              "uri": "resource://x.bin",
+              "mimeType": "application/octet-stream",
+              "blob": "AAEC"
+            }
+          },
+          {
+            "type": "audio",
+            "data": "AA==",
+            "mimeType": "audio/wav"
+          }
+        ],
+        "isError": true,
+        "future": 42
+      },
+      "isError": true
+    },
+    "result-null": {
+      "content": [
+        {
+          "type": "text",
+          "text": "null"
+        }
+      ],
+      "details": {
+        "server": "server",
+        "tool": "tool"
+      },
+      "structuredContent": {
+        "content": [],
+        "structuredContent": null
+      }
+    },
+    "result-image-error": {
+      "content": [
+        {
+          "type": "image",
+          "data": "aGk=",
+          "mimeType": "image/png"
+        },
+        {
+          "type": "text",
+          "text": "MCP tool server/tool returned an error"
+        }
+      ],
+      "details": {
+        "server": "server",
+        "tool": "tool"
+      },
+      "structuredContent": {
+        "content": [
+          {
+            "type": "image",
+            "data": "aGk=",
+            "mimeType": "image/png"
+          }
+        ],
+        "isError": true
+      },
+      "isError": true
+    },
+    "source-options": {
+      "code": "\nreturn 1",
+      "options": {
+        "maxOutputTokens": 0,
+        "timeoutMs": 25
+      }
+    },
+    "source-plain": {
+      "code": "text(1); return 2",
+      "options": {}
+    },
+    "source-misplaced": {
+      "error": true
+    },
+    "source-empty": {
+      "error": true
+    },
+    "source-bad-timeout": {
+      "error": true
+    },
+    "format-text-console": [
+      {
+        "type": "text",
+        "text": "==> text 1/2 <==\na"
+      },
+      {
+        "type": "text",
+        "text": "==> text 2/2 <==\nb"
+      },
+      {
+        "type": "text",
+        "text": "<console_output>\nlog\n</console_output>"
+      }
+    ],
+    "value-text": {
+      "value": "a\nb"
+    },
+    "value-structured-error": {
+      "value": {
+        "isError": true,
+        "answer": 42
+      }
+    },
+    "value-structured-null": {
+      "value": null
+    },
+    "value-error": {
+      "error": "failure"
+    },
+    "search-bm25": [
+      "searchIssues",
+      "create_issue"
+    ]
+  }
+}

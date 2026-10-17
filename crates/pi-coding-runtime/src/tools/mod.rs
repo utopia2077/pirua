@@ -6,7 +6,7 @@
 
 mod edits;
 mod image;
-mod output;
+pub(crate) mod output;
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;

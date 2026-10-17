@@ -21,6 +21,13 @@ oauth-openai-chatgpt = ["pi-ai/oauth-openai-chatgpt"]
 
 [dependencies]
 pi-agent-schema.workspace = true
+pi-agent.workspace = true
+pi-coding-session.workspace = true
+pi-extension-protocol.workspace = true
+pi-mcp.workspace = true
+pi-codemode.workspace = true
+ring.workspace = true
+futures-util.workspace = true
 pi-ai.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -32,9 +39,6 @@ unicode-normalization = "=0.1.25"
 yaml_serde = "=0.10.7"
 image = { version = "=0.25.9", default-features = false, features = ["bmp", "png", "jpeg", "gif", "webp"] }
 similar = { version = "=3.2.0", default-features = false, features = ["text"] }
-
-# The candidate exposes the completed common modules; Agent/Coding assembly tests
-# are registered by the integration owner when those modules replace Harness.
 
 [[test]]
 name = "tools"
@@ -62,3 +66,31 @@ path = "tests/local_boundaries.rs"
 
 [dependencies.ignore]
 version = "=0.4.33"
+
+[[test]]
+name = "session_runtime"
+path = "tests/session_runtime.rs"
+
+[[test]]
+name = "session_source"
+path = "tests/session_source.rs"
+
+[dev-dependencies]
+prost.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+
+[[test]]
+name = "mcp_adapter"
+path = "tests/mcp_adapter.rs"
+
+[[test]]
+name = "codemode_adapter"
+path = "tests/codemode_adapter.rs"
+
+[[test]]
+name = "extensions"
+path = "tests/extensions.rs"
+
+[[test]]
+name = "bash_execution"
+path = "tests/bash_execution.rs"

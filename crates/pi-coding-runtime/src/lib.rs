@@ -70,3 +70,33 @@ mod model_default_tests;
 #[cfg(test)]
 #[path = "../tests/local_boundaries.rs"]
 mod local_boundary_tests;
+
+pub mod builder;
+pub mod cache_warmer;
+pub mod compaction;
+pub mod context_usage;
+pub mod hooks;
+pub mod messages;
+pub mod model_runtime;
+mod session;
+mod session_lifecycle;
+pub use builder::CodingSessionBuilder;
+pub use cache_warmer::*;
+pub use compaction::*;
+pub use context_usage::*;
+pub use hooks::*;
+pub use model_runtime::*;
+pub use session::{
+    CodingSession, NavigateOptions, NavigationResult, PromptOptions, RegisteredTool, ScopedModel,
+    SessionBranchCursor, SessionError, SessionStats, ToolExposure, ToolInfo, WeakCodingSession,
+};
+
+pub use messages::convert_to_llm;
+
+pub mod codemode;
+pub mod mcp;
+
+pub mod extensions;
+
+pub mod bash_execution;
+pub use bash_execution::{BashChunkSink, BashResult, ExecuteBashOptions};

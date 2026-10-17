@@ -7,5 +7,6 @@ pub mod jcs;
 pub mod tool_live;
 pub mod wire;
 
+pub mod host;
 pub mod profile_live;
 pub mod profiles;

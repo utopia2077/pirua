@@ -1,0 +1,527 @@
+{
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "sources": {
+    "packages/coding-agent/src/core/messages.ts": "5397e3c96c9504266e4ee8b6e88d5098b3280ee7dbb0c687b74708c62a06c8d4",
+    "packages/coding-agent/src/core/session-manager.ts": "450d82c529933214e088b8422f00061815e617f352f6c834689787a314064bff",
+    "packages/coding-agent/src/core/compaction/utils.ts": "37eab7698cdbff8b5987d4529005ea16d7e1ae4a5344d7d0443c3466444aa90e",
+    "packages/coding-agent/src/core/compaction/compaction.ts": "32714966eb644da31cd84e8eb172965256160626b3d26ae9752c3894300f2b0b",
+    "packages/coding-agent/src/core/compaction/branch-summarization.ts": "cdffdcb3ca37f5121383d0f5ba98295eb07ce0e2085c8d57d8cb2fb5dc5e9243",
+    "packages/coding-agent/src/core/cache-warmer.ts": "596080fbe60702a44bcd8a31aeca45a5048d24c53fb0f0b40dd8781f776a8842",
+    "packages/coding-agent/src/core/virtual-models.ts": "dd836e0623b57bba55fa99b73738427e089a80599a45acc86d7b28219fa26519",
+    "packages/coding-agent/src/utils/ansi.ts": "47b4f605f05b42edc63fb9dcc6f2eccc810ba14306fb76bde715f027d3dae111",
+    "packages/coding-agent/src/utils/shell.ts": "0e60c54bf43e8249da2a4d821ccbd5eef32a9783a45d1b10f23a3cc57e8f4257",
+    "packages/coding-agent/src/core/tools/truncate.ts": "8e4507c3ed7ca7548cf7c2d7f77d07f2ae63a38b756789cbb44e9062db6c8762",
+    "packages/coding-agent/src/core/bash-executor.ts": "6fae3801533d64ccc018c43682bbff868619dd7cdab8f67730c731a5785d2984"
+  },
+  "observations": {
+    "tokens-unicode": 2,
+    "tokens-image": 1201,
+    "tokens-thinking": 6,
+    "tokens-system": 3,
+    "tokens-bash": 2,
+    "convert-coding": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Ran `false`\n(no output)\n\nCommand exited with code 1"
+          }
+        ],
+        "timestamp": 1
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "context"
+          }
+        ],
+        "timestamp": 3
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "The following is a summary of a branch that this conversation came back from:\n\n<summary>\nbranch</summary>"
+          }
+        ],
+        "timestamp": 4
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "The conversation history before this point was compacted into the following summary:\n\n<summary>\ncompact\n</summary>"
+          }
+        ],
+        "timestamp": 5
+      }
+    ],
+    "delay-0": null,
+    "delay-10000": null,
+    "delay-10001": 1,
+    "delay-300000": 270000,
+    "delay-3600000": 3240000,
+    "ttl-none": null,
+    "ttl-short": 300000,
+    "ttl-long": 3600000,
+    "replay-anthropic-False": false,
+    "replay-anthropic-True": true,
+    "estimate-usage-tail": {
+      "tokens": 193,
+      "usageTokens": 190,
+      "trailingTokens": 3,
+      "lastUsageIndex": 1
+    },
+    "prepare-1": {
+      "estimate": {
+        "tokens": 190,
+        "usageTokens": 190,
+        "trailingTokens": 0,
+        "lastUsageIndex": 3
+      },
+      "preparation": {
+        "firstKeptEntryId": "e3",
+        "messagesToSummarize": [
+          {
+            "role": "user",
+            "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "timestamp": 1
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "text",
+                "text": "answer"
+              }
+            ],
+            "api": "openai-responses",
+            "provider": "openai",
+            "model": "fixture",
+            "usage": {
+              "input": 100,
+              "output": 20,
+              "cacheRead": 30,
+              "cacheWrite": 40,
+              "totalTokens": 190,
+              "cost": {
+                "input": 0,
+                "output": 0,
+                "cacheRead": 0,
+                "cacheWrite": 0,
+                "total": 0
+              }
+            },
+            "stopReason": "stop",
+            "timestamp": 3
+          }
+        ],
+        "turnPrefixMessages": [
+          {
+            "role": "user",
+            "content": "new",
+            "timestamp": 4
+          }
+        ],
+        "isSplitTurn": true,
+        "tokensBefore": 190,
+        "fileOps": {
+          "read": [],
+          "written": [],
+          "edited": []
+        },
+        "settings": {
+          "enabled": true,
+          "reserveTokens": 16384,
+          "keepRecentTokens": 1
+        }
+      }
+    },
+    "prepare-5": {
+      "estimate": {
+        "tokens": 190,
+        "usageTokens": 190,
+        "trailingTokens": 0,
+        "lastUsageIndex": 3
+      },
+      "preparation": {
+        "firstKeptEntryId": "e1",
+        "messagesToSummarize": [],
+        "turnPrefixMessages": [
+          {
+            "role": "user",
+            "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "timestamp": 1
+          }
+        ],
+        "isSplitTurn": true,
+        "tokensBefore": 190,
+        "fileOps": {
+          "read": [],
+          "written": [],
+          "edited": []
+        },
+        "settings": {
+          "enabled": true,
+          "reserveTokens": 16384,
+          "keepRecentTokens": 5
+        }
+      }
+    },
+    "prepare-10000": {
+      "estimate": {
+        "tokens": 190,
+        "usageTokens": 190,
+        "trailingTokens": 0,
+        "lastUsageIndex": 3
+      },
+      "preparation": null
+    },
+    "prepare-edited": {
+      "estimate": {
+        "tokens": 26,
+        "usageTokens": 0,
+        "trailingTokens": 26,
+        "lastUsageIndex": null
+      },
+      "preparation": {
+        "firstKeptEntryId": "e1",
+        "messagesToSummarize": [],
+        "turnPrefixMessages": [
+          {
+            "role": "user",
+            "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "timestamp": 1
+          }
+        ],
+        "isSplitTurn": true,
+        "tokensBefore": 26,
+        "fileOps": {
+          "read": [],
+          "written": [],
+          "edited": []
+        },
+        "settings": {
+          "enabled": true,
+          "reserveTokens": 10,
+          "keepRecentTokens": 5
+        }
+      }
+    },
+    "serialize-tools": "[User]: question\n\n[Assistant]: visible\n\n[Assistant tool calls]: read(path=\"x\")\n\n[Tool result]: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n\n[... 2 more characters truncated]",
+    "failure-length": "Summarization failed: generation hit the token cap and the summary is incomplete",
+    "failure-error": "Summarization failed: overloaded",
+    "failure-aborted": null,
+    "failure-stop": null,
+    "branch-budget-0": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        },
+        {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      ],
+      "totalTokens": 26,
+      "fileOps": {
+        "read": [],
+        "written": [],
+        "edited": []
+      }
+    },
+    "branch-budget-5": {
+      "messages": [
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        },
+        {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      ],
+      "totalTokens": 5,
+      "fileOps": {
+        "read": [],
+        "written": [],
+        "edited": []
+      }
+    },
+    "branch-budget-30": {
+      "messages": [
+        {
+          "role": "user",
+          "content": "old aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "timestamp": 1
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 3
+        },
+        {
+          "role": "user",
+          "content": "new",
+          "timestamp": 4
+        },
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "answer"
+            }
+          ],
+          "api": "openai-responses",
+          "provider": "openai",
+          "model": "fixture",
+          "usage": {
+            "input": 100,
+            "output": 20,
+            "cacheRead": 30,
+            "cacheWrite": 40,
+            "totalTokens": 190,
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0,
+              "total": 0
+            }
+          },
+          "stopReason": "stop",
+          "timestamp": 5
+        }
+      ],
+      "totalTokens": 26,
+      "fileOps": {
+        "read": [],
+        "written": [],
+        "edited": []
+      }
+    },
+    "branch-summary-priority": {
+      "messages": [
+        {
+          "role": "branchSummary",
+          "summary": "long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long ",
+          "fromId": "old",
+          "timestamp": 1
+        },
+        {
+          "role": "user",
+          "content": "new",
+          "timestamp": 2
+        }
+      ],
+      "totalTokens": 126,
+      "fileOps": {
+        "read": [
+          "a"
+        ],
+        "written": [],
+        "edited": [
+          "b"
+        ]
+      }
+    },
+    "virtual-selection-held": {
+      "provider": "openai",
+      "modelId": "router"
+    },
+    "virtual-selection-removed": {
+      "provider": "openai",
+      "modelId": "physical"
+    },
+    "virtual-failed-record-skipped": {
+      "provider": "openai",
+      "modelId": "physical"
+    },
+    "virtual-last-change-wins": {
+      "provider": "openai",
+      "modelId": "next"
+    },
+    "virtual-state-scoped-latest": {
+      "count": 2
+    },
+    "bash-split-csi": {
+      "output": "ab\n",
+      "exitCode": 7,
+      "cancelled": false,
+      "truncated": false,
+      "chunks": [
+        "a",
+        "b\n"
+      ]
+    },
+    "bash-split-osc": {
+      "output": "visible\t!",
+      "exitCode": 7,
+      "cancelled": false,
+      "truncated": false,
+      "chunks": [
+        "visible\t!"
+      ]
+    },
+    "bash-split-utf8": {
+      "output": "🦀��",
+      "exitCode": 7,
+      "cancelled": false,
+      "truncated": false,
+      "chunks": [
+        "🦀�",
+        "�"
+      ]
+    },
+    "bash-incomplete-ansi": {
+      "output": "keep",
+      "exitCode": 7,
+      "cancelled": false,
+      "truncated": false,
+      "chunks": [
+        "keep"
+      ]
+    }
+  }
+}

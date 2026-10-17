@@ -1494,11 +1494,19 @@ name = "pi-coding-runtime"
 version = "0.0.0"
 dependencies = [
  "base64 0.23.1",
+ "futures-util",
  "ignore",
  "image",
+ "pi-agent",
  "pi-agent-schema",
  "pi-ai",
+ "pi-codemode",
+ "pi-coding-session",
+ "pi-extension-protocol",
+ "pi-mcp",
+ "prost",
  "regex",
+ "ring",
  "serde",
  "serde_json",
  "similar",
@@ -1527,6 +1535,7 @@ dependencies = [
  "ryu-js",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

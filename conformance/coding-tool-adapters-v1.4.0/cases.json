@@ -1,0 +1,21 @@
+[
+  {"id":"name-sanitize","kind":"name","server":"my-server","tool":"a.b"},
+  {"id":"name-collision","kind":"name","server":"s","tool":"a-b","taken":true},
+  {"id":"name-long","kind":"name","server":"server_with_an_extremely_long_identifier_that_will_exceed_the_provider_limit","tool":"tool"},
+  {"id":"result-schema","kind":"schema","schema":{"$ref":"#/$defs/Item","$defs":{"Item":{"type":"object","properties":{"$ref":{"const":{"$ref":"#"}}}}},"default":{"$ref":"#"},"properties":{"$ref":{"$ref":"#"}}}},
+  {"id":"result-text-image","kind":"mcp-result","result":{"content":[{"type":"text","text":"hello","_meta":{"block":"keep"}},{"type":"image","data":"aGk=","mimeType":"image/png"}],"structuredContent":{"answer":42},"_meta":{"private":"drop"}}},
+  {"id":"result-resources","kind":"mcp-result","result":{"content":[{"type":"resource_link","uri":"resource://x","name":"x","title":"Title","mimeType":"text/plain","size":2048},{"type":"resource","resource":{"uri":"resource://text","mimeType":"application/json","blob":"eyJhIjoxfQ=="}},{"type":"resource","resource":{"uri":"resource://x.bin","mimeType":"application/octet-stream","blob":"AAEC"}},{"type":"audio","data":"AA==","mimeType":"audio/wav"}],"isError":true,"future":42}},
+  {"id":"result-null","kind":"mcp-result","result":{"content":[],"structuredContent":null}},
+  {"id":"result-image-error","kind":"mcp-result","result":{"content":[{"type":"image","data":"aGk=","mimeType":"image/png"}],"isError":true}},
+  {"id":"source-options","kind":"parse","source":"  // @options: {\"max_output_tokens\":0,\"timeout_ms\":25.0}\r\nreturn 1"},
+  {"id":"source-plain","kind":"parse","source":"text(1); return 2"},
+  {"id":"source-misplaced","kind":"parse","source":"text(1);\n// @options: {}\nreturn 2"},
+  {"id":"source-empty","kind":"parse","source":" "},
+  {"id":"source-bad-timeout","kind":"parse","source":"// @options: {\"timeout_ms\":0}\nreturn 1"},
+  {"id":"format-text-console","kind":"format","output":[{"type":"text","text":"a"},{"type":"text","text":"log","console":true},{"type":"text","text":"b"}]},
+  {"id":"value-text","kind":"script-value","tool":{"name":"sample"},"outcome":{"result":{"content":[{"type":"text","text":"a"},{"type":"text","text":"b"}]},"isError":false}},
+  {"id":"value-structured-error","kind":"script-value","tool":{"name":"sample","outputSchema":{"type":"object"}},"outcome":{"result":{"content":[{"type":"text","text":"failure"}],"structuredContent":{"isError":true,"answer":42}},"isError":true}},
+  {"id":"value-structured-null","kind":"script-value","tool":{"name":"sample","outputSchema":{}},"outcome":{"result":{"content":[],"structuredContent":null},"isError":true}},
+  {"id":"value-error","kind":"script-value","tool":{"name":"sample"},"outcome":{"result":{"content":[{"type":"text","text":"failure"}]},"isError":true}},
+  {"id":"search-bm25","kind":"search","query":"search issues","tools":[{"name":"searchIssues","description":"Find issues in a repository","parameters":{"type":"object","properties":{"query":{"type":"string"}}}},{"name":"create_issue","description":"Create an issue","parameters":{"type":"object","properties":{"title":{"description":"Issue title","type":"string"}}}},{"name":"listRepositories","description":"List projects","parameters":{"type":"object","properties":{}}}]}
+]

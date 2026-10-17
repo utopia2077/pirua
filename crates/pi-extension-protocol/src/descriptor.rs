@@ -22,6 +22,7 @@ pub fn canonical_profile_digest(profile: &str, major: u32, minor: u32) -> Option
         ("host-action.v1", 1) => include_bytes!("../schema/descriptors/host_action-1.1.pb"),
         ("telemetry-sink.v1", 0) => include_bytes!("../schema/descriptors/telemetry_sink-1.0.pb"),
         ("telemetry-sink.v1", 1) => include_bytes!("../schema/descriptors/telemetry_sink-1.1.pb"),
+        ("coding.v1", 1) => include_bytes!("../schema/current/coding-v1.json"),
         _ => return None,
     };
     let mut bytes = Vec::with_capacity(profile.len() + 8 + descriptor.len());

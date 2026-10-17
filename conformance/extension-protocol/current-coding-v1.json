@@ -1,0 +1,65 @@
+{
+  "target_tag": "v1.4.0",
+  "target_commit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "profile": "coding.v1",
+  "core_minor": 1,
+  "profile_minor": 1,
+  "methods": [
+    "input",
+    "before_agent_start",
+    "context",
+    "message_start",
+    "message_end",
+    "before_tool",
+    "after_tool",
+    "turn_end",
+    "agent_before_settle",
+    "before_compact",
+    "before_tree",
+    "before_session_change",
+    "cache_warming_decision",
+    "prepare_loadout",
+    "event",
+    "tool.call",
+    "session.snapshot"
+  ],
+  "projection_count": 35,
+  "authority": "HostAuthority authenticated principal and host-only ApprovedProfile::coding; peer manifests advertise only",
+  "native_owners": {
+    "neutral": "pi-extension-protocol::host",
+    "coding": "pi-coding-runtime::extensions",
+    "transcript": "CodingSession; no second transcript owner"
+  },
+  "source_evidence": [
+    "packages/coding-agent/src/core/extensions/types.ts: InputEventResult, ContextEventResult, MessageEndEventResult, ToolCallEventResult, BoundaryResult",
+    "packages/coding-agent/src/core/agent-session.ts: extension dispatch and session lifecycle",
+    "packages/agent/src/agent-loop.ts:893-906 nullish after-tool patch and structured-content invalidation"
+  ],
+  "selected_observations": {
+    "input_chain": "next handler observes prior text transform",
+    "message_end": "same-role replacement controls tool arguments, persisted transcript and future context",
+    "before_tool": "argument patch follows initial tool validation, without revalidation",
+    "after_tool": "content replacement invalidates stale structuredContent; nullish details/structuredContent fall back",
+    "raw_tool_result": "present null details/structuredContent survives framing and native decoder",
+    "boundary": "invalid later draft rejects the whole batch before any append",
+    "capability": "ungranted and wrong-method refs do not invoke native callback",
+    "lifetime": "close, replacement and disposal retire captured contexts",
+    "cancel": "first terminal retains ownership; cancelled/retired IDs never settle subsequent calls",
+    "instance_custody": "CodingExtensions binds once before callbacks to an actual runtime instance; a second instance is rejected even with the same persisted session ID; default native hooks remain shareable",
+    "public_retirement": "last public attachment drop closes connection and removes owned tools despite in-flight internal state; unresolved hook/tool calls fail and late progress does not publish",
+    "accepted_terminal_retirement": "an actual ordered-frame barrier proves an already accepted terminal survives later public handle retirement"
+  },
+  "fixtures": [
+    "crates/pi-extension-protocol/tests/current_host.rs",
+    "crates/pi-extension-protocol/tests/current_support/mod.rs",
+    "crates/pi-coding-runtime/tests/extensions.rs"
+  ],
+  "intentional_omissions": [
+    "old Harness payload compatibility and effect/lane/task state",
+    "legacy remote provider/catalog profile registration",
+    "resource/passive subscription/resync/telemetry profiles in current Coding",
+    "peer queue/abort/mutation actions beyond explicit read-only session.snapshot",
+    "JS/Jiti and CLI/TUI loading",
+    "provider HTTP authorization and implicit credential access"
+  ]
+}

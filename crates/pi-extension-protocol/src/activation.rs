@@ -1017,6 +1017,7 @@ fn validate_capability(cap: &CapabilityView) -> Result<()> {
     // nonempty names remain open identities and reach support selection.
     let known_v1_kind = match profile.name.as_str() {
         "tool.v1" => Some("tool"),
+        "coding.v1" => Some("coding"),
         "hook.v1" => Some("hook"),
         "provider.v1" => Some("provider"),
         "event-sink.v1" => Some("event-sink"),

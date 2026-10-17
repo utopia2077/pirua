@@ -1,0 +1,2380 @@
+{
+  "descriptor_format": 1,
+  "target": "Pi v1.4.0 Agent/Coding; no Harness payload compatibility",
+  "native_validation": "Mandatory for every request, progress and terminal. JSON content leaves must be deserialized into current native types and validated against captured invocation/session facts.",
+  "types": {
+    "String": {
+      "kind": "primitive",
+      "arm": "string"
+    },
+    "Bool": {
+      "kind": "primitive",
+      "arm": "bool"
+    },
+    "Unsigned": {
+      "kind": "primitive",
+      "arm": "integer",
+      "min": 0,
+      "max": 9007199254740991
+    },
+    "JsonValue": {
+      "kind": "native_json_algebra",
+      "native_validation": "Mandatory current Coding DTO deserialization and context-sensitive validation before application."
+    },
+    "Unit": {
+      "kind": "object",
+      "closed": true,
+      "fields": {}
+    },
+    "NativeMessage": {
+      "kind": "native_open_role_object",
+      "role": {
+        "enum": [
+          "system",
+          "user",
+          "assistant",
+          "toolResult",
+          "custom",
+          "bashExecution",
+          "branchSummary",
+          "compactionSummary"
+        ]
+      },
+      "native_type": "current Coding message admission; role preservation is invocation-sensitive"
+    },
+    "NativeImage": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "image"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "data": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "mimeType": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "NativeText": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "text"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "text": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "textSignature": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "NativeInputContent": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "NativeText"
+          }
+        },
+        {
+          "type": {
+            "ref": "NativeImage"
+          }
+        }
+      ]
+    },
+    "NativeToolResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "content": {
+          "type": {
+            "array": {
+              "ref": "NativeInputContent"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "details": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "structuredContent": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "usage": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "isError": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "terminate": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "NativeHeader": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "id": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cwd": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "timestamp": {
+          "type": {
+            "ref": "Unsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "parentSession": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "NativeSnapshot": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "header": {
+          "type": {
+            "ref": "NativeHeader"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "revision": {
+          "type": {
+            "ref": "Unsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "leafId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "entries": {
+          "type": {
+            "array": {
+              "ref": "JsonValue"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Input": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "text": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "images": {
+          "type": {
+            "array": {
+              "ref": "NativeImage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "source": {
+          "type": {
+            "enum": [
+              "interactive",
+              "extension",
+              "rpc"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "delivery": {
+          "type": {
+            "enum": [
+              "steer",
+              "followUp",
+              "nextTurn"
+            ]
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "InputResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "action": {
+          "type": {
+            "enum": [
+              "continue",
+              "handled",
+              "transform"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "text": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "images": {
+          "type": {
+            "array": {
+              "ref": "NativeImage"
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "BeforeAgentStart": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "message": {
+          "type": {
+            "ref": "NativeMessage"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "systemPrompt": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "activeTools": {
+          "type": {
+            "array": {
+              "ref": "String"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "BeforeAgentStartResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "messages": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "systemPrompt": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "activeTools": {
+          "type": {
+            "array": {
+              "ref": "String"
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "Messages": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "messages": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Message": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "message": {
+          "type": {
+            "ref": "NativeMessage"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "BeforeTool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "toolCallId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "toolName": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "args": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "parentToolCallId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "BeforeToolResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "block": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "reason": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "terminate": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "args": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "AfterTool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "toolCallId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "toolName": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "args": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "result": {
+          "type": {
+            "ref": "NativeToolResult"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "isError": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "parentToolCallId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "AfterToolResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "content": {
+          "type": {
+            "array": {
+              "ref": "NativeInputContent"
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "details": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "structuredContent": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "usage": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "isError": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "terminate": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "ToolRequest": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "toolCallId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "arguments": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "ToolResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "result": {
+          "type": {
+            "ref": "NativeToolResult"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "BoundaryContext": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "kind": {
+          "type": {
+            "enum": [
+              "turn_end",
+              "agent_before_settle"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "turnIndex": {
+          "type": {
+            "ref": "Unsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "message": {
+          "type": {
+            "ref": "NativeMessage"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "toolResults": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "messageEntryId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "toolResultEntryIds": {
+          "type": {
+            "array": {
+              "ref": "String"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "snapshot": {
+          "type": {
+            "ref": "NativeSnapshot"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "contextMessages": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "pendingMessages": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "canContinue": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "CustomDraft": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "custom"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "customType": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "data": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "CustomMessageDraft": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "custom_message"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "customType": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "content": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "display": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "details": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "ContextEditDraft": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "context_edit"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "targetId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "replacement": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "CompactionDraft": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "compaction"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "summary": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "firstKeptEntryId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "details": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "usage": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "BoundaryDraft": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "CustomDraft"
+          }
+        },
+        {
+          "type": {
+            "ref": "CustomMessageDraft"
+          }
+        },
+        {
+          "type": {
+            "ref": "ContextEditDraft"
+          }
+        },
+        {
+          "type": {
+            "ref": "CompactionDraft"
+          }
+        }
+      ]
+    },
+    "BoundaryResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "entries": {
+          "type": {
+            "array": {
+              "ref": "BoundaryDraft"
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "continueRun": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "CompactionPreparation": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "firstKeptEntryId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "messagesToSummarize": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "turnPrefixMessages": {
+          "type": {
+            "array": {
+              "ref": "NativeMessage"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "isSplitTurn": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "tokensBefore": {
+          "type": {
+            "ref": "Unsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "previousSummary": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "fileOps": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "settings": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "CompactionResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "summary": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "firstKeptEntryId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "tokensBefore": {
+          "type": {
+            "ref": "Unsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "details": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "usage": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "BeforeCompact": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "preparation": {
+          "type": {
+            "ref": "CompactionPreparation"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "reason": {
+          "type": {
+            "enum": [
+              "manual",
+              "threshold",
+              "overflow"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "BeforeCompactResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "cancel": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "compaction": {
+          "type": {
+            "ref": "CompactionResult"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "TreePreparation": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "targetId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "oldLeafId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "commonAncestorId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "entriesToSummarize": {
+          "type": {
+            "array": {
+              "ref": "JsonValue"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "summarize": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "customInstructions": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "replaceInstructions": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "label": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "SummaryResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "summary": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "details": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "usage": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "BeforeTreeResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "cancel": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "summary": {
+          "type": {
+            "ref": "SummaryResult"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "customInstructions": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "replaceInstructions": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "label": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "SessionChange": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "reason": {
+          "type": {
+            "enum": [
+              "new",
+              "switch",
+              "fork"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "snapshot": {
+          "type": {
+            "ref": "NativeSnapshot"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "FiniteNumber": {
+      "kind": "primitive",
+      "arm": "finite_number"
+    },
+    "CacheAction": {
+      "kind": "enum",
+      "values": [
+        "warm",
+        "stop"
+      ]
+    },
+    "CacheDecision": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "phase": {
+          "type": {
+            "enum": [
+              "streaming",
+              "idle"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "warmCost": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "missCost": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "continuationProbability": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "expectedSavings": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "economicsAvailable": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "action": {
+          "type": {
+            "ref": "CacheAction"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Loadout": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "declared": {
+          "type": {
+            "array": {
+              "ref": "JsonValue"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "callable": {
+          "type": {
+            "array": {
+              "ref": "JsonValue"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "registered": {
+          "type": {
+            "array": {
+              "ref": "JsonValue"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "LoadoutChanges": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "descriptions": {
+          "type": {
+            "map": {
+              "key": {
+                "ref": "String"
+              },
+              "value": {
+                "ref": "String"
+              }
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "hiddenDeclarations": {
+          "type": {
+            "array": {
+              "ref": "String"
+            }
+          },
+          "presence": "optional",
+          "nullable": true
+        }
+      }
+    },
+    "SessionEvent": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "enum": [
+              "agent",
+              "agent_end",
+              "bash_execution_update",
+              "nested_tool",
+              "entry_appended",
+              "queue_update",
+              "agent_settled",
+              "session_start",
+              "session_switch",
+              "session_fork",
+              "session_info_changed",
+              "session_tree",
+              "model_select",
+              "thinking_level_select",
+              "compaction_start",
+              "compaction_end",
+              "session_compact",
+              "auto_retry_start",
+              "auto_retry_end",
+              "cache_warmed"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "data": {
+          "type": {
+            "ref": "JsonValue"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeBoundaryContext": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "BoundaryContext"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeBoundaryResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "BoundaryResult"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeBeforeCompact": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "BeforeCompact"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeBeforeCompactResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "BeforeCompactResult"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeTreePreparation": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "TreePreparation"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeBeforeTreeResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "BeforeTreeResult"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeSessionChange": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "SessionChange"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeBool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeCacheDecision": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "CacheDecision"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeCacheAction": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "CacheAction"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeLoadout": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "Loadout"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeLoadoutChanges": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "LoadoutChanges"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeSessionEvent": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "SessionEvent"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "EnvelopeNativeSnapshot": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "value": {
+          "type": {
+            "ref": "NativeSnapshot"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "coding.input:input": {
+      "kind": "alias",
+      "type": {
+        "ref": "Input"
+      }
+    },
+    "coding.output:input": {
+      "kind": "alias",
+      "type": {
+        "ref": "InputResult"
+      }
+    },
+    "coding.input:before_agent_start": {
+      "kind": "alias",
+      "type": {
+        "ref": "BeforeAgentStart"
+      }
+    },
+    "coding.output:before_agent_start": {
+      "kind": "alias",
+      "type": {
+        "ref": "BeforeAgentStartResult"
+      }
+    },
+    "coding.input:context": {
+      "kind": "alias",
+      "type": {
+        "ref": "Messages"
+      }
+    },
+    "coding.output:context": {
+      "kind": "alias",
+      "type": {
+        "ref": "Messages"
+      }
+    },
+    "coding.input:message_start": {
+      "kind": "alias",
+      "type": {
+        "ref": "Message"
+      }
+    },
+    "coding.output:message_start": {
+      "kind": "alias",
+      "type": {
+        "ref": "Message"
+      }
+    },
+    "coding.input:message_end": {
+      "kind": "alias",
+      "type": {
+        "ref": "Message"
+      }
+    },
+    "coding.output:message_end": {
+      "kind": "alias",
+      "type": {
+        "ref": "Message"
+      }
+    },
+    "coding.input:before_tool": {
+      "kind": "alias",
+      "type": {
+        "ref": "BeforeTool"
+      }
+    },
+    "coding.output:before_tool": {
+      "kind": "alias",
+      "type": {
+        "ref": "BeforeToolResult"
+      }
+    },
+    "coding.input:after_tool": {
+      "kind": "alias",
+      "type": {
+        "ref": "AfterTool"
+      }
+    },
+    "coding.output:after_tool": {
+      "kind": "alias",
+      "type": {
+        "ref": "AfterToolResult"
+      }
+    },
+    "coding.input:turn_end": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBoundaryContext"
+      }
+    },
+    "coding.output:turn_end": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBoundaryResult"
+      }
+    },
+    "coding.input:agent_before_settle": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBoundaryContext"
+      }
+    },
+    "coding.output:agent_before_settle": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBoundaryResult"
+      }
+    },
+    "coding.input:before_compact": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBeforeCompact"
+      }
+    },
+    "coding.output:before_compact": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBeforeCompactResult"
+      }
+    },
+    "coding.input:before_tree": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeTreePreparation"
+      }
+    },
+    "coding.output:before_tree": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBeforeTreeResult"
+      }
+    },
+    "coding.input:before_session_change": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeSessionChange"
+      }
+    },
+    "coding.output:before_session_change": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeBool"
+      }
+    },
+    "coding.input:cache_warming_decision": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeCacheDecision"
+      }
+    },
+    "coding.output:cache_warming_decision": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeCacheAction"
+      }
+    },
+    "coding.input:prepare_loadout": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeLoadout"
+      }
+    },
+    "coding.output:prepare_loadout": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeLoadoutChanges"
+      }
+    },
+    "coding.input:event": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeSessionEvent"
+      }
+    },
+    "coding.output:event": {
+      "kind": "alias",
+      "type": {
+        "ref": "Unit"
+      }
+    },
+    "coding.input:tool.call": {
+      "kind": "alias",
+      "type": {
+        "ref": "ToolRequest"
+      }
+    },
+    "coding.output:tool.call": {
+      "kind": "alias",
+      "type": {
+        "ref": "ToolResult"
+      }
+    },
+    "coding.progress:tool.call": {
+      "kind": "alias",
+      "type": {
+        "ref": "ToolResult"
+      }
+    },
+    "coding.input:session.snapshot": {
+      "kind": "alias",
+      "type": {
+        "ref": "Unit"
+      }
+    },
+    "coding.output:session.snapshot": {
+      "kind": "alias",
+      "type": {
+        "ref": "EnvelopeNativeSnapshot"
+      }
+    }
+  },
+  "projections": {
+    "coding.input:input": {
+      "root": "coding.input:input",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Input",
+        "NativeImage",
+        "String",
+        "coding.input:input"
+      ],
+      "proposed_digest_sha256": "201bf8a0f9d33a84c2cae835a3425167f645e37e6ebb820919adf567d4dd36ff"
+    },
+    "coding.output:input": {
+      "root": "coding.output:input",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "InputResult",
+        "NativeImage",
+        "String",
+        "coding.output:input"
+      ],
+      "proposed_digest_sha256": "c63cc70e447b1a08ac34725ccc875075092c88359a22a8d639d476df5777c85d"
+    },
+    "coding.input:before_agent_start": {
+      "root": "coding.input:before_agent_start",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeAgentStart",
+        "NativeMessage",
+        "String",
+        "coding.input:before_agent_start"
+      ],
+      "proposed_digest_sha256": "240894ee9fdc15340f7a20f332548aa1af241c8d894c510789f8888ba1772236"
+    },
+    "coding.output:before_agent_start": {
+      "root": "coding.output:before_agent_start",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeAgentStartResult",
+        "NativeMessage",
+        "String",
+        "coding.output:before_agent_start"
+      ],
+      "proposed_digest_sha256": "6c403f6722eab27849e1d667b315e8a8d50f991739615e75463786500203992a"
+    },
+    "coding.input:context": {
+      "root": "coding.input:context",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Messages",
+        "NativeMessage",
+        "coding.input:context"
+      ],
+      "proposed_digest_sha256": "41d1c991cb60b275fd03348c585c74a96c81dd377c19cf1e618d7b75f12390e2"
+    },
+    "coding.output:context": {
+      "root": "coding.output:context",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Messages",
+        "NativeMessage",
+        "coding.output:context"
+      ],
+      "proposed_digest_sha256": "b89a5ba0ca49ff038ae97c13b2de706eb6ac472e6ae50d029cb2fee9eaa8bf12"
+    },
+    "coding.input:message_start": {
+      "root": "coding.input:message_start",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Message",
+        "NativeMessage",
+        "coding.input:message_start"
+      ],
+      "proposed_digest_sha256": "0aa8cd20357bdec53a967cf39ba9ece48de03f44a511dbc05ed19d7e4517870c"
+    },
+    "coding.output:message_start": {
+      "root": "coding.output:message_start",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Message",
+        "NativeMessage",
+        "coding.output:message_start"
+      ],
+      "proposed_digest_sha256": "eba1d871a0b2c1c4248ca60e8ebe11cc93549cb209f2192f142cb5d04baf91f3"
+    },
+    "coding.input:message_end": {
+      "root": "coding.input:message_end",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Message",
+        "NativeMessage",
+        "coding.input:message_end"
+      ],
+      "proposed_digest_sha256": "ee3606ee30450a2720b6f31ede60c84ef0ca6d8e975cd327fd0da5e20603b248"
+    },
+    "coding.output:message_end": {
+      "root": "coding.output:message_end",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Message",
+        "NativeMessage",
+        "coding.output:message_end"
+      ],
+      "proposed_digest_sha256": "2c5cffcf296fe99b812e399e957b1716bf8c61aae7a76640a4b911e34fe8a135"
+    },
+    "coding.input:before_tool": {
+      "root": "coding.input:before_tool",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeTool",
+        "JsonValue",
+        "String",
+        "coding.input:before_tool"
+      ],
+      "proposed_digest_sha256": "5a4f887b70ec848da629bfff71348187f4230071dd9c7779266b5650756ade26"
+    },
+    "coding.output:before_tool": {
+      "root": "coding.output:before_tool",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeToolResult",
+        "Bool",
+        "JsonValue",
+        "String",
+        "coding.output:before_tool"
+      ],
+      "proposed_digest_sha256": "54b0b7ab3f6df7652d5fd56e316daa2b38bceb66d5427bda9f09a13060f44b74"
+    },
+    "coding.input:after_tool": {
+      "root": "coding.input:after_tool",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "AfterTool",
+        "Bool",
+        "JsonValue",
+        "NativeImage",
+        "NativeInputContent",
+        "NativeText",
+        "NativeToolResult",
+        "String",
+        "coding.input:after_tool"
+      ],
+      "proposed_digest_sha256": "8af123922fc34e23a8892faef5cb5d5e5f30cfb3ff16e1bb1e704221cf5fd841"
+    },
+    "coding.output:after_tool": {
+      "root": "coding.output:after_tool",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "AfterToolResult",
+        "Bool",
+        "JsonValue",
+        "NativeImage",
+        "NativeInputContent",
+        "NativeText",
+        "String",
+        "coding.output:after_tool"
+      ],
+      "proposed_digest_sha256": "725a3aa532342688c6f7563b7722bf175b5bea58dcb53ce9f285bbeb9d1a5a8c"
+    },
+    "coding.input:turn_end": {
+      "root": "coding.input:turn_end",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "BoundaryContext",
+        "EnvelopeBoundaryContext",
+        "JsonValue",
+        "NativeHeader",
+        "NativeMessage",
+        "NativeSnapshot",
+        "String",
+        "Unsigned",
+        "coding.input:turn_end"
+      ],
+      "proposed_digest_sha256": "a6f19e8c3b3814ee8956850aa369457fd2a18c2ee30956fac8bdc5798f6ad41d"
+    },
+    "coding.output:turn_end": {
+      "root": "coding.output:turn_end",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "BoundaryDraft",
+        "BoundaryResult",
+        "CompactionDraft",
+        "ContextEditDraft",
+        "CustomDraft",
+        "CustomMessageDraft",
+        "EnvelopeBoundaryResult",
+        "JsonValue",
+        "String",
+        "coding.output:turn_end"
+      ],
+      "proposed_digest_sha256": "1c93cbedd50dc12bedec4a743837e3621a1a20132b0eda3a348d3f2b91c2ac32"
+    },
+    "coding.input:agent_before_settle": {
+      "root": "coding.input:agent_before_settle",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "BoundaryContext",
+        "EnvelopeBoundaryContext",
+        "JsonValue",
+        "NativeHeader",
+        "NativeMessage",
+        "NativeSnapshot",
+        "String",
+        "Unsigned",
+        "coding.input:agent_before_settle"
+      ],
+      "proposed_digest_sha256": "f5aa6b93117999c6d222a6f0830694a0b72d4beb092b5ac823e4e13b24a85d3a"
+    },
+    "coding.output:agent_before_settle": {
+      "root": "coding.output:agent_before_settle",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "BoundaryDraft",
+        "BoundaryResult",
+        "CompactionDraft",
+        "ContextEditDraft",
+        "CustomDraft",
+        "CustomMessageDraft",
+        "EnvelopeBoundaryResult",
+        "JsonValue",
+        "String",
+        "coding.output:agent_before_settle"
+      ],
+      "proposed_digest_sha256": "82e2aaf663150b9b4465ebd58c183361bce56630a0360484c531d39e4b0cfdd3"
+    },
+    "coding.input:before_compact": {
+      "root": "coding.input:before_compact",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeCompact",
+        "Bool",
+        "CompactionPreparation",
+        "EnvelopeBeforeCompact",
+        "JsonValue",
+        "NativeMessage",
+        "String",
+        "Unsigned",
+        "coding.input:before_compact"
+      ],
+      "proposed_digest_sha256": "073698cb61c914b133aa282ce35198611d0f4c6fb669e329d78ba6fe2fdd3929"
+    },
+    "coding.output:before_compact": {
+      "root": "coding.output:before_compact",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeCompactResult",
+        "Bool",
+        "CompactionResult",
+        "EnvelopeBeforeCompactResult",
+        "JsonValue",
+        "String",
+        "Unsigned",
+        "coding.output:before_compact"
+      ],
+      "proposed_digest_sha256": "d991beeab8ae044da60676800cf0628c68cc58e07eedc3a2dc7c035bd909d071"
+    },
+    "coding.input:before_tree": {
+      "root": "coding.input:before_tree",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "EnvelopeTreePreparation",
+        "JsonValue",
+        "String",
+        "TreePreparation",
+        "coding.input:before_tree"
+      ],
+      "proposed_digest_sha256": "d3cf9d8ec0f99e3531adcbde3ba0f802f931ad8670c3a894cbf1aa95448b3274"
+    },
+    "coding.output:before_tree": {
+      "root": "coding.output:before_tree",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "BeforeTreeResult",
+        "Bool",
+        "EnvelopeBeforeTreeResult",
+        "JsonValue",
+        "String",
+        "SummaryResult",
+        "coding.output:before_tree"
+      ],
+      "proposed_digest_sha256": "12619ffc19961cc616fb8e7684851ad75a87b596470aa9fcff6e099e8e91a95a"
+    },
+    "coding.input:before_session_change": {
+      "root": "coding.input:before_session_change",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "EnvelopeSessionChange",
+        "JsonValue",
+        "NativeHeader",
+        "NativeSnapshot",
+        "SessionChange",
+        "String",
+        "Unsigned",
+        "coding.input:before_session_change"
+      ],
+      "proposed_digest_sha256": "5bd4d1b567a948c08eff6c590d2ccba9a82b9247b1eba35d03134f40d811a7a3"
+    },
+    "coding.output:before_session_change": {
+      "root": "coding.output:before_session_change",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "EnvelopeBool",
+        "coding.output:before_session_change"
+      ],
+      "proposed_digest_sha256": "4ec2b58bb0b89359bd1c676d8b59528e71497e30dd93d42e14c677a99a8ebf1b"
+    },
+    "coding.input:cache_warming_decision": {
+      "root": "coding.input:cache_warming_decision",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "CacheAction",
+        "CacheDecision",
+        "EnvelopeCacheDecision",
+        "FiniteNumber",
+        "coding.input:cache_warming_decision"
+      ],
+      "proposed_digest_sha256": "0fdb89d61a97b06f6d391e62b74f7952e7aa27613237b92eb8f87113351d53ca"
+    },
+    "coding.output:cache_warming_decision": {
+      "root": "coding.output:cache_warming_decision",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "CacheAction",
+        "EnvelopeCacheAction",
+        "coding.output:cache_warming_decision"
+      ],
+      "proposed_digest_sha256": "e63344567e52812d740d7e17d2305eea62b041713822dbe284b9df91f1e3619c"
+    },
+    "coding.input:prepare_loadout": {
+      "root": "coding.input:prepare_loadout",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "EnvelopeLoadout",
+        "JsonValue",
+        "Loadout",
+        "coding.input:prepare_loadout"
+      ],
+      "proposed_digest_sha256": "c9b0b52dbda41bff2312cc75726bedf46079d5d040f0cd873a10c56dc0d6c1e8"
+    },
+    "coding.output:prepare_loadout": {
+      "root": "coding.output:prepare_loadout",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "EnvelopeLoadoutChanges",
+        "LoadoutChanges",
+        "String",
+        "coding.output:prepare_loadout"
+      ],
+      "proposed_digest_sha256": "6d90e44a8df708d093da0b65d41f66ebe2654bdc254ffd26e1c55b782ab3b17b"
+    },
+    "coding.input:event": {
+      "root": "coding.input:event",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "EnvelopeSessionEvent",
+        "JsonValue",
+        "SessionEvent",
+        "coding.input:event"
+      ],
+      "proposed_digest_sha256": "14e936680140d992986f68985cd480c0cd0afd6a2f9f83c1c8ade1133939588a"
+    },
+    "coding.output:event": {
+      "root": "coding.output:event",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Unit",
+        "coding.output:event"
+      ],
+      "proposed_digest_sha256": "da70e3a76c8747d794b3a6fc50f44111f6dc174b4f4244f1250ae60961eba2a2"
+    },
+    "coding.input:tool.call": {
+      "root": "coding.input:tool.call",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "JsonValue",
+        "String",
+        "ToolRequest",
+        "coding.input:tool.call"
+      ],
+      "proposed_digest_sha256": "e3056ccbfcce6495f5bc79ee0b359afdd28cfa2fc5b99cb6c61dd90092ca09ec"
+    },
+    "coding.output:tool.call": {
+      "root": "coding.output:tool.call",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "JsonValue",
+        "NativeImage",
+        "NativeInputContent",
+        "NativeText",
+        "NativeToolResult",
+        "String",
+        "ToolResult",
+        "coding.output:tool.call"
+      ],
+      "proposed_digest_sha256": "0f83e7995e11e9a139e4f9375ae5e3d719d7adb4e1a0aae0b3e332f48680898b"
+    },
+    "coding.progress:tool.call": {
+      "root": "coding.progress:tool.call",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "JsonValue",
+        "NativeImage",
+        "NativeInputContent",
+        "NativeText",
+        "NativeToolResult",
+        "String",
+        "ToolResult",
+        "coding.progress:tool.call"
+      ],
+      "proposed_digest_sha256": "04e4bdf834ca65fd5c16611e90ab01a0d403c2d08c5e32efa500e26618672d76"
+    },
+    "coding.input:session.snapshot": {
+      "root": "coding.input:session.snapshot",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Unit",
+        "coding.input:session.snapshot"
+      ],
+      "proposed_digest_sha256": "58b6f3aced6d8e4d034fc61e0a462c3c6894a4ce37bd948fc6c95fc3d4b301c2"
+    },
+    "coding.output:session.snapshot": {
+      "root": "coding.output:session.snapshot",
+      "profile": "coding.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "EnvelopeNativeSnapshot",
+        "JsonValue",
+        "NativeHeader",
+        "NativeSnapshot",
+        "String",
+        "Unsigned",
+        "coding.output:session.snapshot"
+      ],
+      "proposed_digest_sha256": "5304b779f3ef36b58413ddc16c27d0de7c469f0e796f6f75a92dca19d667edb6"
+    }
+  },
+  "canonical_wire_inventory": {
+    "coding.v1": {
+      "methods": [
+        {
+          "method": "input",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_agent_start",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "context",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "message_start",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "message_end",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_tool",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "after_tool",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "turn_end",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "agent_before_settle",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_compact",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_tree",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_session_change",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "cache_warming_decision",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "prepare_loadout",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "event",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "tool.call",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_STREAM"
+        },
+        {
+          "method": "session.snapshot",
+          "direction": "EXTENSION_TO_CORE",
+          "mode": "METHOD_UNARY"
+        }
+      ]
+    }
+  }
+}

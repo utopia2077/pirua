@@ -82,8 +82,14 @@ pub struct Registry {
 impl Registry {
     /// Reconstruct every complete closure and hash it with the existing JCS authority.
     pub fn bundled() -> Result<Self> {
-        let document: Value =
-            serde_json::from_slice(STATIC_REGISTRY).map_err(|_| Error::HostContract)?;
+        Self::from_bytes(STATIC_REGISTRY)
+    }
+    /// Current Coding contracts are deliberately disjoint from Harness projections.
+    pub fn coding() -> Result<Self> {
+        Self::from_bytes(include_bytes!("../schema/current/coding-v1.json"))
+    }
+    fn from_bytes(source: &[u8]) -> Result<Self> {
+        let document: Value = serde_json::from_slice(source).map_err(|_| Error::HostContract)?;
         let types = document["types"].as_object().ok_or(Error::HostContract)?;
         let roots = document["projections"]
             .as_object()
@@ -908,7 +914,53 @@ pub struct ProfileApproval {
     pub exposure: Exposure,
 }
 impl ApprovedProfile {
+    /// Host-only current Coding approval. The peer cannot choose this registry.
+    pub fn coding(input: ProfileApproval) -> Result<Self> {
+        if input.profile != "coding.v1"
+            || input.kind != "coding"
+            || input.minors != BTreeSet::from([1])
+        {
+            return Err(Error::HostContract);
+        }
+        let registry = Registry::coding()?;
+        if !input.exposure.leaves.is_empty() || !input.exposure.public_headers.is_empty() {
+            return Err(Error::HostContract);
+        }
+        if (input.execution == 1 && registry.method("coding.v1", &input.name).is_none())
+            || input.name == "tool.call"
+            || input.name.is_empty()
+            || input.principal.is_empty()
+            || input.handler.is_empty()
+            || input.scope.is_empty()
+            || input.permissions.len() > 256
+            || input
+                .permissions
+                .iter()
+                .any(|(n, s)| n.is_empty() || s.is_empty())
+            || !profile_mode(&input.profile, input.replay, input.execution)
+        {
+            return Err(Error::HostContract);
+        }
+        // Empty exposure is explicit: native Coding validation owns application leaves.
+        Ok(Self {
+            principal: input.principal,
+            kind: input.kind,
+            name: input.name,
+            profile: input.profile,
+            handler: input.handler,
+            minors: input.minors,
+            replay: input.replay,
+            execution: input.execution,
+            scope: input.scope,
+            permissions: input.permissions,
+            registry,
+            exposure: input.exposure,
+        })
+    }
     pub fn new(input: ProfileApproval) -> Result<Self> {
+        if input.profile == "coding.v1" {
+            return Err(Error::HostContract);
+        }
         if [
             &input.principal,
             &input.kind,
@@ -1034,6 +1086,7 @@ impl ApprovedProfile {
 }
 pub fn profile_mode(profile: &str, replay: i32, execution: i32) -> bool {
     match profile {
+        "coding.v1" => matches!(replay, 1..=3) && matches!(execution, 1 | 2),
         "hook.v1" => matches!(replay, 1..=3) && execution == 1,
         "provider.v1" => matches!(replay, 1 | 2) && execution == 2,
         "resource.v1" | "host-action.v1" => matches!(replay, 1..=3) && execution == 1,
@@ -1057,6 +1110,43 @@ impl ApprovedProfile {
     ) -> Result<ValidatedPayload> {
         if !self.minors.contains(&minor) || bytes.len() > limits.bytes_length {
             return Err(Error::Limit);
+        }
+        if self.profile == "coding.v1" {
+            let (_, mode) = self
+                .registry
+                .method(&self.profile, method)
+                .ok_or(Error::Method)?;
+            if stage == Stage::Progress && mode != Mode::Stream {
+                return Err(Error::Direction);
+            }
+            if (self.execution == 2 && method != "tool.call")
+                || (self.execution == 1 && method != self.name)
+            {
+                return Err(Error::Method);
+            }
+            let root = format!(
+                "coding.{}:{method}",
+                match stage {
+                    Stage::Request => "input",
+                    Stage::Progress => "progress",
+                    Stage::Terminal => "output",
+                }
+            );
+            let bound = v1_1::SchemaBoundValue::decode(bytes).map_err(|_| Error::Shape)?;
+            let fields =
+                self.registry
+                    .validate_v1_1(&root, &bound, limits, json_limits.instance_work)?;
+            let candidate = ValidatedPayload {
+                method: method.into(),
+                stage,
+                projections: BTreeMap::from([(root, fields.clone())]),
+                fields,
+            };
+            native.validate(&candidate).map_err(|e| match e {
+                NativeError::Rejected => Error::NativeRejected,
+                NativeError::LocalFault => Error::HostLocalFault,
+            })?;
+            return Ok(candidate);
         }
         let (_, mode) = self
             .registry

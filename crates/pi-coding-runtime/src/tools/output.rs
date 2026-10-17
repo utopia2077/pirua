@@ -8,7 +8,7 @@ use std::{
 };
 
 /// Admission is short and synchronous; foreign progress never holds this lock.
-pub(super) struct OutputAcceptance {
+pub(crate) struct OutputAcceptance {
     state: Mutex<OutputAcceptanceState>,
     drained: tokio::sync::Notify,
 }
@@ -55,7 +55,7 @@ impl OutputAcceptance {
         }
     }
 }
-pub(super) struct OutputAdmission {
+pub(crate) struct OutputAdmission {
     acceptance: Arc<OutputAcceptance>,
 }
 impl Drop for OutputAdmission {
@@ -71,14 +71,14 @@ impl Drop for OutputAdmission {
     }
 }
 /// Retire callbacks when an execution future is abandoned as well as when it settles.
-pub(super) struct OutputRetirement(Arc<OutputAcceptance>);
+pub(crate) struct OutputRetirement(Arc<OutputAcceptance>);
 impl Drop for OutputRetirement {
     fn drop(&mut self) {
         self.0.retire();
     }
 }
 
-pub(super) struct OutputAccumulator {
+pub(crate) struct OutputAccumulator {
     pending: Vec<u8>,
     raw: Vec<u8>,
     tail: String,
@@ -175,7 +175,7 @@ impl OutputAccumulator {
             self.tail.drain(..start);
         }
     }
-    fn spill(&mut self) -> EnvResult<()> {
+    pub(crate) fn spill(&mut self) -> EnvResult<()> {
         let mut attempts = 0;
         loop {
             let path = std::env::temp_dir().join(format!(
