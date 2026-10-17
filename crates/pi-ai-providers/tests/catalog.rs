@@ -88,6 +88,12 @@ fn catalog_intake_reuses_core_endpoint_numeric_and_unknown_field_admission() {
     );
 }
 
+#[cfg(any(
+    feature = "catalog-openai",
+    feature = "catalog-google",
+    feature = "catalog-anthropic",
+    feature = "catalog-deepseek"
+))]
 fn assert_source_values(actual: &Value, expected: &Value) {
     match (actual, expected) {
         (Value::Number(a), Value::Number(b)) => assert_eq!(a.as_f64(), b.as_f64()),

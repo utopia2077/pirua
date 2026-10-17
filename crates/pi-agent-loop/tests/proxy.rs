@@ -264,14 +264,9 @@ fn body_allowlist_and_agent_adapter_drop_provider_credentials() {
             json!({"authorization":"Bearer proxy-secret","content-type":"application/json"})
         );
         let body = &request["body"];
-        assert_eq!(
-            body.as_object()
-                .unwrap()
-                .keys()
-                .cloned()
-                .collect::<Vec<_>>(),
-            vec!["context", "model", "options"]
-        );
+        let mut body_keys = body.as_object().unwrap().keys().collect::<Vec<_>>();
+        body_keys.sort();
+        assert_eq!(body_keys, vec!["context", "model", "options"]);
         assert_eq!(body["model"], serde_json::to_value(model()).unwrap());
         assert_eq!(body["context"], serde_json::to_value(context()).unwrap());
         let mut expected = values.as_object().unwrap().clone();
