@@ -1,300 +1,47 @@
 manifest_version = 1
 kind = "catalog-inputs"
-source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:0ac3b9d8d336504b343214b0d8c573417b88efa95da9bcc33c4a57330666b12e"
+source_commit = "4a080252f06caf63a525d7873c5d94d3c23887e0"
+content_digest = "sha256:44ba56bc9bc54eb02c9b818ee3b345f2e597f210cee08641cf53a449e6127fbe"
 
-provenance_status = "missing-intake-snapshot"
+provenance_status = "complete"
+provenance_kind = "release-artifact"
+snapshot_id = "pi-ai-v1.4.0-released-selected-chat"
+snapshot_sha256 = "sha256:b40e2ba8bb6fc332908f8b96e837dc2d1fdfb45eb9cd382f5aed111462981e3c"
+source_ids = ["anthropic", "deepseek", "google", "openai"]
+release_association = { "archive" = "conformance/catalog/v1.4.0/pi-ai-1.4.0.tgz", "attestations" = "conformance/catalog/v1.4.0/attestations.json", "attestations_sha256" = "sha256:c5d2747ea0dc77394fed0180751ee6161f008f80ad289e43068e361712605041", "commit" = "4a080252f06caf63a525d7873c5d94d3c23887e0", "id" = "pi-ai-v1.4.0-released-selected-chat", "manifest" = "conformance/catalog/v1.4.0/provenance.json", "manifest_sha256" = "sha256:930cd909cc2b49ef7b0b0a15ca5a2bf6d03c924d47a4884fff1bbe260a9b6f40", "sha256" = "sha256:b40e2ba8bb6fc332908f8b96e837dc2d1fdfb45eb9cd382f5aed111462981e3c", "source_ids" = ["anthropic", "deepseek", "google", "openai"] }
+git_catalog_data_exists = false
 
 [[input]]
 path = "packages/ai/scripts/check-model-data.ts"
 blob_oid = "5c61b52c4bdd3cbdb748a45eb1165cd5af19a3bc"
 surface = "ai.catalog.generator"
-role = "generator-root"
-
-[[input]]
-path = "packages/ai/scripts/generate-image-models.ts"
-blob_oid = "26e46e4503a3e5718787bb781eba2243c492c87c"
-surface = "ai.catalog.generator"
-role = "generator-root"
+closure_digest = "sha256:f3355a0b6c3b485487ef126212e4f8ee8d110b515449b94a88ca494892b57d94"
+closure_paths = ["packages/ai/scripts/check-model-data.ts", "packages/ai/scripts/model-data.ts"]
 
 [[input]]
 path = "packages/ai/scripts/generate-models.ts"
-blob_oid = "d3a3a3055692a86336e944b6c79fce425446447e"
+blob_oid = "f5efb94bf388fac0d9b292c98e68898ca27a2bc1"
 surface = "ai.catalog.generator"
-role = "generator-root"
+closure_digest = "sha256:794e4810ce468ebc028f721b58aa44f76478a89952417c3e53d0a40ef183bf78"
+closure_paths = ["packages/ai/scripts/ai-gateway-pricing.ts", "packages/ai/scripts/generate-models.ts", "packages/ai/scripts/model-data.ts", "packages/ai/scripts/models-dev-reasoning-options.ts", "packages/ai/scripts/openrouter-catalog.ts", "packages/ai/src/api/anthropic-messages.ts", "packages/ai/src/api/azure-openai-responses.ts", "packages/ai/src/api/bedrock-converse-stream.ts", "packages/ai/src/api/cloudflare.ts", "packages/ai/src/api/constrained-sampling.ts", "packages/ai/src/api/github-copilot-headers.ts", "packages/ai/src/api/google-generative-ai.ts", "packages/ai/src/api/google-shared.ts", "packages/ai/src/api/google-vertex.ts", "packages/ai/src/api/lazy.ts", "packages/ai/src/api/mistral-conversations.ts", "packages/ai/src/api/openai-codex-responses.ts", "packages/ai/src/api/openai-completions.ts", "packages/ai/src/api/openai-prompt-cache.ts", "packages/ai/src/api/openai-responses-shared.ts", "packages/ai/src/api/openai-responses.ts", "packages/ai/src/api/pi-messages.ts", "packages/ai/src/api/simple-options.ts", "packages/ai/src/api/transform-messages.ts", "packages/ai/src/auth/context.ts", "packages/ai/src/auth/credential-store.ts", "packages/ai/src/auth/resolve.ts", "packages/ai/src/auth/types.ts", "packages/ai/src/env-api-keys.ts", "packages/ai/src/models-store.ts", "packages/ai/src/models.ts", "packages/ai/src/providers/compat-schema.ts", "packages/ai/src/providers/model-schema.ts", "packages/ai/src/providers/radius-config.ts", "packages/ai/src/telemetry.ts", "packages/ai/src/types.ts", "packages/ai/src/utils/abort.ts", "packages/ai/src/utils/diagnostics.ts", "packages/ai/src/utils/error-body.ts", "packages/ai/src/utils/estimate.ts", "packages/ai/src/utils/event-stream.ts", "packages/ai/src/utils/hash.ts", "packages/ai/src/utils/headers.ts", "packages/ai/src/utils/identity.ts", "packages/ai/src/utils/json-parse.ts", "packages/ai/src/utils/model-operations.ts", "packages/ai/src/utils/models-error.ts", "packages/ai/src/utils/provider-env.ts", "packages/ai/src/utils/provider-retry.ts", "packages/ai/src/utils/sanitize-unicode.ts", "packages/ai/src/utils/text.ts", "packages/ai/src/utils/transcript.ts", "packages/ai/src/utils/version.ts", "packages/telemetry/src/index.ts", "packages/telemetry/src/memory.ts", "packages/telemetry/src/metrics.ts", "packages/telemetry/src/noop.ts"]
 
 [[input]]
-path = "packages/ai/scripts/model-data.ts"
-blob_oid = "f2081817af2b038134984fea458b1860dbed0b60"
+path = "packages/ai/scripts/hydrate-model-catalog.ts"
+blob_oid = "9fc70c981809831a8e36087ffb7c6d3e7c4906ee"
 surface = "ai.catalog.generator"
-role = "generator-root"
+closure_digest = "sha256:f80cb2daa9e0ea4e7b927d75043fc6694bffac758b5ae515d0beb6d087f79b99"
+closure_paths = ["packages/ai/scripts/hydrate-model-catalog.ts", "packages/ai/scripts/model-data.ts"]
 
 [[input]]
-path = "packages/ai/scripts/models-dev-reasoning-options.ts"
-blob_oid = "9d07113956ccce62e1bc401e785f95ea87bbb307"
+path = "packages/ai/test/model-catalog-types.test.ts"
+blob_oid = "e5d871909924f5ccfe0a7058e94b9eb9f9b8cf18"
 surface = "ai.catalog.generator"
-role = "generator-root"
+closure_digest = "sha256:6a7da83849c31fd013646f0d3da8a8034f16f46c1bc262beeaeadebd8112eba4"
+closure_paths = ["packages/ai/src/providers/github-copilot.models.ts", "packages/ai/src/providers/xai.models.ts", "packages/ai/test/model-catalog-types.test.ts"]
 
 [[input]]
-path = "packages/ai/scripts/openrouter-reasoning-options.ts"
-blob_oid = "6fc4a5c6c22617e472b6bd1f7cc73a9f0dd83b3e"
+path = "packages/ai/test/model-data-validation.test.ts"
+blob_oid = "4f9896c0d613fa7200b6d194751f86be58b3e1f3"
 surface = "ai.catalog.generator"
-role = "generator-root"
-
-[[input]]
-path = "packages/ai/src/api/anthropic-messages.ts"
-blob_oid = "6c4ff62d08c2082e962ef79fdc913e35826fa4df"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/azure-openai-responses.ts"
-blob_oid = "56578805d2b1438916e82f9926a90b3fc1c70af7"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/bedrock-converse-stream.ts"
-blob_oid = "2e944fcd24613d2a549310508e109fccb510aee6"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/cloudflare.ts"
-blob_oid = "f8b1138ceb34c6a38294a8d366c30c778b764f4a"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/constrained-sampling.ts"
-blob_oid = "ff9c4f1514a161e3d375c1d0a4f919741c9c8ddb"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/github-copilot-headers.ts"
-blob_oid = "602750c4936e47afc530ae6b53ef23c9d9d8bf60"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/google-generative-ai.ts"
-blob_oid = "a0f9f39c978a6efb7546dece108bb3d4b1ffa1a3"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/google-shared.ts"
-blob_oid = "a49c668930059edaddf67045c3b0e528540c1c0d"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/google-vertex.ts"
-blob_oid = "cf8c13706a02d637cbca17dc4843b04705a09410"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/lazy.ts"
-blob_oid = "55a564cdbc23c259e737536170fd32fca1da3acd"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/mistral-conversations.ts"
-blob_oid = "979b467ed35984224a9e90e0e3c5c5acfd37d0d7"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/openai-codex-responses.ts"
-blob_oid = "71a917d675d3d3f725b6278986f1c712d7d6ffa5"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/openai-completions.ts"
-blob_oid = "017810061caab56fda21c8fecff6629ae364619f"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/openai-prompt-cache.ts"
-blob_oid = "1c3355d52eeb79fab3924127559f533a59c1d34d"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/openai-responses-shared.ts"
-blob_oid = "dca994a6f32adcfd66d865e4d3c192a3fe3495ce"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/openai-responses.ts"
-blob_oid = "6bfb3d65b868a6af938a8f59153b8643efbcb4e6"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/pi-messages.ts"
-blob_oid = "6bedc667476615d1b63e81dfc38fb2b0d466466d"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/simple-options.ts"
-blob_oid = "2a30265ad259f0018b699d1a4051989c09e0447e"
-surface = "ai.api-adapters"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/api/transform-messages.ts"
-blob_oid = "45e90a09340228f66c473ea6717821802eb931ea"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/auth/context.ts"
-blob_oid = "30e088bfac82a5aca05a8a6a564c2ae26ab3358f"
-surface = "ai.provider-factories"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/auth/credential-store.ts"
-blob_oid = "fc17f6cc6e4f0442f80848cce6a07407f150e024"
-surface = "ai.models-auth"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/auth/resolve.ts"
-blob_oid = "6425913ec8da7bf1763f1615d7f8ac62a4a99c17"
-surface = "ai.models-auth"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/auth/types.ts"
-blob_oid = "54c4ed34423a2366189ff15c0c068881b98ae21e"
-surface = "ai.models-auth"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/models-store.ts"
-blob_oid = "96dd8b3b081d5afa76c16ac96ef7ee4360216fff"
-surface = "ai.models-auth"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/models.ts"
-blob_oid = "dfc5202c03e37d06b624eb390a53ec3ebb91b94c"
-surface = "ai.models-auth"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/session-resources.ts"
-blob_oid = "d63009268edd040261e11016720e5c70324d4275"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/types.ts"
-blob_oid = "a17e3b7755c7b5cb901826ffa67f06025b1a1803"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/abort-signals.ts"
-blob_oid = "8e1a9ade91c021e8d9b761a2fb8f0ac1316c9daf"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/abort.ts"
-blob_oid = "5d76d19f412f82b26f9b856e332aa5637513f690"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/deferred-tools.ts"
-blob_oid = "edcf520467f2511c898e4e192dcae656762daf27"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/diagnostics.ts"
-blob_oid = "89d135619cf66203cff337546874ad33d355ecb1"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/error-body.ts"
-blob_oid = "cb8c1859a7dc33474e56e371ec05a1bf89fabf73"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/estimate.ts"
-blob_oid = "b434969ecc1e9cb767b558cd09d9b485d6400d2f"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/event-stream.ts"
-blob_oid = "e5eef921d5b632a9b9b173c184b439859f6e5f92"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/hash.ts"
-blob_oid = "1ff55e8b41647ead2e6a580bedf36b03fd72a8d3"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/headers.ts"
-blob_oid = "2d923d287014873ac7c50982d5c1d5edad30b083"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/json-parse.ts"
-blob_oid = "f39f9f09d6d6a5f6e42c09dcc474ed180bbc0634"
-surface = "ai.domain"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/node-http-proxy.ts"
-blob_oid = "81ff00897cd9ab7ec969c911fe9c86d45d9a66cf"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/pi-user-agent.ts"
-blob_oid = "93b23dd35114eb3c47bf86fdcd94ed0500090158"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/provider-env.ts"
-blob_oid = "db49606722192f60ba8809333221696da8861632"
-surface = "ai.provider-factories"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/provider-retry.ts"
-blob_oid = "e7b0db57c31657681ecb9af944cef63300f29930"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/sanitize-unicode.ts"
-blob_oid = "d869ee9dc39afb6f1838bb23d08c61330af07d2c"
-surface = "ai.transport-utils"
-role = "imported-semantic-input"
-
-[[input]]
-path = "packages/ai/src/utils/uuid.ts"
-blob_oid = "53d900ca3e5138eb4c6a52e80bb342f508617a32"
-surface = "ai.domain"
-role = "imported-semantic-input"
+closure_digest = "sha256:bdd1f4c56760ede5c8c96701b17b3836a813b4d4456415cb8df996f6a553292a"
+closure_paths = ["packages/ai/scripts/hydrate-model-catalog.ts", "packages/ai/scripts/model-data.ts", "packages/ai/test/model-data-validation.test.ts"]

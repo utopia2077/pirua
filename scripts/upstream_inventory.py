@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 import json
+import base64
+import hashlib
+import io
+import tarfile
 import os
 from pathlib import Path
 import posixpath
@@ -69,7 +73,7 @@ def validate_map(data: dict) -> None:
             raise Invalid('disposable scaffold requires disposable disposition and Rust intake owner')
         owner = owners.get(row.get('primary_owner'))
         if owner is None or (owner['kind'] == 'outside-scope') != (row['disposition'] == 'outside-scope'):
-            raise Invalid('surface has unknown or incompatible primary owner')
+            raise Invalid(f"surface {row['id']} has unknown or incompatible primary owner {row.get('primary_owner')}")
         if any(x not in owners for x in strings(row.get('collaborators'), 'collaborators')):
             raise Invalid('unknown collaborator')
         strings(row.get('sync'), 'sync', nonempty=True)
@@ -103,6 +107,16 @@ def validate_map(data: dict) -> None:
             raise Invalid('selector id uses a reserved comparison identity')
         if row.get('surface') not in surfaces or not row.get('path') or not row.get('partition'):
             raise Invalid('invalid selector references')
+    seen_exclusions = set()
+    for row in indexed(data.get('export_exclusion', []), 'export exclusion').values():
+        if not isinstance(row, dict) or row.get('surface') not in surfaces or surfaces[row['surface']]['disposition'] != 'outside-scope' or not isinstance(row.get('source'), str):
+            raise Invalid('invalid source-bound export exclusion')
+        strings(row.get('names'), 'export exclusion names', nonempty=True)
+        for name in row['names']:
+            key = (row['source'], name)
+            if key in seen_exclusions:
+                raise Invalid('overlapping source-bound export exclusions')
+            seen_exclusions.add(key)
     manifest_paths = set()
     for row in indexed(data.get('manifest', []), 'manifest').values():
         if row.get('kind') not in {'route-inventory', 'public-exports', 'provider-inventory', 'catalog-inputs', 'test-inventory', 'markdown-headings'} or any(not isinstance(row.get(k), str) or not row[k] for k in ['path', 'source']):
@@ -309,7 +323,9 @@ class Snapshot:
             raise Invalid(f'semantic input outside watched/routed authority: {path}')
         selected = self.selections.get(path, {})
         if first is None:
-            return sorted({s['surface'] for s in selected.values()} or {self.routes[path]['surface']})
+            surfaces = {s['surface'] for s in selected.values()} or {self.routes[path]['surface']}
+            surfaces.update(row['surface'] for row in self.data.get('export_exclusion', []) if row['source'] == path)
+            return sorted(surfaces)
         return sorted({s['surface'] for s in selected.values() if not s['lines'] or any(first <= i <= last for i in s['lines'])})
 
     def add(self, family: str, key: str, path: str, surface: str, payload: dict) -> None:
@@ -369,10 +385,24 @@ class Snapshot:
         if specifier.startswith('.') and target is None:
             missing = posixpath.normpath(posixpath.join(posixpath.dirname(path), specifier))
             projection = self.surfaces.get('ai.catalog.projection', {})
-            if missing.startswith('packages/ai/src/providers/data/') and missing.endswith('.json') and projection.get('provenance_status') == 'missing-intake-snapshot':
-                self.missing_inputs[path + '::' + specifier] = self.tree[path].oid
-                self.limitations.append('historical missing catalog input: ' + missing)
-                return None
+            if missing.startswith('packages/ai/src/providers/data/') and missing.endswith('.json'):
+                route = self.routes.get(path, {})
+                surface = self.surfaces.get(route.get('surface'), {})
+                if projection.get('provenance_kind') == 'release-artifact':
+                    provider = posixpath.basename(missing)[:-5]
+                    snapshot = projection.get('provenance_snapshot', {})
+                    selected = provider in snapshot.get('source_ids', []) or provider == '.manifest'
+                    if selected or surface.get('disposition') == 'outside-scope':
+                        self.missing_inputs[path + '::' + specifier] = self.tree[path].oid
+                        self.external_dependencies[path + '::' + specifier] = {
+                            'kind':'released-catalog-data' if selected else 'owner-excluded-catalog-data',
+                            'specifier':specifier, 'git_path':missing, 'git_blob_exists':False,
+                            'association':snapshot if selected else {}, 'manifests':[], 'lock':None}
+                        return None
+                if projection.get('provenance_status') == 'missing-intake-snapshot':
+                    self.missing_inputs[path + '::' + specifier] = self.tree[path].oid
+                    self.limitations.append('historical missing catalog input: ' + missing)
+                    return None
             raise Invalid(f'unresolved relative dependency: {path} -> {specifier}')
         if not specifier.startswith('.'):
             parent = posixpath.dirname(path)
@@ -396,6 +426,9 @@ class Snapshot:
             if current in visited:
                 continue
             visited.add(current)
+            if (current != path and current in self.routes
+                    and self.surfaces[self.routes[current]['surface']]['disposition'] == 'outside-scope'):
+                continue
             if current.endswith(('.ts', '.tsx', '.mts', '.cts')):
                 syntax = self.syntax.get(current)
                 for row in syntax['imports'] + [e for e in syntax['exports'] if e.get('specifier')]:
@@ -435,6 +468,10 @@ class Snapshot:
         def imported(specifier, name, is_type=False):
             target = self.dependency(path, specifier)
             if target is None:
+                released = self.external_dependencies.get(path + '::' + specifier, {})
+                if released.get('kind') in {'released-catalog-data', 'owner-excluded-catalog-data'}:
+                    return {'kind':'value', 'origin':'artifact:' + released['git_path'], 'oid':'',
+                            'declaration':digest(released), 'first':0, 'last':0}
                 if specifier != 'typebox' or name not in {'Static', 'TSchema', 'Type'}:
                     raise Invalid(f'external public symbol requires an explicit projection: {specifier}::{name}')
                 if name == '*':
@@ -525,7 +562,15 @@ class Snapshot:
                 concrete = subpath.replace('*', wildcard)
                 for name, value in sorted(self.symbols(source).items()):
                     origin = value['origin']
-                    owners = self.owners(source) if origin.startswith('external:') else self.owners(origin, value['first'], value['last'])
+                    source_surface = self.routes[source]['surface']
+                    if self.surfaces[source_surface]['disposition'] == 'outside-scope':
+                        # An excluded public entrance stays excluded when it reexports a shared type.
+                        owners = [source_surface]
+                    else:
+                        owners = self.owners(source) if origin.startswith(('external:', 'artifact:')) else self.owners(origin, value['first'], value['last'])
+                        for exclusion in self.data.get('export_exclusion', []):
+                            if origin == exclusion['source'] and name in exclusion['names']:
+                                owners = [exclusion['surface']]
                     if not owners:
                         raise Invalid('public symbol has no selector owner')
                     for surface in owners:
@@ -539,6 +584,21 @@ class Snapshot:
         syntax = self.syntax.get(path)
         for namespace, name in [('text', 'builtinProviders'), ('image', 'builtinImagesProviders')]:
             function = syntax['functions'].get(name)
+            if function is None and namespace == 'image':
+                registration = 'packages/ai/src/providers/images/register-builtins.ts'
+                if registration not in self.routes:
+                    raise Invalid('provider registration inventory incomplete: ' + name)
+                parsed = self.syntax.get(registration)
+                fn = parsed['functions'].get('registerBuiltInImagesApiProviders', {})
+                if len(fn.get('registrations', [])) != 1:
+                    raise Invalid('image API registration projection incomplete')
+                properties = fn['registrations'][0]
+                api = properties.get('api', '')
+                literal = re.fullmatch(r'''(['"])(.*?)\1''', api)
+                if not literal:
+                    raise Invalid('image API registration id is not a literal')
+                self.add('providers', 'image::' + literal[2], registration, self.routes[registration]['surface'], {'namespace':'image-api', 'factory':'registerBuiltInImagesApiProviders', 'properties':properties, 'source':self.tree[registration].payload()})
+                continue
             if function is None or len(function['returns']) != 1 or any(x is None for x in function['returns'][0]):
                 raise Invalid(f'provider registration inventory incomplete: {name}')
             factories = function['returns'][0]
@@ -588,8 +648,50 @@ class Snapshot:
             for surface in self.owners(faux):
                 self.add('providers', 'faux-testkit::' + identities['DEFAULT_PROVIDER'], faux, surface, {'namespace':'faux-testkit', 'id':identities['DEFAULT_PROVIDER'], 'api_ids':[identities['DEFAULT_API']], 'oid':self.tree[faux].oid, 'factory':'fauxProvider'})
 
+    def validate_release_provenance(self, surface: dict) -> None:
+        """Bind absent Git model data to an archived release, never fabricate blobs."""
+        snapshot = surface.get('provenance_snapshot', {})
+        if surface.get('provenance_status') != 'complete' or snapshot.get('commit') != self.commit:
+            raise Invalid('release provenance must bind the exact source commit')
+        def read(key, expected):
+            value = snapshot.get(key)
+            if not isinstance(value, str) or value.startswith('/') or '..' in value.split('/'):
+                raise Invalid('invalid release provenance path')
+            try:
+                payload = (ROOT / value).read_bytes()
+            except OSError as error:
+                raise Invalid('missing released artifact input: ' + value) from error
+            if hash_bytes(payload) != expected:
+                raise Invalid('release artifact hash mismatch: ' + value)
+            return payload
+        archive = read('archive', snapshot.get('sha256'))
+        metadata = json.loads(read('manifest', snapshot.get('manifest_sha256')))
+        attestations = json.loads(read('attestations', snapshot.get('attestations_sha256')))
+        if metadata.get('upstreamCommit') != self.commit or metadata.get('sha256') != snapshot.get('sha256', '')[7:]:
+            raise Invalid('release source association mismatch')
+        integrity = base64.b64decode(metadata['integrity'].removeprefix('sha512-'))
+        if hashlib.sha512(archive).digest() != integrity:
+            raise Invalid('release integrity mismatch')
+        statements = [json.loads(base64.b64decode(row['bundle']['dsseEnvelope']['payload']))
+                      for row in attestations['attestations'] if row['predicateType'] == 'https://slsa.dev/provenance/v1']
+        if len(statements) != 1 or statements[0]['predicate']['buildDefinition']['resolvedDependencies'][0]['digest']['gitCommit'] != self.commit or statements[0]['subject'][0]['digest']['sha512'] != integrity.hex():
+            raise Invalid('release SLSA source association mismatch')
+        if sorted(metadata['files']) != sorted(snapshot.get('source_ids', [])):
+            raise Invalid('release provider source identity mismatch')
+        with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as package:
+            for provider, evidence in metadata['files'].items():
+                payload = package.extractfile('package/' + evidence['packagePath']).read()
+                if hash_bytes(payload) != 'sha256:' + evidence['packageDataSha256']:
+                    raise Invalid('released catalog input hash mismatch')
+                git_path = 'packages/ai/src/providers/data/' + provider + '.json'
+                if git_path in self.tree:
+                    raise Invalid('release association expects absent Git data; review new Git authority')
+
     def validate_provenance(self, surface: dict) -> None:
         snapshot = surface.get('provenance_snapshot', {})
+        if surface.get('provenance_kind') == 'release-artifact':
+            self.validate_release_provenance(surface)
+            return
         if surface.get('provenance_status') != 'complete' or not isinstance(snapshot, dict) or not isinstance(snapshot.get('id'), str) or not snapshot['id']:
             raise Invalid('new generated inputs/output lack complete intake provenance')
         strings(snapshot.get('source_ids'), 'provenance source_ids', nonempty=True)
@@ -622,11 +724,18 @@ class Snapshot:
                 self.errors.append('public manifest source missing or outside routed authority: ' + path)
         operations = [(lambda p=p: self.exports(p)) for p in sorted(package_sources) if p in self.routes]
         operations.append(self.providers)
+        for exclusion in self.data.get('export_exclusion', []):
+            path = exclusion['source']
+            if path not in self.routes or not set(exclusion['names']) <= self.symbols(path).keys():
+                self.errors.append('source-bound export exclusion is stale or unresolved: ' + path)
         for path, route in sorted(self.routes.items()):
             self.add('routes', path, path, route['surface'], {**self.tree[path].payload(), 'route':route['id'], 'role':route['role']})
             is_test = '/test/' in path or '/tests/' in path or path.endswith(('.test.ts', '.spec.ts'))
             generator = self.surfaces[route['surface']]['authority'] == 'generator'
             if is_test or generator:
+                if self.surfaces[route['surface']]['disposition'] == 'outside-scope':
+                    self.add('tests', path, path, route['surface'], {'closure':[self.tree[path].payload()], 'external_dependencies':{}, 'classification':'owner-excluded-source-only'})
+                    continue
                 def closure_item(path=path, is_test=is_test, generator=generator):
                     closure = self.closure(path)
                     for family in (['tests'] if is_test else []) + (['generator-inputs'] if generator else []):

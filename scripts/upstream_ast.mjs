@@ -73,7 +73,7 @@ function project({path, text}) {
       if (ts.isFunctionDeclaration(n)) {
         const registrations = [], providerErrors = [];
         function visit(x) {
-          if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && /^(createProvider|createImagesProvider)$/.test(x.expression.text)) {
+          if (ts.isCallExpression(x) && ts.isIdentifier(x.expression) && /^(createProvider|createImagesProvider|registerImagesApiProvider)$/.test(x.expression.text)) {
             const object = x.arguments[0];
             if (!object || !ts.isObjectLiteralExpression(object)) errors.push('provider factory argument is not an object');
             else {

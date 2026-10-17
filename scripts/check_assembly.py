@@ -11,6 +11,8 @@ import argparse
 import ast
 from collections import Counter
 import hashlib
+import os
+from functools import lru_cache
 import json
 from pathlib import Path
 import re
@@ -18,37 +20,16 @@ import sys
 import tomllib
 
 try:
-    from . import generate_ai_conformance as ai
     from . import generate_upstream_manifests as projections
     from . import validate_docs as validator
     from .upstream import resolve_upstream
 except ImportError:
-    import generate_ai_conformance as ai
     import generate_upstream_manifests as projections
     import validate_docs as validator
     from upstream import resolve_upstream
 
 ROOT = Path(__file__).resolve().parents[1]
-HARNESS = "packages/agent/docs/harness.md"
-BRIDGE_IDS = (
-    "single_turn.stop", "single_turn.transform_context",
-    "tool.parallel_completion_source", "tool.length_truncated", "continue.existing_context",
-)
-CODING_IDS = (
-    "model.credentials_catalog", "prompt.system_resources", "prompt.settings_snapshot",
-    "tools.validate_progress_settle", "tools.coding_operations", "queue.steer_during_turn",
-    "queue.follow_up_after_turn", "retry.overflow_precedence", "retry.provider_recovery",
-    "abort.active_stream_cleanup", "compaction.context_projection", "branch.fork_atomic_publish",
-    "restart.recover_session", "legacy_import.format3", "model_switch.next_run",
-    "extension.participation_ordering", "lifecycle.builder_replace",
-    "capability.required_prestart_failure",
-)
-LEGACY_STATUSES = (
-    "source-confirmed", "source-confirmed", "source-confirmed", "test-unwitnessed",
-    "test-unwitnessed", "test-unwitnessed", "source-confirmed", "test-unwitnessed",
-    "source-confirmed", "test-unwitnessed", "source-confirmed", "test-unwitnessed",
-    "test-unwitnessed", "non-applicable",
-)
+HISTORICAL_SOURCE_REVISION = "ea7396d067d42e3fca3924aff36958dcd68f7d1b"
 TEST_DEFINITION = re.compile(
     r"#\[(?:test|(?:[A-Za-z_][\w]*::)+test)(?:\([^\]]*\))?\]"
     r"\s*(?:#\[[^\]]*\]\s*)*(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(",
@@ -114,7 +95,7 @@ def rust_tokens(text: str) -> list[tuple[str, int, int]]:
     return tokens
 
 
-def rust_test_inventory(path: Path, root: Path) -> tuple[list[dict], set[Path]]:
+def rust_test_inventory(path: Path, root: Path, *, file_texts=None) -> tuple[list[dict], set[Path]]:
     """Read exact test items with lexical file/module/function attributes.
 
     This intentionally does not compile Rust. Unsupported conditions on a
@@ -124,12 +105,19 @@ def rust_test_inventory(path: Path, root: Path) -> tuple[list[dict], set[Path]]:
     """
     tests, sources = [], set()
 
+    def exists(source):
+        if file_texts is None:
+            return source.is_file()
+        source = source.resolve()
+        return source.is_relative_to(root.resolve()) and source.relative_to(root.resolve()).as_posix() in file_texts
+
     def read_file(source, modules, inherited, active, module_base=None):
         source = source.resolve()
-        require(source.is_relative_to(root.resolve()) and source.is_file(), "missing public Rust test module")
+        require(source.is_relative_to(root.resolve()) and exists(source), "missing public Rust test module")
         require(source not in active, f"cyclic Rust test module: {source.name}")
         sources.add(source)
-        scan(source.read_text(encoding="utf-8"), source, modules, inherited,
+        text = source.read_text(encoding="utf-8") if file_texts is None else file_texts[source.relative_to(root.resolve()).as_posix()]
+        scan(text, source, modules, inherited,
              active | {source}, module_base or source.parent, {})
 
     def scan(text, source, modules, inherited, active, module_base, macros):
@@ -171,8 +159,9 @@ def rust_test_inventory(path: Path, root: Path) -> tuple[list[dict], set[Path]]:
                         explicit = [re.fullmatch(r'path\s*=\s*"([^"\n]+)"', item) for item in pending]
                         explicit = [match.group(1) for match in explicit if match]
                         require(len(explicit) <= 1, "ambiguous Rust module path attribute")
-                        candidates = [base / explicit[0]] if explicit else [base / (name + ".rs"), base / name / "mod.rs"]
-                        matches = [candidate for candidate in candidates if candidate.is_file()]
+                        attribute_base = source.parent if base == module_base else base
+                        candidates = [attribute_base / explicit[0]] if explicit else [base / (name + ".rs"), base / name / "mod.rs"]
+                        matches = [candidate for candidate in candidates if exists(candidate)]
                         require(len(matches) == 1, f"missing or ambiguous Rust test module: {source.name}:{name}")
                         child = matches[0]
                         read_file(child, (*scope_modules, name), [*attributes, *pending], active,
@@ -234,13 +223,13 @@ def rust_test_inventory(path: Path, root: Path) -> tuple[list[dict], set[Path]]:
     return tests, sources
 
 
-def test_applicable(test: dict, features: set[str]) -> bool:
+def test_applicable(test: dict, features: set[str], *, cfg_platform: tuple[str, str] | None = None) -> bool:
     enabled = True
     for attribute in test["attributes"]:
         if re.match(r"ignore\b", attribute):
             enabled = False
         elif attribute.startswith("cfg(") and attribute.endswith(")"):
-            enabled = cfg_enabled(attribute[4:-1], features) and enabled
+            enabled = cfg_enabled(attribute[4:-1], features, cfg_platform=cfg_platform) and enabled
         elif re.match(r"(?:cfg|cfg_attr|ignore)\b", attribute):
             raise AssemblyError(f"unsupported relevant proof attribute: {attribute}")
     return enabled
@@ -261,7 +250,7 @@ def load_json(path: Path) -> dict:
     return value
 
 
-def check_reference(reference: dict, root: Path) -> None:
+def check_reference(reference: dict, root: Path, inventories: dict | None = None) -> None:
     require(isinstance(reference, dict), "evidence reference must be an object")
     path = public_file(root, reference.get("path"))
     anchor = reference.get("anchor")
@@ -271,7 +260,12 @@ def check_reference(reference: dict, root: Path) -> None:
     kind, value = anchor.split(":", 1)
     text = path.read_text(encoding="utf-8")
     if kind == "test":
-        definitions, _ = rust_test_inventory(path, root)
+        if inventories is None:
+            definitions, _ = rust_test_inventory(path, root)
+        else:
+            if path not in inventories:
+                inventories[path] = rust_test_inventory(path, root)
+            definitions, _ = inventories[path]
         found = any(test["path"] == path and test["name"] == value.split("::")[-1]
                     and not any(re.match(r"ignore\b", item) for item in test["attributes"])
                     for test in definitions)
@@ -297,9 +291,18 @@ def check_reference(reference: dict, root: Path) -> None:
     require(found, f"missing evidence anchor: {reference['path']}#{anchor}")
 
 
-def cfg_enabled(expression: str, features: set[str]) -> bool:
+def cfg_enabled(expression: str, features: set[str], *, cfg_platform: tuple[str, str] | None = None) -> bool:
     """Evaluate the bounded feature-only cfg grammar used by proof targets."""
     expression = expression.strip()
+    if expression in {'unix', 'windows'}:
+        family = os.name if cfg_platform is None else cfg_platform[0]
+        return (family == 'posix') if expression == 'unix' else (family == 'nt')
+    platform = re.fullmatch(r'target_os\s*=\s*"(linux|macos|windows)"', expression)
+    if platform:
+        actual = ({'linux':'linux', 'darwin':'macos', 'win32':'windows'}.get(sys.platform)
+                  if cfg_platform is None else cfg_platform[1])
+        require(actual is not None, 'unsupported host platform for proof cfg')
+        return platform.group(1) == actual
     feature = re.fullmatch(r'feature\s*=\s*"([^"]+)"', expression)
     if feature:
         return feature.group(1) in features
@@ -315,7 +318,8 @@ def cfg_enabled(expression: str, features: set[str]) -> bool:
             arguments.append(group.group(2)[start:index])
             start = index + 1
     arguments.append(group.group(2)[start:])
-    values = [cfg_enabled(argument, features) for argument in arguments if argument.strip()]
+    values = [cfg_enabled(argument, features, cfg_platform=cfg_platform)
+              for argument in arguments if argument.strip()]
     if group.group(1) == "not":
         require(len(values) == 1, "proof cfg not() must have one argument")
         return not values[0]
@@ -362,10 +366,21 @@ def check_command(command: list[str], evidence: list[dict], root: Path) -> None:
         manifest = tomllib.loads(public_file(root, f"crates/{package}/Cargo.toml").read_text())
         require(manifest["package"]["name"] == package, f"Cargo package mismatch: {package}")
         features = cargo_features(command, manifest)
+        registrations = [row for row in manifest.get('test', []) if row.get('name') == target]
+        require(len(registrations) <= 1, f"ambiguous Cargo target registration: {package}/{target}")
+        require(bool(registrations) or manifest['package'].get('autotests', True),
+                f"Cargo target is not registered: {package}/{target}")
+        if registrations:
+            registration = registrations[0]
+            require(registration.get('path', f'tests/{target}.rs') == f'tests/{target}.rs'
+                    and registration.get('test', True) and registration.get('harness', True),
+                    f"unsupported or disabled Cargo target registration: {package}/{target}")
+            require(set(registration.get('required-features', [])) <= features,
+                    f"Cargo target disabled by required-features: {package}/{target}")
         path = f"crates/{package}/tests/{target}.rs"
         definitions, sources = rust_test_inventory(public_file(root, path), root)
         source_paths = {str(source.relative_to(root.resolve())) for source in sources}
-        references = [ref for ref in evidence if ref.get("path") in source_paths
+        references = [ref for ref in evidence if ref.get("path") in source_paths and ref.get("cargo_target", target) == target
                       and ref.get("anchor", "").startswith("test:")]
         require(bool(references), f"Cargo target lacks an actual test anchor: {path}")
         for reference in references:
@@ -377,9 +392,8 @@ def check_command(command: list[str], evidence: list[dict], root: Path) -> None:
                     f"proof target disabled by feature cfg or ignore: {reference['path']}#{name}")
     elif command[0] == "python3":
         require(len(command) == 3 and command[2] == "--check", "unknown Python proof argv")
-        require(command[1] in {"scripts/generate_ai_conformance.py",
-                              "scripts/generate_upstream_manifests.py",
-                              "scripts/generate_selected_catalogs.py"}, "unknown Python proof suite")
+        require(command[1] in {"scripts/generate_upstream_manifests.py",
+                              "conformance/catalog/v1.4.0/check.py"}, "unknown Python proof suite")
         require(any(ref.get("path") == command[1] and ref.get("anchor") == "python:main"
                     for ref in evidence), f"Python proof lacks main anchor: {command[1]}")
     else:
@@ -401,6 +415,7 @@ def validate_registry(registry: dict, labels: set[str], root: Path = ROOT) -> di
     suites = registry.get("suites")
     require(isinstance(suites, list) and bool(suites), "missing proof suites")
     by_id = {}
+    inventories = {}
     for row in suites:
         suite = row.get("id")
         require(isinstance(suite, str) and suite not in by_id, f"duplicate or missing proof suite: {suite}")
@@ -415,371 +430,350 @@ def validate_registry(registry: dict, labels: set[str], root: Path = ROOT) -> di
                 f"limited suite must retain accepted-limit status: {suite}")
         for reference in evidence + limitations:
             try:
-                check_reference(reference, root)
+                check_reference(reference, root, inventories)
             except AssemblyError as error:
                 raise AssemblyError(f"proof {suite}: {error}") from error
         for command in commands:
             check_command(command, evidence, root)
         bound_paths = set()
+        bound_targets = set()
         for command in commands:
             if command[:2] == ["cargo", "test"]:
                 package = command[command.index("-p") + 1]
                 target = command[command.index("--test") + 1]
                 _, sources = rust_test_inventory(public_file(root, f"crates/{package}/tests/{target}.rs"), root)
                 bound_paths.update(str(source.relative_to(root.resolve())) for source in sources)
+                bound_targets.update((str(source.relative_to(root.resolve())), target) for source in sources)
         for reference in evidence:
             if reference.get("anchor", "").startswith("test:"):
-                require(reference["path"] in bound_paths,
+                require(reference["path"] in bound_paths and ("cargo_target" not in reference or (reference["path"], reference["cargo_target"]) in bound_targets),
                         f"proof {suite}: test anchor is unbound to a declared command: {reference['path']}")
     require(set(by_id) == labels,
             f"unresolved proof suites: missing={sorted(labels - by_id.keys())}, extra={sorted(by_id.keys() - labels)}")
     return by_id
 
 
-def adapter_proof_requirements(inventory: dict) -> set[tuple]:
-    """Derive retained shared-adapter proof obligations from the frozen inventory."""
-    required = set()
-    for row in inventory["rows"]:
-        if row["surface"] != "ai.api-adapters":
+# Reviewed required proofs are independent of mutable tests and registry discovery.
+# Retirement policy: additions may be generated. Removing a reviewed identity,
+# target or its existing feature/dependency binding requires independent review,
+# a committed replacement baseline, and an explicit manual update of this revision
+# and enrollment. The generator has no retirement or baseline-refresh option.
+REVIEWED_PROOF_REVISION = 'f8fc56454a2247f6dca4e7d14e54c54bef4ae9a1'
+# Acceptance was reviewed on Linux; a different host cannot shrink this set.
+REVIEWED_CFG_PLATFORM = ('posix', 'linux')
+REVIEWED_PROOF_TARGETS = {'conformance/ai-core': {'pi-ai-core': ['auth_none_provider',
+                                        'auth_store',
+                                        'auth_store_concurrency',
+                                        'auth_store_object_safety',
+                                        'captured_dispatch',
+                                        'deferred_lifecycle',
+                                        'message_transform',
+                                        'message_transform_object_safety',
+                                        'models_helpers',
+                                        'models_helpers_object_safety',
+                                        'models_registry',
+                                        'models_registry_concurrency',
+                                        'models_registry_object_safety',
+                                        'overflow',
+                                        'portable_helpers',
+                                        'portable_helpers_object_safety',
+                                        'provider_headers_order',
+                                        'registry_child_cancellation',
+                                        'request_lifecycle',
+                                        'request_runtime',
+                                        'retry',
+                                        'runtime_noop_telemetry',
+                                        'schema',
+                                        'session_resources',
+                                        'session_resources_object_safety',
+                                        'stream_cancellation_snapshot',
+                                        'stream_runtime',
+                                        'tool_validation',
+                                        'tool_validation_contract',
+                                        'v140_contract']},
+ 'conformance/ai-transport': {'pi-ai-transport': ['anthropic_sse',
+                                                  'auth_host',
+                                                  'codex_retry',
+                                                  'fetch',
+                                                  'fetch_body_presence',
+                                                  'fetch_content',
+                                                  'fetch_request',
+                                                  'log_custody',
+                                                  'native',
+                                                  'native_fetch_headers',
+                                                  'node_websocket',
+                                                  'openai_sse',
+                                                  'portable',
+                                                  'provider_retry',
+                                                  'raw_head_probe',
+                                                  'request_encoding',
+                                                  'response_body_presence',
+                                                  'smithy_error',
+                                                  'smithy_eventstream',
+                                                  'smithy_http',
+                                                  'smithy_retry']},
+ 'conformance/provider-traces/v1.4.0': {'pi-ai-providers': ['anthropic_messages',
+                                                            'google_genai',
+                                                            'google_shared',
+                                                            'openai_completions',
+                                                            'openai_responses',
+                                                            'openai_responses_shared',
+                                                            'simple_options',
+                                                            'strict_schema_wire',
+                                                            'provider_helpers',
+                                                            'responses_deferred_order',
+                                                            'v140_release',
+                                                            'v140_review']},
+ 'conformance/selected-providers': {'pi-ai-providers': ['selected_factories',
+                                                        'selected_factories_source',
+                                                        'provider_header_order',
+                                                        'auth_foundation',
+                                                        'catalog',
+                                                        'lazy',
+                                                        'wire_payload',
+                                                        'request_lifecycle',
+                                                        'runtime_response_head',
+                                                        'response_body_presence']},
+ 'conformance/oauth/v1.4.0': {'pi-ai-providers': ['oauth_selected']},
+ 'conformance/catalog/v1.4.0': {'pi-ai': ['selected_catalog_profiles', 'catalog_binaries'],
+                                'pi-ai-providers': ['catalog']},
+ 'conformance/ai-facade': {'pi-ai': ['catalog_binaries',
+                                     'message_transform_facade',
+                                     'models_helpers_facade',
+                                     'models_registry_facade',
+                                     'portable_helpers_facade',
+                                     'retry',
+                                     'selected_catalog_profiles',
+                                     'session_resources_facade',
+                                     'tool_validation_facade']},
+ 'conformance/agent-v1.4.0': {'pi-agent': ['upstream_v140', 'native_lifecycle'],
+                              'pi-agent-schema': ['tool_result_json']},
+ 'conformance/agent-proxy-v1.4.0': {'pi-agent-loop': ['proxy']},
+ 'conformance/coding-tools': {'pi-coding-runtime': ['tools',
+                                                    'target_tools',
+                                                    'local_boundaries']},
+ 'conformance/coding-models': {'pi-coding-runtime': ['model_composition', 'model_defaults']},
+ 'conformance/coding-session-runtime-v1.4.0': {'pi-coding-runtime': ['session_runtime',
+                                                                     'session_source',
+                                                                     'bash_execution']},
+ 'conformance/coding-session': {'pi-coding-session': ['sessions', 'upstream_projection'],
+                                'pi-sqlite': ['database']},
+ 'conformance/coding-config': {'pi-coding-runtime': ['settings_snapshot', 'session_runtime']},
+ 'conformance/current-extensions': {'pi-extension-protocol': ['activation',
+                                                              'cross_language_echo',
+                                                              'cross_language_profiles',
+                                                              'current_host',
+                                                              'endpoint_handshake',
+                                                              'jcs',
+                                                              'profile_live',
+                                                              'profiles',
+                                                              'schema_authority',
+                                                              'tool_live',
+                                                              'wire_echo_bounded',
+                                                              'wire_echo_selected',
+                                                              'wire_framing',
+                                                              'wire_generated',
+                                                              'wire_raw_framing',
+                                                              'wire_value'],
+                                    'pi-coding-runtime': ['extensions']},
+ 'conformance/coding-tool-adapters-v1.4.0': {'pi-coding-runtime': ['mcp_adapter',
+                                                                   'codemode_adapter']},
+ 'conformance/mcp': {'pi-mcp': ['client', 'http', 'stdio', 'oauth']},
+ 'conformance/codemode': {'pi-codemode': ['sandbox']},
+ 'conformance/telemetry': {'pi-telemetry': ['contract', 'propagation']}}
+# Every enrolled proof uses this reviewed locked/offline all-feature profile.
+REVIEWED_PROOF_COMMANDS = tuple(
+    (suite, ('cargo','test','--locked','--offline','-p',package,'--test',target,'--all-features'))
+    for suite, packages in REVIEWED_PROOF_TARGETS.items()
+    for package, targets in packages.items() for target in targets
+)
+
+
+@lru_cache(maxsize=None)
+def _reviewed_proofs(root_string: str, revision: str, enrollment: tuple, cfg_platform: tuple):
+    if __package__:
+        from .upstream_objects import Objects
+    else:
+        from upstream_objects import Objects
+    root = Path(root_string)
+    objects = Objects(root)
+    tree = objects.tree(revision)
+    class GitTexts:
+        def __contains__(self, path):
+            return path in tree and path.startswith('crates/') and path.endswith('.rs')
+        def __getitem__(self, path):
+            require(path in self, 'reviewed Rust source missing: ' + path)
+            return objects.blob(tree[path]).decode('utf-8')
+    files, proofs, profiles = GitTexts(), [], {}
+    for suite, argv in enrollment:
+        command = list(argv)
+        package = command[command.index('-p') + 1]
+        target = command[command.index('--test') + 1]
+        manifest_path = f'crates/{package}/Cargo.toml'
+        require(manifest_path in tree, 'reviewed Cargo profile missing: ' + manifest_path)
+        manifest = tomllib.loads(objects.blob(tree[manifest_path]).decode('utf-8'))
+        profiles[package] = manifest
+        features = cargo_features(command, manifest)
+        definitions, _ = rust_test_inventory(root/f'crates/{package}/tests/{target}.rs', root, file_texts=files)
+        enabled = [test for test in definitions if test_applicable(test, features, cfg_platform=cfg_platform)]
+        require(bool(enabled), f'reviewed proof target has no enabled tests: {package}/{target}')
+        for test in enabled:
+            proofs.append((suite, package, target, str(test['path'].relative_to(root)),
+                           test['qualified'], tuple(test['attributes'])))
+    return tuple(proofs), profiles
+
+
+def reviewed_proof_requirements(root: Path = ROOT):
+    return _reviewed_proofs(str(root.resolve()), REVIEWED_PROOF_REVISION,
+                            REVIEWED_PROOF_COMMANDS, REVIEWED_CFG_PLATFORM)
+
+
+def validate_reviewed_proofs(registry: dict, root: Path = ROOT, *, suite_names: set[str] | None = None) -> None:
+    """A regenerated current discovery cannot retire the immutable reviewed set."""
+    required, profiles = reviewed_proof_requirements(root)
+    suites = {row['id']:row for row in registry['suites']}
+    features, checked = {}, set()
+    for suite, argv in REVIEWED_PROOF_COMMANDS:
+        if suite_names is not None and suite not in suite_names:
             continue
-        require(bool(row.get("executedTests")), f"adapter export lacks proof bindings: {row['key']}")
-        for test in row["executedTests"]:
-            if isinstance(test, str):
-                target, name = test.split("#", 1)
-                package, features = "pi-ai-providers", row["features"]
-            else:
-                require(test.get("kind") == "test", f"unsupported adapter proof binding: {row['key']}")
-                package, target, name, features = (test[key] for key in ("package", "target", "name", "features"))
-            required.add((package, target, name, tuple(features)))
-    return required
+        require(suite in suites and list(argv) in suites[suite]['commands'],
+                f'reviewed proof command/profile retired: {suite}: {list(argv)}')
+        command = list(argv)
+        package = command[command.index('-p') + 1]
+        if package not in checked:
+            current = tomllib.loads(public_file(root,f'crates/{package}/Cargo.toml').read_text())
+            original = profiles[package]
+            # Existing feature/dependency activations cannot vanish behind a rewrite.
+            for feature, activations in original.get('features', {}).items():
+                require(feature in current.get('features', {})
+                        and set(activations) <= set(current['features'][feature]),
+                        f'reviewed proof feature binding retired: {package}/{feature}')
+            for kind in ('dependencies','dev-dependencies','build-dependencies'):
+                for dependency, binding in original.get(kind, {}).items():
+                    actual = current.get(kind, {}).get(dependency)
+                    if isinstance(binding, dict) and isinstance(actual, dict):
+                        expected_fields = {key:value for key,value in binding.items() if key != 'features'}
+                        actual_fields = {key:value for key,value in actual.items() if key != 'features'}
+                        same = expected_fields == actual_fields and set(binding.get('features', [])) <= set(actual.get('features', []))
+                    else:
+                        same = actual == binding
+                    require(same, f'reviewed proof dependency binding changed: {package}/{kind}/{dependency}')
+            features[package] = cargo_features(command,current)
+            checked.add(package)
+    for suite, package, target, path, name, attributes in required:
+        if suite_names is not None and suite not in suite_names:
+            continue
+        evidence = suites[suite]['evidence']
+        require(any(row.get('path') == path and row.get('anchor') == 'test:' + name
+                    and row.get('cargo_target') == target for row in evidence),
+                f'reviewed required proof identity retired: {suite}: {path}#{name}')
+        require(test_applicable({'attributes':attributes}, features[package]),
+                f'reviewed required proof disabled by current profile: {path}#{name}')
+
+
+def adapter_proof_requirements(inventory: dict | None = None, root: Path = ROOT) -> set[tuple]:
+    """Selected adapter requirements come from the immutable reviewed input."""
+    required, _ = reviewed_proof_requirements(root)
+    return {(package,target,path,name) for suite,package,target,path,name,_ in required
+            if suite == 'conformance/provider-traces/v1.4.0'}
 
 
 def validate_adapter_proofs(suite: dict, inventory: dict, root: Path = ROOT) -> None:
-    """An executable logical adapter suite must retain every exact proof route."""
-    if suite["status"] == "accepted-limit":
-        return
-    references = {(item["path"], item.get("anchor")) for item in suite["evidence"]}
-    for package, target, name, features in sorted(adapter_proof_requirements(inventory)):
-        path = f"crates/{package}/tests/{target}.rs"
-        require((path, "test:" + name) in references,
-                f"retained adapter proof missing exact anchor: {path}#{name}")
-        commands = [command for command in suite["commands"] if command[:2] == ["cargo", "test"]
-                    and command[command.index("-p") + 1] == package
-                    and command[command.index("--test") + 1] == target]
-        require(bool(commands), f"retained adapter proof missing target: {package}/{target}")
-        manifest = tomllib.loads(public_file(root, f"crates/{package}/Cargo.toml").read_text())
-        require(any(set(features) <= cargo_features(command, manifest) for command in commands),
-                f"retained adapter proof missing profile: {package}/{target}#{name}:{list(features)}")
+    require(suite['status'] == 'executable', 'selected adapter family must be executable')
+    references = {(item['path'], item.get('anchor')) for item in suite['evidence']}
+    checked = set()
+    for package, target, path, name in sorted(adapter_proof_requirements(inventory, root)):
+        commands = [command for command in suite['commands'] if command[:2] == ['cargo', 'test']
+                    and command[command.index('-p') + 1] == package
+                    and command[command.index('--test') + 1] == target]
+        require(bool(commands), f'retained adapter proof missing target: {package}/{target}')
+        require((path, 'test:' + name) in references,
+                f'retained adapter proof missing exact anchor: {path}#{name}')
+        for command in commands:
+            identity = tuple(command)
+            if identity not in checked:
+                check_command(command, suite['evidence'], root)
+                checked.add(identity)
 
 
-class Resolver:
-    """Resolve declarations and watched package reexports through pinned blobs."""
-
-    def __init__(self, map_data: dict, entries: list, checkout: Path):
-        self.map = map_data
-        self.commit = map_data["upstream"]["commit"]
-        self.checkout = checkout
-        self.routes = {entry.path: entry for entry in entries}
-        self.surfaces = {surface["id"]: surface for surface in map_data["surface"]}
-        self.owners = {owner["id"]: owner for owner in map_data["owner"]}
-        self.sources = {}
-        self.selections = {}
-        self.packages = {}
-        self.package_symbols = {}
-        for selector in map_data["selector"]:
-            path = selector["path"]
-            selected = validator.selector_line_set(selector, self.lines(path))
-            for line in selected:
-                key = (path, line + 1)
-                require(key not in self.selections or not self.lines(path)[line].strip(),
-                        f"overlapping selector: {path}:{line + 1}")
-                self.selections[key] = selector["surface"]
-        for entry in entries:
-            if entry.path.endswith("/package.json"):
-                package = json.loads("\n".join(self.lines(entry.path)))
-                if isinstance(package.get("name"), str) and "exports" in package:
-                    require(package["name"] not in self.packages, f"ambiguous watched package: {package['name']}")
-                    self.packages[package["name"]] = entry.path.rsplit("/", 1)[0]
-
-    def lines(self, path: str) -> list[str]:
-        if path not in self.sources:
-            self.sources[path] = validator.git_blob(self.checkout, self.commit, path).decode().splitlines()
-        return self.sources[path]
-
-    def surface(self, path: str, line: int | None = None) -> str:
-        require(path in self.routes, f"unrouted source obligation: {path}")
-        if line is not None and any(selector["path"] == path for selector in self.map["selector"]):
-            require((path, line) in self.selections, f"source obligation outside selector: {path}:{line}")
-            return self.selections[path, line]
-        return self.routes[path].surface
-
-    def owner(self, surface: str, obligation: str) -> str:
-        require(surface in self.surfaces, f"{obligation}: unknown surface {surface}")
-        record = self.surfaces[surface]
-        owner = record["primary_owner"]
-        require(owner in self.owners, f"{obligation}: {surface} missing owner {owner}")
-        expected = "outside-scope" if record["disposition"] == "outside-scope" else "rust"
-        require(self.owners[owner]["kind"] == expected, f"{obligation}: {surface} wrong owner kind {owner}")
-        return owner
-
-    def external_name(self, path: str, origin: str, name: str, active: tuple = ()) -> str:
-        """Recover an external alias from the pinned reexport clauses.
-
-        The historical projection deliberately records the exported spelling and
-        package specifier, not the imported spelling. Follow only its existing
-        relative-barrel grammar using the established source-path resolver.
-        """
-        key = (path, origin, name)
-        require(key not in active, f"cyclic external alias: {key}")
-        text = "\n".join(self.lines(path))
-        names = set()
-        pattern = r'export\s+(?:type\s+)?\{(.*?)\}\s*from\s*["\']([^"\']+)["\']\s*;'
-        for body, specifier in re.findall(pattern, text, re.DOTALL):
-            for item in body.split(","):
-                item = re.sub(r"/\*.*?\*/", "", item, flags=re.DOTALL).strip()
-                item = re.sub(r"^type\s+", "", item)
-                parts = re.split(r"\s+as\s+", item)
-                if parts[-1].strip() != name:
-                    continue
-                source_name = parts[0].strip()
-                if specifier == origin:
-                    names.add(source_name)
-                elif specifier.startswith("."):
-                    target = projections.resolve_source_path(path, specifier, set(self.routes))
-                    require(target is not None, f"missing external alias barrel: {path}:{specifier}")
-                    names.add(self.external_name(target, origin, source_name, (*active, key)))
-        for specifier in re.findall(r'export\s+\*\s+from\s+["\']([^"\']+)["\']\s*;', text):
-            target = projections.resolve_source_path(path, specifier, set(self.routes))
-            if target is None:
-                continue
-            symbols = projections.exported_symbols(self.checkout, self.commit, target,
-                                                     set(self.routes), {})
-            if name in symbols and symbols[name][1] == origin:
-                names.add(self.external_name(target, origin, name, (*active, key)))
-        require(len(names) == 1, f"missing or ambiguous pinned external alias: {key}")
-        return names.pop()
-
-    def export(self, symbol: dict, *, active: tuple = ()) -> str:
-        origin, name = symbol["origin"], symbol["name"]
-        if origin == "typebox":
-            require(name in {"Type", "Static", "TSchema"} and symbol["origin_line"] == 0
-                    and not symbol["origin_declaration"], f"unreviewed external schema projection: {name}")
-            return "external"
-        if origin.startswith("packages/"):
-            line = symbol["origin_line"]
-            require(isinstance(line, int) and 0 < line <= len(self.lines(origin))
-                    and self.lines(origin)[line - 1].strip() == symbol["origin_declaration"],
-                    f"stale declaration: {origin}:{name}")
-            return self.surface(origin, line)
-        require(symbol["origin_line"] == 0 and not symbol["origin_declaration"],
-                f"external reexport carries local declaration: {origin}:{name}")
-        candidates = [(package, root) for package, root in self.packages.items()
-                      if origin == package or origin.startswith(package + "/")]
-        require(len(candidates) == 1, f"unresolved watched package reexport: {origin}:{name}")
-        package, package_root = candidates[0]
-        subpath = "." + origin[len(package):]
-        source_name = self.external_name(symbol["source_path"], origin, name)
-        key = (package, subpath, source_name)
-        require(key not in active, f"cyclic package reexport: {key}")
-        if package not in self.package_symbols:
-            self.package_symbols[package] = tomllib.loads(projections.exports_manifest(
-                self.commit, self.checkout, package_root, "assembly-package"))["symbol"]
-        matches = [item for item in self.package_symbols[package]
-                   if item["subpath"] == subpath and item["name"] == source_name]
-        require(len(matches) == 1, f"missing or ambiguous package export: {key}")
-        namespaces = {"type": {"type"}, "value": {"value"}, "type-and-value": {"type", "value"}}
-        require(namespaces[symbol["kind"]] <= namespaces[matches[0]["kind"]],
-                f"package export namespace loss: {key}")
-        return self.export(matches[0], active=(*active, key))
+def validate_preserved_inputs(references: list[dict], root: Path = ROOT) -> None:
+    """Retain historical fixture bytes and their immutable Pirua baseline origin."""
+    try:
+        if __package__:
+            from .upstream_objects import Objects
+        else:
+            from upstream_objects import Objects
+        seen = set()
+        for reference in references:
+            require(reference.get('source_revision') == HISTORICAL_SOURCE_REVISION,
+                    'historical evidence origin changed: ' + reference.get('path', ''))
+            require(reference['path'] not in seen, 'duplicate historical evidence identity')
+            seen.add(reference['path'])
+            path = public_file(root, reference['path'])
+            require(hashlib.sha256(path.read_bytes()).hexdigest() == reference['sha256'],
+                    'preserved source/fixture identity changed: ' + reference['path'])
+        objects = Objects(root)
+        tree = objects.tree(HISTORICAL_SOURCE_REVISION)
+        for reference in references:
+            require(reference['path'] in tree and hashlib.sha256(objects.blob(tree[reference['path']])).hexdigest() == reference['sha256'],
+                    'historical evidence differs from immutable repository origin: ' + reference['path'])
+    except (KeyError, OSError) as error:
+        raise AssemblyError('historical evidence identity unavailable') from error
 
 
 def check_assembly(map_path: Path, registry_path: Path, root: Path = ROOT) -> dict:
-    """Return deterministic structural totals and named unresolved obligations."""
-    errors, totals, resolved = [], {}, []
-    map_data = tomllib.loads(map_path.read_text(encoding="utf-8"))
-    topology = tomllib.loads((root / "workspace-topology.toml").read_text())
-    _, entries, _ = validator.validate_upstream_map(
-        map_path, set(topology["production_crates"]), errors, permit_pending_digest=False)
-    require(map_data["upstream"]["commit"] == ai.SOURCE_COMMIT, "assembly requires the accepted pinned baseline")
-    checkout = resolve_upstream(map_data["upstream"]["checkout"])
-    resolver = Resolver(map_data, entries, checkout)
+    """Join all target source paths/exports/tests/providers to static proof routes."""
+    snapshot = projections.build_snapshot(map_path)
+    expected = projections.outputs(snapshot)
+    for path, content in expected.items():
+        relative = path.relative_to(projections.ROOT)
+        require((root/relative).read_text() == content, f'stale pinned manifest: {relative}')
     registry = load_json(registry_path)
-    labels = {name for surface in map_data["surface"] for name in surface["conformance"]}
-    try:
-        suites = validate_registry(registry, labels, root)
-    except (AssemblyError, IndexError, KeyError, SyntaxError) as error:
-        raise AssemblyError(f"proof registry: {error}") from error
-
+    require(registry.get('source_commit') == snapshot.commit, 'proof registry source identity differs from pinned map')
+    labels = {name for surface in snapshot.surfaces.values() for name in surface['conformance']}
+    validate_reviewed_proofs(registry, root)
+    suites = validate_registry(registry, labels, root)
+    validate_adapter_proofs(suites['conformance/provider-traces/v1.4.0'], {}, root)
+    if __package__:
+        from .generate_assembly_registry import expected_registry
+    else:
+        from generate_assembly_registry import expected_registry
+    require(registry == expected_registry(root), 'stale generated proof registry; review source changes before refresh')
+    errors, resolved = [], []
     def obligation(surface, identity):
-        try:
-            owner = resolver.owner(surface, identity)
-            surface_data = resolver.surfaces[surface]
-            if surface_data["disposition"] == "included":
-                require(bool(surface_data["conformance"]), f"{identity}: {surface} has no proof suites")
-                for suite in surface_data["conformance"] if suites else []:
-                    require(suite in suites, f"{identity}: {surface} missing proof {suite}")
-            resolved.append({"id": identity, "surface": surface, "owner": owner})
-        except AssemblyError as error:
-            errors.append(str(error))
-
-    # Recompute all seven manifests through the established inert pinned readers.
-    expected = {
-        "routes": projections.route_manifest(resolver.commit, entries),
-        "tests": projections.test_manifest(resolver.commit, checkout, entries,
-                                            projections.selector_surfaces_by_path(map_data)),
-        "ai-exports": projections.exports_manifest(resolver.commit, checkout, "packages/ai", "ai"),
-        "agent-exports": projections.exports_manifest(resolver.commit, checkout, "packages/agent", "agent"),
-        "providers": projections.providers_manifest(resolver.commit, checkout),
-        "catalog-inputs": projections.catalog_inputs_manifest(resolver.commit, checkout, entries),
-        "harness-headings": projections.heading_manifest(resolver.commit, checkout),
-    }
-    manifests = {}
-    for name, text in expected.items():
-        require((root / f"upstream/manifests/{name}.toml").read_text() == text,
-                f"stale pinned manifest: {name}")
-        manifests[name] = tomllib.loads(text)
-    require(len(entries) == 1144, "watched path universe must retain 1144 entries")
-    for entry in entries:
-        obligation(entry.surface, "path:" + entry.path)
-    totals["watched_paths"] = len(entries)
-    totals["source_dispositions"] = dict(sorted(Counter(s["disposition"] for s in map_data["surface"]).items()))
-    for package, count in (("ai", 699), ("agent", 675)):
-        symbols = manifests[package + "-exports"]["symbol"]
-        require(len(symbols) == count, f"{package} export occurrence universe changed")
-        surfaces = Counter()
-        for symbol in symbols:
-            identity = f"export:{package}:{symbol['subpath']}:{symbol['name']}"
-            try:
-                surface = resolver.export(symbol)
-                surfaces[surface] += 1
-                if surface == "external":
-                    require(package == "ai" and f"{symbol['subpath']}:{symbol['name']}" in ai.EXTERNAL_KEYS,
-                            f"unreviewed external occurrence: {identity}")
-                    require("conformance/ai-domain" in suites, f"{identity}: missing external projection evidence")
-                else:
-                    obligation(surface, identity)
-            except AssemblyError as error:
-                errors.append(f"{identity}: {error}")
-        totals[package + "_exports"] = {"occurrences": len(symbols), "surfaces": dict(sorted(surfaces.items()))}
-    for test in manifests["tests"]["test"]:
-        for surface in test["evidence_surfaces"]:
-            obligation(surface, "upstream-test:" + test["path"])
-    totals["upstream_test_paths"] = len(manifests["tests"]["test"])
-    validator.validate_catalog_provenance(map_data, manifests["catalog-inputs"], errors)
-    totals["catalog_inputs"] = len(manifests["catalog-inputs"]["input"])
-    totals["historical_catalog_provenance"] = manifests["catalog-inputs"]["provenance_status"]
-
-    behavior = ai.expected_behavior_inventory(root)
-    require((root / "conformance/ai-domain/behavior-inventory.json").read_text() == ai.json_text(behavior),
-            "AI behavior inventory differs from its source-bound fragments")
-    mapping_text = (root / "conformance/ai-domain/export-mapping.toml").read_text()
-    inventory, _ = ai.build_export_inventory(manifests["ai-exports"],
-        ai.manifest_body_digest(expected["ai-exports"]), tomllib.loads(mapping_text),
-        ai.mapping_digest(mapping_text), manifests["routes"], map_data, behavior, root)
-    require((root / "conformance/ai-domain/inventory.json").read_text() == ai.json_text(inventory),
-            "AI export inventory differs from its source-bound proof mapping")
-    if "conformance/provider-traces" in suites:
-        validate_adapter_proofs(suites["conformance/provider-traces"], inventory, root)
-    for row in inventory["rows"]:
-        if row["surface"] != "external":
-            obligation(row["surface"], "ai-evidence:" + row["key"])
-    # Local normative contract references require explicit source seams, not
-    # historical evidence-owner strings. Line-specific upstream sources use selectors.
-    test_definitions = set()
-    for path in (root / "crates").glob("**/*.rs"):
-        test_definitions.update(active_tests(path.read_text(encoding="utf-8")))
-    for row in behavior["rows"]:
-        require(row["test"] in test_definitions, f"behavior {row['id']}: missing actual test definition {row['test']}")
-        source = row["source"]
-        path = source.split("@", 1)[0].split(":", 1)[0].split("#", 1)[0]
-        if "@" in source:
-            location = source.split("@", 1)[1].split(":", 1)
-            line = int(location[1].split("-", 1)[0]) if len(location) == 2 else None
-            source_paths = [(path, line)]
-        else:
-            source_paths = [(value, None) for value in registry["behavior_contract_sources"].get(path, [])]
-            require(bool(source_paths), f"behavior {row['id']}: unbound local contract {path}")
-        for source_path, line in source_paths:
-            obligation(resolver.surface(source_path, line), "ai-behavior:" + row["id"])
-    totals["ai_behavior_rows"] = len(behavior["rows"])
-    totals["ai_export_dispositions"] = inventory["dispositionTotals"]
-    scope = ai.validate_selected_provider_scope(inventory["rows"], root)
-    totals["selected_scope_occurrences"] = len(scope["rows"])
-    providers = manifests["providers"]["provider"]
-    require(len(providers) == 42, "provider identity universe must retain 42 entries")
-    selected = {(item["kind"], item["module"]) for item in scope["selectedSourceEntries"]}
-    provider_counts = Counter()
-    for provider in providers:
-        path = f"packages/ai/src/providers/{provider['module']}.ts"
-        obligation(resolver.surface(path), f"provider:{provider['kind']}:{provider['module']}")
-        classification = "selected_" + provider["kind"] if (provider["kind"], provider["module"]) in selected else "excluded_" + provider["kind"]
-        provider_counts[classification] += 1
-    require(dict(provider_counts) == {"excluded_text": 34, "selected_text": 6, "selected_image": 1, "excluded_faux-testkit": 1},
-            f"provider selected/excluded partition changed: {dict(provider_counts)}")
-    totals["provider_identities"] = dict(sorted(provider_counts.items()))
-    factory_source = (root / "crates/pi-ai-providers/src/providers/mod.rs").read_text()
-    factory_modules = re.findall(r'#\[cfg\(feature = "provider-([^"\n]+)"\)\]\s*mod\s+(\w+);', factory_source)
-    require(set(factory_modules) == {(module, module.replace("-", "_"))
-                                    for kind, module in selected if kind == "text"},
-            "Rust factory modules must retain exactly the six selected text entrances")
-    image_modules = re.findall(r'#\[cfg\(feature = "images-([^"\n]+)"\)\]\s*mod\s+(\w+);', factory_source)
-    require(image_modules == [("openrouter", "openrouter_images")],
-            "Rust factory modules must retain the separate selected image entrance")
-    for _, module in factory_modules + image_modules:
-        public_file(root, f"crates/pi-ai-providers/src/providers/{module}.rs")
-    selectors = [s for s in map_data["selector"] if s["path"] == HARNESS]
-    build_rows = [s for s in selectors if s["id"].startswith("harness.slice-")]
-    require(len(selectors) == 37 and len(build_rows) == 18, "Harness selector/build-row universe changed")
-    for selector in selectors:
-        obligation(selector["surface"], "selector:" + selector["id"])
-    totals["harness_selectors"], totals["harness_build_rows"] = len(selectors), len(build_rows)
-
-    legacy = load_json(root / "conformance/agent-loop/manifest.json")
-    require([(row["id"], row["status"]) for row in legacy["denominator"]] ==
-            [(f"U{i}", status) for i, status in enumerate(LEGACY_STATUSES, 1)], "legacy U1-U14 identities/statuses changed")
-    require(len(legacy["positiveRows"]) == len(legacy["negatives"]) == 12, "legacy corpus must retain 12/12 rows")
-    for row in legacy["denominator"]:
-        path = registry["legacy_sources"].get(row["id"])
-        require(path is not None, f"legacy {row['id']}: missing source seam")
-        obligation(resolver.surface(path), "legacy:" + row["id"])
-        if row["status"] != "source-confirmed":
-            require(row["id"] in registry["legacy_limits"], f"legacy {row['id']}: missing accepted-limit evidence")
-            check_reference(registry["legacy_limits"][row["id"]], root)
-            for label in resolver.surfaces[resolver.surface(path)]["conformance"]:
-                require(suites.get(label, {}).get("status") == "accepted-limit",
-                        f"legacy {row['id']}: {label} must preserve accepted-limit status")
-    bridge = (root / "crates/pi-agent/tests/agent_observation_bridge.rs").read_text()
-    bridge_body = bridge.split("fn actual_rust_agent_observations_compare_through_node_for_representable_rows()", 1)[1]
-    actual_ids = re.findall(r'"([a-z_]+\.[a-z_.]+)"', bridge_body)
-    require(tuple(actual_ids) == BRIDGE_IDS, "actual legacy bridge must retain exactly five observed IDs")
-    totals["legacy_denominator_statuses"] = dict(sorted(Counter(LEGACY_STATUSES).items()))
-    totals["legacy_corpus_rows"], totals["legacy_actual_bridge_rows"] = 12, len(actual_ids)
-    coding = load_json(root / "conformance/coding-runtime/manifest.json")
-    require(tuple(row["id"] for row in coding["positiveRows"]) == CODING_IDS,
-            "coding operation identities/order changed")
-    require(len(coding["negatives"]) == 18 and coding["pendingRows"] == [], "coding corpus must retain 18/18/0")
-    for row in coding["positiveRows"]:
-        paths = registry["coding_sources"].get(row["id"], [])
-        require(bool(paths), f"coding {row['id']}: missing source seams")
-        for path in paths:
-            obligation(resolver.surface(path), "coding:" + row["id"])
-    coding_bridge = (root / "crates/pi-coding-runtime/tests/coding_runtime_conformance.rs").read_text()
-    coding_body = coding_bridge.split("fn assembled_coding_runtime_rows_compare_through_node()", 1)[1].split("#[test]", 1)[0]
-    require(tuple(re.findall(r'^        "([a-z0-9_.]+)",$', coding_body, re.MULTILINE)) == CODING_IDS,
-            "coding bridge operation identities/order changed")
-    require('cfg!(feature = "extensions") { 18 } else { 17 }' in coding_body
-            and 'extension.participation_ordering requires the extensions feature' in coding_body,
-            "coding feature applicability lost")
-    totals["coding_operations"] = {"positive": 18, "negative": 18, "pending": 0, "default_applicable": 17, "extensions_applicable": 18}
-    for reference in registry["preserved_inputs"]:
-        path = public_file(root, reference["path"])
-        require(hashlib.sha256(path.read_bytes()).hexdigest() == reference["sha256"],
-                f"preserved source/fixture identity changed: {reference['path']}")
-    totals["proof_suites"] = dict(sorted(Counter(row["status"] for row in suites.values()).items()))
-    totals["proof_commands_defined"] = sum(len(row["commands"]) for row in suites.values())
-    totals["proof_commands_executed"] = 0
-    return {"schema_version": 1, "source_commit": resolver.commit, "totals": totals,
-            "unresolved": sorted(set(errors)), "resolved": resolved}
+        record = snapshot.surfaces[surface]
+        owner = record['primary_owner']
+        require(owner in snapshot.registrations, f'{identity}: missing owner {owner}')
+        if record['disposition'] == 'included':
+            require(record['conformance'], f'{identity}: included source has no proof suite')
+            for suite in record['conformance']:
+                require(suite in suites, f'{identity}: missing proof suite {suite}')
+                commands = suites[suite]['commands']
+                crate = snapshot.registrations[owner]['crate']
+                require(any(command[:2] == ['cargo', 'test'] and command[command.index('-p') + 1] == crate for command in commands),
+                        f'{identity}: source owner {owner} has no concrete package test command')
+        resolved.append({'id':identity, 'surface':surface, 'owner':owner})
+    for path, route in snapshot.routes.items():
+        obligation(route['surface'], 'path:' + path)
+    for row in snapshot.inventory.values():
+        if row['family'] in {'exports', 'tests', 'providers', 'generator-inputs'}:
+            obligation(row['surface'], row['family'] + ':' + row['key'])
+    validate_preserved_inputs(registry['preserved_inputs'], root)
+    totals = {'watched_paths':len(snapshot.routes),
+              'watched_packages':{row['id']:row['baseline_path_count'] for row in snapshot.data['watch']},
+              'source_dispositions':dict(sorted(Counter(row['disposition'] for row in snapshot.surfaces.values()).items())),
+              'upstream_test_paths':sum(row['family'] == 'tests' for row in snapshot.inventory.values()),
+              'proof_suites':dict(sorted(Counter(row['status'] for row in suites.values()).items())),
+              'proof_commands_defined':sum(len(row['commands']) for row in suites.values()),
+              'proof_commands_executed':0}
+    for package in ['ai', 'agent']:
+        symbols = tomllib.loads(expected[projections.ROOT/f'upstream/manifests/{package}-exports.toml'])['symbol']
+        totals[package + '_exports'] = {'occurrences':len(symbols), 'surfaces':dict(sorted(Counter(row['surface'] for row in symbols).items()))}
+    providers = [row for row in snapshot.inventory.values() if row['family'] == 'providers']
+    totals['provider_identities'] = dict(sorted(Counter(('selected_' if snapshot.surfaces[row['surface']]['disposition'] == 'included' else 'excluded_') + row['payload']['namespace'] for row in providers).items()))
+    totals['catalog_provenance'] = snapshot.surfaces['ai.catalog.projection']['provenance_kind']
+    return {'schema_version':1, 'source_commit':snapshot.commit, 'totals':totals,
+            'unresolved':sorted(set(errors)), 'resolved':resolved}
 
 
 def main() -> int:
@@ -790,7 +784,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         result = check_assembly(args.map.resolve(), args.registry.resolve())
-    except (AssemblyError, ai.ConformanceError, OSError, RuntimeError, ValueError, KeyError, IndexError, TypeError) as error:
+    except (AssemblyError, OSError, RuntimeError, ValueError, KeyError, IndexError, TypeError) as error:
         print(f"assembly error: {error}", file=sys.stderr)
         return 1
     if args.json:

@@ -1,7 +1,0 @@
-{
-  "authority": "conformance/session/legacy-v3/README.md; deterministic UUIDv7/SHA256 normalization",
-  "independentDerivation": "Python hashlib.sha256 and uuid.UUID; first74 digest bits split into12+62",
-  "leafId": "00000000-0002-7e83-9324-7e0685225a90",
-  "formatAfterAcknowledgment": 4,
-  "aggregateRows": 1
-}

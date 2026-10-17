@@ -8,7 +8,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CHECKOUT = "upstream/pi-mono"
-PIN = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
+PIN = "4a080252f06caf63a525d7873c5d94d3c23887e0"
 
 
 def resolve_upstream(checkout: str | None = None, *, root: Path = ROOT) -> Path:

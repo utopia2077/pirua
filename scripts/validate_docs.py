@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate design structure, the 15-crate DAG, and pinned upstream routing."""
+"""Validate public links, documented Cargo boundaries and pinned upstream routing."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import sys
 import tomllib
 from collections import defaultdict, deque
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -23,21 +24,11 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TOPOLOGY_DOC = ROOT / "docs/architecture/02-crate-topology.md"
 DEFAULT_TOPOLOGY_MAP = ROOT / "workspace-topology.toml"
-APPROVED_DEV_EDGES = {("pi-harness-runtime", "pi-agent-sqlite")}
+APPROVED_DEV_EDGES: set[tuple[str, str]] = set()
 DEFAULT_UPSTREAM_MAP = ROOT / "upstream-map.toml"
 PROPOSAL = ROOT / "docs/scope.md"
 PLAN = ROOT / "docs/verification-plan.md"
 
-PROPOSAL_SECTIONS = [
-    "Status",
-    "Intent type",
-    "Why now",
-    "Scope",
-    "Affected modules / capabilities",
-    "Stakeholders / Approver",
-    "Success criteria",
-    "Risks & open questions",
-]
 AUTHORITY_CLASSES = {
     "target-spec",
     "source-and-tests",
@@ -49,7 +40,6 @@ AUTHORITY_CLASSES = {
 }
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
 CRATE_ROW = re.compile(r"^\|\s*(\d+)\s*\|\s*`([^`]+)`\s*\|", re.MULTILINE)
-PLAN_SLICE = re.compile(r"^###\s+(S\d{2}):", re.MULTILINE)
 HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 
 
@@ -115,6 +105,7 @@ def git_blob(checkout: Path, commit: str, path: str) -> bytes:
     return raw
 
 
+@lru_cache(maxsize=None)
 def compile_glob(pattern: str) -> re.Pattern[str]:
     output = ["^"]
     index = 0
@@ -229,22 +220,6 @@ def validate_text_format(source: Path, text: str, errors: list[str]) -> None:
     for line_number, line in enumerate(text.splitlines(), start=1):
         if line != line.rstrip():
             errors.append(f"trailing whitespace: {label}:{line_number}")
-
-
-def validate_proposal(errors: list[str]) -> None:
-    text = PROPOSAL.read_text(encoding="utf-8")
-    headings = re.findall(r"^##\s+(.+?)\s*$", text, re.MULTILINE)
-    positions: list[int] = []
-    for section in PROPOSAL_SECTIONS:
-        if section not in headings:
-            errors.append(f"proposal missing required section: {section}")
-            continue
-        positions.append(headings.index(section))
-    if len(positions) == len(PROPOSAL_SECTIONS) and positions != sorted(positions):
-        errors.append("proposal required sections are out of order")
-    status = re.search(r"^## Status\s+([^#]+?)\s*(?=^## )", text, re.MULTILINE | re.DOTALL)
-    if status is None or status.group(1).strip() != "accepted":
-        errors.append("proposal status must be exactly 'accepted'")
 
 
 def link_target(source: Path, raw_target: str) -> Path | None:
@@ -374,8 +349,7 @@ def validate_topology(
         indegree[consumer] += 1
     if seen_dev_edges != APPROVED_DEV_EDGES:
         errors.append(
-            "dev-only edge inventory must be exactly "
-            "pi-harness-runtime -> pi-agent-sqlite"
+            "no dev-only internal edge is authorized"
         )
 
     ready = deque(sorted(crate for crate, count in indegree.items() if count == 0))
@@ -434,17 +408,6 @@ def validate_topology(
     return crate_set
 
 
-def validate_plan(errors: list[str]) -> None:
-    text = PLAN.read_text(encoding="utf-8")
-    slices = PLAN_SLICE.findall(text)
-    expected = [f"S{number:02d}" for number in range(1, 17)]
-    if slices != expected:
-        errors.append(f"plan slices must be exactly S01..S16, got {slices}")
-    revision = re.search(r"^revision:\s*(\d+)\s*$", text, re.MULTILINE)
-    if revision is None or int(revision.group(1)) < 5:
-        errors.append("plan revision must include the corrected Harness build order")
-
-
 def validate_upstream_map(
     map_path: Path,
     crates: set[str],
@@ -474,6 +437,15 @@ def validate_upstream_map(
     assert isinstance(resolved, str)
     if resolved.strip() != commit:
         errors.append(f"upstream commit must be full and canonical: {commit}")
+
+    try:
+        if __package__:
+            from .upstream_inventory import validate_map
+        else:
+            from upstream_inventory import validate_map
+        validate_map(data)
+    except ValueError as error:
+        errors.append('invalid upstream map: ' + str(error))
 
     policy = data.get("policy", {})
     if set(policy.get("authority_classes", [])) != AUTHORITY_CLASSES:
@@ -804,98 +776,39 @@ def validate_catalog_provenance(
 
 
 def validate_manifests(map_data: dict[str, object], errors: list[str]) -> None:
-    manifests = map_data.get("manifest", [])
-    manifest_ids: set[str] = set()
-    for manifest in manifests:
-        manifest_id = manifest.get("id")
-        if not manifest_id or manifest_id in manifest_ids:
-            errors.append(f"duplicate or missing manifest id: {manifest_id}")
-            continue
-        manifest_ids.add(manifest_id)
-        path = ROOT / manifest.get("path", "")
-        if not path.is_file():
-            errors.append(f"generated upstream manifest missing: {path.relative_to(ROOT)}")
-    if errors:
+    """Validate current manifest shape and recompute every immutable projection."""
+    manifests = map_data.get('manifest', [])
+    ids = [row.get('id') for row in manifests]
+    if len(ids) != len(set(ids)) or not all(ids):
+        errors.append('duplicate or missing manifest id')
         return
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/generate_upstream_manifests.py"), "--check"],
-        cwd=ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        errors.append(
-            "upstream manifests are stale: "
-            + (result.stdout + result.stderr).strip()
-        )
+    declared = {row.get('path') for row in manifests}
+    actual = {str(path.relative_to(ROOT)) for path in (ROOT/'upstream/manifests').glob('*.toml')}
+    if declared != actual:
+        errors.append('generated upstream manifest destination universe differs')
         return
-
-    routes = load_toml(ROOT / "upstream/manifests/routes.toml").get("entry", [])
-    route_keys = [(entry.get("watch"), entry.get("path")) for entry in routes]
-    expected_route_count = sum(
-        watch.get("baseline_path_count", 0) for watch in map_data.get("watch", [])
-    )
-    if len(routes) != expected_route_count or len(set(route_keys)) != len(route_keys):
-        errors.append("route manifest must contain one unique entry per watched pinned path")
-
-    for name in ("ai", "agent"):
-        exports = load_toml(ROOT / f"upstream/manifests/{name}-exports.toml")
-        symbols = exports.get("symbol", [])
-        identities = [(item.get("subpath"), item.get("name")) for item in symbols]
-        if not symbols or len(identities) != len(set(identities)):
-            errors.append(f"{name} export manifest lacks a unique symbol inventory")
-        invalid_kinds = {
-            item.get("kind")
-            for item in symbols
-            if item.get("kind") not in {"type", "value", "type-and-value"}
-        }
-        if invalid_kinds:
-            errors.append(f"{name} export manifest has invalid symbol kinds: {invalid_kinds}")
-
-    providers = load_toml(ROOT / "upstream/manifests/providers.toml").get("provider", [])
-    required_provider_fields = {
-        "module",
-        "factory_symbol",
-        "kind",
-        "dynamic",
-        "provider_ids",
-        "api_ids",
-        "has_oauth",
-        "oauth_flows",
-        "catalog_symbol",
-    }
-    if not any(provider.get("factory_symbol") == "fauxProvider" for provider in providers):
-        errors.append("provider manifest must include public fauxProvider")
-    for provider in providers:
-        missing = required_provider_fields - provider.keys()
-        if missing:
-            errors.append(
-                f"provider {provider.get('factory_symbol')} lacks fields: {sorted(missing)}"
-            )
-
-    tests = load_toml(ROOT / "upstream/manifests/tests.toml").get("test", [])
-    tests_by_path = {test.get("path"): test for test in tests}
-    if any(not test.get("evidence_surfaces") for test in tests):
-        errors.append("every test manifest entry must name at least one evidence surface")
-    expected_test_routing = {
-        "packages/ai/test/provider-retry.test.ts": {"ai.transport-utils"},
-        "packages/ai/test/retry.test.ts": {"ai.domain", "ai.retry-compat"},
-        "packages/coding-agent/test/model-registry.test.ts": {"coding.models"},
-        "packages/coding-agent/test/interactive-tui.test.ts": {"coding.package-host"},
-    }
-    for path, surfaces in expected_test_routing.items():
-        actual = set(tests_by_path.get(path, {}).get("evidence_surfaces", []))
-        if not surfaces.issubset(actual):
-            errors.append(
-                f"test manifest misroutes representative test: {path} -> {sorted(surfaces)}"
-            )
-
-    catalog_inputs = load_toml(ROOT / "upstream/manifests/catalog-inputs.toml")
-    validate_catalog_provenance(map_data, catalog_inputs, errors)
-    input_paths = {item.get("path") for item in catalog_inputs.get("input", [])}
-    if "packages/ai/src/api/cloudflare.ts" not in input_paths:
-        errors.append("catalog input manifest must include imported cloudflare constants")
+    result = subprocess.run([sys.executable, str(ROOT/'scripts/generate_upstream_manifests.py'), '--check'],
+                            cwd=ROOT, check=False, capture_output=True, text=True)
+    if result.returncode:
+        errors.append('upstream manifests are stale: ' + (result.stdout + result.stderr).strip())
+        return
+    routes = load_toml(ROOT/'upstream/manifests/routes.toml').get('entry', [])
+    keys = [(row.get('watch'), row.get('path')) for row in routes]
+    expected = sum(row['baseline_path_count'] for row in map_data['watch'])
+    if len(keys) != expected or len(set(keys)) != expected:
+        errors.append('route manifest must contain one unique entry per watched pinned path')
+    surfaces = {row['id'] for row in map_data['surface']}
+    for name in ['ai', 'agent']:
+        symbols = load_toml(ROOT/f'upstream/manifests/{name}-exports.toml').get('symbol', [])
+        keys = [(row.get('subpath'), row.get('name')) for row in symbols]
+        if not keys or len(keys) != len(set(keys)):
+            errors.append(name + ' export manifest lacks a unique symbol inventory')
+        if any(row.get('kind') not in {'type', 'value', 'type-and-value'} or row.get('surface') not in surfaces for row in symbols):
+            errors.append(name + ' export manifest has invalid namespace or source owner')
+    tests = load_toml(ROOT/'upstream/manifests/tests.toml').get('test', [])
+    if any(not row.get('evidence_surfaces') or not set(row['evidence_surfaces']) <= surfaces for row in tests):
+        errors.append('every test manifest entry must name valid source-bound evidence surfaces')
+    validate_catalog_provenance(map_data, load_toml(ROOT/'upstream/manifests/catalog-inputs.toml'), errors)
 
 
 def main() -> int:
@@ -910,10 +823,8 @@ def main() -> int:
             print(f"error: {error}", file=sys.stderr)
         return 1
 
-    validate_proposal(errors)
     markdown_count = validate_links_and_format(errors)
     crates = validate_topology(args.topology.resolve(), args.topology_map.resolve(), errors)
-    validate_plan(errors)
     route_digests, routed_entries, map_data = validate_upstream_map(
         args.map.resolve(),
         crates,

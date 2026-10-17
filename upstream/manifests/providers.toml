@@ -1,468 +1,656 @@
 manifest_version = 1
 kind = "provider-inventory"
-source_commit = "853a80d26c90a14c1886f0ebb8ffaae133ca2185"
-content_digest = "sha256:fa3b1d5042115566c9f27069fee9da60c568fd94e53019e0c24f46f58ad7fe2b"
+source_commit = "4a080252f06caf63a525d7873c5d94d3c23887e0"
+content_digest = "sha256:436eef6e303c4b6da04b9d27f21e9c55b332f2de5c8e1dca45e02822e284b252"
 
-source_path = "packages/ai/src/providers/all.ts"
-
-[[provider]]
-module = "amazon-bedrock"
-factory_symbol = "amazonBedrockProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["amazon-bedrock"]
-api_ids = ["bedrock-converse-stream"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "AMAZON_BEDROCK_MODELS"
 
 [[provider]]
-module = "ant-ling"
-factory_symbol = "antLingProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["ant-ling"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "ANT_LING_MODELS"
-
-[[provider]]
-module = "anthropic"
-factory_symbol = "anthropicProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["anthropic"]
-api_ids = ["anthropic-messages"]
-has_oauth = true
-oauth_flows = ["loadAnthropicOAuth"]
-catalog_symbol = "ANTHROPIC_MODELS"
-
-[[provider]]
-module = "azure-openai-responses"
-factory_symbol = "azureOpenAIResponsesProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["azure-openai-responses"]
-api_ids = ["azure-openai-responses"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "AZURE_OPENAI_RESPONSES_MODELS"
-
-[[provider]]
-module = "baseten"
-factory_symbol = "basetenProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["baseten"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "BASETEN_MODELS"
-
-[[provider]]
-module = "cerebras"
-factory_symbol = "cerebrasProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["cerebras"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "CEREBRAS_MODELS"
-
-[[provider]]
-module = "cloudflare-ai-gateway"
-factory_symbol = "cloudflareAIGatewayProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["cloudflare-ai-gateway"]
-api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "CLOUDFLARE_AI_GATEWAY_MODELS"
-
-[[provider]]
-module = "cloudflare-workers-ai"
-factory_symbol = "cloudflareWorkersAIProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["cloudflare-workers-ai"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "CLOUDFLARE_WORKERS_AI_MODELS"
-
-[[provider]]
-module = "deepseek"
-factory_symbol = "deepseekProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["deepseek"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "DEEPSEEK_MODELS"
-
-[[provider]]
-module = "fireworks"
-factory_symbol = "fireworksProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["fireworks"]
-api_ids = ["anthropic-messages", "openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "FIREWORKS_MODELS"
-
-[[provider]]
-module = "github-copilot"
-factory_symbol = "githubCopilotProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["github-copilot"]
-api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
-has_oauth = true
-oauth_flows = ["loadGitHubCopilotOAuth"]
-catalog_symbol = "GITHUB_COPILOT_MODELS"
-
-[[provider]]
-module = "google"
-factory_symbol = "googleProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["google"]
-api_ids = ["google-generative-ai"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "GOOGLE_MODELS"
-
-[[provider]]
-module = "google-vertex"
-factory_symbol = "googleVertexProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["google-vertex"]
-api_ids = ["google-vertex"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "GOOGLE_VERTEX_MODELS"
-
-[[provider]]
-module = "groq"
-factory_symbol = "groqProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["groq"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "GROQ_MODELS"
-
-[[provider]]
-module = "huggingface"
-factory_symbol = "huggingfaceProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["huggingface"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "HUGGINGFACE_MODELS"
-
-[[provider]]
-module = "kimi-coding"
-factory_symbol = "kimiCodingProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["kimi-coding"]
-api_ids = ["anthropic-messages"]
-has_oauth = true
-oauth_flows = ["loadKimiCodingOAuth"]
-catalog_symbol = "KIMI_CODING_MODELS"
-
-[[provider]]
-module = "minimax"
-factory_symbol = "minimaxProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["minimax"]
-api_ids = ["anthropic-messages"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "MINIMAX_MODELS"
-
-[[provider]]
-module = "minimax-cn"
-factory_symbol = "minimaxCnProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["minimax-cn"]
-api_ids = ["anthropic-messages"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "MINIMAX_CN_MODELS"
-
-[[provider]]
-module = "mistral"
-factory_symbol = "mistralProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["mistral"]
-api_ids = ["mistral-conversations"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "MISTRAL_MODELS"
-
-[[provider]]
-module = "moonshotai"
-factory_symbol = "moonshotaiProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["moonshotai"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "MOONSHOTAI_MODELS"
-
-[[provider]]
-module = "moonshotai-cn"
-factory_symbol = "moonshotaiCnProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["moonshotai-cn"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "MOONSHOTAI_CN_MODELS"
-
-[[provider]]
-module = "nvidia"
-factory_symbol = "nvidiaProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["nvidia"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "NVIDIA_MODELS"
-
-[[provider]]
-module = "openai"
-factory_symbol = "openaiProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["openai"]
-api_ids = ["openai-responses"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "OPENAI_MODELS"
-
-[[provider]]
-module = "openai-codex"
-factory_symbol = "openaiCodexProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["openai-codex"]
-api_ids = ["openai-codex-responses"]
-has_oauth = true
-oauth_flows = ["loadOpenAICodexOAuth"]
-catalog_symbol = "OPENAI_CODEX_MODELS"
-
-[[provider]]
-module = "opencode"
-factory_symbol = "opencodeProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["opencode"]
-api_ids = ["anthropic-messages", "google-generative-ai", "openai-completions", "openai-responses"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "OPENCODE_MODELS"
-
-[[provider]]
-module = "opencode-go"
-factory_symbol = "opencodeGoProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["opencode-go"]
-api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "OPENCODE_GO_MODELS"
-
-[[provider]]
-module = "openrouter"
-factory_symbol = "openrouterProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["openrouter"]
-api_ids = ["openai-completions"]
-has_oauth = true
-oauth_flows = ["loadOpenRouterOAuth"]
-catalog_symbol = "OPENROUTER_MODELS"
-
-[[provider]]
-module = "openrouter-images"
-factory_symbol = "openrouterImagesProvider"
-kind = "image"
-dynamic = false
-provider_ids = ["openrouter"]
-api_ids = []
-has_oauth = true
-oauth_flows = ["loadOpenRouterOAuth"]
-catalog_symbol = "IMAGE_MODELS.openrouter"
-
-[[provider]]
-module = "qwen-token-plan"
-factory_symbol = "qwenTokenPlanProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["qwen-token-plan"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "QWEN_TOKEN_PLAN_MODELS"
-
-[[provider]]
-module = "qwen-token-plan-cn"
-factory_symbol = "qwenTokenPlanCnProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["qwen-token-plan-cn"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "QWEN_TOKEN_PLAN_CN_MODELS"
-
-[[provider]]
-module = "qwen-token-plan-individual"
-factory_symbol = "qwenTokenPlanIndividualProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["qwen-token-plan-individual"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS"
-
-[[provider]]
-module = "radius"
-factory_symbol = "radiusProvider"
-kind = "text"
-dynamic = true
-provider_ids = ["radius"]
-api_ids = ["pi-messages"]
-has_oauth = true
-oauth_flows = ["loadRadiusOAuth"]
-catalog_symbol = ""
-
-[[provider]]
-module = "together"
-factory_symbol = "togetherProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["together"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "TOGETHER_MODELS"
-
-[[provider]]
-module = "vercel-ai-gateway"
-factory_symbol = "vercelAIGatewayProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["vercel-ai-gateway"]
-api_ids = ["anthropic-messages"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "VERCEL_AI_GATEWAY_MODELS"
-
-[[provider]]
-module = "xai"
-factory_symbol = "xaiProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["xai"]
-api_ids = ["openai-responses"]
-has_oauth = true
-oauth_flows = ["loadXaiOAuth"]
-catalog_symbol = "XAI_MODELS"
-
-[[provider]]
-module = "xiaomi"
-factory_symbol = "xiaomiProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["xiaomi"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "XIAOMI_MODELS"
-
-[[provider]]
-module = "xiaomi-token-plan-ams"
-factory_symbol = "xiaomiTokenPlanAmsProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["xiaomi-token-plan-ams"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "XIAOMI_TOKEN_PLAN_AMS_MODELS"
-
-[[provider]]
-module = "xiaomi-token-plan-cn"
-factory_symbol = "xiaomiTokenPlanCnProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["xiaomi-token-plan-cn"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "XIAOMI_TOKEN_PLAN_CN_MODELS"
-
-[[provider]]
-module = "xiaomi-token-plan-sgp"
-factory_symbol = "xiaomiTokenPlanSgpProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["xiaomi-token-plan-sgp"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "XIAOMI_TOKEN_PLAN_SGP_MODELS"
-
-[[provider]]
-module = "zai"
-factory_symbol = "zaiProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["zai"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "ZAI_MODELS"
-
-[[provider]]
-module = "zai-coding-cn"
-factory_symbol = "zaiCodingCnProvider"
-kind = "text"
-dynamic = false
-provider_ids = ["zai-coding-cn"]
-api_ids = ["openai-completions"]
-has_oauth = false
-oauth_flows = []
-catalog_symbol = "ZAI_CODING_CN_MODELS"
-
-[[provider]]
-module = "faux"
-factory_symbol = "fauxProvider"
-kind = "faux-testkit"
-dynamic = true
-provider_ids = ["faux"]
+identity = "faux-testkit::faux"
+namespace = "faux-testkit"
+id = "faux"
 api_ids = ["faux"]
-has_oauth = false
+oid = "c3771cc2c3e0662d19abab5c7e7af374011c4acb"
+factory = "fauxProvider"
+surface = "ai.facade"
+disposition = "included"
+owner = "pi-ai::selected"
+
+[[provider]]
+identity = "image::openrouter-images"
+namespace = "image-api"
+factory = "registerBuiltInImagesApiProviders"
+properties = { "api" = "\"openrouter-images\"", "generateImages" = "generateImagesOpenRouter" }
+source = { "mode" = "100644", "oid" = "08e804f54c926094e0b3b575b4d55db891cc73fb", "path" = "packages/ai/src/providers/images/register-builtins.ts", "type" = "blob" }
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::amazon-bedrock"
+namespace = "text"
+id = "amazon-bedrock"
+factory = "amazonBedrockProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "d629f1e1c3090718c782600e51f1d5228f6c3481"
+properties = { "api" = "bedrockConverseStreamApi()", "auth" = "{ apiKey: bedrockAuth }", "id" = "\"amazon-bedrock\"", "models" = "Object.values(AMAZON_BEDROCK_MODELS)", "name" = "\"Amazon Bedrock\"" }
+api_ids = ["bedrock-converse-stream"]
 oauth_flows = []
-catalog_symbol = ""
+catalog = "Object.values(AMAZON_BEDROCK_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::ant-ling"
+namespace = "text"
+id = "ant-ling"
+factory = "antLingProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "03bb314d9940f30130c7a99c0e7ad478ebc85452"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Ant Ling API key\", [\"ANT_LING_API_KEY\"]) }", "baseUrl" = "\"https://api.ant-ling.com/v1\"", "id" = "\"ant-ling\"", "models" = "Object.values(ANT_LING_MODELS)", "name" = "\"Ant Ling\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(ANT_LING_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::anthropic"
+namespace = "text"
+id = "anthropic"
+factory = "anthropicProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "0f7e8b6e9dd1d949c39c94d13578d9b2992beac8"
+properties = { "api" = "anthropicMessagesApi()", "auth" = "{\n\t\t\tapiKey: anthropicApiKeyAuth(),\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"Anthropic (Claude Pro/Max)\",\n\t\t\t\tisSubscription: true,\n\t\t\t\tload: loadAnthropicOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "\"https://api.anthropic.com\"", "id" = "\"anthropic\"", "models" = "Object.values(ANTHROPIC_MODELS)", "name" = "\"Anthropic\"" }
+api_ids = ["anthropic-messages"]
+oauth_flows = ["loadAnthropicOAuth"]
+catalog = "Object.values(ANTHROPIC_MODELS)"
+surface = "ai.providers"
+disposition = "included"
+owner = "pi-ai-providers::selected"
+
+[[provider]]
+identity = "text::azure"
+namespace = "text"
+id = "azure"
+factory = "azureProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "c2b9c1bd6f5906e105927966d295d0a8396c6ea3"
+properties = { "api" = "{\n\t\t\t\"azure-openai-responses\": azureOpenAIResponsesApi(),\n\t\t\t\"openai-completions\": azureStreams(openAICompletionsApi()),\n\t\t}", "auth" = "{ apiKey: envApiKeyAuth(\"Azure OpenAI API key\", [\"AZURE_OPENAI_API_KEY\"]) }", "id" = "\"azure\"", "models" = "Object.values(AZURE_MODELS)", "name" = "\"Azure\"" }
+api_ids = ["azure-openai-responses", "openai-completions"]
+oauth_flows = []
+catalog = "Object.values(AZURE_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::baseten"
+namespace = "text"
+id = "baseten"
+factory = "basetenProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "79371dac0d4f9e00d21a3593dd6e78c6c201b475"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Baseten API key\", [\"BASETEN_API_KEY\"]) }", "baseUrl" = "\"https://inference.baseten.co/v1\"", "id" = "\"baseten\"", "models" = "Object.values(BASETEN_MODELS)", "name" = "\"Baseten\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(BASETEN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::cerebras"
+namespace = "text"
+id = "cerebras"
+factory = "cerebrasProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "9ffc737554bc51ea9a155854bcc9d9014c49046b"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Cerebras API key\", [\"CEREBRAS_API_KEY\"]) }", "baseUrl" = "\"https://api.cerebras.ai/v1\"", "id" = "\"cerebras\"", "models" = "Object.values(CEREBRAS_MODELS)", "name" = "\"Cerebras\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(CEREBRAS_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::cloudflare-ai-gateway"
+namespace = "text"
+id = "cloudflare-ai-gateway"
+factory = "cloudflareAIGatewayProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "99d976225ad790cc86dd6954d0a6ad0b9a607e19"
+properties = { "api" = "{\n\t\t\t\"anthropic-messages\": cloudflareStreams(anthropicMessagesApi()),\n\t\t\t\"openai-completions\": cloudflareStreams(openAICompletionsApi()),\n\t\t\t\"openai-responses\": cloudflareStreams(openAIResponsesApi()),\n\t\t}", "auth" = "{ apiKey: cloudflareAIGatewayAuth() }", "id" = "\"cloudflare-ai-gateway\"", "models" = "Object.values(CLOUDFLARE_AI_GATEWAY_MODELS)", "name" = "\"Cloudflare AI Gateway\"" }
+api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
+oauth_flows = []
+catalog = "Object.values(CLOUDFLARE_AI_GATEWAY_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::cloudflare-workers-ai"
+namespace = "text"
+id = "cloudflare-workers-ai"
+factory = "cloudflareWorkersAIProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "4798fa8a332c6e29b7d2b966a74a8ebada9cdece"
+properties = { "api" = "cloudflareStreams(openAICompletionsApi())", "auth" = "{ apiKey: cloudflareWorkersAIAuth() }", "classifiers" = "{\n\t\t\t\"cloudflare-workers-ai-system-one\": cloudflareClassifier(cloudflareWorkersAISystemOneApi()),\n\t\t}", "id" = "\"cloudflare-workers-ai\"", "models" = "[\n\t\t\t...Object.values(CLOUDFLARE_WORKERS_AI_MODELS),\n\t\t\t...Object.values(CLOUDFLARE_WORKERS_AI_CLASSIFIER_MODELS),\n\t\t]", "name" = "\"Cloudflare Workers AI\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "[\n\t\t\t...Object.values(CLOUDFLARE_WORKERS_AI_MODELS),\n\t\t\t...Object.values(CLOUDFLARE_WORKERS_AI_CLASSIFIER_MODELS),\n\t\t]"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::deepseek"
+namespace = "text"
+id = "deepseek"
+factory = "deepseekProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "580e25c236feb1a283d96bbef538915a142d8416"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"DeepSeek API key\", [\"DEEPSEEK_API_KEY\"]) }", "baseUrl" = "\"https://api.deepseek.com\"", "id" = "\"deepseek\"", "models" = "Object.values(DEEPSEEK_MODELS)", "name" = "\"DeepSeek\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(DEEPSEEK_MODELS)"
+surface = "ai.providers"
+disposition = "included"
+owner = "pi-ai-providers::selected"
+
+[[provider]]
+identity = "text::fireworks"
+namespace = "text"
+id = "fireworks"
+factory = "fireworksProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "518fb259d350a5bf5277d3cbe78d33c1558a1e74"
+properties = { "api" = "{\n\t\t\t\"anthropic-messages\": anthropicMessagesApi(),\n\t\t\t\"openai-completions\": openAICompletionsApi(),\n\t\t}", "auth" = "{ apiKey: envApiKeyAuth(\"Fireworks API key\", [\"FIREWORKS_API_KEY\"]) }", "baseUrl" = "\"https://api.fireworks.ai/inference\"", "id" = "\"fireworks\"", "models" = "Object.values(FIREWORKS_MODELS)", "name" = "\"Fireworks\"" }
+api_ids = ["anthropic-messages", "openai-completions"]
+oauth_flows = []
+catalog = "Object.values(FIREWORKS_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::github-copilot"
+namespace = "text"
+id = "github-copilot"
+factory = "githubCopilotProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "eab784d88840f4a29829066ee4b402d10d94e754"
+properties = { "api" = "{\n\t\t\t\"anthropic-messages\": anthropicMessagesApi(),\n\t\t\t\"openai-completions\": openAICompletionsApi(),\n\t\t\t\"openai-responses\": openAIResponsesApi(),\n\t\t}", "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"GitHub Copilot token\", [\"COPILOT_GITHUB_TOKEN\"]),\n\t\t\toauth: lazyOAuth({ name: \"GitHub Copilot\", isSubscription: true, load: loadGitHubCopilotOAuth }),\n\t\t}", "baseUrl" = "\"https://api.individual.githubcopilot.com\"", "filterModels" = "(models, credential) => {\n\t\t\tif (credential?.type !== \"oauth\") return models;\n\t\t\tconst availableModelIds = credential.availableModelIds;\n\t\t\tif (!Array.isArray(availableModelIds) || !availableModelIds.every((id) => typeof id === \"string\")) {\n\t\t\t\treturn models;\n\t\t\t}\n\t\t\tconst available = new Set(availableModelIds);\n\t\t\treturn models.filter((model) => available.has(model.id));\n\t\t}", "id" = "\"github-copilot\"", "models" = "Object.values(GITHUB_COPILOT_MODELS)", "name" = "\"GitHub Copilot\"" }
+api_ids = ["anthropic-messages", "openai-completions", "openai-responses"]
+oauth_flows = ["loadGitHubCopilotOAuth"]
+catalog = "Object.values(GITHUB_COPILOT_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::google"
+namespace = "text"
+id = "google"
+factory = "googleProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "0bd452373227e781b961a3eb37d6a0fc3aead8a6"
+properties = { "api" = "googleGenerativeAIApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Gemini API key\", [\"GEMINI_API_KEY\"]) }", "baseUrl" = "\"https://generativelanguage.googleapis.com/v1beta\"", "id" = "\"google\"", "models" = "Object.values(GOOGLE_MODELS)", "name" = "\"Google\"" }
+api_ids = ["google-generative-ai"]
+oauth_flows = []
+catalog = "Object.values(GOOGLE_MODELS)"
+surface = "ai.providers"
+disposition = "included"
+owner = "pi-ai-providers::selected"
+
+[[provider]]
+identity = "text::google-vertex"
+namespace = "text"
+id = "google-vertex"
+factory = "googleVertexProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "83c7d0fe89cbb7e425a3e79d2bf954e2c2b8324e"
+properties = { "api" = "googleVertexApi()", "auth" = "{ apiKey: vertexAuth }", "id" = "\"google-vertex\"", "models" = "Object.values(GOOGLE_VERTEX_MODELS)", "name" = "\"Google Vertex AI\"" }
+api_ids = ["google-vertex"]
+oauth_flows = []
+catalog = "Object.values(GOOGLE_VERTEX_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::groq"
+namespace = "text"
+id = "groq"
+factory = "groqProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "5892e0488264e2ef53e09ed581179f107e4528db"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Groq API key\", [\"GROQ_API_KEY\"]) }", "baseUrl" = "\"https://api.groq.com/openai/v1\"", "id" = "\"groq\"", "models" = "Object.values(GROQ_MODELS)", "name" = "\"Groq\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(GROQ_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::huggingface"
+namespace = "text"
+id = "huggingface"
+factory = "huggingfaceProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "e8fb628e199203fc63423053bb30f79c4375c992"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Hugging Face token\", [\"HF_TOKEN\"]) }", "baseUrl" = "\"https://router.huggingface.co/v1\"", "id" = "\"huggingface\"", "models" = "Object.values(HUGGINGFACE_MODELS)", "name" = "\"Hugging Face\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(HUGGINGFACE_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::kimi-coding"
+namespace = "text"
+id = "kimi-coding"
+factory = "kimiCodingProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "f84b7b5e79dc859eb9fff10652c0c5c40d367f0e"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"Kimi API key\", [\"KIMI_API_KEY\"]),\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"Kimi Code (subscription)\",\n\t\t\t\tisSubscription: true,\n\t\t\t\tloginLabel: \"Sign in with Kimi Code\",\n\t\t\t\tload: loadKimiCodingOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "\"https://api.kimi.com/coding/v1\"", "id" = "\"kimi-coding\"", "models" = "Object.values(KIMI_CODING_MODELS)", "name" = "\"Kimi For Coding\"" }
+api_ids = ["openai-completions"]
+oauth_flows = ["loadKimiCodingOAuth"]
+catalog = "Object.values(KIMI_CODING_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::meta"
+namespace = "text"
+id = "meta"
+factory = "metaProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "228c6cde4eef7677b75abac8f236cebfc242694b"
+properties = { "api" = "openAIResponsesApi()", "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"Meta Model API key\", [\"META_API_KEY\"]),\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"Meta (Muse subscription)\",\n\t\t\t\tisSubscription: true,\n\t\t\t\tloginLabel: \"Sign in with Meta\",\n\t\t\t\tload: loadMetaOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "\"https://api.meta.ai/v1\"", "id" = "\"meta\"", "models" = "Object.values(META_MODELS)", "name" = "\"Meta\"" }
+api_ids = ["openai-responses"]
+oauth_flows = ["loadMetaOAuth"]
+catalog = "Object.values(META_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::minimax"
+namespace = "text"
+id = "minimax"
+factory = "minimaxProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "6a956bd6bbdc29084c66ad2100a2ec72485de2f5"
+properties = { "api" = "anthropicMessagesApi()", "auth" = "{ apiKey: envApiKeyAuth(\"MiniMax API key\", [\"MINIMAX_API_KEY\"]) }", "baseUrl" = "\"https://api.minimax.io/anthropic\"", "id" = "\"minimax\"", "models" = "Object.values(MINIMAX_MODELS)", "name" = "\"MiniMax\"" }
+api_ids = ["anthropic-messages"]
+oauth_flows = []
+catalog = "Object.values(MINIMAX_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::minimax-cn"
+namespace = "text"
+id = "minimax-cn"
+factory = "minimaxCnProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "5cbe5acc55926d52fac7ffa3008c2c903ed0d86b"
+properties = { "api" = "anthropicMessagesApi()", "auth" = "{ apiKey: envApiKeyAuth(\"MiniMax CN API key\", [\"MINIMAX_CN_API_KEY\"]) }", "baseUrl" = "\"https://api.minimaxi.com/anthropic\"", "id" = "\"minimax-cn\"", "models" = "Object.values(MINIMAX_CN_MODELS)", "name" = "\"MiniMax CN\"" }
+api_ids = ["anthropic-messages"]
+oauth_flows = []
+catalog = "Object.values(MINIMAX_CN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::mistral"
+namespace = "text"
+id = "mistral"
+factory = "mistralProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "9b84a71fb66f8a2cbfb81728d542281c16014548"
+properties = { "api" = "mistralConversationsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Mistral API key\", [\"MISTRAL_API_KEY\"]) }", "baseUrl" = "\"https://api.mistral.ai\"", "id" = "\"mistral\"", "models" = "Object.values(MISTRAL_MODELS)", "name" = "\"Mistral\"" }
+api_ids = ["mistral-conversations"]
+oauth_flows = []
+catalog = "Object.values(MISTRAL_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::moonshotai"
+namespace = "text"
+id = "moonshotai"
+factory = "moonshotaiProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "dc15c5706ad333e58d09daec9daf4b3840e778dd"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Moonshot AI API key\", [\"MOONSHOT_API_KEY\"]) }", "baseUrl" = "\"https://api.moonshot.ai/v1\"", "id" = "\"moonshotai\"", "models" = "Object.values(MOONSHOTAI_MODELS)", "name" = "\"Moonshot AI\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(MOONSHOTAI_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::moonshotai-cn"
+namespace = "text"
+id = "moonshotai-cn"
+factory = "moonshotaiCnProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "b813734bcfe6761c4ae000bfce9571c02942f7a9"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Moonshot AI API key\", [\"MOONSHOT_API_KEY\"]) }", "baseUrl" = "\"https://api.moonshot.cn/v1\"", "id" = "\"moonshotai-cn\"", "models" = "Object.values(MOONSHOTAI_CN_MODELS)", "name" = "\"Moonshot AI CN\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(MOONSHOTAI_CN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::nvidia"
+namespace = "text"
+id = "nvidia"
+factory = "nvidiaProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "dc539f60b685c63842b0f68ce93d03cfdd05e7fd"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"NVIDIA API key\", [\"NVIDIA_API_KEY\"]) }", "baseUrl" = "\"https://integrate.api.nvidia.com/v1\"", "id" = "\"nvidia\"", "models" = "Object.values(NVIDIA_MODELS)", "name" = "\"NVIDIA\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(NVIDIA_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::openai"
+namespace = "text"
+id = "openai"
+factory = "openaiProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "8f01bfe9ff0cf36cc23c2d29a8ca0b7caa688b9c"
+properties = { "api" = "openAIResponsesApi()", "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"OpenAI API key\", [\"OPENAI_API_KEY\"]),\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"OpenAI (ChatGPT subscription)\",\n\t\t\t\tisSubscription: true,\n\t\t\t\tloginLabel: \"Sign in with ChatGPT\",\n\t\t\t\tload: loadOpenAIChatGPTOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "\"https://api.openai.com/v1\"", "classifiers" = "{\n\t\t\t\"openai-decisions\": openAIDecisionsApi(),\n\t\t}", "filterAllModels" = "(models, credential) =>\n\t\t\tcredential?.type === \"oauth\" ? models.filter((model) => !isModelType(model, \"classifier\")) : models", "id" = "\"openai\"", "models" = "[\n\t\t\t...Object.values(OPENAI_MODELS),\n\t\t\t...Object.values<ClassifierModel<\"openai-decisions\">>(OPENAI_CLASSIFIER_MODELS),\n\t\t]", "name" = "\"OpenAI\"" }
+api_ids = ["openai-responses"]
+oauth_flows = ["loadOpenAIChatGPTOAuth"]
+catalog = "[\n\t\t\t...Object.values(OPENAI_MODELS),\n\t\t\t...Object.values<ClassifierModel<\"openai-decisions\">>(OPENAI_CLASSIFIER_MODELS),\n\t\t]"
+surface = "ai.providers"
+disposition = "included"
+owner = "pi-ai-providers::selected"
+
+[[provider]]
+identity = "text::openai-codex"
+namespace = "text"
+id = "openai-codex"
+factory = "openaiCodexProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "c46bd2ba72103d45c5b371289170d5464c2df309"
+properties = { "api" = "openAICodexResponsesApi()", "auth" = "{\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"OpenAI (ChatGPT Plus/Pro)\",\n\t\t\t\tisSubscription: true,\n\t\t\t\tload: loadOpenAICodexOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "\"https://chatgpt.com/backend-api\"", "id" = "\"openai-codex\"", "models" = "Object.values(OPENAI_CODEX_MODELS)", "name" = "\"OpenAI Codex (legacy)\"" }
+api_ids = ["openai-codex-responses"]
+oauth_flows = ["loadOpenAICodexOAuth"]
+catalog = "Object.values(OPENAI_CODEX_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::opencode"
+namespace = "text"
+id = "opencode"
+factory = "opencodeProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "7b3aae419732de34fcf6321d54f8221ca760f902"
+properties = { "api" = "{\n\t\t\t\"anthropic-messages\": withOpenCodeSessionHeader(anthropicMessagesApi()),\n\t\t\t\"google-generative-ai\": withOpenCodeSessionHeader(googleGenerativeAIApi()),\n\t\t\t\"openai-completions\": withOpenCodeSessionHeader(openAICompletionsApi()),\n\t\t\t\"openai-responses\": withOpenCodeSessionHeader(openAIResponsesApi()),\n\t\t}", "auth" = "{ apiKey: envApiKeyAuth(\"OpenCode API key\", [\"OPENCODE_API_KEY\"]) }", "classifiers" = "{ \"typesafe-system-one\": typesafeSystemOneApi() }", "id" = "\"opencode\"", "models" = "[...Object.values(OPENCODE_MODELS), ...Object.values(OPENCODE_CLASSIFIER_MODELS)]", "name" = "\"OpenCode Zen\"" }
+api_ids = ["anthropic-messages", "google-generative-ai", "openai-completions", "openai-responses"]
+oauth_flows = []
+catalog = "[...Object.values(OPENCODE_MODELS), ...Object.values(OPENCODE_CLASSIFIER_MODELS)]"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::opencode-go"
+namespace = "text"
+id = "opencode-go"
+factory = "opencodeGoProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "cd38e810b84d5d5e0d95c36a64e6c86364877e0e"
+properties = { "api" = "{\n\t\t\t\"anthropic-messages\": withOpenCodeSessionHeader(anthropicMessagesApi()),\n\t\t\t\"google-generative-ai\": withOpenCodeSessionHeader(googleGenerativeAIApi()),\n\t\t\t\"openai-completions\": withOpenCodeSessionHeader(openAICompletionsApi()),\n\t\t\t\"openai-responses\": withOpenCodeSessionHeader(openAIResponsesApi()),\n\t\t}", "auth" = "{ apiKey: envApiKeyAuth(\"OpenCode API key\", [\"OPENCODE_API_KEY\"]) }", "id" = "\"opencode-go\"", "models" = "Object.values(OPENCODE_GO_MODELS)", "name" = "\"OpenCode Go\"" }
+api_ids = ["anthropic-messages", "google-generative-ai", "openai-completions", "openai-responses"]
+oauth_flows = []
+catalog = "Object.values(OPENCODE_GO_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::openrouter"
+namespace = "text"
+id = "openrouter"
+factory = "openrouterProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "4cc040f05c8f303c2a1e08257069efa76fc7afcc"
+properties = { "api" = "{\n\t\t\t\"anthropic-messages\": anthropicMessagesApi(),\n\t\t\t\"openai-completions\": openAICompletionsApi(),\n\t\t}", "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"OpenRouter API key\", [\"OPENROUTER_API_KEY\"]),\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"OpenRouter OAuth\",\n\t\t\t\tloginLabel: \"Sign in with OpenRouter\",\n\t\t\t\tload: loadOpenRouterOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "OPENROUTER_BASE_URL", "classifiers" = "{ \"typesafe-system-one\": typesafeSystemOneApi() }", "id" = "\"openrouter\"", "images" = "{ \"openrouter-images\": openrouterImagesApi() }", "models" = "[\n\t\t\t...Object.values(OPENROUTER_MODELS),\n\t\t\t...Object.values(OPENROUTER_IMAGE_MODELS),\n\t\t\t...Object.values(OPENROUTER_CLASSIFIER_MODELS),\n\t\t]", "name" = "\"OpenRouter\"" }
+api_ids = ["anthropic-messages", "openai-completions"]
+oauth_flows = ["loadOpenRouterOAuth"]
+catalog = "[\n\t\t\t...Object.values(OPENROUTER_MODELS),\n\t\t\t...Object.values(OPENROUTER_IMAGE_MODELS),\n\t\t\t...Object.values(OPENROUTER_CLASSIFIER_MODELS),\n\t\t]"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::qwen-token-plan"
+namespace = "text"
+id = "qwen-token-plan"
+factory = "qwenTokenPlanProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "295560ba2afbcc74d2509d4acbb0c89ba6624f81"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Qwen Token Plan API key\", [\"QWEN_TOKEN_PLAN_API_KEY\"]) }", "baseUrl" = "\"https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1\"", "id" = "\"qwen-token-plan\"", "models" = "Object.values(QWEN_TOKEN_PLAN_MODELS)", "name" = "\"Qwen Token Plan\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(QWEN_TOKEN_PLAN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::qwen-token-plan-cn"
+namespace = "text"
+id = "qwen-token-plan-cn"
+factory = "qwenTokenPlanCnProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "259b5a7f028f302e421f91fec6490d5c2e862632"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Qwen Token Plan CN API key\", [\"QWEN_TOKEN_PLAN_CN_API_KEY\"]) }", "baseUrl" = "\"https://token-plan.cn-beijing.maas.aliyuncs.com/compatible-mode/v1\"", "id" = "\"qwen-token-plan-cn\"", "models" = "Object.values(QWEN_TOKEN_PLAN_CN_MODELS)", "name" = "\"Qwen Token Plan CN\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(QWEN_TOKEN_PLAN_CN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::qwen-token-plan-individual"
+namespace = "text"
+id = "qwen-token-plan-individual"
+factory = "qwenTokenPlanIndividualProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "a231d1b313d1646c5e9053e09d1b9767c2acb2a2"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Qwen Token Plan Individual API key\", [\"QWEN_TOKEN_PLAN_API_KEY\"]) }", "baseUrl" = "\"https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1\"", "id" = "\"qwen-token-plan-individual\"", "models" = "Object.values(QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS)", "name" = "\"Qwen Token Plan Individual\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(QWEN_TOKEN_PLAN_INDIVIDUAL_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::radius"
+namespace = "text"
+id = "radius"
+factory = "radiusProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "b5f9ed06096cc3703b8902d491f19ee9366f11e5"
+properties = { "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"Radius API key\", [\"RADIUS_API_KEY\"]),\n\t\t\toauth: lazyOAuth({ name, load: () => loadRadiusOAuth({ name, gateway }) }),\n\t\t}", "getModels" = "() => dynamicModels ?? baselineModels", "id" = "id", "name" = "name", "refreshModels" = "async (context) => {\n\t\t\tconst stored = context.stored;\n\t\t\tif (stored) {\n\t\t\t\tconst restored = stored.models.filter((model) => model.provider === id) as Model<\"pi-messages\">[];\n\t\t\t\tif (\n\t\t\t\t\t!(await context.publish({\n\t\t\t\t\t\tupdate: () => {\n\t\t\t\t\t\t\tdynamicModels = restored;\n\t\t\t\t\t\t},\n\t\t\t\t\t}))\n\t\t\t\t) {\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\t// Import catalogs cached by the pre-ModelsStore Radius implementation.\n\t\t\tif (!stored && context.credential?.type === \"oauth\") {\n\t\t\t\tconst legacy = getRadiusModels(id, context.credential);\n\t\t\t\tif (legacy.length > 0) {\n\t\t\t\t\tif (\n\t\t\t\t\t\t!(await context.publish({\n\t\t\t\t\t\t\tpersist: { models: legacy, checkedAt: Date.now() },\n\t\t\t\t\t\t\tupdate: () => {\n\t\t\t\t\t\t\t\tdynamicModels = legacy;\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t}))\n\t\t\t\t\t) {\n\t\t\t\t\t\treturn;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif (!context.allowNetwork || context.signal.aborted) return;\n\t\t\tconst apiKey = context.credential?.type === \"oauth\" ? context.credential.access : context.credential?.key;\n\t\t\tconst config = await loadRadiusGatewayConfig(gateway, apiKey, context.signal);\n\t\t\tif (context.signal.aborted) return;\n\t\t\tconst refreshed = getRadiusModelsFromConfig(id, config);\n\t\t\tawait context.publish({\n\t\t\t\tpersist: { models: refreshed, checkedAt: Date.now() },\n\t\t\t\tupdate: () => {\n\t\t\t\t\tdynamicModels = refreshed;\n\t\t\t\t},\n\t\t\t});\n\t\t}", "stream" = "(model, context, streamOptions) => streams.stream(model, context, streamOptions)", "streamSimple" = "(model, context, streamOptions) => streams.streamSimple(model, context, streamOptions)" }
+api_ids = ["pi-messages"]
+oauth_flows = ["loadRadiusOAuth"]
+catalog = ""
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::together"
+namespace = "text"
+id = "together"
+factory = "togetherProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "36631d11abea005e40b62e5f2a69ddc5663728ee"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Together API key\", [\"TOGETHER_API_KEY\"]) }", "baseUrl" = "\"https://api.together.ai/v1\"", "id" = "\"together\"", "models" = "Object.values(TOGETHER_MODELS)", "name" = "\"Together\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(TOGETHER_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::typesafe"
+namespace = "text"
+id = "typesafe"
+factory = "typesafeProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "c7cfb8afa3179b005c55e31423c64266ed2a3591"
+properties = { "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"TypeSafe API key\", [\"TYPESAFE_API_KEY\"]),\n\t\t}", "classifiers" = "{\n\t\t\t\"typesafe-system-one\": typesafeSystemOneApi(),\n\t\t}", "id" = "\"typesafe\"", "models" = "Object.values(TYPESAFE_CLASSIFIER_MODELS)", "name" = "\"TypeSafe\"" }
+api_ids = []
+oauth_flows = []
+catalog = "Object.values(TYPESAFE_CLASSIFIER_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::vercel-ai-gateway"
+namespace = "text"
+id = "vercel-ai-gateway"
+factory = "vercelAIGatewayProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "ec2155793b9fb1cb7e5e64a98e759542c2133777"
+properties = { "api" = "anthropicMessagesApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Vercel AI Gateway API key\", [\"AI_GATEWAY_API_KEY\"]) }", "baseUrl" = "\"https://ai-gateway.vercel.sh\"", "classifiers" = "{ \"typesafe-system-one\": typesafeSystemOneApi() }", "id" = "\"vercel-ai-gateway\"", "models" = "[...Object.values(VERCEL_AI_GATEWAY_MODELS), ...Object.values(VERCEL_AI_GATEWAY_CLASSIFIER_MODELS)]", "name" = "\"Vercel AI Gateway\"" }
+api_ids = ["anthropic-messages"]
+oauth_flows = []
+catalog = "[...Object.values(VERCEL_AI_GATEWAY_MODELS), ...Object.values(VERCEL_AI_GATEWAY_CLASSIFIER_MODELS)]"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::xai"
+namespace = "text"
+id = "xai"
+factory = "xaiProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "8e2b179c28a8a7c930015fe629dba9b898f7a763"
+properties = { "api" = "openAIResponsesApi()", "auth" = "{\n\t\t\tapiKey: envApiKeyAuth(\"xAI API key\", [\"XAI_API_KEY\"]),\n\t\t\toauth: lazyOAuth({\n\t\t\t\tname: \"xAI (Grok/X subscription)\",\n\t\t\t\tisSubscription: true,\n\t\t\t\tloginLabel: \"Sign in with SuperGrok or X Premium\",\n\t\t\t\tload: loadXaiOAuth,\n\t\t\t}),\n\t\t}", "baseUrl" = "\"https://api.x.ai/v1\"", "id" = "\"xai\"", "models" = "Object.values(XAI_MODELS)", "name" = "\"xAI\"" }
+api_ids = ["openai-responses"]
+oauth_flows = ["loadXaiOAuth"]
+catalog = "Object.values(XAI_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::xiaomi"
+namespace = "text"
+id = "xiaomi"
+factory = "xiaomiProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "5abf51691fe457443bb952abc2dc5b76291577a8"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Xiaomi API key\", [\"XIAOMI_API_KEY\"]) }", "baseUrl" = "\"https://api.xiaomimimo.com/v1\"", "id" = "\"xiaomi\"", "models" = "Object.values(XIAOMI_MODELS)", "name" = "\"Xiaomi\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(XIAOMI_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::xiaomi-token-plan-ams"
+namespace = "text"
+id = "xiaomi-token-plan-ams"
+factory = "xiaomiTokenPlanAmsProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "017aa67192c8a1fd4685feb2bf67c08edf0a100c"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Xiaomi Token Plan AMS API key\", [\"XIAOMI_TOKEN_PLAN_AMS_API_KEY\"]) }", "baseUrl" = "\"https://token-plan-ams.xiaomimimo.com/v1\"", "id" = "\"xiaomi-token-plan-ams\"", "models" = "Object.values(XIAOMI_TOKEN_PLAN_AMS_MODELS)", "name" = "\"Xiaomi Token Plan AMS\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(XIAOMI_TOKEN_PLAN_AMS_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::xiaomi-token-plan-cn"
+namespace = "text"
+id = "xiaomi-token-plan-cn"
+factory = "xiaomiTokenPlanCnProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "f7ab14fa77a62f290350bc70c8d53cdbf13ca4fb"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Xiaomi Token Plan CN API key\", [\"XIAOMI_TOKEN_PLAN_CN_API_KEY\"]) }", "baseUrl" = "\"https://token-plan-cn.xiaomimimo.com/v1\"", "id" = "\"xiaomi-token-plan-cn\"", "models" = "Object.values(XIAOMI_TOKEN_PLAN_CN_MODELS)", "name" = "\"Xiaomi Token Plan CN\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(XIAOMI_TOKEN_PLAN_CN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::xiaomi-token-plan-sgp"
+namespace = "text"
+id = "xiaomi-token-plan-sgp"
+factory = "xiaomiTokenPlanSgpProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "e3762057f42f415fe45c8d5104cf9f453d985812"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Xiaomi Token Plan SGP API key\", [\"XIAOMI_TOKEN_PLAN_SGP_API_KEY\"]) }", "baseUrl" = "\"https://token-plan-sgp.xiaomimimo.com/v1\"", "id" = "\"xiaomi-token-plan-sgp\"", "models" = "Object.values(XIAOMI_TOKEN_PLAN_SGP_MODELS)", "name" = "\"Xiaomi Token Plan SGP\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(XIAOMI_TOKEN_PLAN_SGP_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::zai"
+namespace = "text"
+id = "zai"
+factory = "zaiProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "854010661655298b2774c99542c7292abf51b4bd"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Z.AI API key\", [\"ZAI_API_KEY\"]) }", "baseUrl" = "\"https://api.z.ai/api/coding/paas/v4\"", "id" = "\"zai\"", "models" = "Object.values(ZAI_MODELS)", "name" = "\"Z.AI\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(ZAI_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"
+
+[[provider]]
+identity = "text::zai-coding-cn"
+namespace = "text"
+id = "zai-coding-cn"
+factory = "zaiCodingCnProvider"
+registration_oid = "297db37c9e5a2ed10859c5f907c8e3e7417c8956"
+source_oid = "2f15a6ca31c3a4e85a35ed5b87c9d2dd3b552a30"
+properties = { "api" = "openAICompletionsApi()", "auth" = "{ apiKey: envApiKeyAuth(\"Z.AI Coding CN API key\", [\"ZAI_CODING_CN_API_KEY\"]) }", "baseUrl" = "\"https://open.bigmodel.cn/api/coding/paas/v4\"", "id" = "\"zai-coding-cn\"", "models" = "Object.values(ZAI_CODING_CN_MODELS)", "name" = "\"Z.AI Coding CN\"" }
+api_ids = ["openai-completions"]
+oauth_flows = []
+catalog = "Object.values(ZAI_CODING_CN_MODELS)"
+surface = "excluded.providers"
+disposition = "outside-scope"
+owner = "outside-scope.provider"

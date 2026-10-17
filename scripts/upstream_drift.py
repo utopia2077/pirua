@@ -24,7 +24,7 @@ except ImportError:
     from upstream_inventory import Snapshot, indexed, validate_map, ROOT
 
 DISPOSITIONS = {'implemented', 'fixture-updated', 'intentional-divergence', 'host-only-reviewed', 'disposable-reviewed', 'generated-refresh', 'responsibility-migration', 'no-semantic-change'}
-TOOLS = ['scripts/upstream_objects.py', 'scripts/upstream_inventory.py', 'scripts/upstream_ast.mjs', 'scripts/upstream_drift.py', 'scripts/validate_docs.py', 'workspace-topology.toml']
+TOOLS = ['scripts/upstream_objects.py', 'scripts/upstream_inventory.py', 'scripts/upstream_ast.mjs', 'scripts/upstream_drift.py', 'scripts/validate_docs.py', 'scripts/upstream.py', 'scripts/generate_upstream_manifests.py', 'scripts/generate_assembly_registry.py', 'workspace-topology.toml']
 
 
 def load_json(path: Path) -> dict:
@@ -48,7 +48,7 @@ def overlay_map(base: dict, old: str, new: str, overlay: dict | None) -> dict:
     if set(overlay) - allowed:
         raise Invalid('unknown overlay field')
     replacements = overlay.get('replace', {})
-    if not isinstance(replacements, dict) or set(replacements) - {'owner', 'surface', 'route', 'selector', 'divergence', 'manifest'}:
+    if not isinstance(replacements, dict) or set(replacements) - {'owner', 'surface', 'route', 'selector', 'divergence', 'manifest', 'export_exclusion'}:
         raise Invalid('overlay cannot alter watches or pin history')
     for key, rows in replacements.items():
         indexed(rows, key)
@@ -321,7 +321,7 @@ def proof_inputs(root: Path) -> dict:
     return {'source_inputs':files, 'tool_inputs':{p:hash_bytes((ROOT/p).read_bytes()) for p in tools}}
 
 
-def check_anchor(source: Path, anchor: str | None, root: Path = ROOT) -> None:
+def check_anchor(source: Path, anchor: str | None, root: Path = ROOT, inventories: dict | None = None) -> None:
     if anchor is None:
         return
     if not isinstance(anchor, str) or ':' not in anchor:
@@ -330,7 +330,7 @@ def check_anchor(source: Path, anchor: str | None, root: Path = ROOT) -> None:
     if kind == 'test':
         reference = {'path':source.resolve().relative_to(root.resolve()).as_posix(), 'anchor':anchor}
         try:
-            cargo_validator().check_reference(reference, root)
+            cargo_validator().check_reference(reference, root, inventories)
         except Exception as error:
             raise Invalid('Rust suite evidence validation failed: ' + str(error)) from error
         return
@@ -379,17 +379,20 @@ def cargo_validator():
 
 def validate_suite_activation(row: dict, root: Path) -> None:
     rust = any(Path(command[0]).name == 'cargo' for command in row['commands']) or any(str(e.get('anchor', '')).startswith('test:') for e in row['evidence'])
-    if not rust and row['id'] != 'conformance/provider-traces':
-        return
     validator = cargo_validator()
+    if not rust and row['id'] not in validator.REVIEWED_PROOF_TARGETS:
+        return
     try:
+        inventories = {}
         for reference in row['evidence']:
-            validator.check_reference(reference, root)
+            validator.check_reference(reference, root, inventories)
         for command in row['commands']:
             validator.check_command(command, row['evidence'], root)
-        if row['id'] == 'conformance/provider-traces':
-            inventory = json.loads(local_path(root, 'conformance/ai-domain/inventory.json').read_bytes())
+        if row['id'] == 'conformance/provider-traces/v1.4.0':
+            inventory = tomllib.loads(local_path(root, 'upstream/manifests/providers.toml').read_text())
             validator.validate_adapter_proofs(row, inventory, root)
+        if row['id'] in validator.REVIEWED_PROOF_TARGETS:
+            validator.validate_reviewed_proofs({'suites':[row]}, root, suite_names={row['id']})
     except Exception as error:
         raise Invalid('Cargo suite activation validation failed: ' + str(error)) from error
 
@@ -397,6 +400,7 @@ def validate_suite_activation(row: dict, root: Path) -> None:
 def registry_suites(path: Path, root: Path, required: set[str]) -> dict:
     registry = load_json(path)
     suites = indexed(registry.get('suites'), 'suite')
+    inventories = {}
     for name in required:
         row = suites.get(name)
         if not row or row.get('status') != 'executable' or row.get('limitations') or not isinstance(row.get('commands'), list) or not row['commands'] or any(not isinstance(a, list) or not a or any(not isinstance(s,str) or not s for s in a) for a in row['commands']):
@@ -405,7 +409,7 @@ def registry_suites(path: Path, root: Path, required: set[str]) -> dict:
             raise Invalid(f'suite lacks bound evidence: {name}')
         for evidence in row['evidence']:
             source = local_path(root, evidence.get('path'))
-            check_anchor(source, evidence.get('anchor'), root)
+            check_anchor(source, evidence.get('anchor'), root, inventories)
         validate_suite_activation(row, root)
     return {name:suites[name] for name in sorted(required)}
 
@@ -416,7 +420,7 @@ def verify_proofs(comparison: Comparison, registry: Path, receipts: dict | None,
     if receipts is None or receipts.get('schema_version') != 1 or not isinstance(receipts.get('receipts'), list):
         raise Invalid('guarded patch requires bound proof receipts')
     inputs = proof_inputs(root)
-    if 'conformance/provider-traces' in required and 'conformance/ai-domain/inventory.json' not in {entry['path'] for entry in inputs['source_inputs']}:
+    if 'conformance/provider-traces/v1.4.0' in required and 'upstream/manifests/providers.toml' not in {entry['path'] for entry in inputs['source_inputs']}:
         raise Invalid('canonical provider inventory must be tracked and bound as proof input')
     expected_binding = binding(comparison.report)
     valid = {}
@@ -555,10 +559,14 @@ def main(argv: list[str] | None = None) -> int:
         base = tomllib.loads(original.decode())
         old = args.old or base['upstream']['commit']
         new = args.new or old
-        value = args.upstream or os.environ.get('PIRUA_UPSTREAM_ROOT') or base['upstream'].get('checkout', 'upstream/pi-mono')
-        upstream = Path(value)
-        if not upstream.is_absolute():
-            upstream = ROOT/upstream
+        if args.upstream:
+            upstream = args.upstream.resolve()
+        else:
+            if __package__:
+                from .upstream import resolve_upstream
+            else:
+                from upstream import resolve_upstream
+            upstream = resolve_upstream(base['upstream'].get('checkout'))
         dependency_root = Path(os.environ.get('PIRUA_UPSTREAM_ROOT', str(upstream)))
         comparison = Comparison(Objects(upstream), base, old, new, dependency_root, load_json(args.overlay) if args.overlay else None)
         code, report, decisions = evaluate(comparison, load_json(args.acknowledgements) if args.acknowledgements else None)

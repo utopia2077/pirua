@@ -39,41 +39,47 @@ If you know Pi, these are the main entry points into this workspace:
 
 | Pi area at the pinned baseline | Rust entry points | What lives here |
 |---|---|---|
-| `packages/ai` | [`pi-ai`](crates/pi-ai) | Model and provider contracts, messages, streaming, authentication, and selected provider integrations |
-| `packages/agent` | [`pi-agent`](crates/pi-agent), [`pi-harness-core`](crates/pi-harness-core), [`pi-harness-runtime`](crates/pi-harness-runtime) | Agent loop compatibility, Harness planning, execution, hooks, and recovery |
-| Harness session and backend contracts | [`pi-agent-session`](crates/pi-agent-session), [`pi-agent-sqlite`](crates/pi-agent-sqlite), [`pi-agent-search`](crates/pi-agent-search) | Session trees, Memory/JSONL/SQLite storage, migration, and search |
-| Headless parts of `packages/coding-agent` | [`pi-coding-runtime`](crates/pi-coding-runtime) | Coding tools, model composition, prompts, resources, and session lifecycle |
-| `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and local reference implementations |
+| `packages/ai` | [`pi-ai`](crates/pi-ai) | Models, streaming, authentication and four provider integrations |
+| `packages/agent` | [`pi-agent`](crates/pi-agent) | Standalone Agent, tools, queues, hooks and an optional proxy stream |
+| Headless `packages/coding-agent` | [`pi-coding-runtime`](crates/pi-coding-runtime), [`pi-coding-session`](crates/pi-coding-session) | Coding tools, resources, complete session trees, compaction and SQLite persistence |
+| `packages/mcp` | [`pi-mcp`](crates/pi-mcp) | Reusable stdio and Streamable HTTP client with OAuth |
+| `packages/codemode` | [`pi-codemode`](crates/pi-codemode) | One local JavaScript worker with explicit tool capabilities |
+| `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and process-local implementations |
 
-The full [fifteen-crate map](docs/architecture/02-crate-topology.md) explains
-ownership and dependencies. Crate names retain the upstream `pi-` prefix.
+The [crate map](docs/architecture/02-crate-topology.md) explains ownership and
+dependencies. Crate names retain the upstream `pi-` prefix. Third-party extensions
+connect through a host-authenticated, language-neutral protocol.
 
 ### Upstream baseline
 
-The current baseline is
-[`853a80d26c90`](https://github.com/earendil-works/pi/tree/853a80d26c90a14c1886f0ebb8ffaae133ca2185).
-Alignment is evaluated against that pinned revision and its applicable contracts,
-rather than the latest upstream branch. The [ownership map](upstream-map.toml),
-[conformance registry](conformance/assembly.json), and
-[upstream update guide](docs/upstream-drift.md) make the correspondence reviewable.
+The selected AI, Agent and Coding scope follows **Pi v1.4.0**, revision
+[`4a080252f06c`](https://github.com/earendil-works/pi/tree/4a080252f06caf63a525d7873c5d94d3c23887e0).
+The [ownership map](upstream-map.toml) records source responsibilities and explicit
+exclusions. The [conformance registry](conformance/assembly.json) links those
+responsibilities to offline checks. See [upstream updates](docs/upstream-drift.md)
+for the process used to assess a candidate release.
 
 ## Current status
 
 **Pre-release.** Workspace crates are version `0.0.0` with `publish = false`;
-consume them from this checkout while the public API develops. The current scope
-is the headless library runtime. Pi's interactive CLI/TUI and JavaScript extension
-loading remain outside this workspace's scope.
+consume them from this checkout while the public API develops.
 
-Built-in text integrations cover **OpenAI, Google Gemini, Anthropic, DeepSeek,
-OpenAI Codex, and OpenRouter**. Image integration is through **OpenRouter Images**.
-Provider, OAuth, image, and storage features are selected explicitly. See the
-[accepted scope](docs/scope.md) and
-[feature and host boundaries](docs/development.md#feature-and-host-boundaries)
-for the exact selectors and integration responsibilities.
+Built-in providers are **OpenAI, Google Gemini, Anthropic and DeepSeek**. All four
+support API keys; OpenAI ChatGPT and Anthropic subscription login are optional
+OAuth capabilities. Vision input is retained. Provider and native transport
+features are selected explicitly.
 
-Conformance includes source, contract, and offline behavior checks. The
-[verification guide](docs/development.md#assembly-consistency) records tested
-behavior, accepted compatibility gaps, and evidence boundaries.
+Coding sessions support Memory and SQLite, including save/reopen, branches,
+forks and compaction. MCP and CodeMode can be used independently or attached to a
+Coding session. The workspace delivers headless libraries; the CLI/TUI,
+JavaScript extension loader, JSONL storage and old-data import are outside its
+[scope](docs/scope.md). The new Durable runtime is a separate upgrade; the
+retired experimental Harness is available in Git history.
+
+Conformance combines target-release source observations, native boundary tests
+and retained transport fixtures. It does not imply complete parity with every
+upstream package. [Development and verification](docs/development.md) explains
+how to reproduce the checks and their evidence boundaries.
 
 ## Getting started
 
@@ -92,14 +98,14 @@ Run the [offline Agent example](crates/pi-agent/examples/offline_agent.rs):
 cargo run -p pi-agent --example offline_agent --locked --offline
 ```
 
-It sends a prompt through the compatibility Agent loop and prints the settled
-transcript. A deterministic local response is injected in place of a provider,
+It sends a prompt through the Agent, executes a local tool and prints the
+settled transcript size. A deterministic local response is injected in place of a provider,
 so this example needs no API key, network access, or upstream checkout after
 dependencies are cached. Its central flow is:
 
 ```rust
 let agent = Agent::new(local_options());
-agent.prompt(vec![user("Hello, Pirua!")]).await?;
+agent.prompt_text("Hello, Pirua!", Vec::new()).await?;
 
 let state = agent.state();
 println!("{}", serde_json::to_string_pretty(&state.messages)?);
@@ -122,10 +128,12 @@ Full conformance also runs Node/Python peers and pinned upstream oracles. Follow
 
 ```mermaid
 flowchart TD
-    Host["Host application"] --> Coding["pi-coding-runtime<br/>Tools · models · resources"]
-    Coding --> Agent["Agent / Harness runtime"]
-    Coding --> AI["pi-ai<br/>Providers · messages · streams"]
-    Agent --> Sessions["Session storage<br/>Memory · JSONL · SQLite"]
+    Host["Host application"] --> Coding["CodingSession"]
+    Coding --> Agent["Standalone Agent"]
+    Agent --> AI["AI providers and streams"]
+    Coding --> Sessions["Session trees · SQLite or Memory"]
+    Coding --> Tools["Coding tools · MCP · local CodeMode"]
+    Coding --> Extensions["Language-neutral extensions"]
 ```
 
 This is a composition overview. The

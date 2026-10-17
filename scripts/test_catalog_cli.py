@@ -14,12 +14,12 @@ import catalog_cli
 class CatalogCliTests(unittest.TestCase):
     def test_family_projection_preserves_all_source_arrays_and_provenance(self):
         generated = ROOT / "conformance/catalog/generated"
-        for family, names, count in (("text", catalog_cli.accepted.TEXT, 450), ("images", ("openrouter",), 52)):
+        for family, names, count in (("text", catalog_cli.TEXT, 85),):
             raw = catalog_cli.family_artifact(generated, family)
             result = json.loads(raw)
             self.assertEqual([row["provider"] for row in result["catalogs"]], list(names))
             self.assertEqual(sum(len(row["models"]) for row in result["catalogs"]), count)
-            self.assertEqual(result["provenance"], json.loads((generated / "provenance.json").read_bytes()))
+            self.assertEqual(result["provenance"], json.loads((generated.parent / "v1.4.0/provenance.json").read_bytes()))
             for row in result["catalogs"]:
                 source = (generated / family / (row["provider"] + ".json")).read_bytes().strip()
                 self.assertIn(source, raw)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workspace-local family projection over the accepted complete catalog generator."""
+"""Workspace-local text projection over the archived Pi v1.4.0 release."""
 import argparse
 import json
 import os
@@ -7,19 +7,28 @@ from pathlib import Path
 import sys
 import tempfile
 
-import generate_selected_catalogs as accepted
+import importlib.util
+
+TEXT = ('anthropic', 'deepseek', 'google', 'openai')
+
+
+def release_checker(root: Path):
+    spec = importlib.util.spec_from_file_location('pirua_release_catalog', root / 'conformance/catalog/v1.4.0/check.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def family_artifact(generated: Path, family: str) -> bytes:
-    if family not in {"text", "images"}:
+    if family != "text":
         raise ValueError("unknown catalog family")
-    providers = accepted.TEXT if family == "text" else ("openrouter",)
+    providers = TEXT
     catalogs = []
     for provider in providers:
         # Preserve the accepted model-array JSON bytes and source model order.
         models = (generated / family / (provider + ".json")).read_text().strip()
         catalogs.append('{"provider":' + json.dumps(provider) + ',"models":' + models + '}')
-    provenance = (generated / "provenance.json").read_text().strip()
+    provenance = (generated.parent / "v1.4.0/provenance.json").read_text().strip()
     return ('{"schemaVersion":1,"family":' + json.dumps(family) + ',"provenance":' + provenance
             + ',"catalogs":[' + ','.join(catalogs) + ']}\n').encode()
 
@@ -40,18 +49,15 @@ def write_new(path: Path, data: bytes) -> None:
 def execute(family: str, output: Path | None, root: Path) -> None:
     if output is not None and os.path.lexists(output):
         raise FileExistsError("output already exists")
-    with tempfile.TemporaryDirectory(prefix="pi-catalog-cli-") as temporary:
-        generated = Path(temporary) / "generated"
-        accepted.generate(generated, root)
-        accepted.compare(generated, root / accepted.CATALOG / "generated")
-        if output is not None:
-            write_new(output, family_artifact(generated, family))
-    print("validated " + family + " catalog against the fixed captured inputs")
+    release_checker(root).verify(root)
+    if output is not None:
+        write_new(output, family_artifact(root / 'conformance/catalog/generated', family))
+    print("validated " + family + " catalog against the fixed released inputs")
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("family", choices=("text", "images"))
+    parser.add_argument("family", choices=("text",))
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--output", type=Path)

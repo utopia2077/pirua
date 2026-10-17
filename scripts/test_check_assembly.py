@@ -1,293 +1,305 @@
 #!/usr/bin/env python3
-"""Discriminating controls for the read-only assembly and proof resolver."""
+"""Causal controls for static selected-source ownership and enabled proof routes."""
 from __future__ import annotations
-
 import copy
 import hashlib
 import json
+import io
+from contextlib import redirect_stderr
 from pathlib import Path
-import re
 import subprocess
+import shutil
 import sys
 import tempfile
 import tomllib
 import unittest
 from unittest import mock
+from scripts import check_assembly as assembly
+from scripts.upstream_drift import render_map
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
-import check_assembly as assembly
 
 
 class AssemblyTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.map_path = ROOT / "upstream-map.toml"
-        cls.registry_path = ROOT / "conformance/assembly.json"
+        cls.map_path = ROOT/'upstream-map.toml'
+        cls.registry_path = ROOT/'conformance/assembly.json'
         cls.registry = assembly.load_json(cls.registry_path)
         cls.map = tomllib.loads(cls.map_path.read_text())
-        cls.labels = {suite for surface in cls.map["surface"] for suite in surface["conformance"]}
-        topology = tomllib.loads((ROOT / "workspace-topology.toml").read_text())
-        errors = []
-        _, entries, _ = assembly.validator.validate_upstream_map(
-            cls.map_path, set(topology["production_crates"]), errors, permit_pending_digest=False)
-        if errors:
-            raise AssertionError(errors)
-        cls.resolver = assembly.Resolver(cls.map, entries,
-            assembly.resolve_upstream(cls.map["upstream"]["checkout"]))
-        cls.agent = tomllib.loads((ROOT / "upstream/manifests/agent-exports.toml").read_text())["symbol"]
+        cls.labels = {name for surface in cls.map['surface'] for name in surface['conformance']}
 
-    def suite(self, registry, name):
-        return next(row for row in registry["suites"] if row["id"] == name)
+    def suite(self, name):
+        return copy.deepcopy(next(row for row in self.registry['suites'] if row['id']==name))
+
+    def validate(self, row):
+        return assembly.validate_registry({'schema_version':1,'suites':[row]}, {row['id']})
 
     def test_complete_join_is_read_only_and_does_not_execute_proof_commands(self):
-        before = {row["path"]: hashlib.sha256((ROOT / row["path"]).read_bytes()).hexdigest()
-                  for row in self.registry["preserved_inputs"]}
+        before = {row['path']:hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest() for row in self.registry['preserved_inputs']}
         run = subprocess.run
-        def git_only(argv, *args, **kwargs):
-            self.assertEqual(argv[0], "git", "pure assembly must never execute proof commands")
-            return run(argv, *args, **kwargs)
-        with mock.patch("subprocess.run", side_effect=git_only):
-            result = assembly.check_assembly(self.map_path, self.registry_path)
-        self.assertEqual(result["unresolved"], [])
-        totals = result["totals"]
-        self.assertEqual(totals["watched_paths"], 1144)
-        self.assertEqual(totals["ai_exports"]["occurrences"], 699)
-        self.assertEqual(totals["agent_exports"]["occurrences"], 675)
-        self.assertEqual(sum(totals["agent_exports"]["surfaces"].values()), 675)
-        self.assertEqual(totals["agent_exports"]["surfaces"]["telemetry.package"], 70)
-        self.assertEqual(totals["agent_exports"]["surfaces"]["ai.domain"], 2)
-        self.assertEqual(totals["agent_exports"]["surfaces"]["agent.harness.scaffold"], 473)
-        self.assertEqual(totals["ai_exports"]["surfaces"]["external"], 6)
-        self.assertEqual(totals["provider_identities"], {
-            "selected_text": 6, "selected_image": 1, "excluded_text": 34, "excluded_faux-testkit": 1})
-        self.assertEqual((totals["ai_behavior_rows"], totals["selected_scope_occurrences"]), (327, 241))
-        self.assertEqual((totals["harness_selectors"], totals["harness_build_rows"]), (37, 18))
-        self.assertEqual(totals["legacy_denominator_statuses"], {
-            "source-confirmed": 6, "test-unwitnessed": 7, "non-applicable": 1})
-        self.assertEqual((totals["legacy_corpus_rows"], totals["legacy_actual_bridge_rows"]), (12, 5))
-        self.assertEqual(totals["coding_operations"], {
-            "positive": 18, "negative": 18, "pending": 0, "default_applicable": 17, "extensions_applicable": 18})
-        self.assertEqual(totals["proof_commands_executed"], 0)
-        self.assertEqual(sum(totals["proof_suites"].values()), 41)
-        self.assertEqual(before, {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in before})
+        def inert_only(argv,*args,**kwargs):
+            self.assertTrue(argv[0]=='git' or argv[:2]==['node',str(ROOT/'scripts/upstream_ast.mjs')], 'assembly may execute only immutable readers and the inert AST parser')
+            return run(argv,*args,**kwargs)
+        with mock.patch('subprocess.run',side_effect=inert_only):
+            result=assembly.check_assembly(self.map_path,self.registry_path)
+        self.assertEqual(result['unresolved'],[])
+        totals=result['totals']
+        self.assertEqual(totals['watched_paths'],sum(row['baseline_path_count'] for row in self.map['watch']))
+        for package in ['ai','agent']:
+            symbols=tomllib.loads((ROOT/f'upstream/manifests/{package}-exports.toml').read_text())['symbol']
+            self.assertEqual(totals[package+'_exports']['occurrences'],len(symbols))
+            self.assertEqual(sum(totals[package+'_exports']['surfaces'].values()),len(symbols))
+        self.assertEqual(totals['provider_identities']['selected_text'],4)
+        self.assertEqual(totals['provider_identities']['excluded_image-api'],1)
+        self.assertEqual(totals['proof_commands_executed'],0)
+        self.assertEqual(before,{path:hashlib.sha256((ROOT/path).read_bytes()).hexdigest() for path in before})
+
+    def test_stale_generated_source_manifest_is_rejected(self):
+        path=ROOT/'upstream/manifests/routes.toml'
+        with mock.patch.object(assembly.projections,'outputs',return_value={path:'stale generated source'}):
+            with self.assertRaisesRegex(assembly.AssemblyError,'stale pinned manifest: upstream/manifests/routes.toml'):
+                assembly.check_assembly(self.map_path,self.registry_path)
 
     def test_missing_logical_proof_is_named(self):
-        registry = copy.deepcopy(self.registry)
-        registry["suites"] = [row for row in registry["suites"] if row["id"] != "conformance/agent-proxy"]
-        with self.assertRaisesRegex(assembly.AssemblyError, r"unresolved proof suites:.*conformance/agent-proxy"):
-            assembly.validate_registry(registry, self.labels)
+        registry={'schema_version':1,'suites':[self.suite('conformance/agent-proxy-v1.4.0')]}
+        with self.assertRaisesRegex(assembly.AssemblyError,'unresolved proof suites:.*missing-suite'):
+            assembly.validate_registry(registry,{'conformance/agent-proxy-v1.4.0','missing-suite'})
 
     def test_stale_test_anchor_is_named(self):
-        registry = copy.deepcopy(self.registry)
-        row = self.suite(registry, "conformance/providers")
-        row["evidence"][0]["anchor"] = "test:nonexistent_selected_factory_test"
-        with self.assertRaisesRegex(assembly.AssemblyError, "conformance/providers.*missing evidence anchor"):
-            assembly.validate_registry(registry, self.labels)
+        row=self.suite('conformance/selected-providers');row['evidence'][0]['anchor']='test:nonexistent_factory_test'
+        with self.assertRaisesRegex(assembly.AssemblyError,'selected-providers.*missing evidence anchor'):
+            self.validate(row)
 
     def test_helper_function_cannot_substitute_for_test_anchor(self):
-        reference = {"path": "crates/pi-agent/tests/agent_observation_bridge.rs", "anchor": "test:run_single_turn"}
-        with self.assertRaisesRegex(assembly.AssemblyError, "missing evidence anchor"):
-            assembly.check_reference(reference, ROOT)
+        with self.assertRaisesRegex(assembly.AssemblyError,'missing evidence anchor'):
+            assembly.check_reference({'path':'crates/pi-coding-runtime/tests/tools.rs','anchor':'test:create_read_tool'},ROOT)
 
-    def test_ignored_native_witness_cannot_substitute_for_default_proof(self):
-        reference = {"path": "crates/pi-harness-runtime/tests/runtime_extension_profiles.rs",
-                     "anchor": "test:source_root_allocator_peak_is_measured_and_cleanup_is_observed"}
-        with self.assertRaisesRegex(assembly.AssemblyError, "missing evidence anchor"):
-            assembly.check_reference(reference, ROOT)
-
-    def test_workspace_pass_cannot_substitute_for_proxy_proof(self):
-        registry = copy.deepcopy(self.registry)
-        row = self.suite(registry, "conformance/agent-proxy")
-        row["commands"] = [["cargo", "test", "--workspace", "--offline", "--locked"]]
-        with self.assertRaisesRegex(assembly.AssemblyError, "concrete Cargo package and test target"):
-            assembly.validate_registry(registry, self.labels)
+    def test_workspace_pass_cannot_substitute_for_concrete_proxy_proof(self):
+        row=self.suite('conformance/agent-proxy-v1.4.0');row['commands']=[['cargo','test','--workspace','--locked','--offline']]
+        with self.assertRaisesRegex(assembly.AssemblyError,'concrete Cargo package and test target'):
+            self.validate(row)
 
     def test_target_feature_gate_cannot_be_removed(self):
-        registry = copy.deepcopy(self.registry)
-        command = self.suite(registry, "conformance/providers")["commands"][0]
-        del command[command.index("--features"):]
-        with self.assertRaisesRegex(assembly.AssemblyError, "target disabled by feature cfg.*selected_factories"):
-            assembly.validate_registry(registry, self.labels)
-
-    def test_function_cfg_anchor_cannot_claim_disabled_native_proof(self):
-        registry = copy.deepcopy(self.registry)
-        row = self.suite(registry, "conformance/images/fixtures")
-        row["evidence"][0]["anchor"] = "test:native_image_post_decodes_and_closes_peer_while_adapter_stays_alive"
-        with self.assertRaisesRegex(assembly.AssemblyError, "disabled.*native_image_post"):
-            assembly.validate_registry(registry, self.labels)
-        with tempfile.TemporaryDirectory(prefix='assembly-disabled-native-') as directory:
-            path = Path(directory) / 'registry.json'
-            path.write_text(json.dumps(registry))
-            run = subprocess.run([sys.executable, str(ROOT / 'scripts/check_assembly.py'), '--registry', str(path)],
-                                 cwd=ROOT, capture_output=True, text=True)
-            self.assertEqual(run.returncode, 1)
-            self.assertIn('native_image_post_decodes_and_closes_peer_while_adapter_stays_alive', run.stderr)
+        row=self.suite('conformance/agent-proxy-v1.4.0');row['commands'][0].remove('--all-features')
+        with self.assertRaisesRegex(assembly.AssemblyError,'disabled by feature cfg'):
+            self.validate(row)
 
     def test_unrelated_test_definition_cannot_be_unbound_evidence(self):
-        registry = copy.deepcopy(self.registry)
-        row = self.suite(registry, 'conformance/images/fixtures')
-        row['evidence'].append({'path': 'crates/pi-agent/tests/telemetry_facade.rs',
-                                'anchor': 'test:facade_exposes_detached_telemetry_recording'})
-        with self.assertRaisesRegex(assembly.AssemblyError, 'unbound to a declared command'):
-            assembly.validate_registry(registry, self.labels)
+        row=self.suite('conformance/agent-proxy-v1.4.0')
+        row['evidence'].append({'path':'crates/pi-telemetry/tests/contract.rs','anchor':'test:'+next(iter(assembly.active_tests((ROOT/'crates/pi-telemetry/tests/contract.rs').read_text())))})
+        with self.assertRaisesRegex(assembly.AssemblyError,'unbound to a declared command'):
+            self.validate(row)
 
     def test_inline_and_external_module_cfg_and_ignore_precede_test(self):
-        with tempfile.TemporaryDirectory(prefix="assembly-cfg-") as directory:
-            root = Path(directory)
-            base = root / "crates/fixture"
-            (base / "tests").mkdir(parents=True)
-            (base / "Cargo.toml").write_text('[package]\nname = "fixture"\n[features]\nsuite=[]\nnative=[]\n')
-            (base / "tests/proof.rs").write_text('''#![cfg(feature = "suite")]
-#[cfg(feature = "native")]
-mod inline { #[test] fn gated_inline() {} }
-#[cfg(feature = "native")]
-#[path = "external.rs"]
-mod external;
-#[ignore]
-#[test]
-fn ignored_before_marker() {}
-#[cfg(target_os = "unsupported")]
-#[test]
-fn unknown_condition() {}
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'crates/fixture';(base/'tests').mkdir(parents=True)
+            (base/'Cargo.toml').write_text('[package]\nname="fixture"\n[features]\nsuite=[]\nnative=[]\n')
+            (base/'tests/proof.rs').write_text('''#![cfg(feature = "suite")]
+#[cfg(feature = "native")] mod inline { #[test] fn gated_inline() {} }
+#[cfg(feature = "native")] #[path = "external.rs"] mod external;
+#[ignore] #[test] fn ignored_before_marker() {}
+#[cfg(target_os = "unsupported")] #[test] fn unknown_condition() {}
 ''')
-            (base / "tests/external.rs").write_text('#[test]\nfn gated_external() {}\n')
-            command = ['cargo', 'test', '--locked', '--offline', '-p', 'fixture', '--test', 'proof', '--features', 'suite']
-            for path, name in [('proof.rs', 'gated_inline'), ('external.rs', 'gated_external'),
-                               ('proof.rs', 'ignored_before_marker'), ('proof.rs', 'unknown_condition')]:
-                with self.subTest(name=name), self.assertRaises(assembly.AssemblyError):
-                    assembly.check_command(command, [{'path': 'crates/fixture/tests/' + path, 'anchor': 'test:' + name}], root)
-            native_command = [*command[:-1], 'suite,native']
-            for path, name in [('proof.rs', 'inline::gated_inline'), ('external.rs', 'external::gated_external')]:
-                assembly.check_command(native_command, [{'path': 'crates/fixture/tests/' + path, 'anchor': 'test:' + name}], root)
+            (base/'tests/external.rs').write_text('#[test] fn gated_external() {}\n')
+            command=['cargo','test','--locked','--offline','-p','fixture','--test','proof','--features','suite']
+            for path,name in [('proof.rs','gated_inline'),('external.rs','gated_external'),('proof.rs','ignored_before_marker'),('proof.rs','unknown_condition')]:
+                with self.subTest(name=name),self.assertRaises(assembly.AssemblyError):
+                    assembly.check_command(command,[{'path':'crates/fixture/tests/'+path,'anchor':'test:'+name}],root)
+            for path,name in [('proof.rs','inline::gated_inline'),('external.rs','external::gated_external')]:
+                assembly.check_command([*command[:-1],'suite,native'],[{'path':'crates/fixture/tests/'+path,'anchor':'test:'+name}],root)
 
-    def test_retained_adapter_family_has_complete_exact_proof_routes(self):
-        inventory = assembly.load_json(ROOT / 'conformance/ai-domain/inventory.json')
-        requirements = set()
-        for row in inventory['rows']:
-            if row['surface'] != 'ai.api-adapters':
-                continue
-            for test in row['executedTests']:
-                if isinstance(test, str):
-                    target, name = test.split('#')
-                    requirements.add(('pi-ai-providers', target, name))
-                else:
-                    requirements.add((test['package'], test['target'], test['name']))
-        suite = self.suite(self.registry, 'conformance/provider-traces')
-        targets = {(command[command.index('-p') + 1], command[command.index('--test') + 1]) for command in suite['commands']}
-        expected = {(package, target) for package, target, _ in requirements}
-        self.assertTrue(expected <= targets, sorted(expected - targets))
-        references = {(reference['path'], reference.get('anchor')) for reference in suite['evidence']}
-        self.assertTrue({(f'crates/{package}/tests/{target}.rs', 'test:' + name)
-                         for package, target, name in requirements} <= references)
+    def test_cargo_target_registration_and_required_features_are_enforced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'crates/fixture';(base/'tests').mkdir(parents=True)
+            path=base/'Cargo.toml';prefix='[package]\nname="fixture"\nautotests=false\n[features]\nsuite=[]\n'
+            path.write_text(prefix);(base/'tests/proof.rs').write_text('#[test] fn proof() {}')
+            command=['cargo','test','--locked','--offline','-p','fixture','--test','proof']
+            evidence=[{'path':'crates/fixture/tests/proof.rs','anchor':'test:proof'}]
+            with self.assertRaisesRegex(assembly.AssemblyError,'not registered'):assembly.check_command(command,evidence,root)
+            path.write_text(prefix+'[[test]]\nname="proof"\npath="tests/proof.rs"\nrequired-features=["suite"]\n')
+            with self.assertRaisesRegex(assembly.AssemblyError,'required-features'):assembly.check_command(command,evidence,root)
+            assembly.check_command([*command,'--features','suite'],evidence,root)
 
-    def test_retained_adapter_target_anchor_and_profile_gaps_fail_by_name(self):
-        inventory = assembly.load_json(ROOT / 'conformance/ai-domain/inventory.json')
-        for mutation, expected in [('target', 'missing target'), ('anchor', 'missing exact anchor'),
-                                   ('profile', 'missing profile')]:
-            suite = copy.deepcopy(self.suite(self.registry, 'conformance/provider-traces'))
-            if mutation == 'target':
-                suite['commands'] = [command for command in suite['commands'] if 'azure_openai_responses' not in command]
-            elif mutation == 'anchor':
-                suite['evidence'] = [reference for reference in suite['evidence']
-                                     if 'azure_openai_responses.rs' not in reference['path']]
-            else:
-                command = next(command for command in suite['commands'] if 'azure_openai_responses' in command)
-                del command[command.index('--features'):]
-            with self.subTest(mutation=mutation), self.assertRaisesRegex(assembly.AssemblyError, expected + '.*azure_openai_responses'):
-                assembly.validate_adapter_proofs(suite, inventory)
+    def test_external_path_attributes_use_containing_file_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);folder=root/'nested';folder.mkdir()
+            (root/'proof.rs').write_text('#[path="nested/support.rs"] mod support;')
+            (folder/'support.rs').write_text('#[path="leaf.rs"] mod leaf;')
+            (folder/'leaf.rs').write_text('#[test] fn witness() {}')
+            tests,_=assembly.rust_test_inventory(root/'proof.rs',root)
+            self.assertEqual([test['qualified'] for test in tests],['support::leaf::witness'])
+
+    def test_adapter_family_keeps_all_exact_enabled_proof_routes(self):
+        suite=self.suite('conformance/provider-traces/v1.4.0')
+        assembly.validate_adapter_proofs(suite,{})
+        for mutation,expected in [('target','missing target'),('anchor','missing exact anchor'),('profile','disabled by feature cfg')]:
+            row=copy.deepcopy(suite)
+            if mutation=='target':row['commands']=[command for command in row['commands'] if 'v140_release' not in command]
+            elif mutation=='anchor':row['evidence']=[ref for ref in row['evidence'] if ref['cargo_target']!='v140_release']
+            else:next(command for command in row['commands'] if 'v140_release' in command).remove('--all-features')
+            with self.subTest(mutation=mutation),self.assertRaisesRegex(assembly.AssemblyError,expected):assembly.validate_adapter_proofs(row,{})
 
     def test_cargo_feature_closure_and_cfg_grammar_are_explicit(self):
-        manifest = {"features": {"default": ["a"], "a": ["b"], "b": []}}
-        self.assertNotIn('default', assembly.cargo_features(['cargo', 'test'], {'features': {}}))
-        features = assembly.cargo_features(["cargo", "test"], manifest)
-        self.assertTrue(assembly.cfg_enabled('all(feature = "a", any(feature = "b", feature = "c"), not(feature = "c"))', features))
-        self.assertFalse(assembly.cfg_enabled('feature = "a"', assembly.cargo_features(
-            ["cargo", "test", "--no-default-features"], manifest)))
-        with self.assertRaisesRegex(assembly.AssemblyError, "unsupported proof cfg"):
-            assembly.cfg_enabled('target_os = "unknown"', features)
+        manifest={'features':{'default':['a'],'a':['b'],'b':[]}}
+        features=assembly.cargo_features(['cargo','test'],manifest)
+        self.assertTrue(assembly.cfg_enabled('all(feature = "a", any(feature = "b", feature = "c"), not(feature = "c"))',features))
+        self.assertFalse(assembly.cfg_enabled('feature = "a"',assembly.cargo_features(['cargo','test','--no-default-features'],manifest)))
+        self.assertTrue(assembly.cfg_enabled('all(unix, target_os = "linux")',features,cfg_platform=('posix','linux')))
+        self.assertFalse(assembly.cfg_enabled('unix',features,cfg_platform=('nt','windows')))
+        with self.assertRaisesRegex(assembly.AssemblyError,'unsupported proof cfg'):assembly.cfg_enabled('target_os = "unknown"',features)
 
     def test_accepted_limit_requires_public_evidence(self):
-        registry = copy.deepcopy(self.registry)
-        self.suite(registry, "conformance/agent-proxy")["limitations"] = []
-        with self.assertRaisesRegex(assembly.AssemblyError, "accepted-limit lacks evidence.*agent-proxy"):
-            assembly.validate_registry(registry, self.labels)
-        self.suite(registry, "conformance/agent-proxy")["limitations"] = [{"path": "missing-limit.md"}]
-        with self.assertRaisesRegex(assembly.AssemblyError, "agent-proxy.*missing evidence"):
-            assembly.validate_registry(registry, self.labels)
+        row=self.suite('conformance/agent-proxy-v1.4.0');row.update(status='accepted-limit',limitations=[])
+        with self.assertRaisesRegex(assembly.AssemblyError,'accepted-limit lacks evidence'):self.validate(row)
+        row['limitations']=[{'path':'missing-limit.md'}]
+        with self.assertRaisesRegex(assembly.AssemblyError,'missing evidence'):self.validate(row)
 
     def test_registry_cannot_duplicate_ownership(self):
-        registry = copy.deepcopy(self.registry)
-        registry["suites"][0]["primary_owner"] = "invented-owner"
-        with self.assertRaisesRegex(assembly.AssemblyError, "cannot duplicate ownership"):
-            assembly.validate_registry(registry, self.labels)
+        row=self.suite('conformance/agent-proxy-v1.4.0');row['primary_owner']='invented'
+        with self.assertRaisesRegex(assembly.AssemblyError,'cannot duplicate ownership'):self.validate(row)
 
     def test_evidence_cannot_escape_public_root(self):
-        with self.assertRaisesRegex(assembly.AssemblyError, "non-public evidence path"):
-            assembly.check_reference({"path": "../outside.md"}, ROOT)
+        with self.assertRaisesRegex(assembly.AssemblyError,'non-public evidence path'):assembly.check_reference({'path':'../outside.md'},ROOT)
 
-    def test_cross_package_exports_resolve_actual_source_owners(self):
-        external = [symbol for symbol in self.agent if symbol["origin"].startswith("@")]
-        self.assertEqual(len(external), 72)
-        for symbol in external:
-            surface = self.resolver.export(symbol)
-            self.assertEqual(surface, "ai.domain" if symbol["name"] == "uuidv7" else "telemetry.package")
-        alias = next(symbol for symbol in external if symbol["name"] == "TelemetrySpanAttributes")
-        self.assertEqual(self.resolver.external_name(alias["source_path"], alias["origin"], alias["name"]), "SpanAttributes")
-        self.assertIn("SpanAttributes as TelemetrySpanAttributes,", "\n".join(
-            self.resolver.lines("packages/agent/src/index.ts")))
+    def test_unknown_or_online_command_cannot_register_as_proof(self):
+        for command in [['curl','https://example.invalid'],['python3','unregistered.py','--check'],['python3','conformance/catalog/v1.4.0/check.py','--write']]:
+            with self.subTest(command=command),self.assertRaises(assembly.AssemblyError):assembly.check_command(command,[],ROOT)
 
-    def test_nonexistent_alias_and_unwatched_package_fail_closed(self):
-        alias = copy.deepcopy(next(symbol for symbol in self.agent if symbol["name"] == "TelemetrySpanAttributes"))
-        alias["name"] = "NonexistentTelemetryAlias"
-        with self.assertRaisesRegex(assembly.AssemblyError, "pinned external alias"):
-            self.resolver.export(alias)
-        alias["origin"] = "@unwatched/missing"
-        with self.assertRaisesRegex(assembly.AssemblyError, "unresolved watched package reexport"):
-            self.resolver.export(alias)
+    def test_lost_source_owner_fails_by_name(self):
+        data=copy.deepcopy(self.map);data['owner']=[row for row in data['owner'] if row['id']!='pi-agent-loop::selected']
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'map.toml';path.write_text(render_map(data))
+            with self.assertRaisesRegex(ValueError,'agent.proxy.*pi-agent-loop::selected'):assembly.check_assembly(path,self.registry_path)
 
-    def test_value_namespace_subset_accepts_class_but_rejects_namespace_loss(self):
-        symbol = next(item for item in self.agent if item["name"] == "InMemoryTelemetryContext")
-        self.assertEqual(symbol["kind"], "value")
-        self.assertEqual(self.resolver.export(symbol), "telemetry.package")
-        symbols = copy.deepcopy(self.resolver.package_symbols)
+    def test_public_regeneration_rejects_deleted_reviewed_test_and_changed_profiles(self):
+        # Exercise the actual CLI in a disposable copy. Its immutable objects are
+        # shared read-only; neither original tests nor the root registry is edited.
+        witness='crates/pi-ai-providers/tests/anthropic_messages.rs'
+        required_name='installed_sdk_request_and_complete_pinned_event_snapshots'
+        original_bytes=(ROOT/witness).read_bytes()
+        with tempfile.TemporaryDirectory(prefix='reviewed-proof-retirement-') as directory:
+            root=Path(directory)
+            (root/'.git').symlink_to(ROOT/'.git',target_is_directory=True)
+            shutil.copytree(ROOT/'scripts',root/'scripts',ignore=shutil.ignore_patterns('__pycache__'))
+            shutil.copytree(ROOT/'crates',root/'crates')
+            shutil.copyfile(ROOT/'workspace-topology.toml',root/'workspace-topology.toml')
+            for reference in self.registry['preserved_inputs']:
+                destination=root/reference['path'];destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/reference['path'],destination)
+            checker=root/'conformance/catalog/v1.4.0/check.py';checker.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(ROOT/'conformance/catalog/v1.4.0/check.py',checker)
+            registry=root/'conformance/assembly.json';registry.write_bytes(self.registry_path.read_bytes())
+            before=registry.read_bytes()
+            command=[sys.executable,str(root/'scripts/generate_assembly_registry.py')]
+            positive=subprocess.run([*command,'--check'],cwd=root,capture_output=True,text=True)
+            self.assertEqual(positive.returncode,0,positive.stdout+positive.stderr)
+            source=(root/witness).read_text();tokens=assembly.rust_tokens(source)
+            start=next(index for index,token in enumerate(tokens) if token[0]=='fn' and tokens[index+1][0]==required_name)
+            body=next(index for index in range(start,len(tokens)) if tokens[index][0]=='{')
+            depth=1;end=body+1
+            while depth:
+                depth += (tokens[end][0]=='{') - (tokens[end][0]=='}');end+=1
+            declaration=source.rfind('#[test]',0,tokens[start][1])
+            self.assertGreaterEqual(declaration,0)
+            (root/witness).write_text(source[:declaration]+source[tokens[end-1][2]:])
+            self.assertNotIn(required_name,assembly.active_tests((root/witness).read_text()))
+            rejected=subprocess.run([*command,'--write'],cwd=root,capture_output=True,text=True)
+            self.assertNotEqual(rejected.returncode,0,rejected.stdout+rejected.stderr)
+            self.assertIn('reviewed required proof identity retired',rejected.stderr)
+            self.assertIn(required_name,rejected.stderr)
+            self.assertEqual(registry.read_bytes(),before,'failed refresh published a smaller registry')
+            (root/witness).write_bytes(original_bytes)
+            manifest=root/'crates/pi-ai-providers/Cargo.toml';original_manifest=manifest.read_text()
+            for old,new,reason in [
+                ('provider-anthropic = ["wire-anthropic-messages", "catalog-anthropic"]',
+                 'provider-anthropic = ["catalog-anthropic"]','reviewed proof feature binding retired'),
+                ('url = { workspace = true, optional = true }',
+                 'url = { workspace = true }','reviewed proof dependency binding changed')]:
+                self.assertEqual(original_manifest.count(old),1)
+                manifest.write_text(original_manifest.replace(old,new))
+                rejected=subprocess.run([*command,'--write'],cwd=root,capture_output=True,text=True)
+                self.assertNotEqual(rejected.returncode,0,rejected.stdout+rejected.stderr)
+                self.assertIn(reason,rejected.stderr)
+                self.assertEqual(registry.read_bytes(),before)
+            manifest.write_text(original_manifest)
+            generator=root/'scripts/generate_assembly_registry.py';original_generator=generator.read_text()
+            self.assertEqual(original_generator.count("'anthropic_messages',"),1)
+            generator.write_text(original_generator.replace("'anthropic_messages',",'',1))
+            rejected=subprocess.run([*command,'--write'],cwd=root,capture_output=True,text=True)
+            self.assertNotEqual(rejected.returncode,0,rejected.stdout+rejected.stderr)
+            self.assertIn('reviewed proof command/profile retired',rejected.stderr)
+            self.assertEqual(registry.read_bytes(),before)
+            generator.write_text(original_generator)
+            # New identities are allowed while the immutable reviewed set remains.
+            (root/witness).write_text(source+'\n#[test] fn reviewed_addition_allowed() {}\n')
+            added=subprocess.run([*command,'--write'],cwd=root,capture_output=True,text=True)
+            self.assertEqual(added.returncode,0,added.stdout+added.stderr)
+            refreshed=json.loads(registry.read_text())
+            family=next(row for row in refreshed['suites'] if row['id']=='conformance/provider-traces/v1.4.0')
+            self.assertTrue(any(ref.get('anchor')=='test:reviewed_addition_allowed' for ref in family['evidence']))
+        self.assertEqual((ROOT/witness).read_bytes(),original_bytes)
+
+    def test_reviewed_command_profiles_cannot_be_replaced(self):
+        # The reviewed Linux acceptance set must not shrink on another host.
+        required,_=assembly.reviewed_proof_requirements()
         try:
-            for item in self.resolver.package_symbols["@earendil-works/pi-telemetry"]:
-                if item["subpath"] == "." and item["name"] == symbol["name"]:
-                    self.assertEqual(item["kind"], "type-and-value")
-                    item["kind"] = "type"
-            with self.assertRaisesRegex(assembly.AssemblyError, "package export namespace loss"):
-                self.resolver.export(symbol)
+            with mock.patch.object(assembly.sys,'platform','win32'):
+                assembly._reviewed_proofs.cache_clear()
+                other_host,_=assembly.reviewed_proof_requirements()
+                self.assertEqual(other_host,required)
         finally:
-            self.resolver.package_symbols = symbols
+            assembly._reviewed_proofs.cache_clear()
+        registry=copy.deepcopy(self.registry)
+        row=next(suite for suite in registry['suites'] if suite['id']=='conformance/provider-traces/v1.4.0')
+        row['commands'][0].remove('--all-features')
+        with self.assertRaisesRegex(assembly.AssemblyError,'reviewed proof command/profile retired'):
+            assembly.validate_reviewed_proofs(registry)
+        from scripts import upstream_drift
+        row=self.suite('conformance/agent-v1.4.0')
+        row['commands']=[['python3','scripts/generate_upstream_manifests.py','--check']]
+        row['evidence']=[{'path':'scripts/generate_upstream_manifests.py','anchor':'python:main'}]
+        with self.assertRaisesRegex(ValueError,'reviewed proof command/profile retired'):
+            upstream_drift.validate_suite_activation(row,ROOT)
 
-    def test_cli_missing_proxy_owner_names_six_exports_and_u12_then_restores(self):
-        saved = self.map_path.read_bytes()
-        owner = re.compile(rb'\[\[owner\]\]\nid = "pi-agent-loop::proxy"\n(?:(?!\[\[).)*', re.DOTALL)
-        changed, count = owner.subn(b"", saved)
-        self.assertEqual(count, 1)
-        upstream = ROOT / "upstream/manifests/agent-exports.toml"
-        manifest_hash = hashlib.sha256(upstream.read_bytes()).hexdigest()
-        with tempfile.TemporaryDirectory(prefix="assembly-map-") as directory:
-            path = Path(directory) / "upstream-map.toml"
-            path.write_bytes(changed)
-            command = [sys.executable, str(ROOT / "scripts/check_assembly.py"), "--map", str(path)]
-            red = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
-            self.assertEqual(red.returncode, 1, red.stdout + red.stderr)
-            result = json.loads(red.stdout.split("\nAssembly:", 1)[0])
-            failures = result["unresolved"]
-            self.assertTrue(any("legacy:U12" in error and "pi-agent-loop::proxy" in error for error in failures))
-            export_failures = [error for error in failures if error.startswith("export:agent:") and "agent.legacy-proxy" in error]
-            self.assertEqual(len(export_failures), 6, failures)
-            self.assertTrue(all("pi-agent-loop::proxy" in error for error in export_failures))
-            path.write_bytes(saved)
-            self.assertEqual(path.read_bytes(), saved)
-            green = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
-            self.assertEqual(green.returncode, 0, green.stdout + green.stderr)
-            self.assertIn("0 unresolved mappings", green.stdout)
-        self.assertEqual(self.map_path.read_bytes(), saved)
-        self.assertEqual(hashlib.sha256(upstream.read_bytes()).hexdigest(), manifest_hash)
+    def test_excluded_compat_schemas_have_explicit_source_dispositions(self):
+        symbols=tomllib.loads((ROOT/'upstream/manifests/ai-exports.toml').read_text())['symbol']
+        self.assertEqual(len(symbols),1170)
+        excluded={'BedrockCompat','BedrockCompatSchema','MistralConversationsCompat',
+                  'MistralConversationsCompatSchema','SystemOneCompat','SystemOneCompatSchema'}
+        selected={'AnthropicMessagesCompat','AnthropicMessagesCompatSchema',
+                  'OpenAICompletionsCompat','OpenAICompletionsCompatSchema',
+                  'OpenAIResponsesCompat','OpenAIResponsesCompatSchema','OpenRouterRouting'}
+        source='packages/ai/src/providers/compat-schema.ts'
+        source_symbols=[row for row in symbols if row['origin']==source]
+        for name in excluded:
+            matches=[row for row in source_symbols if row['name']==name]
+            self.assertTrue(matches,name)
+            self.assertTrue(all(row['disposition']=='outside-scope' for row in matches),name)
+        subpath=[row for row in source_symbols if row['subpath']=='./providers/compat-schema']
+        self.assertTrue(selected <= {row['name'] for row in subpath})
+        self.assertTrue(all(row['disposition']=='included' for row in subpath if row['name'] in selected))
+        root=[row for row in source_symbols if row['subpath']=='.' and row['name'] in excluded]
+        self.assertEqual({row['name'] for row in root},{'BedrockCompat','MistralConversationsCompat','SystemOneCompat'})
+        self.assertTrue(all(row['disposition']=='outside-scope' for row in root))
+
+    def test_registry_regeneration_cannot_bless_changed_historical_fixtures(self):
+        from scripts import generate_assembly_registry as generator
+        witness=ROOT/self.registry['preserved_inputs'][0]['path']
+        original=Path.read_bytes
+        def read(path):
+            return b'changed historical bytes' if path==witness else original(path)
+        with mock.patch.object(Path,'read_bytes',autospec=True,side_effect=read), mock.patch.object(Path,'write_text') as write, redirect_stderr(io.StringIO()):
+            self.assertEqual(generator.main(['--write']),1)
+            write.assert_not_called()
+
+    def test_historical_fixture_mutation_and_origin_relabelling_are_rejected(self):
+        reference=copy.deepcopy(self.registry['preserved_inputs'][0]);reference['source_revision']='4a080252f06caf63a525d7873c5d94d3c23887e0'
+        with self.assertRaisesRegex(assembly.AssemblyError,'historical evidence origin changed'):assembly.validate_preserved_inputs([reference])
+        reference=copy.deepcopy(self.registry['preserved_inputs'][0])
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);path=root/reference['path'];path.parent.mkdir(parents=True);path.write_bytes(b'changed fixture')
+            with self.assertRaisesRegex(assembly.AssemblyError,'preserved source/fixture identity changed'):assembly.validate_preserved_inputs([reference],root)
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__=='__main__':unittest.main()

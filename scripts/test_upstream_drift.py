@@ -740,17 +740,17 @@ class DriftTests(unittest.TestCase):
         document=json.loads(registry.read_bytes())
         expected={row['id']:row for row in document['suites'] if row['status']=='executable'}
         self.assertEqual(drift.registry_suites(registry,drift.ROOT,set(expected)),expected)
-        family=expected['conformance/provider-traces']
+        family=expected['conformance/provider-traces/v1.4.0']
         anchors={row.get('anchor') for row in family['evidence']}
-        for anchor in ['test:priming_long_body_fallback','test:stream_long_body_outside_preview','test:wire_integration::complete_runtime_auth_dispatch_to_accepted_wire_preserves_endpoint_and_callback_cancel_success']:
+        for anchor in ['test:four_protocols_match_published_v140_wires_and_terminal_messages', 'test:target_release_oracle_reexecutes_without_network', 'test:all_complete_message_projections_match_executed_source_without_mutation']:
             self.assertIn(anchor,anchors)
         missing_target=deepcopy(family)
         missing_target['commands']=[command for command in missing_target['commands'] if command[command.index('--test')+1]!='google_shared']
         missing_anchor=deepcopy(family)
         missing_anchor['evidence'].remove(next(row for row in missing_anchor['evidence'] if row['path'].endswith('/google_shared.rs')))
-        unrelated={**deepcopy(family),'commands':[['python3','scripts/generate_ai_conformance.py','--check']],'evidence':[{'path':'scripts/generate_ai_conformance.py','anchor':'python:main'}]}
+        unrelated={**deepcopy(family),'commands':[['python3','scripts/generate_upstream_manifests.py','--check']],'evidence':[{'path':'scripts/generate_upstream_manifests.py','anchor':'python:main'}]}
         negative=self.root/'incomplete-family.json'
-        for row,error in [(missing_target,'retained adapter proof missing target'),(missing_anchor,'retained adapter proof missing exact anchor'),(unrelated,'retained adapter proof missing exact anchor')]:
+        for row,error in [(missing_target,'retained adapter proof missing target'),(missing_anchor,'retained adapter proof missing exact anchor'),(unrelated,'retained adapter proof missing target')]:
             negative.write_bytes(canonical({'schema_version':1,'suites':[row]}))
             with self.assertRaisesRegex(Invalid,error):
                 drift.registry_suites(negative,drift.ROOT,{family['id']})
@@ -928,18 +928,18 @@ unsupported_test!(unsupported_macro_case);
         shared=drift.cargo_validator()
         document=json.loads(registry.read_bytes())
         row=document['suites'][0]
-        row.update(id='conformance/provider-traces',commands=[['python3','proof_fixture.py']])
+        row.update(id='conformance/provider-traces/v1.4.0',commands=[['python3','proof_fixture.py']])
         registry.write_bytes(canonical(document))
         with patch.object(shared,'check_command',return_value=None):
-            with self.assertRaisesRegex(Invalid,'inventory.json'):
-                drift.registry_suites(registry,root,{'conformance/provider-traces'})
-            path=root/'conformance/ai-domain/inventory.json'
+            with self.assertRaisesRegex(Invalid,'providers.toml'):
+                drift.registry_suites(registry,root,{'conformance/provider-traces/v1.4.0'})
+            path=root/'upstream/manifests/providers.toml'
             path.parent.mkdir(parents=True)
             inventory={'source':'fixture'}
-            path.write_bytes(canonical(inventory))
+            path.write_text('source="fixture"\n')
             with patch.object(shared,'validate_adapter_proofs',side_effect=ValueError('missing typed adapter family')) as check:
                 with self.assertRaisesRegex(Invalid,'missing typed adapter family'):
-                    drift.registry_suites(registry,root,{'conformance/provider-traces'})
+                    drift.registry_suites(registry,root,{'conformance/provider-traces/v1.4.0'})
                 check.assert_called_once_with(row,inventory,root)
 
     def test_existing_public_source_cannot_be_hidden_by_manifest_overlay(self):
@@ -951,6 +951,67 @@ unsupported_test!(unsupported_macro_case);
         redirected[0]['source']='pkg/other.json'
         with self.assertRaisesRegex(Invalid,'cannot be hidden'):
             self.compare(ov=overlay(initial,replace={'manifest':redirected}))
+
+    def test_source_bound_export_exclusions_preserve_owner_migration(self):
+        self.fixture.write('pkg/package.json', '{"name":"fixture","exports":{".":"./src/index.ts"}}')
+        self.fixture.write('pkg/src/index.ts', 'export * from "./types.ts";')
+        self.fixture.write('pkg/src/types.ts', 'export interface ImageModel {}\nexport interface Message {}\n')
+        self.old = self.fixture.commit()
+        base = mapping(self.old)
+        excluded = {**deepcopy(base['surface'][0]), 'id':'excluded', 'authority':'host-only',
+                    'primary_owner':'outside', 'disposition':'outside-scope', 'status':'excluded', 'conformance':[]}
+        base['surface'].append(excluded)
+        base['owner'].append({'id':'outside','kind':'outside-scope','decision_ref':'owner decision'})
+        base['manifest'] = [{'id':'public','kind':'public-exports','source':'pkg/package.json','path':'exports.toml'}]
+        base['export_exclusion'] = [{'id':'excluded-image','source':'pkg/src/types.ts','names':['ImageModel'],'surface':'excluded'}]
+        self.base = bind_map(self.fixture, base)
+        initial = self.compare()
+        self.assertFalse(initial.errors)
+        exports = {row['payload']['name']:row['surface'] for row in initial.new.inventory.values() if row['family']=='exports'}
+        self.assertEqual(exports, {'ImageModel':'excluded','Message':'source'})
+        removed = self.compare(ov=overlay(initial, replace={'export_exclusion':[]}))
+        self.assertTrue(any('ownership/metadata change requires explicit ownership overlay' in error for error in removed.errors))
+        stale = deepcopy(self.base)
+        stale['export_exclusion'][0]['names'] = ['AbsentSymbol']
+        snapshot = Snapshot(Objects(self.repo), self.old, stale, DEPS, baseline=True)
+        self.assertTrue(any('export exclusion is stale or unresolved' in error for error in snapshot.errors))
+        duplicate = deepcopy(self.base)
+        duplicate['export_exclusion'].append({**duplicate['export_exclusion'][0], 'id':'duplicate'})
+        with self.assertRaisesRegex(Invalid,'overlapping source-bound export exclusions'):
+            Snapshot(Objects(self.repo),self.old,duplicate,DEPS,baseline=True)
+
+    def test_excluded_public_entrance_does_not_claim_shared_reexports(self):
+        self.fixture.write('pkg/package.json', '{"name":"fixture","exports":{".":"./src/index.ts","./compat":"./src/compat.ts"}}')
+        self.fixture.write('pkg/src/index.ts', 'export interface SharedMessage {}')
+        self.fixture.write('pkg/src/compat.ts', 'export * from "./index.ts";')
+        self.old=self.fixture.commit()
+        base=mapping(self.old)
+        base['owner'].append({'id':'outside','kind':'outside-scope','decision_ref':'owner decision'})
+        base['surface'].append({**deepcopy(base['surface'][0]),'id':'excluded','authority':'host-only',
+                                'primary_owner':'outside','disposition':'outside-scope','status':'excluded','conformance':[]})
+        base['route'][0]['exclude']=['pkg/src/compat.ts']
+        base['route'].append({'id':'compat','watch':'pkg','surface':'excluded','role':'excluded-public-entrance',
+                              'include':['pkg/src/compat.ts'],'exclude':[]})
+        base['manifest']=[{'id':'public','kind':'public-exports','source':'pkg/package.json','path':'exports.toml'}]
+        self.base=bind_map(self.fixture,base)
+        comparison=self.compare()
+        self.assertFalse(comparison.errors)
+        exports={row['payload']['subpath']:row['surface'] for row in comparison.new.inventory.values() if row['family']=='exports'}
+        self.assertEqual(exports,{'.':'source','./compat':'excluded'})
+
+    def test_release_artifact_association_rejects_wrong_identity_or_missing_bytes(self):
+        data = tomllib.loads((drift.ROOT/'upstream-map.toml').read_text())
+        surface = next(row for row in data['surface'] if row['id']=='ai.catalog.projection')
+        snapshot = object.__new__(Snapshot)
+        snapshot.commit = data['upstream']['commit']
+        snapshot.tree = {}
+        snapshot.validate_release_provenance(surface)
+        for field,value in [('commit','0'*40), ('sha256','sha256:'+'0'*64),
+                            ('source_ids',['unselected']), ('archive','missing-release-archive.tgz')]:
+            changed = deepcopy(surface)
+            changed['provenance_snapshot'][field] = value
+            with self.subTest(field=field),self.assertRaises(Invalid):
+                snapshot.validate_release_provenance(changed)
 
     def test_cli_exit_codes_and_patch_blocking(self):
         path=self.root/'map.toml'

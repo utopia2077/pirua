@@ -73,6 +73,13 @@ PUBLIC_MODEL_DATA_NAMES = frozenset(name.encode() for name in (
     "conformance/providers/selected/trace.json",
     "conformance/schema/ai/azure-runtime-resolved.golden.json",
 ))
+# The complete published input also contains an unselected classifier model.
+# Admit its factual model name only at the exact release path and byte identity;
+# the independent catalog checker binds these bytes to the npm archive/SLSA pin.
+PUBLIC_RELEASE_MODEL_DATA = {
+    b"conformance/catalog/v1.4.0/package-data/openai.json":
+        "cf5e119eb05f47bbf1dbad179de6a07b904bf7673e96691be72ab0b1fe40a781",
+}
 KNOWN_PRIVATE_KEY_HASHES = {
     "3d56544226d12b51b4fbed83b5eee8407457a07124ef6826adefb0cb25b93ac6",
 }
@@ -111,10 +118,15 @@ def path_categories(raw: bytes) -> list[str]:
 
 
 def content_categories(data: bytes, name: bytes) -> list[str]:
+    digest = hashlib.sha256(data).hexdigest()
+    public_model_data = (
+        name in PUBLIC_MODEL_DATA_NAMES
+        or PUBLIC_RELEASE_MODEL_DATA.get(name) == digest
+    )
     categories = [category for category, pattern in PATTERNS.items()
-                  if not (category == "internal_model" and name in PUBLIC_MODEL_DATA_NAMES)
+                  if not (category == "internal_model" and public_model_data)
                   and pattern.search(data)]
-    if hashlib.sha256(data).hexdigest() in KNOWN_PRIVATE_KEY_HASHES:
+    if digest in KNOWN_PRIVATE_KEY_HASHES:
         categories.append("known_private_key")
     reference_data = data
     if name == b".gitignore":
@@ -343,6 +355,18 @@ def self_check() -> dict:
         restore()
         os.symlink(owner.decode().strip(), repo / "owner-link")
         expect("symlink-target-owner-path", "owner_home", scope="current")
+        restore()
+        release_name = next(iter(PUBLIC_RELEASE_MODEL_DATA))
+        release_bytes = (Path(script).resolve().parents[1] / os.fsdecode(release_name)).read_bytes()
+        release_file = repo / os.fsdecode(release_name)
+        release_file.parent.mkdir(parents=True)
+        release_file.write_bytes(release_bytes)
+        expect("exact-release-model-data")
+        release_file.write_bytes(release_bytes + b"\n")
+        expect("modified-release-model-data-not-exempt", "internal_model")
+        restore()
+        (repo / "metadata.txt").write_bytes(release_bytes)
+        expect("release-model-data-at-unapproved-path", "internal_model")
         restore()
         data_file = repo / "conformance/catalog/inputs/models-dev.json"
         data_file.parent.mkdir(parents=True)

@@ -1,486 +1,210 @@
 #!/usr/bin/env python3
-"""Causal regression tests for the Cargo workspace policy checker."""
-
+"""Counterexamples for selected-provider and Cargo dependency boundaries."""
 from __future__ import annotations
-
 import copy
 import sys
 import unittest
+from unittest import mock
 from pathlib import Path
-from typing import Any
-
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
-
-import check_workspace as checker  # noqa: E402
+sys.path.insert(0, str(ROOT / 'scripts'))
+import check_workspace as checker
 
 
 class WorkspaceCheckerTests(unittest.TestCase):
     @classmethod
-    def setUpClass(cls) -> None:
-        cls.topology = checker.load_toml(ROOT / "workspace-topology.toml")
-        cls.default_metadata = checker.cargo_metadata()
-        cls.all_feature_metadata = checker.cargo_metadata("--all-features")
-
-    def validate_metadata(
-        self,
-        default_metadata: dict[str, Any],
-        all_feature_metadata: dict[str, Any] | None = None,
-    ) -> list[str]:
-        return checker.validate_workspace(
-            ROOT,
-            self.topology,
-            default_metadata,
-            self.all_feature_metadata if all_feature_metadata is None else all_feature_metadata,
-        )
+    def setUpClass(cls):
+        cls.topology = checker.load_toml(ROOT / 'workspace-topology.toml')
+        cls.default = checker.cargo_metadata()
+        cls.all_features = checker.cargo_metadata('--all-features')
 
     @staticmethod
-    def dependency(
-        metadata: dict[str, Any], consumer: str, dependency: str
-    ) -> dict[str, Any]:
-        package = next(package for package in metadata["packages"] if package["name"] == consumer)
-        return next(
-            record for record in package["dependencies"] if record["name"] == dependency
-        )
+    def package(metadata, name):
+        return next(p for p in metadata['packages'] if p['name'] == name)
 
-    @staticmethod
-    def package(metadata: dict[str, Any], name: str) -> dict[str, Any]:
-        return next(package for package in metadata["packages"] if package["name"] == name)
+    @classmethod
+    def dependency(cls, metadata, consumer, dependency):
+        return next(d for d in cls.package(metadata, consumer)['dependencies'] if d['name'] == dependency)
 
-    @staticmethod
-    def resolve_node(metadata: dict[str, Any], package_id: str) -> dict[str, Any]:
-        return next(node for node in metadata["resolve"]["nodes"] if node["id"] == package_id)
+    def validate(self, default=None, all_features=None, topology=None):
+        return checker.validate_workspace(ROOT, self.topology if topology is None else topology,
+            self.default if default is None else default,
+            self.all_features if all_features is None else all_features)
 
-    @staticmethod
-    def add_workspace_package(
-        metadata: dict[str, Any], name: str, manifest_path: str
-    ) -> str:
-        package_id = f"path+file://{manifest_path}#{name}@0.0.0"
-        metadata["packages"].append(
-            {
-                "name": name,
-                "id": package_id,
-                "source": None,
-                "manifest_path": manifest_path,
-                "dependencies": [],
-                "features": {},
-            }
-        )
-        metadata["workspace_members"].append(package_id)
-        metadata["resolve"]["nodes"].append(
-            {"id": package_id, "dependencies": [], "deps": [], "features": []}
-        )
-        return package_id
+    def assert_rejected(self, errors, reason):
+        self.assertTrue(errors, reason)
+        self.assertTrue(any(reason in error for error in errors), errors)
 
-    def test_exact_test_only_package_is_accepted_in_both_metadata_profiles(self):
-        errors = self.validate_metadata(self.default_metadata, self.all_feature_metadata)
-        self.assertEqual(errors, [])
-        self.assertEqual(len(self.topology["production_crates"]), len(set(self.topology["production_crates"])))
-        expected_path = (
-            ROOT / self.topology["test_only_package"]["path"] / "Cargo.toml"
-        ).resolve()
-        for metadata in (self.default_metadata, self.all_feature_metadata):
-            production = [
-                package
-                for package in metadata["packages"]
-                if package["name"] in self.topology["production_crates"]
-                and package["id"] in metadata["workspace_members"]
-            ]
-            self.assertEqual({package["name"] for package in production}, set(self.topology["production_crates"]))
-            support = self.package(metadata, self.topology["test_only_package"]["name"])
-            self.assertEqual(Path(support["manifest_path"]).resolve(), expected_path)
+    def test_current_default_and_all_feature_graphs_are_accepted(self):
+        self.assertEqual(self.validate(), [])
 
-    def test_second_renamed_moved_and_unauthorized_local_packages_are_rejected(self):
-        scenarios = ("second", "renamed", "moved", "unauthorized")
-        for scenario in scenarios:
+    def test_missing_extra_renamed_and_moved_packages_are_rejected(self):
+        for scenario in ('missing', 'extra', 'renamed', 'moved', 'registry'):
             with self.subTest(scenario=scenario):
-                default_metadata = copy.deepcopy(self.default_metadata)
-                all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
-                for metadata in (default_metadata, all_feature_metadata):
-                    support = self.package(
-                        metadata, self.topology["test_only_package"]["name"]
-                    )
-                    if scenario == "second":
-                        self.add_workspace_package(
-                            metadata,
-                            "runtime-extension-profiles-alloc-second",
-                            "/tmp/runtime-extension-profiles-alloc-second/Cargo.toml",
-                        )
-                    elif scenario == "renamed":
-                        support["name"] = "runtime-extension-profiles-alloc-renamed"
-                    elif scenario == "moved":
-                        support["manifest_path"] = (
-                            "/tmp/moved-runtime-extension-profiles-alloc/Cargo.toml"
-                        )
-                    else:
-                        rogue_id = self.add_workspace_package(
-                            metadata,
-                            "runtime-extension-profiles-alloc-rogue",
-                            "/tmp/runtime-extension-profiles-alloc-rogue/Cargo.toml",
-                        )
-                        metadata["workspace_members"].remove(rogue_id)
-                        core = self.package(metadata, "pi-ai-core")
-                        core_node = self.resolve_node(metadata, core["id"])
-                        core_node["deps"].append(
-                            {
-                                "name": "runtime_extension_profiles_alloc_rogue",
-                                "pkg": rogue_id,
-                                "dep_kinds": [{"kind": None, "target": None}],
-                            }
-                        )
-                errors = self.validate_metadata(default_metadata, all_feature_metadata)
-                if scenario == "moved":
-                    self.assertTrue(
-                        any("authorized test-only package must resolve" in error for error in errors),
-                        errors,
-                    )
-                elif scenario == "unauthorized":
-                    self.assertTrue(
-                        any(
-                            "metadata has reachable local path package outside workspace"
-                            in error
-                            for error in errors
-                        ),
-                        errors,
-                    )
-                else:
-                    self.assertTrue(
-                        any("Cargo workspace package inventory mismatch" in error for error in errors),
-                        errors,
-                    )
+                metadata = copy.deepcopy(self.default)
+                package = self.package(metadata, 'pi-agent')
+                if scenario == 'missing':
+                    metadata['workspace_members'].remove(package['id'])
+                elif scenario == 'extra':
+                    extra = copy.deepcopy(package)
+                    extra.update(name='rogue', id='rogue', manifest_path='/tmp/rogue/Cargo.toml')
+                    metadata['packages'].append(extra)
+                    metadata['workspace_members'].append('rogue')
+                elif scenario == 'renamed': package['name'] = 'renamed-agent'
+                elif scenario == 'moved': package['manifest_path'] = '/tmp/moved/Cargo.toml'
+                else: package['source'] = 'registry+https://example.invalid'
+                self.assert_rejected(self.validate(default=metadata), 'canonical' if scenario in ('moved', 'registry') else 'inventory')
 
-    def test_production_edge_to_test_only_package_is_rejected(self):
-        default_metadata = copy.deepcopy(self.default_metadata)
-        all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
-        support_name = self.topology["test_only_package"]["name"]
-        for metadata in (default_metadata, all_feature_metadata):
-            support = self.package(metadata, support_name)
-            runtime = self.package(metadata, "pi-harness-runtime")
-            declaration = copy.deepcopy(self.dependency(metadata, "pi-harness-runtime", support_name))
-            declaration["kind"] = None
-            core = self.package(metadata, "pi-ai-core")
-            core["dependencies"].append(declaration)
-            core_node = self.resolve_node(metadata, core["id"])
-            core_node["deps"].append(
-                {
-                    "name": "runtime_extension_profiles_alloc",
-                    "pkg": support["id"],
-                    "dep_kinds": [{"kind": None, "target": None}],
-                }
-            )
-            self.assertEqual(runtime["name"], "pi-harness-runtime")
-        errors = self.validate_metadata(default_metadata, all_feature_metadata)
-        self.assertTrue(
-            any("production dependency edge" in error for error in errors), errors
-        )
-        self.assertTrue(
-            any("exact untargeted dev dependency" in error for error in errors), errors
-        )
+    def test_hidden_local_package_is_rejected_even_without_workspace_membership(self):
+        metadata = copy.deepcopy(self.default)
+        metadata['packages'].append({'id': 'outside', 'name': 'outside', 'source': None,
+                                    'manifest_path': '/tmp/outside/Cargo.toml'})
+        self.assert_rejected(self.validate(default=metadata), 'outside workspace')
 
-    def test_s05_oauth_cli_dependency_target_and_activation_controls(self):
-        original = next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai")
-        errors = []
-        checker.validate_s05_oauth_cli(original, errors)
-        self.assertEqual(errors, [])
-        for mutation in ("required", "target", "optional", "version", "features", "default", "native", "all-oauth", "unknown"):
-            changed = copy.deepcopy(original)
-            dep = next(d for d in changed["dependencies"] if d["name"] == "tokio" and d.get("kind") is None)
-            target = next(t for t in changed["targets"] if t["name"] == "pi_ai_cli")
-            if mutation == "required": target["required-features"] = []
-            elif mutation == "target": target["src_path"] = "/wrong.rs"
-            elif mutation == "optional": dep["optional"] = False
-            elif mutation == "version": dep["req"] = "*"
-            elif mutation == "features": dep["features"].append("io-std")
-            else: changed["features"][mutation] = ["dev-oauth-cli"]
-            errors = []
-            checker.validate_s05_oauth_cli(changed, errors)
-            self.assertTrue(errors, mutation)
-        for bad in (["all-providers", "auth-native", "dep:tokio"], ["all-oauth", "auth-native"], []):
-            changed = copy.deepcopy(original)
-            changed["features"]["dev-oauth-cli"] = bad
-            errors = []
-            checker.validate_s05_facade_features(changed, errors)
-            self.assertTrue(errors)
+    def test_internal_edge_must_be_exact_normal_canonical_untargeted(self):
+        cases = [('kind', 'build', 'kind'), ('kind', 'dev', 'kind'),
+                 ('target', 'cfg(unix)', 'untargeted'), ('rename', 'renamed', 'unrenamed'),
+                 ('path', '/tmp/foreign', 'canonical local path'), ('optional', True, 'optionality')]
+        for key, value, reason in cases:
+            with self.subTest(key=key, value=value):
+                metadata = copy.deepcopy(self.default)
+                self.dependency(metadata, 'pi-agent', 'pi-agent-loop')[key] = value
+                self.assert_rejected(self.validate(default=metadata), reason)
 
-    def test_selected_catalog_features_are_data_only_and_unknown_catalogs_fail(self):
-        package = next(package for package in self.default_metadata["packages"] if package["name"] == "pi-ai-providers")
-        for name in ("catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
-                     "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images"):
-            self.assertEqual(package["features"][name], [])
-            for activation in ("native", "dep:ring", "wire-openai-responses"):
-                changed = copy.deepcopy(package)
-                changed["features"][name] = [activation]
-                errors = []
-                checker.validate_s04_provider_features(changed, errors)
-                self.assertTrue(any("feature ownership changed" in error for error in errors), errors)
-        changed = copy.deepcopy(package)
-        changed["features"]["catalog-excluded"] = []
-        errors = []
-        checker.validate_s04_provider_features(changed, errors)
-        self.assertTrue(any("unexpected provider feature" in error for error in errors), errors)
+    def test_duplicate_internal_declaration_is_rejected(self):
+        metadata = copy.deepcopy(self.default)
+        record = self.dependency(metadata, 'pi-agent', 'pi-agent-loop')
+        self.package(metadata, 'pi-agent')['dependencies'].append(copy.deepcopy(record))
+        self.assert_rejected(self.validate(default=metadata), 'exactly one declaration')
 
-    def test_s05_exact_factory_and_facade_feature_controls(self):
-        for owner, validator, expected in (
-            ("pi-ai-providers", checker.validate_s04_provider_features, checker.S05_FACTORY_FEATURES),
-            ("pi-ai", checker.validate_s05_facade_features, checker.S05_FACADE_FEATURES),
-        ):
-            original = next(p for p in self.default_metadata["packages"] if p["name"] == owner)
-            errors = []
-            validator(original, errors)
-            self.assertEqual(errors, [])
-            for name in expected:
-                for mutation in ("missing", "extra", "wrong", "duplicate"):
-                    changed = copy.deepcopy(original)
-                    if mutation == "missing":
-                        del changed["features"][name]
-                    elif mutation == "extra":
-                        changed["features"][name].append("native")
-                    elif mutation == "wrong":
-                        changed["features"][name] = ["pi-ai-providers/all-providers"]
-                    else:
-                        changed["features"][name] += changed["features"][name][:1]
+    def test_missing_extra_and_optional_edge_activation_are_rejected(self):
+        for mode in ('missing', 'extra'):
+            metadata = copy.deepcopy(self.all_features)
+            pkg = self.package(metadata, 'pi-agent')
+            node = next(n for n in metadata['resolve']['nodes'] if n['id'] == pkg['id'])
+            if mode == 'missing':
+                target = self.package(metadata, 'pi-agent-loop')['id']
+                node['deps'] = [d for d in node['deps'] if d['pkg'] != target]
+            else:
+                node['deps'].append({'pkg': self.package(metadata, 'pi-coding-session')['id']})
+            self.assert_rejected(self.validate(all_features=metadata), 'all-feature graph mismatch')
+        metadata = copy.deepcopy(self.default)
+        pkg = self.package(metadata, 'pi-ai')
+        node = next(n for n in metadata['resolve']['nodes'] if n['id'] == pkg['id'])
+        node['deps'].append({'pkg': self.package(self.all_features, 'pi-ai-providers')['id']})
+        if not any(p['name'] == 'pi-ai-providers' for p in metadata['packages']):
+            metadata['packages'].append(copy.deepcopy(self.package(self.all_features, 'pi-ai-providers')))
+        self.assert_rejected(self.validate(default=metadata), 'default feature graph mismatch')
+
+    def test_unauthorized_direct_and_indirect_optional_feature_activation(self):
+        for value in ('dep:pi-ai-transport', 'proxy'):
+            metadata = copy.deepcopy(self.default)
+            self.package(metadata, 'pi-agent-loop')['features']['unapproved'] = [value]
+            self.assert_rejected(self.validate(default=metadata), 'unauthorized feature')
+
+    def test_dependency_weak_forwarding_does_not_activate_optional_dependency(self):
+        self.assertFalse(checker.feature_activates_dependency({'foo': ['bar?/native']}, 'foo', 'bar'))
+        self.assertTrue(checker.feature_activates_dependency({'foo': ['bar/native']}, 'foo', 'bar'))
+
+    def test_exact_four_providers_two_oauth_and_wire_selection(self):
+        for name, validator in (('pi-ai-providers', checker.validate_provider_features),
+                                ('pi-ai', checker.validate_facade_features)):
+            original = self.package(self.default, name)
+            for key in ('provider-openai', 'provider-anthropic', 'provider-google', 'provider-deepseek',
+                        'oauth-anthropic', 'oauth-openai-chatgpt', 'all-providers', 'all-oauth', 'native', 'auth-native'):
+                for mutation in ('delete', 'native', 'duplicate'):
+                    package = copy.deepcopy(original)
+                    if mutation == 'delete': del package['features'][key]
+                    elif mutation == 'native': package['features'][key].append('native')
+                    else: package['features'][key] *= 2
                     errors = []
-                    validator(changed, errors)
-                    self.assertTrue(errors, (owner, name, mutation))
-            for name in ("provider-excluded", "images-excluded", "catalog-excluded", "oauth-excluded"):
-                changed = copy.deepcopy(original)
-                changed["features"][name] = []
+                    validator(package, errors)
+                    self.assertTrue(errors, (name, key, mutation))
+            for excluded in ('provider-openrouter', 'provider-openai-codex', 'images-openrouter',
+                             'wire-bedrock-converse-stream', 'compat'):
+                package = copy.deepcopy(original)
+                package['features'][excluded] = []
                 errors = []
-                validator(changed, errors)
-                self.assertTrue(errors, (owner, name))
-
-    def test_compat_runtime_activations_are_exact_and_never_native_or_oauth(self):
-        original = next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai")
-        self.assertEqual(set(original["features"]["compat"]), set(checker.S05_COMPAT_FEATURES))
-        for value in ([], ["all-providers"], checker.S05_COMPAT_FEATURES + ["native"], checker.S05_COMPAT_FEATURES + ["all-oauth"], checker.S05_COMPAT_FEATURES[:-1]):
-            changed = copy.deepcopy(original)
-            changed["features"]["compat"] = value
-            errors = []
-            checker.validate_s05_facade_features(changed, errors)
-            self.assertTrue(errors)
-
-    def test_s05_facade_group_does_not_broaden_coding_or_compat(self):
-        for group, member in (("ai-facade-provider-selection", "compat-unlisted"),
-                              ("ai-facade-provider-selection", "provider-*"),
-                              ("provider-selection", "all-providers")):
-            changed = copy.deepcopy(self.topology)
-            next(g for g in changed["feature_group"] if g["id"] == group)["members"].append(member)
-            errors = []
-            checker.validate_s05_facade_topology(changed, errors)
-            self.assertTrue(errors)
-        changed = copy.deepcopy(self.topology)
-        next(e for e in changed["edge"] if e["consumer"] == "pi-ai" and e["dependency"] == "pi-ai-providers")["feature_group"] = "provider-selection"
-        errors = []
-        checker.validate_s05_facade_topology(changed, errors)
-        self.assertTrue(errors)
-
-    def test_required_edges_reject_noncanonical_declaration_forms(self) -> None:
-        counterexamples = {
-            "dev": ("kind", "dev", "kind must be normal"),
-            "build": ("kind", "build", "kind must be normal"),
-            "target": ("target", "cfg(unix)", "must be untargeted"),
-            "rename": ("rename", "telemetry-alias", "must be unrenamed"),
-        }
-        for label, (field, value, expected) in counterexamples.items():
-            with self.subTest(label=label):
-                metadata = copy.deepcopy(self.default_metadata)
-                self.dependency(metadata, "pi-ai-core", "pi-telemetry")[field] = value
-                errors = self.validate_metadata(metadata)
-                self.assertTrue(any(expected in error for error in errors), errors)
-
-    def test_dev_only_sqlite_edge_stays_declared_and_cannot_become_production(self) -> None:
-        identity = ("pi-harness-runtime", "pi-agent-sqlite")
-        self.assertIn(
-            {"consumer": identity[0], "dependency": identity[1]},
-            self.topology["dev_edge"],
-        )
-        for field, value, expected in (
-            ("kind", None, "kind must be dev"),
-            ("kind", "build", "kind must be dev"),
-            ("target", "cfg(unix)", "must be untargeted"),
-            ("rename", "sqlite-alias", "must be unrenamed"),
-            ("optional", True, "optionality mismatch"),
-        ):
-            with self.subTest(field=field, value=value):
-                metadata = copy.deepcopy(self.default_metadata)
-                self.dependency(metadata, *identity)[field] = value
-                errors = self.validate_metadata(metadata)
-                self.assertTrue(any(expected in error for error in errors), errors)
-
-        changed = copy.deepcopy(self.topology)
-        changed["dev_edge"] = []
-        errors = checker.validate_workspace(
-            ROOT, changed, self.default_metadata, self.all_feature_metadata
-        )
-        self.assertTrue(
-            any(f"unlisted internal edges: {identity[0]} -> {identity[1]}" in error
-                for error in errors),
-            errors,
-        )
-
-    def test_second_well_formed_dev_edge_is_not_authorized(self) -> None:
-        changed = copy.deepcopy(self.topology)
-        changed["dev_edge"].append(
-            {"consumer": "pi-harness-runtime", "dependency": "pi-agent-search"}
-        )
-        default_metadata = copy.deepcopy(self.default_metadata)
-        all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
-        for metadata in (default_metadata, all_feature_metadata):
-            runtime = next(
-                package for package in metadata["packages"]
-                if package["name"] == "pi-harness-runtime"
-            )
-            extra = copy.deepcopy(
-                next(record for record in runtime["dependencies"]
-                     if record["name"] == "pi-agent-sqlite")
-            )
-            extra["name"] = "pi-agent-search"
-            extra["path"] = str(ROOT / "crates/pi-agent-search")
-            runtime["dependencies"].append(extra)
-            search_id = next(
-                package["id"] for package in metadata["packages"]
-                if package["name"] == "pi-agent-search"
-            )
-            runtime_node = next(
-                node for node in metadata["resolve"]["nodes"]
-                if node["id"] == runtime["id"]
-            )
-            extra_resolved = copy.deepcopy(
-                next(record for record in runtime_node["deps"]
-                     if record["pkg"] != search_id
-                     and record["name"] == "pi_agent_sqlite")
-            )
-            extra_resolved["name"] = "pi_agent_search"
-            extra_resolved["pkg"] = search_id
-            runtime_node["deps"].append(extra_resolved)
-        errors = checker.validate_workspace(
-            ROOT, changed, default_metadata, all_feature_metadata
-        )
-        self.assertTrue(
-            any("dev-only edge inventory must be exactly" in error for error in errors),
-            errors,
-        )
-
-    def test_reachable_local_path_package_outside_workspace_is_rejected(self) -> None:
-        for profile in ("default", "all-feature"):
-            with self.subTest(profile=profile):
-                default_metadata = copy.deepcopy(self.default_metadata)
-                all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
-                metadata = (
-                    default_metadata if profile == "default" else all_feature_metadata
-                )
-                rogue_id = "path+file:///tmp/pi-hidden#0.0.0"
-                metadata["packages"].append(
-                    {
-                        "name": "pi-hidden",
-                        "id": rogue_id,
-                        "source": None,
-                        "manifest_path": "/tmp/pi-hidden/Cargo.toml",
-                        "dependencies": [],
-                        "features": {},
-                    }
-                )
-                metadata["resolve"]["nodes"].append(
-                    {"id": rogue_id, "dependencies": [], "deps": [], "features": []}
-                )
-                consumer_id = next(
-                    package["id"]
-                    for package in metadata["packages"]
-                    if package["name"] == "pi-ai-core"
-                )
-                consumer_node = next(
-                    node for node in metadata["resolve"]["nodes"] if node["id"] == consumer_id
-                )
-                consumer_node["deps"].append(
-                    {
-                        "name": "pi_hidden",
-                        "pkg": rogue_id,
-                        "dep_kinds": [{"kind": None, "target": None}],
-                    }
-                )
-                errors = self.validate_metadata(default_metadata, all_feature_metadata)
-                expected = f"{profile} metadata has reachable local path package outside workspace"
-                self.assertTrue(any(expected in error for error in errors), errors)
-
-    def test_unauthorized_feature_cannot_indirectly_activate_optional_edge(self) -> None:
-        default_metadata = copy.deepcopy(self.default_metadata)
-        all_feature_metadata = copy.deepcopy(self.all_feature_metadata)
-        for metadata in (default_metadata, all_feature_metadata):
-            package = next(
-                package for package in metadata["packages"] if package["name"] == "pi-agent-loop"
-            )
-            package["features"]["proxy-alias"] = ["proxy-inner"]
-            package["features"]["proxy-inner"] = ["proxy"]
-        errors = self.validate_metadata(default_metadata, all_feature_metadata)
-        self.assertTrue(
-            any(
-                "unauthorized feature pi-agent-loop/proxy-alias activates optional edge "
-                "pi-agent-loop -> pi-ai-transport" in error
-                for error in errors
-            ),
-            errors,
-        )
-
-    def test_selected_oauth_features_preserve_independent_native_activation(self):
-        original = copy.deepcopy(next(p for p in self.default_metadata["packages"] if p["name"] == "pi-ai-providers"))
-        for name in ("oauth-anthropic", "oauth-openai-codex", "oauth-openrouter"):
-            self.assertEqual(original["features"][name], ["dep:url"])
-        self.assertEqual(original["features"]["auth-native"], ["native", "pi-ai-transport/auth-native"])
-        for name, activations in (
-            ("oauth-anthropic", ["dep:url", "auth-native"]),
-            ("oauth-openai-codex", ["dep:url", "native"]),
-            ("oauth-openrouter", ["dep:url", "pi-ai-transport/auth-native"]),
-            ("auth-native", ["native"]),
-            ("oauth-excluded", ["dep:url"]),
-        ):
+                validator(package, errors)
+                self.assert_rejected(errors, 'feature inventory')
             package = copy.deepcopy(original)
-            package["features"][name] = activations
+            package['features']['default'] = ['all-providers']
             errors = []
-            checker.validate_s04_provider_features(package, errors)
-            self.assertTrue(errors, name)
-        errors = []
-        checker.validate_s04_provider_features(original, errors)
-        self.assertEqual(errors, [])
+            validator(package, errors)
+            self.assert_rejected(errors, 'feature ownership')
 
-    def test_s04_provider_features_cannot_enable_defaults_or_move_native_ownership(self):
-        original = next(package for package in self.default_metadata["packages"]
-            if package["name"] == "pi-ai-providers")
-        for feature, activation, diagnostic in (
-            ("default", ["wire-openai-responses"], "default features must remain empty"),
-            ("wire-openai-responses", ["dep:url", "native"], "feature ownership changed"),
-            ("native", [], "native feature must own"),
-        ):
-            package = copy.deepcopy(original)
-            package["features"][feature] = activation
-            errors = []
-            checker.validate_s04_provider_features(package, errors)
-            self.assertTrue(any(diagnostic in error for error in errors), errors)
-        package = copy.deepcopy(original)
-        next(d for d in package["dependencies"] if d["name"] == "url")["optional"] = False
-        errors = []
-        checker.validate_s04_provider_features(package, errors)
-        self.assertTrue(any("must stay optional" in error for error in errors), errors)
-        errors = []
-        checker.validate_s04_provider_features(original, errors)
-        self.assertEqual(errors, [])
+    def test_topology_cycle_duplicate_invalid_and_dev_only_edges(self):
+        for case in ('cycle', 'duplicate', 'invalid', 'dev', 'test-only'):
+            topology = copy.deepcopy(self.topology)
+            if case == 'cycle':
+                topology['edge'].append({'consumer': 'pi-ai-core', 'dependency': 'pi-agent', 'kind': 'required'})
+                reason = 'cycle'
+            elif case == 'duplicate':
+                topology['edge'].append(copy.deepcopy(topology['edge'][0]))
+                reason = 'duplicate topology'
+            elif case == 'invalid':
+                topology['edge'].append({'consumer': 'unknown', 'dependency': 'pi-agent', 'kind': 'required'})
+                reason = 'invalid topology'
+            elif case == 'dev':
+                topology['dev_edge'] = [{'consumer': 'pi-agent', 'dependency': 'pi-coding-session'}]
+                reason = 'dev-only edge'
+            else:
+                topology['test_only_package'] = {'name': 'old-allocator'}
+                reason = 'test-only package'
+            self.assert_rejected(self.validate(topology=topology), reason)
 
-    def test_verify_runs_default_and_all_feature_profiles(self) -> None:
-        script = (ROOT / "scripts/verify.sh").read_text(encoding="utf-8")
-        expected_commands = [
-            "cargo check --workspace --all-targets --locked --offline",
-            "cargo check --workspace --all-targets --all-features --locked --offline",
-            "cargo clippy --workspace --all-targets --locked --offline -- -D warnings",
-            "cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
-            "cargo test --workspace --all-targets --locked --offline",
-            "cargo test --workspace --all-targets --all-features --locked --offline",
-            "cargo doc --workspace --no-deps --document-private-items --locked --offline",
-            "cargo doc --workspace --all-features --no-deps --document-private-items --locked --offline",
-        ]
-        for command in expected_commands:
-            with self.subTest(command=command):
-                self.assertIn(command, script)
+    def test_member_package_and_lint_inheritance_are_required(self):
+        member = ROOT / 'crates/pi-telemetry/Cargo.toml'
+        original = checker.load_toml
+        for field in ('version', 'edition', 'rust-version', 'license', 'publish', 'lints'):
+            changed = copy.deepcopy(original(member))
+            if field == 'lints': changed['lints'] = {}
+            else: changed['package'][field] = 'explicit override'
+            with self.subTest(field=field), mock.patch.object(checker, 'load_toml', side_effect=lambda path: changed if path == member else original(path)):
+                errors = self.validate()
+                self.assert_rejected(errors, 'must inherit workspace lints' if field == 'lints' else 'must inherit package.' + field)
+
+    def test_workspace_inheritance_defaults_and_toolchain_are_fixed(self):
+        original = checker.load_toml
+        cases = [('resolver', '2', 'must use resolver 3'),
+                 ('members', [], 'workspace members do not match topology order'),
+                 ('edition', '2021', 'edition must be 2024'),
+                 ('rust-version', '1.0.0', 'rust-version must be 1.98.0'),
+                 ('publish', True, 'packages must be private'),
+                 ('unsafe_code', 'allow', 'unsafe_code must be forbid')]
+        for field, value, reason in cases:
+            root_manifest = copy.deepcopy(original(ROOT / 'Cargo.toml'))
+            workspace = root_manifest['workspace']
+            if field in ('resolver', 'members'): workspace[field] = value
+            elif field == 'unsafe_code': workspace['lints']['rust'][field] = value
+            else: workspace['package'][field] = value
+            with self.subTest(field=field), mock.patch.object(checker, 'load_toml', side_effect=lambda path: root_manifest if path == ROOT / 'Cargo.toml' else original(path)):
+                self.assert_rejected(self.validate(), reason)
+        toolchain = copy.deepcopy(original(ROOT / 'rust-toolchain.toml'))
+        toolchain['toolchain']['channel'] = 'stable'
+        with mock.patch.object(checker, 'load_toml', side_effect=lambda path: toolchain if path == ROOT / 'rust-toolchain.toml' else original(path)):
+            self.assert_rejected(self.validate(), 'must pin Rust 1.98.0')
+
+    def test_verification_script_keeps_default_and_all_feature_builds(self):
+        text = (ROOT / 'scripts/verify.sh').read_text()
+        for command in ('cargo check', 'cargo clippy', 'cargo test', 'cargo doc'):
+            lines = [line for line in text.splitlines() if line.startswith(command + ' --workspace')]
+            self.assertTrue(any('--all-features' not in line for line in lines), command)
+            self.assertTrue(any('--all-features' in line for line in lines), command)
+        for test in (ROOT/'scripts').glob('test_*.py'):
+            self.assertIn(str(test.relative_to(ROOT)),text)
+        for command in ('python3 scripts/generate_upstream_manifests.py --check',
+                        'python3 scripts/generate_assembly_registry.py --check',
+                        'python3 scripts/upstream_drift.py', 'python3 scripts/check_assembly.py',
+                        'python3 scripts/validate_docs.py', 'python3 scripts/check_workspace.py',
+                        'python3 conformance/catalog/v1.4.0/check.py --check',
+                        'python3 conformance/catalog/v1.4.0/check_negative.py',
+                        'python3 scripts/check_publication.py --self-check',
+                        'python3 scripts/check_publication.py'):
+            self.assertIn(command,text)
 
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     unittest.main()

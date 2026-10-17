@@ -1,7 +1,0 @@
-{
-  "authority": "plan35/conventions57 Memory/JSONL versioned SHA256 prefix witness",
-  "derivation": "independent Python hashlib; length-prefixed UTF8 ID, generation big-endian u64, no entries",
-  "id": "fixture",
-  "generation": 0,
-  "witnessHex": "016a4a6ef93647b307f684265d86b043da8822c079156c7efd4bfc72cb35df50dc"
-}

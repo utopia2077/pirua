@@ -10,12 +10,12 @@ Pi
 The Rust contracts, implementations, conformance fixtures, and source-derived
 catalog evidence in this repository follow or derive from earendil-works/pi:
 https://github.com/earendil-works/pi
-Pinned revision: 853a80d26c90a14c1886f0ebb8ffaae133ca2185
+Pinned revision: 4a080252f06caf63a525d7873c5d94d3c23887e0
 Copyright (c) 2025 Mario Zechner
 License: MIT; the copyright line and complete permission notice are retained in
 the root LICENSE.
 Primary source:
-https://github.com/earendil-works/pi/blob/853a80d26c90a14c1886f0ebb8ffaae133ca2185/LICENSE
+https://github.com/earendil-works/pi/blob/4a080252f06caf63a525d7873c5d94d3c23887e0/LICENSE
 
 models.dev
 ----------
@@ -27,8 +27,15 @@ the root LICENSE.
 Primary source: https://raw.githubusercontent.com/anomalyco/models.dev/dev/LICENSE
 Notice retrieved: 2026-10-14 (UTC)
 
-Captured catalog feeds
-----------------------
+Current release catalog
+-----------------------
+The selected four-provider chat catalog follows the published Pi AI 1.4.0 archive.
+Exact npm integrity, source attestation, archive and per-file hashes are retained
+in conformance/catalog/v1.4.0/. Only the selected chat projection is compiled into
+Pirua. The release evidence includes upstream package bytes for reproducibility.
+
+Historical captured catalog feeds
+--------------------------------
 All five feeds below were captured on 2026-09-07 (UTC), without account
 credentials. Exact retrieval timestamps, response metadata, lengths, and hashes
 are retained in conformance/catalog/capture.json; original bytes are retained in

@@ -16,7 +16,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 TOPOLOGY_PATH = ROOT / "workspace-topology.toml"
-APPROVED_DEV_EDGES = {("pi-harness-runtime", "pi-agent-sqlite")}
+APPROVED_DEV_EDGES: set[tuple[str, str]] = set()
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -127,124 +127,32 @@ def feature_activates_dependency(
 
 
 def validate_local_packages(
-    metadata: dict[str, Any],
-    crate_names: set[str],
-    test_only_package: dict[str, str],
-    root: Path,
-    profile: str,
-    errors: list[str],
+    metadata: dict[str, Any], crate_names: set[str], root: Path,
+    profile: str, errors: list[str],
 ) -> list[dict[str, Any]]:
     packages_by_id = {package["id"]: package for package in metadata["packages"]}
-    workspace_packages = [packages_by_id[package_id] for package_id in metadata["workspace_members"]]
-    workspace_names = {package["name"] for package in workspace_packages}
-    expected_workspace_names = crate_names | {test_only_package["name"]}
-    if (
-        workspace_names != expected_workspace_names
-        or len(workspace_packages) != len(expected_workspace_names)
-    ):
-        errors.append(
-            f"{profile} Cargo workspace package inventory mismatch: "
-            f"expected [{', '.join(sorted(expected_workspace_names))}], "
-            f"actual [{', '.join(sorted(workspace_names))}]"
-        )
-    production_packages = [
-        package for package in workspace_packages if package["name"] in crate_names
-    ]
-    if {package["name"] for package in production_packages} != crate_names or len(
-        production_packages
-    ) != len(crate_names):
-        errors.append(
-            f"{profile} production package inventory must remain exactly "
-            f"{len(crate_names)} crates"
-        )
-    test_only_packages = [
-        package
-        for package in workspace_packages
-        if package["name"] == test_only_package["name"]
-    ]
-    expected_manifest = (
-        root / test_only_package["path"] / "Cargo.toml"
-    ).resolve()
-    if len(test_only_packages) != 1:
-        errors.append(
-            f"{profile} must contain exactly one authorized test-only package "
-            f"{test_only_package['name']}"
-        )
-    else:
-        package = test_only_packages[0]
-        if package.get("source") is not None:
-            errors.append(
-                f"{profile} authorized test-only package must be a local path package"
-            )
-        if package.get("manifest_path") is None or Path(
-            package["manifest_path"]
-        ).resolve() != expected_manifest:
-            errors.append(
-                f"{profile} authorized test-only package must resolve to "
-                f"{expected_manifest}"
-            )
+    workspace_packages = [packages_by_id[value] for value in metadata["workspace_members"]]
+    names = {package["name"] for package in workspace_packages}
+    if names != crate_names or len(workspace_packages) != len(crate_names):
+        errors.append(f"{profile} Cargo workspace package inventory mismatch")
+    for package in workspace_packages:
+        name = package["name"]
+        expected = (root / "crates" / name / "Cargo.toml").resolve()
+        if package.get("source") is not None or Path(package["manifest_path"]).resolve() != expected:
+            errors.append(f"{profile} {name} must resolve to canonical local manifest")
     workspace_ids = set(metadata["workspace_members"])
-    hidden_local_packages = sorted(
-        (
-            f"{package['name']} ({package.get('manifest_path', package['id'])})"
-            for package in metadata["packages"]
-            if package.get("source") is None and package["id"] not in workspace_ids
-        )
-    )
-    if hidden_local_packages:
-        errors.append(
-            f"{profile} metadata has reachable local path package outside workspace: "
-            + ", ".join(hidden_local_packages)
-        )
+    hidden = [package["name"] for package in metadata["packages"]
+              if package.get("source") is None and package["id"] not in workspace_ids]
+    if hidden:
+        errors.append(f"{profile} metadata has reachable local path package outside workspace: "
+                      + ", ".join(sorted(hidden)))
     return workspace_packages
-
-
-def validate_test_only_package_policy(
-    root: Path,
-    topology: dict[str, Any],
-    crate_names: set[str],
-    errors: list[str],
-) -> dict[str, str] | None:
-    package = topology.get("test_only_package")
-    if not isinstance(package, dict):
-        errors.append("workspace-topology.toml must define one test_only_package")
-        return None
-    expected_keys = {"name", "path", "consumer"}
-    if set(package) != expected_keys:
-        errors.append(
-            "test_only_package must contain exactly name, path, and consumer"
-        )
-        return None
-    if not all(isinstance(package.get(key), str) for key in expected_keys):
-        errors.append("test_only_package fields must be strings")
-        return None
-    path = Path(package["path"])
-    if path.is_absolute() or ".." in path.parts:
-        errors.append("test_only_package path must be a fixed repository-relative path")
-    expected_path = (root / path).resolve()
-    authorized_path = (
-        root / "crates/pi-harness-runtime/tests/runtime_extension_profiles_alloc"
-    ).resolve()
-    if expected_path != authorized_path:
-        errors.append("test_only_package path is not the authorized allocator package")
-    if package["name"] != "runtime-extension-profiles-alloc":
-        errors.append("test_only_package name is not the authorized allocator package")
-    if package["consumer"] != "pi-harness-runtime":
-        errors.append("test_only_package consumer must be pi-harness-runtime")
-    if package["consumer"] not in crate_names:
-        errors.append("test_only_package consumer must be a production crate")
-    return {
-        "name": package["name"],
-        "path": package["path"],
-        "consumer": package["consumer"],
-    }
 
 
 def validate_dependency_declarations(
     root: Path,
     workspace_packages: list[dict[str, Any]],
     crate_names: set[str],
-    test_only_package: dict[str, str],
     expected_edges: dict[tuple[str, str], dict[str, Any]],
     expected_dev_edges: set[tuple[str, str]],
     errors: list[str],
@@ -253,31 +161,12 @@ def validate_dependency_declarations(
         crate: (root / "crates" / crate).resolve() for crate in crate_names
     }
     paths_to_crates = {path: crate for crate, path in expected_paths.items()}
-    test_only_path = (root / test_only_package["path"]).resolve()
     declarations: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for package in workspace_packages:
         consumer = package["name"]
         for dependency_record in package["dependencies"]:
             dependency = dependency_record["name"]
             dependency_path = dependency_record.get("path")
-            if dependency == test_only_package["name"] or (
-                dependency_path is not None
-                and Path(dependency_path).resolve() == test_only_path
-            ):
-                if (
-                    consumer != test_only_package["consumer"]
-                    or dependency != test_only_package["name"]
-                    or dependency_record.get("kind") != "dev"
-                    or dependency_path is None
-                    or Path(dependency_path).resolve() != test_only_path
-                    or dependency_record.get("target") is not None
-                    or dependency_record.get("rename") is not None
-                ):
-                    errors.append(
-                        f"{consumer} -> {test_only_package['name']} must be the "
-                        "exact untargeted dev dependency of the authorized test package"
-                    )
-                continue
             path_crate = (
                 paths_to_crates.get(Path(dependency_path).resolve())
                 if dependency_path is not None
@@ -338,143 +227,60 @@ def validate_dependency_declarations(
                 )
 
 
-def validate_test_only_package_edges(
-    metadata: dict[str, Any],
-    crate_names: set[str],
-    test_only_package: dict[str, str],
-    errors: list[str],
-) -> None:
-    packages_by_id = {package["id"]: package for package in metadata["packages"]}
-    support = next(
-        (
-            package
-            for package in metadata["packages"]
-            if package["name"] == test_only_package["name"]
-        ),
-        None,
-    )
-    if support is None:
-        return
-    support_id = support["id"]
-    for node in metadata["resolve"]["nodes"]:
-        consumer = packages_by_id[node["id"]]["name"]
-        if consumer not in crate_names:
-            continue
-        for dependency in node["deps"]:
-            if dependency["pkg"] != support_id:
-                continue
-            kinds = {
-                (entry.get("kind"), entry.get("target"))
-                for entry in dependency.get("dep_kinds", [])
-            }
-            if consumer != test_only_package["consumer"] or kinds != {("dev", None)}:
-                errors.append(
-                    f"{consumer} -> {test_only_package['name']} is a production "
-                    "dependency edge; only the authorized dev edge is allowed"
-                )
-
-
-
-S05_PROVIDERS = ("anthropic", "deepseek", "google", "openai", "openai-codex", "openrouter")
-S05_CATALOGS = (*S05_PROVIDERS, "openrouter-images")
-S05_OAUTH = ("anthropic", "openai-codex", "openrouter")
-S05_FACTORY_FEATURES = {
+PROVIDERS = ("anthropic", "deepseek", "google", "openai")
+OAUTH = ("anthropic", "openai-chatgpt")
+FACTORY_FEATURES = {
     "provider-anthropic": ["wire-anthropic-messages", "catalog-anthropic"],
     "provider-deepseek": ["wire-openai-completions", "catalog-deepseek"],
     "provider-google": ["wire-google-genai", "catalog-google"],
     "provider-openai": ["wire-openai-responses", "catalog-openai"],
-    "provider-openai-codex": ["wire-openai-codex-responses", "catalog-openai-codex"],
-    "provider-openrouter": ["wire-openai-completions", "catalog-openrouter"],
-    "images-openrouter": ["wire-openrouter-images", "catalog-openrouter-images"],
-    "all-providers": ["provider-" + name for name in S05_PROVIDERS],
-    "all-images": ["images-openrouter"],
-    "all-oauth": ["oauth-" + name for name in S05_OAUTH],
+    "all-providers": ["provider-" + name for name in PROVIDERS],
+    "all-oauth": ["oauth-" + name for name in OAUTH],
 }
-S05_FACADE_FEATURES = {
-    **{"catalog-" + name: ["dep:pi-ai-providers", "pi-ai-providers/catalog-" + name] for name in S05_CATALOGS},
-    **{"provider-" + name: ["catalog-" + name, "pi-ai-providers/provider-" + name] for name in S05_PROVIDERS},
-    "images-runtime": ["dep:pi-ai-providers"],
-    "images-openrouter": ["images-runtime", "catalog-openrouter-images", "pi-ai-providers/images-openrouter"],
-    **{"oauth-" + name: ["dep:pi-ai-providers", "pi-ai-providers/oauth-" + name] for name in S05_OAUTH},
-    **{name: values for name, values in S05_FACTORY_FEATURES.items() if name.startswith("all-")},
+FACADE_FEATURES = {
+    **{"catalog-" + name: ["dep:pi-ai-providers", "pi-ai-providers/catalog-" + name] for name in PROVIDERS},
+    **{"provider-" + name: ["catalog-" + name, "pi-ai-providers/provider-" + name] for name in PROVIDERS},
+    **{"oauth-" + name: ["dep:pi-ai-providers", "pi-ai-providers/oauth-" + name] for name in OAUTH},
+    **{name: values for name, values in FACTORY_FEATURES.items() if name.startswith("all-")},
     "native": ["dep:pi-ai-providers", "pi-ai-providers/native"],
     "auth-native": ["native", "pi-ai-providers/auth-native"],
 }
-S05_COMPAT_FEATURES = ['provider-anthropic', 'provider-deepseek', 'provider-google', 'provider-openai', 'provider-openai-codex', 'provider-openrouter', 'images-openrouter', 'pi-ai-providers/wire-azure-openai-responses', 'pi-ai-providers/wire-google-vertex', 'pi-ai-providers/wire-mistral-conversations', 'pi-ai-providers/wire-bedrock-converse-stream', 'pi-ai-providers/wire-pi-messages']
-S05_FACADE_GROUP = ["compat", *S05_FACADE_FEATURES, "catalog-gen", "dev-oauth-cli"]
 
 
-def validate_s05_facade_features(package: dict[str, Any], errors: list[str]) -> None:
-    expected = {"default": [], "compat": S05_COMPAT_FEATURES, "dev-catalog-tools": [], "dev-oauth-cli": ["all-oauth", "auth-native", "dep:tokio"], **S05_FACADE_FEATURES}
-    if set(package["features"]) != set(expected):
-        errors.append("S05 facade feature inventory changed")
-    for name, values in expected.items():
-        actual = package["features"].get(name)
-        if actual is None or set(actual) != set(values) or len(actual) != len(values):
-            errors.append("S05 facade feature ownership changed: " + name)
-
-
-def validate_s05_oauth_cli(package: dict[str, Any], errors: list[str]) -> None:
-    normal = [d for d in package["dependencies"] if d["name"] == "tokio" and d.get("kind") is None]
-    if len(normal) != 1 or not normal[0].get("optional") or normal[0].get("uses_default_features") or normal[0].get("req") != "=1.53.1" or set(normal[0].get("features", [])) != {"rt-multi-thread", "net", "io-util", "sync", "time"}:
-        errors.append("S05 CLI Tokio must be exact optional existing host dependency")
-    for name in package["features"]:
-        if name != "dev-oauth-cli" and feature_activates_dependency(package["features"], name, "tokio"):
-            errors.append("S05 CLI Tokio activated outside developer target: " + name)
-    targets = [t for t in package["targets"] if t["name"] == "pi_ai_cli"]
-    if len(targets) != 1 or targets[0].get("kind") != ["bin"] or targets[0].get("required-features") != ["dev-oauth-cli"] or not targets[0]["src_path"].endswith("/src/bin/pi_ai_cli.rs"):
-        errors.append("S05 CLI target admission changed")
-
-
-def validate_s05_facade_topology(topology: dict[str, Any], errors: list[str]) -> None:
-    groups = {group["id"]: group["members"] for group in topology.get("feature_group", [])}
-    if groups.get("ai-facade-provider-selection") != S05_FACADE_GROUP:
-        errors.append("S05 exact facade selector group changed")
-    if groups.get("provider-selection") != ["provider-*", "oauth-*", "images-*", "catalog-gen"]:
-        errors.append("S05 coding-runtime selector authorization changed")
-    for edge in topology.get("edge", []):
-        if edge.get("dependency") == "pi-ai-providers" and edge.get("consumer") in {"pi-ai", "pi-coding-runtime"}:
-            expected = "ai-facade-provider-selection" if edge["consumer"] == "pi-ai" else "provider-selection"
-            if edge.get("feature_group") != expected:
-                errors.append("S05 provider edge selector changed: " + edge["consumer"])
-
-
-def validate_s04_provider_features(package: dict[str, Any], errors: list[str]) -> None:
-    """Wire selection never grants native IO or enables default provider breadth."""
+def validate_feature_inventory(package: dict[str, Any], expected: dict, errors: list[str]) -> None:
     features = package["features"]
-    if features.get("default") != []:
-        errors.append("S04 provider default features must remain empty")
-    if features.get("native") != ["pi-ai-transport/native"]:
-        errors.append("S04 provider native feature must own transport native activation")
-    for name in S05_FACTORY_FEATURES:
-        if name not in features:
-            errors.append("S05 missing selected provider feature: " + name)
-    for name, activations in features.items():
-        if name in {"default", "native"}:
-            continue
-        if name in S05_FACTORY_FEATURES:
-            expected = set(S05_FACTORY_FEATURES[name])
-        elif name in {"catalog-openai", "catalog-google", "catalog-anthropic", "catalog-deepseek",
-                    "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images"}:
-            expected = set()
-        elif name in {"oauth-anthropic", "oauth-openai-codex", "oauth-openrouter"}:
-            expected = {"dep:url"}
-        elif name == "auth-native":
-            expected = {"native", "pi-ai-transport/auth-native"}
-        elif name == "cloudflare-gateway-binding":
-            expected = {"dep:url", "serde_json/unbounded_depth"}
-        elif name == "wire-bedrock-converse-stream":
-            expected = {"dep:url", "dep:ring"}
-        elif name.startswith("wire-"):
-            expected = {"dep:url"}
-        else:
-            errors.append("S04 unexpected provider feature: " + name)
-            continue
-        if set(activations) != expected or len(activations) != len(expected):
-            errors.append("S04 provider feature ownership changed: " + name)
+    if set(features) != set(expected):
+        errors.append(f"{package['name']} selected feature inventory changed")
+    for name, values in expected.items():
+        actual = features.get(name)
+        if actual is None or set(actual) != set(values) or len(actual) != len(values):
+            errors.append(f"{package['name']} feature ownership changed: {name}")
+
+
+def validate_provider_features(package: dict[str, Any], errors: list[str]) -> None:
+    expected = {
+        "default": [], "native": ["pi-ai-transport/native"],
+        "auth-native": ["native", "pi-ai-transport/auth-native"],
+        **FACTORY_FEATURES,
+        **{"catalog-" + name: [] for name in PROVIDERS},
+        **{"oauth-" + name: ["dep:url"] for name in OAUTH},
+        **{"wire-" + name: ["dep:url"] for name in
+           ("anthropic-messages", "openai-responses", "openai-completions", "google-genai")},
+    }
+    validate_feature_inventory(package, expected, errors)
     for dependency in package["dependencies"]:
-        if dependency["name"] in {"url", "ring"} and not dependency.get("optional"):
-            errors.append("S04 provider dependency must stay optional: " + dependency["name"])
+        if dependency["name"] == "url" and not dependency.get("optional"):
+            errors.append("provider URL dependency must stay optional")
+
+
+def validate_facade_features(package: dict[str, Any], errors: list[str]) -> None:
+    # Tokio's implicit optional feature is unrelated to provider selection.
+    validate_feature_inventory(package, {"default": [], "dev-catalog-tools": [],
+        "tokio": ["dep:tokio"], **FACADE_FEATURES}, errors)
+    binaries = [target for target in package["targets"] if "bin" in target["kind"]]
+    if len(binaries) != 1 or binaries[0]["name"] != "catalog_gen" or binaries[0].get("required-features") != ["dev-catalog-tools"]:
+        errors.append("AI facade binary must remain the gated catalog developer tool")
+
 
 def validate_workspace(
     root: Path,
@@ -483,17 +289,15 @@ def validate_workspace(
     all_feature_metadata: dict[str, Any],
 ) -> list[str]:
     errors: list[str] = []
-    validate_s05_facade_topology(topology, errors)
     crates = topology.get("production_crates", [])
     if not crates or len(set(crates)) != len(crates):
         errors.append("workspace-topology.toml must name unique production crates")
         return errors
     crate_names = set(crates)
-    test_only_package = validate_test_only_package_policy(
-        root, topology, crate_names, errors
-    )
-    if test_only_package is None:
-        return errors
+    if topology.get("schema_version") != 1:
+        errors.append("unsupported topology schema version")
+    if "test_only_package" in topology:
+        errors.append("no separate local test-only package is authorized")
 
     root_manifest = load_toml(root / "Cargo.toml")
     workspace = root_manifest.get("workspace", {})
@@ -539,6 +343,15 @@ def validate_workspace(
         identity = (edge.get("consumer"), edge.get("dependency"))
         if identity in expected_edges:
             errors.append(f"duplicate topology edge: {identity[0]} -> {identity[1]}")
+        if identity[0] not in crate_names or identity[1] not in crate_names or identity[0] == identity[1]:
+            errors.append(f"invalid topology edge: {identity}")
+            continue
+        if edge.get("kind") not in {"required", "optional"}:
+            errors.append(f"invalid edge kind: {identity}")
+        if edge.get("kind") == "optional" and bool(edge.get("feature")) == bool(edge.get("feature_group")):
+            errors.append(f"optional edge needs exactly one feature selector: {identity}")
+        if edge.get("kind") == "required" and ("feature" in edge or "feature_group" in edge):
+            errors.append(f"required edge must not have feature selector: {identity}")
         expected_edges[identity] = edge
     expected_dev_edges: set[tuple[str, str]] = set()
     for edge in topology.get("dev_edge", []):
@@ -567,12 +380,11 @@ def validate_workspace(
         errors.append(f"topology graph contains a cycle involving: {', '.join(cycle)}")
 
     workspace_packages = validate_local_packages(
-        default_metadata, crate_names, test_only_package, root, "default", errors
+        default_metadata, crate_names, root, "default", errors
     )
     validate_local_packages(
         all_feature_metadata,
         crate_names,
-        test_only_package,
         root,
         "all-feature",
         errors,
@@ -581,25 +393,16 @@ def validate_workspace(
         root,
         workspace_packages,
         crate_names,
-        test_only_package,
         expected_edges,
         expected_dev_edges,
         errors,
     )
-    validate_test_only_package_edges(
-        default_metadata, crate_names, test_only_package, errors
-    )
-    validate_test_only_package_edges(
-        all_feature_metadata, crate_names, test_only_package, errors
-    )
-
     groups = {group["id"]: group["members"] for group in topology.get("feature_group", [])}
     packages_by_name = {package["name"]: package for package in workspace_packages}
     if "pi-ai-providers" in packages_by_name:
-        validate_s04_provider_features(packages_by_name["pi-ai-providers"], errors)
+        validate_provider_features(packages_by_name["pi-ai-providers"], errors)
     if "pi-ai" in packages_by_name:
-        validate_s05_facade_features(packages_by_name["pi-ai"], errors)
-        validate_s05_oauth_cli(packages_by_name["pi-ai"], errors)
+        validate_facade_features(packages_by_name["pi-ai"], errors)
     for (consumer, dependency), edge in sorted(expected_edges.items()):
         if edge.get("kind") != "optional" or consumer not in packages_by_name:
             continue

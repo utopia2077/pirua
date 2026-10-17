@@ -1,43 +1,9 @@
 schema_version = 1
-production_crates = [
-  "pi-telemetry",
-  "pi-extension-protocol",
-  "pi-ai-core",
-  "pi-ai-transport",
-  "pi-ai-providers",
-  "pi-ai",
-  "pi-agent-schema",
-  "pi-agent-loop",
-  "pi-agent-session",
-  "pi-agent-sqlite",
-  "pi-harness-core",
-  "pi-harness-runtime",
-  "pi-agent-search",
-  "pi-agent",
-  "pi-coding-runtime",
-  "pi-sqlite",
-  "pi-coding-session",
-  "pi-codemode",
-  "pi-mcp",
-]
-
-[test_only_package]
-name = "runtime-extension-profiles-alloc"
-path = "crates/pi-harness-runtime/tests/runtime_extension_profiles_alloc"
-consumer = "pi-harness-runtime"
+production_crates = ["pi-telemetry", "pi-extension-protocol", "pi-ai-core", "pi-ai-transport", "pi-ai-providers", "pi-ai", "pi-agent-schema", "pi-agent-loop", "pi-agent", "pi-coding-runtime", "pi-sqlite", "pi-coding-session", "pi-codemode", "pi-mcp"]
 
 [[feature_group]]
-id = "provider-selection"
-members = ["provider-*", "oauth-*", "images-*", "catalog-gen"]
-
-[[feature_group]]
-id = "ai-facade-provider-selection"
-members = ["compat", "catalog-anthropic", "catalog-deepseek", "catalog-google", "catalog-openai", "catalog-openai-codex", "catalog-openrouter", "catalog-openrouter-images", "provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "provider-openai-codex", "provider-openrouter", "images-runtime", "images-openrouter", "oauth-anthropic", "oauth-openai-codex", "oauth-openrouter", "all-providers", "all-images", "all-oauth", "native", "auth-native", "catalog-gen", "dev-oauth-cli"]
-
-[[edge]]
-consumer = "pi-coding-session"
-dependency = "pi-sqlite"
-kind = "required"
+id = "pi-ai-to-pi-ai-providers"
+members = ["all-oauth", "all-providers", "auth-native", "catalog-anthropic", "catalog-deepseek", "catalog-google", "catalog-openai", "native", "oauth-anthropic", "oauth-openai-chatgpt", "provider-anthropic", "provider-deepseek", "provider-google", "provider-openai"]
 
 [[edge]]
 consumer = "pi-ai-core"
@@ -68,15 +34,10 @@ kind = "required"
 consumer = "pi-ai"
 dependency = "pi-ai-providers"
 kind = "optional"
-feature_group = "ai-facade-provider-selection"
+feature_group = "pi-ai-to-pi-ai-providers"
 
 [[edge]]
 consumer = "pi-agent-schema"
-dependency = "pi-ai-core"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent-loop"
 dependency = "pi-ai-core"
 kind = "required"
 
@@ -87,7 +48,7 @@ kind = "required"
 
 [[edge]]
 consumer = "pi-agent-loop"
-dependency = "pi-telemetry"
+dependency = "pi-ai-core"
 kind = "required"
 
 [[edge]]
@@ -97,91 +58,6 @@ kind = "optional"
 feature = "proxy"
 
 [[edge]]
-consumer = "pi-agent-session"
-dependency = "pi-agent-schema"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent-session"
-dependency = "pi-telemetry"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent-sqlite"
-dependency = "pi-agent-schema"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent-sqlite"
-dependency = "pi-agent-session"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-core"
-dependency = "pi-agent-schema"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-ai-core"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-agent-loop"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-agent-schema"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-agent-session"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-harness-core"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-telemetry"
-kind = "required"
-
-[[edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-extension-protocol"
-kind = "optional"
-feature = "extensions"
-
-[[dev_edge]]
-consumer = "pi-harness-runtime"
-dependency = "pi-agent-sqlite"
-
-[[edge]]
-consumer = "pi-agent-search"
-dependency = "pi-agent-schema"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent-search"
-dependency = "pi-agent-session"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent"
-dependency = "pi-ai-core"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent"
-dependency = "pi-telemetry"
-kind = "required"
-
-[[edge]]
 consumer = "pi-agent"
 dependency = "pi-agent-schema"
 kind = "required"
@@ -193,33 +69,22 @@ kind = "required"
 
 [[edge]]
 consumer = "pi-agent"
-dependency = "pi-agent-session"
+dependency = "pi-ai-core"
 kind = "required"
 
 [[edge]]
-consumer = "pi-agent"
-dependency = "pi-harness-core"
+consumer = "pi-coding-runtime"
+dependency = "pi-agent-schema"
 kind = "required"
-
-[[edge]]
-consumer = "pi-agent"
-dependency = "pi-harness-runtime"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent"
-dependency = "pi-agent-search"
-kind = "required"
-
-[[edge]]
-consumer = "pi-agent"
-dependency = "pi-agent-sqlite"
-kind = "optional"
-feature = "sqlite"
 
 [[edge]]
 consumer = "pi-coding-runtime"
 dependency = "pi-ai"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-session"
+dependency = "pi-sqlite"
 kind = "required"
 
 [[edge]]
@@ -229,39 +94,20 @@ kind = "required"
 
 [[edge]]
 consumer = "pi-coding-runtime"
-dependency = "pi-agent-session"
+dependency = "pi-coding-session"
 kind = "required"
-
-[[edge]]
-consumer = "pi-coding-runtime"
-dependency = "pi-harness-runtime"
-kind = "required"
-
-[[edge]]
-consumer = "pi-coding-runtime"
-dependency = "pi-telemetry"
-kind = "required"
-
-[[edge]]
-consumer = "pi-coding-runtime"
-dependency = "pi-ai-transport"
-kind = "optional"
-feature = "remote-catalog"
-
-[[edge]]
-consumer = "pi-coding-runtime"
-dependency = "pi-ai-providers"
-kind = "optional"
-feature_group = "provider-selection"
-
-[[edge]]
-consumer = "pi-coding-runtime"
-dependency = "pi-agent-sqlite"
-kind = "optional"
-feature = "sqlite-sessions"
 
 [[edge]]
 consumer = "pi-coding-runtime"
 dependency = "pi-extension-protocol"
-kind = "optional"
-feature = "extensions"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-mcp"
+kind = "required"
+
+[[edge]]
+consumer = "pi-coding-runtime"
+dependency = "pi-codemode"
+kind = "required"

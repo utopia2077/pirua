@@ -1,5 +1,10 @@
 # Portable domain behavior
 
+> Historical fixture contract for the earlier v0.84.4 baseline. Retained
+> source/behavior inventories cite these sections; they do not define the current
+> v1.4.0 API. See the [current AI architecture](../../architecture/03-ai-subsystem.md)
+> and [selected integration contracts](../ai-integration/index.md).
+
 Authority: pinned upstream `853a80d26c90a14c1886f0ebb8ffaae133ca2185` and the accepted architecture.
 
 ## Message transformation

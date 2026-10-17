@@ -1,28 +1,18 @@
-# Selected provider source scope
+# Historical selected-provider inventory
 
-The [owner decision](../../docs/scope.md#selected-provider-scope)
-selects six text factories and OpenRouter images. The
-[scope ledger](selected-provider-scope.json) freezes all 241 source occurrences
-previously deferred to S05: 17 selected-specific, 97 shared, 125 owner-excluded,
-and two Rust platform replacements. This records source scope, not completion.
+[selected-provider-scope.json](selected-provider-scope.json) records the earlier
+v0.84.4 source classification: six text providers and an OpenRouter image entry.
+It is retained with the original export observations and does not define the
+current supported providers or runtime features. The former generator that
+validated this historical classification has been retired.
 
-`generate_ai_conformance.py` validates the ledger against the exact seven proposal
-entries, full upstream provider manifest and original source occurrences.
-OpenRouter image provider ID is `openrouter` in its separate image namespace.
-All 16 legacy wire aliases and `bedrockProviderModule` remain shared;
-`amazonBedrockProvider`, its catalog, and public Faux registration are excluded.
-Bun OAuth loader packaging and TypeScript JSON declaration typing have separate
-Rust replacement rationales; selected OAuth and catalog behavior remain required.
+Current v1.4.0 scope is **OpenAI, Google Gemini, Anthropic and DeepSeek**, with
+ChatGPT and Anthropic OAuth and no generated-image/classifier API. See the
+[current scope](../../docs/scope.md#selected-provider-scope),
+[current factory contract](../../docs/contracts/ai-integration/factories.md),
+[upstream ownership map](../../upstream-map.toml) and
+[active proof registry](../assembly.json).
 
-The export mapping uses explicit occurrence selectors to split formerly broad
-surface rules. Every owner exclusion requires the owner decision, rationale,
-replacement and revisit trigger, uses no Rust product target and cannot claim a
-compile probe. The original 22 platform decisions, all 327 behavior rows and
-accepted S04 evidence remain unchanged.
-
-Retained scope permits future `implemented` dispositions only through the
-existing target, feature, callable and executed-evidence checks. Updating those
-implementation mappings does not rewrite the frozen scope ledger. A new upstream
-identity, even for an excluded product, still requires explicit classification;
-source inventory additions cannot be silently filtered out. Runtime registration
-and catalog value checks belong to their later implementation units.
+Retained historical source identities and expectations are not relabelled as
+v1.4.0 observations. The current protocol and OAuth comparisons execute the
+[exact target release](../provider-traces/v1.4.0/README.md) independently.
