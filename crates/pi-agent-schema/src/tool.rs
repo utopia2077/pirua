@@ -27,9 +27,17 @@ pub enum ToolReplay {
 #[serde(rename_all = "camelCase")]
 pub struct AgentToolResult {
     pub content: Vec<InputContent>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_json"
+    )]
     pub details: Option<JsonValue>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_json"
+    )]
     pub structured_content: Option<JsonValue>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub usage: Option<Usage>,
@@ -37,6 +45,14 @@ pub struct AgentToolResult {
     pub is_error: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminate: Option<bool>,
+}
+
+// A structured null is a tool result value. Only an absent field means that
+// the tool did not return structured content (or details).
+fn present_json<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<JsonValue>, D::Error> {
+    JsonValue::deserialize(deserializer).map(Some)
 }
 
 pub type ToolUpdate = Arc<dyn Fn(AgentToolResult) + Send + Sync>;
