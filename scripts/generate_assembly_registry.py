@@ -78,7 +78,7 @@ SUITES = {'conformance/ai-core': {'pi-ai-core': '*'},
 # current enabled anchors; final Durable acceptance enrolls a reviewed immutable
 # baseline separately. Existing REVIEWED_PROOF_REVISION is never refreshed here.
 SUITES['conformance/durable-v1.4.0'] = {
-    'pi-durable-session': ['invariants', 'release_fixtures'],
+    'pi-durable-session': ['invariants', 'number_roundtrip', 'release_fixtures'],
     'pi-durable': ['close', 'initializer', 'invariants', 'release_fixtures', 'review_regressions'],
 }
 

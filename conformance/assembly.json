@@ -7654,6 +7654,17 @@
           "-p",
           "pi-durable-session",
           "--test",
+          "number_roundtrip",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable-session",
+          "--test",
           "release_fixtures",
           "--all-features"
         ],
@@ -7813,6 +7824,11 @@
           "path": "crates/pi-durable-session/tests/invariants.rs",
           "anchor": "test:before_and_after_commit_failures_close_both_backends_without_adoption",
           "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/number_roundtrip.rs",
+          "anchor": "test:fractional_records_and_documents_survive_publication_storage_and_reopen",
+          "cargo_target": "number_roundtrip"
         },
         {
           "path": "crates/pi-durable-session/tests/release_fixtures.rs",

@@ -168,7 +168,8 @@ class AssemblyTest(unittest.TestCase):
 
     def test_durable_session_and_scheduler_require_native_targets_without_claiming_runtime(self):
         row=self.suite('conformance/durable-v1.4.0')
-        targets={('pi-durable-session','invariants'),('pi-durable-session','release_fixtures'),
+        targets={('pi-durable-session','invariants'),('pi-durable-session','number_roundtrip'),
+                 ('pi-durable-session','release_fixtures'),
                  ('pi-durable','close'),('pi-durable','initializer'),
                  ('pi-durable','invariants'),('pi-durable','release_fixtures'),
                  ('pi-durable','review_regressions')}
