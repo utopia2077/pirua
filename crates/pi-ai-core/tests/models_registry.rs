@@ -1774,6 +1774,13 @@ impl ApiAdapter for TestAdapter {
         if !self.fetch_supported {
             return Err(CapabilityError::Unsupported);
         }
+        self.log.identities.lock().unwrap().push(
+            serde_json::to_value(&request.options.wire)
+                .unwrap()
+                .get("identity")
+                .cloned()
+                .map(|value| serde_json::from_value(value).unwrap()),
+        );
         self.record(
             "fetch",
             &request.resolved,
@@ -1796,6 +1803,13 @@ impl ApiAdapter for TestAdapter {
             if !self.cancel_supported {
                 return Err(ModelsError::new(ModelsErrorCode::Provider));
             }
+            self.log.identities.lock().unwrap().push(
+                serde_json::to_value(&request.options.wire)
+                    .unwrap()
+                    .get("identity")
+                    .cloned()
+                    .map(|value| serde_json::from_value(value).unwrap()),
+            );
             self.record(
                 "cancel",
                 &request.resolved,
@@ -5572,6 +5586,80 @@ fn registry_identity_defaults_merge_with_raw_and_simple_requests() {
             drive(simple.result(), &spawner).stop_reason,
             StopReason::Stop
         );
+        let identities = log.identities.lock().unwrap();
+        assert_eq!(identities.len(), 2);
+        for observed in identities.iter() {
+            assert_eq!(serde_json::to_value(observed).unwrap(), case["merged"]);
+        }
+    }
+}
+
+#[test]
+fn registry_identity_defaults_and_overrides_reach_deferred_adapters() {
+    let source: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../conformance/provider-traces/v1.4.0/wire-observations.json"
+    ))
+    .unwrap();
+    let mut cases = vec![
+        serde_json::json!({"base":{"version":"host-version"},"merged":{"version":"host-version"}}),
+        serde_json::json!({"merged":null}),
+    ];
+    cases.extend(
+        source["helpers"]["identities"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .cloned(),
+    );
+    for case in cases {
+        let base = case
+            .get("base")
+            .cloned()
+            .map(|value| serde_json::from_value(value).unwrap());
+        let fixture = fixture_identity(ModelHeaderPolicy::default(), base);
+        let log = Arc::new(AdapterLog::default());
+        let adapter = Arc::new(TestAdapter {
+            api: ApiId::new(ApiId::OPENAI_COMPLETIONS).unwrap(),
+            log: log.clone(),
+            fetch_supported: true,
+            cancel_supported: true,
+        });
+        set_provider(
+            &fixture,
+            provider(
+                "p",
+                vec![model("p", "m")],
+                Arc::new(TestApiKey::configured()),
+                None,
+                Some(adapter),
+            ),
+        );
+        let spawner = Arc::new(ManualSpawner::default());
+        let mut wire = serde_json::json!({});
+        if let Some(request) = case.get("request") {
+            wire["identity"] = request.clone();
+        }
+        let model = model("p", "m");
+        let fetch = fixture.registry.fetch_deferred(
+            model.clone(),
+            handle(&model),
+            Default::default(),
+            DeferredFetchOptions {
+                wire: serde_json::from_value(wire.clone()).unwrap(),
+                runtime: runtime(spawner.clone(), fixture.clock.clone()),
+            },
+        );
+        assert_eq!(drive(fetch, &spawner).stop_reason, StopReason::Stop);
+        let cancel = fixture.registry.cancel_deferred(
+            model.clone(),
+            handle(&model),
+            Default::default(),
+            DeferredCancelOptions {
+                wire: serde_json::from_value(wire).unwrap(),
+                runtime: runtime(spawner.clone(), fixture.clock.clone()),
+            },
+        );
+        assert!(drive(cancel, &spawner).is_ok());
         let identities = log.identities.lock().unwrap();
         assert_eq!(identities.len(), 2);
         for observed in identities.iter() {

@@ -229,6 +229,7 @@ fn deferred_wire_fields_are_exact_and_non_null() {
     );
 
     for invalid in [
+        serde_json::json!({"identity": null}),
         serde_json::json!({"wait": null}),
         serde_json::json!({"timeoutMs": null}),
         serde_json::json!({"maxRetries": null}),
@@ -237,6 +238,10 @@ fn deferred_wire_fields_are_exact_and_non_null() {
     ] {
         assert!(serde_json::from_value::<DeferredFetchOptionsWire>(invalid).is_err());
     }
+    assert!(
+        serde_json::from_value::<DeferredCancelOptionsWire>(serde_json::json!({"identity": null}))
+            .is_err()
+    );
     assert!(
         serde_json::from_value::<DeferredCancelOptionsWire>(serde_json::json!({"wait": 1}))
             .is_err()

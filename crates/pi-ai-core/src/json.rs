@@ -590,7 +590,7 @@ impl JsonObject {
 /// `skip_serializing_if = "Presence::is_missing"`. Without `default`, omission
 /// cannot become [`Presence::Missing`]; without the skip predicate, a missing
 /// value would serialize as JSON null and lose the distinction.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum Presence<T> {
     /// The field was absent and must be omitted when serialized.
     #[default]

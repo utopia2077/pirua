@@ -520,6 +520,13 @@ impl<'de> Deserialize<'de> for SimpleStreamOptionsWire {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DeferredFetchOptionsWire {
+    /// Explicit calling-application identity, merged with registry defaults.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub identity: Option<crate::ClientIdentity>,
     /// Provider request timeout in milliseconds.
     #[serde(
         default,
@@ -554,6 +561,13 @@ pub struct DeferredFetchOptionsWire {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DeferredCancelOptionsWire {
+    /// Explicit calling-application identity, merged with registry defaults.
+    #[serde(
+        default,
+        deserialize_with = "crate::json::deserialize_optional_non_null",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub identity: Option<crate::ClientIdentity>,
     /// Provider request timeout in milliseconds.
     #[serde(
         default,

@@ -14,7 +14,8 @@ Caller-facing `Context` shorthand becomes a leading system message exactly
 once at registry dispatch. Provider conversions use the normalized transcript
 and replay current tools/sections or retain anchored changes according to model
 capabilities. Registry default client identity merges field by field with the
-request identity, including explicit-null attribution suppression. Authentication,
+request identity for all four request roots, including explicit-null attribution
+suppression; total absence stays absent. Authentication,
 provider selection, header precedence, captured registration identity, and
 request-scoped lifecycle hooks retain one authority and existing cancellation
 ownership.

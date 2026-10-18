@@ -41,7 +41,7 @@ pub struct ClientAttribution {
     pub categories: Option<Vec<String>>,
 }
 /// Calling application identity; absent fields retain Pi defaults.
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClientIdentity {
     /// User-Agent presentation.

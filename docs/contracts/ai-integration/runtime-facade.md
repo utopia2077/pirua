@@ -16,8 +16,10 @@ and collapse the current system state. `get_current_tools`,
 `resolve_transcript_tools` expose the shared replay behavior.
 
 `ModelsRegistryOptions.identity` supplies the default calling identity.
-`StreamOptionsWire.identity` overrides it field by field, including simple and
-captured lifecycle dispatch. `ClientIdentity.attribution` uses `Presence`:
+`StreamOptionsWire.identity`, `DeferredFetchOptionsWire.identity`, and
+`DeferredCancelOptionsWire.identity` override it field by field. This applies to
+raw/simple streaming, deferred fetch/cancellation, and captured lifecycle dispatch.
+When both sources omit identity, it remains absent. `ClientIdentity.attribution` uses `Presence`:
 `Missing` inherits, `Null` disables inherited attribution, and `Value` replaces
 it. Native detailed User-Agent output reports Pi 1.4.0 and the Rust host runtime.
 Model and explicit request headers retain their normal override precedence.

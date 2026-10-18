@@ -2069,6 +2069,13 @@ fn cancel_deferred_selected(
     options: DeferredCancelOptions,
     captured: Option<Arc<ProviderRecord>>,
 ) -> BoxFuture<'static, Result<(), AuthResolutionError>> {
+    let mut options = options;
+    if inner.options.identity.is_some() || options.wire.identity.is_some() {
+        options.wire.identity = Some(crate::merge_client_identity(
+            inner.options.identity.as_ref(),
+            options.wire.identity.as_ref(),
+        ));
+    }
     Box::pin(async move {
         let cancellation = options.runtime.cancellation.clone();
         let assembled = match captured {
@@ -2285,13 +2292,11 @@ fn start_dispatch_selected(
 ) -> AssistantStream {
     let mut request = request;
     let identity = match &mut request {
-        DispatchRequest::Stream { options, .. } => Some(&mut options.wire.identity),
-        DispatchRequest::Simple { options, .. } => Some(&mut options.wire.stream.identity),
-        DispatchRequest::Fetch { .. } => None,
+        DispatchRequest::Stream { options, .. } => &mut options.wire.identity,
+        DispatchRequest::Simple { options, .. } => &mut options.wire.stream.identity,
+        DispatchRequest::Fetch { options, .. } => &mut options.wire.identity,
     };
-    if let Some(identity) = identity
-        && (inner.options.identity.is_some() || identity.is_some())
-    {
+    if inner.options.identity.is_some() || identity.is_some() {
         *identity = Some(crate::merge_client_identity(
             inner.options.identity.as_ref(),
             identity.as_ref(),

@@ -985,6 +985,11 @@
         },
         {
           "path": "crates/pi-ai-core/tests/models_registry.rs",
+          "anchor": "test:registry_identity_defaults_and_overrides_reach_deferred_adapters",
+          "cargo_target": "models_registry"
+        },
+        {
+          "path": "crates/pi-ai-core/tests/models_registry.rs",
           "anchor": "test:registry_cases::provider_mutations_preserve_order_and_slots",
           "cargo_target": "models_registry_concurrency"
         },
@@ -1131,6 +1136,11 @@
         {
           "path": "crates/pi-ai-core/tests/models_registry.rs",
           "anchor": "test:registry_cases::registry_identity_defaults_merge_with_raw_and_simple_requests",
+          "cargo_target": "models_registry_concurrency"
+        },
+        {
+          "path": "crates/pi-ai-core/tests/models_registry.rs",
+          "anchor": "test:registry_cases::registry_identity_defaults_and_overrides_reach_deferred_adapters",
           "cargo_target": "models_registry_concurrency"
         },
         {
