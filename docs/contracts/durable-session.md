@@ -25,6 +25,13 @@ attaches to a store without an implicit write. The higher runtime initializes th
 reserved root with idempotent `Transaction::ensure_root_conversation` before accepting
 root conversation work. Session-scope document transactions do not need a root record.
 
+`Session::with_options` accepts a clock and an optional synchronous
+`conversation_initializer`. It receives the actual transaction and newly staged
+conversation after any fork document copies, before caller initialization continues.
+It runs for raw, root and fork creation; reacquiring an existing root does not rerun
+it. Callback failure rolls back the creation without failing a healthy Session.
+Default `open` and `with_clock` have no conversation initializer.
+
 Conversation identity/ancestry/ownership and entries are immutable. Task creation and
 ownership and submission identity/request ID remain immutable across replacements.
 Task state is the complete tagged pending/running/waiting/sleeping/completing/terminal
@@ -120,6 +127,14 @@ publication before their stream ends; they have a later cutoff than document sta
 watches. Failure still closes the commit stream without publishing a failed candidate.
 The close worker also survives a cancelled waiter. `closed()` distinguishes normal
 closure from a failed Session.
+
+The execution owner can compose closure through `close_with(join, finalize)`.
+Admission seals on the first poll; the owned close worker awaits `join` outside
+the mutation line, then validates and commits the synchronous finalizer's writes
+without adopting or publishing them. Ordinary admitted commits still publish
+before their subscribers close. A failed Session skips the finalizer; finalizer
+failure fails close. First close wins. The scheduler uses this seam to join handlers
+and reset surviving running tasks without exposing a new public runtime revision.
 
 ## Operations and native JSON
 

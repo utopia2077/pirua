@@ -7656,6 +7656,61 @@
           "--test",
           "release_fixtures",
           "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "close",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "initializer",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "invariants",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "release_fixtures",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "review_regressions",
+          "--all-features"
         ]
       ],
       "evidence": [
@@ -7768,6 +7823,131 @@
           "path": "crates/pi-durable-session/tests/release_fixtures.rs",
           "anchor": "test:independently_authored_native_contracts",
           "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/close.rs",
+          "anchor": "test:close_seals_retained_session_during_join_and_drains_admitted_publication_only",
+          "cargo_target": "close"
+        },
+        {
+          "path": "crates/pi-durable/tests/close.rs",
+          "anchor": "test:close_finalizer_failure_before_and_after_backend_admission_latches_without_publication",
+          "cargo_target": "close"
+        },
+        {
+          "path": "crates/pi-durable/tests/close.rs",
+          "anchor": "test:failed_session_skips_close_finalizer_and_first_close_owns_cleanup",
+          "cargo_target": "close"
+        },
+        {
+          "path": "crates/pi-durable/tests/close.rs",
+          "anchor": "test:scheduler_close_waiter_cancellation_does_not_cancel_join_or_pending_reset",
+          "cargo_target": "close"
+        },
+        {
+          "path": "crates/pi-durable/tests/initializer.rs",
+          "anchor": "test:raw_root_new_and_fork_initialization_share_atomic_transaction_and_follow_copies",
+          "cargo_target": "initializer"
+        },
+        {
+          "path": "crates/pi-durable/tests/initializer.rs",
+          "anchor": "test:initializer_error_rolls_back_conversation_and_documents_without_poisoning_session",
+          "cargo_target": "initializer"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:inspection_progress_memos_and_atomic_terminal_documents",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:no_progress_and_handler_errors_fault_without_overwriting_decided_outcomes",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:abort_commits_intent_before_signal_and_rejects_old_lease",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:absolute_sleep_uses_wall_clock_and_early_wakes_do_not_dispatch",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:same_batch_new_owned_work_and_parent_outcome_rejects_then_owned_conversation_holds",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:concurrent_first_writer_memos_and_stale_timer_callbacks_are_lease_checked",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:runtime_cleanup_hooks_are_atomic_at_true_scheduler_terminal_and_rollback_on_failure",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:actual_runtime_interruption_reopens_running_record_and_invalidates_old_runtime",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:early_local_host_timer_rearms_against_absolute_deadline",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/invariants.rs",
+          "anchor": "test:rejected_terminal_cleanup_rolls_back_and_stops_scheduling_without_handler_replay",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable/tests/release_fixtures.rs",
+          "anchor": "test:publication_projection_rejects_missing_coalesced_and_reversed_dependent_batches",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/release_fixtures.rs",
+          "anchor": "test:publication_projection_rejects_owner_reference_before_creation",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/release_fixtures.rs",
+          "anchor": "test:publication_projection_rejects_actual_fixture_owner_creation_reordering",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/release_fixtures.rs",
+          "anchor": "test:publication_projection_allows_existing_owners_and_independent_creation_batches",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/release_fixtures.rs",
+          "anchor": "test:immutable_release_inputs_execute_on_native_memory_and_sqlite",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/review_regressions.rs",
+          "anchor": "test:abort_joins_normally_but_rejects_session_failure_before_handler_release",
+          "cargo_target": "review_regressions"
+        },
+        {
+          "path": "crates/pi-durable/tests/review_regressions.rs",
+          "anchor": "test:unavailable_phase_definitions_report_once_per_resolution_and_keep_old_execution",
+          "cargo_target": "review_regressions"
+        },
+        {
+          "path": "crates/pi-durable/tests/review_regressions.rs",
+          "anchor": "test:exhausted_abort_guard_keeps_exact_receipt_and_reports_after_terminal_commit",
+          "cargo_target": "review_regressions"
+        },
+        {
+          "path": "crates/pi-durable/tests/review_regressions.rs",
+          "anchor": "test:exhausted_abort_guard_does_not_report_an_unsuccessful_backend_commit",
+          "cargo_target": "review_regressions"
         }
       ],
       "limitations": []

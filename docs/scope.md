@@ -53,9 +53,12 @@ necessary Chord contracts; the full Chord protocol and JavaScript proxy are outs
 scope. The [Session contract](contracts/durable-session.md) records native API and
 Unicode boundaries, durable ID allocation and the source comparison limits.
 
-Session stores task records without executing handlers. The task scheduler,
-conversation runtime and persistent local CodeMode journals are the remaining
-Durable implementation. They will use this single persistence authority. The old
+Session stores task records without executing handlers. The generic scheduler in
+`pi-durable` adds persistent task definitions, invocation leases, ownership and wait
+graphs, sleep, cancellation and recovery over this single persistence authority.
+Its [contract](contracts/durable-scheduler.md) distinguishes normal close from
+interruption and describes the selected source evidence. The conversation runtime
+and persistent local CodeMode journals are the remaining Durable implementation. The old
 experimental Harness has been retired; a temporary compatibility layer is not
 part of this upgrade.
 

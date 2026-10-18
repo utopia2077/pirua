@@ -1,0 +1,68 @@
+{
+  "upstreamTag": "v1.4.0",
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "execution": "Actual published1.4.0 Harness scheduler with controlled generic task definitions; upstream evidence preparation only, no native scheduler implementation or acceptance",
+  "runtime": {
+    "node": "v26.8.1",
+    "npm": "11.19.0",
+    "nodeSqlite": "3.53.4"
+  },
+  "sharedPackageIdentity": {
+    "sessionProvenanceSha256": "06769acd79402de63e2ec961f710c7d8cb8d31be8b52a9eec2d11eb92c1cba67",
+    "sessionSourcePinSha256": "3a51a09e927b73cdf7d9e801be0a9b83904be15fa8aa6efcfb04e150f3db8dcd",
+    "packageLockSha256": "608226d8577881af79480c884c8473dc83854d9f109c9064ca081476fd3c0d92",
+    "newInstallations": 0,
+    "frozenSessionFiles": {
+      ".gitignore": "b1e2d2275da6874aaddb5e6c1607c9c04f181bf488f1514b701afb4f61fcb344",
+      "README.md": "50b7fa60c5958ff5caa15782cf00f988ed46ec26a280f2198b29b4b4b5d79e34",
+      "case-index.json": "4dc4f996586b39d4787cad6a5d1344c5a51a6d370b7e33d27b4232d635121dfd",
+      "causal-check.mjs": "61802693d77e96df69d8200bd933e030b794fd311b10219d3ddf96d7337be2fd",
+      "chord-attestations.json": "56a51f151889415ac32673ff20421d3dfd13982d42051a3b9ed54fca6104715c",
+      "package-lock.json": "608226d8577881af79480c884c8473dc83854d9f109c9064ca081476fd3c0d92",
+      "package.json": "5f6440a44ff9ef6d4a35c6e71b920e3763192777019027fbab05a2e02eb80e7c",
+      "pi-durable-attestations.json": "a9902dc2db1401e8c9b3daf86cdd225852c88c3aeb6654dd84d434ce01d26b61",
+      "provenance.json": "06769acd79402de63e2ec961f710c7d8cb8d31be8b52a9eec2d11eb92c1cba67",
+      "runner.mjs": "8b965dce2d656984c6c39cfe55265752d3da0dd77e8c7b184e5bf7fb1cc7f3b8",
+      "session.mjs": "717be1b5c72eba8da58d1e0ed91617d7f415156005ea2898c62b93c7fc965a0f",
+      "setup.mjs": "c33fde50cc079f3563c5802b668942d4ff50ebdaeb2d167b540786e1356647a3",
+      "source-pin.json": "3a51a09e927b73cdf7d9e801be0a9b83904be15fa8aa6efcfb04e150f3db8dcd",
+      "trace-codec.mjs": "b8d576daf21cba4906ea309e7b4b11a3ea3b5fbdbbf91a30d6a84a360b12ea01",
+      "fixtures/native-contract.json": "d9f6c8a91f0e9b557eb44e00cc9059e1afe7d424d8f6f225dc718c298c64599d",
+      "fixtures/schema.json": "7ffa0951186ade6b252c7b46f5432f0addee465fdfade323675a045d03cbdff7",
+      "fixtures/session-inputs.json": "0a8126c74932fc2ce472e44798e720fb584b78f9a344d2da0b20d774ce638275",
+      "fixtures/session.json": "71775f4546feef4d96dde3144a079444fadf2d32ce5df1f22997f8ddaed58f77"
+    }
+  },
+  "counts": {
+    "cases": 23,
+    "executions": 41,
+    "memoryAndSqliteCases": 18,
+    "sqliteOnlyCases": 5,
+    "taggedSourceFingerprints": 47,
+    "releaseFingerprints": 125
+  },
+  "verification": [
+    "node conformance/durable-v1.4.0/scheduler.mjs --check",
+    "PIRUA_UPSTREAM_ROOT=<Git object store> node conformance/durable-v1.4.0/scheduler.mjs --write",
+    "node conformance/durable-v1.4.0/scheduler.mjs --causal; actual --check rejects changed pending inspection expectation",
+    "repeated explicit regeneration yields identical fixture bytes",
+    "all18 frozen Session file hashes rechecked before every run and at finalization"
+  ],
+  "limits": [
+    "Seeded SQLite reopen is not an observed process crash",
+    "No provider/tool/CodeMode/built-in task execution or migrations",
+    "Reports retain category/message without stacks",
+    "No native implementation or acceptance claim",
+    "Existing npm SLSA payload/digest association checked; cryptographic signature trust not independently reverified"
+  ],
+  "artifacts": {
+    "scheduler.mjs": "53acff874d7c09a3d3c75f42c59be6c08ed1bdc71668c54c39404608063be1dd",
+    "scheduler-runner.mjs": "21579e3a967090111f4b1d033ad30f648013e58296a43467ff23febd8b04cc66",
+    "scheduler.md": "7a3f34469fae17fedd4a3a66a1cd8e5d3ae19cf1c7ab1ff6a9cd966f6345dfb1",
+    "scheduler-case-index.json": "aefe0952a155ae7aaf1fe0509d3e49d39079df5181af4f4a5019af7c780e166e",
+    "scheduler-source-pin.json": "dbb557225a49d54f45427ba809058207c6b57696dadb3c98a0901bf69c7d5139",
+    "fixtures/scheduler-inputs.json": "d673ddeff82f7418420ceefc13fa1e30cf43e084db98da09ac89feeced27f5f3",
+    "fixtures/scheduler.json": "4a475d1bf49ebbc41315798e36f16a2fd470f1d2b8ec6ee683373db62214283b",
+    "fixtures/scheduler-schema.json": "8159f0c6193328c004cd67de62c85b0496ce88d95dc0ed67836c1ad173e0645a"
+  }
+}

@@ -1,5 +1,5 @@
 schema_version = 1
-production_crates = ["pi-telemetry", "pi-extension-protocol", "pi-ai-core", "pi-ai-transport", "pi-ai-providers", "pi-ai", "pi-agent-schema", "pi-agent-loop", "pi-agent", "pi-coding-runtime", "pi-sqlite", "pi-coding-session", "pi-codemode", "pi-mcp", "pi-durable-session"]
+production_crates = ["pi-telemetry", "pi-extension-protocol", "pi-ai-core", "pi-ai-transport", "pi-ai-providers", "pi-ai", "pi-agent-schema", "pi-agent-loop", "pi-agent", "pi-coding-runtime", "pi-sqlite", "pi-coding-session", "pi-codemode", "pi-mcp", "pi-durable-session", "pi-durable"]
 
 [[feature_group]]
 id = "pi-ai-to-pi-ai-providers"
@@ -115,4 +115,9 @@ kind = "required"
 [[edge]]
 consumer = "pi-durable-session"
 dependency = "pi-sqlite"
+kind = "required"
+
+[[edge]]
+consumer = "pi-durable"
+dependency = "pi-durable-session"
 kind = "required"

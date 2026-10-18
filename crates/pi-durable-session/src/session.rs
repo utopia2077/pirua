@@ -202,6 +202,29 @@ pub enum SubmissionSettlement {
     },
 }
 
+/// Runtime-owned initialization, executed after a new row and fork copies are staged.
+/// Document access is supported; the existing table read-before-write rule remains.
+pub type ConversationInitializer =
+    Arc<dyn Fn(&mut Transaction<'_>, &ConversationRecord) -> Result<()> + Send + Sync>;
+#[derive(Clone)]
+pub struct SessionOptions {
+    pub now: Arc<dyn Fn() -> f64 + Send + Sync>,
+    pub conversation_initializer: Option<ConversationInitializer>,
+}
+impl Default for SessionOptions {
+    fn default() -> Self {
+        Self {
+            now: Arc::new(|| {
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs_f64()
+                    * 1000.0
+            }),
+            conversation_initializer: None,
+        }
+    }
+}
 struct Observations {
     states: Vec<Weak<StateInner>>,
     watches: Vec<Weak<WatchInner>>,
@@ -216,6 +239,7 @@ struct Inner {
     observations: Mutex<Observations>,
     end: watch::Sender<Option<SessionEnd>>,
     now: Arc<dyn Fn() -> f64 + Send + Sync>,
+    conversation_initializer: Option<ConversationInitializer>,
 }
 #[derive(Clone)]
 pub struct Session {
@@ -223,18 +247,21 @@ pub struct Session {
 }
 impl Session {
     pub fn open(storage: Arc<dyn Storage>) -> Result<Self> {
-        Self::with_clock(storage, || {
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs_f64()
-                * 1000.0
-        })
+        Self::with_options(storage, SessionOptions::default())
     }
     pub fn with_clock(
         storage: Arc<dyn Storage>,
         now: impl Fn() -> f64 + Send + Sync + 'static,
     ) -> Result<Self> {
+        Self::with_options(
+            storage,
+            SessionOptions {
+                now: Arc::new(now),
+                ..Default::default()
+            },
+        )
+    }
+    pub fn with_options(storage: Arc<dyn Storage>, options: SessionOptions) -> Result<Self> {
         Ok(Self {
             inner: Arc::new(Inner {
                 storage,
@@ -248,7 +275,8 @@ impl Session {
                     observers: Vec::new(),
                 }),
                 end: watch::channel(None).0,
-                now: Arc::new(now),
+                now: options.now,
+                conversation_initializer: options.conversation_initializer,
             }),
         })
     }
@@ -277,7 +305,12 @@ impl Session {
         let inner = self.inner.clone();
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
-            let mut tx = Transaction::new(inner.storage.as_ref(), scope, inner.now.clone());
+            let mut tx = Transaction::new(
+                inner.storage.as_ref(),
+                scope,
+                inner.now.clone(),
+                inner.conversation_initializer.clone(),
+            );
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| change(&mut tx)));
             let result = match result {
                 Ok(result) => result,
@@ -589,26 +622,73 @@ impl Session {
     }
     /// Seals immediately when polled; admitted work settles independently of this wait.
     pub async fn close(&self) -> Result<()> {
+        self.close_with(std::future::ready(()), |_| Ok(())).await
+    }
+    /// Sole-runtime close hook. First close wins: seal admission and document observers,
+    /// join outside the line, then validate/commit internal closing writes without
+    /// publication. Dropping a close waiter does not cancel this owned worker.
+    pub async fn close_with(
+        &self,
+        join: impl std::future::Future<Output = ()> + Send + 'static,
+        finalize: impl FnOnce(&mut Transaction<'_>) -> Result<()> + Send + 'static,
+    ) -> Result<()> {
         if !self.inner.sealed.swap(true, Ordering::AcqRel) {
             self.inner.seal_observations(WatchEnd::SessionClosed);
             let inner = self.inner.clone();
             tokio::spawn(async move {
-                let permit = inner.line.clone().acquire_owned().await;
-                match permit {
-                    Ok(_permit) => {
-                        // All admitted work has now settled and published. Complete
-                        // commit subscribers end here, after the document seal.
-                        inner.close_commit_subscriptions();
-                        match inner.storage.close() {
-                            Ok(()) => {
-                                if inner.failure.lock().expect("failure lock").is_none() {
-                                    inner.end.send_replace(Some(SessionEnd::Closed));
+                join.await;
+                let permit = match inner.line.clone().acquire_owned().await {
+                    Ok(permit) => permit,
+                    Err(_) => {
+                        inner.fail(Error::backend("Session line closed"));
+                        return;
+                    }
+                };
+                let worker = inner.clone();
+                let settled = tokio::task::spawn_blocking(move || {
+                    let _permit = permit;
+                    // Previously admitted normal commits have settled and published.
+                    // Internal closing writes never publish a new revision.
+                    if worker.failure.lock().expect("failure lock").is_none() {
+                        let closing =
+                            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                let mut tx = Transaction::new(
+                                    worker.storage.as_ref(),
+                                    TransactionScope::default(),
+                                    worker.now.clone(),
+                                    worker.conversation_initializer.clone(),
+                                );
+                                let changed = finalize(&mut tx);
+                                if let Some(error) = tx.storage_failure.clone() {
+                                    return Err(error);
                                 }
-                            }
-                            Err(error) => inner.fail(error),
+                                changed?;
+                                let prepared = tx.prepare()?;
+                                if !prepared.writes.is_empty() {
+                                    worker.storage.commit(&prepared.writes)?;
+                                }
+                                Ok(())
+                            }))
+                            .unwrap_or_else(|_| Err(Error::validation("close finalizer panicked")));
+                        if let Err(error) = closing {
+                            worker.fail(error);
                         }
                     }
-                    Err(_) => inner.fail(Error::backend("Session line closed")),
+                    worker.close_commit_subscriptions();
+                    match worker.storage.close() {
+                        Ok(()) => {
+                            if worker.failure.lock().expect("failure lock").is_none() {
+                                worker.end.send_replace(Some(SessionEnd::Closed));
+                            }
+                        }
+                        Err(error) => worker.fail(error),
+                    }
+                })
+                .await;
+                if let Err(error) = settled {
+                    inner.fail(Error::backend(format!(
+                        "Session close worker failed: {error}"
+                    )));
                 }
             });
         }
@@ -889,12 +969,14 @@ pub struct Transaction<'a> {
     fork_sources: BTreeSet<ConversationId>,
     copy_sources: BTreeSet<DocumentId>,
     storage_failure: Option<Error>,
+    conversation_initializer: Option<ConversationInitializer>,
 }
 impl<'a> Transaction<'a> {
     fn new(
         storage: &'a dyn Storage,
         scope: TransactionScope,
         now: Arc<dyn Fn() -> f64 + Send + Sync>,
+        conversation_initializer: Option<ConversationInitializer>,
     ) -> Self {
         Self {
             storage,
@@ -910,6 +992,7 @@ impl<'a> Transaction<'a> {
             fork_sources: BTreeSet::new(),
             copy_sources: BTreeSet::new(),
             storage_failure: None,
+            conversation_initializer,
         }
     }
     fn read_result<T>(&mut self, result: Result<T>) -> Result<T> {
@@ -1037,13 +1120,16 @@ impl<'a> Transaction<'a> {
         self.tables.push(StorageWrite::Conversation {
             value: value.clone(),
         });
+        self.initialize_conversation(&value)?;
         Ok(value)
     }
     pub fn create_conversation(
         &mut self,
         ownership: ConversationOwnership,
     ) -> Result<ConversationRecord> {
-        self.stage_conversation(None, ownership)
+        let record = self.stage_conversation(None, ownership)?;
+        self.initialize_conversation(&record)?;
+        Ok(record)
     }
     fn stage_conversation(
         &mut self,
@@ -1149,7 +1235,14 @@ impl<'a> Transaction<'a> {
                 });
             }
         }
+        self.initialize_conversation(&child)?;
         Ok(child)
+    }
+    fn initialize_conversation(&mut self, record: &ConversationRecord) -> Result<()> {
+        if let Some(initialize) = self.conversation_initializer.clone() {
+            initialize(self, record)?;
+        }
+        Ok(())
     }
     pub fn append_entry(&mut self, c: ConversationId, draft: EntryDraft) -> Result<EntryRecord> {
         self.table_written = true;
@@ -1267,6 +1360,16 @@ impl<'a> Transaction<'a> {
         }
         self.tasks.insert(candidate.id, candidate);
         Ok(())
+    }
+    /// Detached conversation rows staged by this transaction, without a table reread.
+    pub fn staged_conversations(&self) -> Vec<ConversationRecord> {
+        self.tables
+            .iter()
+            .filter_map(|write| match write {
+                StorageWrite::Conversation { value } => Some(value.clone()),
+                _ => None,
+            })
+            .collect()
     }
     pub fn staged_tasks(&self) -> Vec<TaskRecord> {
         self.tasks.values().cloned().collect()

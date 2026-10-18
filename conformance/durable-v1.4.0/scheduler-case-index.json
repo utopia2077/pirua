@@ -1,0 +1,699 @@
+{
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "scope": "Related tagged definitions/tests/spec; whole upstream tests are not claimed executed. Some indexed tests contain additional behavior outside this bounded oracle.",
+  "cases": [
+    {
+      "id": "scheduler-no-inspection-dispatch",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "derives every live task's state without running task code",
+        "continues one invocation through checkpoint progress and completes with a typed result"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-inspect.test.ts",
+          "sha256": "05a12f76ab3f4cd2b8b18db14180ebd61976512f7715001e575a516651ca266f"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-no-progress-and-throw",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "faults a phase without durable progress and a throwing phase"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-memo-first-writer-and-terminal-lease",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "commits results with entries atomically, keeps memos until terminal, and retires task documents",
+        "keeps a committed terminal outcome when the handler throws afterwards"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-abort-intent-before-signal",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "rejects the run's commits and memo writes after the mark, and settles through a fresh abort invocation"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-absolute-sleep-and-early-wake",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "sleeps without an invocation and resumes at its checkpoint once due"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-sleep.test.ts",
+          "sha256": "39c3b3227b675b069e536451244a8236506fe328f96e643487b70114ba735ad8"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-sleep-sqlite-reopen",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "keeps a sleep across reopen"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-sleep.test.ts",
+          "sha256": "39c3b3227b675b069e536451244a8236506fe328f96e643487b70114ba735ad8"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-durable-wait-allsettled",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "resumes once every awaited task is terminal and reads their outcomes in order (allSettled)"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-join-allSettled",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "resumes once every awaited task is terminal and reads their outcomes in order (allSettled)"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-join-failFast",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "fails fast on a held failure before the failing child drains"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-completing-owned-work-hold",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "holds a finished task until its owned work drains; waiters and task documents wait for the final commit"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-background-abort-and-idle-boundary",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "keeps background work through Conversation.abort(); { background: true } aborts it and waits"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-missing-definition-register-later",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "keeps a task with a missing definition pending, and live for idle waits, until registration"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-newer-stored-definition-blocked",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "keeps a task stored by a newer version pending until a fitting definition is registered"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-newer-definition-no-migration-blocked",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "migrates at reservation, leaves the record unchanged when migration fails, and retries only for a new definition"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-same-version-phase-registry-handover",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "hands over at the next phase boundary to a same-version replacement without overlap"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-normal-close-running-sqlite-reopen",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "counts no restart for a task a close stopped",
+        "keeps the memos across a handover"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-blocked.test.ts",
+          "sha256": "75a729ec062b3bdd07609de98e47ae1cc73e5c88905527a611e3afa9fb6a977b"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-seeded-sqlite-reopen-all-states",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "resumes a parent whose awaited children finished before the crash",
+        "finalizes a held outcome whose work drained before the crash, and keeps one whose work lives"
+      ],
+      "seededReopen": true,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/test/harness-sleep.test.ts",
+          "sha256": "39c3b3227b675b069e536451244a8236506fe328f96e643487b70114ba735ad8"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-restart-limit-explicit-retry",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "parks a task cut off restartLimit times in a row, shows why, and runs it again on retryTask()"
+      ],
+      "seededReopen": true,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-blocked.test.ts",
+          "sha256": "75a729ec062b3bdd07609de98e47ae1cc73e5c88905527a611e3afa9fb6a977b"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-restart-abandoned-missing-definition",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "shows an abandoned task waiting for its definition as blocked"
+      ],
+      "seededReopen": true,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks-recovery.test.ts",
+          "sha256": "89176944cccaf505eb8306caaae4a72188bbf3e4de4df274fef92a2f0389078f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-blocked.test.ts",
+          "sha256": "75a729ec062b3bdd07609de98e47ae1cc73e5c88905527a611e3afa9fb6a977b"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-explicit-wait-cycle-rejected",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "rejects waits on itself, its owner, a missing task, and failFast on a task it does not own"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-implicit-owned-work-cycle-rejected",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "rejects the wait that closes a cycle through a held owner"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-stale-task-timer-disarmed",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "disarms an invocation's timers when it ends, and a late fire runs nothing"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-tasks.test.ts",
+          "sha256": "1d3c0dcda8e00c0c852ebc59e85860b6eee0b02aca058100c3d16c11ae19620f"
+        },
+        {
+          "path": "packages/durable/test/harness-sleep.test.ts",
+          "sha256": "39c3b3227b675b069e536451244a8236506fe328f96e643487b70114ba735ad8"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    },
+    {
+      "id": "scheduler-seeded-owned-conversation-completing-hold",
+      "specSections": [
+        "5.1 Definition",
+        "5.4 Scheduler, abort, and ownership",
+        "5.5 Structured concurrency",
+        "5.6 Sleeping, timers, and wakeups"
+      ],
+      "relatedTaggedTests": [
+        "keeps a conversation busy while its owned foreground subtree has live work, holding the completed owner"
+      ],
+      "seededReopen": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-ownership.test.ts",
+          "sha256": "960c7397f87a40a3670e0b79fc62059ec532259694302e0968a9c2315bc3d2d6"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-structured.test.ts",
+          "sha256": "752f6115974cae8420bfce84658abd2fd1117ffa2bef4d18221ffc534e463ffe"
+        },
+        {
+          "path": "packages/durable/src/harness/scheduler.ts",
+          "sha256": "77e4f0f71c099308cf7ead442c9a1335b5156a1a1194315cd41f2aa06ef4a1ab"
+        }
+      ]
+    }
+  ]
+}

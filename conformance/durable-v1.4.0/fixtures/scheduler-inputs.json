@@ -1,0 +1,2329 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "cases": [
+    {
+      "id": "scheduler-no-inspection-dispatch",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-inspect.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "counter",
+            "name": "oracle.scheduler.counter",
+            "version": 1,
+            "initial": {
+              "phase": "run",
+              "n": 0
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "counter",
+                  "field": "n",
+                  "until": 3
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "counter",
+            "as": "t"
+          },
+          {
+            "op": "inspect",
+            "label": "before-resume"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "wake"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-no-progress-and-throw",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "idle",
+            "name": "oracle.scheduler.idle",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": []
+            }
+          },
+          {
+            "id": "nochange",
+            "name": "oracle.scheduler.nochange",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "noProgressCommit"
+                }
+              ]
+            }
+          },
+          {
+            "id": "throws",
+            "name": "oracle.scheduler.throws",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "throw",
+                  "message": "oracle handler failure"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "idle",
+            "as": "a"
+          },
+          {
+            "op": "create",
+            "definition": "nochange",
+            "as": "b"
+          },
+          {
+            "op": "create",
+            "definition": "throws",
+            "as": "c"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$a"
+          },
+          {
+            "op": "wait",
+            "id": "$b"
+          },
+          {
+            "op": "wait",
+            "id": "$c"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-memo-first-writer-and-terminal-lease",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "memo",
+            "name": "oracle.scheduler.memo",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "memo",
+                  "name": "winner",
+                  "candidate": {
+                    "value": 1
+                  },
+                  "as": "winner"
+                },
+                {
+                  "do": "memo",
+                  "name": "winner",
+                  "candidate": {
+                    "value": 2
+                  }
+                },
+                {
+                  "do": "memo",
+                  "name": "null",
+                  "candidate": null
+                },
+                {
+                  "do": "memo",
+                  "name": "absent",
+                  "read": true
+                },
+                {
+                  "do": "record"
+                },
+                {
+                  "do": "complete",
+                  "result": "$local.winner"
+                },
+                {
+                  "do": "lateCommit",
+                  "state": {
+                    "status": "terminal",
+                    "outcome": {
+                      "status": "completed",
+                      "result": "late"
+                    }
+                  }
+                },
+                {
+                  "do": "throw",
+                  "message": "after committed terminal"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "memo",
+            "as": "t"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-abort-intent-before-signal",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "abortable",
+            "name": "oracle.scheduler.abortable",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "hold",
+                  "tryCommitOnSignal": true
+                },
+                {
+                  "do": "complete",
+                  "result": "unreachable"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "abortable",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "running"
+          },
+          {
+            "op": "abort",
+            "id": "$t"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-absolute-sleep-and-early-wake",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-sleep.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "nap",
+            "name": "oracle.scheduler.nap",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "sleep",
+                  "until": 2000,
+                  "checkpoint": {
+                    "phase": "after"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "$clock"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "nap",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "sleeping"
+          },
+          {
+            "op": "wake"
+          },
+          {
+            "op": "advance",
+            "to": 1999
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "advance",
+            "to": 2000
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "wake"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-sleep-sqlite-reopen",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-sleep.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "nap",
+            "name": "oracle.scheduler.nap",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "sleep",
+                  "until": 2000,
+                  "checkpoint": {
+                    "phase": "after"
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "$clock"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "nap",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "sleeping"
+          },
+          {
+            "op": "close"
+          },
+          {
+            "op": "advance",
+            "to": 1500,
+            "resume": false
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "advance",
+            "to": 1999
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "advance",
+            "to": 2000
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "scheduler-durable-wait-allsettled",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "parent",
+            "name": "oracle.scheduler.parent",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "spawn",
+                  "definition": "child",
+                  "as": "child"
+                },
+                {
+                  "do": "wait",
+                  "on": [
+                    "$local.child"
+                  ],
+                  "policy": "allSettled",
+                  "checkpoint": {
+                    "phase": "joined",
+                    "ids": [
+                      "$local.child"
+                    ]
+                  }
+                }
+              ],
+              "joined": [
+                {
+                  "do": "outcomes",
+                  "ids": "$task.state.checkpoint.ids",
+                  "as": "results"
+                },
+                {
+                  "do": "complete",
+                  "result": "$local.results"
+                }
+              ]
+            }
+          },
+          {
+            "id": "child",
+            "name": "oracle.scheduler.child",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "child"
+                },
+                {
+                  "do": "complete",
+                  "result": "child-result"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "parent",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "waiting"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "release",
+            "name": "child"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-join-allSettled",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "joiner",
+            "name": "oracle.scheduler.joiner",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "spawn",
+                  "definition": "failed",
+                  "as": "failed"
+                },
+                {
+                  "do": "spawn",
+                  "definition": "slow",
+                  "as": "slow"
+                },
+                {
+                  "do": "wait",
+                  "on": [
+                    "$local.failed",
+                    "$local.slow"
+                  ],
+                  "policy": "allSettled",
+                  "checkpoint": {
+                    "phase": "joined",
+                    "ids": [
+                      "$local.failed",
+                      "$local.slow"
+                    ]
+                  }
+                }
+              ],
+              "joined": [
+                {
+                  "do": "outcomes",
+                  "ids": "$task.state.checkpoint.ids",
+                  "as": "results"
+                },
+                {
+                  "do": "complete",
+                  "result": "$local.results"
+                }
+              ]
+            }
+          },
+          {
+            "id": "failed",
+            "name": "oracle.scheduler.failed",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "fail"
+                },
+                {
+                  "do": "complete",
+                  "outcome": {
+                    "status": "failed",
+                    "error": {
+                      "message": "child failed"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "slow",
+            "name": "oracle.scheduler.slow",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "slow"
+                },
+                {
+                  "do": "complete",
+                  "result": "slow-result"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "joiner",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "waiting"
+          },
+          {
+            "op": "release",
+            "name": "fail"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "release",
+            "name": "slow"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-join-failFast",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "joiner",
+            "name": "oracle.scheduler.joiner",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "spawn",
+                  "definition": "failed",
+                  "as": "failed"
+                },
+                {
+                  "do": "spawn",
+                  "definition": "slow",
+                  "as": "slow"
+                },
+                {
+                  "do": "wait",
+                  "on": [
+                    "$local.failed",
+                    "$local.slow"
+                  ],
+                  "policy": "failFast",
+                  "checkpoint": {
+                    "phase": "joined",
+                    "ids": [
+                      "$local.failed",
+                      "$local.slow"
+                    ]
+                  }
+                }
+              ],
+              "joined": [
+                {
+                  "do": "outcomes",
+                  "ids": "$task.state.checkpoint.ids",
+                  "as": "results"
+                },
+                {
+                  "do": "complete",
+                  "result": "$local.results"
+                }
+              ]
+            }
+          },
+          {
+            "id": "failed",
+            "name": "oracle.scheduler.failed",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "fail"
+                },
+                {
+                  "do": "complete",
+                  "outcome": {
+                    "status": "failed",
+                    "error": {
+                      "message": "child failed"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "slow",
+            "name": "oracle.scheduler.slow",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "slow"
+                },
+                {
+                  "do": "complete",
+                  "result": "slow-result"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "joiner",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "waiting"
+          },
+          {
+            "op": "release",
+            "name": "fail"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-completing-owned-work-hold",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "owner",
+            "name": "oracle.scheduler.owner",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "spawn",
+                  "definition": "child"
+                },
+                {
+                  "do": "complete",
+                  "result": "parent-result"
+                }
+              ]
+            }
+          },
+          {
+            "id": "child",
+            "name": "oracle.scheduler.child",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "child"
+                },
+                {
+                  "do": "complete",
+                  "result": "child-result"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "owner",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "completing"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "release",
+            "name": "child"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-background-abort-and-idle-boundary",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "background",
+            "name": "oracle.scheduler.background",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "background"
+                },
+                {
+                  "do": "complete"
+                }
+              ]
+            }
+          },
+          {
+            "id": "foreground",
+            "name": "oracle.scheduler.foreground",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "foreground"
+                },
+                {
+                  "do": "complete"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "background",
+            "as": "bg",
+            "background": true
+          },
+          {
+            "op": "create",
+            "definition": "foreground",
+            "as": "fg"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$bg",
+            "status": "running"
+          },
+          {
+            "op": "until",
+            "id": "$fg",
+            "status": "running"
+          },
+          {
+            "op": "startWait",
+            "name": "idle",
+            "scope": "idle"
+          },
+          {
+            "op": "waitStatus",
+            "name": "idle"
+          },
+          {
+            "op": "abortConversation"
+          },
+          {
+            "op": "joinWait",
+            "name": "idle"
+          },
+          {
+            "op": "get",
+            "id": "$fg"
+          },
+          {
+            "op": "get",
+            "id": "$bg"
+          },
+          {
+            "op": "abort",
+            "id": "$bg"
+          },
+          {
+            "op": "wait",
+            "id": "$bg"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-missing-definition-register-later",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "missing",
+            "name": "oracle.scheduler.missing",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "missing"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "missing",
+            "as": "t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "install",
+            "definition": "missing"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "installed": []
+      }
+    },
+    {
+      "id": "scheduler-newer-stored-definition-blocked",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "v1",
+            "name": "oracle.scheduler.versioned",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "v1"
+                }
+              ]
+            }
+          },
+          {
+            "id": "v2",
+            "name": "oracle.scheduler.versioned",
+            "version": 2,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "v2"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "v2",
+            "as": "t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "abort",
+            "id": "$t"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "installed": [
+          "v1"
+        ]
+      }
+    },
+    {
+      "id": "scheduler-newer-definition-no-migration-blocked",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "v1",
+            "name": "oracle.scheduler.versioned",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "v1"
+                }
+              ]
+            }
+          },
+          {
+            "id": "v2",
+            "name": "oracle.scheduler.versioned",
+            "version": 2,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "v2"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "v1",
+            "as": "t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "install",
+            "definition": "v1"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "installed": [
+          "v2"
+        ]
+      }
+    },
+    {
+      "id": "scheduler-same-version-phase-registry-handover",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "old",
+            "name": "oracle.scheduler.swap",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "swap"
+                },
+                {
+                  "do": "observe",
+                  "value": "old phase retained"
+                },
+                {
+                  "do": "next",
+                  "state": {
+                    "status": "running",
+                    "checkpoint": {
+                      "phase": "after"
+                    }
+                  }
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "old"
+                }
+              ]
+            }
+          },
+          {
+            "id": "new",
+            "name": "oracle.scheduler.swap",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "wrong-run"
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "new"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "old",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "running"
+          },
+          {
+            "op": "install",
+            "definition": "new"
+          },
+          {
+            "op": "release",
+            "name": "swap"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "installed": [
+          "old"
+        ]
+      }
+    },
+    {
+      "id": "scheduler-normal-close-running-sqlite-reopen",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-blocked.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "hold",
+            "name": "oracle.scheduler.recover",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "memo",
+                  "name": "once",
+                  "candidate": 1
+                },
+                {
+                  "do": "gate",
+                  "name": "normal-close",
+                  "tryCommitOnSignal": true
+                }
+              ]
+            }
+          },
+          {
+            "id": "recovered",
+            "name": "oracle.scheduler.recover",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "memo",
+                  "name": "once",
+                  "candidate": 99,
+                  "as": "winner"
+                },
+                {
+                  "do": "complete",
+                  "result": "$local.winner"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "hold",
+            "as": "t"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": "$t",
+            "status": "running"
+          },
+          {
+            "op": "close"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "install",
+            "definition": "recovered"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "installed": [
+          "hold"
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "scheduler-seeded-sqlite-reopen-all-states",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/test/harness-sleep.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "quick",
+            "name": "oracle.scheduler.quick",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "quick"
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "after"
+                }
+              ]
+            }
+          },
+          {
+            "id": "seedchild",
+            "name": "oracle.scheduler.seedchild",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "seedchild"
+                },
+                {
+                  "do": "complete",
+                  "result": "child"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "get",
+            "id": 3
+          },
+          {
+            "op": "get",
+            "id": 8
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": 6,
+            "status": "completing"
+          },
+          {
+            "op": "until",
+            "id": 7,
+            "status": "running"
+          },
+          {
+            "op": "wait",
+            "id": 2
+          },
+          {
+            "op": "wait",
+            "id": 3
+          },
+          {
+            "op": "wait",
+            "id": 4
+          },
+          {
+            "op": "release",
+            "name": "seedchild"
+          },
+          {
+            "op": "wait",
+            "id": 6
+          },
+          {
+            "op": "advance",
+            "to": 2000
+          },
+          {
+            "op": "wait",
+            "id": 5
+          },
+          {
+            "op": "wait",
+            "id": 8
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "seed": [
+          {
+            "type": "task",
+            "value": {
+              "id": 2,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "pending",
+                "checkpoint": {
+                  "phase": "run"
+                }
+              }
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 3,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "running",
+                "checkpoint": {
+                  "phase": "run"
+                }
+              },
+              "memos": {
+                "kept": null
+              }
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 4,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "waiting",
+                "checkpoint": {
+                  "phase": "after"
+                },
+                "on": [
+                  2
+                ],
+                "policy": "allSettled"
+              }
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 5,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "sleeping",
+                "checkpoint": {
+                  "phase": "after"
+                },
+                "until": 2000
+              }
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 6,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "completing",
+                "outcome": {
+                  "status": "completed",
+                  "result": "held"
+                }
+              }
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 7,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.seedchild",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "pending",
+                "checkpoint": {
+                  "phase": "run"
+                }
+              },
+              "owner": 6
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 8,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "terminal",
+                "outcome": {
+                  "status": "completed",
+                  "result": "cached"
+                }
+              },
+              "endedAt": 900
+            }
+          }
+        ],
+        "seededReopen": true
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "scheduler-restart-limit-explicit-retry",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-blocked.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "quick",
+            "name": "oracle.scheduler.quick",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "quick"
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "after"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "get",
+            "id": 2
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "retry",
+            "id": 2
+          },
+          {
+            "op": "wait",
+            "id": 2
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "seed": [
+          {
+            "type": "task",
+            "value": {
+              "id": 2,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "running",
+                "checkpoint": {
+                  "phase": "run"
+                }
+              },
+              "restarts": 1
+            }
+          }
+        ],
+        "seededReopen": true,
+        "settings": {
+          "restartLimit": 2
+        }
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "scheduler-restart-abandoned-missing-definition",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks-recovery.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-blocked.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "quick",
+            "name": "oracle.scheduler.quick",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "complete",
+                  "result": "quick"
+                }
+              ],
+              "after": [
+                {
+                  "do": "complete",
+                  "result": "after"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "get",
+            "id": 2
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "get",
+            "id": 2
+          },
+          {
+            "op": "abort",
+            "id": 2
+          },
+          {
+            "op": "get",
+            "id": 2
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "installed": [],
+        "seed": [
+          {
+            "type": "task",
+            "value": {
+              "id": 2,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.quick",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "pending",
+                "checkpoint": {
+                  "phase": "run"
+                }
+              },
+              "abandonOnRestart": true
+            }
+          }
+        ],
+        "seededReopen": true
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "scheduler-explicit-wait-cycle-rejected",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "selfwait",
+            "name": "oracle.scheduler.selfwait",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "wait",
+                  "on": [
+                    "$task.id"
+                  ],
+                  "checkpoint": {
+                    "phase": "joined"
+                  }
+                }
+              ],
+              "joined": [
+                {
+                  "do": "complete"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "selfwait",
+            "as": "t"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "get",
+            "id": "$t"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-implicit-owned-work-cycle-rejected",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "cycleparent",
+            "name": "oracle.scheduler.cycleparent",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "spawn",
+                  "definition": "cyclechild",
+                  "input": {
+                    "owner": "$task.id"
+                  }
+                },
+                {
+                  "do": "complete",
+                  "result": "parent"
+                }
+              ]
+            }
+          },
+          {
+            "id": "cyclechild",
+            "name": "oracle.scheduler.cyclechild",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "wait",
+                  "on": [
+                    "$task.input.owner"
+                  ],
+                  "checkpoint": {
+                    "phase": "joined"
+                  }
+                }
+              ],
+              "joined": [
+                {
+                  "do": "complete"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "cycleparent",
+            "as": "t"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-stale-task-timer-disarmed",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-tasks.test.ts",
+          "packages/durable/test/harness-sleep.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "timer",
+            "name": "oracle.scheduler.timer",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "timer",
+                  "name": "late"
+                },
+                {
+                  "do": "complete",
+                  "result": "done"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "create",
+            "definition": "timer",
+            "as": "t"
+          },
+          {
+            "op": "wait",
+            "id": "$t"
+          },
+          {
+            "op": "timers"
+          },
+          {
+            "op": "fireTimers"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "scheduler-seeded-owned-conversation-completing-hold",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-ownership.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-structured.test.ts",
+          "packages/durable/src/harness/scheduler.ts"
+        ]
+      },
+      "input": {
+        "tasks": [
+          {
+            "id": "owner",
+            "name": "oracle.scheduler.owner",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "throw",
+                  "message": "completing owner must not rerun"
+                }
+              ]
+            }
+          },
+          {
+            "id": "inner",
+            "name": "oracle.scheduler.inner",
+            "version": 1,
+            "initial": {
+              "phase": "run"
+            },
+            "phases": {
+              "run": [
+                {
+                  "do": "gate",
+                  "name": "owned-conversation"
+                },
+                {
+                  "do": "complete",
+                  "result": "inner"
+                }
+              ]
+            }
+          }
+        ],
+        "seed": [
+          {
+            "type": "task",
+            "value": {
+              "id": 2,
+              "conversationId": 1,
+              "kind": "oracle.scheduler.owner",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "completing",
+                "outcome": {
+                  "status": "completed",
+                  "result": "owner-receipt"
+                }
+              }
+            }
+          },
+          {
+            "type": "conversation",
+            "value": {
+              "id": 10,
+              "owner": {
+                "conversationId": 1,
+                "taskId": 2
+              }
+            }
+          },
+          {
+            "type": "task",
+            "value": {
+              "id": 3,
+              "conversationId": 10,
+              "kind": "oracle.scheduler.inner",
+              "version": 1,
+              "input": null,
+              "background": false,
+              "abortRequested": false,
+              "state": {
+                "status": "pending",
+                "checkpoint": {
+                  "phase": "run"
+                }
+              }
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "inspect"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "until",
+            "id": 3,
+            "status": "running"
+          },
+          {
+            "op": "get",
+            "id": 2
+          },
+          {
+            "op": "startWait",
+            "id": 2,
+            "name": "owner"
+          },
+          {
+            "op": "waitStatus",
+            "name": "owner"
+          },
+          {
+            "op": "release",
+            "name": "owned-conversation"
+          },
+          {
+            "op": "joinWait",
+            "name": "owner"
+          },
+          {
+            "op": "events"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    }
+  ]
+}

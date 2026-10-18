@@ -27,4 +27,6 @@ Ambiguous backend failures close that Session, and reopening reads durable truth
 Document observation binds an incarnation rather than following a replacement at
 the same address. The [Session contract](../contracts/durable-session.md) defines
 the native APIs and comparison limits. This crate stores task state; dispatch and
-recovery policy belong to the forthcoming Durable scheduler.
+recovery policy belong to the [generic Durable scheduler](../contracts/durable-scheduler.md)
+in `pi-durable`. Optional scoped initialization and close-finalizer callbacks let
+that execution owner compose its lifecycle without adding task policy to Session.

@@ -28,7 +28,8 @@ flowchart TD
 | [Conformance boundaries](09-conformance-security.md) | Offline checks and host obligations |
 
 The [Durable Session](../contracts/durable-session.md) owns committed documents,
-history and storage independently of CodingSession. Its scheduler and conversation
-runtime are still being implemented. Shared AI, tool, SQLite, MCP and CodeMode
+history and storage independently of CodingSession. The [generic scheduler](../contracts/durable-scheduler.md)
+in `pi-durable` executes persistent tasks over that Session. The conversation
+runtime is still being implemented. Shared AI, tool, SQLite, MCP and CodeMode
 modules have no dependency on that runtime. The old experimental Harness is retired
 from the workspace and remains in Git history.

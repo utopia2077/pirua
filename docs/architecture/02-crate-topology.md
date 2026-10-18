@@ -20,6 +20,7 @@ All crates inherit the workspace toolchain, package settings and lints.
 | 13 | `pi-codemode` | Local JavaScript worker |
 | 14 | `pi-mcp` | Standalone MCP client |
 | 15 | `pi-durable-session` | Committed Durable records, documents, history and storage |
+| 16 | `pi-durable` | Persistent task scheduling, invocation leases and recovery |
 
 ## Dependency graph
 
@@ -40,6 +41,7 @@ All crates inherit the workspace toolchain, package settings and lints.
 | `pi-codemode` | — | — |
 | `pi-mcp` | — | — |
 | `pi-durable-session` | `pi-sqlite` | — |
+| `pi-durable` | `pi-durable-session` | — |
 
 ## Literal schema
 

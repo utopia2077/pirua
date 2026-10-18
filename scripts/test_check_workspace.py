@@ -51,6 +51,18 @@ class WorkspaceCheckerTests(unittest.TestCase):
             with self.subTest(dependency=dependency):
                 self.assert_rejected(self.validate(all_features=metadata),'all-feature graph mismatch')
 
+    def test_generic_scheduler_stays_on_session_authority(self):
+        internal=set(self.topology['production_crates'])
+        package=self.package(self.default,'pi-durable')
+        self.assertEqual({item['name'] for item in package['dependencies'] if item['name'] in internal},{'pi-durable-session'})
+        for dependency in ('pi-ai-core','pi-agent','pi-coding-runtime','pi-mcp','pi-codemode','pi-sqlite'):
+            metadata=copy.deepcopy(self.all_features)
+            source=self.package(metadata,'pi-durable')
+            node=next(item for item in metadata['resolve']['nodes'] if item['id']==source['id'])
+            node['deps'].append({'pkg':self.package(metadata,dependency)['id']})
+            with self.subTest(dependency=dependency):
+                self.assert_rejected(self.validate(all_features=metadata),'all-feature graph mismatch')
+
     def test_missing_extra_renamed_and_moved_packages_are_rejected(self):
         for scenario in ('missing', 'extra', 'renamed', 'moved', 'registry'):
             with self.subTest(scenario=scenario):

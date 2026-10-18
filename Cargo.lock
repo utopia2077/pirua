@@ -1527,6 +1527,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pi-durable"
+version = "0.0.0"
+dependencies = [
+ "futures-util",
+ "pi-durable-session",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "pi-durable-session"
 version = "0.0.0"
 dependencies = [

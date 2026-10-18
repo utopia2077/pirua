@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pinned generic Durable scheduler observations",
+  "type": "object",
+  "required": ["schemaVersion", "upstreamCommit", "cases"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "upstreamCommit": {"const": "4a080252f06caf63a525d7873c5d94d3c23887e0"},
+    "cases": {"type": "array", "items": {"$ref": "#/$defs/case"}}
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "required": ["do"],
+      "properties": {
+        "do": {"enum": ["complete", "next", "noProgressCommit", "counter", "sleep", "memo", "record", "ownedTasks", "outcomes", "spawn", "wait", "waitForTask", "gate", "lateCommit", "timer", "observe", "throw"]},
+        "as": {"type": "string"}
+      }
+    },
+    "task": {
+      "type": "object",
+      "required": ["id", "name", "version", "initial", "phases"],
+      "properties": {
+        "id": {"type": "string"}, "name": {"type": "string"}, "version": {"type": "integer", "minimum": 1},
+        "initial": {"type": "object"},
+        "phases": {"type": "object", "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/action"}}},
+        "abort": {"type": "array", "items": {"$ref": "#/$defs/action"}}
+      }
+    },
+    "operation": {"type": "object", "required": ["op"], "properties": {"op": {"type": "string"}, "as": {"type": "string"}, "label": {"type": "string"}}},
+    "observation": {"type": "object", "required": ["label", "value"], "properties": {"label": {"type": "string"}, "value": {}}},
+    "case": {
+      "type": "object",
+      "required": ["id", "basis", "input"],
+      "properties": {
+        "id": {"type": "string"},
+        "basis": {"type": "object", "required": ["kind", "sources"], "properties": {"kind": {"const": "release-execution"}, "sources": {"type": "array", "items": {"type": "string"}}}},
+        "backends": {"type": "array", "items": {"enum": ["memory", "sqlite"]}},
+        "input": {"type": "object", "required": ["tasks", "operations"], "properties": {
+          "tasks": {"type": "array", "items": {"$ref": "#/$defs/task"}},
+          "installed": {"type": "array", "items": {"type": "string"}},
+          "seed": {"type": "array", "items": {"type": "object"}},
+          "seededReopen": {"type": "boolean"},
+          "clock": {"type": "number"},
+          "settings": {"type": "object"},
+          "operations": {"type": "array", "items": {"$ref": "#/$defs/operation"}}
+        }},
+        "expected": {"type": "object", "additionalProperties": {"type": "object", "required": ["observations", "events", "taskPublications", "reports"], "properties": {
+          "observations": {"type": "array", "items": {"$ref": "#/$defs/observation"}},
+          "events": {"type": "array"}, "taskPublications": {"type": "array"}, "reports": {"type": "array"}
+        }}}
+      }
+    }
+  }
+}

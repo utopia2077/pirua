@@ -96,16 +96,21 @@ compilation, Clippy, tests and Rust documentation with warnings denied. See the
 [verification guide](verification-plan.md) for evidence boundaries. Live account
 access, paid calls and service availability are not tested.
 
-The Durable Session suite can also run independently after its setup:
+The Durable Session and generic scheduler suites can also run independently after
+their shared setup:
 
 ```sh
-cargo test -p pi-durable-session --all-features --locked --offline
+cargo test -p pi-durable -p pi-durable-session --all-features --locked --offline
 node conformance/durable-v1.4.0/session.mjs --check
 node conformance/durable-v1.4.0/causal-check.mjs
+node conformance/durable-v1.4.0/scheduler.mjs --check
+node conformance/durable-v1.4.0/scheduler.mjs --causal
 ```
 
-Its [oracle documentation](../conformance/durable-v1.4.0/README.md) distinguishes
+The [Session oracle](../conformance/durable-v1.4.0/README.md) distinguishes
 published-package observations from the native allocation and Unicode contracts.
+The [scheduler oracle](../conformance/durable-v1.4.0/scheduler.md) documents its
+task scenarios, source identities and recovery evidence limits.
 
 ## Upstream drift
 
