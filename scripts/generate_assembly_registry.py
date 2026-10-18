@@ -74,6 +74,11 @@ SUITES = {'conformance/ai-core': {'pi-ai-core': '*'},
  'conformance/codemode': {'pi-codemode': ['sandbox']},
  'conformance/telemetry': {'pi-telemetry': ['contract', 'propagation']}}
 
+# This slice is not yet a committed proof floor. Its explicit targets generate all
+# current enabled anchors; final Durable acceptance enrolls a reviewed immutable
+# baseline separately. Existing REVIEWED_PROOF_REVISION is never refreshed here.
+SUITES['conformance/durable-v1.4.0'] = {'pi-durable-session': ['invariants', 'release_fixtures']}
+
 
 def historical_inputs(root: Path = ROOT) -> list[dict]:
     objects = Objects(root)

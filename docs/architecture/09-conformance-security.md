@@ -8,7 +8,8 @@ contacted. Real service availability and account access are outside this evidenc
 Host callbacks own their side effects and cancellation cooperation. Killing a
 CodeMode worker cannot undo a previously completed tool effect. MCP reconnects do
 not replay tool calls. Session persistence does not promise exactly-once external
-effects. The later Durable runtime will define its own recovery/publication rules.
+effects. Durable Session defines committed publication and failure boundaries;
+the forthcoming task runtime owns effect recovery policy.
 
 The local CodeMode worker exposes only explicit tool/JSON capabilities, and runs
 with bounded resources and a cleared environment. It does not provide an operating

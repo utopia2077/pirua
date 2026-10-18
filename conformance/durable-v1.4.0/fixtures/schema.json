@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pinned Durable Session release observations",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "upstreamCommit",
+    "cases"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "upstreamCommit": {
+      "const": "4a080252f06caf63a525d7873c5d94d3c23887e0"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "operation": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "type": "string"
+        },
+        "as": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "label",
+        "value"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/traceValue"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "id",
+        "family",
+        "basis",
+        "input"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "storage",
+            "delta",
+            "session",
+            "fork",
+            "observation"
+          ]
+        },
+        "basis": {
+          "type": "object",
+          "required": [
+            "kind",
+            "sources"
+          ],
+          "properties": {
+            "kind": {
+              "const": "release-execution"
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "backends": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "memory",
+              "sqlite"
+            ]
+          }
+        },
+        "nativeComparison": {
+          "type": "string"
+        },
+        "input": {
+          "type": "object",
+          "properties": {
+            "definitions": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "operations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/operation"
+              }
+            },
+            "value": {},
+            "ops": {
+              "type": "array",
+              "items": {
+                "type": "array"
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "observations"
+            ],
+            "properties": {
+              "observations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/observation"
+                }
+              },
+              "publications": {
+                "type": "array"
+              },
+              "writes": {
+                "type": "array"
+              },
+              "checkpointCalls": {
+                "type": "array"
+              }
+            }
+          }
+        }
+      }
+    },
+    "nonScalarUtf16String": {
+      "type": "object",
+      "required": [
+        "$utf16"
+      ],
+      "additionalProperties": false,
+      "description": "Reserved trace-only representation of one observed non-scalar JavaScript string as all UTF-16 code units. Not a product JSON value. Valid Unicode scalar strings remain ordinary JSON strings.",
+      "properties": {
+        "$utf16": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          }
+        }
+      }
+    },
+    "traceValue": {
+      "anyOf": [
+        {
+          "type": [
+            "null",
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        {
+          "$ref": "#/$defs/nonScalarUtf16String"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/traceValue"
+          }
+        },
+        {
+          "type": "object",
+          "not": {
+            "required": [
+              "$utf16"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/traceValue"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 manifest_version = 1
 kind = "test-inventory"
 source_commit = "4a080252f06caf63a525d7873c5d94d3c23887e0"
-content_digest = "sha256:4253eb5294a21999b63e659544ca6ed67401e8263cb959345aefe9c06b58b291"
+content_digest = "sha256:92a67945041673c2a8e4c15a6408df7f214ebfe2f1ef04c2bca461bd540bafae"
 
 
 [[test]]
@@ -1789,11 +1789,11 @@ closure_paths = ["packages/chord/test/contract.test.ts"]
 [[test]]
 path = "packages/chord/test/delta-apply-immutable.test.ts"
 blob_oid = "ff6f1de0db55a3068c740dab7e213b63d12ef6c8"
-route_surface = "deferred.chord"
-evidence_surfaces = ["deferred.chord"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:fc95df5e26209c23c1740c07ee1aa5d391d51b973c108657850e7ec6176cb00f"
-closure_paths = ["packages/chord/test/delta-apply-immutable.test.ts"]
+route_surface = "durable.delta"
+evidence_surfaces = ["deferred.chord", "durable.delta"]
+classification = "routed-import-closure"
+closure_digest = "sha256:67f56fe389617171ea072ca5bc26c09d8e455aee6c321865b20c2625f6578703"
+closure_paths = ["packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/json.ts", "packages/chord/test/delta-apply-immutable.test.ts"]
 
 [[test]]
 path = "packages/chord/test/delta-benchmark/benchmark.ts"
@@ -5479,8 +5479,8 @@ closure_paths = ["packages/coding-agent/src/utils/shell.ts", "packages/coding-ag
 [[test]]
 path = "packages/durable/test-workers/storage.test.ts"
 blob_oid = "9f45ec60013d58d18beb429ac1929533d6635025"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
+route_surface = "excluded.host"
+evidence_surfaces = ["excluded.host"]
 classification = "owner-excluded-source-only"
 closure_digest = "sha256:d0ed02d2aeafa248c19ceef30d2b65e0acd6267c1ed1d541fe4ceb0477fd44c4"
 closure_paths = ["packages/durable/test-workers/storage.test.ts"]
@@ -5488,8 +5488,8 @@ closure_paths = ["packages/durable/test-workers/storage.test.ts"]
 [[test]]
 path = "packages/durable/test-workers/wake.test.ts"
 blob_oid = "a28a739c9f74d267b0df881fe1723891b66ba21d"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
+route_surface = "excluded.host"
+evidence_surfaces = ["excluded.host"]
 classification = "owner-excluded-source-only"
 closure_digest = "sha256:d459998d21976fe1d1f11764d082d99cfc742384e80a7a7ddc5d5301f67a9108"
 closure_paths = ["packages/durable/test-workers/wake.test.ts"]
@@ -6271,8 +6271,8 @@ closure_paths = ["packages/durable/test/images-wasm-module.test.ts"]
 [[test]]
 path = "packages/durable/test/indexeddb-storage.test.ts"
 blob_oid = "40109deaf21664482a7856e1e77475e1e4381ffa"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
+route_surface = "excluded.host"
+evidence_surfaces = ["excluded.host"]
 classification = "owner-excluded-source-only"
 closure_digest = "sha256:e8146d4f6b682531d11ecfa52893b75570c69c45377796f36c56978de8907d1b"
 closure_paths = ["packages/durable/test/indexeddb-storage.test.ts"]
@@ -6280,8 +6280,8 @@ closure_paths = ["packages/durable/test/indexeddb-storage.test.ts"]
 [[test]]
 path = "packages/durable/test/jsonl-storage.test.ts"
 blob_oid = "cebfb0a69ec892669e3a03cdecbac489d5873a35"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
+route_surface = "excluded.host"
+evidence_surfaces = ["excluded.host"]
 classification = "owner-excluded-source-only"
 closure_digest = "sha256:9a8399a4237c1cc7a740980298e2b536959c66128dec1dc705e1887d2e86e69a"
 closure_paths = ["packages/durable/test/jsonl-storage.test.ts"]
@@ -6289,11 +6289,11 @@ closure_paths = ["packages/durable/test/jsonl-storage.test.ts"]
 [[test]]
 path = "packages/durable/test/memory-storage.test.ts"
 blob_oid = "f01af3ed30928b74220633915f263cc14696b632"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:1187069d12d70efed21109bc53915fcb69b20ef1e435e6d924d27eb1f59c6628"
-closure_paths = ["packages/durable/test/memory-storage.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["ai.adapters", "ai.domain", "ai.facade", "ai.transport", "deferred.chord", "deferred.durable", "durable.delta", "durable.session", "excluded.capabilities", "excluded.providers", "pi.telemetry"]
+classification = "routed-import-closure"
+closure_digest = "sha256:6fcdfa79517fdff2c531ae73d1f63ac3dee06b88a25fae4dbf7facb6a5ee4b92"
+closure_paths = ["packages/ai/src/api/anthropic-messages.ts", "packages/ai/src/api/azure-openai-responses.ts", "packages/ai/src/api/bedrock-converse-stream.ts", "packages/ai/src/api/constrained-sampling.ts", "packages/ai/src/api/github-copilot-headers.ts", "packages/ai/src/api/google-generative-ai.ts", "packages/ai/src/api/google-shared.ts", "packages/ai/src/api/google-vertex.ts", "packages/ai/src/api/lazy.ts", "packages/ai/src/api/mistral-conversations.ts", "packages/ai/src/api/openai-codex-responses.ts", "packages/ai/src/api/openai-completions.ts", "packages/ai/src/api/openai-prompt-cache.ts", "packages/ai/src/api/openai-responses-shared.ts", "packages/ai/src/api/openai-responses.ts", "packages/ai/src/api/pi-messages.ts", "packages/ai/src/api/simple-options.ts", "packages/ai/src/api/transform-messages.ts", "packages/ai/src/auth/context.ts", "packages/ai/src/auth/credential-store.ts", "packages/ai/src/auth/helpers.ts", "packages/ai/src/auth/resolve.ts", "packages/ai/src/auth/types.ts", "packages/ai/src/compat/extension-oauth-types.ts", "packages/ai/src/env-api-keys.ts", "packages/ai/src/index.ts", "packages/ai/src/models-store.ts", "packages/ai/src/models.ts", "packages/ai/src/providers/compat-schema.ts", "packages/ai/src/providers/faux.ts", "packages/ai/src/providers/model-schema.ts", "packages/ai/src/session-resources.ts", "packages/ai/src/telemetry.ts", "packages/ai/src/types.ts", "packages/ai/src/utils/abort.ts", "packages/ai/src/utils/diagnostics.ts", "packages/ai/src/utils/error-body.ts", "packages/ai/src/utils/estimate.ts", "packages/ai/src/utils/event-stream.ts", "packages/ai/src/utils/hash.ts", "packages/ai/src/utils/headers.ts", "packages/ai/src/utils/identity.ts", "packages/ai/src/utils/json-parse.ts", "packages/ai/src/utils/model-operations.ts", "packages/ai/src/utils/models-error.ts", "packages/ai/src/utils/overflow.ts", "packages/ai/src/utils/provider-env.ts", "packages/ai/src/utils/provider-retry.ts", "packages/ai/src/utils/retry.ts", "packages/ai/src/utils/sanitize-unicode.ts", "packages/ai/src/utils/text.ts", "packages/ai/src/utils/transcript.ts", "packages/ai/src/utils/typebox-helpers.ts", "packages/ai/src/utils/uuid.ts", "packages/ai/src/utils/validation.ts", "packages/ai/src/utils/version.ts", "packages/chord/src/context/index.ts", "packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/index.ts", "packages/chord/src/json.ts", "packages/durable/src/env/index.ts", "packages/durable/src/errors.ts", "packages/durable/src/harness/types.ts", "packages/durable/src/ids.ts", "packages/durable/src/storage/memory.ts", "packages/durable/src/storage/scan.ts", "packages/durable/src/testing/index.ts", "packages/durable/src/types.ts", "packages/durable/test/memory-storage.test.ts", "packages/telemetry/src/index.ts", "packages/telemetry/src/memory.ts", "packages/telemetry/src/metrics.ts", "packages/telemetry/src/noop.ts"]
 
 [[test]]
 path = "packages/durable/test/nested-images-bench.ts"
@@ -6343,20 +6343,20 @@ closure_paths = ["packages/durable/test/scheduler-memory-bench.ts"]
 [[test]]
 path = "packages/durable/test/session-checkpoints-migrations.test.ts"
 blob_oid = "20e56d721e3ab79865a290630f3856aa09963a3d"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:63b0da1fdcc9e6e5bb7c4145ef66b9d55e1d967c8b72e8615eba011e2740963e"
-closure_paths = ["packages/durable/test/session-checkpoints-migrations.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["deferred.chord", "deferred.durable", "durable.delta", "durable.session"]
+classification = "routed-import-closure"
+closure_digest = "sha256:a1711fde70c3239082db200553a083b8e521d61e029956ac2784c4b9f513485d"
+closure_paths = ["packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/json.ts", "packages/durable/src/index.ts", "packages/durable/test/session-checkpoints-migrations.test.ts", "packages/durable/test/session-support.ts"]
 
 [[test]]
 path = "packages/durable/test/session-definitions.test.ts"
 blob_oid = "1146a106770a68d842e2cd4a98e9478ebc66c401"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:c4f6a1310e7ca7fd2ed63c2d9108e1869b3a05e27b68bf3ef289d754397fa3cb"
-closure_paths = ["packages/durable/test/session-definitions.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["ai.adapters", "ai.domain", "ai.facade", "ai.transport", "deferred.chord", "deferred.durable", "durable.delta", "durable.session", "excluded.capabilities", "excluded.providers", "pi.telemetry"]
+classification = "routed-import-closure"
+closure_digest = "sha256:0412d89ef650b890a6d6e27e781a2d9dc48443e7ab09f29461fdd4de14d0a33e"
+closure_paths = ["packages/ai/src/api/anthropic-messages.ts", "packages/ai/src/api/azure-openai-responses.ts", "packages/ai/src/api/bedrock-converse-stream.ts", "packages/ai/src/api/constrained-sampling.ts", "packages/ai/src/api/github-copilot-headers.ts", "packages/ai/src/api/google-generative-ai.ts", "packages/ai/src/api/google-shared.ts", "packages/ai/src/api/google-vertex.ts", "packages/ai/src/api/lazy.ts", "packages/ai/src/api/mistral-conversations.ts", "packages/ai/src/api/openai-codex-responses.ts", "packages/ai/src/api/openai-completions.ts", "packages/ai/src/api/openai-prompt-cache.ts", "packages/ai/src/api/openai-responses-shared.ts", "packages/ai/src/api/openai-responses.ts", "packages/ai/src/api/pi-messages.ts", "packages/ai/src/api/simple-options.ts", "packages/ai/src/api/transform-messages.ts", "packages/ai/src/auth/context.ts", "packages/ai/src/auth/credential-store.ts", "packages/ai/src/auth/helpers.ts", "packages/ai/src/auth/resolve.ts", "packages/ai/src/auth/types.ts", "packages/ai/src/compat/extension-oauth-types.ts", "packages/ai/src/env-api-keys.ts", "packages/ai/src/index.ts", "packages/ai/src/models-store.ts", "packages/ai/src/models.ts", "packages/ai/src/providers/compat-schema.ts", "packages/ai/src/providers/faux.ts", "packages/ai/src/providers/model-schema.ts", "packages/ai/src/session-resources.ts", "packages/ai/src/telemetry.ts", "packages/ai/src/types.ts", "packages/ai/src/utils/abort.ts", "packages/ai/src/utils/diagnostics.ts", "packages/ai/src/utils/error-body.ts", "packages/ai/src/utils/estimate.ts", "packages/ai/src/utils/event-stream.ts", "packages/ai/src/utils/hash.ts", "packages/ai/src/utils/headers.ts", "packages/ai/src/utils/identity.ts", "packages/ai/src/utils/json-parse.ts", "packages/ai/src/utils/model-operations.ts", "packages/ai/src/utils/models-error.ts", "packages/ai/src/utils/overflow.ts", "packages/ai/src/utils/provider-env.ts", "packages/ai/src/utils/provider-retry.ts", "packages/ai/src/utils/retry.ts", "packages/ai/src/utils/sanitize-unicode.ts", "packages/ai/src/utils/text.ts", "packages/ai/src/utils/transcript.ts", "packages/ai/src/utils/typebox-helpers.ts", "packages/ai/src/utils/uuid.ts", "packages/ai/src/utils/validation.ts", "packages/ai/src/utils/version.ts", "packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/index.ts", "packages/chord/src/json.ts", "packages/durable/src/env/index.ts", "packages/durable/src/harness/types.ts", "packages/durable/src/ids.ts", "packages/durable/src/index.ts", "packages/durable/src/types.ts", "packages/durable/test/session-definitions.test.ts", "packages/durable/test/session-support.ts", "packages/telemetry/src/index.ts", "packages/telemetry/src/memory.ts", "packages/telemetry/src/metrics.ts", "packages/telemetry/src/noop.ts"]
 
 [[test]]
 path = "packages/durable/test/session-document-cache-bench.ts"
@@ -6379,29 +6379,29 @@ closure_paths = ["packages/durable/test/session-document-retention.test.ts"]
 [[test]]
 path = "packages/durable/test/session-documents.test.ts"
 blob_oid = "b92f67776c47d0c23c3bdc1223448ffddfe99309"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:448b6f44cadf36ea307305f2dfdde5497218dd1531cf69264ff81d51cf042ab4"
-closure_paths = ["packages/durable/test/session-documents.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["ai.adapters", "ai.domain", "ai.facade", "ai.transport", "deferred.chord", "deferred.durable", "durable.delta", "durable.session", "excluded.capabilities", "excluded.providers", "pi.telemetry"]
+classification = "routed-import-closure"
+closure_digest = "sha256:8a45262ab5dfa2aecfe9ccb8f95650c7ef578d4a31d9444d61f0510b5f5f482d"
+closure_paths = ["packages/ai/src/api/anthropic-messages.ts", "packages/ai/src/api/azure-openai-responses.ts", "packages/ai/src/api/bedrock-converse-stream.ts", "packages/ai/src/api/constrained-sampling.ts", "packages/ai/src/api/github-copilot-headers.ts", "packages/ai/src/api/google-generative-ai.ts", "packages/ai/src/api/google-shared.ts", "packages/ai/src/api/google-vertex.ts", "packages/ai/src/api/lazy.ts", "packages/ai/src/api/mistral-conversations.ts", "packages/ai/src/api/openai-codex-responses.ts", "packages/ai/src/api/openai-completions.ts", "packages/ai/src/api/openai-prompt-cache.ts", "packages/ai/src/api/openai-responses-shared.ts", "packages/ai/src/api/openai-responses.ts", "packages/ai/src/api/pi-messages.ts", "packages/ai/src/api/simple-options.ts", "packages/ai/src/api/transform-messages.ts", "packages/ai/src/auth/context.ts", "packages/ai/src/auth/credential-store.ts", "packages/ai/src/auth/helpers.ts", "packages/ai/src/auth/resolve.ts", "packages/ai/src/auth/types.ts", "packages/ai/src/compat/extension-oauth-types.ts", "packages/ai/src/env-api-keys.ts", "packages/ai/src/index.ts", "packages/ai/src/models-store.ts", "packages/ai/src/models.ts", "packages/ai/src/providers/compat-schema.ts", "packages/ai/src/providers/faux.ts", "packages/ai/src/providers/model-schema.ts", "packages/ai/src/session-resources.ts", "packages/ai/src/telemetry.ts", "packages/ai/src/types.ts", "packages/ai/src/utils/abort.ts", "packages/ai/src/utils/diagnostics.ts", "packages/ai/src/utils/error-body.ts", "packages/ai/src/utils/estimate.ts", "packages/ai/src/utils/event-stream.ts", "packages/ai/src/utils/hash.ts", "packages/ai/src/utils/headers.ts", "packages/ai/src/utils/identity.ts", "packages/ai/src/utils/json-parse.ts", "packages/ai/src/utils/model-operations.ts", "packages/ai/src/utils/models-error.ts", "packages/ai/src/utils/overflow.ts", "packages/ai/src/utils/provider-env.ts", "packages/ai/src/utils/provider-retry.ts", "packages/ai/src/utils/retry.ts", "packages/ai/src/utils/sanitize-unicode.ts", "packages/ai/src/utils/text.ts", "packages/ai/src/utils/transcript.ts", "packages/ai/src/utils/typebox-helpers.ts", "packages/ai/src/utils/uuid.ts", "packages/ai/src/utils/validation.ts", "packages/ai/src/utils/version.ts", "packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/index.ts", "packages/chord/src/json.ts", "packages/durable/src/env/index.ts", "packages/durable/src/harness/types.ts", "packages/durable/src/ids.ts", "packages/durable/src/index.ts", "packages/durable/src/types.ts", "packages/durable/test/session-documents.test.ts", "packages/durable/test/session-support.ts", "packages/telemetry/src/index.ts", "packages/telemetry/src/memory.ts", "packages/telemetry/src/metrics.ts", "packages/telemetry/src/noop.ts"]
 
 [[test]]
 path = "packages/durable/test/session-forks.test.ts"
 blob_oid = "3c541b548ed8e5cb65cbe127069e3d4bee5da434"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:7e484cb7630d80247039a0ce4f27b3f2fef05e71abb4b4950f83fc9bc717b867"
-closure_paths = ["packages/durable/test/session-forks.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["deferred.durable", "durable.session"]
+classification = "routed-import-closure"
+closure_digest = "sha256:eb78dae48eb8c9df48ee13ede751ecc6a4d78b5a8643aedbfaa7cf163c36b30e"
+closure_paths = ["packages/durable/src/index.ts", "packages/durable/test/session-forks.test.ts", "packages/durable/test/session-support.ts"]
 
 [[test]]
 path = "packages/durable/test/session-states.test.ts"
 blob_oid = "121912c79aa7812c7bc30350554e49b7667348f2"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:66ee5426da55588dca56dea1536b6e260eb29fa7e568ab891509f6854064016a"
-closure_paths = ["packages/durable/test/session-states.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["deferred.durable", "durable.session"]
+classification = "routed-import-closure"
+closure_digest = "sha256:706263b6070df318b47c470fa2cc6fb81b6166461e0d2e9569588c943d39534c"
+closure_paths = ["packages/durable/src/index.ts", "packages/durable/test/session-states.test.ts", "packages/durable/test/session-support.ts"]
 
 [[test]]
 path = "packages/durable/test/session-support.ts"
@@ -6415,20 +6415,20 @@ closure_paths = ["packages/durable/test/session-support.ts"]
 [[test]]
 path = "packages/durable/test/session-tables.test.ts"
 blob_oid = "fe017504f57071d8ca8d39aaeb790c6a473f320c"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:2b35e3d67e4455001611e461f11d05e3165da0d3a9432b688308203b56536277"
-closure_paths = ["packages/durable/test/session-tables.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["ai.adapters", "ai.domain", "ai.facade", "ai.transport", "deferred.chord", "deferred.durable", "durable.delta", "durable.session", "excluded.capabilities", "excluded.providers", "pi.telemetry"]
+classification = "routed-import-closure"
+closure_digest = "sha256:46c2ded82ea4cbe3fcb3194e4b540f87dab2c6bd8de54b9478879efe73871119"
+closure_paths = ["packages/ai/src/api/anthropic-messages.ts", "packages/ai/src/api/azure-openai-responses.ts", "packages/ai/src/api/bedrock-converse-stream.ts", "packages/ai/src/api/constrained-sampling.ts", "packages/ai/src/api/github-copilot-headers.ts", "packages/ai/src/api/google-generative-ai.ts", "packages/ai/src/api/google-shared.ts", "packages/ai/src/api/google-vertex.ts", "packages/ai/src/api/lazy.ts", "packages/ai/src/api/mistral-conversations.ts", "packages/ai/src/api/openai-codex-responses.ts", "packages/ai/src/api/openai-completions.ts", "packages/ai/src/api/openai-prompt-cache.ts", "packages/ai/src/api/openai-responses-shared.ts", "packages/ai/src/api/openai-responses.ts", "packages/ai/src/api/pi-messages.ts", "packages/ai/src/api/simple-options.ts", "packages/ai/src/api/transform-messages.ts", "packages/ai/src/auth/context.ts", "packages/ai/src/auth/credential-store.ts", "packages/ai/src/auth/helpers.ts", "packages/ai/src/auth/resolve.ts", "packages/ai/src/auth/types.ts", "packages/ai/src/compat/extension-oauth-types.ts", "packages/ai/src/env-api-keys.ts", "packages/ai/src/index.ts", "packages/ai/src/models-store.ts", "packages/ai/src/models.ts", "packages/ai/src/providers/compat-schema.ts", "packages/ai/src/providers/faux.ts", "packages/ai/src/providers/model-schema.ts", "packages/ai/src/session-resources.ts", "packages/ai/src/telemetry.ts", "packages/ai/src/types.ts", "packages/ai/src/utils/abort.ts", "packages/ai/src/utils/diagnostics.ts", "packages/ai/src/utils/error-body.ts", "packages/ai/src/utils/estimate.ts", "packages/ai/src/utils/event-stream.ts", "packages/ai/src/utils/hash.ts", "packages/ai/src/utils/headers.ts", "packages/ai/src/utils/identity.ts", "packages/ai/src/utils/json-parse.ts", "packages/ai/src/utils/model-operations.ts", "packages/ai/src/utils/models-error.ts", "packages/ai/src/utils/overflow.ts", "packages/ai/src/utils/provider-env.ts", "packages/ai/src/utils/provider-retry.ts", "packages/ai/src/utils/retry.ts", "packages/ai/src/utils/sanitize-unicode.ts", "packages/ai/src/utils/text.ts", "packages/ai/src/utils/transcript.ts", "packages/ai/src/utils/typebox-helpers.ts", "packages/ai/src/utils/uuid.ts", "packages/ai/src/utils/validation.ts", "packages/ai/src/utils/version.ts", "packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/index.ts", "packages/chord/src/json.ts", "packages/durable/src/env/index.ts", "packages/durable/src/harness/types.ts", "packages/durable/src/ids.ts", "packages/durable/src/index.ts", "packages/durable/src/types.ts", "packages/durable/test/session-support.ts", "packages/durable/test/session-tables.test.ts", "packages/telemetry/src/index.ts", "packages/telemetry/src/memory.ts", "packages/telemetry/src/metrics.ts", "packages/telemetry/src/noop.ts"]
 
 [[test]]
 path = "packages/durable/test/session-watches.test.ts"
 blob_oid = "13e0ae46ab652efd47d6d9255e1d4d507e174d57"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:c98d509851c907ca656db7fb20c02160b4f9cc6409f5b7d9103d51ac0fedc114"
-closure_paths = ["packages/durable/test/session-watches.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["deferred.chord", "deferred.durable", "durable.delta", "durable.session"]
+classification = "routed-import-closure"
+closure_digest = "sha256:e75d197d564562173a4c65ee4d3e9ed28260c3c83132b0f8ce984c426c822176"
+closure_paths = ["packages/chord/src/context/index.ts", "packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/index.ts", "packages/chord/src/json.ts", "packages/durable/src/index.ts", "packages/durable/test/session-support.ts", "packages/durable/test/session-watches.test.ts"]
 
 [[test]]
 path = "packages/durable/test/setup-document-retention.ts"
@@ -6451,8 +6451,8 @@ closure_paths = ["packages/durable/test/spec-usage.test.ts"]
 [[test]]
 path = "packages/durable/test/sqlite-cloudflare.test.ts"
 blob_oid = "0bf9c101db24e60acd4583c08c14c0f588bb2142"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
+route_surface = "excluded.host"
+evidence_surfaces = ["excluded.host"]
 classification = "owner-excluded-source-only"
 closure_digest = "sha256:9c6bf60c3b7c8a7337c8efde3c1a82b9b5ce38b9585e4fb1f7972cba1e5d58c4"
 closure_paths = ["packages/durable/test/sqlite-cloudflare.test.ts"]
@@ -6469,8 +6469,8 @@ closure_paths = ["packages/durable/test/sqlite-facade.test.ts"]
 [[test]]
 path = "packages/durable/test/sqlite-migrations.test.ts"
 blob_oid = "0006e8a25c0a2bb2598f95daa25f5a880e785a9f"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
+route_surface = "excluded.host"
+evidence_surfaces = ["excluded.host"]
 classification = "owner-excluded-source-only"
 closure_digest = "sha256:96aca56dd76aee71416d093188a59135ecf5efdc55055a8715b787c9ef9f4664"
 closure_paths = ["packages/durable/test/sqlite-migrations.test.ts"]
@@ -6478,11 +6478,11 @@ closure_paths = ["packages/durable/test/sqlite-migrations.test.ts"]
 [[test]]
 path = "packages/durable/test/sqlite-storage.test.ts"
 blob_oid = "c3db82ab2ad851feb6a4fbc3adfba16b8ced2ccd"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:c46695ef07f58ee2af97a81ad35aee54f172bb178402704da585a0f1f3c05618"
-closure_paths = ["packages/durable/test/sqlite-storage.test.ts"]
+route_surface = "durable.session"
+evidence_surfaces = ["ai.adapters", "ai.domain", "ai.facade", "ai.transport", "deferred.chord", "deferred.durable", "durable.delta", "durable.session", "excluded.capabilities", "excluded.host", "excluded.providers", "pi.telemetry"]
+classification = "routed-import-closure"
+closure_digest = "sha256:873c7b20fb88e83929694028068c2451a46fc981d0866d7586a08b3e3799b794"
+closure_paths = ["packages/ai/src/api/anthropic-messages.ts", "packages/ai/src/api/azure-openai-responses.ts", "packages/ai/src/api/bedrock-converse-stream.ts", "packages/ai/src/api/constrained-sampling.ts", "packages/ai/src/api/github-copilot-headers.ts", "packages/ai/src/api/google-generative-ai.ts", "packages/ai/src/api/google-shared.ts", "packages/ai/src/api/google-vertex.ts", "packages/ai/src/api/lazy.ts", "packages/ai/src/api/mistral-conversations.ts", "packages/ai/src/api/openai-codex-responses.ts", "packages/ai/src/api/openai-completions.ts", "packages/ai/src/api/openai-prompt-cache.ts", "packages/ai/src/api/openai-responses-shared.ts", "packages/ai/src/api/openai-responses.ts", "packages/ai/src/api/pi-messages.ts", "packages/ai/src/api/simple-options.ts", "packages/ai/src/api/transform-messages.ts", "packages/ai/src/auth/context.ts", "packages/ai/src/auth/credential-store.ts", "packages/ai/src/auth/helpers.ts", "packages/ai/src/auth/resolve.ts", "packages/ai/src/auth/types.ts", "packages/ai/src/compat/extension-oauth-types.ts", "packages/ai/src/env-api-keys.ts", "packages/ai/src/index.ts", "packages/ai/src/models-store.ts", "packages/ai/src/models.ts", "packages/ai/src/providers/compat-schema.ts", "packages/ai/src/providers/faux.ts", "packages/ai/src/providers/model-schema.ts", "packages/ai/src/session-resources.ts", "packages/ai/src/telemetry.ts", "packages/ai/src/types.ts", "packages/ai/src/utils/abort.ts", "packages/ai/src/utils/diagnostics.ts", "packages/ai/src/utils/error-body.ts", "packages/ai/src/utils/estimate.ts", "packages/ai/src/utils/event-stream.ts", "packages/ai/src/utils/hash.ts", "packages/ai/src/utils/headers.ts", "packages/ai/src/utils/identity.ts", "packages/ai/src/utils/json-parse.ts", "packages/ai/src/utils/model-operations.ts", "packages/ai/src/utils/models-error.ts", "packages/ai/src/utils/overflow.ts", "packages/ai/src/utils/provider-env.ts", "packages/ai/src/utils/provider-retry.ts", "packages/ai/src/utils/retry.ts", "packages/ai/src/utils/sanitize-unicode.ts", "packages/ai/src/utils/text.ts", "packages/ai/src/utils/transcript.ts", "packages/ai/src/utils/typebox-helpers.ts", "packages/ai/src/utils/uuid.ts", "packages/ai/src/utils/validation.ts", "packages/ai/src/utils/version.ts", "packages/chord/src/context/index.ts", "packages/chord/src/delta/diff.ts", "packages/chord/src/delta/draft.ts", "packages/chord/src/delta/index.ts", "packages/chord/src/delta/tracker.ts", "packages/chord/src/index.ts", "packages/chord/src/json.ts", "packages/durable/src/env/index.ts", "packages/durable/src/harness/types.ts", "packages/durable/src/ids.ts", "packages/durable/src/storage/sqlite/index.ts", "packages/durable/src/storage/sqlite/node.ts", "packages/durable/src/testing/index.ts", "packages/durable/src/types.ts", "packages/durable/test/sqlite-storage.test.ts", "packages/telemetry/src/index.ts", "packages/telemetry/src/memory.ts", "packages/telemetry/src/metrics.ts", "packages/telemetry/src/noop.ts"]
 
 [[test]]
 path = "packages/durable/test/storage-memory.ts"
@@ -6496,10 +6496,10 @@ closure_paths = ["packages/durable/test/storage-memory.ts"]
 [[test]]
 path = "packages/durable/test/storage-runtime-boundary.test.ts"
 blob_oid = "84ef2d51252f0f9d23b9dc788af58c4bcec6e81c"
-route_surface = "deferred.durable"
-evidence_surfaces = ["deferred.durable"]
-classification = "owner-excluded-source-only"
-closure_digest = "sha256:55130c5198c9013c1f11327484c347e54b023c3f3acfd44fc802df99be56c794"
+route_surface = "durable.session"
+evidence_surfaces = ["durable.session"]
+classification = "routed-import-closure"
+closure_digest = "sha256:32b79a6fbdd4bd443b7095eb84abcb5aa3110a44262922d2f88d6774f549335e"
 closure_paths = ["packages/durable/test/storage-runtime-boundary.test.ts"]
 
 [[test]]

@@ -1,0 +1,3779 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "cases": [
+    {
+      "id": "storage-records-cursors-heads",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "read",
+            "method": "conversation",
+            "args": [
+              1
+            ]
+          },
+          {
+            "op": "mint",
+            "count": 2,
+            "as": "allocated"
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 2
+                }
+              },
+              {
+                "type": "entry",
+                "value": {
+                  "id": 3,
+                  "conversationId": 2,
+                  "kind": "note",
+                  "data": {
+                    "x": null
+                  }
+                }
+              },
+              {
+                "type": "entry",
+                "value": {
+                  "id": 4,
+                  "conversationId": 2,
+                  "kind": "note",
+                  "head": 3,
+                  "edits": [
+                    {
+                      "target": 3,
+                      "action": "omit"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "entry",
+                "value": {
+                  "id": 5,
+                  "conversationId": 2,
+                  "kind": "note",
+                  "head": 5
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 6,
+                  "parent": {
+                    "conversationId": 2,
+                    "at": 4
+                  }
+                }
+              },
+              {
+                "type": "entry",
+                "value": {
+                  "id": 7,
+                  "conversationId": 6,
+                  "kind": "note",
+                  "data": {
+                    "child": true
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": 6
+              },
+              2,
+              {
+                "$undefined": true
+              }
+            ],
+            "as": "page"
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": 6
+              },
+              2,
+              "$page.next"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": 6,
+                "order": "ascending"
+              },
+              2,
+              {
+                "$undefined": true
+              }
+            ],
+            "as": "asc"
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": 6
+              },
+              2,
+              "$asc.next"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": 6,
+                "order": "descending"
+              },
+              2,
+              "$asc.next"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": 6,
+                "minEntryId": 4,
+                "maxEntryId": 7
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "entry",
+            "args": [
+              6,
+              5
+            ]
+          },
+          {
+            "op": "read",
+            "method": "entry",
+            "args": [
+              6,
+              4
+            ]
+          },
+          {
+            "op": "read",
+            "method": "findLatestHeadMarker",
+            "args": [
+              6,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "findLatestHeadMarker",
+            "args": [
+              6,
+              3
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanConversations",
+            "args": [
+              {},
+              1,
+              {
+                "$undefined": true
+              }
+            ],
+            "as": "conversations"
+          },
+          {
+            "op": "read",
+            "method": "scanConversations",
+            "args": [
+              {},
+              1,
+              "$conversations.next"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "storage-task-submission-records",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 2
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 3,
+                  "conversationId": 2,
+                  "kind": "oracle.task",
+                  "version": 1,
+                  "input": {
+                    "z": null
+                  },
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "pending",
+                    "checkpoint": {
+                      "phase": "start"
+                    }
+                  },
+                  "memos": {
+                    "null": null
+                  }
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 4,
+                  "conversationId": 2,
+                  "kind": "oracle.task",
+                  "version": 1,
+                  "input": {
+                    "z": null
+                  },
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "running",
+                    "checkpoint": {
+                      "phase": "run"
+                    }
+                  },
+                  "memos": {
+                    "null": null
+                  }
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 5,
+                  "conversationId": 2,
+                  "kind": "oracle.task",
+                  "version": 1,
+                  "input": {
+                    "z": null
+                  },
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "waiting",
+                    "checkpoint": {
+                      "phase": "wait"
+                    },
+                    "on": [],
+                    "policy": "allSettled"
+                  },
+                  "memos": {
+                    "null": null
+                  }
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 6,
+                  "conversationId": 2,
+                  "kind": "oracle.task",
+                  "version": 1,
+                  "input": {
+                    "z": null
+                  },
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "sleeping",
+                    "checkpoint": {
+                      "phase": "nap"
+                    },
+                    "until": 99
+                  },
+                  "memos": {
+                    "null": null
+                  }
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 7,
+                  "conversationId": 2,
+                  "kind": "oracle.task",
+                  "version": 1,
+                  "input": {
+                    "z": null
+                  },
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "completing",
+                    "outcome": {
+                      "status": "completed",
+                      "result": null
+                    }
+                  }
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 8,
+                  "conversationId": 2,
+                  "kind": "oracle.task",
+                  "version": 1,
+                  "input": {
+                    "z": null
+                  },
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "terminal",
+                    "outcome": {
+                      "status": "failed",
+                      "error": {
+                        "message": "fail"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "submission",
+                "value": {
+                  "id": 10,
+                  "conversationId": 2,
+                  "requestId": "r",
+                  "type": "input",
+                  "status": "queued"
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanTasks",
+            "args": [
+              {
+                "conversationId": 2
+              },
+              3,
+              {
+                "$undefined": true
+              }
+            ],
+            "as": "tasks"
+          },
+          {
+            "op": "read",
+            "method": "scanTasks",
+            "args": [
+              {
+                "conversationId": 2
+              },
+              3,
+              "$tasks.next"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanTasks",
+            "args": [
+              {
+                "status": "waiting"
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "submissionByRequest",
+            "args": [
+              2,
+              "r"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "submission",
+                "value": {
+                  "id": 10,
+                  "conversationId": 2,
+                  "requestId": "r",
+                  "type": "input",
+                  "status": "unanswered",
+                  "reason": "stop",
+                  "detail": null
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanSubmissions",
+            "args": [
+              {
+                "status": "unanswered"
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "task",
+            "args": [
+              8
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "storage-document-delta-checkpoint-asof",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 1
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "text": "A😀B",
+                    "items": [
+                      0,
+                      1,
+                      2
+                    ],
+                    "obj": {
+                      "old": 1
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "a",
+                      [
+                        "text"
+                      ],
+                      "!"
+                    ],
+                    [
+                      "t",
+                      [
+                        "text"
+                      ],
+                      3
+                    ],
+                    [
+                      "s",
+                      [
+                        "obj",
+                        "new"
+                      ],
+                      null
+                    ],
+                    [
+                      "d",
+                      [
+                        "obj",
+                        "old"
+                      ]
+                    ],
+                    [
+                      "p",
+                      [
+                        "items"
+                      ],
+                      1,
+                      1,
+                      [
+                        8,
+                        9
+                      ]
+                    ],
+                    [
+                      "m",
+                      [
+                        "items"
+                      ],
+                      [
+                        3,
+                        0,
+                        2,
+                        1
+                      ]
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              0
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              1
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "checkpoint": true
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              2
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "storage-document-copy-retire-recreate",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 1
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "count": 0
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "s",
+                      [
+                        "count"
+                      ],
+                      1
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.copy",
+                "record": {
+                  "id": 3,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 9
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "source": {
+                  "id": 2,
+                  "at": 1
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.retire",
+                "id": 2
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 4,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 1
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "count": 99
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              3
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              3,
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "findDocument",
+            "args": [
+              {
+                "kind": "oracle.raw",
+                "scope": {
+                  "kind": "conversation",
+                  "conversationId": 1
+                }
+              },
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanDocuments",
+            "args": [
+              {
+                "scope": {
+                  "kind": "conversation",
+                  "conversationId": 1
+                },
+                "at": 3
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanDocuments",
+            "args": [
+              {
+                "scope": {
+                  "kind": "conversation",
+                  "conversationId": 1
+                },
+                "at": "current"
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "storage-deferred-invalid-delta-validation-variance",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "session"
+                  }
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "x": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 3
+                }
+              },
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "a",
+                      [
+                        "x"
+                      ],
+                      "bad"
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "conversation",
+            "args": [
+              3
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.copy",
+                "record": {
+                  "id": 4,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "session"
+                  },
+                  "key": "copy"
+                },
+                "source": {
+                  "id": 2,
+                  "at": "current"
+                }
+              },
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "s",
+                      [
+                        "x"
+                      ],
+                      2
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              4,
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "a",
+                      [
+                        "x"
+                      ],
+                      "bad"
+                    ]
+                  ]
+                }
+              },
+              {
+                "type": "document.retire",
+                "id": 2
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "session"
+                  }
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "x": 9
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 2
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          }
+        ]
+      },
+      "nativeComparison": "outside-common-domain: raw Storage trusts semantically valid Session writes (tagged spec §10); no mandatory native raw-backend rejection asserted"
+    },
+    {
+      "id": "storage-invalid-metadata-batches-atomicity",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.atomic",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 1
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "x": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 3
+                }
+              },
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 2,
+                  "ops": [
+                    [
+                      "s",
+                      [
+                        "x"
+                      ],
+                      2
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "conversation",
+            "args": [
+              3
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.copy",
+                "record": {
+                  "id": 4,
+                  "kind": "oracle.atomic",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 9
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "source": {
+                  "id": 2,
+                  "at": "current"
+                }
+              },
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "s",
+                      [
+                        "x"
+                      ],
+                      2
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              4,
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "storage-structural-noop-persists",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "session"
+                  }
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "items": [
+                      1,
+                      2
+                    ],
+                    "x": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "p",
+                      [
+                        "items"
+                      ],
+                      1,
+                      1,
+                      [
+                        2
+                      ]
+                    ],
+                    [
+                      "s",
+                      [
+                        "x"
+                      ],
+                      1
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": []
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "sqlite-allocation-only-reopen-variance",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/storage/sqlite/storage.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "mint",
+            "count": 2
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "mint",
+            "count": 2
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "conversation",
+                "value": {
+                  "id": 3
+                }
+              }
+            ]
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "mint",
+            "count": 1
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ],
+      "nativeComparison": "variance-only: native reserved IDs must not repeat after allocation-only reopen"
+    },
+    {
+      "id": "sqlite-reopen-document-history",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.raw",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": 1
+                  },
+                  "history": "rewindable",
+                  "fork": "asOf"
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "x": 0
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.change",
+                "id": 2,
+                "content": {
+                  "kind": "delta",
+                  "version": 1,
+                  "ops": [
+                    [
+                      "s",
+                      [
+                        "x"
+                      ],
+                      1
+                    ]
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              1
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "mint",
+            "count": 1
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "delta-all-decoded-operations",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "obj": {
+            "old": true
+          },
+          "text": "A😀B",
+          "items": [
+            0,
+            1,
+            2
+          ]
+        },
+        "ops": [
+          [
+            "s",
+            [
+              "obj",
+              "new"
+            ],
+            null
+          ],
+          [
+            "d",
+            [
+              "obj",
+              "old"
+            ]
+          ],
+          [
+            "a",
+            [
+              "text"
+            ],
+            "!"
+          ],
+          [
+            "t",
+            [
+              "text"
+            ],
+            3
+          ],
+          [
+            "p",
+            [
+              "items"
+            ],
+            1,
+            1,
+            [
+              8,
+              9
+            ]
+          ],
+          [
+            "m",
+            [
+              "items"
+            ],
+            [
+              3,
+              0,
+              2,
+              1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-root-replacement",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "old": 1
+        },
+        "ops": [
+          [
+            "r",
+            {
+              "fresh": [
+                1
+              ]
+            }
+          ],
+          [
+            "s",
+            [
+              "fresh",
+              1
+            ],
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-array-delete-compacts",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "xs": [
+            0,
+            1,
+            2
+          ]
+        },
+        "ops": [
+          [
+            "d",
+            [
+              "xs",
+              1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-numeric-object-key",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "obj": {
+            "0": "old"
+          }
+        },
+        "ops": [
+          [
+            "s",
+            [
+              "obj",
+              "0"
+            ],
+            "new"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-string-array-key-rejected",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "xs": [
+            0,
+            1
+          ]
+        },
+        "ops": [
+          [
+            "s",
+            [
+              "xs",
+              "0"
+            ],
+            9
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-sparse-index-rejected",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "xs": [
+            0
+          ]
+        },
+        "ops": [
+          [
+            "s",
+            [
+              "xs",
+              3
+            ],
+            9
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-unsafe-prototype-path-rejected",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "obj": {}
+        },
+        "ops": [
+          [
+            "s",
+            [
+              "obj",
+              "__proto__"
+            ],
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-invalid-permutation-rejected",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "xs": [
+            0,
+            1
+          ]
+        },
+        "ops": [
+          [
+            "m",
+            [
+              "xs"
+            ],
+            [
+              0,
+              0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-missing-path-rejected",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "obj": {}
+        },
+        "ops": [
+          [
+            "a",
+            [
+              "obj",
+              "missing"
+            ],
+            "x"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-utf16-boundary",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "text": "😀x"
+        },
+        "ops": [
+          [
+            "t",
+            [
+              "text"
+            ],
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "id": "delta-utf16-surrogate-split-upstream-domain",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "text": "😀x"
+        },
+        "ops": [
+          [
+            "t",
+            [
+              "text"
+            ],
+            1
+          ]
+        ]
+      },
+      "nativeComparison": "outside-native-domain: native must reject surrogate-splitting trim before commit"
+    },
+    {
+      "id": "delta-nonempty-noop-keeps-value",
+      "family": "delta",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/chord/src/delta/README.md",
+          "packages/chord/test/delta-apply-immutable.test.ts"
+        ]
+      },
+      "input": {
+        "value": {
+          "xs": [
+            1,
+            2
+          ]
+        },
+        "ops": [
+          [
+            "p",
+            [
+              "xs"
+            ],
+            1,
+            1,
+            [
+              2
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "id": "session-transactions-rollback-immutable",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-documents.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              },
+              {
+                "op": "docSame",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter",
+            "as": "old"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    2
+                  ]
+                ]
+              },
+              {
+                "op": "throw",
+                "message": "oracle callback failure"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    3
+                  ],
+                  [
+                    "append",
+                    [
+                      "text"
+                    ],
+                    "!"
+                  ],
+                  [
+                    "splice",
+                    [
+                      "items"
+                    ],
+                    1,
+                    1,
+                    [
+                      "x"
+                    ]
+                  ],
+                  [
+                    "reverse",
+                    [
+                      "items"
+                    ]
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "retained",
+            "name": "old"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    3
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-table-read-before-write",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-documents.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "c"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "read",
+                "method": "conversation",
+                "args": [
+                  "$c.id"
+                ]
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$c.id",
+                "value": {
+                  "kind": "note",
+                  "data": null
+                },
+                "as": "e"
+              },
+              {
+                "op": "read",
+                "method": "conversation",
+                "args": [
+                  "$c.id"
+                ]
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": "$c.id"
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "appendEntry",
+                "conversationId": "$c.id",
+                "value": {
+                  "kind": "note"
+                },
+                "as": "next"
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": "$c.id"
+              },
+              10,
+              {
+                "$undefined": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-checkpoint-policy",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-checkpoints-migrations.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    2
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    3
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-checkpoint-policy-failure",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-checkpoints-migrations.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "after"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "throw"
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-family-incarnation",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-documents.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "member",
+                "key": "a",
+                "seed": "first"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "member",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "hits"
+                    ],
+                    1
+                  ]
+                ],
+                "key": "a",
+                "seed": "ignored"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "member",
+            "key": "a"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "retireDoc",
+                "doc": "member",
+                "key": "a"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "member",
+            "key": "a"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "member",
+                "key": "a",
+                "seed": "second"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "member",
+            "key": "a"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "member",
+            "kind": "oracle.member",
+            "version": 1,
+            "scope": "session",
+            "family": true,
+            "seedField": "seed",
+            "initial": {
+              "hits": 0
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-version-rejection",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-checkpoints-migrations.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "v1"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "v2"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "v1"
+          },
+          {
+            "op": "snapshot",
+            "doc": "v2"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation"
+              }
+            ]
+          }
+        ],
+        "definitions": [
+          {
+            "name": "v1",
+            "kind": "oracle.v1",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          },
+          {
+            "name": "v2",
+            "kind": "oracle.v1",
+            "version": 2,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-submission-transitions",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-tables.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "c"
+              },
+              {
+                "op": "createSubmission",
+                "value": {
+                  "conversationId": "$c.id",
+                  "type": "input",
+                  "status": "queued",
+                  "requestId": "r"
+                },
+                "as": "s"
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$c.id",
+                "value": {
+                  "kind": "input"
+                },
+                "as": "e"
+              },
+              {
+                "op": "placeSubmission",
+                "id": "$s.id",
+                "entry": "$e.id"
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$c.id",
+                "value": {
+                  "kind": "answer"
+                },
+                "as": "answer"
+              },
+              {
+                "op": "settleSubmission",
+                "id": "$s.id",
+                "settlement": {
+                  "status": "done",
+                  "answer": "$answer.id"
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "submissionByRequest",
+            "args": [
+              "$c.id",
+              "r"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-sqlite-reopen",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-documents.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    7
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    8
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "fork-asof-current-initial-unknown",
+      "family": "fork",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-forks.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "parent"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ],
+                "owner": "$parent.id"
+              },
+              {
+                "op": "doc",
+                "doc": "latest",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ],
+                "owner": "$parent.id"
+              },
+              {
+                "op": "doc",
+                "doc": "initial",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ],
+                "owner": "$parent.id"
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$parent.id",
+                "value": {
+                  "kind": "cutoff"
+                },
+                "as": "cut"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    2
+                  ]
+                ],
+                "owner": "$parent.id"
+              },
+              {
+                "op": "doc",
+                "doc": "latest",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    2
+                  ]
+                ],
+                "owner": "$parent.id"
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$parent.id",
+                "value": {
+                  "kind": "later"
+                },
+                "as": "later"
+              }
+            ]
+          },
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 50,
+                  "kind": "unknown.extension",
+                  "scope": {
+                    "kind": "conversation",
+                    "conversationId": "$parent.id"
+                  },
+                  "history": "latest",
+                  "fork": "current"
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "unknown": [
+                      1,
+                      2
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "task",
+                "value": {
+                  "id": 60,
+                  "conversationId": "$parent.id",
+                  "kind": "unknown.task",
+                  "version": 7,
+                  "input": null,
+                  "background": false,
+                  "abortRequested": false,
+                  "state": {
+                    "status": "pending",
+                    "checkpoint": {
+                      "phase": "start"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 61,
+                  "kind": "unknown.taskdoc",
+                  "scope": {
+                    "kind": "task",
+                    "taskId": 60
+                  }
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 7,
+                  "value": {
+                    "owned": true
+                  }
+                }
+              },
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 62,
+                  "kind": "unknown.sessiondoc",
+                  "scope": {
+                    "kind": "session"
+                  }
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 7,
+                  "value": {
+                    "session": true
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "forkConversation",
+                "conversationId": "$parent.id",
+                "at": "$cut.id",
+                "as": "child"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "rewind",
+            "owner": "$child.id"
+          },
+          {
+            "op": "snapshot",
+            "doc": "latest",
+            "owner": "$child.id"
+          },
+          {
+            "op": "snapshot",
+            "doc": "initial",
+            "owner": "$child.id"
+          },
+          {
+            "op": "read",
+            "method": "scanDocuments",
+            "args": [
+              {
+                "scope": {
+                  "kind": "conversation",
+                  "conversationId": "$child.id"
+                },
+                "at": "current"
+              },
+              20,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "snapshotAsOf",
+            "doc": "rewind",
+            "owner": "$parent.id",
+            "at": "$cut.id"
+          },
+          {
+            "op": "read",
+            "method": "scanEntries",
+            "args": [
+              {
+                "conversationId": "$child.id",
+                "order": "ascending"
+              },
+              20,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    9
+                  ]
+                ],
+                "owner": "$child.id"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "rewind",
+            "owner": "$parent.id"
+          },
+          {
+            "op": "read",
+            "method": "scanTasks",
+            "args": [
+              {
+                "conversationId": "$child.id"
+              },
+              20,
+              {
+                "$undefined": true
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              61,
+              "current"
+            ]
+          }
+        ],
+        "definitions": [
+          {
+            "name": "rewind",
+            "kind": "oracle.rewind",
+            "version": 1,
+            "scope": "conversation",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never",
+            "history": "rewindable",
+            "fork": "asOf"
+          },
+          {
+            "name": "latest",
+            "kind": "oracle.latest",
+            "version": 1,
+            "scope": "conversation",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never",
+            "history": "latest",
+            "fork": "current"
+          },
+          {
+            "name": "initial",
+            "kind": "oracle.initial",
+            "version": 1,
+            "scope": "conversation",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never",
+            "history": "rewindable",
+            "fork": "initial"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fork-entry-commit-final-state",
+      "family": "fork",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-forks.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "c"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ],
+                "owner": "$c.id"
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$c.id",
+                "value": {
+                  "kind": "cutoff"
+                },
+                "as": "e"
+              },
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    2
+                  ]
+                ],
+                "owner": "$c.id"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "forkConversation",
+                "conversationId": "$c.id",
+                "at": "$e.id",
+                "as": "child"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "rewind",
+            "owner": "$child.id"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "rewind",
+            "kind": "oracle.rewind",
+            "version": 1,
+            "scope": "conversation",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never",
+            "history": "rewindable",
+            "fork": "asOf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "observation-incarnation-retirement-close",
+      "family": "observation",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-watches.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "watch",
+            "doc": "counter",
+            "name": "absent"
+          },
+          {
+            "op": "state",
+            "doc": "counter",
+            "name": "absent"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "watch",
+            "doc": "counter",
+            "name": "w"
+          },
+          {
+            "op": "watchStart",
+            "name": "w"
+          },
+          {
+            "op": "state",
+            "doc": "counter",
+            "name": "s"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "watchFrames",
+            "name": "w"
+          },
+          {
+            "op": "stateFrames",
+            "name": "s"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "retireDoc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "watchClosed",
+            "name": "w"
+          },
+          {
+            "op": "stateValue",
+            "name": "s"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    9
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "watchValue",
+            "name": "w"
+          },
+          {
+            "op": "stateValue",
+            "name": "s"
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ]
+      }
+    },
+    {
+      "id": "observation-close-retains-baseline",
+      "family": "observation",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-watches.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    4
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "state",
+            "doc": "counter",
+            "name": "s"
+          },
+          {
+            "op": "watch",
+            "doc": "counter",
+            "name": "w"
+          },
+          {
+            "op": "watchStart",
+            "name": "w"
+          },
+          {
+            "op": "close"
+          },
+          {
+            "op": "watchClosed",
+            "name": "w"
+          },
+          {
+            "op": "stateValue",
+            "name": "s"
+          },
+          {
+            "op": "watchValue",
+            "name": "w"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ]
+      }
+    },
+    {
+      "id": "observation-101st-pending-frame-converges",
+      "family": "observation",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-watches.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "watch",
+            "doc": "counter",
+            "name": "w"
+          },
+          {
+            "op": "watchStart",
+            "name": "w",
+            "holdFirst": true
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "watchFrames",
+            "name": "w"
+          },
+          {
+            "op": "repeatTransactions",
+            "doc": "counter",
+            "count": 101,
+            "field": "count",
+            "from": 2
+          },
+          {
+            "op": "watchRelease",
+            "name": "w"
+          },
+          {
+            "op": "watchValue",
+            "name": "w"
+          },
+          {
+            "op": "watchStop",
+            "name": "w"
+          }
+        ],
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-invalid-sparse-edit-rolls-back",
+      "family": "session",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-documents.test.ts",
+          "packages/chord/src/delta/tracker.ts"
+        ]
+      },
+      "input": {
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ],
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "bad"
+              },
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "items",
+                      5
+                    ],
+                    "invalid"
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "read",
+            "method": "conversation",
+            "args": [
+              "$bad.id"
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "session-structural-noop-publishes-positional-ops",
+      "family": "observation",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-documents.test.ts",
+          "packages/durable/test/session-watches.test.ts"
+        ]
+      },
+      "input": {
+        "definitions": [
+          {
+            "name": "counter",
+            "kind": "oracle.counter",
+            "version": 1,
+            "scope": "session",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never"
+          }
+        ],
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter",
+            "as": "before"
+          },
+          {
+            "op": "watch",
+            "doc": "counter",
+            "name": "w"
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "counter",
+                "edits": [
+                  [
+                    "splice",
+                    [
+                      "items"
+                    ],
+                    0,
+                    1,
+                    []
+                  ],
+                  [
+                    "splice",
+                    [
+                      "items"
+                    ],
+                    0,
+                    0,
+                    [
+                      "a"
+                    ]
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "watchStart",
+            "name": "w"
+          },
+          {
+            "op": "watchFrames",
+            "name": "w"
+          },
+          {
+            "op": "snapshot",
+            "doc": "counter"
+          },
+          {
+            "op": "retained",
+            "name": "before"
+          },
+          {
+            "op": "watchStop",
+            "name": "w"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fork-rejects-source-change-in-same-transaction",
+      "family": "fork",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/session-forks.test.ts"
+        ]
+      },
+      "input": {
+        "definitions": [
+          {
+            "name": "rewind",
+            "kind": "oracle.rewind",
+            "version": 1,
+            "scope": "conversation",
+            "initial": {
+              "count": 0,
+              "text": "A😀B",
+              "items": [
+                "a",
+                "b",
+                "c"
+              ],
+              "nested": {
+                "keep": true
+              }
+            },
+            "checkpoint": "never",
+            "history": "rewindable",
+            "fork": "asOf"
+          }
+        ],
+        "operations": [
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "createConversation",
+                "as": "c"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "owner": "$c.id"
+              },
+              {
+                "op": "appendEntry",
+                "conversationId": "$c.id",
+                "value": {
+                  "kind": "cutoff"
+                },
+                "as": "e"
+              }
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "forkConversation",
+                "conversationId": "$c.id",
+                "at": "$e.id",
+                "as": "bad"
+              },
+              {
+                "op": "doc",
+                "doc": "rewind",
+                "owner": "$c.id",
+                "edits": [
+                  [
+                    "set",
+                    [
+                      "count"
+                    ],
+                    1
+                  ]
+                ]
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "rewind",
+            "owner": "$c.id"
+          },
+          {
+            "op": "read",
+            "method": "conversation",
+            "args": [
+              "$bad.id"
+            ]
+          },
+          {
+            "op": "transaction",
+            "steps": [
+              {
+                "op": "forkConversation",
+                "conversationId": "$c.id",
+                "at": "$e.id",
+                "as": "good"
+              }
+            ]
+          },
+          {
+            "op": "snapshot",
+            "doc": "rewind",
+            "owner": "$good.id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "storage-current-only-rejects-asof",
+      "family": "storage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/src/testing/storage-conformance.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "commit",
+            "writes": [
+              {
+                "type": "document.create",
+                "record": {
+                  "id": 2,
+                  "kind": "oracle.latest",
+                  "scope": {
+                    "kind": "session"
+                  }
+                },
+                "content": {
+                  "kind": "base",
+                  "version": 1,
+                  "value": {
+                    "count": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              "current"
+            ]
+          },
+          {
+            "op": "read",
+            "method": "document",
+            "args": [
+              2,
+              1
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

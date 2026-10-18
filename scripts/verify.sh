@@ -17,6 +17,8 @@ node conformance/coding-tools/source.mjs "$PIRUA_UPSTREAM_ROOT" --check
 node conformance/coding-session/source.mjs "$PIRUA_UPSTREAM_ROOT" --check
 node conformance/coding-session-runtime-v1.4.0/source.mjs "$PIRUA_UPSTREAM_ROOT" --check
 node conformance/coding-tool-adapters-v1.4.0/source.mjs "$PIRUA_UPSTREAM_ROOT" --check
+node conformance/durable-v1.4.0/session.mjs --check
+node conformance/durable-v1.4.0/causal-check.mjs
 python3 scripts/upstream_drift.py
 python3 scripts/check_assembly.py
 python3 -m unittest scripts/test_upstream_drift.py

@@ -1,0 +1,10 @@
+{
+  "name": "pirua-durable-v140-release-oracles",
+  "private": true,
+  "type": "module",
+  "description": "Reusable offline Durable 1.4.0 package environment for independently observed conformance fixtures",
+  "dependencies": {
+    "@earendil-works/pi-durable": "1.4.0",
+    "@earendil-works/chord": "1.4.0"
+  }
+}

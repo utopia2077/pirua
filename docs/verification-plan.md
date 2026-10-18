@@ -23,6 +23,7 @@ manifest freshness and proof registration are checked independently.
 | Coding tools and resources | Exact-tag helper observations plus real filesystem/process cases |
 | Coding session | Prompt/tool/save/reopen/fork/compact, hook admission, retry, routing and cache tests |
 | SQLite and Memory | Logical session projection, transaction rollback and reopen tests |
+| Durable Session | Release-backed storage/document/fork observations, native commit/cancellation/failure tests and SQLite reopen |
 | MCP | Actual stdio peer, loopback HTTP/OAuth, cancellation, correlation and shutdown tests |
 | Local CodeMode | Actual helper processes, capability/output/store limits and controlled delivery |
 | Language-neutral extensions | Actual protocol frames, grants, correlation, ordered hooks and native admission |

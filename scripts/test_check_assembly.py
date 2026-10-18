@@ -166,6 +166,36 @@ class AssemblyTest(unittest.TestCase):
         for command in [['curl','https://example.invalid'],['python3','unregistered.py','--check'],['python3','conformance/catalog/v1.4.0/check.py','--write']]:
             with self.subTest(command=command),self.assertRaises(assembly.AssemblyError):assembly.check_command(command,[],ROOT)
 
+    def test_durable_session_requires_both_native_targets_without_claiming_runtime(self):
+        row=self.suite('conformance/durable-v1.4.0')
+        targets={'invariants','release_fixtures'}
+        self.assertEqual({command[command.index('--test')+1] for command in row['commands']},targets)
+        self.assertTrue(all(command==['cargo','test','--locked','--offline','-p','pi-durable-session',
+                                     '--test',command[command.index('--test')+1],'--all-features']
+                            for command in row['commands']))
+        self.validate(row)
+        for target in targets:
+            reduced=copy.deepcopy(self.registry)
+            suite=next(item for item in reduced['suites'] if item['id']==row['id'])
+            suite['commands']=[command for command in suite['commands'] if target not in command]
+            suite['evidence']=[reference for reference in suite['evidence'] if reference['cargo_target']!=target]
+            with self.subTest(target=target),mock.patch.object(assembly,'load_json',return_value=reduced):
+                with self.assertRaisesRegex(assembly.AssemblyError,'stale generated proof registry'):
+                    assembly.check_assembly(self.map_path,self.registry_path)
+        routes={entry['path']:entry for entry in tomllib.loads((ROOT/'upstream/manifests/routes.toml').read_text())['entry']}
+        for path in ['packages/durable/src/types.ts','packages/durable/src/session/session.ts',
+                     'packages/durable/src/session/observation.ts','packages/durable/src/storage/sqlite/storage.ts']:
+            self.assertEqual(routes[path]['surface'],'durable.session')
+        for path in ['packages/durable/src/harness/scheduler.ts','packages/durable/src/harness/view.ts',
+                     'packages/durable/src/codemode/codemode.ts']:
+            self.assertEqual(routes[path]['surface'],'deferred.durable')
+        for path in ['packages/durable/src/storage/jsonl/storage.ts',
+                     'packages/durable/src/storage/sqlite/migrations.ts','packages/durable/src/storage/indexeddb.ts']:
+            self.assertEqual(routes[path]['surface'],'excluded.host')
+        self.assertEqual(routes['packages/chord/src/delta/index.ts']['surface'],'durable.delta')
+        for path in ['packages/chord/src/delta/tracker.ts','packages/chord/src/host.ts','packages/chord/src/wire.ts']:
+            self.assertEqual(routes[path]['surface'],'deferred.chord')
+
     def test_lost_source_owner_fails_by_name(self):
         data=copy.deepcopy(self.map);data['owner']=[row for row in data['owner'] if row['id']!='pi-agent-loop::selected']
         with tempfile.TemporaryDirectory() as directory:

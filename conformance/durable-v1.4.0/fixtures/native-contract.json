@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "classification": "independently authored controller/native contract; deliberately not executed as upstream expected successes",
+  "cases": [
+    {
+      "id": "native-allocation-only-reopen-no-reuse",
+      "basis": {
+        "kind": "controller-native-contract",
+        "source": "native Session contract no ID reuse across reopen; tagged spec storage allocator intent"
+      },
+      "relatedObservedCase": "sqlite-allocation-only-reopen-variance",
+      "input": {
+        "operations": [
+          {
+            "op": "mint",
+            "count": 2
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "mint",
+            "count": 2
+          }
+        ]
+      },
+      "expected": {
+        "mintedBefore": [
+          2,
+          3
+        ],
+        "mintedAfter": [
+          4,
+          5
+        ]
+      },
+      "distinction": "Released SQLite returns [2,3] after reopen when allocation has no intervening commit; native reservation must be durable."
+    },
+    {
+      "id": "native-surrogate-splitting-trim-rejects",
+      "basis": {
+        "kind": "controller-native-contract",
+        "source": "native Session contract Unicode scalar JSON domain"
+      },
+      "relatedObservedCase": "delta-utf16-surrogate-split-upstream-domain",
+      "input": {
+        "value": {
+          "text": "😀x"
+        },
+        "ops": [
+          [
+            "t",
+            [
+              "text"
+            ],
+            1
+          ]
+        ]
+      },
+      "expected": {
+        "rejected": true,
+        "valueAfter": {
+          "text": "😀x"
+        },
+        "commits": 0
+      },
+      "distinction": "Chord JavaScript produces an unpaired low surrogate; outside native representable value domain. Valid trim count 2 must still yield x."
+    },
+    {
+      "id": "native-session-invalid-delta-rolls-back",
+      "basis": {
+        "kind": "controller-native-contract",
+        "source": "native Session contract Session decoded operation validation before backend admission"
+      },
+      "relatedObservedCase": "session-invalid-sparse-edit-rolls-back",
+      "input": {
+        "initialDocument": {
+          "value": {
+            "items": [
+              "a",
+              "b",
+              "c"
+            ],
+            "count": 0
+          }
+        },
+        "transaction": {
+          "createConversation": true,
+          "documentOps": [
+            [
+              "s",
+              [
+                "items",
+                5
+              ],
+              "invalid"
+            ]
+          ]
+        }
+      },
+      "expected": {
+        "rejected": true,
+        "createdConversation": {
+          "$undefined": true
+        },
+        "documentAfter": {
+          "items": [
+            "a",
+            "b",
+            "c"
+          ],
+          "count": 0
+        },
+        "backendCommitAttempts": 0
+      },
+      "distinction": "JavaScript Session draft rejects sparse array write; native explicit Session.apply must reject the corresponding decoded operation. Raw Storage trusted-input misuse is excluded from common conformance."
+    }
+  ]
+}

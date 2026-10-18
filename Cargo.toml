@@ -15,6 +15,7 @@ members = [
     "crates/pi-coding-session",
     "crates/pi-codemode",
     "crates/pi-mcp",
+    "crates/pi-durable-session",
 ]
 
 [workspace.package]

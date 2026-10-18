@@ -1,4 +1,4 @@
-# Coding session storage
+# Session storage
 
 `pi-coding-session` owns current session records, tree projection, selection,
 labels, branching, forks and compaction boundaries. Runtime-specific typed
@@ -17,5 +17,14 @@ unchanged. A branch's visible context is projected from its path and compaction
 records; runtime caches do not become another record authority.
 
 There is no JSONL backend, import path, old schema conversion or tool replay.
-Unknown persisted schema versions are rejected. New Durable storage will have
-its own current records and transactions while reusing SQLite infrastructure.
+Unknown persisted schema versions are rejected.
+
+`pi-durable-session` independently owns Durable's current records, documents,
+transactions, publications, history and forks. Its SQLite backend reuses
+`pi-sqlite`, with indexed record and document revision tables. One Session serializes
+admitted mutations; only successful storage commits publish immutable changes.
+Ambiguous backend failures close that Session, and reopening reads durable truth.
+Document observation binds an incarnation rather than following a replacement at
+the same address. The [Session contract](../contracts/durable-session.md) defines
+the native APIs and comparison limits. This crate stores task state; dispatch and
+recovery policy belong to the forthcoming Durable scheduler.

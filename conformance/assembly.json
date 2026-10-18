@@ -7630,6 +7630,147 @@
         }
       ],
       "limitations": []
+    },
+    {
+      "id": "conformance/durable-v1.4.0",
+      "status": "executable",
+      "commands": [
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable-session",
+          "--test",
+          "invariants",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable-session",
+          "--test",
+          "release_fixtures",
+          "--all-features"
+        ]
+      ],
+      "evidence": [
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:safe_ids_presence_and_decoded_domain",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:backend_atomic_global_ids_and_content_before_retirement",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:sqlite_allocation_only_reopen_and_schema_rejection",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:preparation_rollback_noop_structural_and_checkpoint",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:table_read_boundary_and_immutable_records",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:commit_failure_latches_and_ambiguous_sqlite_reopen",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:allocation_and_read_failures_are_fatal_but_request_errors_are_not",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:caller_cancellation_and_close_settle_admitted_commit",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:queued_waiter_cancellation_does_not_run_callback",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:incarnation_observation_overflow_and_listener_isolation",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:observation_captures_atomic_multi_document_baseline_and_each_commit",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:forks_use_entry_commit_final_state_and_definition_free_policies",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:incarnation_asof_membership_and_sqlite_reopen",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:raw_scans_are_conjunctive_and_reject_foreign_cursors",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:root_task_lifecycle_attribution_ownership_and_document_retirement",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:copy_frames_capture_values_before_future_mutations",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:close_seal_retains_state_while_admitted_backend_finishes",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:normal_close_drains_complete_publication_of_admitted_commit",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:sqlite_open_and_exact_lookup_do_not_materialize_unrelated_documents",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/invariants.rs",
+          "anchor": "test:before_and_after_commit_failures_close_both_backends_without_adoption",
+          "cargo_target": "invariants"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/release_fixtures.rs",
+          "anchor": "test:independent_release_cases",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/release_fixtures.rs",
+          "anchor": "test:independently_authored_native_contracts",
+          "cargo_target": "release_fixtures"
+        }
+      ],
+      "limitations": []
     }
   ],
   "preserved_inputs": [

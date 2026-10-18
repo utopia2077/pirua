@@ -46,11 +46,18 @@ package management are excluded.
 
 ## Durable boundary
 
-The new `packages/durable` runtime is a separate implementation phase after the
-Agent/Coding phase. Its intended scope is current documents, tasks, transactions,
-publications, scheduler/recovery, SQLite/Memory and persistent local CodeMode
-journals, using only the necessary Chord contracts. The old experimental Harness
-has been retired; a temporary compatibility layer is not part of this upgrade.
+`pi-durable-session` implements committed records, atomic document transactions,
+immutable publications, history, definition-free forks and incarnation-bound
+observation over Memory and SQLite. Its decoded operation subset follows the
+necessary Chord contracts; the full Chord protocol and JavaScript proxy are outside
+scope. The [Session contract](contracts/durable-session.md) records native API and
+Unicode boundaries, durable ID allocation and the source comparison limits.
+
+Session stores task records without executing handlers. The task scheduler,
+conversation runtime and persistent local CodeMode journals are the remaining
+Durable implementation. They will use this single persistence authority. The old
+experimental Harness has been retired; a temporary compatibility layer is not
+part of this upgrade.
 
 ## Verification boundary
 

@@ -44,6 +44,7 @@ If you know Pi, these are the main entry points into this workspace:
 | Headless `packages/coding-agent` | [`pi-coding-runtime`](crates/pi-coding-runtime), [`pi-coding-session`](crates/pi-coding-session) | Coding tools, resources, complete session trees, compaction and SQLite persistence |
 | `packages/mcp` | [`pi-mcp`](crates/pi-mcp) | Reusable stdio and Streamable HTTP client with OAuth |
 | `packages/codemode` | [`pi-codemode`](crates/pi-codemode) | One local JavaScript worker with explicit tool capabilities |
+| Session/storage in `packages/durable` | [`pi-durable-session`](crates/pi-durable-session) | Committed records, documents, history, forks and SQLite or Memory storage |
 | `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and process-local implementations |
 
 The [crate map](docs/architecture/02-crate-topology.md) explains ownership and
@@ -73,8 +74,10 @@ Coding sessions support Memory and SQLite, including save/reopen, branches,
 forks and compaction. MCP and CodeMode can be used independently or attached to a
 Coding session. The workspace delivers headless libraries; the CLI/TUI,
 JavaScript extension loader, JSONL storage and old-data import are outside its
-[scope](docs/scope.md). The new Durable runtime is a separate upgrade; the
-retired experimental Harness is available in Git history.
+[scope](docs/scope.md). Durable's [Session and storage foundation](docs/contracts/durable-session.md)
+is available independently. Its task scheduler, conversation runtime and persistent
+CodeMode integration are still being implemented. The retired experimental Harness
+is available in Git history.
 
 Conformance combines target-release source observations, native boundary tests
 and retained transport fixtures. It does not imply complete parity with every

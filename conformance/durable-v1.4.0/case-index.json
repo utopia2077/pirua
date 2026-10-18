@@ -1,0 +1,677 @@
+{
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "association": "Related tagged source/test/spec definitions; these entire suites are not executed by this oracle.",
+  "cases": [
+    {
+      "id": "storage-records-cursors-heads",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "storage-task-submission-records",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "storage-document-delta-checkpoint-asof",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "storage-document-copy-retire-recreate",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "storage-deferred-invalid-delta-validation-variance",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        }
+      ]
+    },
+    {
+      "id": "storage-invalid-metadata-batches-atomicity",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "storage-structural-noop-persists",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "sqlite-allocation-only-reopen-variance",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/storage/sqlite/storage.ts",
+          "sha256": "6778529dada8ac79d54328f7e8924d14a2a25bf33befc186c078482d27e8fe4a"
+        }
+      ]
+    },
+    {
+      "id": "sqlite-reopen-document-history",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    },
+    {
+      "id": "delta-all-decoded-operations",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-root-replacement",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-array-delete-compacts",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-numeric-object-key",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-string-array-key-rejected",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-sparse-index-rejected",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-unsafe-prototype-path-rejected",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-invalid-permutation-rejected",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-missing-path-rejected",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-utf16-boundary",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-utf16-surrogate-split-upstream-domain",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "delta-nonempty-noop-keeps-value",
+      "family": "delta",
+      "specSections": [
+        "Chord Delta: Replaying batches",
+        "Chord Delta: Operations"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/chord/src/delta/README.md",
+          "sha256": "469cae51e43f3083c00ee565cb1c8adbe6b0772b59e7924659d8384b833e078f"
+        },
+        {
+          "path": "packages/chord/test/delta-apply-immutable.test.ts",
+          "sha256": "81480b4eae8adbeebe473837be66cf50fc31db6f371887b966f1e8c6ae000344"
+        }
+      ]
+    },
+    {
+      "id": "session-transactions-rollback-immutable",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "returns shared immutable snapshots and keeps prior revisions stable",
+        "aborts every change when the callback fails"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-documents.test.ts",
+          "sha256": "3961ee091c195571877fcbfc80cb85daa859f8b12d5dee17e58dbd7c62039b82"
+        }
+      ]
+    },
+    {
+      "id": "session-table-read-before-write",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "allows table reads only before the first table write"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-documents.test.ts",
+          "sha256": "3961ee091c195571877fcbfc80cb85daa859f8b12d5dee17e58dbd7c62039b82"
+        }
+      ]
+    },
+    {
+      "id": "session-checkpoint-policy",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "passes the stored delta count since the newest base, including after unload and version bases"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-checkpoints-migrations.test.ts",
+          "sha256": "31064eeda2f0ec79f923a435fab6a9b786c5d46a539310954ee01d43ae917849"
+        }
+      ]
+    },
+    {
+      "id": "session-checkpoint-policy-failure",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "rolls back every prepared document when a checkpoint predicate throws"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-checkpoints-migrations.test.ts",
+          "sha256": "31064eeda2f0ec79f923a435fab6a9b786c5d46a539310954ee01d43ae917849"
+        }
+      ]
+    },
+    {
+      "id": "session-family-incarnation",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "uses the first family seed and ignores seeds for existing members",
+        "retires documents and creates a new incarnation at the same address"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-documents.test.ts",
+          "sha256": "3961ee091c195571877fcbfc80cb85daa859f8b12d5dee17e58dbd7c62039b82"
+        }
+      ]
+    },
+    {
+      "id": "session-version-rejection",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "rejects newer stored versions and older versions without migration for snapshots and transactions"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-checkpoints-migrations.test.ts",
+          "sha256": "31064eeda2f0ec79f923a435fab6a9b786c5d46a539310954ee01d43ae917849"
+        }
+      ]
+    },
+    {
+      "id": "session-submission-transitions",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-tables.test.ts",
+          "sha256": "cdaf4388c08ed849d8017fe9ed649d1071768a3b6feed323d936e5d290f3888f"
+        }
+      ]
+    },
+    {
+      "id": "session-sqlite-reopen",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-documents.test.ts",
+          "sha256": "3961ee091c195571877fcbfc80cb85daa859f8b12d5dee17e58dbd7c62039b82"
+        }
+      ]
+    },
+    {
+      "id": "fork-asof-current-initial-unknown",
+      "family": "fork",
+      "specSections": [
+        "3.7 Forks"
+      ],
+      "relatedTaggedTests": [
+        "copies as-of and current singleton and family bases while leaving initial documents absent",
+        "copies only conversation documents, leaving Session and task documents in their original scopes"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-forks.test.ts",
+          "sha256": "21f40b78204ea8c61c6456856274df0c3c47d53695d69b2113105373dc7da1f9"
+        }
+      ]
+    },
+    {
+      "id": "fork-entry-commit-final-state",
+      "family": "fork",
+      "specSections": [
+        "3.7 Forks"
+      ],
+      "relatedTaggedTests": [
+        "uses final document state from the fork entry commit while excluding later same-commit entries"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-forks.test.ts",
+          "sha256": "21f40b78204ea8c61c6456856274df0c3c47d53695d69b2113105373dc7da1f9"
+        }
+      ]
+    },
+    {
+      "id": "observation-incarnation-retirement-close",
+      "family": "observation",
+      "specSections": [
+        "9.1 Document state",
+        "9.2 watchDoc"
+      ],
+      "relatedTaggedTests": [
+        "never creates an absent document",
+        "publishes null retirement and never follows a replacement incarnation"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-watches.test.ts",
+          "sha256": "98110c63662749bcd31e9fda8d2a5141f9bed6c704a4e216609ee068aebd644f"
+        }
+      ]
+    },
+    {
+      "id": "observation-close-retains-baseline",
+      "family": "observation",
+      "specSections": [
+        "9.1 Document state",
+        "9.2 watchDoc"
+      ],
+      "relatedTaggedTests": [
+        "Session close stops future delivery without joining an in-flight callback"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-watches.test.ts",
+          "sha256": "98110c63662749bcd31e9fda8d2a5141f9bed6c704a4e216609ee068aebd644f"
+        }
+      ]
+    },
+    {
+      "id": "observation-101st-pending-frame-converges",
+      "family": "observation",
+      "specSections": [
+        "9.1 Document state",
+        "9.2 watchDoc"
+      ],
+      "relatedTaggedTests": [
+        "collapses 101 pending commits to one root replacement",
+        "never folds the in-flight frame into an overflow reset"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-watches.test.ts",
+          "sha256": "98110c63662749bcd31e9fda8d2a5141f9bed6c704a4e216609ee068aebd644f"
+        }
+      ]
+    },
+    {
+      "id": "session-invalid-sparse-edit-rolls-back",
+      "family": "session",
+      "specSections": [
+        "3. Documents",
+        "4. Transactions and storage ownership"
+      ],
+      "relatedTaggedTests": [
+        "rejects non-JSON initializer values and draft placements before Storage admission"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-documents.test.ts",
+          "sha256": "3961ee091c195571877fcbfc80cb85daa859f8b12d5dee17e58dbd7c62039b82"
+        },
+        {
+          "path": "packages/chord/src/delta/tracker.ts",
+          "sha256": "68bd2d7b9c0538366b079004ddd5dc9180cedd67d129f5c8de6c9ef6380e2c54"
+        }
+      ]
+    },
+    {
+      "id": "session-structural-noop-publishes-positional-ops",
+      "family": "observation",
+      "specSections": [
+        "9.1 Document state",
+        "9.2 watchDoc"
+      ],
+      "relatedTaggedTests": [
+        "writes and publishes replayable nonempty structural no-ops",
+        "delivers replayable structural no-op commits instead of suppressing them"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-documents.test.ts",
+          "sha256": "3961ee091c195571877fcbfc80cb85daa859f8b12d5dee17e58dbd7c62039b82"
+        },
+        {
+          "path": "packages/durable/test/session-watches.test.ts",
+          "sha256": "98110c63662749bcd31e9fda8d2a5141f9bed6c704a4e216609ee068aebd644f"
+        }
+      ]
+    },
+    {
+      "id": "fork-rejects-source-change-in-same-transaction",
+      "family": "fork",
+      "specSections": [
+        "3.7 Forks"
+      ],
+      "relatedTaggedTests": [
+        "rejects current and as-of source writes in the fork transaction"
+      ],
+      "sources": [
+        {
+          "path": "packages/durable/test/session-forks.test.ts",
+          "sha256": "21f40b78204ea8c61c6456856274df0c3c47d53695d69b2113105373dc7da1f9"
+        }
+      ]
+    },
+    {
+      "id": "storage-current-only-rejects-asof",
+      "family": "storage",
+      "specSections": [
+        "10. Storage contract",
+        "11.1 Memory",
+        "11.2 SQLite"
+      ],
+      "relatedTaggedTests": [],
+      "sources": [
+        {
+          "path": "packages/durable/src/testing/storage-conformance.ts",
+          "sha256": "fa543ea2f7271ac1f23bc16eb0d1f69ba55b52d0f3a2865dd68d0ee34258392e"
+        }
+      ]
+    }
+  ]
+}
