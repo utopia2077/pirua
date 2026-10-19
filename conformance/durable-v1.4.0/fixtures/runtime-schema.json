@@ -1,0 +1,421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pinned Durable conversation runtime source observations",
+  "description": "Language-neutral source execution input and detached output. Product DTOs are JSON values passed to actual published APIs; no code strings are evaluated. $undefined and $utf16 are reserved trace codec markers, not product JSON.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "upstreamCommit",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "upstreamCommit": {
+      "const": "4a080252f06caf63a525d7873c5d94d3c23887e0"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "json": {
+      "description": "Ordinary scalar-string JSON or a reserved lossless trace marker. References in input use $alias.path and are resolved only as value lookup."
+    },
+    "action": {
+      "type": "object",
+      "required": [
+        "do"
+      ],
+      "properties": {
+        "do": {
+          "enum": [
+            "output",
+            "details",
+            "diagnostic",
+            "gate",
+            "nested",
+            "return",
+            "throw"
+          ]
+        },
+        "as": {
+          "type": "string"
+        },
+        "text": {
+          "$ref": "#/$defs/json"
+        },
+        "value": {
+          "$ref": "#/$defs/json"
+        },
+        "name": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "args": {
+          "type": "object"
+        },
+        "firstRuns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "progress": {
+          "type": "boolean"
+        },
+        "catch": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "replay": {
+          "enum": [
+            "safe",
+            "unsafe"
+          ]
+        },
+        "structuredOutputSchema": {
+          "type": "object"
+        },
+        "callers": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "model",
+              "tool"
+            ]
+          }
+        },
+        "prepare": {
+          "type": "object",
+          "properties": {
+            "numberField": {
+              "type": "string"
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "description": "Only external transport behavior. Actual stream is AssistantMessageEventStream; source owns normalization, request pinning, classification and settlement.",
+      "properties": {
+        "op": {
+          "enum": [
+            "stream",
+            "fetch"
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "partial": {
+          "type": "string"
+        },
+        "calls": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "arguments"
+            ]
+          }
+        },
+        "stopReason": {
+          "type": "string"
+        },
+        "usage": {
+          "type": "object"
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "deferred": {
+          "type": "object"
+        },
+        "gate": {
+          "type": "string"
+        },
+        "gateBefore": {
+          "type": "string"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "description": "Actual public host API action plus literal arguments. as stores an actual result; label names the detached observation. errorExpected captures category/message instead of failing the driver. See runtime.md for operation arguments.",
+      "properties": {
+        "op": {
+          "enum": [
+            "submit",
+            "status",
+            "wait",
+            "abortSubmission",
+            "append",
+            "configure",
+            "context",
+            "entries",
+            "docs",
+            "usage",
+            "task",
+            "tasks",
+            "live",
+            "inspect",
+            "resume",
+            "idle",
+            "requests",
+            "toolEvents",
+            "effects",
+            "untilRequests",
+            "untilEffects",
+            "untilLive",
+            "fireTimers",
+            "settings",
+            "advance",
+            "wake",
+            "release",
+            "installTool",
+            "reset",
+            "fork",
+            "compact",
+            "waitTask",
+            "abortConversation",
+            "watch",
+            "watchFrames",
+            "close",
+            "reopen"
+          ]
+        },
+        "as": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "errorExpected": {
+          "type": "boolean"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "label",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/json"
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "observations",
+        "requests",
+        "toolEvents",
+        "hookEvents",
+        "publications",
+        "reports"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "requests": {
+          "type": "array"
+        },
+        "toolEvents": {
+          "type": "array"
+        },
+        "hookEvents": {
+          "type": "array"
+        },
+        "publications": {
+          "type": "array"
+        },
+        "reports": {
+          "type": "array"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "id",
+        "basis",
+        "input"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "object",
+          "required": [
+            "kind",
+            "sources"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "release-execution"
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "backends": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "memory",
+              "sqlite"
+            ]
+          }
+        },
+        "input": {
+          "type": "object",
+          "required": [
+            "operations"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "clock": {
+              "type": "number"
+            },
+            "settings": {
+              "type": "object"
+            },
+            "agent": {
+              "type": "object"
+            },
+            "hooks": {
+              "type": "object"
+            },
+            "sections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "text"
+                ],
+                "properties": {
+                  "key": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "tag": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "provider": {
+              "type": "object",
+              "properties": {
+                "models": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "responses": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/response"
+                  }
+                }
+              }
+            },
+            "tools": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/tool"
+              }
+            },
+            "operations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/operation"
+              }
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "memory",
+              "sqlite"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/result"
+          }
+        }
+      }
+    }
+  }
+}

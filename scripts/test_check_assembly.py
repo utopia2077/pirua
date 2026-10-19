@@ -166,22 +166,31 @@ class AssemblyTest(unittest.TestCase):
         for command in [['curl','https://example.invalid'],['python3','unregistered.py','--check'],['python3','conformance/catalog/v1.4.0/check.py','--write']]:
             with self.subTest(command=command),self.assertRaises(assembly.AssemblyError):assembly.check_command(command,[],ROOT)
 
-    def test_durable_session_and_scheduler_require_native_targets_without_claiming_runtime(self):
+    def test_durable_runtime_requires_native_targets_and_preserves_deferred_scope(self):
         row=self.suite('conformance/durable-v1.4.0')
-        targets={('pi-durable-session','invariants'),('pi-durable-session','number_roundtrip'),
+        targets={('pi-durable-session','conversation_observation'),
+                 ('pi-durable-session','invariants'),('pi-durable-session','number_roundtrip'),
                  ('pi-durable-session','release_fixtures'),
-                 ('pi-durable','close'),('pi-durable','initializer'),
+                 ('pi-durable','bindings'),('pi-durable','close'),('pi-durable','context'),
+                 ('pi-durable','initializer'),
                  ('pi-durable','invariants'),('pi-durable','release_fixtures'),
-                 ('pi-durable','review_regressions')}
+                 ('pi-durable','review_regressions'),('pi-durable','runtime_core'),
+                 ('pi-durable','runtime_fixtures'),('pi-durable','views')}
         def identity(command):return command[command.index('-p')+1],command[command.index('--test')+1]
         self.assertEqual({identity(command) for command in row['commands']},targets)
         self.assertTrue(all(command==['cargo','test','--locked','--offline','-p',identity(command)[0],
                                      '--test',command[command.index('--test')+1],'--all-features']
                             for command in row['commands']))
         self.validate(row)
-        for package,target in targets:
+        extensions=self.suite('conformance/current-extensions')
+        extension_target=('pi-extension-protocol','durable_host')
+        self.assertIn(extension_target,{identity(command) for command in extensions['commands']})
+        self.validate(extensions)
+        registrations=[(row['id'],package,target) for package,target in targets]
+        registrations.append((extensions['id'],*extension_target))
+        for suite_id,package,target in registrations:
             reduced=copy.deepcopy(self.registry)
-            suite=next(item for item in reduced['suites'] if item['id']==row['id'])
+            suite=next(item for item in reduced['suites'] if item['id']==suite_id)
             suite['commands']=[command for command in suite['commands'] if identity(command)!=(package,target)]
             suite['evidence']=[reference for reference in suite['evidence']
                                if not (reference['path'].startswith('crates/'+package+'/') and reference['cargo_target']==target)]
@@ -192,13 +201,33 @@ class AssemblyTest(unittest.TestCase):
         for path in ['packages/durable/src/types.ts','packages/durable/src/session/session.ts',
                      'packages/durable/src/session/observation.ts','packages/durable/src/storage/sqlite/storage.ts']:
             self.assertEqual(routes[path]['surface'],'durable.session')
-        for path in ['packages/durable/src/harness/scheduler.ts','packages/durable/src/harness/registry.ts',
-                     'packages/durable/src/tasks.ts','packages/durable/src/harness/types.ts']:
+        for path in ['packages/durable/src/harness/scheduler.ts','packages/durable/src/tasks.ts',
+                     'packages/durable/src/timers.ts']:
             self.assertEqual(routes[path]['surface'],'durable.scheduler')
-        for path in ['packages/durable/src/harness/view.ts','packages/durable/src/harness/task-graph.ts',
+        for path in ['packages/durable/src/harness/harness.ts','packages/durable/src/harness/registry.ts',
+                     'packages/durable/src/harness/types.ts','packages/durable/src/harness/events.ts',
+                     'packages/durable/src/harness/generation.ts','packages/durable/src/harness/tool.ts',
+                     'packages/durable/src/harness/compaction.ts','packages/durable/src/harness/usage.ts',
+                     'packages/durable/test/harness-nested-tools-restart.test.ts',
+                     'packages/durable/test/harness-structured-output.test.ts']:
+            self.assertEqual(routes[path]['surface'],'durable.runtime')
+        for path in ['packages/durable/src/harness/context.ts','packages/durable/src/harness/view.ts',
+                     'packages/durable/test/harness-context.test.ts','packages/durable/test/harness-view.test.ts']:
+            self.assertEqual(routes[path]['surface'],'durable.context-views')
+        for path in ['packages/durable/src/harness/task-graph.ts',
                      'packages/durable/test/harness-task-graph.test.ts',
-                     'packages/durable/src/codemode/codemode.ts']:
+                     'packages/durable/src/harness/telemetry.ts',
+                     'packages/durable/test/harness-telemetry.test.ts',
+                     'packages/durable/test/harness-telemetry-options.test.ts',
+                     'packages/durable/src/codemode/codemode.ts',
+                     'packages/durable/test/codemode-checkpoints.test.ts',
+                     'packages/durable/src/tools/index.ts','packages/durable/src/env/index.ts']:
             self.assertEqual(routes[path]['surface'],'deferred.durable')
+        surfaces={surface['id']:surface for surface in self.map['surface']}
+        self.assertEqual(surfaces['durable.bindings']['authority'],'source-and-tests')
+        self.assertIn('native compositions',surfaces['durable.bindings']['coverage_statement'])
+        for deferred in ('TaskGraph','DURABLE_TELEMETRY_SCHEMA','persistent CodeMode'):
+            self.assertIn(deferred,surfaces['deferred.durable']['coverage_statement'])
         for path in ['packages/durable/src/storage/jsonl/storage.ts',
                      'packages/durable/src/storage/sqlite/migrations.ts','packages/durable/src/storage/indexeddb.ts']:
             self.assertEqual(routes[path]['surface'],'excluded.host')

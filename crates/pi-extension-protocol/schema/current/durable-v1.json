@@ -1,0 +1,1574 @@
+{
+  "descriptor_format": 1,
+  "target": "native Durable; pi v1.4.0 source 4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "native_validation": "Mandatory closed pi_ai and Durable DTO admission and actual invocation custody. No Coding or historical Harness projection.",
+  "types": {
+    "String": {
+      "kind": "primitive",
+      "arm": "string"
+    },
+    "Bool": {
+      "kind": "primitive",
+      "arm": "bool"
+    },
+    "SafeUnsigned": {
+      "kind": "primitive",
+      "arm": "integer",
+      "min": 0,
+      "max": 9007199254740991
+    },
+    "DurableId": {
+      "kind": "primitive",
+      "arm": "integer",
+      "min": 1,
+      "max": 9007199254740991
+    },
+    "FiniteNumber": {
+      "kind": "primitive",
+      "arm": "finite_number"
+    },
+    "Json": {
+      "kind": "native_json_algebra",
+      "native_validation": "Mandatory current pi_ai native codecs and captured Durable invocation validation."
+    },
+    "Unit": {
+      "kind": "object",
+      "closed": true,
+      "fields": {}
+    },
+    "Context": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "conversationId": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "taskId": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Text": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "text"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "text": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "textSignature": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Image": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "image"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "data": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "mimeType": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "InputContent": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "Text"
+          }
+        },
+        {
+          "type": {
+            "ref": "Image"
+          }
+        }
+      ]
+    },
+    "UserInput": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "String"
+          }
+        },
+        {
+          "type": {
+            "array": {
+              "ref": "InputContent"
+            }
+          }
+        }
+      ]
+    },
+    "Message": {
+      "kind": "native_open_role_object",
+      "role": {
+        "enum": [
+          "system",
+          "user",
+          "assistant",
+          "toolResult"
+        ]
+      },
+      "native_type": "Mandatory closed pi_ai::Message DTO, including all current AI replay metadata."
+    },
+    "AssistantMessage": {
+      "kind": "native_open_role_object",
+      "role": {
+        "enum": [
+          "assistant"
+        ]
+      },
+      "native_type": "Mandatory closed pi_ai::AssistantMessage DTO, including all current AI replay metadata."
+    },
+    "UsageCost": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "input": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "output": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cacheRead": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cacheWrite": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "total": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Usage": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "input": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "output": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cacheRead": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cacheWrite": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "totalTokens": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cost": {
+          "type": {
+            "ref": "UsageCost"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "cacheWrite1h": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "reasoning": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Parent": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "taskId": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "callId": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Call": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "toolCall"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "id": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "name": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "arguments": {
+          "type": {
+            "ref": "Json"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "argumentsError": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "thoughtSignature": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "namespace": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "parent": {
+          "type": {
+            "ref": "Parent"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Diagnostic": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "severity": {
+          "type": {
+            "enum": [
+              "info",
+              "warn",
+              "error"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "message": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "code": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Control": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "addTools": {
+          "type": {
+            "array": {
+              "ref": "String"
+            }
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "terminate": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "handoff": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "ExecutionResult": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "output": {
+          "type": {
+            "array": {
+              "ref": "InputContent"
+            }
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "structuredOutput": {
+          "type": {
+            "ref": "Json"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "isError": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "details": {
+          "type": {
+            "ref": "Json"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "diagnostics": {
+          "type": {
+            "array": {
+              "ref": "Diagnostic"
+            }
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "usage": {
+          "type": {
+            "ref": "Usage"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "control": {
+          "type": {
+            "ref": "Control"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Limits": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "maxBytes": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "maxLines": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "retain": {
+          "type": {
+            "enum": [
+              "head",
+              "tail"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Window": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "maxBytes": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "maxLines": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "minIntervalMs": {
+          "type": {
+            "ref": "FiniteNumber"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "bytesPerSecond": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "ProgressOptions": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "enabled": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "outputLimits": {
+          "type": {
+            "ref": "Limits"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "outputWindow": {
+          "type": {
+            "ref": "Window"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Skip": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "bytes": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "newlines": {
+          "type": {
+            "ref": "SafeUnsigned"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "endsWithNewline": {
+          "type": {
+            "ref": "Bool"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "TextChunk": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "text"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "text": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "ByteChunk": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "bytes"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "base64": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Chunk": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "TextChunk"
+          }
+        },
+        {
+          "type": {
+            "ref": "ByteChunk"
+          }
+        }
+      ]
+    },
+    "OutputProgress": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "output"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "chunk": {
+          "type": {
+            "ref": "Chunk"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "skipped": {
+          "type": {
+            "ref": "Skip"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "DetailsProgress": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "details"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "value": {
+          "type": {
+            "ref": "Json"
+          },
+          "presence": "required",
+          "nullable": true
+        }
+      }
+    },
+    "DiagnosticProgress": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "diagnostic"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "diagnostic": {
+          "type": {
+            "ref": "Diagnostic"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Progress": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "OutputProgress"
+          }
+        },
+        {
+          "type": {
+            "ref": "DetailsProgress"
+          }
+        },
+        {
+          "type": {
+            "ref": "DiagnosticProgress"
+          }
+        }
+      ]
+    },
+    "OmitEdit": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "action": {
+          "type": {
+            "literal": "omit"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "target": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "ReplaceEdit": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "action": {
+          "type": {
+            "literal": "replace"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "target": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "messages": {
+          "type": {
+            "array": {
+              "ref": "Message"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Edit": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "OmitEdit"
+          }
+        },
+        {
+          "type": {
+            "ref": "ReplaceEdit"
+          }
+        }
+      ]
+    },
+    "Entry": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "id": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "conversationId": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "kind": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "model": {
+          "type": {
+            "array": {
+              "ref": "Message"
+            }
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "data": {
+          "type": {
+            "ref": "Json"
+          },
+          "presence": "optional",
+          "nullable": true
+        },
+        "head": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "edits": {
+          "type": {
+            "array": {
+              "ref": "Edit"
+            }
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "byTaskId": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "Decline": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "decline"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Summary": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "type": {
+          "type": {
+            "literal": "summary"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "summary": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "Decision": {
+      "kind": "alternatives",
+      "alternatives": [
+        {
+          "type": {
+            "ref": "Decline"
+          }
+        },
+        {
+          "type": {
+            "ref": "Summary"
+          }
+        }
+      ]
+    },
+    "durable.input:before_request": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "messages": {
+          "type": {
+            "array": {
+              "ref": "Message"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:before_request": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "messages": {
+          "type": {
+            "array": {
+              "ref": "Message"
+            }
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "durable.input:after_response": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "message": {
+          "type": {
+            "ref": "AssistantMessage"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:after_response": {
+      "kind": "object",
+      "closed": true,
+      "fields": {}
+    },
+    "durable.input:on_yield": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "answer": {
+          "type": {
+            "ref": "AssistantMessage"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:on_yield": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "continue": {
+          "type": {
+            "ref": "UserInput"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "durable.input:after_tools": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "assistant": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "results": {
+          "type": {
+            "array": {
+              "ref": "DurableId"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:after_tools": {
+      "kind": "object",
+      "closed": true,
+      "fields": {}
+    },
+    "durable.input:before_tool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "call": {
+          "type": {
+            "ref": "Call"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:before_tool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "arguments": {
+          "type": {
+            "ref": "Json"
+          },
+          "presence": "optional",
+          "nullable": false
+        },
+        "block": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "durable.input:after_tool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "call": {
+          "type": {
+            "ref": "Call"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "result": {
+          "type": {
+            "ref": "ExecutionResult"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:after_tool": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "result": {
+          "type": {
+            "ref": "ExecutionResult"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "durable.input:before_compact": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "reason": {
+          "type": {
+            "enum": [
+              "manual",
+              "threshold",
+              "overflow"
+            ]
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "entries": {
+          "type": {
+            "array": {
+              "ref": "Entry"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "messages": {
+          "type": {
+            "array": {
+              "ref": "Message"
+            }
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "firstKept": {
+          "type": {
+            "ref": "DurableId"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "instructions": {
+          "type": {
+            "ref": "String"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:before_compact": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "decision": {
+          "type": {
+            "ref": "Decision"
+          },
+          "presence": "optional",
+          "nullable": false
+        }
+      }
+    },
+    "durable.input:tool.call": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "context": {
+          "type": {
+            "ref": "Context"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "call": {
+          "type": {
+            "ref": "Call"
+          },
+          "presence": "required",
+          "nullable": false
+        },
+        "progress": {
+          "type": {
+            "ref": "ProgressOptions"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.output:tool.call": {
+      "kind": "object",
+      "closed": true,
+      "fields": {
+        "result": {
+          "type": {
+            "ref": "ExecutionResult"
+          },
+          "presence": "required",
+          "nullable": false
+        }
+      }
+    },
+    "durable.progress:tool.call": {
+      "kind": "alias",
+      "type": {
+        "ref": "Progress"
+      }
+    }
+  },
+  "projections": {
+    "durable.input:before_request": {
+      "root": "durable.input:before_request",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Context",
+        "DurableId",
+        "Message",
+        "durable.input:before_request"
+      ],
+      "proposed_digest_sha256": "48f2700ff48f7df192f5883d3fcd9b86130727e217dce5b68ba87c96aa0bce22"
+    },
+    "durable.output:before_request": {
+      "root": "durable.output:before_request",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Message",
+        "durable.output:before_request"
+      ],
+      "proposed_digest_sha256": "60851e046869ce0abfc9e27cc6206ff88c4a0d5e6571cc195cb996ba705b8321"
+    },
+    "durable.input:after_response": {
+      "root": "durable.input:after_response",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "AssistantMessage",
+        "Context",
+        "DurableId",
+        "durable.input:after_response"
+      ],
+      "proposed_digest_sha256": "fc005c11ff714750be89cbb09438330e01e4f727977aba54b8365bea1ce83bba"
+    },
+    "durable.output:after_response": {
+      "root": "durable.output:after_response",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "durable.output:after_response"
+      ],
+      "proposed_digest_sha256": "ab1dbb8d878ac750ac34e1ddcdd82e63e0d99186d2917de24c07677917994bfb"
+    },
+    "durable.input:on_yield": {
+      "root": "durable.input:on_yield",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "AssistantMessage",
+        "Context",
+        "DurableId",
+        "durable.input:on_yield"
+      ],
+      "proposed_digest_sha256": "ecf028364cd7ec4ce8e242f1068545f9934e93542afc9672870272d125a76552"
+    },
+    "durable.output:on_yield": {
+      "root": "durable.output:on_yield",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Image",
+        "InputContent",
+        "String",
+        "Text",
+        "UserInput",
+        "durable.output:on_yield"
+      ],
+      "proposed_digest_sha256": "818bad75e6cc0ea88bd1d91c4236e5ec45e56f2440a4a5b985fcf77d733bd4de"
+    },
+    "durable.input:after_tools": {
+      "root": "durable.input:after_tools",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Context",
+        "DurableId",
+        "durable.input:after_tools"
+      ],
+      "proposed_digest_sha256": "9e20b57f1d9ca587e730d65669c1cbddb02a836a7300e7943c2aba10b19350b4"
+    },
+    "durable.output:after_tools": {
+      "root": "durable.output:after_tools",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "durable.output:after_tools"
+      ],
+      "proposed_digest_sha256": "4c25442f677e37b4a676408be038466ecccfb7de52fb58d07905517237beb5f6"
+    },
+    "durable.input:before_tool": {
+      "root": "durable.input:before_tool",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Call",
+        "Context",
+        "DurableId",
+        "Json",
+        "Parent",
+        "String",
+        "durable.input:before_tool"
+      ],
+      "proposed_digest_sha256": "2d233de156cce5f4526a429c079c80a2213050a075fe0eb5b44f691d2ed725dc"
+    },
+    "durable.output:before_tool": {
+      "root": "durable.output:before_tool",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Json",
+        "String",
+        "durable.output:before_tool"
+      ],
+      "proposed_digest_sha256": "75221baef493ac36b5b091f28400a9956e26c784db488778c625d6ef81fcde68"
+    },
+    "durable.input:after_tool": {
+      "root": "durable.input:after_tool",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "Call",
+        "Context",
+        "Control",
+        "Diagnostic",
+        "DurableId",
+        "ExecutionResult",
+        "FiniteNumber",
+        "Image",
+        "InputContent",
+        "Json",
+        "Parent",
+        "SafeUnsigned",
+        "String",
+        "Text",
+        "Usage",
+        "UsageCost",
+        "durable.input:after_tool"
+      ],
+      "proposed_digest_sha256": "7e6846cb43f09c978755c28ed3de176c2bddbbe931ffd0896114fc75695fe86a"
+    },
+    "durable.output:after_tool": {
+      "root": "durable.output:after_tool",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "Control",
+        "Diagnostic",
+        "ExecutionResult",
+        "FiniteNumber",
+        "Image",
+        "InputContent",
+        "Json",
+        "SafeUnsigned",
+        "String",
+        "Text",
+        "Usage",
+        "UsageCost",
+        "durable.output:after_tool"
+      ],
+      "proposed_digest_sha256": "b295b90a00711752630adfe85bd00978ac16326466514ccde85b32e096b26ebb"
+    },
+    "durable.input:before_compact": {
+      "root": "durable.input:before_compact",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Context",
+        "DurableId",
+        "Edit",
+        "Entry",
+        "Json",
+        "Message",
+        "OmitEdit",
+        "ReplaceEdit",
+        "String",
+        "durable.input:before_compact"
+      ],
+      "proposed_digest_sha256": "9791e8432b70b0c0176cb63dc5b38c1a3748507f6a13c7fcb39093acf5ba97ac"
+    },
+    "durable.output:before_compact": {
+      "root": "durable.output:before_compact",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Decision",
+        "Decline",
+        "String",
+        "Summary",
+        "durable.output:before_compact"
+      ],
+      "proposed_digest_sha256": "e4034046d9eeea369ac3be9b25646fd26fad79d34fc3b813564d04aacde4a848"
+    },
+    "durable.input:tool.call": {
+      "root": "durable.input:tool.call",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "Call",
+        "Context",
+        "DurableId",
+        "FiniteNumber",
+        "Json",
+        "Limits",
+        "Parent",
+        "ProgressOptions",
+        "SafeUnsigned",
+        "String",
+        "Window",
+        "durable.input:tool.call"
+      ],
+      "proposed_digest_sha256": "b7e2b9013c504d9c13899442a04efecabb7afbf0d847fc6ecfe1d5c5030a2c5e"
+    },
+    "durable.output:tool.call": {
+      "root": "durable.output:tool.call",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "Control",
+        "Diagnostic",
+        "ExecutionResult",
+        "FiniteNumber",
+        "Image",
+        "InputContent",
+        "Json",
+        "SafeUnsigned",
+        "String",
+        "Text",
+        "Usage",
+        "UsageCost",
+        "durable.output:tool.call"
+      ],
+      "proposed_digest_sha256": "cd07acdde1ce21fcfc94566df34449166bc7227ef7bb83993285685e603c5bc8"
+    },
+    "durable.progress:tool.call": {
+      "root": "durable.progress:tool.call",
+      "profile": "durable.v1",
+      "minors": [
+        1
+      ],
+      "type_universe": [
+        "Bool",
+        "ByteChunk",
+        "Chunk",
+        "DetailsProgress",
+        "Diagnostic",
+        "DiagnosticProgress",
+        "Json",
+        "OutputProgress",
+        "Progress",
+        "SafeUnsigned",
+        "Skip",
+        "String",
+        "TextChunk",
+        "durable.progress:tool.call"
+      ],
+      "proposed_digest_sha256": "4a71b2665917a0ee6a611caa9edf461f14f1209e0a1c346ca504e31d11a7cc96"
+    }
+  },
+  "canonical_wire_inventory": {
+    "durable.v1": {
+      "methods": [
+        {
+          "method": "before_request",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "after_response",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "on_yield",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "after_tools",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_tool",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "after_tool",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "before_compact",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_UNARY"
+        },
+        {
+          "method": "tool.call",
+          "direction": "CORE_TO_EXTENSION",
+          "mode": "METHOD_STREAM"
+        }
+      ]
+    }
+  }
+}

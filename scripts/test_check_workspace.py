@@ -51,11 +51,13 @@ class WorkspaceCheckerTests(unittest.TestCase):
             with self.subTest(dependency=dependency):
                 self.assert_rejected(self.validate(all_features=metadata),'all-feature graph mismatch')
 
-    def test_generic_scheduler_stays_on_session_authority(self):
+    def test_durable_runtime_uses_selected_compositions_without_direct_execution_owners(self):
         internal=set(self.topology['production_crates'])
         package=self.package(self.default,'pi-durable')
-        self.assertEqual({item['name'] for item in package['dependencies'] if item['name'] in internal},{'pi-durable-session'})
-        for dependency in ('pi-ai-core','pi-agent','pi-coding-runtime','pi-mcp','pi-codemode','pi-sqlite'):
+        self.assertEqual({item['name'] for item in package['dependencies'] if item['name'] in internal},
+                         {'pi-durable-session','pi-ai','pi-coding-runtime','pi-mcp','pi-extension-protocol'})
+        for dependency in ('pi-ai-core','pi-ai-transport','pi-ai-providers','pi-agent-schema',
+                           'pi-agent-loop','pi-agent','pi-coding-session','pi-codemode','pi-sqlite'):
             metadata=copy.deepcopy(self.all_features)
             source=self.package(metadata,'pi-durable')
             node=next(item for item in metadata['resolve']['nodes'] if item['id']==source['id'])
@@ -225,7 +227,9 @@ class WorkspaceCheckerTests(unittest.TestCase):
                         'python3 conformance/catalog/v1.4.0/check.py --check',
                         'python3 conformance/catalog/v1.4.0/check_negative.py',
                         'python3 scripts/check_publication.py --self-check',
-                        'python3 scripts/check_publication.py'):
+                        'python3 scripts/check_publication.py',
+                        'node conformance/durable-v1.4.0/runtime.mjs --check',
+                        'node conformance/durable-v1.4.0/runtime.mjs --causal'):
             self.assertIn(command,text)
 
 

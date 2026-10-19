@@ -121,3 +121,23 @@ kind = "required"
 consumer = "pi-durable"
 dependency = "pi-durable-session"
 kind = "required"
+
+[[edge]]
+consumer = "pi-durable"
+dependency = "pi-ai"
+kind = "required"
+
+[[edge]]
+consumer = "pi-durable"
+dependency = "pi-coding-runtime"
+kind = "required"
+
+[[edge]]
+consumer = "pi-durable"
+dependency = "pi-mcp"
+kind = "required"
+
+[[edge]]
+consumer = "pi-durable"
+dependency = "pi-extension-protocol"
+kind = "required"

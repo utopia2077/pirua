@@ -5856,6 +5856,17 @@
           "-p",
           "pi-extension-protocol",
           "--test",
+          "durable_host",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-extension-protocol",
+          "--test",
           "endpoint_handshake",
           "--all-features"
         ],
@@ -6252,6 +6263,31 @@
           "path": "crates/pi-extension-protocol/tests/current_host.rs",
           "anchor": "test:retained_progress_budget_exhaustion_keeps_terminal_cancel_and_late_ownership",
           "cargo_target": "current_host"
+        },
+        {
+          "path": "crates/pi-extension-protocol/tests/durable_host.rs",
+          "anchor": "test:closed_inventory_and_async_progress_credit_wait_for_ack",
+          "cargo_target": "durable_host"
+        },
+        {
+          "path": "crates/pi-extension-protocol/tests/durable_host.rs",
+          "anchor": "test:cancellation_finishes_admitted_ack_without_starting_buffered_callbacks",
+          "cargo_target": "durable_host"
+        },
+        {
+          "path": "crates/pi-extension-protocol/tests/durable_host.rs",
+          "anchor": "test:terminal_waits_for_ack_and_failure_cannot_resolve_success",
+          "cargo_target": "durable_host"
+        },
+        {
+          "path": "crates/pi-extension-protocol/tests/durable_host.rs",
+          "anchor": "test:host_approvals_are_closed_and_fractional_intervals_are_preserved",
+          "cargo_target": "durable_host"
+        },
+        {
+          "path": "crates/pi-extension-protocol/tests/durable_host.rs",
+          "anchor": "test:durable_peer_request_cannot_reach_coding_snapshot_or_host_actions",
+          "cargo_target": "durable_host"
         },
         {
           "path": "crates/pi-extension-protocol/tests/endpoint_handshake.rs",
@@ -7653,6 +7689,17 @@
           "-p",
           "pi-durable-session",
           "--test",
+          "conversation_observation",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable-session",
+          "--test",
           "invariants",
           "--all-features"
         ],
@@ -7686,7 +7733,29 @@
           "-p",
           "pi-durable",
           "--test",
+          "bindings",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
           "close",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "context",
           "--all-features"
         ],
         [
@@ -7732,9 +7801,72 @@
           "--test",
           "review_regressions",
           "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "runtime_core",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "runtime_fixtures",
+          "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--test",
+          "views",
+          "--all-features"
         ]
       ],
       "evidence": [
+        {
+          "path": "crates/pi-durable-session/tests/conversation_observation.rs",
+          "anchor": "test:record_selection_requires_conversation_and_keeps_default_disabled",
+          "cargo_target": "conversation_observation"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/conversation_observation.rs",
+          "anchor": "test:baseline_captures_all_task_kinds_states_pages_and_exact_conversation",
+          "cargo_target": "conversation_observation"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/conversation_observation.rs",
+          "anchor": "test:baseline_and_registration_share_admission_with_documents_entries_and_tasks",
+          "cargo_target": "conversation_observation"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/conversation_observation.rs",
+          "anchor": "test:task_submission_nested_document_changes_forward_whole_publications_once",
+          "cargo_target": "conversation_observation"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/conversation_observation.rs",
+          "anchor": "test:record_observation_keeps_close_cutoff_while_complete_commits_drain",
+          "cargo_target": "conversation_observation"
+        },
+        {
+          "path": "crates/pi-durable-session/tests/conversation_observation.rs",
+          "anchor": "test:failed_record_commit_never_changes_task_snapshot_or_publishes_candidate",
+          "cargo_target": "conversation_observation"
+        },
         {
           "path": "crates/pi-durable-session/tests/invariants.rs",
           "anchor": "test:safe_ids_presence_and_decoded_domain",
@@ -7851,6 +7983,46 @@
           "cargo_target": "release_fixtures"
         },
         {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:native_remote_tool_preserves_metadata_channels_and_committed_progress",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:seven_hooks_use_actual_runtime_registry_and_native_decisions",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:direct_coding_tool_uses_injected_environment_and_ordinary_finalizer",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:mcp_preserves_full_result_and_host_client_lifecycle",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:remote_credit_follows_actual_memory_and_sqlite_progress_settlement",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:attachment_rejects_wrong_grants_runtime_conversation_and_retained_callbacks",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:disabled_nested_progress_has_no_frames_and_complete_terminal_channels",
+          "cargo_target": "bindings"
+        },
+        {
+          "path": "crates/pi-durable/tests/bindings.rs",
+          "anchor": "test:retirement_joins_admitted_backend_progress_and_skips_buffered_updates",
+          "cargo_target": "bindings"
+        },
+        {
           "path": "crates/pi-durable/tests/close.rs",
           "anchor": "test:close_seals_retained_session_during_join_and_drains_admitted_publication_only",
           "cargo_target": "close"
@@ -7869,6 +8041,21 @@
           "path": "crates/pi-durable/tests/close.rs",
           "anchor": "test:scheduler_close_waiter_cancellation_does_not_cancel_join_or_pending_reset",
           "cargo_target": "close"
+        },
+        {
+          "path": "crates/pi-durable/tests/context.rs",
+          "anchor": "test:frozen_runtime_context_cases_through_public_session",
+          "cargo_target": "context"
+        },
+        {
+          "path": "crates/pi-durable/tests/context.rs",
+          "anchor": "test:empty_cutoff_fork_and_detached_snapshots",
+          "cargo_target": "context"
+        },
+        {
+          "path": "crates/pi-durable/tests/context.rs",
+          "anchor": "test:positional_system_rules_keep_original_baseline_provenance",
+          "cargo_target": "context"
         },
         {
           "path": "crates/pi-durable/tests/initializer.rs",
@@ -7974,6 +8161,116 @@
           "path": "crates/pi-durable/tests/review_regressions.rs",
           "anchor": "test:exhausted_abort_guard_does_not_report_an_unsuccessful_backend_commit",
           "cargo_target": "review_regressions"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:real_native_generation_admission_and_receipts",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:real_native_model_tool_round",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:after_tool_owned_replacement_controls_retained_output_provenance",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:event_attachment_uses_current_held_task_baseline_on_existing_mount",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:event_record_only_fault_and_last_public_drop_during_callback",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:automatic_threshold_background_and_overflow_compaction_use_real_tasks",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_core.rs",
+          "anchor": "test:progress_host_callbacks_reenter_without_locking_out_progress_or_close",
+          "cargo_target": "runtime_core"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_fixtures.rs",
+          "anchor": "test:frozen_runtime_inputs_execute_on_both_native_backends",
+          "cargo_target": "runtime_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_fixtures.rs",
+          "anchor": "test:integer_validation_projection_preserves_input_and_other_diagnoses",
+          "cargo_target": "runtime_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_fixtures.rs",
+          "anchor": "test:host_flush_joins_an_admitted_backend_write",
+          "cargo_target": "runtime_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/runtime_fixtures.rs",
+          "anchor": "test:parallel_model_tools_keep_completion_order_and_call_order_at_their_boundaries",
+          "cargo_target": "runtime_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:frozen_source_mounted_publications_replayed_through_real_session_writes",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:absent_docs_selected_singletons_and_one_batch_with_real_ops",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:heads_keep_currently_mounted_suffix_and_forks_follow_only_own_commits",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:incarnation_retirement_recreation_and_fork_copies_are_immutable",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:structural_noops_survive_and_101st_pending_frame_converges",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:listeners_are_serialized_failures_isolated_and_close_retains_values",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:stop_cancel_drop_and_version_rejection",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:close_seals_mounts_before_admitted_commit_and_waiting_acquisition",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:stopped_watch_releases_last_mount_and_root_replace_prefixes_exactly",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:first_hydration_rejects_state_and_watch_when_close_seals_during_read",
+          "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/tests/views.rs",
+          "anchor": "test:last_public_started_watch_clone_releases_mount_while_callback_finishes",
+          "cargo_target": "views"
         }
       ],
       "limitations": []

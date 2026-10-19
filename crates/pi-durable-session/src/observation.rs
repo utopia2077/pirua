@@ -407,12 +407,19 @@ pub struct ObservationQuery {
     pub scopes: Vec<Scope>,
     pub addresses: Vec<DocumentAddress>,
     pub conversation: Option<ConversationId>,
+    /// Include all current conversation tasks and publications attributed to that
+    /// conversation, even when selected documents/entries have no change.
+    /// Requires `conversation`; disabled by default.
+    pub conversation_records: bool,
 }
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ObservationSnapshot {
     pub conversation: Option<ConversationRecord>,
     pub documents: BTreeMap<DocumentAddress, StoredDocument>,
     pub entries: Vec<EntryRecord>,
+    /// Detached current records of all task kinds/statuses in the conversation.
+    /// Empty when `ObservationQuery::conversation_records` is disabled.
+    pub tasks: BTreeMap<TaskId, TaskRecord>,
 }
 #[derive(Clone, Debug)]
 pub struct ObservationFrame {
@@ -448,15 +455,23 @@ impl Observer {
             return;
         };
         let mut relevant = false;
+        let record_conversation = self
+            .query
+            .conversation
+            .filter(|_| self.query.conversation_records);
         for change in &publication.changes {
             match change {
                 CommitChange::Document {
                     record,
+                    conversation_id,
                     version,
                     value,
                     deltas_since_base,
                     ..
                 } => {
+                    if record_conversation.is_some() && record_conversation == *conversation_id {
+                        relevant = true;
+                    }
                     let address = record.identity.address();
                     if self.selected(&address) {
                         relevant = true;
@@ -482,10 +497,14 @@ impl Observer {
                 }
                 CommitChange::DocumentCopy {
                     record,
+                    conversation_id,
                     version,
                     value,
                     ..
                 } => {
+                    if record_conversation == Some(*conversation_id) {
+                        relevant = true;
+                    }
                     let address = record.identity.address();
                     if self.selected(&address) {
                         relevant = true;
@@ -499,6 +518,17 @@ impl Observer {
                             },
                         );
                     }
+                }
+                CommitChange::Table(StorageWrite::Task { value })
+                    if record_conversation == Some(value.conversation_id) =>
+                {
+                    relevant = true;
+                    self.snapshot.tasks.insert(value.id, value.clone());
+                }
+                CommitChange::Table(StorageWrite::Submission { value })
+                    if record_conversation == Some(value.conversation_id) =>
+                {
+                    relevant = true;
                 }
                 CommitChange::Table(StorageWrite::Entry { value })
                     if self.query.conversation == Some(value.conversation_id) =>

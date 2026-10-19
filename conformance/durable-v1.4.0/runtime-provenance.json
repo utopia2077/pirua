@@ -1,0 +1,165 @@
+{
+  "upstreamTag": "v1.4.0",
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "execution": "Independent future upstream evidence: actual published 1.4.0 Harness conversation runtime with scripted provider transport and registered local tools/hooks. No native runtime implementation or acceptance.",
+  "runtime": {
+    "node": "v26.8.1",
+    "npm": "11.19.0",
+    "nodeSqlite": "3.53.4"
+  },
+  "sharedPackageIdentity": {
+    "packageLockSha256": "608226d8577881af79480c884c8473dc83854d9f109c9064ca081476fd3c0d92",
+    "sessionProvenanceSha256": "06769acd79402de63e2ec961f710c7d8cb8d31be8b52a9eec2d11eb92c1cba67",
+    "schedulerProvenanceSha256": "a765c446b83e587c7521dda74b0ea34d9f47f01c8e9baf33d872e010049dbd83",
+    "newInstallations": 0,
+    "frozenPriorFiles": {
+      ".gitignore": "b1e2d2275da6874aaddb5e6c1607c9c04f181bf488f1514b701afb4f61fcb344",
+      "README.md": "50b7fa60c5958ff5caa15782cf00f988ed46ec26a280f2198b29b4b4b5d79e34",
+      "case-index.json": "4dc4f996586b39d4787cad6a5d1344c5a51a6d370b7e33d27b4232d635121dfd",
+      "causal-check.mjs": "61802693d77e96df69d8200bd933e030b794fd311b10219d3ddf96d7337be2fd",
+      "chord-attestations.json": "56a51f151889415ac32673ff20421d3dfd13982d42051a3b9ed54fca6104715c",
+      "package-lock.json": "608226d8577881af79480c884c8473dc83854d9f109c9064ca081476fd3c0d92",
+      "package.json": "5f6440a44ff9ef6d4a35c6e71b920e3763192777019027fbab05a2e02eb80e7c",
+      "pi-durable-attestations.json": "a9902dc2db1401e8c9b3daf86cdd225852c88c3aeb6654dd84d434ce01d26b61",
+      "provenance.json": "06769acd79402de63e2ec961f710c7d8cb8d31be8b52a9eec2d11eb92c1cba67",
+      "runner.mjs": "8b965dce2d656984c6c39cfe55265752d3da0dd77e8c7b184e5bf7fb1cc7f3b8",
+      "scheduler-case-index.json": "aefe0952a155ae7aaf1fe0509d3e49d39079df5181af4f4a5019af7c780e166e",
+      "scheduler-provenance.json": "a765c446b83e587c7521dda74b0ea34d9f47f01c8e9baf33d872e010049dbd83",
+      "scheduler-runner.mjs": "21579e3a967090111f4b1d033ad30f648013e58296a43467ff23febd8b04cc66",
+      "scheduler-source-pin.json": "dbb557225a49d54f45427ba809058207c6b57696dadb3c98a0901bf69c7d5139",
+      "scheduler.md": "7a3f34469fae17fedd4a3a66a1cd8e5d3ae19cf1c7ab1ff6a9cd966f6345dfb1",
+      "scheduler.mjs": "53acff874d7c09a3d3c75f42c59be6c08ed1bdc71668c54c39404608063be1dd",
+      "session.mjs": "717be1b5c72eba8da58d1e0ed91617d7f415156005ea2898c62b93c7fc965a0f",
+      "setup.mjs": "c33fde50cc079f3563c5802b668942d4ff50ebdaeb2d167b540786e1356647a3",
+      "source-pin.json": "3a51a09e927b73cdf7d9e801be0a9b83904be15fa8aa6efcfb04e150f3db8dcd",
+      "trace-codec.mjs": "b8d576daf21cba4906ea309e7b4b11a3ea3b5fbdbbf91a30d6a84a360b12ea01",
+      "fixtures/native-contract.json": "d9f6c8a91f0e9b557eb44e00cc9059e1afe7d424d8f6f225dc718c298c64599d",
+      "fixtures/scheduler-inputs.json": "d673ddeff82f7418420ceefc13fa1e30cf43e084db98da09ac89feeced27f5f3",
+      "fixtures/scheduler-schema.json": "8159f0c6193328c004cd67de62c85b0496ce88d95dc0ed67836c1ad173e0645a",
+      "fixtures/scheduler.json": "4a475d1bf49ebbc41315798e36f16a2fd470f1d2b8ec6ee683373db62214283b",
+      "fixtures/schema.json": "7ffa0951186ade6b252c7b46f5432f0addee465fdfade323675a045d03cbdff7",
+      "fixtures/session-inputs.json": "0a8126c74932fc2ce472e44798e720fb584b78f9a344d2da0b20d774ce638275",
+      "fixtures/session.json": "71775f4546feef4d96dde3144a079444fadf2d32ce5df1f22997f8ddaed58f77"
+    }
+  },
+  "packages": {
+    "@earendil-works/pi-durable": {
+      "version": "1.4.0",
+      "integrity": "sha512-EtIyXH1MBSXdJSkodmy+CYXuwfve3gPrD4GNCZ0XmuRWLPupwRlNQ7fdaXjRcLoKb6SWkT/yEzK+sMmrqvYK+Q==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/pi-durable/-/pi-durable-1.4.0.tgz",
+      "attestation": "pi-durable-attestations.json",
+      "attestationSha256": "a9902dc2db1401e8c9b3daf86cdd225852c88c3aeb6654dd84d434ce01d26b61"
+    },
+    "@earendil-works/chord": {
+      "version": "1.4.0",
+      "integrity": "sha512-dTbgyz4xgDS5KAUFx1bFENqj0Cr1N3tYxJJOYStc6g6HS78FSBZydyoCwLoddiQRF+VgRS0fpgAi+iKxjZ3BQA==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/chord/-/chord-1.4.0.tgz",
+      "attestation": "chord-attestations.json",
+      "attestationSha256": "56a51f151889415ac32673ff20421d3dfd13982d42051a3b9ed54fca6104715c"
+    },
+    "@earendil-works/pi-ai": {
+      "version": "1.4.0",
+      "integrity": "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz",
+      "attestation": "runtime-ai-attestations.json",
+      "attestationSha256": "c5d2747ea0dc77394fed0180751ee6161f008f80ad289e43068e361712605041"
+    }
+  },
+  "runtimeAiArchive": {
+    "repositoryPath": "conformance/catalog/v1.4.0/pi-ai-1.4.0.tgz",
+    "sha256": "b40e2ba8bb6fc332908f8b96e837dc2d1fdfb45eb9cd382f5aed111462981e3c",
+    "association": "All installed AI JavaScript/manifests matched the existing release archive byte-for-byte before pinning"
+  },
+  "counts": {
+    "cases": 18,
+    "executions": 30,
+    "memoryAndSqliteCases": 12,
+    "sqliteOnlyCases": 6,
+    "liveNormalCloseReopenCases": 6,
+    "seededRecoveryCases": 0,
+    "taggedSourceFingerprints": 77,
+    "releaseFingerprints": 326,
+    "addedAiReleaseFingerprints": 201,
+    "fixtureBytes": 2086092,
+    "scalarStringValuesAndKeys": 55004,
+    "maximumJsonDepth": 19
+  },
+  "hostBoundary": {
+    "providerIdentity": "Explicit fixture-session-<conversation ID> through actual conversationCreated callback and ProviderDoc public commit; no default UUID claim",
+    "providerMessages": "Fixed injected wall timestamp and explicit durationMs 0 supplied by scripted external provider",
+    "schedulerClock": "Injected wall time starts 1000 and moves only through explicit advance; source scheduler owns sleep deadline semantics",
+    "toolDurationClock": "Process-local controlled nondecreasing performance.now; separate from scheduler wall clock, no real elapsed-performance claim",
+    "sourcePatches": 0
+  },
+  "verification": [
+    "node conformance/durable-v1.4.0/runtime.mjs --check: 18 cases / 30 release/backend executions",
+    "PIRUA_UPSTREAM_ROOT=/path/to/pi node conformance/durable-v1.4.0/runtime.mjs --check: all77 tagged source/test/spec fingerprints verified",
+    "node conformance/durable-v1.4.0/runtime.mjs --causal: actual --check rejects changed duplicate submission identity",
+    "Two consecutive node conformance/durable-v1.4.0/runtime.mjs --write generations produced identical fixture SHA-256",
+    "Existing Python jsonschema Draft202012Validator validates runtime inputs and complete trace; index case IDs and related test names verified against immutable tagged tests",
+    "Strict UTF-8 traversal verifies all55004 string values/keys scalar; maximum JSON depth19",
+    "node conformance/durable-v1.4.0/session.mjs --check: 38 cases / 61 release/backend executions",
+    "node conformance/durable-v1.4.0/scheduler.mjs --check: 23 cases / 41 release/backend executions",
+    "All27 frozen prior hashes verified before every runtime run and at finalization"
+  ],
+  "limits": [
+    "Live normal Harness.close and SQLite reopen, no observed process crash or seeded runtime recovery",
+    "Source local ToolApi.details commit/await evidence only; no native extension transport-credit/framing/grants, MCP transport or Coding binding evidence",
+    "No CodeMode, JS/Jiti extension loader, live provider networking, migrations, ambiguous storage fault, every cancellation race, all queue/failure-inbox permutations, missing-model recovery, concurrent nested-key or nested recovery evidence",
+    "Manual and stale-reset compaction only; automatic background/blocking/overflow compaction and compaction retries/recovery unobserved",
+    "Experimental agent events and view overflow/backpressure/remount permutations unobserved",
+    "Default UUID generation and real performance outside controlled host comparison boundary",
+    "Reports keep category/message without stacks; request captures omit live signal and telemetry callbacks",
+    "Published JavaScript executed; tagged TypeScript and whole upstream test suite not executed",
+    "Existing npm SLSA payload/digest association checked, cryptographic signature trust not independently reverified"
+  ],
+  "observedSourceSpecContradictions": [],
+  "artifacts": {
+    "runtime.mjs": "48219d22bc8228ad9de269d083c9c993cdd4eec67e2e652e885c9fe1512fbdd7",
+    "runtime-runner.mjs": "9025063a7b8b1e2fb19c7f83ca9e593151a8b0c03b68952be961d90f371707cb",
+    "runtime.md": "5b509a1ddd5a7395025f909b4efa1a32094da824f7810406abdfc230a826882d",
+    "runtime-case-index.json": "c0d3a0d7dc8ca3563b5b07bf58e6439ffc31c69032d8fcb60c795803282b593e",
+    "runtime-source-pin.json": "a54634e29c49db3605a55c7a1affac8ea9b1dd9a84c968f18f2a0477c0d1e6bb",
+    "runtime-ai-attestations.json": "c5d2747ea0dc77394fed0180751ee6161f008f80ad289e43068e361712605041",
+    "fixtures/runtime-inputs.json": "02350e7f48c02e62b79acf1938a4cb84f07af86a478b83d6a5563d331aff47df",
+    "fixtures/runtime.json": "690a058107ef2744702d713593f3b6cd24077783cda6f888fb18edffa9f14c6a",
+    "fixtures/runtime-schema.json": "3921bdc54f8b7484f5dab94551cd65dfa5de3b5fad9beb410b1396c684a93805"
+  },
+  "inputCorrections": [
+    {
+      "reason": "The frozen runtime-generation-pinned-partial-reopen input used the undeclared timeout key. The pinned published/tagged 1.4.0 ConversationStreamOptions and recovery test use timeoutMs.",
+      "changes": "Rename only timeout to timeoutMs at initial stream value1234 and later host stream value9999; preserve both values. Regenerate expected observations solely with unchanged runtime.mjs --write executing the locked published release.",
+      "taggedEvidence": [
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/src/harness/types.ts:486",
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/test/harness-generation-recovery.test.ts:94,106,116"
+      ],
+      "preimageArtifacts": {
+        "fixtures/runtime-inputs.json": "fb94410b629793f98a90ea7a94a7f62625040d9d26aefaea339075ffee32e780",
+        "fixtures/runtime.json": "8c22025a4d93e36d6ce8c5b1d23bf8d55bc4f5f45ff9b6e8c2568789ad171bb8",
+        "runtime-provenance.json": "0235f7223ce6525107512aa176e65b704be7c191a45b7d9837f2fe26d9c6c16a"
+      },
+      "observedDelta": "All17 other input and expected case objects are unchanged. The corrected runtime fixture differs only at8 timeout-to-timeoutMs key names across embedded input2, checkpoint observation1, changed-settings observation1, provider requests2 and checkpoint publications2; all values and other bytes are unchanged.",
+      "determinism": "Two consecutive corrected --write generations produced identical2078885-byte fixture SHA-256 03a918c62b4f8690040e2e29ca289e7eb0caddeca215b64415fe49246aee31e6.",
+      "preservedEvidence": "The pre-correction artifact hashes are recorded above. All17 unaffected cases and all source runners, schemas, lock and package identities remain unchanged. No native implementation was used to derive the regenerated observations."
+    },
+    {
+      "reason": "Parallel model tools commit independent results in actual completion order. The validation-only scenario previously assumed one observed raw sibling order without requesting sequential execution.",
+      "changes": "Add only input.settings.toolExecution=\"sequential\" to runtime-tool-validation-revalidation; regenerate observations with unchanged runtime.mjs --write executing the locked published release.",
+      "taggedEvidence": [
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/docs/spec.md:4290-4297",
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/docs/spec.md:277-281",
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/docs/spec.md:2949-2951",
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/src/harness/generation.ts",
+        "4a080252f06caf63a525d7873c5d94d3c23887e0:packages/durable/src/harness/tool.ts"
+      ],
+      "preimageArtifacts": {
+        "fixtures/runtime-inputs.json": "73643b497a136a7cc3d0a6e737bc343523766497e3b958cf393e9bda85ba2e0b",
+        "fixtures/runtime.json": "03a918c62b4f8690040e2e29ca289e7eb0caddeca215b64415fe49246aee31e6",
+        "runtime-provenance.json": "0423dd9692b389bc4a9aca77e724db1440d1bf9f67c20a37f69926f5c0e7e5a6"
+      },
+      "observedDelta": "All17 other input and expected case objects remain equal. The selected case still validates both initial and hook-replaced arguments and executes no tool effect; its sequential scheduling, allocated record identities, publications and request capture come from the actual release.",
+      "determinism": "Two consecutive corrected --write generations produced identical fixture SHA-256 690a058107ef2744702d713593f3b6cd24077783cda6f888fb18edffa9f14c6a.",
+      "limits": "This source scenario establishes sequential validation behavior; it does not establish a fixed raw-history order for default parallel siblings. Native gated parallel execution has separate property evidence."
+    }
+  ]
+}

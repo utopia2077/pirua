@@ -33,7 +33,7 @@ store is dropped. Neither backend reads JSONL or converts older schemas.
 
 Coding tools include local read, write, edit, bash, find, grep and ls, with
 explicit execution environment and output limits. Runtime-independent tool
-operations are reusable by a later Durable adapter. MCP provides stdio and
+operations are reused by the native Durable adapter. MCP provides stdio and
 Streamable HTTP clients and explicit OAuth; CodeMode uses one local worker.
 The host chooses which tools a session exposes and supplies executable paths,
 credentials, transport configuration and process policy.
@@ -57,8 +57,25 @@ Session stores task records without executing handlers. The generic scheduler in
 `pi-durable` adds persistent task definitions, invocation leases, ownership and wait
 graphs, sleep, cancellation and recovery over this single persistence authority.
 Its [contract](contracts/durable-scheduler.md) distinguishes normal close from
-interruption and describes the selected source evidence. The conversation runtime
-and persistent local CodeMode journals are the remaining Durable implementation. The old
+interruption and describes the selected source evidence.
+
+The [conversation runtime](contracts/durable-runtime.md) adds initialized builtin
+documents, an immutable phase registry, host input receipts/queues, pinned model
+generation, retry/deferred recovery, ordinary and keyed nested tools, committed
+progress, usage and manual/automatic compaction. It owns its execution policy and
+constructs neither Agent nor CodingSession. [Context and views](contracts/durable-views.md)
+project committed history and five builtin documents; agent events consume coherent
+current view/task baselines and complete publications. Pending watch/event delivery
+converges after 100 batches, while lossless internal observation ingress can grow.
+
+[Ordinary native bindings](contracts/durable-bindings.md) call existing CodingTool
+operations directly, use a host-owned initialized MCP client, and support the closed
+`durable.v1` native extension profile with seven hooks and streaming tools. These
+compositions do not claim a literal port of upstream Durable's JavaScript APIs,
+tools or environment modules. Public live TaskGraph mount/watch, Durable-specific
+telemetry schema spans/events/metrics and persistent local CodeMode journals remain
+deferred. Shared AI RequestRuntime propagation and native `on_report` are available;
+they do not implement that telemetry schema. The old
 experimental Harness has been retired; a temporary compatibility layer is not
 part of this upgrade.
 

@@ -1,0 +1,2745 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "cases": [
+    {
+      "id": "runtime-admission-dedup-inbox",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/harness-submissions.test.ts",
+          "packages/durable/test/harness-inbox.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "first answer",
+              "gate": "busy"
+            },
+            {
+              "text": "follow-up answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "first",
+              "requestId": "r1"
+            },
+            "as": "first"
+          },
+          {
+            "op": "untilRequests",
+            "count": 1
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "ignored duplicate",
+              "requestId": "r1"
+            },
+            "label": "duplicate"
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "rejected",
+              "whenBusy": "reject"
+            },
+            "errorExpected": true
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "write",
+              "requestId": "note",
+              "entry": {
+                "kind": "note",
+                "data": {
+                  "visible": "immediate"
+                }
+              }
+            },
+            "as": "note"
+          },
+          {
+            "op": "status",
+            "id": "$note"
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "follow up",
+              "whenBusy": "followUp"
+            },
+            "as": "follow"
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "write",
+              "entry": {
+                "kind": "context-note",
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "passive context",
+                    "timestamp": 1000
+                  }
+                ]
+              }
+            },
+            "as": "queuedWrite"
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "withdraw me",
+              "whenBusy": "followUp"
+            },
+            "as": "withdraw"
+          },
+          {
+            "op": "abortSubmission",
+            "id": "$withdraw"
+          },
+          {
+            "op": "status",
+            "id": "$withdraw"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "release",
+            "name": "busy"
+          },
+          {
+            "op": "wait",
+            "id": "$first"
+          },
+          {
+            "op": "wait",
+            "id": "$follow"
+          },
+          {
+            "op": "wait",
+            "id": "$queuedWrite"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "requests"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-context-edits-normalization",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-context.test.ts",
+          "packages/durable/test/harness-generation.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "normalized answer"
+            }
+          ]
+        },
+        "sections": [
+          {
+            "key": "baseline",
+            "text": "Source baseline"
+          }
+        ],
+        "operations": [
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "first",
+                  "timestamp": 1000
+                }
+              ]
+            },
+            "as": "first"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "omitted",
+                  "timestamp": 1000
+                }
+              ]
+            },
+            "as": "omitted"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "edit",
+              "edits": [
+                {
+                  "target": "$first.id",
+                  "action": "replace",
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": "first v2",
+                      "timestamp": 1000
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "edit",
+              "edits": [
+                {
+                  "target": "$first.id",
+                  "action": "replace",
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": "first v3",
+                      "timestamp": 1000
+                    }
+                  ]
+                },
+                {
+                  "target": "$omitted.id",
+                  "action": "omit"
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "toolCall",
+                      "id": "b",
+                      "name": "tool-b",
+                      "arguments": {}
+                    },
+                    {
+                      "type": "toolCall",
+                      "id": "a",
+                      "name": "tool-a",
+                      "arguments": {}
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "toolUse",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            },
+            "as": "call"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "toolResult",
+                  "toolCallId": "a",
+                  "toolName": "tool-a",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "a result"
+                    }
+                  ],
+                  "isError": false,
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "host.system",
+              "model": [
+                {
+                  "role": "system",
+                  "sections": {
+                    "position": "Keep position."
+                  },
+                  "content": "",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "toolResult",
+                  "toolCallId": "orphan",
+                  "toolName": "other",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "orphan result"
+                    }
+                  ],
+                  "isError": false,
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "aborted"
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "aborted",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "error"
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "error",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "deferred"
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "deferred",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "entries",
+            "label": "raw-history"
+          },
+          {
+            "op": "context",
+            "label": "active-model-context"
+          },
+          {
+            "op": "context",
+            "at": "$call.id",
+            "label": "as-of-cut-call"
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "normalize for provider"
+            },
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-context-baseline-identity-head-edits",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-context.test.ts",
+          "packages/durable/test/harness-compaction.test.ts"
+        ]
+      },
+      "input": {
+        "operations": [
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "kept",
+                  "timestamp": 1000
+                }
+              ]
+            },
+            "as": "kept"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "omitted by older head",
+                  "timestamp": 1000
+                }
+              ]
+            },
+            "as": "omit"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "older-head",
+              "head": "$kept.id",
+              "edits": [
+                {
+                  "target": "$omit.id",
+                  "action": "omit"
+                }
+              ]
+            },
+            "as": "olderHead"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "prior answer"
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "pi.system",
+              "model": [
+                {
+                  "role": "system",
+                  "content": "",
+                  "sections": {
+                    "cwd": "/fixture"
+                  },
+                  "timestamp": 1000
+                }
+              ]
+            },
+            "as": "retained"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "newer-head",
+              "head": "$kept.id",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "summary",
+                  "timestamp": 1000
+                }
+              ]
+            },
+            "as": "newerHead"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "next",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "pi.system",
+              "model": [
+                {
+                  "role": "system",
+                  "content": "",
+                  "sections": {
+                    "preamble": "Baseline."
+                  },
+                  "timestamp": 1000
+                }
+              ],
+              "edits": [
+                {
+                  "target": "$retained.id",
+                  "action": "omit"
+                }
+              ]
+            },
+            "as": "baseline"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "raw",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "done"
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "pi.system",
+              "model": [
+                {
+                  "role": "system",
+                  "content": "",
+                  "sections": {
+                    "preamble": null
+                  },
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "context",
+            "label": "original-baseline-leads"
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "edit",
+              "edits": [
+                {
+                  "target": "$baseline.id",
+                  "action": "replace",
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "",
+                      "sections": {
+                        "preamble": "Baseline."
+                      },
+                      "timestamp": 1000
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "op": "context",
+            "label": "equal-replacement-stays-positional"
+          },
+          {
+            "op": "context",
+            "at": "$baseline.id",
+            "label": "as-of-original-baseline"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-generation-pinned-partial-reopen",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-generation-recovery.test.ts",
+          "packages/durable/test/harness-prompt.test.ts",
+          "packages/durable/test/harness-generation.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "models": [
+            {
+              "id": "scripted-1",
+              "reasoning": true,
+              "contextWindow": 100000,
+              "maxTokens": 1000
+            },
+            {
+              "id": "scripted-2",
+              "reasoning": true,
+              "contextWindow": 100000,
+              "maxTokens": 1000
+            }
+          ],
+          "responses": [
+            {
+              "partial": "committed partial",
+              "text": "cancelled",
+              "gate": "old-stream"
+            },
+            {
+              "text": "recovered answer"
+            }
+          ]
+        },
+        "settings": {
+          "stream": {
+            "timeoutMs": 1234,
+            "headers": {
+              "x-fixture": "pinned"
+            }
+          }
+        },
+        "agent": {
+          "thinkingLevel": "high",
+          "instructions": "Old instructions"
+        },
+        "hooks": {
+          "generation": {
+            "appendUser": "hook supplied"
+          }
+        },
+        "sections": [
+          {
+            "key": "context",
+            "text": "Stable section"
+          }
+        ],
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "original input"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilRequests",
+            "count": 1
+          },
+          {
+            "op": "fireTimers"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "generation",
+              "message",
+              "content",
+              0,
+              "text"
+            ],
+            "equals": "committed partial"
+          },
+          {
+            "op": "tasks"
+          },
+          {
+            "op": "settings",
+            "change": {
+              "stream": {
+                "timeoutMs": 9999
+              }
+            }
+          },
+          {
+            "op": "configure",
+            "change": {
+              "model": {
+                "provider": "oracle",
+                "modelId": "scripted-2"
+              },
+              "instructions": "New instructions"
+            }
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "docs",
+            "label": "recovered-paused"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "runtime-generation-retry-sleep-reopen",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-generation.test.ts",
+          "packages/durable/test/harness-generation-recovery.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "stopReason": "error",
+              "errorMessage": "503 overloaded",
+              "text": ""
+            },
+            {
+              "text": "retry answer"
+            }
+          ]
+        },
+        "settings": {
+          "retry": {
+            "enabled": true,
+            "maxRetries": 2,
+            "baseDelayMs": 100
+          }
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "retry me"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "generation",
+              "retry"
+            ]
+          },
+          {
+            "op": "tasks"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "advance",
+            "to": 1099
+          },
+          {
+            "op": "requests",
+            "label": "early-no-retry"
+          },
+          {
+            "op": "wake"
+          },
+          {
+            "op": "advance",
+            "to": 1100
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "runtime-generation-deferred-poll-reopen",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-generation.test.ts",
+          "packages/durable/test/harness-generation-recovery.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "",
+              "stopReason": "deferred",
+              "deferred": {
+                "provider": "oracle",
+                "modelId": "scripted-1",
+                "api": "oracle-script",
+                "id": "deferred-response",
+                "pollAfterMs": 100,
+                "data": {
+                  "opaque": "held"
+                }
+              }
+            },
+            {
+              "op": "fetch",
+              "text": "",
+              "stopReason": "deferred",
+              "deferred": {
+                "provider": "oracle",
+                "modelId": "scripted-1",
+                "api": "oracle-script",
+                "id": "deferred-response",
+                "pollAfterMs": 100,
+                "data": {
+                  "opaque": "held"
+                }
+              }
+            },
+            {
+              "op": "fetch",
+              "text": "polled answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "defer me"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "generation",
+              "deferred"
+            ]
+          },
+          {
+            "op": "tasks"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "advance",
+            "to": 1099
+          },
+          {
+            "op": "requests",
+            "label": "early-no-poll"
+          },
+          {
+            "op": "advance",
+            "to": 1100
+          },
+          {
+            "op": "untilRequests",
+            "count": 2
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "generation",
+              "deferred",
+              "pollAt"
+            ],
+            "equals": 1200
+          },
+          {
+            "op": "advance",
+            "to": 1200
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "runtime-generation-deferred-abort",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-generation.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "",
+              "stopReason": "deferred",
+              "deferred": {
+                "provider": "oracle",
+                "modelId": "scripted-1",
+                "api": "oracle-script",
+                "id": "deferred-response",
+                "pollAfterMs": 100,
+                "data": {
+                  "opaque": "held"
+                }
+              }
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "defer then abort"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "generation",
+              "deferred"
+            ]
+          },
+          {
+            "op": "abortConversation"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-tool-prepare-hook-intent-usage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-tools.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "counter",
+            "name": "counter",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "n": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "n"
+              ],
+              "additionalProperties": false
+            },
+            "replay": "safe",
+            "prepare": {
+              "numberField": "n"
+            },
+            "actions": [
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "executed"
+                    }
+                  ],
+                  "details": {
+                    "checked": true
+                  },
+                  "usage": {
+                    "input": 11,
+                    "output": 7,
+                    "cacheRead": 3,
+                    "cacheWrite": 2,
+                    "totalTokens": 23,
+                    "cost": {
+                      "input": 0.11,
+                      "output": 0.07,
+                      "cacheRead": 0.03,
+                      "cacheWrite": 0.02,
+                      "total": 0.23
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "hooks": {
+          "tool": {
+            "before": {
+              "counter": {
+                "arguments": {
+                  "n": 2
+                }
+              }
+            }
+          }
+        },
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "call-1",
+                  "name": "counter",
+                  "arguments": {
+                    "n": "1"
+                  }
+                }
+              ],
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              }
+            },
+            {
+              "text": "tool answer",
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              }
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "run counter"
+            },
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "usage"
+          },
+          {
+            "op": "toolEvents"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-tool-validation-revalidation",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-tools.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "initial",
+            "name": "initial",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "n": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "n"
+              ],
+              "additionalProperties": false
+            },
+            "actions": [
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "must not run"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "replacement",
+            "name": "replacement",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "n": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "n"
+              ],
+              "additionalProperties": false
+            },
+            "actions": [
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "must not run"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "hooks": {
+          "tool": {
+            "before": {
+              "replacement": {
+                "arguments": {
+                  "n": "invalid"
+                }
+              }
+            }
+          }
+        },
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "invalid-initial",
+                  "name": "initial",
+                  "arguments": {
+                    "n": "invalid"
+                  }
+                },
+                {
+                  "id": "invalid-hook",
+                  "name": "replacement",
+                  "arguments": {
+                    "n": 1
+                  }
+                }
+              ]
+            },
+            {
+              "text": "validation answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "invalid tools"
+            },
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ],
+        "settings": {
+          "toolExecution": "sequential"
+        }
+      }
+    },
+    {
+      "id": "runtime-nested-tool-keyed-identities",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-nested-tools.test.ts",
+          "packages/durable/test/harness-tools.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "parent",
+            "name": "parent",
+            "replay": "safe",
+            "actions": [
+              {
+                "do": "nested",
+                "name": "child",
+                "key": "stable",
+                "args": {
+                  "n": 1
+                },
+                "as": "first"
+              },
+              {
+                "do": "nested",
+                "name": "child",
+                "key": "stable",
+                "args": {
+                  "n": 1
+                },
+                "as": "again"
+              },
+              {
+                "do": "nested",
+                "name": "child",
+                "key": "stable",
+                "args": {
+                  "n": 2
+                },
+                "catch": true
+              },
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "parent complete"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "id": "child",
+            "name": "child",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "n": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "n"
+              ],
+              "additionalProperties": false
+            },
+            "replay": "safe",
+            "actions": [
+              {
+                "do": "output",
+                "text": "nested output"
+              },
+              {
+                "do": "return",
+                "value": {
+                  "details": {
+                    "nested": true
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "hooks": {
+          "tool": {}
+        },
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "parent-call",
+                  "name": "parent",
+                  "arguments": {}
+                }
+              ]
+            },
+            {
+              "text": "nested answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "nested calls"
+            },
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-tool-progress-mounted-view",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-tools.test.ts",
+          "packages/durable/test/harness-view.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "progress",
+            "name": "progress",
+            "replay": "safe",
+            "actions": [
+              {
+                "do": "output",
+                "text": "retained output"
+              },
+              {
+                "do": "details",
+                "value": {
+                  "step": "committed"
+                }
+              },
+              {
+                "do": "gate",
+                "name": "progress-hold"
+              },
+              {
+                "do": "return",
+                "value": {}
+              }
+            ]
+          }
+        ],
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "progress-call",
+                  "name": "progress",
+                  "arguments": {}
+                }
+              ]
+            },
+            {
+              "text": "progress answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "watch",
+            "name": "mounted"
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "progress"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "progress",
+            "count": 1
+          },
+          {
+            "op": "advance",
+            "to": 1010
+          },
+          {
+            "op": "fireTimers"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "tools",
+              0,
+              "details"
+            ],
+            "equals": {
+              "step": "committed"
+            }
+          },
+          {
+            "op": "toolEvents",
+            "label": "credit-after-commit"
+          },
+          {
+            "op": "release",
+            "name": "progress-hold"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "watchFrames",
+            "name": "mounted"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-tool-replay-safe-safe",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-tools-recovery.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "effect",
+            "name": "effect",
+            "replay": "safe",
+            "actions": [
+              {
+                "do": "output",
+                "text": "durable partial"
+              },
+              {
+                "do": "gate",
+                "name": "effect-hold",
+                "firstRuns": 1
+              },
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "replayed result"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "effect-call",
+                  "name": "effect",
+                  "arguments": {}
+                }
+              ]
+            },
+            {
+              "text": "recovery answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "replay policy"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "effect",
+            "count": 1
+          },
+          {
+            "op": "fireTimers"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "tools",
+              0,
+              "output"
+            ],
+            "equals": "durable partial"
+          },
+          {
+            "op": "tasks"
+          },
+          {
+            "op": "installTool",
+            "id": "effect",
+            "replay": "safe"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "runtime-tool-replay-safe-unsafe",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-tools-recovery.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "effect",
+            "name": "effect",
+            "replay": "safe",
+            "actions": [
+              {
+                "do": "output",
+                "text": "durable partial"
+              },
+              {
+                "do": "gate",
+                "name": "effect-hold",
+                "firstRuns": 1
+              },
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "replayed result"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "effect-call",
+                  "name": "effect",
+                  "arguments": {}
+                }
+              ]
+            },
+            {
+              "text": "recovery answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "replay policy"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "effect",
+            "count": 1
+          },
+          {
+            "op": "fireTimers"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "tools",
+              0,
+              "output"
+            ],
+            "equals": "durable partial"
+          },
+          {
+            "op": "tasks"
+          },
+          {
+            "op": "installTool",
+            "id": "effect",
+            "replay": "unsafe"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "runtime-tool-replay-unsafe-safe",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-tools-recovery.test.ts"
+        ]
+      },
+      "input": {
+        "tools": [
+          {
+            "id": "effect",
+            "name": "effect",
+            "replay": "unsafe",
+            "actions": [
+              {
+                "do": "output",
+                "text": "durable partial"
+              },
+              {
+                "do": "gate",
+                "name": "effect-hold",
+                "firstRuns": 1
+              },
+              {
+                "do": "return",
+                "value": {
+                  "output": [
+                    {
+                      "type": "text",
+                      "text": "replayed result"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "provider": {
+          "responses": [
+            {
+              "calls": [
+                {
+                  "id": "effect-call",
+                  "name": "effect",
+                  "arguments": {}
+                }
+              ]
+            },
+            {
+              "text": "recovery answer"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "replay policy"
+            },
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "effect",
+            "count": 1
+          },
+          {
+            "op": "fireTimers"
+          },
+          {
+            "op": "untilLive",
+            "path": [
+              "tools",
+              0,
+              "output"
+            ],
+            "equals": "durable partial"
+          },
+          {
+            "op": "tasks"
+          },
+          {
+            "op": "installTool",
+            "id": "effect",
+            "replay": "safe"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "runtime-generation-yield-continuation",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-generation.test.ts",
+          "packages/durable/test/harness-tools.test.ts"
+        ]
+      },
+      "input": {
+        "hooks": {
+          "generation": {
+            "continueOnce": "finish the follow-up"
+          }
+        },
+        "provider": {
+          "responses": [
+            {
+              "text": "first yield"
+            },
+            {
+              "text": "final yield"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "continue once"
+            },
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-fork-as-of-agent-history-usage",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-context.test.ts",
+          "packages/durable/test/harness-generation.test.ts",
+          "packages/durable/test/harness-inbox.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "first answer",
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              }
+            },
+            {
+              "text": "second answer",
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              }
+            },
+            {
+              "text": "child answer",
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              }
+            }
+          ]
+        },
+        "agent": {
+          "instructions": "Original agent"
+        },
+        "operations": [
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "first"
+            },
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input",
+            "as": "firstReceipt"
+          },
+          {
+            "op": "configure",
+            "change": {
+              "instructions": "Later agent"
+            }
+          },
+          {
+            "op": "submit",
+            "value": {
+              "type": "input",
+              "content": "second"
+            },
+            "as": "second"
+          },
+          {
+            "op": "wait",
+            "id": "$second"
+          },
+          {
+            "op": "fork",
+            "at": "$firstReceipt.answer",
+            "as": "child"
+          },
+          {
+            "op": "docs",
+            "conversationId": "$child",
+            "label": "fork-rewound-docs"
+          },
+          {
+            "op": "context",
+            "conversationId": "$child"
+          },
+          {
+            "op": "submit",
+            "conversationId": "$child",
+            "value": {
+              "type": "input",
+              "content": "child input"
+            },
+            "as": "childInput"
+          },
+          {
+            "op": "wait",
+            "id": "$childInput"
+          },
+          {
+            "op": "entries",
+            "conversationId": "$child"
+          },
+          {
+            "op": "docs",
+            "conversationId": "$child"
+          },
+          {
+            "op": "usage"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-compaction-manual",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-compaction.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "Source summary",
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              }
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "old 0 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "answer 1 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "old 2 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "answer 3 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "old 4 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "answer 5 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "compact",
+            "instructions": "Keep decisions",
+            "as": "compact"
+          },
+          {
+            "op": "untilRequests",
+            "count": 1
+          },
+          {
+            "op": "waitTask",
+            "id": "$compact",
+            "as": "receipt"
+          },
+          {
+            "op": "wait",
+            "id": "$receipt.state.outcome.result.submissionId"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "usage"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "runtime-compaction-stale-reset",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/harness-compaction.test.ts"
+        ]
+      },
+      "input": {
+        "provider": {
+          "responses": [
+            {
+              "text": "Source summary",
+              "usage": {
+                "input": 11,
+                "output": 7,
+                "cacheRead": 3,
+                "cacheWrite": 2,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0.11,
+                  "output": 0.07,
+                  "cacheRead": 0.03,
+                  "cacheWrite": 0.02,
+                  "total": 0.23
+                }
+              },
+              "gate": "summary"
+            }
+          ]
+        },
+        "operations": [
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "old 0 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "answer 1 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "old 2 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "answer 3 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "user",
+                  "content": "old 4 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word ",
+                  "timestamp": 1000
+                }
+              ]
+            }
+          },
+          {
+            "op": "append",
+            "value": {
+              "kind": "history",
+              "model": [
+                {
+                  "role": "assistant",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "answer 5 word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word "
+                    }
+                  ],
+                  "api": "oracle-script",
+                  "provider": "oracle",
+                  "model": "scripted-1",
+                  "usage": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "totalTokens": 0,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  },
+                  "stopReason": "stop",
+                  "timestamp": 1000,
+                  "durationMs": 0
+                }
+              ]
+            }
+          },
+          {
+            "op": "compact",
+            "instructions": "Keep decisions",
+            "as": "compact"
+          },
+          {
+            "op": "untilRequests",
+            "count": 1
+          },
+          {
+            "op": "reset",
+            "handoff": "Fresh start"
+          },
+          {
+            "op": "release",
+            "name": "summary"
+          },
+          {
+            "op": "waitTask",
+            "id": "$compact",
+            "as": "receipt"
+          },
+          {
+            "op": "wait",
+            "id": "$receipt.state.outcome.result.submissionId"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "context"
+          },
+          {
+            "op": "docs"
+          },
+          {
+            "op": "usage"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    }
+  ]
+}

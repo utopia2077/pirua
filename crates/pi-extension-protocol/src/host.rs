@@ -305,10 +305,67 @@ impl HostConnection {
         method: String,
         payload: w::SchemaBoundValue,
         validator: Validator,
-        mut cancel: Pin<Box<dyn Future<Output = ()> + Send + '_>>,
+        cancel: Pin<Box<dyn Future<Output = ()> + Send + '_>>,
         credit: ProgressCredit,
         mut progress: impl FnMut(serde_json::Value) -> Result<(), Error> + Send,
     ) -> Result<serde_json::Value, Error> {
+        self.request_inner(
+            capability,
+            method,
+            payload,
+            validator,
+            cancel,
+            credit,
+            false,
+            move |value| std::future::ready(progress(value)),
+        )
+        .await
+    }
+    /// Await each downstream persistent acknowledgement before returning credit.
+    /// Cancellation seals callback admission while an already started callback
+    /// settles. Existing synchronous Release/Retain consumers keep their behavior.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn request_with_progress_ack<F, A>(
+        &self,
+        capability: w::CapabilityRef,
+        method: String,
+        payload: w::SchemaBoundValue,
+        validator: Validator,
+        cancel: Pin<Box<dyn Future<Output = ()> + Send + '_>>,
+        progress: F,
+    ) -> Result<serde_json::Value, Error>
+    where
+        F: FnMut(serde_json::Value) -> A + Send,
+        A: Future<Output = Result<(), Error>> + Send,
+    {
+        self.request_inner(
+            capability,
+            method,
+            payload,
+            validator,
+            cancel,
+            ProgressCredit::Release,
+            true,
+            progress,
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn request_inner<F, A>(
+        &self,
+        capability: w::CapabilityRef,
+        method: String,
+        payload: w::SchemaBoundValue,
+        validator: Validator,
+        mut cancel: Pin<Box<dyn Future<Output = ()> + Send + '_>>,
+        credit: ProgressCredit,
+        asynchronous_ack: bool,
+        mut progress: F,
+    ) -> Result<serde_json::Value, Error>
+    where
+        F: FnMut(serde_json::Value) -> A + Send,
+        A: Future<Output = Result<(), Error>> + Send,
+    {
         if !self.current() {
             return Err(Error::Closed);
         }
@@ -364,19 +421,34 @@ impl HostConnection {
             id,
             settled: false,
         };
+        let admit_progress = AtomicBool::new(true);
         let read = async {
             while let Some(reply) = receiver.recv().await {
                 match reply? {
                     Reply::Progress(v, bytes) => {
-                        progress(v)?;
-                        if credit == ProgressCredit::Release {
+                        if !admit_progress.load(Ordering::Acquire)
+                            || (asynchronous_ack && !self.current())
+                        {
+                            continue;
+                        }
+                        progress(v).await?;
+                        if credit == ProgressCredit::Release
+                            && admit_progress.load(Ordering::Acquire)
+                            && (!asynchronous_ack || self.current())
+                        {
                             self.shared
                                 .commands
                                 .try_send(Command::Credit(id, bytes))
                                 .map_err(|_| Error::Overloaded)?;
                         }
                     }
-                    Reply::Terminal(v) => return Ok(v),
+                    Reply::Terminal(v) => {
+                        return if asynchronous_ack && !self.current() {
+                            Err(Error::Closed)
+                        } else {
+                            Ok(v)
+                        };
+                    }
                     Reply::Started(_) => return Err(Error::Protocol),
                 }
             }
@@ -386,12 +458,30 @@ impl HostConnection {
         let result = tokio::select! {
             r=&mut read=>r,
             _=&mut cancel=>{
+                if asynchronous_ack {
+                    admit_progress.store(false, Ordering::Release);
+                    let _ = self.shared.commands.send(Command::Cancel(id,Error::Cancelled)).await;
+                    match (&mut read).await {
+                        Err(e) if !matches!(e, Error::Cancelled | Error::Closed) => Err(e),
+                        _ => Err(Error::Cancelled),
+                    }
+                } else {
                 let settle=async {self.shared.commands.send(Command::Cancel(id,Error::Cancelled)).await.map_err(|_|Error::Closed)?;(&mut read).await};
                 match tokio::time::timeout(self.config.io_timeout,settle).await {Ok(r)=>r,Err(_)=>{self.close();Err(Error::Cancelled)}}
+                }
             },
             _=tokio::time::sleep_until(deadline)=>{
+                if asynchronous_ack {
+                    admit_progress.store(false, Ordering::Release);
+                    let _ = self.shared.commands.send(Command::Cancel(id,Error::Deadline)).await;
+                    match (&mut read).await {
+                        Err(e) if !matches!(e, Error::Deadline | Error::Closed) => Err(e),
+                        _ => Err(Error::Deadline),
+                    }
+                } else {
                 let settle=async {self.shared.commands.send(Command::Cancel(id,Error::Deadline)).await.map_err(|_|Error::Closed)?;(&mut read).await};
                 match tokio::time::timeout(self.config.io_timeout,settle).await {Ok(r)=>r,Err(_)=>{self.close();Err(Error::Deadline)}}
+                }
             }
         };
         if result.is_ok() {
@@ -569,7 +659,7 @@ async fn run(
                         if calls.len()>=grant.wire().limits.as_ref().ok_or(Error::Protocol)?.in_flight_requests as usize {fail(Error::Overloaded);continue;}
                         let Some(contract)=grant.profiles().iter().find(|g|g.reference()==&start.capability) else {fail(Error::Forbidden);continue};
                         let Some((direction,mode))=contract.approved().registry().method(contract.approved().profile(),&start.method) else {fail(Error::Forbidden);continue};
-                        if contract.approved().profile()!="coding.v1" || direction!=profiles::Direction::CoreToExtension {fail(Error::Forbidden);continue;}
+                        if !matches!(contract.approved().profile(),"coding.v1"|"durable.v1") || direction!=profiles::Direction::CoreToExtension {fail(Error::Forbidden);continue;}
                         if !admit_rate(&mut rate, grant.wire().limits.as_ref().ok_or(Error::Protocol)?.requests_per_second) {fail(Error::Overloaded);continue;}
                         let stream=mode==profiles::Mode::Stream;
                         let l=grant.wire().limits.as_ref().ok_or(Error::Protocol)?;

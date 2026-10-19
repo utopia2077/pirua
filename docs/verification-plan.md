@@ -25,6 +25,8 @@ manifest freshness and proof registration are checked independently.
 | SQLite and Memory | Logical session projection, transaction rollback and reopen tests |
 | Durable Session | Release-backed storage/document/fork observations, native commit/cancellation/failure tests and SQLite reopen |
 | Durable scheduler | Release-backed task/ownership/wait/recovery observations, native interruption, cancellation, lifecycle and lease tests |
+| Durable conversation runtime and context/views | 18 source cases / 30 release/backend executions; actual native Memory/SQLite generation, tool, progress, recovery, context and view comparisons; separate event and automatic compaction tests |
+| Durable native bindings | Direct Coding operations, host-owned MCP discovery/calls, closed durable.v1 grants/hooks and credit after actual Memory/SQLite progress commits |
 | MCP | Actual stdio peer, loopback HTTP/OAuth, cancellation, correlation and shutdown tests |
 | Local CodeMode | Actual helper processes, capability/output/store limits and controlled delivery |
 | Language-neutral extensions | Actual protocol frames, grants, correlation, ordered hooks and native admission |
@@ -34,6 +36,15 @@ source/test anchors. `check_assembly.py` checks these definitions; it does not
 execute them or manufacture a passing receipt. Full Rust tests run their declared
 source oracles. Additional standalone oracle and causal commands are documented
 beside the corresponding fixtures.
+
+The Durable runtime source checks are
+`node conformance/durable-v1.4.0/runtime.mjs --check` and
+`node conformance/durable-v1.4.0/runtime.mjs --causal`; the full entry point runs
+both. They retain the frozen Session/scheduler observations and validate the
+runtime's independent release identities. Native integration targets cover
+conversation-record observation, context, views, runtime scenarios/fixtures and
+bindings; the extension suite also enrolls `durable_host`. Private output and
+attachment unit tests run through Cargo's ordinary all-target verification.
 
 ## Build quality
 
@@ -51,3 +62,9 @@ Language-level differences and omitted upstream products are explicit in crate
 coverage documents and [scope](scope.md). Live service behavior, account access,
 production performance and exactly-once external side effects are not established
 by this offline suite.
+Public live TaskGraph mount/watch, Durable-specific telemetry schema spans/events/
+metrics and persistent CodeMode remain deferred. Shared AI RequestRuntime
+propagation and native reports do not establish that schema's parity. Neither the
+runtime corpus nor native Coding/MCP/extension compositions certify every member
+of a mixed upstream file, literal JavaScript bindings/tools/environment APIs,
+every interleaving, an end-to-end memory bound or OS-crash recovery.

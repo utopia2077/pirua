@@ -42,6 +42,15 @@ Use `mutate` for native draft edits and `apply`/`apply_all` for exact decoded ba
 Document JSON never has a public mutable reference. No callback should reenter Session
 or perform external effects while holding its transaction.
 
+For conversation event projections, `observe(ObservationQuery { conversation: Some(id),
+conversation_records: true, ..Default::default() })` atomically captures current task
+records with the selected documents/active entries and registers their commit stream.
+`snapshot.tasks` contains all task kinds and states in that conversation. Record-only
+changes, including submissions and nested task documents, deliver the complete original
+publication even when selected view content is unchanged. The flag defaults to false;
+enabling it without a conversation returns a request error. Observation close/failure
+cutoffs and document selection remain the same.
+
 Tests consume immutable independent release fixtures under
 `conformance/durable-v1.4.0`; their expected values are owned separately. The backend
 and fault tests are local Rust tests and require no providers. SQLite supports only

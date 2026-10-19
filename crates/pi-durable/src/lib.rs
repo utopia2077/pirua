@@ -1,9 +1,14 @@
-//! Generic persistent task execution over the authoritative Durable Session.
+//! Durable conversation execution and generic persistent tasks over one authoritative Session.
+pub mod bindings;
 mod clock;
+pub mod context;
 mod definition;
 mod graph;
 mod invocation;
+mod runtime;
 mod scheduler;
+pub mod view;
+pub use runtime::*;
 
 pub use clock::*;
 pub use definition::*;

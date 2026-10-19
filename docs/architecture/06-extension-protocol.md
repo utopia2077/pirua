@@ -24,3 +24,13 @@ releases are separate from this pre-release implementation.
 
 The [current Coding profile](current-coding-extensions.md) specifies the exact
 method inventory, projection roots, handle lifetime and finite progress budget.
+
+The [native Durable profile](../contracts/durable-bindings.md) is `durable.v1`,
+kind `durable`, at protocol 1.1. It carries seven unary hooks and streaming
+`tool.call`, bound by authenticated grants to the actual runtime, conversation
+and current connection generation. Callbacks retain weak attachment/runtime
+custody. Stream credit follows the covering persistent progress commit; terminal
+delivery waits behind earlier admitted progress. Coding continues to use its
+existing Retain policy. Durable peers receive no storage, task, model or nested
+dispatch RPCs. This is a native composition and makes no upstream JavaScript
+extension or wire-parity claim.

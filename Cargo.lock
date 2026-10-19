@@ -1530,8 +1530,15 @@ dependencies = [
 name = "pi-durable"
 version = "0.0.0"
 dependencies = [
+ "base64 0.23.1",
  "futures-util",
+ "jsonschema",
+ "pi-ai",
+ "pi-coding-runtime",
  "pi-durable-session",
+ "pi-extension-protocol",
+ "pi-mcp",
+ "prost",
  "serde",
  "serde_json",
  "tokio",

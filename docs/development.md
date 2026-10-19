@@ -44,6 +44,7 @@ cargo check --workspace --all-targets --locked --offline
 cargo check --workspace --all-targets --all-features --locked --offline
 cargo run -p pi-agent --example offline_agent --locked --offline
 cargo run -p pi-coding-runtime --example headless_session --locked --offline
+cargo run -p pi-durable --example offline_durable --all-features --locked --offline
 ```
 
 The examples use local synthetic model responses. After all builds and helper
@@ -96,21 +97,32 @@ compilation, Clippy, tests and Rust documentation with warnings denied. See the
 [verification guide](verification-plan.md) for evidence boundaries. Live account
 access, paid calls and service availability are not tested.
 
-The Durable Session and generic scheduler suites can also run independently after
+The Durable Session, scheduler, conversation runtime and native binding suites can
+also run independently after
 their shared setup:
 
 ```sh
-cargo test -p pi-durable -p pi-durable-session --all-features --locked --offline
+cargo test -p pi-durable -p pi-durable-session -p pi-extension-protocol --all-features --locked --offline
 node conformance/durable-v1.4.0/session.mjs --check
 node conformance/durable-v1.4.0/causal-check.mjs
 node conformance/durable-v1.4.0/scheduler.mjs --check
 node conformance/durable-v1.4.0/scheduler.mjs --causal
+node conformance/durable-v1.4.0/runtime.mjs --check
+node conformance/durable-v1.4.0/runtime.mjs --causal
 ```
 
 The [Session oracle](../conformance/durable-v1.4.0/README.md) distinguishes
 published-package observations from the native allocation and Unicode contracts.
 The [scheduler oracle](../conformance/durable-v1.4.0/scheduler.md) documents its
 task scenarios, source identities and recovery evidence limits.
+The [runtime oracle](../conformance/durable-v1.4.0/runtime.md) provides 18 cases
+and 30 published release/backend executions. Native tests run the corresponding
+actual Memory/SQLite runtime scenarios and separately test bindings, automatic
+compaction, committed events and attachment lifetimes. Those source observations
+do not execute native extension/MCP transport or establish public TaskGraph,
+Durable telemetry schema or persistent CodeMode behavior. The runtime's
+[contract](contracts/durable-runtime.md) and [binding contract](contracts/durable-bindings.md)
+record the usable native APIs and remaining limits.
 
 ## Upstream drift
 

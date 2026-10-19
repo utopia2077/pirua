@@ -88,6 +88,10 @@ impl Registry {
     pub fn coding() -> Result<Self> {
         Self::from_bytes(include_bytes!("../schema/current/coding-v1.json"))
     }
+    /// Native Durable contracts have their own closed roots and AI admission.
+    pub fn durable() -> Result<Self> {
+        Self::from_bytes(include_bytes!("../schema/current/durable-v1.json"))
+    }
     fn from_bytes(source: &[u8]) -> Result<Self> {
         let document: Value = serde_json::from_slice(source).map_err(|_| Error::HostContract)?;
         let types = document["types"].as_object().ok_or(Error::HostContract)?;
@@ -914,6 +918,48 @@ pub struct ProfileApproval {
     pub exposure: Exposure,
 }
 impl ApprovedProfile {
+    /// Host-only native Durable approval. No peer can install a registry or tool.
+    pub fn durable(input: ProfileApproval) -> Result<Self> {
+        let registry = Registry::durable()?;
+        if input.profile != "durable.v1"
+            || input.kind != "durable"
+            || input.minors != BTreeSet::from([1])
+            || input.principal.is_empty()
+            || input.handler.is_empty()
+            || input.scope.is_empty()
+            || !input.exposure.leaves.is_empty()
+            || !input.exposure.public_headers.is_empty()
+            || !input.permissions.is_empty()
+            || match input.execution {
+                1 => registry
+                    .method("durable.v1", &input.name)
+                    .is_none_or(|(_, mode)| mode != Mode::Unary),
+                2 => {
+                    !input.name.starts_with("tool:")
+                        || input.name.len() <= 5
+                        || !matches!(input.replay, 1 | 2)
+                }
+                _ => true,
+            }
+            || !profile_mode(&input.profile, input.replay, input.execution)
+        {
+            return Err(Error::HostContract);
+        }
+        Ok(Self {
+            principal: input.principal,
+            kind: input.kind,
+            name: input.name,
+            profile: input.profile,
+            handler: input.handler,
+            minors: input.minors,
+            replay: input.replay,
+            execution: input.execution,
+            scope: input.scope,
+            permissions: input.permissions,
+            registry,
+            exposure: input.exposure,
+        })
+    }
     /// Host-only current Coding approval. The peer cannot choose this registry.
     pub fn coding(input: ProfileApproval) -> Result<Self> {
         if input.profile != "coding.v1"
@@ -958,7 +1004,7 @@ impl ApprovedProfile {
         })
     }
     pub fn new(input: ProfileApproval) -> Result<Self> {
-        if input.profile == "coding.v1" {
+        if matches!(input.profile.as_str(), "coding.v1" | "durable.v1") {
             return Err(Error::HostContract);
         }
         if [
@@ -1087,6 +1133,7 @@ impl ApprovedProfile {
 pub fn profile_mode(profile: &str, replay: i32, execution: i32) -> bool {
     match profile {
         "coding.v1" => matches!(replay, 1..=3) && matches!(execution, 1 | 2),
+        "durable.v1" => matches!(replay, 1..=3) && matches!(execution, 1 | 2),
         "hook.v1" => matches!(replay, 1..=3) && execution == 1,
         "provider.v1" => matches!(replay, 1 | 2) && execution == 2,
         "resource.v1" | "host-action.v1" => matches!(replay, 1..=3) && execution == 1,
@@ -1111,7 +1158,7 @@ impl ApprovedProfile {
         if !self.minors.contains(&minor) || bytes.len() > limits.bytes_length {
             return Err(Error::Limit);
         }
-        if self.profile == "coding.v1" {
+        if matches!(self.profile.as_str(), "coding.v1" | "durable.v1") {
             let (_, mode) = self
                 .registry
                 .method(&self.profile, method)
@@ -1125,7 +1172,8 @@ impl ApprovedProfile {
                 return Err(Error::Method);
             }
             let root = format!(
-                "coding.{}:{method}",
+                "{}.{}:{method}",
+                self.kind,
                 match stage {
                     Stage::Request => "input",
                     Stage::Progress => "progress",

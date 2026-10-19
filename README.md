@@ -45,7 +45,7 @@ If you know Pi, these are the main entry points into this workspace:
 | `packages/mcp` | [`pi-mcp`](crates/pi-mcp) | Reusable stdio and Streamable HTTP client with OAuth |
 | `packages/codemode` | [`pi-codemode`](crates/pi-codemode) | One local JavaScript worker with explicit tool capabilities |
 | Session/storage in `packages/durable` | [`pi-durable-session`](crates/pi-durable-session) | Committed records, documents, history, forks and SQLite or Memory storage |
-| Generic tasks in `packages/durable` | [`pi-durable`](crates/pi-durable) | Persistent task scheduling, ownership, waits, cancellation and recovery |
+| Conversation runtime and tasks in `packages/durable` | [`pi-durable`](crates/pi-durable) | Persistent scheduling, generation, tools, compaction, committed views/events and native bindings |
 | `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and process-local implementations |
 
 The [crate map](docs/architecture/02-crate-topology.md) explains ownership and
@@ -77,8 +77,15 @@ Coding session. The workspace delivers headless libraries; the CLI/TUI,
 JavaScript extension loader, JSONL storage and old-data import are outside its
 [scope](docs/scope.md). Durable's [Session and storage foundation](docs/contracts/durable-session.md)
 and [generic task scheduler](docs/contracts/durable-scheduler.md) are available
-independently. Its conversation runtime and persistent CodeMode integration are
-still being implemented. The retired experimental Harness
+independently. The [conversation runtime](docs/contracts/durable-runtime.md)
+adds generation, ordinary and nested tools, queues, usage and compaction over that
+same committed state. [Context and mounted views](docs/contracts/durable-views.md)
+and committed agent events expose the running conversation; [native bindings](docs/contracts/durable-bindings.md)
+reuse Coding operations, a host-owned MCP client and the `durable.v1` extension
+profile. Persistent CodeMode, public live TaskGraph mount/watch and the
+Durable-specific telemetry schema remain deferred. Shared AI telemetry propagation
+and native reports are available. These native compositions do not imply literal
+JavaScript API or complete upstream tools/environment parity. The retired experimental Harness
 is available in Git history.
 
 Conformance combines target-release source observations, native boundary tests

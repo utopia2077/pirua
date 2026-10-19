@@ -572,6 +572,11 @@ impl Session {
     pub async fn observe(&self, query: ObservationQuery) -> Result<ObservationSubscription> {
         let inner = self.inner.clone();
         self.read(move |s| {
+            if query.conversation_records && query.conversation.is_none() {
+                return Err(Error::request(
+                    "conversation record observation requires a conversation",
+                ));
+            }
             let mut documents = BTreeMap::new();
             for scope in &query.scopes {
                 for record in all_documents(s, scope.clone(), DocumentPoint::Current)? {
@@ -598,10 +603,27 @@ impl Session {
             } else {
                 (None, Vec::new())
             };
+            let mut tasks = BTreeMap::new();
+            if query.conversation_records {
+                let task_query = TaskQuery {
+                    conversation_id: query.conversation,
+                    ..TaskQuery::default()
+                };
+                let mut cursor = None;
+                loop {
+                    let page = s.scan_tasks(&task_query, 256, cursor.as_ref())?;
+                    tasks.extend(page.items.into_iter().map(|task| (task.id, task)));
+                    cursor = page.next;
+                    if cursor.is_none() {
+                        break;
+                    }
+                }
+            }
             let snapshot = ObservationSnapshot {
                 conversation,
                 documents,
                 entries: active_entries(&entries, None),
+                tasks,
             };
             let baseline = Arc::new(snapshot.clone());
             let queue = Queue::new();

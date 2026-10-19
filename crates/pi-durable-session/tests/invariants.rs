@@ -491,6 +491,7 @@ fn observation_captures_atomic_multi_document_baseline_and_each_commit() {
                     scopes: vec![Scope::Session],
                     addresses: vec![],
                     conversation: Some(c.id),
+                    conversation_records: false,
                 })
                 .await
                 .unwrap();

@@ -193,3 +193,21 @@ and retirement, captured before another commit changes latest-only content. The 
 may project/mount those frames and prefix document operations later without re-reading
 current storage or running foreign callbacks on the Session line. The source mutation
 line captures internal immutable data; all host delivery happens afterward.
+
+`ObservationQuery::conversation_records` defaults to false. When true it requires
+`conversation: Some(id)`; an absent conversation selection is a request error. This
+mode atomically includes every current task record of that exact conversation in
+`ObservationSnapshot::tasks`, a detached `BTreeMap<TaskId, TaskRecord>`, beside the
+document/entry baseline and subscription registration. No task-kind, state or runtime
+policy filter applies. Complete committed task replacements update that map; prior
+snapshots stay immutable. Disabled observers keep an empty task map and their existing
+document/entry filtering.
+
+In record mode any task, submission, entry or document change attributed to the
+conversation triggers one frame carrying the entire original immutable publication,
+including its unrelated changes. Task documents, including nested-call receipts, use
+the publication's existing conversation attribution. A matching unmounted document
+does not become a selected snapshot document. Thus event translation can observe
+record-only commits without inferring durable facts from view operations or racing a
+second table read. This mode shares the existing observation seal/failure cutoff;
+complete commit subscriptions retain their separate normal-close drain semantics.

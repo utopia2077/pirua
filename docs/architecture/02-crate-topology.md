@@ -20,7 +20,7 @@ All crates inherit the workspace toolchain, package settings and lints.
 | 13 | `pi-codemode` | Local JavaScript worker |
 | 14 | `pi-mcp` | Standalone MCP client |
 | 15 | `pi-durable-session` | Committed Durable records, documents, history and storage |
-| 16 | `pi-durable` | Persistent task scheduling, invocation leases and recovery |
+| 16 | `pi-durable` | Persistent task scheduling, conversation runtime, views/events and native bindings |
 
 ## Dependency graph
 
@@ -41,7 +41,14 @@ All crates inherit the workspace toolchain, package settings and lints.
 | `pi-codemode` | — | — |
 | `pi-mcp` | — | — |
 | `pi-durable-session` | `pi-sqlite` | — |
-| `pi-durable` | `pi-durable-session` | — |
+| `pi-durable` | `pi-durable-session`, `pi-ai`, `pi-coding-runtime`, `pi-mcp`, `pi-extension-protocol` | — |
+
+Durable executes its own persistent task machine over the single Session authority.
+It uses AI for model requests and typed messages, calls shared CodingTool operations
+directly, and attaches a host-owned MCP client or native extension connection.
+It does not construct Agent or CodingSession. The transitive Coding dependencies
+do not transfer their orchestration into Durable; direct Agent/loop, provider,
+SQLite and CodeMode edges are outside this boundary.
 
 ## Literal schema
 

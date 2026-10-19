@@ -1,0 +1,662 @@
+{
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "scope": "Related tagged tests/spec/implementation associations; whole upstream tests are not claimed executed. Expected observations come from actual published release execution only.",
+  "cases": [
+    {
+      "id": "runtime-admission-dedup-inbox",
+      "specSections": [
+        "6 Submissions and inbox"
+      ],
+      "relatedTaggedTests": [
+        "deduplicates request IDs per conversation before any write",
+        "places idle input, and rejects busy input with whenBusy reject without writing",
+        "withdraws a queued submission and removes its item"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/harness-submissions.test.ts",
+          "sha256": "ab49770da6814b343a2edde23b6894549b9e05e8aedaa80ddeb99ef817f34e05"
+        },
+        {
+          "path": "packages/durable/test/harness-inbox.test.ts",
+          "sha256": "f8d5b55aceb0db209bca9bddab8f3ab80b87837b44aff8e863a2ab9b7070a9f4"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/harness/submissions.ts",
+          "sha256": "76220ca712f2aee02938239c960edb9da2d2a519b4634ca53e392134741b05a9"
+        },
+        {
+          "path": "packages/durable/src/harness/inbox.ts",
+          "sha256": "ead422265ffff2ffd5bc2e6047b62d8b932732e7addd3e0cc964f9fcb9e45437"
+        }
+      ]
+    },
+    {
+      "id": "runtime-context-edits-normalization",
+      "specSections": [
+        "2.1 Entries and context",
+        "7.4 System prompt and dynamic tools"
+      ],
+      "relatedTaggedTests": [
+        "applies the newest edit per target within the active range",
+        "keeps positional system messages and orders tool results by call order",
+        "synthesizes missing tool results after a fork and drops results cut from their call",
+        "excludes aborted, error, and deferred assistant messages but keeps their raw entries"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-context.test.ts",
+          "sha256": "08e0b9093dc25c9b2f2fa0a9e18718e85f217782e75de1ef4bf1f14563f5f3c5"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/src/harness/context.ts",
+          "sha256": "c392e698d7f84a1fc4909c0b40964d74625edbe7b56dc1dfea28588dde47d635"
+        },
+        {
+          "path": "packages/durable/src/harness/prompt.ts",
+          "sha256": "500b6648ac228982f9f44dfa54df1c271fc728990442c13db3346931894f5634"
+        }
+      ]
+    },
+    {
+      "id": "runtime-context-baseline-identity-head-edits",
+      "specSections": [
+        "2.1 Entries and context",
+        "7.4 System prompt and dynamic tools"
+      ],
+      "relatedTaggedTests": [
+        "does not lead with a retained, edited, or later system entry in place of the baseline",
+        "apply edits carried by an older head marker in the range"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-context.test.ts",
+          "sha256": "08e0b9093dc25c9b2f2fa0a9e18718e85f217782e75de1ef4bf1f14563f5f3c5"
+        },
+        {
+          "path": "packages/durable/test/harness-compaction.test.ts",
+          "sha256": "1b9891dc3e9529d67e1919630f4285d4ba645b948a31a7cfc3db889ce08a9c4a"
+        },
+        {
+          "path": "packages/durable/src/harness/context.ts",
+          "sha256": "c392e698d7f84a1fc4909c0b40964d74625edbe7b56dc1dfea28588dde47d635"
+        },
+        {
+          "path": "packages/durable/src/harness/prompt.ts",
+          "sha256": "500b6648ac228982f9f44dfa54df1c271fc728990442c13db3346931894f5634"
+        }
+      ]
+    },
+    {
+      "id": "runtime-generation-pinned-partial-reopen",
+      "specSections": [
+        "8.3 Generation",
+        "7.2 Hooks",
+        "7.4 System prompt and dynamic tools"
+      ],
+      "relatedTaggedTests": [
+        "converts a committed partial into an aborted entry and resends the same messages",
+        "forwards stream options and the thinking level"
+      ],
+      "recovery": "live normal Harness.close and SQLite reopen",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-generation-recovery.test.ts",
+          "sha256": "0b1671654c1f7fec7b9181bad172f866bd2f29c864d33047ca31a52eac7f1ab9"
+        },
+        {
+          "path": "packages/durable/test/harness-prompt.test.ts",
+          "sha256": "760441af9f04eb48cc4c02d0e74769048919c99f0285deab9cae84a08b5c79ff"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/src/harness/generation.ts",
+          "sha256": "fd471e4a5de32c540609ce881557c7e22aec8a3e3d7edb7e96256f731644694c"
+        },
+        {
+          "path": "packages/durable/src/harness/prompt.ts",
+          "sha256": "500b6648ac228982f9f44dfa54df1c271fc728990442c13db3346931894f5634"
+        },
+        {
+          "path": "packages/durable/src/harness/provider.ts",
+          "sha256": "bf3d9815888d48f85bed50d1c4d5bc38fa71d46121d19b0669c78fc88e784f39"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-generation-retry-sleep-reopen",
+      "specSections": [
+        "5.6 Sleeping, timers, and wakeups",
+        "8.3 Generation"
+      ],
+      "relatedTaggedTests": [
+        "resumes a retry backoff after reopen",
+        "retries a retryable error after a durable backoff and then answers"
+      ],
+      "recovery": "live normal Harness.close and SQLite reopen",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/test/harness-generation-recovery.test.ts",
+          "sha256": "0b1671654c1f7fec7b9181bad172f866bd2f29c864d33047ca31a52eac7f1ab9"
+        },
+        {
+          "path": "packages/durable/src/harness/generation.ts",
+          "sha256": "fd471e4a5de32c540609ce881557c7e22aec8a3e3d7edb7e96256f731644694c"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-generation-deferred-poll-reopen",
+      "specSections": [
+        "5.6 Sleeping, timers, and wakeups",
+        "8.3 Generation"
+      ],
+      "relatedTaggedTests": [
+        "resumes polling a deferred response after reopen",
+        "polls a deferred response until it is ready"
+      ],
+      "recovery": "live normal Harness.close and SQLite reopen",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/test/harness-generation-recovery.test.ts",
+          "sha256": "0b1671654c1f7fec7b9181bad172f866bd2f29c864d33047ca31a52eac7f1ab9"
+        },
+        {
+          "path": "packages/durable/src/harness/generation.ts",
+          "sha256": "fd471e4a5de32c540609ce881557c7e22aec8a3e3d7edb7e96256f731644694c"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-generation-deferred-abort",
+      "specSections": [
+        "8.3 Generation"
+      ],
+      "relatedTaggedTests": [
+        "cancels a deferred response when aborted during polling"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/src/harness/generation.ts",
+          "sha256": "fd471e4a5de32c540609ce881557c7e22aec8a3e3d7edb7e96256f731644694c"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-tool-prepare-hook-intent-usage",
+      "specSections": [
+        "7.2 Hooks",
+        "7.3 Tools",
+        "8.4 Tool",
+        "8.6 Usage"
+      ],
+      "relatedTaggedTests": [
+        "repairs arguments with prepareArguments before validation, and a throwing repair is invalid",
+        "validates arguments before and after beforeTool and applies blocks and replacements"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-tools.test.ts",
+          "sha256": "fb5e0ebdb9c5d3ba167a2c8ad35fc67b1539d1d00be096f843b76094813103d7"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/durable/src/harness/usage.ts",
+          "sha256": "3ea8c3b68ce72dd808ef463c24b72e078f02801fd6bfab60114fa81b911b9d4d"
+        }
+      ]
+    },
+    {
+      "id": "runtime-tool-validation-revalidation",
+      "specSections": [
+        "7.2 Hooks",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "validates arguments before and after beforeTool and applies blocks and replacements"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-tools.test.ts",
+          "sha256": "fb5e0ebdb9c5d3ba167a2c8ad35fc67b1539d1d00be096f843b76094813103d7"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        }
+      ]
+    },
+    {
+      "id": "runtime-nested-tool-keyed-identities",
+      "specSections": [
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "runs a nested call as its own tool task and returns its result to the caller, not the transcript",
+        "returns the call a key already names, and rejects reusing the key for another call",
+        "runs the tool hooks on nested calls, which see their parent"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-nested-tools.test.ts",
+          "sha256": "6a66b33a36854a8679c80f588c3c08a2565da58ac1d20a934cc18b22b1fb0a20"
+        },
+        {
+          "path": "packages/durable/test/harness-tools.test.ts",
+          "sha256": "fb5e0ebdb9c5d3ba167a2c8ad35fc67b1539d1d00be096f843b76094813103d7"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-tool-progress-mounted-view",
+      "specSections": [
+        "7.3 Tools",
+        "8.2 Live document",
+        "8.4 Tool",
+        "9.3 Conversation view"
+      ],
+      "relatedTaggedTests": [
+        "settles details() promises with coalesced progress commits and the terminal commit",
+        "publishes one frame per touching commit, whose operations rebuild every revision"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-tools.test.ts",
+          "sha256": "fb5e0ebdb9c5d3ba167a2c8ad35fc67b1539d1d00be096f843b76094813103d7"
+        },
+        {
+          "path": "packages/durable/test/harness-view.test.ts",
+          "sha256": "8ff123ba9a9416563498ba2eedc7e1eb5032c7736d2ee7d1de7f72252255ed0f"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        },
+        {
+          "path": "packages/durable/src/harness/view.ts",
+          "sha256": "e9d8e017089060a6deab7465630471b0405f563861094971cc10ea351d3a6823"
+        }
+      ]
+    },
+    {
+      "id": "runtime-tool-replay-safe-safe",
+      "specSections": [
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "reruns a tool only when both the stored and the current replay policy are safe",
+        "answers an unsafe tool interrupted after intent with its durable partial output"
+      ],
+      "recovery": "live normal Harness.close and SQLite reopen",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-tools-recovery.test.ts",
+          "sha256": "9bb1d8354d6167c7d4fa535a97c493bded87c68cc2fb06a44b93289d1361e4e7"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-tool-replay-safe-unsafe",
+      "specSections": [
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "reruns a tool only when both the stored and the current replay policy are safe",
+        "answers an unsafe tool interrupted after intent with its durable partial output"
+      ],
+      "recovery": "live normal Harness.close and SQLite reopen",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-tools-recovery.test.ts",
+          "sha256": "9bb1d8354d6167c7d4fa535a97c493bded87c68cc2fb06a44b93289d1361e4e7"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-tool-replay-unsafe-safe",
+      "specSections": [
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "reruns a tool only when both the stored and the current replay policy are safe",
+        "answers an unsafe tool interrupted after intent with its durable partial output"
+      ],
+      "recovery": "live normal Harness.close and SQLite reopen",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-tools-recovery.test.ts",
+          "sha256": "9bb1d8354d6167c7d4fa535a97c493bded87c68cc2fb06a44b93289d1361e4e7"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/durable/src/harness/live.ts",
+          "sha256": "d5b35675934719d60fdd920c793f534e5fe00ffcae3feed82538cc0ce5cd9f40"
+        }
+      ]
+    },
+    {
+      "id": "runtime-generation-yield-continuation",
+      "specSections": [
+        "7.2 Hooks",
+        "8.3 Generation"
+      ],
+      "relatedTaggedTests": [
+        "keeps the run's input open across an onYield continuation and answers it with the final answer"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/test/harness-tools.test.ts",
+          "sha256": "fb5e0ebdb9c5d3ba167a2c8ad35fc67b1539d1d00be096f843b76094813103d7"
+        },
+        {
+          "path": "packages/durable/src/harness/generation.ts",
+          "sha256": "fd471e4a5de32c540609ce881557c7e22aec8a3e3d7edb7e96256f731644694c"
+        },
+        {
+          "path": "packages/durable/src/harness/inbox.ts",
+          "sha256": "ead422265ffff2ffd5bc2e6047b62d8b932732e7addd3e0cc964f9fcb9e45437"
+        }
+      ]
+    },
+    {
+      "id": "runtime-fork-as-of-agent-history-usage",
+      "specSections": [
+        "2.1 Entries and context",
+        "3.7 Forks",
+        "8.6 Usage"
+      ],
+      "relatedTaggedTests": [
+        "reads the context as of an earlier entry, as a fork at that entry starts",
+        "totals assistant usage per model and tool usage per tool, and sums the Session"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-context.test.ts",
+          "sha256": "08e0b9093dc25c9b2f2fa0a9e18718e85f217782e75de1ef4bf1f14563f5f3c5"
+        },
+        {
+          "path": "packages/durable/test/harness-generation.test.ts",
+          "sha256": "d4377ee349a3141c940bf58bba38ff9d10209fe6505451280d781ddc24bec37a"
+        },
+        {
+          "path": "packages/durable/test/harness-inbox.test.ts",
+          "sha256": "f8d5b55aceb0db209bca9bddab8f3ab80b87837b44aff8e863a2ab9b7070a9f4"
+        },
+        {
+          "path": "packages/durable/src/harness/context.ts",
+          "sha256": "c392e698d7f84a1fc4909c0b40964d74625edbe7b56dc1dfea28588dde47d635"
+        },
+        {
+          "path": "packages/durable/src/harness/agent.ts",
+          "sha256": "9cb79f9affbeeeeaff8d5afffa1a5357fbd48c0175d69b2aeda4a231f5de9dd5"
+        },
+        {
+          "path": "packages/durable/src/harness/provider.ts",
+          "sha256": "bf3d9815888d48f85bed50d1c4d5bc38fa71d46121d19b0669c78fc88e784f39"
+        },
+        {
+          "path": "packages/durable/src/harness/usage.ts",
+          "sha256": "3ea8c3b68ce72dd808ef463c24b72e078f02801fd6bfab60114fa81b911b9d4d"
+        }
+      ]
+    },
+    {
+      "id": "runtime-compaction-manual",
+      "specSections": [
+        "8.7 Compaction"
+      ],
+      "relatedTaggedTests": [
+        "places the summary at once when idle and keeps raw history"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-compaction.test.ts",
+          "sha256": "1b9891dc3e9529d67e1919630f4285d4ba645b948a31a7cfc3db889ce08a9c4a"
+        },
+        {
+          "path": "packages/durable/src/harness/compaction.ts",
+          "sha256": "e296683612f59b58c7605bd38c90988180f7b98171a0ae9d242c1ac6dd977d63"
+        },
+        {
+          "path": "packages/durable/src/harness/context.ts",
+          "sha256": "c392e698d7f84a1fc4909c0b40964d74625edbe7b56dc1dfea28588dde47d635"
+        },
+        {
+          "path": "packages/durable/src/harness/usage.ts",
+          "sha256": "3ea8c3b68ce72dd808ef463c24b72e078f02801fd6bfab60114fa81b911b9d4d"
+        }
+      ]
+    },
+    {
+      "id": "runtime-compaction-stale-reset",
+      "specSections": [
+        "6 Submissions and inbox",
+        "8.7 Compaction"
+      ],
+      "relatedTaggedTests": [
+        "settles stale when a reset lands while it summarizes",
+        "counts the spend of a summary that ends stale, and writes no entry for it"
+      ],
+      "recovery": "none",
+      "seededReopen": false,
+      "nativeOnlyEvidence": false,
+      "sources": [
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/harness-compaction.test.ts",
+          "sha256": "1b9891dc3e9529d67e1919630f4285d4ba645b948a31a7cfc3db889ce08a9c4a"
+        },
+        {
+          "path": "packages/durable/src/harness/compaction.ts",
+          "sha256": "e296683612f59b58c7605bd38c90988180f7b98171a0ae9d242c1ac6dd977d63"
+        },
+        {
+          "path": "packages/durable/src/harness/context.ts",
+          "sha256": "c392e698d7f84a1fc4909c0b40964d74625edbe7b56dc1dfea28588dde47d635"
+        },
+        {
+          "path": "packages/durable/src/harness/inbox.ts",
+          "sha256": "ead422265ffff2ffd5bc2e6047b62d8b932732e7addd3e0cc964f9fcb9e45437"
+        },
+        {
+          "path": "packages/durable/src/harness/usage.ts",
+          "sha256": "3ea8c3b68ce72dd808ef463c24b72e078f02801fd6bfab60114fa81b911b9d4d"
+        }
+      ]
+    }
+  ]
+}

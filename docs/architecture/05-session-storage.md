@@ -30,3 +30,14 @@ the native APIs and comparison limits. This crate stores task state; dispatch an
 recovery policy belong to the [generic Durable scheduler](../contracts/durable-scheduler.md)
 in `pi-durable`. Optional scoped initialization and close-finalizer callbacks let
 that execution owner compose its lifecycle without adding task policy to Session.
+
+Opt-in conversation-record observation captures the selected documents, entries
+and all matching current tasks on the same admission line as subscription. Later
+frames retain complete attributed commit publications, including record-only
+changes. The [Durable runtime](../contracts/durable-runtime.md) uses those immutable
+inputs for mounted conversation views and committed agent events. Its context
+projection and event translation run outside Session's mutation line; neither
+becomes a second persistence authority. Public watch delivery emits nonempty
+mounted operations, while the private event attachment also receives publications
+whose mounted operations are empty. See the [view contract](../contracts/durable-views.md)
+for custody, close cutoffs and the delivery/ingress memory boundary.

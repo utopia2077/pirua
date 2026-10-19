@@ -1,9 +1,28 @@
 # pi-durable
 
-Generic persistent task execution over `pi-durable-session`. This crate owns task
-scheduling, definition snapshots, invocation leases, recovery, joins, sleeps,
-ownership and cancellation. It has no dependency on provider, Agent, tool,
-Coding or VM execution.
+Durable conversations and persistent task execution over `pi-durable-session`.
+`Durable` owns admission, agent configuration, model generation, ordinary and keyed
+nested tools, committed progress, accounting, compaction and agent event streams.
+One authoritative Session stores every document, entry, task and submission.
+The lower-level `Scheduler` owns definition snapshots, invocation leases, recovery,
+joins, sleeps, ownership and cancellation.
+
+Run the complete offline model/tool/receipt example:
+
+```sh
+cargo run -p pi-durable --example offline_durable --all-features --locked --offline
+```
+
+Register native AI models and a `ToolRegistration` in `DurableOptions`, open Durable,
+configure the root conversation and submit `SubmissionDraft::input`. The returned
+Submission reads/waits/aborts its durable receipt. Closing joins admitted work and
+keeps recovery state in the Session. The [runtime contract](../../docs/contracts/durable-runtime.md)
+describes exact tool/progress/nested semantics, read events and native boundaries.
+Ordinary Coding/MCP/native-extension bindings have their own module; persistent
+CodeMode, the public task graph watch and Durable schema telemetry are not claimed
+by this core.
+
+The generic Scheduler is available independently:
 
 Create a Session backed by real MemoryStorage or SqliteStorage, register immutable
 TaskDefinitions, and open a Scheduler. Opening reconciles persisted running tasks
