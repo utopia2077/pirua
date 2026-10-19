@@ -7582,6 +7582,11 @@
           "path": "crates/pi-codemode/tests/sandbox.rs",
           "anchor": "test:native_json_terminal_failure_after_delivery_retains_calls_and_during",
           "cargo_target": "sandbox"
+        },
+        {
+          "path": "crates/pi-codemode/tests/sandbox.rs",
+          "anchor": "test:closing_waiting_worker_reports_aborted_without_terminal_during",
+          "cargo_target": "sandbox"
         }
       ],
       "limitations": []

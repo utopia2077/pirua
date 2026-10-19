@@ -266,7 +266,18 @@ impl Sandbox {
                     )));
                     break;
                 }
-                match received.recv_timeout(Duration::from_millis(5)) {
+                let message = received.recv_timeout(Duration::from_millis(5));
+                // Closing the sandbox also closes the worker input. Its EOF or
+                // terminal error may wake this receive before the next loop's
+                // cancellation check; admitted host cancellation owns that wait.
+                if monitor_shared.cancellation.is_cancelled() || external.is_cancelled() {
+                    terminal = Some(Err(failure(
+                        ErrorKind::Aborted,
+                        "CodeMode execution aborted",
+                    )));
+                    break;
+                }
+                match message {
                     Ok(Ok(Some(message))) => {
                         let mut state = monitor_shared.state.lock().unwrap();
                         match process_message(&mut state, message, controlled) {

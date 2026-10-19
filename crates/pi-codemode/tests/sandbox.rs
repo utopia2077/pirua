@@ -950,3 +950,35 @@ fn native_json_terminal_failure_after_delivery_retains_calls_and_during() {
     }
     assert_eq!(sandbox.active_workers(), 0);
 }
+
+#[test]
+fn closing_waiting_worker_reports_aborted_without_terminal_during() {
+    // Closing stdin can make the worker report an EOF-derived error while the
+    // monitor is receiving. The admitted host cancellation must win that wait.
+    for _ in 0..32 {
+        let sandbox = sandbox();
+        let mut options = options();
+        options.tools.push(DeclaredTool::new("hold"));
+        let run = sandbox.start("await tools.hold({})", options).unwrap();
+        assert!(matches!(event(&run), Event::Started { .. }));
+        assert_eq!(call(&run).id, 1);
+        assert_eq!(event(&run), Event::Idle { seq: 0, issued: 1 });
+        sandbox.close();
+        let result = run.wait();
+        assert!(
+            matches!(
+                &result,
+                ExecutionResult::Error {
+                    error: ExecutionError {
+                        kind: ErrorKind::Aborted,
+                        ..
+                    },
+                    during: None,
+                    ..
+                }
+            ),
+            "{result:?}"
+        );
+        assert_eq!(sandbox.active_workers(), 0);
+    }
+}
