@@ -80,7 +80,7 @@ SUITES = {'conformance/ai-core': {'pi-ai-core': '*'},
 SUITES['conformance/durable-v1.4.0'] = {
     'pi-durable-session': ['conversation_observation', 'invariants', 'number_roundtrip', 'release_fixtures'],
     'pi-durable': ['bindings', 'close', 'context', 'initializer', 'invariants', 'release_fixtures',
-                   'review_regressions', 'runtime_core', 'runtime_fixtures', 'views'],
+                   'review_regressions', 'runtime_core', 'runtime_fixtures', 'views', '@lib'],
 }
 
 
@@ -116,9 +116,10 @@ def expected_registry(root: Path = ROOT) -> dict:
             manifest = tomllib.loads((folder/'Cargo.toml').read_text())
             targets = sorted(path.stem for path in (folder/'tests').glob('*.rs')) if selection == '*' else selection
             for target in targets:
-                command = ['cargo','test','--locked','--offline','-p',package,'--test',target,'--all-features']
-                tests, _ = assembly.rust_test_inventory(folder/'tests'/f'{target}.rs',root)
-                features = assembly.cargo_features(command,manifest)
+                selector = ['--lib'] if target == assembly.LIB_TARGET else ['--test',target]
+                command = ['cargo','test','--locked','--offline','-p',package,*selector,'--all-features']
+                _, target, path, features = assembly.cargo_test_target(command,manifest)
+                tests, _ = assembly.rust_test_inventory(root/path,root)
                 enabled = [test for test in tests if assembly.test_applicable(test,features)]
                 if not enabled:
                     raise Invalid(f'selected target has no enabled test anchors: {package}/{target}')

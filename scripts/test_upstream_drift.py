@@ -720,14 +720,20 @@ class DriftTests(unittest.TestCase):
         with patch('scripts.upstream_drift.importlib.import_module',side_effect=ImportError('missing')):
             with self.assertRaisesRegex(Invalid,'activation validator unavailable'):
                 drift.registry_suites(registry,root,{'conformance/fixture'})
+        shared=drift.cargo_validator()
+        with patch.object(shared,'cargo_test_context',None):
+            with self.assertRaisesRegex(Invalid,'activation validator unavailable'):
+                drift.registry_suites(registry,root,{'conformance/fixture'})
 
     def test_cargo_proof_guard_propagates_shared_activation_rejection(self):
         comparison,root,registry,receipts=self.proof_case()
         shared=drift.cargo_validator()
         document=json.loads(registry.read_bytes())
         commands=[['cargo','test','--offline','--locked','-p','fixture','--test','proof']]
-        evidence=[{'path':'probe.rs','anchor':'test:inactive'}]
-        (root/'probe.rs').write_text('#[test]\nfn inactive() {}\n')
+        evidence=[{'path':'crates/fixture/tests/proof.rs','anchor':'test:inactive'}]
+        tests=root/'crates/fixture/tests';tests.mkdir(parents=True)
+        (tests.parent/'Cargo.toml').write_text('[package]\nname="fixture"\nversion="0.0.0"\n')
+        (tests/'proof.rs').write_text('#[test]\nfn inactive() {}\n')
         document['suites'][0].update(commands=commands,evidence=evidence)
         registry.write_bytes(canonical(document))
         with patch.object(shared,'check_command',side_effect=ValueError('inactive Rust test anchor')) as check:
@@ -800,6 +806,37 @@ unsupported_test!(unsupported_macro_case);
         check('unsupported_macro_case',error='missing evidence anchor')
         check('wrong_module::qualified_case',error='missing or ambiguous Cargo test anchor')
         check('macro_case',target='other',error='lacks an actual test anchor')
+
+    def test_nested_library_context_reaches_both_drift_validation_entries(self):
+        root=self.root/'library-proof'
+        source=root/'crates/fixture/src'
+        (source/'foo').mkdir(parents=True)
+        (source.parent/'Cargo.toml').write_text('[package]\nname="fixture"\nversion="0.0.0"\n[features]\nnative=[]\n')
+        (source/'lib.rs').write_text('#[cfg(test)] mod foo;\n')
+        (source/'foo.rs').write_text('#[test] fn parent() {}\nmod child;\n')
+        (source/'foo/child.rs').write_text('#[cfg(feature="native")] #[test] fn required() {}\n')
+        row={'id':'conformance/fixture','status':'executable',
+             'commands':[['cargo','test','--locked','--offline','-p','fixture','--lib','--all-features']],
+             'evidence':[{'path':'crates/fixture/src/foo.rs','anchor':'test:foo::parent','cargo_target':'@lib'},
+                         {'path':'crates/fixture/src/foo/child.rs','anchor':'test:foo::child::required','cargo_target':'@lib'}],
+             'limitations':[]}
+        registry=root/'registry.json'
+        for entry in ('registry','activation'):
+            def validate(candidate):
+                if entry=='activation':
+                    return drift.validate_suite_activation(candidate,root)
+                registry.write_bytes(canonical({'schema_version':1,'suites':[candidate]}))
+                return drift.registry_suites(registry,root,{candidate['id']})
+            with self.subTest(entry=entry):
+                validate(row)
+                wrong=deepcopy(row);wrong['evidence'][1]['anchor']='test:wrong::required'
+                with self.assertRaisesRegex(Invalid,'missing or ambiguous Cargo test anchor'):
+                    validate(wrong)
+                disabled=deepcopy(row);disabled['commands'][0].remove('--all-features')
+                with self.assertRaisesRegex(Invalid,'disabled by feature cfg or ignore'):
+                    validate(disabled)
+
+
 
     def test_intrinsic_authority_disposition_and_owner_coherence(self):
         for authority in ['host-only','disposable-scaffold']:

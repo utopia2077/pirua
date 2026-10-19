@@ -1534,6 +1534,7 @@ dependencies = [
  "futures-util",
  "jsonschema",
  "pi-ai",
+ "pi-codemode",
  "pi-coding-runtime",
  "pi-durable-session",
  "pi-extension-protocol",

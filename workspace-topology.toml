@@ -141,3 +141,8 @@ kind = "required"
 consumer = "pi-durable"
 dependency = "pi-extension-protocol"
 kind = "required"
+
+[[edge]]
+consumer = "pi-durable"
+dependency = "pi-codemode"
+kind = "required"

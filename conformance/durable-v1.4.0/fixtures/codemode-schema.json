@@ -1,0 +1,385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pinned Durable CodeMode source observations",
+  "description": "Language-neutral source adapter actions and detached observations. Local code is passed only to the actual published VM. Scripted Sandbox events control only the external protocol. $undefined and $utf16 are reserved trace markers.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "upstreamCommit",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "upstreamCommit": {
+      "const": "4a080252f06caf63a525d7873c5d94d3c23887e0"
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "during": {
+      "type": "object",
+      "required": [
+        "seq",
+        "issued"
+      ],
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issued": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "vmResult": {
+      "type": "object",
+      "required": [
+        "ok",
+        "output",
+        "calls"
+      ],
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "value": {},
+        "error": {
+          "type": "object"
+        },
+        "output": {
+          "type": "array"
+        },
+        "calls": {
+          "type": "array"
+        },
+        "storeWrites": {
+          "type": "object"
+        },
+        "during": {
+          "$ref": "#/$defs/during"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "event"
+      ],
+      "properties": {
+        "event": {
+          "enum": [
+            "started",
+            "call",
+            "idle",
+            "terminal"
+          ]
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "call": {
+          "type": "object",
+          "required": [
+            "id",
+            "target",
+            "name"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "target": {
+              "enum": [
+                "tool",
+                "global"
+              ]
+            },
+            "name": {
+              "type": "string"
+            },
+            "args": {}
+          }
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issued": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "result": {
+          "$ref": "#/$defs/vmResult"
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "properties": {
+        "initial": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "onDeliver": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/event"
+            }
+          }
+        },
+        "fingerprint": {
+          "type": "string"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": [
+        "op"
+      ],
+      "properties": {
+        "op": {
+          "enum": [
+            "run",
+            "wait",
+            "status",
+            "untilEffects",
+            "untilVm",
+            "untilJournal",
+            "untilDecision",
+            "taskDocs",
+            "committedTaskDocs",
+            "closed",
+            "tasks",
+            "entries",
+            "live",
+            "store",
+            "storeAsOf",
+            "storeSet",
+            "checkpointPolicy",
+            "storeHistory",
+            "storeCounter",
+            "storageStore",
+            "patchRun",
+            "patchJournal",
+            "effects",
+            "vmEvents",
+            "files",
+            "release",
+            "advance",
+            "resume",
+            "fork",
+            "abort",
+            "sandboxClose",
+            "emit",
+            "reopen",
+            "close"
+          ]
+        },
+        "as": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "errorExpected": {
+          "type": "boolean"
+        },
+        "code": {
+          "type": "string"
+        },
+        "event": {
+          "$ref": "#/$defs/event"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "label",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {}
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "observations",
+        "effects",
+        "vmEvents",
+        "effectEvents",
+        "publications",
+        "reports",
+        "files"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "effects": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "vmEvents": {
+          "type": "array"
+        },
+        "effectEvents": {
+          "type": "array"
+        },
+        "publications": {
+          "type": "array"
+        },
+        "reports": {
+          "type": "array"
+        },
+        "files": {
+          "type": "array"
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": [
+        "sandbox",
+        "operations"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "sandbox": {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "local",
+                "scripted"
+              ]
+            },
+            "attempts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/attempt"
+              }
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "globals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "holdAfterDecision": {
+          "type": "boolean"
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "id",
+        "basis",
+        "input"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "basis": {
+          "type": "object",
+          "required": [
+            "kind",
+            "sources"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "release-execution"
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "backends": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "memory",
+              "sqlite"
+            ]
+          }
+        },
+        "input": {
+          "$ref": "#/$defs/input"
+        },
+        "expected": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "memory",
+              "sqlite"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/result"
+          }
+        }
+      }
+    }
+  }
+}

@@ -368,7 +368,8 @@ def cargo_validator():
     sys.path.insert(0, directory)
     try:
         module = importlib.import_module('.check_assembly', __package__) if __package__ else importlib.import_module('check_assembly')
-        if not callable(module.check_command) or not callable(module.check_reference):
+        if not all(callable(getattr(module, name, None)) for name in
+                   ('check_command', 'check_reference', 'cargo_test_context')):
             raise ImportError('missing pure activation entrypoints')
         return module
     except (ImportError, AttributeError) as error:
@@ -377,13 +378,15 @@ def cargo_validator():
         sys.path.remove(directory)
 
 
-def validate_suite_activation(row: dict, root: Path) -> None:
+def validate_suite_activation(row: dict, root: Path, *, inventories: dict | None = None) -> None:
     rust = any(Path(command[0]).name == 'cargo' for command in row['commands']) or any(str(e.get('anchor', '')).startswith('test:') for e in row['evidence'])
     validator = cargo_validator()
-    if not rust and row['id'] not in validator.REVIEWED_PROOF_TARGETS:
+    enrolled = row['id'] in validator.REVIEWED_PROOF_TARGETS
+    if not rust and not enrolled:
         return
     try:
-        inventories = {}
+        if inventories is None:
+            inventories, _ = validator.cargo_test_context(row['commands'], root)
         for reference in row['evidence']:
             validator.check_reference(reference, root, inventories)
         for command in row['commands']:
@@ -391,7 +394,7 @@ def validate_suite_activation(row: dict, root: Path) -> None:
         if row['id'] == 'conformance/provider-traces/v1.4.0':
             inventory = tomllib.loads(local_path(root, 'upstream/manifests/providers.toml').read_text())
             validator.validate_adapter_proofs(row, inventory, root)
-        if row['id'] in validator.REVIEWED_PROOF_TARGETS:
+        if enrolled:
             validator.validate_reviewed_proofs({'suites':[row]}, root, suite_names={row['id']})
     except Exception as error:
         raise Invalid('Cargo suite activation validation failed: ' + str(error)) from error
@@ -400,17 +403,21 @@ def validate_suite_activation(row: dict, root: Path) -> None:
 def registry_suites(path: Path, root: Path, required: set[str]) -> dict:
     registry = load_json(path)
     suites = indexed(registry.get('suites'), 'suite')
-    inventories = {}
     for name in required:
         row = suites.get(name)
         if not row or row.get('status') != 'executable' or row.get('limitations') or not isinstance(row.get('commands'), list) or not row['commands'] or any(not isinstance(a, list) or not a or any(not isinstance(s,str) or not s for s in a) for a in row['commands']):
             raise Invalid(f'conformance proof unavailable or accepted-limit: {name}')
         if not isinstance(row.get('evidence'), list) or not row['evidence']:
             raise Invalid(f'suite lacks bound evidence: {name}')
+        validator = cargo_validator()
+        try:
+            inventories, _ = validator.cargo_test_context(row['commands'], root)
+        except Exception as error:
+            raise Invalid('Cargo suite activation validation failed: ' + str(error)) from error
         for evidence in row['evidence']:
             source = local_path(root, evidence.get('path'))
             check_anchor(source, evidence.get('anchor'), root, inventories)
-        validate_suite_activation(row, root)
+        validate_suite_activation(row, root, inventories=inventories)
     return {name:suites[name] for name in sorted(required)}
 
 

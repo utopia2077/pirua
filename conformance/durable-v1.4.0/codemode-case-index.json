@@ -1,0 +1,981 @@
+{
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "scope": "Related tagged tests/spec/implementation associations; whole upstream tests are not claimed executed. Expected values come from actual published release execution. Real-worker, document-only and scripted Sandbox evidence are separate. No native-only fixture or native acceptance.",
+  "cases": [
+    {
+      "id": "codemode-local-basic",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "runs a script that calls tools as nested calls, and journals each result before delivering it",
+        "keeps the script's clock and randomness across a restart"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-arrival-journal-replay",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "replays results in the order they arrived, not the order the calls were made",
+        "resumes a script after a restart without running its finished calls again"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-globals-undefined-null-replay",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "journals globals with their results and hands a replay the recorded ones",
+        "keeps a global's undefined result undefined, live and replayed"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-all-held-identities",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "checks every call a rerun holds before launching any of them"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": true,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-reject-version",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "refuses to resume when the sandbox's fingerprint or the code mode version changed"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": true,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-reject-fingerprint",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "refuses to resume when the sandbox's fingerprint or the code mode version changed"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": true,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-reject-deadline",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "times a script out across a restart, without admitting new calls"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-first-count-divergence",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "ends the call when a resumed script made a different number of calls than before"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": true,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-delivery-count-divergence",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "ends the call when a resumed script made a different number of calls than before"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": true,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-terminal-during-divergence",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "ends the call when a resumed script ends where it went on before"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": true,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-decided-result-reuse",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "returns a decided outcome after a restart without running the script again"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-host-shutdown-reopen",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "stores no outcome when the host closes the sandbox, and replays the script after a restart"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-durable-abort",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "aborts nested calls with their caller"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        },
+        {
+          "path": "packages/durable/test/harness-nested-tools.test.ts",
+          "sha256": "6a66b33a36854a8679c80f588c3c08a2565da58ac1d20a934cc18b22b1fb0a20"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-late-global",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "drops a global's result that arrives after the script finished"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-success-only-store-fork",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "keeps store() values per conversation, as of a fork's entry"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-output-image-spill",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "lays out text items, console lines, and the returned value under a header",
+        "cuts text past the token budget to its start and end, with the full text in a file",
+        "saves images to files and names them next to the image"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-store-checkpoint-history-fork",
+      "evidence": "actual document policy and Session/storage; no VM",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool",
+        "3.7 Forks",
+        "3.5 Bases and checkpoints"
+      ],
+      "relatedTaggedTests": [
+        "keeps task-scoped documents as deltas until their task retires",
+        "checkpoints the codemode store after 64 deltas without changing historical reads or forks"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/test/codemode-checkpoints.test.ts",
+          "sha256": "9409c19a882393d3bf656648691b74157de8bc179dd21137d58fa3a9e0415445"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        }
+      ]
+    },
+    {
+      "id": "codemode-local-journal-commit-rejection",
+      "evidence": "actual published local-worker QuickJS with Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "delivers a result only after its journal commit"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-scripted-count-before-effect",
+      "evidence": "scripted Sandbox protocol with actual Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "admits no call once the script has ended, even one it made before ending",
+        "delivers a result only after its journal commit"
+      ],
+      "recovery": "none",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-scripted-terminal-first-during",
+      "evidence": "scripted Sandbox protocol with actual Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "ends the call when a rerun without journal entries ends in its first run, where it went on before"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    },
+    {
+      "id": "codemode-scripted-held-global-target",
+      "evidence": "scripted Sandbox protocol with actual Durable adapter",
+      "specSections": [
+        "7.6 Code mode",
+        "7.3 Tools",
+        "8.4 Tool"
+      ],
+      "relatedTaggedTests": [
+        "ends the call when a rerun makes a global call where an earlier attempt made a tool call"
+      ],
+      "recovery": "live normal Harness.close and same-file SQLite reopen",
+      "persistedFixturePerturbation": false,
+      "seededTasks": false,
+      "observedProcessCrash": false,
+      "sources": [
+        {
+          "path": "packages/durable/test/codemode.test.ts",
+          "sha256": "2d355090072d972420078ce5cf7f0975d8dd0bc56a35b9e517fd8c94ad079c86"
+        },
+        {
+          "path": "packages/durable/docs/spec.md",
+          "sha256": "affd388e00b8404dec28fb49973e9b4fc79ba5dc7b23c646b95e15bfb6d417fd"
+        },
+        {
+          "path": "packages/durable/src/codemode/codemode.ts",
+          "sha256": "f724046753cde6dd79e4aa6fde9b97613bf2380412444b7307e2598ffe05b4f2"
+        },
+        {
+          "path": "packages/durable/src/codemode/output.ts",
+          "sha256": "eab0bcbb9ee871a5c686f6b0e12ff4549d28ee15fa640b0411eb56ff7933423d"
+        },
+        {
+          "path": "packages/durable/src/harness/tool.ts",
+          "sha256": "e1417cf44bcf8c75e0978e2ed31e1e87f7c36871113eec535db16d0fc621c9a9"
+        },
+        {
+          "path": "packages/codemode/src/types.ts",
+          "sha256": "4f1656c9ce14b2d566bf4567cee669a223ef21fc3f220fbd04a44503f8936c12"
+        },
+        {
+          "path": "packages/codemode/src/runtime/execution.ts",
+          "sha256": "35f2b8953fddcccaaed124c1bebb94ef81865f23176bd8a60f2c854b5c880187"
+        }
+      ]
+    }
+  ]
+}

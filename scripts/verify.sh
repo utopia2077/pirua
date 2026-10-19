@@ -23,6 +23,8 @@ node conformance/durable-v1.4.0/scheduler.mjs --check
 node conformance/durable-v1.4.0/scheduler.mjs --causal
 node conformance/durable-v1.4.0/runtime.mjs --check
 node conformance/durable-v1.4.0/runtime.mjs --causal
+node conformance/durable-v1.4.0/codemode.mjs --check
+node conformance/durable-v1.4.0/codemode.mjs --causal
 python3 scripts/upstream_drift.py
 python3 scripts/check_assembly.py
 python3 -m unittest scripts/test_upstream_drift.py

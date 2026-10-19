@@ -45,7 +45,7 @@ If you know Pi, these are the main entry points into this workspace:
 | `packages/mcp` | [`pi-mcp`](crates/pi-mcp) | Reusable stdio and Streamable HTTP client with OAuth |
 | `packages/codemode` | [`pi-codemode`](crates/pi-codemode) | One local JavaScript worker with explicit tool capabilities |
 | Session/storage in `packages/durable` | [`pi-durable-session`](crates/pi-durable-session) | Committed records, documents, history, forks and SQLite or Memory storage |
-| Conversation runtime and tasks in `packages/durable` | [`pi-durable`](crates/pi-durable) | Persistent scheduling, generation, tools, compaction, committed views/events and native bindings |
+| Conversation runtime and tasks in `packages/durable` | [`pi-durable`](crates/pi-durable) | Persistent conversations, tools, views/events, native bindings and journaled local CodeMode |
 | `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and process-local implementations |
 
 The [crate map](docs/architecture/02-crate-topology.md) explains ownership and
@@ -82,8 +82,12 @@ adds generation, ordinary and nested tools, queues, usage and compaction over th
 same committed state. [Context and mounted views](docs/contracts/durable-views.md)
 and committed agent events expose the running conversation; [native bindings](docs/contracts/durable-bindings.md)
 reuse Coding operations, a host-owned MCP client and the `durable.v1` extension
-profile. Persistent CodeMode, public live TaskGraph mount/watch and the
-Durable-specific telemetry schema remain deferred. Shared AI telemetry propagation
+profile. [Persistent local CodeMode](docs/contracts/durable-codemode.md) journals
+VM delivery and effect admission, reuses keyed nested receipts, and commits successful
+store changes with its decided result. It uses the host-supplied local worker and
+refuses incompatible replay; unsafe interrupted effects retain their tool policy.
+Public live TaskGraph mount/watch and the Durable-specific telemetry schema remain
+deferred. Shared AI telemetry propagation
 and native reports are available. These native compositions do not imply literal
 JavaScript API or complete upstream tools/environment parity. The retired experimental Harness
 is available in Git history.
@@ -146,6 +150,10 @@ flowchart TD
     Coding --> Sessions["Session trees · SQLite or Memory"]
     Coding --> Tools["Coding tools · MCP · local CodeMode"]
     Coding --> Extensions["Language-neutral extensions"]
+    Host --> Durable["Durable conversation runtime"]
+    Durable --> AI
+    Durable --> DurableSession["Committed Session · persistent tasks"]
+    Durable --> DurableTools["Coding operations · MCP · extensions · persistent CodeMode"]
 ```
 
 This is a composition overview. The

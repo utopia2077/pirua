@@ -18,9 +18,9 @@ configure the root conversation and submit `SubmissionDraft::input`. The returne
 Submission reads/waits/aborts its durable receipt. Closing joins admitted work and
 keeps recovery state in the Session. The [runtime contract](../../docs/contracts/durable-runtime.md)
 describes exact tool/progress/nested semantics, read events and native boundaries.
-Ordinary Coding/MCP/native-extension bindings have their own module; persistent
-CodeMode, the public task graph watch and Durable schema telemetry are not claimed
-by this core.
+Ordinary Coding/MCP/native-extension bindings and persistent local CodeMode have
+separate modules and contracts. Public task graph mount/watch and Durable schema
+telemetry remain deferred.
 
 The generic Scheduler is available independently:
 
@@ -77,3 +77,11 @@ The native [scheduler contract](../../docs/contracts/durable-scheduler.md) descr
 callback ordering, lifecycle and public seams. Tests consume immutable published
 1.4.0 scheduler fixtures on Memory and SQLite and add interruption, cancellation,
 close finalization, initialization and stale-callback cases.
+
+Persistent local JavaScript orchestration is available through
+`codemode::create_codemode_tool` and `codemode::create_codemode_extension` using an
+explicit native `pi_codemode::Sandbox`. It records deterministic start data,
+arrival-order delivery journals and keyed nested receipts, then commits successful
+store writes with its decided result. See
+[`durable-codemode.md`](../../docs/contracts/durable-codemode.md) for recovery,
+worker identity, output and host environment semantics.

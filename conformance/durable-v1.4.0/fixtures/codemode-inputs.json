@@ -1,0 +1,1732 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "cases": [
+    {
+      "id": "codemode-local-basic",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "const answer = await tools.echo({}); text(answer); return [7, Date.now(), Math.random()];",
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-local-arrival-journal-replay",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "slow",
+            "gate": "$args.gate",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "slow"
+                }
+              ]
+            }
+          },
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "const order = []; await Promise.all([tools.slow({gate:\"one\"}).then(()=>order.push(1)),tools.slow({gate:\"two\"}).then(()=>order.push(2))]); await tools.echo({order}); await tools.hold({}); return [order,Date.now()];",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "slow",
+            "count": 2
+          },
+          {
+            "op": "advance",
+            "to": 1010
+          },
+          {
+            "op": "release",
+            "name": "two"
+          },
+          {
+            "op": "untilJournal",
+            "path": [
+              "entries",
+              0,
+              "issuedAfter"
+            ],
+            "equals": 2
+          },
+          {
+            "op": "advance",
+            "to": 1020
+          },
+          {
+            "op": "release",
+            "name": "one"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "advance",
+            "to": 1030
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-globals-undefined-null-replay",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "globals": [
+          {
+            "name": "next",
+            "value": "$run"
+          },
+          {
+            "name": "nothing",
+            "value": {
+              "$undefined": true
+            }
+          },
+          {
+            "name": "nil",
+            "value": null
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "const n = await next(); const u = await nothing(); const z = await nil(); await tools.hold({}); return [n,u===undefined,z===null,await next(),(await nothing())===undefined];",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-all-held-identities",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "globals": [
+          {
+            "name": "forever",
+            "gate": "forever"
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "const k=load(\"k\"); if(k)tools.echo({text:\"new\"});else forever(); try { await tools.hold({id:k?2:1}); } catch (_) { return \"script caught\"; } return \"script continued\";",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "patchRun",
+            "set": {
+              "start.store": {
+                "k": true
+              }
+            }
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-reject-version",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "// @options: {\"timeout_ms\": 100000}\nawait tools.hold({}); await tools.echo({text:\"late\"});",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "patchRun",
+            "set": {
+              "start.version": 0
+            }
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-reject-fingerprint",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "// @options: {\"timeout_ms\": 100000}\nawait tools.hold({}); await tools.echo({text:\"late\"});",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "patchRun",
+            "set": {
+              "start.fingerprint": "another sandbox"
+            }
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-reject-deadline",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "// @options: {\"timeout_ms\": 100000}\nawait tools.hold({}); await tools.echo({text:\"late\"});",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "advance",
+            "to": 101001
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-first-count-divergence",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "await tools.hold({}); await tools.echo({text:\"late\"});",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "patchJournal",
+            "set": {
+              "firstIssued": 2
+            }
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-delivery-count-divergence",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "await tools.echo({}); await tools.hold({});",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "patchJournal",
+            "set": {
+              "entries.0.issuedAfter": 3
+            }
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-terminal-during-divergence",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "const k=load(\"k\"); await tools.echo({}); if(k)return 1; await tools.hold({}); return 2;",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "patchRun",
+            "set": {
+              "start.store": {
+                "k": true
+              }
+            }
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-decided-result-reuse",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "holdAfterDecision": true,
+        "operations": [
+          {
+            "op": "run",
+            "code": "store(\"decided\",1); return \"stored before settlement\";",
+            "as": "input"
+          },
+          {
+            "op": "untilDecision"
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "store"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-host-shutdown-reopen",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          },
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "await tools.hold({}); return await tools.echo({});",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "sandboxClose"
+          },
+          {
+            "op": "untilVm",
+            "kind": "terminal",
+            "count": 1
+          },
+          {
+            "op": "taskDocs",
+            "label": "shutdown-no-outcome"
+          },
+          {
+            "op": "status",
+            "id": "$input"
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-local-durable-abort",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "tools": [
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          },
+          {
+            "name": "echo",
+            "replay": "unsafe",
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "echo value"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "await tools.hold({}); return await tools.echo({});",
+            "as": "input",
+            "answer": false
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "abort"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-local-late-global",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "globals": [
+          {
+            "name": "slowly",
+            "gate": "late",
+            "abortable": false,
+            "value": "late"
+          },
+          {
+            "name": "quickly",
+            "value": "quick"
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "slowly(); await quickly(); return 1;",
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "vmEvents",
+            "label": "before-late-result"
+          },
+          {
+            "op": "release",
+            "name": "late"
+          },
+          {
+            "op": "vmEvents",
+            "label": "after-late-result"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-local-success-only-store-fork",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "operations": [
+          {
+            "op": "run",
+            "code": "store(\"k\",1); return load(\"k\");",
+            "as": "one"
+          },
+          {
+            "op": "wait",
+            "id": "$one",
+            "as": "first"
+          },
+          {
+            "op": "store"
+          },
+          {
+            "op": "run",
+            "code": "store(\"k\",2); return load(\"k\");",
+            "as": "two"
+          },
+          {
+            "op": "wait",
+            "id": "$two"
+          },
+          {
+            "op": "store"
+          },
+          {
+            "op": "run",
+            "code": "store(\"k\",9); throw new Error(\"do not persist\");",
+            "as": "failed"
+          },
+          {
+            "op": "wait",
+            "id": "$failed"
+          },
+          {
+            "op": "store",
+            "label": "failure-keeps-2"
+          },
+          {
+            "op": "storeAsOf",
+            "at": "$first.answer",
+            "label": "as-of-store-1"
+          },
+          {
+            "op": "fork",
+            "at": "$first.answer",
+            "as": "child"
+          },
+          {
+            "op": "store",
+            "conversationId": "$child"
+          },
+          {
+            "op": "run",
+            "code": "return load(\"k\");",
+            "as": "childInput",
+            "conversationId": "$child"
+          },
+          {
+            "op": "wait",
+            "id": "$childInput"
+          },
+          {
+            "op": "entries",
+            "conversationId": "$child"
+          },
+          {
+            "op": "store",
+            "conversationId": "$child"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-local-output-image-spill",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "operations": [
+          {
+            "op": "run",
+            "code": "// @options: {\"max_output_tokens\":20}\ntext(\"BEGIN\"+\"x\".repeat(200)+\"END\"); console.log(\"log\",1); image(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\"); return \"tail\";",
+            "as": "input"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "files"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-store-checkpoint-history-fork",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md",
+          "packages/durable/test/codemode-checkpoints.test.ts"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "operations": [
+          {
+            "op": "checkpointPolicy"
+          },
+          {
+            "op": "storeHistory",
+            "as": "history"
+          },
+          {
+            "op": "storageStore",
+            "label": "64-deltas"
+          },
+          {
+            "op": "storeCounter",
+            "counter": 65
+          },
+          {
+            "op": "storageStore",
+            "label": "complete-base"
+          },
+          {
+            "op": "storeAsOf",
+            "at": "$history.cutoff"
+          },
+          {
+            "op": "fork",
+            "at": "$history.cutoff",
+            "as": "child"
+          },
+          {
+            "op": "store",
+            "conversationId": "$child"
+          },
+          {
+            "op": "storeCounter",
+            "counter": 66
+          },
+          {
+            "op": "storageStore",
+            "label": "one-delta-after-base"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-local-journal-commit-rejection",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "local"
+        },
+        "globals": [
+          {
+            "name": "first",
+            "value": 1,
+            "denyNextCommit": true
+          },
+          {
+            "name": "second",
+            "value": 2
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "await first(); await second();",
+            "answer": false,
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "first",
+            "count": 1
+          },
+          {
+            "op": "closed"
+          },
+          {
+            "op": "committedTaskDocs"
+          },
+          {
+            "op": "vmEvents"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-scripted-count-before-effect",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "scripted",
+          "attempts": [
+            {
+              "initial": [
+                {
+                  "event": "started",
+                  "fingerprint": "scripted-vm-1"
+                },
+                {
+                  "event": "call",
+                  "call": {
+                    "id": 1,
+                    "target": "global",
+                    "name": "effect",
+                    "args": []
+                  }
+                }
+              ],
+              "onDeliver": {
+                "1": [
+                  {
+                    "event": "terminal",
+                    "result": {
+                      "ok": true,
+                      "value": 1,
+                      "output": [],
+                      "calls": [],
+                      "storeWrites": {
+                        "set": {},
+                        "delete": []
+                      },
+                      "during": {
+                        "seq": 1,
+                        "issued": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "globals": [
+          {
+            "name": "effect",
+            "spread": true,
+            "value": 1
+          },
+          {
+            "name": "lateEffect",
+            "value": 2
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "/* protocol fixture: no JS execution */",
+            "as": "input"
+          },
+          {
+            "op": "untilVm",
+            "kind": "call",
+            "count": 1
+          },
+          {
+            "op": "effects",
+            "label": "no-effect-without-count"
+          },
+          {
+            "op": "taskDocs"
+          },
+          {
+            "op": "emit",
+            "event": {
+              "event": "idle",
+              "seq": 0,
+              "issued": 1
+            }
+          },
+          {
+            "op": "untilEffects",
+            "name": "effect",
+            "count": 1
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "emit",
+            "event": {
+              "event": "call",
+              "call": {
+                "id": 2,
+                "target": "global",
+                "name": "lateEffect",
+                "args": []
+              }
+            }
+          },
+          {
+            "op": "emit",
+            "event": {
+              "event": "idle",
+              "seq": 1,
+              "issued": 2
+            }
+          },
+          {
+            "op": "effects",
+            "label": "late-events-no-new-effect"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemode-scripted-terminal-first-during",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "scripted",
+          "attempts": [
+            {
+              "initial": [
+                {
+                  "event": "started",
+                  "fingerprint": "scripted-vm-1"
+                },
+                {
+                  "event": "call",
+                  "call": {
+                    "id": 1,
+                    "target": "tool",
+                    "name": "hold",
+                    "args": {}
+                  }
+                },
+                {
+                  "event": "idle",
+                  "seq": 0,
+                  "issued": 1
+                }
+              ]
+            },
+            {
+              "initial": [
+                {
+                  "event": "started",
+                  "fingerprint": "scripted-vm-1"
+                },
+                {
+                  "event": "terminal",
+                  "result": {
+                    "ok": true,
+                    "value": 1,
+                    "output": [],
+                    "calls": [],
+                    "storeWrites": {
+                      "set": {},
+                      "delete": []
+                    },
+                    "during": {
+                      "seq": 0,
+                      "issued": 0
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "tools": [
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "/* controlled terminal During */",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    },
+    {
+      "id": "codemode-scripted-held-global-target",
+      "basis": {
+        "kind": "release-execution",
+        "sources": [
+          "packages/durable/test/codemode.test.ts",
+          "packages/durable/docs/spec.md"
+        ]
+      },
+      "input": {
+        "sandbox": {
+          "kind": "scripted",
+          "attempts": [
+            {
+              "initial": [
+                {
+                  "event": "started",
+                  "fingerprint": "scripted-vm-1"
+                },
+                {
+                  "event": "call",
+                  "call": {
+                    "id": 1,
+                    "target": "tool",
+                    "name": "hold",
+                    "args": {}
+                  }
+                },
+                {
+                  "event": "idle",
+                  "seq": 0,
+                  "issued": 1
+                }
+              ]
+            },
+            {
+              "initial": [
+                {
+                  "event": "started",
+                  "fingerprint": "scripted-vm-1"
+                },
+                {
+                  "event": "call",
+                  "call": {
+                    "id": 1,
+                    "target": "global",
+                    "name": "effect",
+                    "args": []
+                  }
+                },
+                {
+                  "event": "idle",
+                  "seq": 0,
+                  "issued": 1
+                }
+              ]
+            }
+          ]
+        },
+        "tools": [
+          {
+            "name": "hold",
+            "gate": "hold",
+            "firstRuns": 1,
+            "result": {
+              "output": [
+                {
+                  "type": "text",
+                  "text": "held"
+                }
+              ]
+            }
+          }
+        ],
+        "globals": [
+          {
+            "name": "effect",
+            "value": 1
+          }
+        ],
+        "operations": [
+          {
+            "op": "run",
+            "code": "/* controlled held target change */",
+            "as": "input"
+          },
+          {
+            "op": "untilEffects",
+            "name": "hold",
+            "count": 1
+          },
+          {
+            "op": "reopen"
+          },
+          {
+            "op": "resume"
+          },
+          {
+            "op": "wait",
+            "id": "$input"
+          },
+          {
+            "op": "entries"
+          },
+          {
+            "op": "effects"
+          },
+          {
+            "op": "close"
+          }
+        ]
+      },
+      "backends": [
+        "sqlite"
+      ]
+    }
+  ]
+}

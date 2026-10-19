@@ -55,9 +55,9 @@ class WorkspaceCheckerTests(unittest.TestCase):
         internal=set(self.topology['production_crates'])
         package=self.package(self.default,'pi-durable')
         self.assertEqual({item['name'] for item in package['dependencies'] if item['name'] in internal},
-                         {'pi-durable-session','pi-ai','pi-coding-runtime','pi-mcp','pi-extension-protocol'})
+                         {'pi-durable-session','pi-ai','pi-coding-runtime','pi-mcp','pi-extension-protocol','pi-codemode'})
         for dependency in ('pi-ai-core','pi-ai-transport','pi-ai-providers','pi-agent-schema',
-                           'pi-agent-loop','pi-agent','pi-coding-session','pi-codemode','pi-sqlite'):
+                           'pi-agent-loop','pi-agent','pi-coding-session','pi-sqlite'):
             metadata=copy.deepcopy(self.all_features)
             source=self.package(metadata,'pi-durable')
             node=next(item for item in metadata['resolve']['nodes'] if item['id']==source['id'])
@@ -229,7 +229,9 @@ class WorkspaceCheckerTests(unittest.TestCase):
                         'python3 scripts/check_publication.py --self-check',
                         'python3 scripts/check_publication.py',
                         'node conformance/durable-v1.4.0/runtime.mjs --check',
-                        'node conformance/durable-v1.4.0/runtime.mjs --causal'):
+                        'node conformance/durable-v1.4.0/runtime.mjs --causal',
+                        'node conformance/durable-v1.4.0/codemode.mjs --check',
+                        'node conformance/durable-v1.4.0/codemode.mjs --causal'):
             self.assertIn(command,text)
 
 

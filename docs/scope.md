@@ -72,9 +72,21 @@ converges after 100 batches, while lossless internal observation ingress can gro
 operations directly, use a host-owned initialized MCP client, and support the closed
 `durable.v1` native extension profile with seven hooks and streaming tools. These
 compositions do not claim a literal port of upstream Durable's JavaScript APIs,
-tools or environment modules. Public live TaskGraph mount/watch, Durable-specific
-telemetry schema spans/events/metrics and persistent local CodeMode journals remain
-deferred. Shared AI RequestRuntime propagation and native `on_report` are available;
+tools or environment modules.
+
+[Persistent local CodeMode](contracts/durable-codemode.md) runs the shared native
+worker with committed start/fingerprint, arrival-ordered journal, count-before-effect
+and every-held-identity gates. It reuses keyed nested tool receipts and commits
+success-only rewindable store changes with the decided result. Native QuickJS-NG
+identity and script stacks differ from source QuickJS-WASI; replay requires an equal
+native fingerprint. Typed raw-argument validation and JSON-schema declaration text
+are explicit native variances. Normal SQLite close/reopen and replay policies do not
+establish OS-crash recovery or exactly-once external effects. The host supplies the
+worker and environment; automatic model-catalog, classifier and image-generation
+helpers and remote executors remain excluded.
+
+Public live TaskGraph mount/watch and Durable-specific telemetry schema spans/events/
+metrics remain deferred. Shared AI RequestRuntime propagation and native `on_report` are available;
 they do not implement that telemetry schema. The old
 experimental Harness has been retired; a temporary compatibility layer is not
 part of this upgrade.

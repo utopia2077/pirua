@@ -1,6 +1,7 @@
 //! Durable conversation execution and generic persistent tasks over one authoritative Session.
 pub mod bindings;
 mod clock;
+pub mod codemode;
 pub mod context;
 mod definition;
 mod graph;

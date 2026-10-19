@@ -14,6 +14,7 @@ base64.workspace = true
 pi-mcp.workspace = true
 pi-extension-protocol.workspace = true
 pi-ai.workspace = true
+pi-codemode.workspace = true
 pi-coding-runtime.workspace = true
 pi-durable-session = { path = "../pi-durable-session" }
 jsonschema.workspace = true

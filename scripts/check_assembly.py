@@ -30,6 +30,8 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORICAL_SOURCE_REVISION = "ea7396d067d42e3fca3924aff36958dcd68f7d1b"
+# Integration target names cannot contain @; this identity denotes Cargo --lib.
+LIB_TARGET = "@lib"
 TEST_DEFINITION = re.compile(
     r"#\[(?:test|(?:[A-Za-z_][\w]*::)+test)(?:\([^\]]*\))?\]"
     r"\s*(?:#\[[^\]]*\]\s*)*(?:pub\s+)?(?:async\s+)?fn\s+(\w+)\s*\(",
@@ -232,6 +234,9 @@ def test_applicable(test: dict, features: set[str], *, cfg_platform: tuple[str, 
             enabled = cfg_enabled(attribute[4:-1], features, cfg_platform=cfg_platform) and enabled
         elif re.match(r"(?:cfg|cfg_attr|ignore)\b", attribute):
             raise AssemblyError(f"unsupported relevant proof attribute: {attribute}")
+        elif re.match(r"(?:test_runner|reexport_test_harness_main|no_main)\b", attribute) or (
+                re.match(r"feature\s*\(", attribute) and "custom_test_frameworks" in attribute):
+            raise AssemblyError(f"unsupported custom Cargo test harness attribute: {attribute}")
     return enabled
 
 
@@ -292,8 +297,10 @@ def check_reference(reference: dict, root: Path, inventories: dict | None = None
 
 
 def cfg_enabled(expression: str, features: set[str], *, cfg_platform: tuple[str, str] | None = None) -> bool:
-    """Evaluate the bounded feature-only cfg grammar used by proof targets."""
+    """Evaluate bounded cfg for a Cargo test harness, where cfg(test) is active."""
     expression = expression.strip()
+    if expression == "test":
+        return True
     if expression in {'unix', 'windows'}:
         family = os.name if cfg_platform is None else cfg_platform[0]
         return (family == 'posix') if expression == 'unix' else (family == 'nt')
@@ -344,28 +351,54 @@ def cargo_features(command: list[str], manifest: dict) -> set[str]:
     return chosen
 
 
-def check_command(command: list[str], evidence: list[dict], root: Path) -> None:
-    """Validate bounded known argv without starting any proof command."""
+def cargo_test_selector(command: list[str]) -> tuple[str, str]:
+    """Resolve exactly one concrete integration or default library test selector."""
     require(isinstance(command, list) and bool(command) and all(isinstance(x, str) and x for x in command),
             "proof command must be nonempty argv")
-    if command[:2] == ["cargo", "test"]:
-        require("--workspace" not in command and "-p" in command and "--test" in command,
-                "proof requires a concrete Cargo package and test target")
-        require("--locked" in command and "--offline" in command, "Cargo proof must be locked and offline")
-        index = 2
-        while index < len(command):
-            token = command[index]
-            require(token in {"-p", "--test", "--features", "--locked", "--offline",
-                              "--all-features", "--no-default-features"}, f"unknown Cargo proof option: {token}")
-            require(command.count(token) == 1, f"duplicate Cargo proof option: {token}")
-            index += 2 if token in {"-p", "--test", "--features"} else 1
-        package = command[command.index("-p") + 1]
-        target = command[command.index("--test") + 1]
-        require(re.fullmatch(r"[a-z][a-z0-9_-]*", package) is not None
-                and re.fullmatch(r"[a-z][a-z0-9_]*", target) is not None, "invalid Cargo target")
-        manifest = tomllib.loads(public_file(root, f"crates/{package}/Cargo.toml").read_text())
-        require(manifest["package"]["name"] == package, f"Cargo package mismatch: {package}")
-        features = cargo_features(command, manifest)
+    require(command[:2] == ["cargo", "test"], "expected a Cargo test proof")
+    require("--workspace" not in command and "-p" in command
+            and ("--test" in command) != ("--lib" in command),
+            "proof requires a concrete Cargo package and test target selector (--test or --lib)")
+    require("--locked" in command and "--offline" in command, "Cargo proof must be locked and offline")
+    index = 2
+    while index < len(command):
+        token = command[index]
+        require(token in {"-p", "--test", "--lib", "--features", "--locked", "--offline",
+                          "--all-features", "--no-default-features"}, f"unknown Cargo proof option: {token}")
+        require(command.count(token) == 1, f"duplicate Cargo proof option: {token}")
+        if token in {"-p", "--test", "--features"}:
+            require(index + 1 < len(command) and not command[index + 1].startswith("-"),
+                    f"missing Cargo proof option value: {token}")
+            index += 2
+        else:
+            index += 1
+    package = command[command.index("-p") + 1]
+    target = LIB_TARGET if "--lib" in command else command[command.index("--test") + 1]
+    require(re.fullmatch(r"[a-z][a-z0-9_-]*", package) is not None
+            and ("--lib" in command or re.fullmatch(r"[a-z][a-z0-9_]*", target) is not None),
+            "invalid Cargo target")
+    return package, target
+
+
+def cargo_test_target(command: list[str], manifest: dict) -> tuple[str, str, str, set[str]]:
+    """Bind a parsed selector to the one supported manifest source and feature profile."""
+    package, target = cargo_test_selector(command)
+    require(manifest["package"]["name"] == package, f"Cargo package mismatch: {package}")
+    features = cargo_features(command, manifest)
+    if target == LIB_TARGET:
+        registration = manifest.get("lib", {})
+        require(isinstance(registration, dict), f"invalid Cargo library registration: {package}")
+        require("lib" in manifest or manifest["package"].get("autolib", True),
+                f"Cargo library target is not registered: {package}")
+        require(registration.get("path", "src/lib.rs") == "src/lib.rs"
+                and registration.get("test", True) is True
+                and registration.get("harness", True) is True
+                and registration.get("proc-macro", False) is False
+                and registration.get("crate-type", ["lib"]) == ["lib"]
+                and "required-features" not in registration,
+                f"unsupported or disabled Cargo library registration: {package}")
+        path = f"crates/{package}/src/lib.rs"
+    else:
         registrations = [row for row in manifest.get('test', []) if row.get('name') == target]
         require(len(registrations) <= 1, f"ambiguous Cargo target registration: {package}/{target}")
         require(bool(registrations) or manifest['package'].get('autotests', True),
@@ -378,9 +411,21 @@ def check_command(command: list[str], evidence: list[dict], root: Path) -> None:
             require(set(registration.get('required-features', [])) <= features,
                     f"Cargo target disabled by required-features: {package}/{target}")
         path = f"crates/{package}/tests/{target}.rs"
+    return package, target, path, features
+
+
+def check_command(command: list[str], evidence: list[dict], root: Path) -> None:
+    """Validate bounded known argv without starting any proof command."""
+    require(isinstance(command, list) and bool(command) and all(isinstance(x, str) and x for x in command),
+            "proof command must be nonempty argv")
+    if command[:2] == ["cargo", "test"]:
+        package, _ = cargo_test_selector(command)
+        manifest = tomllib.loads(public_file(root, f"crates/{package}/Cargo.toml").read_text())
+        package, target, path, features = cargo_test_target(command, manifest)
         definitions, sources = rust_test_inventory(public_file(root, path), root)
         source_paths = {str(source.relative_to(root.resolve())) for source in sources}
-        references = [ref for ref in evidence if ref.get("path") in source_paths and ref.get("cargo_target", target) == target
+        references = [ref for ref in evidence if ref.get("path") in source_paths
+                      and ref.get("cargo_target", None if target == LIB_TARGET else target) == target
                       and ref.get("anchor", "").startswith("test:")]
         require(bool(references), f"Cargo target lacks an actual test anchor: {path}")
         for reference in references:
@@ -400,6 +445,23 @@ def check_command(command: list[str], evidence: list[dict], root: Path) -> None:
         raise AssemblyError(f"unknown proof executable: {command[0]}")
 
 
+def cargo_test_context(commands: list[list[str]], root: Path) -> tuple[dict, set[tuple[str, str]]]:
+    """Retain each declared compilation target's module bases and attributes."""
+    inventories, bound_targets = {}, set()
+    for command in commands:
+        if isinstance(command, list) and command[:2] == ["cargo", "test"]:
+            package, _ = cargo_test_selector(command)
+            manifest = tomllib.loads(public_file(root, f"crates/{package}/Cargo.toml").read_text())
+            _, target, path, _ = cargo_test_target(command, manifest)
+            definitions, sources = rust_test_inventory(public_file(root, path), root)
+            for source in sources:
+                cached_tests, cached_sources = inventories.setdefault(source, ([], set()))
+                cached_tests.extend(test for test in definitions if test["path"] == source)
+                cached_sources.update(sources)
+            bound_targets.update((str(source.relative_to(root.resolve())), target) for source in sources)
+    return inventories, bound_targets
+
+
 def validate_registry(registry: dict, labels: set[str], root: Path = ROOT) -> dict[str, dict]:
     def forbid_owners(value):
         if isinstance(value, dict):
@@ -415,7 +477,6 @@ def validate_registry(registry: dict, labels: set[str], root: Path = ROOT) -> di
     suites = registry.get("suites")
     require(isinstance(suites, list) and bool(suites), "missing proof suites")
     by_id = {}
-    inventories = {}
     for row in suites:
         suite = row.get("id")
         require(isinstance(suite, str) and suite not in by_id, f"duplicate or missing proof suite: {suite}")
@@ -428,6 +489,9 @@ def validate_registry(registry: dict, labels: set[str], root: Path = ROOT) -> di
         require(row["status"] != "executable" or bool(commands), f"executable suite has no commands: {suite}")
         require(row["status"] != "executable" or not limitations,
                 f"limited suite must retain accepted-limit status: {suite}")
+        # References inside foo.rs must retain the declared target's foo/ child
+        # module base and inherited attributes, rather than becoming crate roots.
+        inventories, bound_targets = cargo_test_context(commands, root)
         for reference in evidence + limitations:
             try:
                 check_reference(reference, root, inventories)
@@ -435,19 +499,12 @@ def validate_registry(registry: dict, labels: set[str], root: Path = ROOT) -> di
                 raise AssemblyError(f"proof {suite}: {error}") from error
         for command in commands:
             check_command(command, evidence, root)
-        bound_paths = set()
-        bound_targets = set()
-        for command in commands:
-            if command[:2] == ["cargo", "test"]:
-                package = command[command.index("-p") + 1]
-                target = command[command.index("--test") + 1]
-                _, sources = rust_test_inventory(public_file(root, f"crates/{package}/tests/{target}.rs"), root)
-                bound_paths.update(str(source.relative_to(root.resolve())) for source in sources)
-                bound_targets.update((str(source.relative_to(root.resolve())), target) for source in sources)
         for reference in evidence:
             if reference.get("anchor", "").startswith("test:"):
-                require(reference["path"] in bound_paths and ("cargo_target" not in reference or (reference["path"], reference["cargo_target"]) in bound_targets),
-                        f"proof {suite}: test anchor is unbound to a declared command: {reference['path']}")
+                target = reference.get("cargo_target")
+                bound = ((reference["path"], target) in bound_targets if target is not None else
+                         any(path == reference["path"] and selected != LIB_TARGET for path, selected in bound_targets))
+                require(bound, f"proof {suite}: test anchor is unbound to a declared command: {reference['path']}")
     require(set(by_id) == labels,
             f"unresolved proof suites: missing={sorted(labels - by_id.keys())}, extra={sorted(by_id.keys() - labels)}")
     return by_id
@@ -607,14 +664,13 @@ def _reviewed_proofs(root_string: str, revision: str, enrollment: tuple, cfg_pla
     files, proofs, profiles = GitTexts(), [], {}
     for suite, argv in enrollment:
         command = list(argv)
-        package = command[command.index('-p') + 1]
-        target = command[command.index('--test') + 1]
+        package, target = cargo_test_selector(command)
         manifest_path = f'crates/{package}/Cargo.toml'
         require(manifest_path in tree, 'reviewed Cargo profile missing: ' + manifest_path)
         manifest = tomllib.loads(objects.blob(tree[manifest_path]).decode('utf-8'))
         profiles[package] = manifest
-        features = cargo_features(command, manifest)
-        definitions, _ = rust_test_inventory(root/f'crates/{package}/tests/{target}.rs', root, file_texts=files)
+        _, target, path, features = cargo_test_target(command, manifest)
+        definitions, _ = rust_test_inventory(root/path, root, file_texts=files)
         enabled = [test for test in definitions if test_applicable(test, features, cfg_platform=cfg_platform)]
         require(bool(enabled), f'reviewed proof target has no enabled tests: {package}/{target}')
         for test in enabled:
@@ -684,8 +740,7 @@ def validate_adapter_proofs(suite: dict, inventory: dict, root: Path = ROOT) -> 
     checked = set()
     for package, target, path, name in sorted(adapter_proof_requirements(inventory, root)):
         commands = [command for command in suite['commands'] if command[:2] == ['cargo', 'test']
-                    and command[command.index('-p') + 1] == package
-                    and command[command.index('--test') + 1] == target]
+                    and cargo_test_selector(command) == (package, target)]
         require(bool(commands), f'retained adapter proof missing target: {package}/{target}')
         require((path, 'test:' + name) in references,
                 f'retained adapter proof missing exact anchor: {path}#{name}')

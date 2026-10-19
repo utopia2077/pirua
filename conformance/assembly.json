@@ -7839,6 +7839,16 @@
           "--test",
           "views",
           "--all-features"
+        ],
+        [
+          "cargo",
+          "test",
+          "--locked",
+          "--offline",
+          "-p",
+          "pi-durable",
+          "--lib",
+          "--all-features"
         ]
       ],
       "evidence": [
@@ -8276,6 +8286,96 @@
           "path": "crates/pi-durable/tests/views.rs",
           "anchor": "test:last_public_started_watch_clone_releases_mount_while_callback_finishes",
           "cargo_target": "views"
+        },
+        {
+          "path": "crates/pi-durable/src/bindings/extensions.rs",
+          "anchor": "test:bindings::extensions::tests::window_preserves_fractional_interval_and_rejects_invalid_host_numbers",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/bindings/extensions.rs",
+          "anchor": "test:bindings::extensions::tests::terminal_and_progress_native_codecs_preserve_null_and_closed_fields",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests.rs",
+          "anchor": "test:codemode::tests::actual_worker_commits_start_journal_counts_and_success_store",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests.rs",
+          "anchor": "test:codemode::tests::actual_worker_keyed_receipts_and_arrival_replay",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests/fixtures.rs",
+          "anchor": "test:codemode::tests::fixtures::frozen_real_worker_cases",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests/scenarios.rs",
+          "anchor": "test:codemode::tests::scenarios::emitted_unawaited_tool_keeps_cancelled_row_without_admission",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests/scenarios.rs",
+          "anchor": "test:codemode::tests::scenarios::native_count_commit_gate_and_queued_calls_after_terminal",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests/scenarios.rs",
+          "anchor": "test:codemode::tests::scenarios::native_equivalents_of_scripted_terminal_first_and_held_global",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests/scenarios.rs",
+          "anchor": "test:codemode::tests::scenarios::native_document_policies_checkpoint_history_and_asof_fork",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/codemode/tests/scenarios.rs",
+          "anchor": "test:codemode::tests::scenarios::raw_nonobject_validation_is_journaled_replayed_and_kind_checked",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/runtime/output.rs",
+          "anchor": "test:runtime::output::tests::exact_whole_line_windows_and_scalar_boundaries",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/runtime/output.rs",
+          "anchor": "test:runtime::output::tests::chunking_and_snapshot_frequency_preserve_tail_and_drop_totals",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/runtime/output.rs",
+          "anchor": "test:runtime::output::tests::utf8_bom_incomplete_bytes_and_text_boundary_are_streamed",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/runtime/output.rs",
+          "anchor": "test:runtime::output::tests::skipped_tail_counts_survive_and_head_rejects_skip",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/view/tests.rs",
+          "anchor": "test:view::tests::reused_mount_attachment_captures_current_task_and_view_in_one_driver_command",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/view/tests.rs",
+          "anchor": "test:view::tests::complete_task_submission_and_nested_document_publications_reach_only_attachments",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/view/tests.rs",
+          "anchor": "test:view::tests::attachment_public_custody_controls_raw_head_remount_and_first_end_reason",
+          "cargo_target": "@lib"
+        },
+        {
+          "path": "crates/pi-durable/src/view/tests.rs",
+          "anchor": "test:view::tests::close_seals_attachments_and_pending_acquisition_before_admitted_publication",
+          "cargo_target": "@lib"
         }
       ],
       "limitations": []

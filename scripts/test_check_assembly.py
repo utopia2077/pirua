@@ -130,6 +130,166 @@ class AssemblyTest(unittest.TestCase):
             tests,_=assembly.rust_test_inventory(root/'proof.rs',root)
             self.assertEqual([test['qualified'] for test in tests],['support::leaf::witness'])
 
+    def test_library_selector_requires_exact_locked_offline_argv(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'crates/fixture';(base/'src').mkdir(parents=True)
+            (base/'Cargo.toml').write_text('[package]\nname="fixture"\n')
+            (base/'src/lib.rs').write_text('#[cfg(test)] mod tests { #[test] fn witness() {} }')
+            command=['cargo','test','--locked','--offline','-p','fixture','--lib']
+            evidence=[{'path':'crates/fixture/src/lib.rs','anchor':'test:tests::witness',
+                       'cargo_target':assembly.LIB_TARGET}]
+            assembly.check_command(command,evidence,root)
+            self.assertEqual(assembly.cargo_test_selector(command),('fixture',assembly.LIB_TARGET))
+            (base/'tests').mkdir();(base/'tests/lib.rs').write_text('#[test] fn integration_witness() {}')
+            integration=[*command[:-1],'--test','lib']
+            self.assertEqual(assembly.cargo_test_selector(integration),('fixture','lib'))
+            assembly.check_command(integration,[{'path':'crates/fixture/tests/lib.rs',
+                                   'anchor':'test:integration_witness','cargo_target':'lib'}],root)
+            invalid=[command+['--test','proof'],[x for x in command if x!='--lib'],
+                     [x for x in command if x!='--locked'],[x for x in command if x!='--offline'],
+                     command+['--lib'],command+['--release'],command+['--profile','test'],
+                     command+['--all-targets'],command+['witness'],command+['--','--exact'],
+                     command+['--features'],command+['--features','--all-features'],
+                     ['cargo','test','--locked','--offline','--lib','-p'],
+                     ['cargo','test','--locked','--offline','--lib'],
+                     ['cargo','test','--locked','--offline','-p','fixture','--test',assembly.LIB_TARGET]]
+            for argv in invalid:
+                with self.subTest(argv=argv),self.assertRaises(assembly.AssemblyError):
+                    assembly.check_command(argv,evidence,root)
+
+    def test_library_registration_rejects_disabled_and_custom_harnesses_or_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'crates/fixture';(base/'src').mkdir(parents=True)
+            manifest=base/'Cargo.toml';prefix='[package]\nname="fixture"\n'
+            source=base/'src/lib.rs';source.write_text('#[test] fn witness() {}')
+            command=['cargo','test','--locked','--offline','-p','fixture','--lib']
+            evidence=[{'path':'crates/fixture/src/lib.rs','anchor':'test:witness','cargo_target':assembly.LIB_TARGET}]
+            for registration in ['path="src/custom.rs"','test=false','harness=false',
+                                 'proc-macro=true','crate-type=["cdylib"]','required-features=["suite"]']:
+                manifest.write_text(prefix+'[lib]\n'+registration+'\n')
+                with self.subTest(registration=registration),self.assertRaisesRegex(assembly.AssemblyError,'unsupported or disabled Cargo library'):
+                    assembly.check_command(command,evidence,root)
+            manifest.write_text(prefix+'autolib=false\n')
+            with self.assertRaisesRegex(assembly.AssemblyError,'not registered'):
+                assembly.check_command(command,evidence,root)
+            manifest.write_text(prefix+'autolib=false\n[lib]\npath="src/lib.rs"\nharness=true\ntest=true\n')
+            assembly.check_command(command,evidence,root)
+            source.unlink()
+            with self.assertRaisesRegex(assembly.AssemblyError,'missing evidence'):
+                assembly.check_command(command,evidence,root)
+            for attribute in ['test_runner(custom)','reexport_test_harness_main="run"',
+                              'feature(custom_test_frameworks)','no_main']:
+                source.write_text('#!['+attribute+']\n#[test] fn witness() {}')
+                with self.subTest(attribute=attribute),self.assertRaisesRegex(assembly.AssemblyError,'unsupported custom Cargo test harness'):
+                    assembly.check_command(command,evidence,root)
+
+    def test_library_nested_cfg_test_and_bound_anchors_are_enforced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'crates/fixture';(base/'src').mkdir(parents=True)
+            (base/'Cargo.toml').write_text('[package]\nname="fixture"\n[features]\nsuite=[]\n')
+            (base/'src/lib.rs').write_text('''#![cfg(test)]
+#[cfg(all(test, feature="suite"))] mod nested;
+#[cfg(not(test))] mod disabled { #[test] fn disabled() {} }
+#[cfg(custom_proof_flag)] mod unknown { #[test] fn unknown() {} }
+#[cfg_attr(test, ignore)] mod conditional { #[test] fn conditional() {} }
+#[ignore] #[test] fn ignored() {}
+''')
+            (base/'src/nested.rs').write_text('''#![cfg(test)]
+#[cfg(test)] #[path="proof.rs"] mod proof;
+mod inline { #[test] fn witness() {} }
+''')
+            (base/'src/proof.rs').write_text('#[test] fn external() {}')
+            (base/'src/orphan.rs').write_text('#[test] fn orphan() {}')
+            command=['cargo','test','--locked','--offline','-p','fixture','--lib','--all-features']
+            evidence=[{'path':'crates/fixture/src/'+path,'anchor':'test:'+name,'cargo_target':assembly.LIB_TARGET}
+                      for path,name in [('proof.rs','nested::proof::external'),('nested.rs','nested::inline::witness')]]
+            row={'id':'fixture','status':'executable','commands':[command],'evidence':evidence,'limitations':[]}
+            assembly.validate_registry({'schema_version':1,'suites':[row]},{'fixture'},root)
+            self.assertTrue(assembly.cfg_enabled('all(test, not(not(test)))',set()))
+            with self.assertRaisesRegex(assembly.AssemblyError,'disabled by feature cfg'):
+                assembly.check_command(command[:-1],evidence,root)
+            for name,error in [('disabled::disabled','disabled by feature cfg'),
+                               ('unknown::unknown','unsupported proof cfg'),
+                               ('conditional::conditional','unsupported relevant proof attribute'),
+                               ('ignored','disabled by feature cfg'),('absent','missing or ambiguous')]:
+                reference={'path':'crates/fixture/src/lib.rs','anchor':'test:'+name,'cargo_target':assembly.LIB_TARGET}
+                with self.subTest(name=name),self.assertRaisesRegex(assembly.AssemblyError,error):
+                    assembly.check_command(command,[reference],root)
+            for mutation in ('missing_target','wrong_target','orphan','wrong_qualified'):
+                invalid=copy.deepcopy(row)
+                if mutation=='missing_target':del invalid['evidence'][0]['cargo_target']
+                elif mutation=='wrong_target':invalid['evidence'][0]['cargo_target']='lib'
+                elif mutation=='wrong_qualified':invalid['evidence'][0]['anchor']='test:other::external'
+                else:invalid['evidence'].append({'path':'crates/fixture/src/orphan.rs','anchor':'test:orphan','cargo_target':assembly.LIB_TARGET})
+                with self.subTest(mutation=mutation),self.assertRaises(assembly.AssemblyError):
+                    assembly.validate_registry({'schema_version':1,'suites':[invalid]},{'fixture'},root)
+            with self.assertRaisesRegex(assembly.AssemblyError,'lacks an actual test anchor'):
+                assembly.check_command(command,[],root)
+
+    def test_library_external_module_reference_uses_declared_target_context(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);base=root/'crates/fixture';(base/'src/foo').mkdir(parents=True)
+            (base/'Cargo.toml').write_text('[package]\nname="fixture"\n[features]\nsuite=[]\n')
+            (base/'src/lib.rs').write_text('#[cfg(all(test, feature="suite"))] mod foo;')
+            (base/'src/foo.rs').write_text('#[test] fn parent_witness() {}\nmod child;')
+            (base/'src/foo/child.rs').write_text('#[test] fn child_witness() {}')
+            (base/'src/orphan.rs').write_text('#[test] fn orphan_witness() {}')
+            command=['cargo','test','--locked','--offline','-p','fixture','--lib','--all-features']
+            evidence=[{'path':'crates/fixture/src/'+path,'anchor':'test:'+name,'cargo_target':assembly.LIB_TARGET}
+                      for path,name in [('foo.rs','foo::parent_witness'),('foo/child.rs','foo::child::child_witness')]]
+            row={'id':'fixture','status':'executable','commands':[command],'evidence':evidence,'limitations':[]}
+            def validate(candidate):
+                return assembly.validate_registry({'schema_version':1,'suites':[candidate]},{'fixture'},root)
+            validate(row)
+            for mutation,error in [('qualified','missing or ambiguous Cargo test anchor'),
+                                   ('disabled','disabled by feature cfg'),
+                                   ('orphan','unbound to a declared command')]:
+                invalid=copy.deepcopy(row)
+                if mutation=='qualified':invalid['evidence'][0]['anchor']='test:other::parent_witness'
+                elif mutation=='disabled':invalid['commands'][0].remove('--all-features')
+                else:invalid['evidence'].append({'path':'crates/fixture/src/orphan.rs',
+                                                'anchor':'test:orphan_witness','cargo_target':assembly.LIB_TARGET})
+                with self.subTest(mutation=mutation),self.assertRaisesRegex(assembly.AssemblyError,error):
+                    validate(invalid)
+
+    def test_library_immutable_reader_binds_actual_private_units_without_floor_refresh(self):
+        command=('cargo','test','--locked','--offline','-p','pi-durable','--lib','--all-features')
+        suite='conformance/durable-v1.4.0';enrollment=((suite,command),)
+        revision='a59d5832b234d7a7330afa77e73227c230f96d02'
+        required,profiles=assembly._reviewed_proofs(str(ROOT.resolve()),revision,enrollment,assembly.REVIEWED_CFG_PLATFORM)
+        self.assertEqual(len(required),10)
+        self.assertTrue(all(proof[2]==assembly.LIB_TARGET for proof in required))
+        self.assertEqual({proof[3] for proof in required},
+                         {'crates/pi-durable/src/view/tests.rs','crates/pi-durable/src/runtime/output.rs',
+                          'crates/pi-durable/src/bindings/extensions.rs'})
+        self.assertTrue(all('cfg(test)' in proof[5] for proof in required))
+        row=self.suite(suite)
+        current=[reference for reference in row['evidence'] if reference.get('cargo_target')==assembly.LIB_TARGET]
+        self.assertEqual(len(current),18)
+        codemode=[reference for reference in current if reference['path'].startswith('crates/pi-durable/src/codemode/')]
+        self.assertEqual({reference['anchor'] for reference in codemode},{
+            'test:codemode::tests::actual_worker_commits_start_journal_counts_and_success_store',
+            'test:codemode::tests::actual_worker_keyed_receipts_and_arrival_replay',
+            'test:codemode::tests::fixtures::frozen_real_worker_cases',
+            'test:codemode::tests::scenarios::emitted_unawaited_tool_keeps_cancelled_row_without_admission',
+            'test:codemode::tests::scenarios::native_count_commit_gate_and_queued_calls_after_terminal',
+            'test:codemode::tests::scenarios::native_equivalents_of_scripted_terminal_first_and_held_global',
+            'test:codemode::tests::scenarios::native_document_policies_checkpoint_history_and_asof_fork',
+            'test:codemode::tests::scenarios::raw_nonobject_validation_is_journaled_replayed_and_kind_checked'})
+        with mock.patch.object(assembly,'REVIEWED_PROOF_COMMANDS',enrollment), \
+             mock.patch.object(assembly,'reviewed_proof_requirements',return_value=(required,profiles)):
+            assembly.validate_reviewed_proofs({'suites':[row]},ROOT)
+            missing=copy.deepcopy(row)
+            first=required[0]
+            missing['evidence']=[reference for reference in missing['evidence']
+                                 if not (reference['cargo_target']==assembly.LIB_TARGET and reference['anchor']=='test:'+first[4])]
+            with self.assertRaisesRegex(assembly.AssemblyError,'required proof identity retired'):
+                assembly.validate_reviewed_proofs({'suites':[missing]},ROOT)
+            missing=copy.deepcopy(row);missing['commands'].remove(list(command))
+            with self.assertRaisesRegex(assembly.AssemblyError,'command/profile retired'):
+                assembly.validate_reviewed_proofs({'suites':[missing]},ROOT)
+        self.assertEqual(assembly.REVIEWED_PROOF_REVISION,'f8fc56454a2247f6dca4e7d14e54c54bef4ae9a1')
+
     def test_adapter_family_keeps_all_exact_enabled_proof_routes(self):
         suite=self.suite('conformance/provider-traces/v1.4.0')
         assembly.validate_adapter_proofs(suite,{})
@@ -175,11 +335,13 @@ class AssemblyTest(unittest.TestCase):
                  ('pi-durable','initializer'),
                  ('pi-durable','invariants'),('pi-durable','release_fixtures'),
                  ('pi-durable','review_regressions'),('pi-durable','runtime_core'),
-                 ('pi-durable','runtime_fixtures'),('pi-durable','views')}
-        def identity(command):return command[command.index('-p')+1],command[command.index('--test')+1]
+                 ('pi-durable','runtime_fixtures'),('pi-durable','views'),
+                 ('pi-durable',assembly.LIB_TARGET)}
+        def identity(command):return assembly.cargo_test_selector(command)
         self.assertEqual({identity(command) for command in row['commands']},targets)
         self.assertTrue(all(command==['cargo','test','--locked','--offline','-p',identity(command)[0],
-                                     '--test',command[command.index('--test')+1],'--all-features']
+                                     *(['--lib'] if identity(command)[1]==assembly.LIB_TARGET
+                                       else ['--test',identity(command)[1]]),'--all-features']
                             for command in row['commands']))
         self.validate(row)
         extensions=self.suite('conformance/current-extensions')
@@ -214,19 +376,25 @@ class AssemblyTest(unittest.TestCase):
         for path in ['packages/durable/src/harness/context.ts','packages/durable/src/harness/view.ts',
                      'packages/durable/test/harness-context.test.ts','packages/durable/test/harness-view.test.ts']:
             self.assertEqual(routes[path]['surface'],'durable.context-views')
+        for path in ['packages/durable/src/codemode/codemode.ts','packages/durable/src/codemode/describe.ts',
+                     'packages/durable/src/codemode/index.ts','packages/durable/src/codemode/output.ts',
+                     'packages/durable/src/search.ts','packages/durable/test/codemode.test.ts',
+                     'packages/durable/test/codemode-checkpoints.test.ts','packages/durable/test/codemode-describe.test.ts']:
+            self.assertEqual(routes[path]['surface'],'durable.codemode')
         for path in ['packages/durable/src/harness/task-graph.ts',
                      'packages/durable/test/harness-task-graph.test.ts',
                      'packages/durable/src/harness/telemetry.ts',
                      'packages/durable/test/harness-telemetry.test.ts',
                      'packages/durable/test/harness-telemetry-options.test.ts',
-                     'packages/durable/src/codemode/codemode.ts',
-                     'packages/durable/test/codemode-checkpoints.test.ts',
+                     'packages/durable/src/codemode/models.ts','packages/durable/test/codemode-models.test.ts',
                      'packages/durable/src/tools/index.ts','packages/durable/src/env/index.ts']:
             self.assertEqual(routes[path]['surface'],'deferred.durable')
         surfaces={surface['id']:surface for surface in self.map['surface']}
         self.assertEqual(surfaces['durable.bindings']['authority'],'source-and-tests')
         self.assertIn('native compositions',surfaces['durable.bindings']['coverage_statement'])
-        for deferred in ('TaskGraph','DURABLE_TELEMETRY_SCHEMA','persistent CodeMode'):
+        self.assertEqual(surfaces['durable.codemode']['primary_owner'],'pi-durable::selected')
+        self.assertIn('pi-codemode::selected',surfaces['durable.codemode']['collaborators'])
+        for deferred in ('TaskGraph','DURABLE_TELEMETRY_SCHEMA'):
             self.assertIn(deferred,surfaces['deferred.durable']['coverage_statement'])
         for path in ['packages/durable/src/storage/jsonl/storage.ts',
                      'packages/durable/src/storage/sqlite/migrations.ts','packages/durable/src/storage/indexeddb.ts']:

@@ -1,0 +1,174 @@
+{
+  "upstreamTag": "v1.4.0",
+  "upstreamCommit": "4a080252f06caf63a525d7873c5d94d3c23887e0",
+  "execution": "Independent FUTURE upstream evidence only: actual published Durable CodeMode adapter/Harness/ToolTask with real local worker, direct document policy, or explicitly labeled scripted Sandbox boundary. No native implementation or acceptance.",
+  "runtime": {
+    "node": "v26.8.1",
+    "npm": "11.19.0",
+    "nodeSqlite": "3.53.4"
+  },
+  "sharedPackageIdentity": {
+    "packageLockSha256": "608226d8577881af79480c884c8473dc83854d9f109c9064ca081476fd3c0d92",
+    "sessionProvenanceSha256": "06769acd79402de63e2ec961f710c7d8cb8d31be8b52a9eec2d11eb92c1cba67",
+    "schedulerProvenanceSha256": "a765c446b83e587c7521dda74b0ea34d9f47f01c8e9baf33d872e010049dbd83",
+    "runtimeProvenanceSha256": "1e66be681fa0d83b9918274acc6d12ea9c89881a2e07a961c8a5dba0c1405ede",
+    "newInstallations": 0,
+    "frozenPriorFiles": {
+      ".gitignore": "b1e2d2275da6874aaddb5e6c1607c9c04f181bf488f1514b701afb4f61fcb344",
+      "README.md": "50b7fa60c5958ff5caa15782cf00f988ed46ec26a280f2198b29b4b4b5d79e34",
+      "case-index.json": "4dc4f996586b39d4787cad6a5d1344c5a51a6d370b7e33d27b4232d635121dfd",
+      "causal-check.mjs": "61802693d77e96df69d8200bd933e030b794fd311b10219d3ddf96d7337be2fd",
+      "chord-attestations.json": "56a51f151889415ac32673ff20421d3dfd13982d42051a3b9ed54fca6104715c",
+      "package-lock.json": "608226d8577881af79480c884c8473dc83854d9f109c9064ca081476fd3c0d92",
+      "package.json": "5f6440a44ff9ef6d4a35c6e71b920e3763192777019027fbab05a2e02eb80e7c",
+      "pi-durable-attestations.json": "a9902dc2db1401e8c9b3daf86cdd225852c88c3aeb6654dd84d434ce01d26b61",
+      "provenance.json": "06769acd79402de63e2ec961f710c7d8cb8d31be8b52a9eec2d11eb92c1cba67",
+      "runner.mjs": "8b965dce2d656984c6c39cfe55265752d3da0dd77e8c7b184e5bf7fb1cc7f3b8",
+      "scheduler-case-index.json": "aefe0952a155ae7aaf1fe0509d3e49d39079df5181af4f4a5019af7c780e166e",
+      "scheduler-provenance.json": "a765c446b83e587c7521dda74b0ea34d9f47f01c8e9baf33d872e010049dbd83",
+      "scheduler-runner.mjs": "21579e3a967090111f4b1d033ad30f648013e58296a43467ff23febd8b04cc66",
+      "scheduler-source-pin.json": "dbb557225a49d54f45427ba809058207c6b57696dadb3c98a0901bf69c7d5139",
+      "scheduler.md": "7a3f34469fae17fedd4a3a66a1cd8e5d3ae19cf1c7ab1ff6a9cd966f6345dfb1",
+      "scheduler.mjs": "53acff874d7c09a3d3c75f42c59be6c08ed1bdc71668c54c39404608063be1dd",
+      "session.mjs": "717be1b5c72eba8da58d1e0ed91617d7f415156005ea2898c62b93c7fc965a0f",
+      "setup.mjs": "c33fde50cc079f3563c5802b668942d4ff50ebdaeb2d167b540786e1356647a3",
+      "source-pin.json": "3a51a09e927b73cdf7d9e801be0a9b83904be15fa8aa6efcfb04e150f3db8dcd",
+      "trace-codec.mjs": "b8d576daf21cba4906ea309e7b4b11a3ea3b5fbdbbf91a30d6a84a360b12ea01",
+      "fixtures/native-contract.json": "d9f6c8a91f0e9b557eb44e00cc9059e1afe7d424d8f6f225dc718c298c64599d",
+      "fixtures/scheduler-inputs.json": "d673ddeff82f7418420ceefc13fa1e30cf43e084db98da09ac89feeced27f5f3",
+      "fixtures/scheduler-schema.json": "8159f0c6193328c004cd67de62c85b0496ce88d95dc0ed67836c1ad173e0645a",
+      "fixtures/scheduler.json": "4a475d1bf49ebbc41315798e36f16a2fd470f1d2b8ec6ee683373db62214283b",
+      "fixtures/schema.json": "7ffa0951186ade6b252c7b46f5432f0addee465fdfade323675a045d03cbdff7",
+      "fixtures/session-inputs.json": "0a8126c74932fc2ce472e44798e720fb584b78f9a344d2da0b20d774ce638275",
+      "fixtures/session.json": "71775f4546feef4d96dde3144a079444fadf2d32ce5df1f22997f8ddaed58f77",
+      "runtime.mjs": "48219d22bc8228ad9de269d083c9c993cdd4eec67e2e652e885c9fe1512fbdd7",
+      "runtime-runner.mjs": "9025063a7b8b1e2fb19c7f83ca9e593151a8b0c03b68952be961d90f371707cb",
+      "runtime.md": "5b509a1ddd5a7395025f909b4efa1a32094da824f7810406abdfc230a826882d",
+      "runtime-case-index.json": "c0d3a0d7dc8ca3563b5b07bf58e6439ffc31c69032d8fcb60c795803282b593e",
+      "runtime-source-pin.json": "a54634e29c49db3605a55c7a1affac8ea9b1dd9a84c968f18f2a0477c0d1e6bb",
+      "runtime-ai-attestations.json": "c5d2747ea0dc77394fed0180751ee6161f008f80ad289e43068e361712605041",
+      "runtime-provenance.json": "1e66be681fa0d83b9918274acc6d12ea9c89881a2e07a961c8a5dba0c1405ede",
+      "fixtures/runtime-inputs.json": "02350e7f48c02e62b79acf1938a4cb84f07af86a478b83d6a5563d331aff47df",
+      "fixtures/runtime.json": "690a058107ef2744702d713593f3b6cd24077783cda6f888fb18edffa9f14c6a",
+      "fixtures/runtime-schema.json": "3921bdc54f8b7484f5dab94551cd65dfa5de3b5fad9beb410b1396c684a93805"
+    }
+  },
+  "packages": {
+    "@earendil-works/pi-durable": {
+      "version": "1.4.0",
+      "integrity": "sha512-EtIyXH1MBSXdJSkodmy+CYXuwfve3gPrD4GNCZ0XmuRWLPupwRlNQ7fdaXjRcLoKb6SWkT/yEzK+sMmrqvYK+Q==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/pi-durable/-/pi-durable-1.4.0.tgz",
+      "attestation": "pi-durable-attestations.json",
+      "attestationSha256": "a9902dc2db1401e8c9b3daf86cdd225852c88c3aeb6654dd84d434ce01d26b61"
+    },
+    "@earendil-works/chord": {
+      "version": "1.4.0",
+      "integrity": "sha512-dTbgyz4xgDS5KAUFx1bFENqj0Cr1N3tYxJJOYStc6g6HS78FSBZydyoCwLoddiQRF+VgRS0fpgAi+iKxjZ3BQA==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/chord/-/chord-1.4.0.tgz",
+      "attestation": "chord-attestations.json",
+      "attestationSha256": "56a51f151889415ac32673ff20421d3dfd13982d42051a3b9ed54fca6104715c"
+    },
+    "@earendil-works/pi-ai": {
+      "version": "1.4.0",
+      "integrity": "sha512-hQM/C4+1w8rHYACzDDf+0vQMnEnpzIop1tptIERVgR3ZeT/hHSzBNG8PaWPgxWQjqSeKCyBZSyp8uTT6eKK1pQ==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/pi-ai/-/pi-ai-1.4.0.tgz",
+      "attestation": "runtime-ai-attestations.json",
+      "attestationSha256": "c5d2747ea0dc77394fed0180751ee6161f008f80ad289e43068e361712605041"
+    },
+    "@earendil-works/pi-codemode": {
+      "version": "1.4.0",
+      "integrity": "sha512-23CNAXpS9DuLzPMyYuvrXVVio46x4YhffCgCqaWmF7F5H8PooqjrQvX4ucF6M0BhUd+x2tV6r1J0dv8cCME4Cg==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/pi-codemode/-/pi-codemode-1.4.0.tgz",
+      "attestation": "codemode-attestations.json",
+      "attestationSha256": "894f5ad59db0bf98eb74f383238246dcebd8ef764dab4ca177fc5763f7dfbeea"
+    }
+  },
+  "codemodeArchives": {
+    "@earendil-works/pi-codemode": {
+      "version": "1.4.0",
+      "integrity": "sha512-23CNAXpS9DuLzPMyYuvrXVVio46x4YhffCgCqaWmF7F5H8PooqjrQvX4ucF6M0BhUd+x2tV6r1J0dv8cCME4Cg==",
+      "resolved": "https://registry.npmmirror.com/@earendil-works/pi-codemode/-/pi-codemode-1.4.0.tgz",
+      "sha256": "497845355c494b11b779923c988f88412074182bbd59c7f704d8af40b3a46ada",
+      "association": "Installed JavaScript/manifest/WASM files matched locked npm cache tarball byte-for-byte; cache artifact sha512 verified",
+      "matchedFiles": 17
+    },
+    "quickjs-wasi": {
+      "version": "3.6.2",
+      "integrity": "sha512-FCqGtGOrMgzUiIrMNMA2YnsOxCNwo31dzqXvclXUC6xeT35NJLKXQJsvbeCTjvoFAwZgEAPg8U6+KAPDGXn8Mg==",
+      "resolved": "https://registry.npmmirror.com/quickjs-wasi/-/quickjs-wasi-3.6.2.tgz",
+      "sha256": "f1f4349f19a2d849e33ea0ae9bec2e7062b8839f4eceb17c9051ddbaa2720982",
+      "association": "Installed JavaScript/manifest/WASM files matched locked npm cache tarball byte-for-byte; cache artifact sha512 verified",
+      "matchedFiles": 6
+    }
+  },
+  "attestationMetadataUrl": "https://registry.npmjs.org/-/npm/v1/attestations/@earendil-works%2fpi-codemode@1.4.0",
+  "counts": {
+    "cases": 21,
+    "executions": 29,
+    "memoryAndSqliteCases": 8,
+    "sqliteOnlyCases": 13,
+    "realLocalWorkerCases": 17,
+    "realLocalWorkerExecutions": 23,
+    "documentOnlyCases": 1,
+    "documentOnlyExecutions": 2,
+    "scriptedSandboxCases": 3,
+    "scriptedSandboxExecutions": 4,
+    "liveNormalCloseReopenCases": 13,
+    "persistedFixturePerturbationCases": 6,
+    "seededTaskCases": 0,
+    "observedProcessCrashes": 0,
+    "taggedSourceFingerprints": 93,
+    "releaseFingerprints": 349,
+    "addedReleaseFingerprints": 23,
+    "fixtureBytes": 2937271,
+    "scalarStringValuesAndKeys": 74732,
+    "maximumJsonDepth": 17
+  },
+  "observedLocalFingerprint": "quickjs-wasi 3.6.2, quickjs 0.17.0, prelude 8c6c9242, deterministic 1, stack 524288, heap 67108864, budget none",
+  "hostBoundary": {
+    "entropy": "Controller-approved process-local crypto.getRandomValues(Uint32Array(1)) seed424242; all other shapes delegate; original own property descriptor/absence restored and asserted after every case. No default entropy/seed security claim.",
+    "durations": "Controller-approved nondecreasing constant-zero process-local performance.now, descriptor/absence restored and asserted after every case; no elapsed-performance claim.",
+    "wallClock": "Injected scheduler/adapter wall clock starts1000, changes only through explicit advance, independent from bounded real test-host startup wait.",
+    "provider": "Actual conversationCreated callback commits explicit ProviderDoc session ID; scripted local provider supplies fixed message wall timestamp and duration0.",
+    "files": "Controlled in-memory ExecutionEnv returns deterministic /oracle/code-output and records exact text/image bytes, with committed outputDir snapshot at write entry; no real filesystem integration claim.",
+    "storageFailure": "One negative case denies the next commit at controlled Storage boundary before forwarding to real Memory/SQLite; actual Session/adaptor failure and nondelivery observed, no disk/power-loss claim.",
+    "scriptedSandbox": "Three cases emit literal external Sandbox protocol events and record source deliveries; no script/VM execution or journal state-machine implementation in this boundary.",
+    "sourcePatches": 0,
+    "nativeFingerprintByteParityClaim": false
+  },
+  "verification": [
+    "node conformance/durable-v1.4.0/codemode.mjs --check:21cases/29actualrelease-backendexecutions",
+    "PIRUA_UPSTREAM_ROOT=/path/to/pi node conformance/durable-v1.4.0/codemode.mjs --check:all93immutabletaggedsource/test/specfingerprintsverified",
+    "node conformance/durable-v1.4.0/codemode.mjs --causal:actual --check rejects changed committed count at effect entry",
+    "Two consecutive explicit --write generations yield byte-identical final fixture",
+    "Formal Draft2020-12 JSON schema validates inputs and complete trace; case index IDs/source hashes/related test names verified against immutable tagged tests",
+    "Strict UTF-8 traversal verifies74732 scalar strings/keys, maximumJSONdepth17",
+    "node conformance/durable-v1.4.0/session.mjs --check:38cases/61executions",
+    "node conformance/durable-v1.4.0/scheduler.mjs --check:23cases/41executions",
+    "node conformance/durable-v1.4.0/runtime.mjs --check:18cases/30executions",
+    "All37priorhashesverifiedbeforeeveryCodeModecommandandatfinalization;testhostentropy/durationdescriptorsrestoredaftereverycase"
+  ],
+  "limits": [
+    "All recovery uses actual live normal Harness.close and same-file SQLite reopen; six cases explicitly perturb persisted document drafts; no OS/process crash or raw seeded runtime recovery claim",
+    "17 local-worker cases, one actual document-only case and three scripted Sandbox protocol cases are separate evidence categories",
+    "Source QuickJS fingerprint retained; no native fingerprint-byte parity or native adapter acceptance",
+    "No complete replay-corruption matrix, every cancellation/storage race, ambiguous commit, hard process crash, every terminal During/count permutation or concurrent same-key race",
+    "No worker resource-limit/CPU-timeout/memory-failure proof, real filesystem spilling/recovery or cross-process file helper identity",
+    "No global discovery/catalog/reload matrix, classifier/image-generation helper, remote sandbox, native extension transport or Coding binding execution",
+    "Reports retain category/message without host stacks; actual deterministic script-error output remains unchanged",
+    "Published JavaScript/WASM executed; tagged TypeScript rebuild and full upstream tests not run",
+    "Package npm SLSA payload/digest association verified, cryptographic signature trust not independently reverified; third-party quickjs-wasi associated by locked archive integrity rather than Pi commit"
+  ],
+  "observedSourceSpecContradictions": [],
+  "artifacts": {
+    "codemode.mjs": "425d180b21e0f110959f5774733c746ec7f37144732666f749994298a75fe23b",
+    "codemode-runner.mjs": "83ab8353b649b55de7e04fba24fb57916a3d34f372730278778eed2b15e6ff3b",
+    "codemode.md": "6ff2d46ab640d92743f5c4e879e4e6424818bcbb55292442ecbe5b20251aafeb",
+    "codemode-case-index.json": "1159391d21ec61f26700dc1d2f70579ae8119d7aaaa4121129a2b460c8bd45fb",
+    "codemode-source-pin.json": "a4b41ea604532f548917da98e900f16a3377b6cc4a0e5c0646d2244172cd41ec",
+    "codemode-attestations.json": "894f5ad59db0bf98eb74f383238246dcebd8ef764dab4ca177fc5763f7dfbeea",
+    "fixtures/codemode-inputs.json": "aa597ec2ae09e32af2716ae20ef4aa0c63e3f6eb9ab0549b3d640617e309c5d4",
+    "fixtures/codemode.json": "b9e8fb3ef1c28140de447cd3d20595a2853184216c1d1dcab913f8e3905693a5",
+    "fixtures/codemode-schema.json": "016afb8233b46ef82de3570c8976d083bd6ee1fe108de17351cb29b525a06e58"
+  }
+}

@@ -17,6 +17,7 @@ effect remains responsible for honoring its cancellation signal.
 
 Providers, credentials, transports, tools and extension grants are explicit host
 capabilities. Construction does not discover accounts or contact a service.
-Runtime-independent tool operations and neutral MCP/CodeMode clients can be reused
-by the later Durable implementation without a temporary Harness compatibility
-layer. The precise included products are in [scope](../scope.md).
+Runtime-independent tool operations, neutral MCP and the local CodeMode worker are
+reused by Durable without a temporary Harness compatibility layer. Durable owns
+persistent invocation/journal state; the common operations and worker remain
+independent of its storage. The precise included products are in [scope](../scope.md).

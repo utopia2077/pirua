@@ -6,7 +6,9 @@ admission, agent configuration, prompts, generation, local/nested tools, account
 compaction and committed agent events. Context normalization and mounted views
 remain in their separate `context` and `view` modules. Runtime does not construct
 an Agent or CodingSession. Ordinary Coding/MCP/native-extension adapters have their
-own binding module and contract; persistent CodeMode execution is a later unit.
+own binding module and contract. [Persistent local CodeMode](durable-codemode.md)
+composes this runtime's keyed nested calls and committed progress with the shared
+native worker, versioned replay journal and success-only rewindable store.
 
 The selected source is Pi v1.4.0, exact Git object
 `4a080252f06caf63a525d7873c5d94d3c23887e0`. Native types replace JavaScript object

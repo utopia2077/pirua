@@ -13,6 +13,11 @@ flowchart TD
     Loop --> AI["AI contracts and configured stream"]
     Coding --> Adapters["MCP / CodeMode / extensions"]
     Adapters --> Neutral["Independent protocol clients and worker"]
+    Durable["Durable conversation runtime"] --> DurableStore["Durable Session / persistent tasks"]
+    DurableStore --> SQLite
+    Durable --> AI
+    Durable --> DurableAdapters["Coding operations / MCP / extensions / persistent CodeMode"]
+    DurableAdapters --> Neutral
 ```
 
 | Document | Responsibility |
@@ -29,7 +34,10 @@ flowchart TD
 
 The [Durable Session](../contracts/durable-session.md) owns committed documents,
 history and storage independently of CodingSession. The [generic scheduler](../contracts/durable-scheduler.md)
-in `pi-durable` executes persistent tasks over that Session. The conversation
-runtime is still being implemented. Shared AI, tool, SQLite, MCP and CodeMode
+in `pi-durable` executes persistent tasks over that Session. The
+[conversation runtime](../contracts/durable-runtime.md) adds model/tool execution,
+committed views/events and native bindings. [Persistent local CodeMode](../contracts/durable-codemode.md)
+journals worker replay and effect admission over the same authority. Shared AI,
+tool, SQLite, MCP and CodeMode
 modules have no dependency on that runtime. The old experimental Harness is retired
 from the workspace and remains in Git history.
