@@ -62,7 +62,7 @@ fn fractional_records_and_documents_survive_publication_storage_and_reopen() {
                 .changes
                 .iter()
                 .find_map(|change| match change {
-                    CommitChange::Table(StorageWrite::Task { value }) => Some(value),
+                    CommitChange::Table(StorageWrite::Task { value }) => Some(value.as_ref()),
                     _ => None,
                 })
                 .unwrap();
@@ -96,7 +96,7 @@ fn fractional_records_and_documents_survive_publication_storage_and_reopen() {
                 .changes
                 .iter()
                 .find_map(|change| match change {
-                    CommitChange::Table(StorageWrite::Task { value }) => Some(value),
+                    CommitChange::Table(StorageWrite::Task { value }) => Some(value.as_ref()),
                     _ => None,
                 })
                 .unwrap();

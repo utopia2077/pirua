@@ -523,7 +523,7 @@ impl Observer {
                     if record_conversation == Some(value.conversation_id) =>
                 {
                     relevant = true;
-                    self.snapshot.tasks.insert(value.id, value.clone());
+                    self.snapshot.tasks.insert(value.id, value.as_ref().clone());
                 }
                 CommitChange::Table(StorageWrite::Submission { value })
                     if record_conversation == Some(value.conversation_id) =>

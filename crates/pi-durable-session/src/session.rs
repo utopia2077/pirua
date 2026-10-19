@@ -1722,7 +1722,9 @@ impl<'a> Transaction<'a> {
             self.tasks
                 .values()
                 .cloned()
-                .map(|value| StorageWrite::Task { value }),
+                .map(|value| StorageWrite::Task {
+                    value: Box::new(value),
+                }),
         );
         writes.extend(
             self.submissions

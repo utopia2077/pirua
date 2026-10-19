@@ -496,7 +496,8 @@ pub enum StorageWrite {
         value: EntryRecord,
     },
     Task {
-        value: TaskRecord,
+        // Task records contain several JSON values; keep them off each write slot.
+        value: Box<TaskRecord>,
     },
     Submission {
         value: SubmissionRecord,

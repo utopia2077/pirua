@@ -297,7 +297,7 @@ impl Data {
                     {
                         return Err(Error::validation("task immutable creation fields changed"));
                     }
-                    next.tasks.insert(value.id, value.clone());
+                    next.tasks.insert(value.id, value.as_ref().clone());
                 }
                 StorageWrite::Submission { value } => {
                     value.validate()?;
