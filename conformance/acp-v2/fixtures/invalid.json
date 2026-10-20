@@ -1,0 +1,42 @@
+[
+  {
+    "definition": "PromptResponse",
+    "value": {}
+  },
+  {
+    "definition": "PromptResponse",
+    "value": {
+      "messageId": null
+    }
+  },
+  {
+    "definition": "PromptRequest",
+    "value": {
+      "sessionId": "s1",
+      "prompt": [
+        {
+          "type": "text"
+        }
+      ]
+    }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "agent_message_chunk",
+        "messageId": "a1"
+      }
+    }
+  },
+  {
+    "definition": "SetSessionConfigOptionRequest",
+    "value": {
+      "sessionId": "s1",
+      "configId": "thinking",
+      "type": "id",
+      "value": false
+    }
+  }
+]
