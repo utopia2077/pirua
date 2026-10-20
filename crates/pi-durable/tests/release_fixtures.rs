@@ -806,6 +806,10 @@ fn publications_match(
         let mut batches = BTreeMap::new();
         for publication in values {
             let mut tasks = publication["tasks"].as_array().unwrap().clone();
+            // Object insertion order is not part of committed record identity.
+            for task in &mut tasks {
+                task.sort_all_objects();
+            }
             tasks.sort_by_key(|t| t["id"].as_u64());
             *batches
                 .entry(serde_json::to_string(&tasks).unwrap())
@@ -913,6 +917,32 @@ fn publications_match(
         }
     }
     Ok(())
+}
+#[test]
+fn publication_projection_preserves_fields_independent_of_object_order() {
+    let expected: Value = serde_json::from_str(
+        r#"[{"seq":2,"tasks":[{"id":2,"state":{"status":"pending","checkpoint":{"phase":"run","nested":{"a":1,"b":2},"ordered":[1,2]}}}]}]"#,
+    )
+    .unwrap();
+    let actual: Value = serde_json::from_str(
+        r#"[{"tasks":[{"state":{"checkpoint":{"ordered":[1,2],"nested":{"b":2,"a":1},"phase":"run"},"status":"pending"},"id":2}],"seq":2}]"#,
+    )
+    .unwrap();
+    assert_eq!(actual, expected);
+    assert!(publications_match(&actual, &expected, &Default::default()).is_ok());
+
+    let mut changed = actual.clone();
+    changed[0]["tasks"][0]["state"]["checkpoint"]["nested"]["a"] = json!(3);
+    assert!(publications_match(&changed, &expected, &Default::default()).is_err());
+    let mut missing = actual.clone();
+    missing[0]["tasks"][0]["state"]["checkpoint"]["nested"]
+        .as_object_mut()
+        .unwrap()
+        .remove("b");
+    assert!(publications_match(&missing, &expected, &Default::default()).is_err());
+    let mut reordered = actual;
+    reordered[0]["tasks"][0]["state"]["checkpoint"]["ordered"] = json!([2, 1]);
+    assert!(publications_match(&reordered, &expected, &Default::default()).is_err());
 }
 #[test]
 fn publication_projection_rejects_missing_coalesced_and_reversed_dependent_batches() {

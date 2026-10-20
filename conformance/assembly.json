@@ -8134,6 +8134,11 @@
         },
         {
           "path": "crates/pi-durable/tests/release_fixtures.rs",
+          "anchor": "test:publication_projection_preserves_fields_independent_of_object_order",
+          "cargo_target": "release_fixtures"
+        },
+        {
+          "path": "crates/pi-durable/tests/release_fixtures.rs",
           "anchor": "test:publication_projection_rejects_missing_coalesced_and_reversed_dependent_batches",
           "cargo_target": "release_fixtures"
         },
