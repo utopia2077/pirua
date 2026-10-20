@@ -57,7 +57,7 @@ struct State {
 }
 /// Installs one uniquely named native extension in the existing runtime registry.
 /// Last public handle drop retires callbacks and its connection. Closures retain
-/// only Weak<State>; an in-flight request cannot postpone public retirement.
+/// only `Weak<State>`; an in-flight request cannot postpone public retirement.
 pub struct DurableExtensionAttachment {
     state: Arc<State>,
     name: String,
