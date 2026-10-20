@@ -162,11 +162,13 @@ source observations and passing native test executions are separate evidence.
 Historical transport fixtures keep their original provenance; the selected
 v1.4.0 suites run separate current-release observations.
 
-Required test identities and their Cargo profiles are enrolled from a reviewed
-Git commit. Regenerating the registry can add evidence, but cannot silently retire
-an enrolled test, target or feature binding. Retiring one requires an explicit
-reviewed change to that baseline. The required native proof profile is Linux;
-running discovery on another platform does not reduce its obligations.
+Required test identities and Cargo profiles have separate immutable enrollments:
+the original Agent floor at `f8fc564` and the Durable floor at `e7fed05`.
+The Durable floor binds nineteen commands, including the actual private library
+units and shared extension, VM and AI regressions. Regeneration may add evidence;
+retiring an enrolled identity, command or feature/dependency binding requires an
+explicit reviewed baseline change. Both enrollments select Linux obligations
+independently of the discovery host.
 
 ## Publication checks
 

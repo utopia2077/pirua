@@ -278,16 +278,16 @@ mod inline { #[test] fn witness() {} }
             'test:codemode::tests::scenarios::raw_nonobject_validation_is_journaled_replayed_and_kind_checked'})
         with mock.patch.object(assembly,'REVIEWED_PROOF_COMMANDS',enrollment), \
              mock.patch.object(assembly,'reviewed_proof_requirements',return_value=(required,profiles)):
-            assembly.validate_reviewed_proofs({'suites':[row]},ROOT)
+            assembly.validate_reviewed_proofs({'suites':[row]},ROOT,suite_names={suite})
             missing=copy.deepcopy(row)
             first=required[0]
             missing['evidence']=[reference for reference in missing['evidence']
                                  if not (reference['cargo_target']==assembly.LIB_TARGET and reference['anchor']=='test:'+first[4])]
             with self.assertRaisesRegex(assembly.AssemblyError,'required proof identity retired'):
-                assembly.validate_reviewed_proofs({'suites':[missing]},ROOT)
+                assembly.validate_reviewed_proofs({'suites':[missing]},ROOT,suite_names={suite})
             missing=copy.deepcopy(row);missing['commands'].remove(list(command))
             with self.assertRaisesRegex(assembly.AssemblyError,'command/profile retired'):
-                assembly.validate_reviewed_proofs({'suites':[missing]},ROOT)
+                assembly.validate_reviewed_proofs({'suites':[missing]},ROOT,suite_names={suite})
         self.assertEqual(assembly.REVIEWED_PROOF_REVISION,'f8fc56454a2247f6dca4e7d14e54c54bef4ae9a1')
 
     def test_adapter_family_keeps_all_exact_enabled_proof_routes(self):
@@ -357,7 +357,7 @@ mod inline { #[test] fn witness() {} }
             suite['evidence']=[reference for reference in suite['evidence']
                                if not (reference['path'].startswith('crates/'+package+'/') and reference['cargo_target']==target)]
             with self.subTest(package=package,target=target),mock.patch.object(assembly,'load_json',return_value=reduced):
-                with self.assertRaisesRegex(assembly.AssemblyError,'stale generated proof registry'):
+                with self.assertRaisesRegex(assembly.AssemblyError,'Durable proof command/profile retired'):
                     assembly.check_assembly(self.map_path,self.registry_path)
         routes={entry['path']:entry for entry in tomllib.loads((ROOT/'upstream/manifests/routes.toml').read_text())['entry']}
         for path in ['packages/durable/src/types.ts','packages/durable/src/session/session.ts',
@@ -498,6 +498,125 @@ mod inline { #[test] fn witness() {} }
         row['evidence']=[{'path':'scripts/generate_upstream_manifests.py','anchor':'python:main'}]
         with self.assertRaisesRegex(ValueError,'reviewed proof command/profile retired'):
             upstream_drift.validate_suite_activation(row,ROOT)
+
+    def test_durable_regeneration_cannot_retire_accepted_private_or_shared_proofs(self):
+        # The public writer must reject discoveries that shrink the accepted
+        # Durable floor, even when their remaining definitions are valid.
+        with tempfile.TemporaryDirectory(prefix='durable-proof-retirement-') as directory:
+            root=Path(directory)
+            (root/'.git').symlink_to(ROOT/'.git',target_is_directory=True)
+            shutil.copytree(ROOT/'scripts',root/'scripts',ignore=shutil.ignore_patterns('__pycache__'))
+            shutil.copytree(ROOT/'crates',root/'crates')
+            shutil.copyfile(ROOT/'workspace-topology.toml',root/'workspace-topology.toml')
+            for reference in self.registry['preserved_inputs']:
+                destination=root/reference['path'];destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/reference['path'],destination)
+            checker=root/'conformance/catalog/v1.4.0/check.py';checker.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(ROOT/'conformance/catalog/v1.4.0/check.py',checker)
+            registry=root/'conformance/assembly.json';registry.write_bytes(self.registry_path.read_bytes())
+            before=registry.read_bytes()
+            command=[sys.executable,str(root/'scripts/generate_assembly_registry.py')]
+            positive=subprocess.run([*command,'--check'],cwd=root,capture_output=True,text=True)
+            self.assertEqual(positive.returncode,0,positive.stdout+positive.stderr)
+            cases=[
+                ('runtime integration identity','crates/pi-durable/tests/runtime_core.rs',
+                 'fn progress_host_callbacks_reenter_without_locking_out_progress_or_close()',
+                 'fn retired_progress_host_callbacks()', 'Durable required proof identity retired'),
+                ('private library identity','crates/pi-durable/src/codemode/tests.rs',
+                 'fn actual_worker_keyed_receipts_and_arrival_replay()',
+                 'fn retired_worker_replay()', 'Durable required proof identity retired'),
+                ('shared VM repair identity','crates/pi-codemode/tests/sandbox.rs',
+                 'fn closing_waiting_worker_reports_aborted_without_terminal_during()',
+                 'fn retired_worker_abort()', 'Durable required proof identity retired'),
+                ('disabled child library module','crates/pi-durable/src/codemode/tests.rs',
+                 'mod fixtures;', '#[cfg(any())]\nmod fixtures;', 'Durable required proof identity retired'),
+                ('integration command','scripts/generate_assembly_registry.py',
+                 "'review_regressions', 'runtime_core', 'runtime_fixtures'",
+                 "'review_regressions', 'runtime_fixtures'", 'Durable proof command/profile retired'),
+                ('library command','scripts/generate_assembly_registry.py',
+                 "'views', '@lib'", "'views'", 'Durable proof command/profile retired'),
+                ('Durable command profile','scripts/generate_assembly_registry.py',
+                 '                _, target, path, features = assembly.cargo_test_target(command,manifest)',
+                 "                if name == 'conformance/durable-v1.4.0':\n                    command.remove('--all-features')\n                _, target, path, features = assembly.cargo_test_target(command,manifest)",
+                 'Durable proof command/profile retired'),
+                ('Durable dependency binding','crates/pi-durable/Cargo.toml',
+                 'pi-codemode.workspace = true', 'pi-codemode = { workspace = true, optional = true }',
+                 'Durable proof dependency binding changed'),
+                ('Session dependency feature binding','crates/pi-durable-session/Cargo.toml',
+                 'features = ["fallible_uint"]', 'features = []', 'Durable proof dependency binding changed'),
+            ]
+            for label,path,old,new,reason in cases:
+                with self.subTest(case=label):
+                    witness=root/path;original=witness.read_text()
+                    self.assertEqual(original.count(old),1)
+                    witness.write_text(original.replace(old,new))
+                    try:
+                        rejected=subprocess.run([*command,'--write'],cwd=root,capture_output=True,text=True)
+                        self.assertNotEqual(rejected.returncode,0,rejected.stdout+rejected.stderr)
+                        self.assertIn(reason,rejected.stderr)
+                        self.assertEqual(registry.read_bytes(),before,'failed refresh published a smaller registry')
+                    finally:
+                        witness.write_text(original)
+                        registry.write_bytes(before)
+            # The floor is a minimum, so a newly discovered unit can still enroll.
+            witness=root/'crates/pi-durable/src/codemode/tests.rs'
+            witness.write_text(witness.read_text()+'\n#[test] fn accepted_floor_allows_addition() {}\n')
+            added=subprocess.run([*command,'--write'],cwd=root,capture_output=True,text=True)
+            self.assertEqual(added.returncode,0,added.stdout+added.stderr)
+            family=next(row for row in json.loads(registry.read_text())['suites']
+                        if row['id']=='conformance/durable-v1.4.0')
+            self.assertTrue(any(ref.get('anchor')=='test:codemode::tests::accepted_floor_allows_addition'
+                                and ref.get('cargo_target')==assembly.LIB_TARGET for ref in family['evidence']))
+
+    def test_durable_floor_has_separate_immutable_commands_profiles_and_linux_identities(self):
+        self.assertEqual(assembly.DURABLE_PROOF_REVISION,'e7fed05de64da35c783369646536b9ff96af3879')
+        self.assertEqual(assembly.DURABLE_CFG_PLATFORM,('posix','linux'))
+        required,profiles=assembly.durable_proof_requirements()
+        self.assertEqual(len(assembly.DURABLE_PROOF_COMMANDS),19)
+        self.assertEqual(len(required),173)
+        self.assertEqual(set(profiles),{'pi-durable','pi-durable-session','pi-extension-protocol','pi-codemode','pi-ai-core'})
+        self.assertEqual(sum(proof[2]==assembly.LIB_TARGET for proof in required),18)
+        self.assertEqual(sum(proof[0]=='conformance/durable-v1.4.0' for proof in required),106)
+        self.assertTrue(any(proof[4]=='codemode::tests::fixtures::frozen_real_worker_cases' for proof in required))
+        self.assertTrue(any(proof[4]=='closing_waiting_worker_reports_aborted_without_terminal_during' for proof in required))
+        try:
+            with mock.patch.object(assembly.sys,'platform','win32'),mock.patch.object(assembly,'os') as host:
+                host.name='nt'
+                assembly._reviewed_proofs.cache_clear()
+                other_host,other_profiles=assembly.durable_proof_requirements()
+            self.assertEqual((other_host,other_profiles),(required,profiles))
+        finally:
+            assembly._reviewed_proofs.cache_clear()
+        # Read the original enrollment declarations from the immutable entry,
+        # independently of the current module's constants.
+        import ast
+        from scripts.upstream_objects import Objects
+        objects=Objects(ROOT);tree=objects.tree(assembly.DURABLE_PROOF_REVISION)
+        declarations=ast.parse(objects.blob(tree['scripts/check_assembly.py']).decode())
+        original={node.targets[0].id:ast.literal_eval(node.value) for node in declarations.body
+                  if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name)
+                  and node.targets[0].id in {'REVIEWED_PROOF_REVISION','REVIEWED_CFG_PLATFORM','REVIEWED_PROOF_TARGETS'}}
+        self.assertEqual(assembly.REVIEWED_PROOF_REVISION,original['REVIEWED_PROOF_REVISION'])
+        self.assertEqual(assembly.REVIEWED_CFG_PLATFORM,original['REVIEWED_CFG_PLATFORM'])
+        self.assertEqual(assembly.REVIEWED_PROOF_TARGETS,original['REVIEWED_PROOF_TARGETS'])
+        original_commands=tuple((suite,('cargo','test','--locked','--offline','-p',package,'--test',target,'--all-features'))
+                                for suite,packages in original['REVIEWED_PROOF_TARGETS'].items()
+                                for package,targets in packages.items() for target in targets)
+        self.assertEqual(assembly.REVIEWED_PROOF_COMMANDS,original_commands)
+        agent_required,agent_profiles=assembly.reviewed_proof_requirements()
+        self.assertEqual((len(agent_required),len(agent_profiles),len(original_commands)),(1206,14,129))
+        self.assertEqual((agent_required,agent_profiles),assembly._reviewed_proofs(
+            str(ROOT.resolve()),original['REVIEWED_PROOF_REVISION'],original_commands,original['REVIEWED_CFG_PLATFORM']))
+        assembly.validate_reviewed_proofs(self.registry)
+        # Every command is independently mandatory, including already enrolled
+        # shared targets and the distinct --lib selector/profile.
+        for suite,command in assembly.DURABLE_PROOF_COMMANDS:
+            with self.subTest(command=command):
+                registry=copy.deepcopy(self.registry)
+                row=next(row for row in registry['suites'] if row['id']==suite)
+                row['commands'].remove(list(command))
+                with self.assertRaisesRegex(assembly.AssemblyError,'proof command/profile retired'):
+                    assembly.validate_reviewed_proofs(registry)
 
     def test_excluded_compat_schemas_have_explicit_source_dispositions(self):
         symbols=tomllib.loads((ROOT/'upstream/manifests/ai-exports.toml').read_text())['symbol']

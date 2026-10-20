@@ -836,7 +836,51 @@ unsupported_test!(unsupported_macro_case);
                 with self.assertRaisesRegex(Invalid,'disabled by feature cfg or ignore'):
                     validate(disabled)
 
+    def test_durable_activation_retains_actual_library_and_immutable_floor(self):
+        document=json.loads((drift.ROOT/'conformance/assembly.json').read_bytes())
+        row=next(row for row in document['suites'] if row['id']=='conformance/durable-v1.4.0')
+        fixture='test:codemode::tests::fixtures::frozen_real_worker_cases'
+        self.assertTrue(any(ref['anchor']==fixture and ref.get('cargo_target')=='@lib' for ref in row['evidence']))
+        mutations=[]
+        wrong=deepcopy(row)
+        next(ref for ref in wrong['evidence'] if ref['anchor']==fixture)['anchor']='test:wrong::frozen_real_worker_cases'
+        mutations.append(('qualification',wrong,'missing or ambiguous Cargo test anchor'))
+        profile=deepcopy(row);profile['commands'][0].remove('--all-features')
+        mutations.append(('profile',profile,'Durable proof command/profile retired'))
+        missing=deepcopy(row)
+        missing['commands']=[command for command in missing['commands'] if '--lib' not in command]
+        missing['evidence']=[ref for ref in missing['evidence'] if ref.get('cargo_target')!='@lib']
+        mutations.append(('library command and its evidence',missing,'Durable proof command/profile retired'))
+        missing=deepcopy(row);missing['evidence']=[ref for ref in missing['evidence'] if ref['anchor']!=fixture]
+        mutations.append(('private fixture anchor',missing,'Durable required proof identity retired'))
+        missing=deepcopy(row)
+        missing['commands']=[command for command in missing['commands'] if 'runtime_core' not in command]
+        missing['evidence']=[ref for ref in missing['evidence'] if ref.get('cargo_target')!='runtime_core']
+        mutations.append(('runtime command and its evidence',missing,'Durable proof command/profile retired'))
+        for entry in ('registry','activation'):
+            def validate(candidate):
+                if entry=='activation':
+                    return drift.validate_suite_activation(candidate,drift.ROOT)
+                registry=self.root/'durable-registry.json'
+                registry.write_bytes(canonical({'schema_version':1,'suites':[candidate]}))
+                return drift.registry_suites(registry,drift.ROOT,{candidate['id']})
+            with self.subTest(entry=entry):
+                validate(row)
+            for label,candidate,error in mutations:
+                with self.subTest(entry=entry,mutation=label),self.assertRaisesRegex(Invalid,error):
+                    validate(candidate)
 
+    def test_durable_floor_cannot_be_replaced_by_a_generic_proof(self):
+        row={'id':'conformance/durable-v1.4.0','status':'executable',
+             'commands':[['python3','scripts/generate_upstream_manifests.py','--check']],
+             'evidence':[{'path':'scripts/generate_upstream_manifests.py','anchor':'python:main'}],
+             'limitations':[]}
+        registry=self.root/'generic-durable.json'
+        registry.write_bytes(canonical({'schema_version':1,'suites':[row]}))
+        with self.assertRaisesRegex(Invalid,'Durable proof command/profile retired'):
+            drift.registry_suites(registry,drift.ROOT,{row['id']})
+        with self.assertRaisesRegex(Invalid,'Durable proof command/profile retired'):
+            drift.validate_suite_activation(row,drift.ROOT)
 
     def test_intrinsic_authority_disposition_and_owner_coherence(self):
         for authority in ['host-only','disposable-scaffold']:

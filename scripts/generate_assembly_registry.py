@@ -74,9 +74,9 @@ SUITES = {'conformance/ai-core': {'pi-ai-core': '*'},
  'conformance/codemode': {'pi-codemode': ['sandbox']},
  'conformance/telemetry': {'pi-telemetry': ['contract', 'propagation']}}
 
-# This slice is not yet a committed proof floor. Its explicit targets generate all
-# current enabled anchors; final Durable acceptance enrolls a reviewed immutable
-# baseline separately. Existing REVIEWED_PROOF_REVISION is never refreshed here.
+# Explicit targets discover current enabled anchors. The separate Durable floor
+# at committed e7fed05 retains its accepted identities and shared regressions;
+# the original Agent floor is unchanged. Neither floor is refreshed here.
 SUITES['conformance/durable-v1.4.0'] = {
     'pi-durable-session': ['conversation_observation', 'invariants', 'number_roundtrip', 'release_fixtures'],
     'pi-durable': ['bindings', 'close', 'context', 'initializer', 'invariants', 'release_fixtures',

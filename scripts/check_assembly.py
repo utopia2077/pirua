@@ -646,6 +646,28 @@ REVIEWED_PROOF_COMMANDS = tuple(
 )
 
 
+# Durable acceptance is a separate enrollment, not a refresh of the Agent floor.
+# These exact commands include the shared fixes accepted with the runtime.
+DURABLE_PROOF_REVISION = 'e7fed05de64da35c783369646536b9ff96af3879'
+DURABLE_CFG_PLATFORM = ('posix', 'linux')
+DURABLE_PROOF_TARGETS = {
+    'conformance/durable-v1.4.0': {
+        'pi-durable-session': ['conversation_observation', 'invariants', 'number_roundtrip', 'release_fixtures'],
+        'pi-durable': ['bindings', 'close', 'context', 'initializer', 'invariants', 'release_fixtures',
+                       'review_regressions', 'runtime_core', 'runtime_fixtures', 'views', LIB_TARGET],
+    },
+    'conformance/current-extensions': {'pi-extension-protocol': ['durable_host']},
+    'conformance/codemode': {'pi-codemode': ['sandbox']},
+    'conformance/ai-core': {'pi-ai-core': ['models_registry', 'request_runtime']},
+}
+DURABLE_PROOF_COMMANDS = tuple(
+    (suite, ('cargo','test','--locked','--offline','-p',package,
+             *(('--lib',) if target == LIB_TARGET else ('--test',target)), '--all-features'))
+    for suite, packages in DURABLE_PROOF_TARGETS.items()
+    for package, targets in packages.items() for target in targets
+)
+
+
 @lru_cache(maxsize=None)
 def _reviewed_proofs(root_string: str, revision: str, enrollment: tuple, cfg_platform: tuple):
     if __package__:
@@ -684,16 +706,21 @@ def reviewed_proof_requirements(root: Path = ROOT):
                             REVIEWED_PROOF_COMMANDS, REVIEWED_CFG_PLATFORM)
 
 
-def validate_reviewed_proofs(registry: dict, root: Path = ROOT, *, suite_names: set[str] | None = None) -> None:
-    """A regenerated current discovery cannot retire the immutable reviewed set."""
-    required, profiles = reviewed_proof_requirements(root)
+def durable_proof_requirements(root: Path = ROOT):
+    return _reviewed_proofs(str(root.resolve()), DURABLE_PROOF_REVISION,
+                            DURABLE_PROOF_COMMANDS, DURABLE_CFG_PLATFORM)
+
+
+def _validate_proof_floor(registry: dict, root: Path, required: tuple, profiles: dict,
+                          enrollment: tuple, label: str, *, suite_names: set[str] | None,
+                          cfg_platform: tuple[str, str] | None = None) -> None:
     suites = {row['id']:row for row in registry['suites']}
     features, checked = {}, set()
-    for suite, argv in REVIEWED_PROOF_COMMANDS:
+    for suite, argv in enrollment:
         if suite_names is not None and suite not in suite_names:
             continue
         require(suite in suites and list(argv) in suites[suite]['commands'],
-                f'reviewed proof command/profile retired: {suite}: {list(argv)}')
+                f'{label} proof command/profile retired: {suite}: {list(argv)}')
         command = list(argv)
         package = command[command.index('-p') + 1]
         if package not in checked:
@@ -703,7 +730,7 @@ def validate_reviewed_proofs(registry: dict, root: Path = ROOT, *, suite_names: 
             for feature, activations in original.get('features', {}).items():
                 require(feature in current.get('features', {})
                         and set(activations) <= set(current['features'][feature]),
-                        f'reviewed proof feature binding retired: {package}/{feature}')
+                        f'{label} proof feature binding retired: {package}/{feature}')
             for kind in ('dependencies','dev-dependencies','build-dependencies'):
                 for dependency, binding in original.get(kind, {}).items():
                     actual = current.get(kind, {}).get(dependency)
@@ -713,7 +740,7 @@ def validate_reviewed_proofs(registry: dict, root: Path = ROOT, *, suite_names: 
                         same = expected_fields == actual_fields and set(binding.get('features', [])) <= set(actual.get('features', []))
                     else:
                         same = actual == binding
-                    require(same, f'reviewed proof dependency binding changed: {package}/{kind}/{dependency}')
+                    require(same, f'{label} proof dependency binding changed: {package}/{kind}/{dependency}')
             features[package] = cargo_features(command,current)
             checked.add(package)
     for suite, package, target, path, name, attributes in required:
@@ -722,9 +749,19 @@ def validate_reviewed_proofs(registry: dict, root: Path = ROOT, *, suite_names: 
         evidence = suites[suite]['evidence']
         require(any(row.get('path') == path and row.get('anchor') == 'test:' + name
                     and row.get('cargo_target') == target for row in evidence),
-                f'reviewed required proof identity retired: {suite}: {path}#{name}')
-        require(test_applicable({'attributes':attributes}, features[package]),
-                f'reviewed required proof disabled by current profile: {path}#{name}')
+                f'{label} required proof identity retired: {suite}: {path}#{name}')
+        require(test_applicable({'attributes':attributes}, features[package], cfg_platform=cfg_platform),
+                f'{label} required proof disabled by current profile: {path}#{name}')
+
+
+def validate_reviewed_proofs(registry: dict, root: Path = ROOT, *, suite_names: set[str] | None = None) -> None:
+    """A regenerated discovery must retain each independently reviewed floor."""
+    required, profiles = reviewed_proof_requirements(root)
+    _validate_proof_floor(registry, root, required, profiles, REVIEWED_PROOF_COMMANDS,
+                          'reviewed', suite_names=suite_names)
+    required, profiles = durable_proof_requirements(root)
+    _validate_proof_floor(registry, root, required, profiles, DURABLE_PROOF_COMMANDS,
+                          'Durable', suite_names=suite_names, cfg_platform=DURABLE_CFG_PLATFORM)
 
 
 def adapter_proof_requirements(inventory: dict | None = None, root: Path = ROOT) -> set[tuple]:

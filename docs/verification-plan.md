@@ -38,6 +38,13 @@ execute them or manufacture a passing receipt. Full Rust tests run their declare
 source oracles. Additional standalone oracle and causal commands are documented
 beside the corresponding fixtures.
 
+Independent immutable proof floors retain the original Agent enrollment at
+`f8fc564` and nineteen accepted Durable/shared commands at `e7fed05`, including
+the actual library units. Registry regeneration cannot retire their qualified
+identities, command profiles or feature/dependency bindings. Both floors select
+Linux obligations independently of the current host; they establish required
+definitions, while execution still needs passing test receipts.
+
 The Durable runtime source checks are
 `node conformance/durable-v1.4.0/runtime.mjs --check` and
 `node conformance/durable-v1.4.0/runtime.mjs --causal`; the full entry point runs

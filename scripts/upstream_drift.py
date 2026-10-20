@@ -381,7 +381,7 @@ def cargo_validator():
 def validate_suite_activation(row: dict, root: Path, *, inventories: dict | None = None) -> None:
     rust = any(Path(command[0]).name == 'cargo' for command in row['commands']) or any(str(e.get('anchor', '')).startswith('test:') for e in row['evidence'])
     validator = cargo_validator()
-    enrolled = row['id'] in validator.REVIEWED_PROOF_TARGETS
+    enrolled = row['id'] in validator.REVIEWED_PROOF_TARGETS or row['id'] in validator.DURABLE_PROOF_TARGETS
     if not rust and not enrolled:
         return
     try:
