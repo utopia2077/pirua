@@ -1,0 +1,25 @@
+{
+  "name": "pirua-terminal",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/pi-tui",
+    "packages/pi-tui-client"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "build": "npm run build --workspace=@earendil-works/pi-tui && npm run build --workspace=@pirua/pi-tui-client",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace=@pirua/pi-tui-client"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "prettier": "3.6.2",
+    "shx": "0.3.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  },
+  "packageManager": "npm@11.19.0"
+}
