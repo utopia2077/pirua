@@ -1524,6 +1524,7 @@ dependencies = [
  "ring",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

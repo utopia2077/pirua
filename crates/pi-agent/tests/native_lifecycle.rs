@@ -57,6 +57,74 @@ fn answer(request: AgentRequest) -> pi_ai_core::AssistantStream {
 }
 
 #[test]
+fn explicit_continuation_drives_real_queues_from_empty_or_system_only_context() {
+    runtime().block_on(async {
+        for system_only in [false, true] {
+            for steering in [false, true] {
+                for mode in [QueueMode::OneAtATime, QueueMode::All] {
+                    let requests = Arc::new(Mutex::new(Vec::new()));
+                    let captured = requests.clone();
+                    let mut options = AgentOptions::new(
+                        model(),
+                        Arc::new(move |request| {
+                            captured.lock().unwrap().push(request.clone());
+                            Box::pin(async move { Ok(answer(request)) })
+                        }),
+                    );
+                    if system_only {
+                        options.initial_state.messages.push(AgentMessage::BuiltIn(
+                            pi_ai_core::Message::System(
+                                pi_ai_core::create_initial_system_message(
+                                    Some("system only"),
+                                    None,
+                                )
+                                .unwrap(),
+                            ),
+                        ));
+                    }
+                    options.steering_mode = mode;
+                    options.follow_up_mode = mode;
+                    let agent = Agent::new(options);
+                    assert_eq!(
+                        agent.continue_run().await,
+                        Err(AgentError::InvalidContext(
+                            "No messages to continue from".into()
+                        ))
+                    );
+                    for text in ["first", "second"] {
+                        let message = serde_json::from_value(
+                            json!({"role":"user","content":text,"timestamp":7}),
+                        )
+                        .unwrap();
+                        if steering {
+                            agent.steer(message);
+                        } else {
+                            agent.follow_up(message);
+                        }
+                    }
+                    assert!(!agent.state().is_streaming);
+                    assert!(requests.lock().unwrap().is_empty());
+                    agent.continue_run().await.unwrap();
+                    assert_eq!(
+                        requests.lock().unwrap().len(),
+                        if mode == QueueMode::All { 1 } else { 2 }
+                    );
+                    let users = agent
+                        .state()
+                        .messages
+                        .iter()
+                        .filter(|message| message.role() == "user")
+                        .map(|message| serde_json::to_value(message).unwrap()["content"].clone())
+                        .collect::<Vec<_>>();
+                    assert_eq!(users, vec![json!("first"), json!("second")]);
+                    assert!(!agent.has_queued_messages());
+                }
+            }
+        }
+    });
+}
+
+#[test]
 fn awaited_end_listener_owns_busy_and_idle_until_acknowledged() {
     runtime().block_on(async {
         let agent = Agent::new(AgentOptions::new(

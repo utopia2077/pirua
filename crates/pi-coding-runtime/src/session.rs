@@ -146,6 +146,11 @@ pub struct SessionStats {
     pub context_usage: Option<crate::ContextUsage>,
 }
 
+pub(crate) struct QueueDisplay {
+    pub id: Option<InputId>,
+    pub text: String,
+}
+
 pub(crate) struct RuntimeState {
     pub active: bool,
     pub disposed: bool,
@@ -153,8 +158,9 @@ pub(crate) struct RuntimeState {
     pub operation: Option<CancellationToken>,
     pub outcome: ActivityOutcome,
     pub last_error: Option<String>,
-    pub steering: Vec<String>,
-    pub follow_up: Vec<String>,
+    pub persistence_error: Option<String>,
+    pub steering: Vec<QueueDisplay>,
+    pub follow_up: Vec<QueueDisplay>,
     pub pending_custom: Vec<AgentMessage>,
     pub pending_bash: Vec<AgentMessage>,
     pub bash: BTreeMap<u64, CancellationToken>,
@@ -192,6 +198,7 @@ pub(crate) struct Inner {
     pub hooks: Arc<dyn SessionHooks>,
     pub models: Arc<dyn ModelRuntime>,
     pub listeners: Mutex<Vec<(u64, SessionEventSink)>>,
+    pub inputs: Mutex<crate::inputs::Inputs>,
     pub next_listener: AtomicU64,
     pub navigation_generation: AtomicU64,
     pub idle: tokio::sync::Notify,
@@ -310,6 +317,7 @@ impl CodingSession {
                 operation: None,
                 outcome: ActivityOutcome::Completed,
                 last_error: None,
+                persistence_error: None,
                 steering: Vec::new(),
                 follow_up: Vec::new(),
                 pending_custom: Vec::new(),
@@ -349,6 +357,7 @@ impl CodingSession {
             hooks: b.hooks,
             models: b.model_runtime,
             listeners: Mutex::new(Vec::new()),
+            inputs: Mutex::new(Default::default()),
             next_listener: AtomicU64::new(1),
             navigation_generation: AtomicU64::new(0),
             idle: tokio::sync::Notify::new(),
@@ -570,11 +579,11 @@ impl CodingSession {
             .set(agent.clone())
             .map_err(|_| SessionError::Invalid("Agent initialized twice".into()))?;
         let weak = Arc::downgrade(&session.inner);
-        agent.subscribe(Arc::new(move |event, signal| {
+        agent.subscribe_inputs(Arc::new(move |event, input_id, signal| {
             let weak = weak.clone();
             Box::pin(async move {
                 upgrade(&weak)?
-                    .handle_agent_event(event, signal)
+                    .handle_agent_event(event, input_id, signal)
                     .await
                     .map_err(agent_error)
             })
@@ -1131,7 +1140,8 @@ impl CodingSession {
     async fn handle_agent_event(
         &self,
         event: AgentEvent,
-        _signal: CancellationToken,
+        input_id: Option<InputId>,
+        signal: CancellationToken,
     ) -> Result<(), SessionError> {
         if matches!(event, AgentEvent::AgentStart) {
             lock(&self.inner.state).turn_index = 0;
@@ -1144,10 +1154,14 @@ impl CodingSession {
             let changed = {
                 let mut s = lock(&self.inner.state);
                 s.overflow_attempted = false;
-                if let Some(i) = s.steering.iter().position(|m| m == &text) {
+                let matches = |display: &QueueDisplay| match input_id {
+                    Some(id) => display.id == Some(id),
+                    None => display.id.is_none() && display.text == text,
+                };
+                if let Some(i) = s.steering.iter().position(matches) {
                     s.steering.remove(i);
                     true
-                } else if let Some(i) = s.follow_up.iter().position(|m| m == &text) {
+                } else if let Some(i) = s.follow_up.iter().position(matches) {
                     s.follow_up.remove(i);
                     true
                 } else {
@@ -1196,10 +1210,62 @@ impl CodingSession {
             })
             .await?;
         } else {
-            self.emit(SessionEvent::Agent(event.clone())).await?;
+            let result = self.emit(SessionEvent::Agent(event.clone())).await;
+            if result.is_err()
+                && input_id.is_some()
+                && matches!(event, AgentEvent::MessageEnd { .. })
+            {
+                // Native MessageEnd has already appended a provisional input.
+                // A rejected precommit callback must retire it before the
+                // native error fallback or a later owner can observe it.
+                self.refresh()?;
+            }
+            result?;
         }
         if let AgentEvent::MessageEnd { message } = &event {
-            self.persist_message(message)?;
+            let persisted = if let Some(id) = input_id {
+                let mut inputs = lock(&self.inner.inputs);
+                if signal.is_cancelled()
+                    || inputs
+                        .pending
+                        .get(&id)
+                        .is_none_or(|i| i.admission.cancellation.is_cancelled())
+                {
+                    inputs.resolve(id, crate::InputResolution::Cancelled);
+                    drop(inputs);
+                    // Withdrawal is not a failed store commit, and a queued
+                    // input does not own the distinct foreground driver.
+                    self.refresh()?;
+                    return Ok(());
+                } else {
+                    let result = self.persist_message(message);
+                    if let Ok(entry_id) = &result {
+                        inputs.resolve(
+                            id,
+                            crate::InputResolution::Inserted {
+                                entry_id: entry_id.clone(),
+                                message: message.clone(),
+                            },
+                        );
+                    }
+                    result
+                }
+            } else {
+                self.persist_message(message)
+            };
+            if let Err(error) = persisted {
+                if let Some(id) = input_id {
+                    lock(&self.inner.inputs).resolve(
+                        id,
+                        crate::InputResolution::Rejected {
+                            message: error.to_string(),
+                        },
+                    );
+                }
+                lock(&self.inner.state).persistence_error = Some(error.to_string());
+                self.refresh()?;
+                return Err(error);
+            }
             if let AgentMessage::BuiltIn(Message::Assistant(m)) = message {
                 let retry = {
                     let mut s = lock(&self.inner.state);
@@ -1426,7 +1492,10 @@ impl CodingSession {
     pub(crate) async fn emit_queue(&self) -> Result<(), SessionError> {
         let (steering, follow_up) = {
             let s = lock(&self.inner.state);
-            (s.steering.clone(), s.follow_up.clone())
+            (
+                s.steering.iter().map(|m| m.text.clone()).collect(),
+                s.follow_up.iter().map(|m| m.text.clone()).collect(),
+            )
         };
         self.emit(SessionEvent::QueueUpdate {
             steering,

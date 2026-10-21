@@ -32,6 +32,7 @@ pub struct CompactionOptions {
 pub struct SessionManager {
     store: Arc<dyn SessionStore>,
     snapshot: SessionSnapshot,
+    observers: crate::observation::HistoryObservers,
 }
 
 impl SessionManager {
@@ -59,7 +60,11 @@ impl SessionManager {
         };
         validate_snapshot(&snapshot)?;
         store.create(&snapshot)?;
-        Ok(Self { store, snapshot })
+        Ok(Self {
+            store,
+            snapshot,
+            observers: Default::default(),
+        })
     }
 
     pub fn open(store: Arc<dyn SessionStore>, id: &str) -> Result<Self, Error> {
@@ -70,7 +75,11 @@ impl SessionManager {
                 "store returned a different session".to_owned(),
             ));
         }
-        Ok(Self { store, snapshot })
+        Ok(Self {
+            store,
+            snapshot,
+            observers: Default::default(),
+        })
     }
 
     pub fn reload(&mut self) -> Result<(), Error> {
@@ -82,9 +91,24 @@ impl SessionManager {
             ));
         }
         self.snapshot = snapshot;
+        self.observers.publish(crate::HistoryChange::Replaced {
+            snapshot: self.snapshot.clone(),
+        });
         Ok(())
     }
 
+    /// Call under the same external ownership lock as all manager mutations.
+    pub fn observe_history(&self) -> crate::HistorySubscription {
+        self.observers.subscribe(self.snapshot.clone())
+    }
+    /// Switch managers while retaining process-local subscribers and publishing a reset.
+    pub fn replace_with(&mut self, mut replacement: Self) {
+        replacement.observers = self.observers.clone();
+        *self = replacement;
+        self.observers.publish(crate::HistoryChange::Replaced {
+            snapshot: self.snapshot.clone(),
+        });
+    }
     pub fn snapshot(&self) -> &SessionSnapshot {
         &self.snapshot
     }
@@ -125,9 +149,17 @@ impl SessionManager {
             leaf_id,
         };
         let revision = self.store.commit(&self.snapshot.header.id, &commit)?;
+        let change = crate::HistoryChange::Committed {
+            session_id: self.snapshot.header.id.clone(),
+            base_revision: self.snapshot.revision,
+            revision,
+            appended: commit.append.clone(),
+            leaf_id: commit.leaf_id.clone(),
+        };
         self.snapshot.entries.extend(commit.append);
         self.snapshot.leaf_id = commit.leaf_id;
         self.snapshot.revision = revision;
+        self.observers.publish(change);
         Ok(())
     }
 
@@ -404,6 +436,7 @@ impl SessionManager {
         Ok(Self {
             store: self.store.clone(),
             snapshot,
+            observers: Default::default(),
         })
     }
 

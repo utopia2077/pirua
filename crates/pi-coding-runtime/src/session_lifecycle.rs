@@ -16,6 +16,9 @@ impl Drop for ActivityGuard {
         if !self.completed {
             self.signal.cancel();
             self.session.agent().abort();
+            // Legacy MessageEnd dispatch may have exposed a provisional message
+            // before its commit. A dropped owner must not retain that context.
+            let _ = self.session.refresh();
         }
         {
             let mut s = lock(&self.session.inner.state);
@@ -23,6 +26,7 @@ impl Drop for ActivityGuard {
             s.operation = None;
             s.run_prompt = None;
         }
+        self.session.resolve_unqueued_inputs(None);
         self.session.inner.idle.notify_waiters();
     }
 }
@@ -64,10 +68,21 @@ impl CodingSession {
         text: impl Into<String>,
         options: PromptOptions,
     ) -> Result<(), SessionError> {
+        self.prompt_input(text.into(), options, None).await
+    }
+    pub(crate) async fn prompt_input(
+        &self,
+        text: String,
+        options: PromptOptions,
+        admission: Option<InputAdmission>,
+    ) -> Result<(), SessionError> {
         self.ensure_live()?;
-        let signal = CancellationToken::new();
+        let signal = admission
+            .as_ref()
+            .map(|i| i.cancellation.clone())
+            .unwrap_or_else(CancellationToken::new);
         let input = InputEvent {
-            text: text.into(),
+            text,
             images: options.images,
             source: options.source,
             delivery: options.delivery,
@@ -78,7 +93,12 @@ impl CodingSession {
             .input(input.clone(), signal.clone())
             .await?
         {
-            InputResult::Handled => return Ok(()),
+            InputResult::Handled => {
+                if let Some(admission) = &admission {
+                    lock(&self.inner.inputs).resolve(admission.id, crate::InputResolution::Handled);
+                }
+                return Ok(());
+            }
             InputResult::Continue => (input.text, input.images),
             InputResult::Transform { text, images } => (text, images.unwrap_or(input.images)),
         };
@@ -87,16 +107,25 @@ impl CodingSession {
         } else {
             text
         };
+        if signal.is_cancelled() {
+            return Ok(());
+        }
         if self.is_streaming() {
             return match options.delivery {
-                Some(Delivery::Steer) => self.queue_message(text, images, true).await,
-                Some(Delivery::FollowUp) => self.queue_message(text, images, false).await,
+                Some(Delivery::Steer) => {
+                    self.queue_message_input(text, images, true, admission, input.source)
+                        .await
+                }
+                Some(Delivery::FollowUp) => {
+                    self.queue_message_input(text, images, false, admission, input.source)
+                        .await
+                }
                 _ => Err(SessionError::Invalid(
                     "Agent is streaming; choose steer or follow-up delivery".into(),
                 )),
             };
         }
-        self.run_prompt(messages::user_message(text, images), signal)
+        self.run_prompt_input(messages::user_message(text, images), signal, admission)
             .await
     }
     async fn run_prompt(
@@ -104,7 +133,22 @@ impl CodingSession {
         message: AgentMessage,
         signal: CancellationToken,
     ) -> Result<(), SessionError> {
+        self.run_prompt_input(message, signal, None).await
+    }
+    async fn run_prompt_input(
+        &self,
+        message: AgentMessage,
+        signal: CancellationToken,
+        admission: Option<InputAdmission>,
+    ) -> Result<(), SessionError> {
         let _gate = self.idle_guard()?;
+        if let Some(input) = &admission {
+            let mut inputs = lock(&self.inner.inputs);
+            let Some(tracked) = inputs.pending.get_mut(&input.id) else {
+                return Ok(());
+            };
+            tracked.owns_run = true;
+        }
         {
             let mut s = lock(&self.inner.state);
             if s.disposed || s.disposing {
@@ -113,6 +157,7 @@ impl CodingSession {
             s.active = true;
             s.operation = Some(signal.clone());
             s.last_error = None;
+            s.persistence_error = None;
             s.outcome = ActivityOutcome::Completed;
             s.pending_tools.clear();
         }
@@ -121,7 +166,9 @@ impl CodingSession {
             signal: signal.clone(),
             completed: false,
         };
-        let result = self.run_prompt_inner(message, signal.clone()).await;
+        let result = self
+            .run_prompt_inner(message, signal.clone(), admission)
+            .await;
         let flush = self.flush_bash().await.and(self.flush_custom().await);
         let result = result.and(flush);
         if let Err(error) = &result {
@@ -152,6 +199,7 @@ impl CodingSession {
             .await?;
         }
         self.on_cache_settled();
+        self.resolve_unqueued_inputs(result.as_ref().err().map(|e| e.to_string()).as_deref());
         let outcome = lock(&self.inner.state).outcome;
         if let Err(error) = self.emit(SessionEvent::AgentSettled { outcome }).await {
             lock(&self.inner.state).last_error = Some(error.to_string());
@@ -164,6 +212,7 @@ impl CodingSession {
         &self,
         message: AgentMessage,
         signal: CancellationToken,
+        admission: Option<InputAdmission>,
     ) -> Result<(), SessionError> {
         if let Some(last) = self.last_assistant() {
             self.check_compaction(&last, false, signal.clone()).await?;
@@ -189,11 +238,18 @@ impl CodingSession {
         self.refresh_loadout(signal.clone()).await?;
         let mut starting = Vec::new();
         if let Some(patch) = self.prompt_patch()? {
-            starting.push(patch);
+            starting.push(patch.into());
         }
-        starting.push(self.normalize_prompt_message(message).await?);
-        starting.extend(std::mem::take(&mut lock(&self.inner.state).next_turn));
-        starting.extend(hook.messages);
+        starting.push(AdmittedMessage {
+            message: self.normalize_prompt_message(message).await?,
+            input: admission,
+        });
+        starting.extend(
+            std::mem::take(&mut lock(&self.inner.state).next_turn)
+                .into_iter()
+                .map(Into::into),
+        );
+        starting.extend(hook.messages.into_iter().map(Into::into));
         if signal.is_cancelled() {
             return Ok(());
         }
@@ -210,8 +266,12 @@ impl CodingSession {
         if signal.is_cancelled() {
             return Ok(());
         }
-        let mut result = self.agent().prompt(starting).await;
+        let mut result = self.agent().prompt_inputs(starting).await;
         loop {
+            if let Some(error) = lock(&self.inner.state).persistence_error.take() {
+                self.refresh()?;
+                return Err(SessionError::Invalid(error));
+            }
             result?;
             if signal.is_cancelled() {
                 break;
@@ -257,6 +317,7 @@ impl CodingSession {
             s.active = true;
             s.operation = Some(signal.clone());
             s.last_error = None;
+            s.persistence_error = None;
         }
         let mut activity = ActivityGuard {
             session: self.clone(),
@@ -264,12 +325,17 @@ impl CodingSession {
             completed: false,
         };
         self.refresh()?;
-        let result = self
+        let mut result = self
             .agent()
             .continue_run()
             .await
             .map(|_| ())
             .map_err(SessionError::from);
+        if let Some(error) = lock(&self.inner.state).persistence_error.take() {
+            self.refresh()?;
+            result = Err(SessionError::Invalid(error));
+        }
+        self.resolve_unqueued_inputs(result.as_ref().err().map(|e| e.to_string()).as_deref());
         if let Err(e) = &result {
             lock(&self.inner.state).last_error = Some(e.to_string());
         }
@@ -326,23 +392,197 @@ impl CodingSession {
         images: Vec<pi_ai::ImageContent>,
         steer: bool,
     ) -> Result<(), SessionError> {
-        let message = messages::user_message(text.clone(), images);
-        if steer {
-            lock(&self.inner.state).steering.push(text);
-            self.agent().steer(message);
-        } else {
-            lock(&self.inner.state).follow_up.push(text);
-            self.agent().follow_up(message);
+        self.queue_message_input(text, images, steer, None, InputSource::Interactive)
+            .await
+    }
+    async fn queue_message_input(
+        &self,
+        text: String,
+        images: Vec<pi_ai::ImageContent>,
+        steer: bool,
+        admission: Option<InputAdmission>,
+        source: InputSource,
+    ) -> Result<(), SessionError> {
+        let message = messages::user_message(text.clone(), images.clone());
+        let display_id = admission.as_ref().map(|a| a.id);
+        {
+            let mut inputs = lock(&self.inner.inputs);
+            if let Some(admission) = &admission {
+                let Some(input) = inputs.pending.get_mut(&admission.id) else {
+                    return Ok(());
+                };
+                if admission.cancellation.is_cancelled() {
+                    return Ok(());
+                }
+                input.queued = Some(crate::QueuedInput {
+                    id: admission.id,
+                    delivery: if steer {
+                        Delivery::Steer
+                    } else {
+                        Delivery::FollowUp
+                    },
+                    text: text.clone(),
+                    images,
+                    source,
+                });
+            }
+            // Publish the display record before the FIFO can be drained. The
+            // input lock also orders cancellation against this admission.
+            let mut state = lock(&self.inner.state);
+            let display = QueueDisplay {
+                id: display_id,
+                text,
+            };
+            if steer {
+                state.steering.push(display);
+            } else {
+                state.follow_up.push(display);
+            }
+            drop(state);
+            let message = AdmittedMessage {
+                message,
+                input: admission,
+            };
+            if steer {
+                self.agent().steer_input(message);
+            } else {
+                self.agent().follow_up_input(message);
+            }
         }
         self.emit_queue().await
     }
+    pub async fn queue_tracked(
+        &self,
+        text: impl Into<String>,
+        images: Vec<pi_ai::ImageContent>,
+        delivery: Delivery,
+    ) -> Result<crate::QueueAdmission, SessionError> {
+        self.ensure_live()?;
+        if !matches!(delivery, Delivery::Steer | Delivery::FollowUp) {
+            return Err(SessionError::Invalid(
+                "Queue delivery must be steer or follow-up".into(),
+            ));
+        }
+        let (ticket, admission) = self.reserve_input();
+        let mut guard = crate::inputs::InputDriverGuard {
+            session: self.clone(),
+            id: ticket.id,
+            completed: false,
+        };
+        let result = async {
+            let input = InputEvent {
+                text: text.into(),
+                images,
+                source: InputSource::Interactive,
+                delivery: Some(delivery),
+            };
+            let (text, images) = match self
+                .inner
+                .hooks
+                .input(input.clone(), admission.cancellation.clone())
+                .await?
+            {
+                InputResult::Handled => {
+                    lock(&self.inner.inputs).resolve(ticket.id, crate::InputResolution::Handled);
+                    return Ok(false);
+                }
+                InputResult::Continue => (input.text, input.images),
+                InputResult::Transform { text, images } => (text, images.unwrap_or(input.images)),
+            };
+            self.ensure_live()?;
+            self.queue_message_input(
+                self.expand_input(&text),
+                images,
+                delivery == Delivery::Steer,
+                Some(admission),
+                input.source,
+            )
+            .await?;
+            Ok::<_, SessionError>(true)
+        }
+        .await;
+        guard.completed = true;
+        match result {
+            Ok(true) => Ok(crate::QueueAdmission::Queued(ticket)),
+            Ok(false) => Ok(crate::QueueAdmission::Handled),
+            Err(error) => {
+                self.reject_input(ticket.id, error.to_string());
+                Err(error)
+            }
+        }
+    }
+    fn clear_queue_tracked_inner(&self) -> (Vec<crate::QueuedInput>, Vec<String>) {
+        let (steering, follow_up) = self.agent().take_queued_inputs();
+        let mut inputs = lock(&self.inner.inputs);
+        let mut removed = Vec::new();
+        let mut untracked = Vec::new();
+        for message in steering.into_iter().chain(follow_up) {
+            if let Some(admission) = message.input {
+                if let Some(queued) = inputs
+                    .pending
+                    .get(&admission.id)
+                    .and_then(|i| i.queued.clone())
+                {
+                    removed.push(queued);
+                }
+                admission.cancellation.cancel();
+                inputs.resolve(admission.id, crate::InputResolution::Cancelled);
+            } else if let Ok(value) = serde_json::to_value(&message.message) {
+                untracked.push(messages::content_text(&value["content"], ""));
+            }
+        }
+        (removed, untracked)
+    }
+    pub async fn clear_queue_tracked(&self) -> Result<Vec<crate::QueuedInput>, SessionError> {
+        self.ensure_live()?;
+        let (removed, untracked) = self.clear_queue_tracked_inner();
+        {
+            let mut state = lock(&self.inner.state);
+            for input in &removed {
+                let queue = if input.delivery == Delivery::Steer {
+                    &mut state.steering
+                } else {
+                    &mut state.follow_up
+                };
+                if let Some(index) = queue
+                    .iter()
+                    .position(|display| display.id == Some(input.id))
+                {
+                    queue.remove(index);
+                }
+            }
+            for text in untracked {
+                if let Some(index) = state
+                    .steering
+                    .iter()
+                    .position(|m| m.id.is_none() && m.text == text)
+                {
+                    state.steering.remove(index);
+                } else if let Some(index) = state
+                    .follow_up
+                    .iter()
+                    .position(|m| m.id.is_none() && m.text == text)
+                {
+                    state.follow_up.remove(index);
+                }
+            }
+        }
+        self.emit_queue().await?;
+        Ok(removed)
+    }
     pub async fn clear_queue(&self) -> Result<(Vec<String>, Vec<String>), SessionError> {
-        self.agent().clear_all_queues();
+        let _ = self.clear_queue_tracked_inner();
         let queues = {
             let mut s = lock(&self.inner.state);
             (
-                std::mem::take(&mut s.steering),
-                std::mem::take(&mut s.follow_up),
+                std::mem::take(&mut s.steering)
+                    .into_iter()
+                    .map(|m| m.text)
+                    .collect(),
+                std::mem::take(&mut s.follow_up)
+                    .into_iter()
+                    .map(|m| m.text)
+                    .collect(),
             )
         };
         self.emit_queue().await?;
@@ -353,10 +593,18 @@ impl CodingSession {
         s.steering.len() + s.follow_up.len()
     }
     pub fn steering_messages(&self) -> Vec<String> {
-        lock(&self.inner.state).steering.clone()
+        lock(&self.inner.state)
+            .steering
+            .iter()
+            .map(|m| m.text.clone())
+            .collect()
     }
     pub fn follow_up_messages(&self) -> Vec<String> {
-        lock(&self.inner.state).follow_up.clone()
+        lock(&self.inner.state)
+            .follow_up
+            .iter()
+            .map(|m| m.text.clone())
+            .collect()
     }
     pub fn set_steering_mode(&self, mode: QueueMode) {
         self.agent().set_steering_mode(mode);
@@ -438,6 +686,8 @@ impl CodingSession {
             // disposal future leaves the owner closed; another caller can finish it.
             state.disposing = true;
         }
+        self.cancel_all_inputs();
+        self.agent().clear_all_queues();
         self.abort_bash();
         self.abort();
         self.cancel_cache_warming();
@@ -1171,7 +1421,7 @@ impl CodingSession {
         }
         {
             let mut current = lock(&self.inner.manager);
-            *current = manager;
+            current.replace_with(manager);
             self.inner
                 .navigation_generation
                 .fetch_add(1, Ordering::AcqRel);
@@ -1214,7 +1464,7 @@ impl CodingSession {
         manager.set_thinking_level(thinking_name(self.thinking_level()))?;
         {
             let mut current = lock(&self.inner.manager);
-            *current = manager;
+            current.replace_with(manager);
             self.inner
                 .navigation_generation
                 .fetch_add(1, Ordering::AcqRel);
@@ -1277,7 +1527,7 @@ impl CodingSession {
         };
         {
             let mut current = lock(&self.inner.manager);
-            *current = manager;
+            current.replace_with(manager);
             self.inner
                 .navigation_generation
                 .fetch_add(1, Ordering::AcqRel);
@@ -1299,6 +1549,7 @@ impl CodingSession {
         })
     }
     fn clear_transient_state(&self) {
+        self.cancel_all_inputs();
         self.agent().clear_all_queues();
         let mut state = lock(&self.inner.state);
         state.steering.clear();
