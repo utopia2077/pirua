@@ -578,6 +578,10 @@ impl CodingSession {
             .agent
             .set(agent.clone())
             .map_err(|_| SessionError::Invalid("Agent initialized twice".into()))?;
+        // Standalone Agent construction may synthesize initial declarations.
+        // CodingSession must emit them against canonical history so ordinary
+        // message admission persists them before canonical request preparation.
+        session.refresh()?;
         let weak = Arc::downgrade(&session.inner);
         agent.subscribe_inputs(Arc::new(move |event, input_id, signal| {
             let weak = weak.clone();

@@ -5540,6 +5540,16 @@
           "cargo_target": "session_runtime"
         },
         {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::default_tools_reach_the_first_native_read_cycle_without_duplicate_declarations",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::initial_tools_and_later_loadout_removal_stay_anchored_across_reopen",
+          "cargo_target": "session_runtime"
+        },
+        {
           "path": "crates/pi-coding-runtime/tests/session_source.rs",
           "anchor": "test:pinned_release_context_compaction_conversion_and_cache_cases",
           "cargo_target": "session_source"
@@ -5960,6 +5970,16 @@
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::cancelling_queued_message_end_preserves_the_primary_driver_and_queued_sibling",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::default_tools_reach_the_first_native_read_cycle_without_duplicate_declarations",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::initial_tools_and_later_loadout_removal_stay_anchored_across_reopen",
           "cargo_target": "session_runtime"
         }
       ],
