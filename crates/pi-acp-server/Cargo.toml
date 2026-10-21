@@ -1,0 +1,26 @@
+[package]
+name = "pi-acp-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+agent-client-protocol-schema = { version = "=1.12.0", default-features = false, features = ["unstable_protocol_v2"] }
+pi-agent.workspace = true
+pi-ai = { workspace = true, features = ["provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "oauth-anthropic", "oauth-openai-chatgpt", "native"] }
+pi-ai-providers = { workspace = true, features = ["provider-anthropic", "provider-deepseek", "provider-google", "provider-openai", "oauth-anthropic", "oauth-openai-chatgpt", "native"] }
+pi-ai-transport = { workspace = true, features = ["auth-native"] }
+pi-coding-runtime = { workspace = true, features = ["provider-anthropic", "provider-deepseek", "provider-google", "provider-openai"] }
+pi-coding-session.workspace = true
+pi-sqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+futures-util.workspace = true
+jsonschema.workspace = true
+tokio = { workspace = true, features = ["io-std", "process", "macros", "signal"] }

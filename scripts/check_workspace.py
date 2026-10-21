@@ -352,6 +352,10 @@ def validate_workspace(
             errors.append(f"optional edge needs exactly one feature selector: {identity}")
         if edge.get("kind") == "required" and ("feature" in edge or "feature_group" in edge):
             errors.append(f"required edge must not have feature selector: {identity}")
+        if "workspace_default" in edge and (
+            edge.get("kind") != "optional" or not isinstance(edge["workspace_default"], bool)
+        ):
+            errors.append(f"workspace_default must be a boolean on an optional edge: {identity}")
         expected_edges[identity] = edge
     expected_dev_edges: set[tuple[str, str]] = set()
     for edge in topology.get("dev_edge", []):
@@ -444,7 +448,13 @@ def validate_workspace(
                 )
 
     default_edges = internal_edges(default_metadata, crate_names)
-    expected_default_edges = required_edges | expected_dev_edges
+    # A concrete workspace application may select library features even when
+    # that library's own default feature set remains empty. Record those exact
+    # optional edges explicitly instead of accepting every activated edge.
+    expected_default_edges = required_edges | expected_dev_edges | {
+        identity for identity, edge in expected_edges.items()
+        if edge.get("kind") == "optional" and edge.get("workspace_default") is True
+    }
     if default_edges != expected_default_edges:
         missing = expected_default_edges - default_edges
         extra = default_edges - expected_default_edges
