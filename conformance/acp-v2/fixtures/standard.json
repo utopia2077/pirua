@@ -172,5 +172,20 @@
       "type": "id",
       "value": "medium"
     }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "state_update",
+        "state": "idle",
+        "stopReason": "error",
+        "error": {
+          "code": -32603,
+          "message": "Fixture provider failure"
+        }
+      }
+    }
   }
 ]

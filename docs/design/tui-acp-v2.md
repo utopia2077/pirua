@@ -1,9 +1,10 @@
 # Pi TypeScript TUI over ACP v2
 
-Status: accepted for implementation. The product direction is accepted: reuse
-the Pi TypeScript terminal UI with the Rust CodingSession as its execution backend.
-This document defines that integration after independent source/contract review;
-it does not claim implementation acceptance.
+Status: implemented and verified offline. The original Pi TypeScript terminal UI
+runs with Rust CodingSession as its execution backend. The runtime, application
+host and frontend passed independent implementation review, protocol/native tests
+and real terminal checks. [The terminal guide](../tui.md) documents launch,
+verification commands and the remaining live-provider/platform limits.
 
 ## Purpose and scope
 
@@ -322,6 +323,12 @@ hydration rebuild committed views from history/context and active views from the
 identified entities, then apply later notifications. Never discard covered chunks
 without their accumulated entity data in the installed snapshot.
 
+For an in-flight native assistant, snapshot entity metadata includes its complete
+current partial message in `pirua.dev/render.message`. This preserves the original
+indexed text/thinking/tool slots, which aggregated ACP text plus the latest chunk's
+`contentIndex` cannot reconstruct. The live chunk path still sends small deltas;
+materializing a snapshot does not require retransmitting the full partial each token.
+
 The normal streaming path sends chunks and small updates. It does not publish a
 full transcript for every token. History append notifications follow successful
 commits; full history replacement is reserved for initial state, resynchronization
@@ -387,6 +394,13 @@ observers before admitting work and spawns long operations outside its receive l
 Driver completion is the readiness barrier: `AgentSettled` provides the outcome but
 currently occurs before the activity guard clears. Never wait for idle from inside
 that callback. Keep cancellation and reverse-request routing responsive throughout.
+
+Native initialization must also agree with canonical history before the first
+request. A standalone Agent may synthesize an initial system/tool declaration;
+CodingSession resets that transient message view from canonical history so the
+normal loop emits and commits the initial declaration. Test the actual provider
+request and tool-result continuation: an injected response that calls a tool
+unconditionally cannot prove that the provider received its declaration.
 
 ## Frontend extraction and facade
 

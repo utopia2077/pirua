@@ -38,5 +38,17 @@
       "type": "id",
       "value": false
     }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "state_update",
+        "state": "idle",
+        "stopReason": "error",
+        "error": "Failure is not an ACP Error object"
+      }
+    }
   }
 ]
