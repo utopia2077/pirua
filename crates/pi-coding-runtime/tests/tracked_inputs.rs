@@ -717,6 +717,94 @@ fn rejected_queue_notification_rolls_back_its_real_admission() {
 }
 
 #[test]
+fn rejected_queue_notification_preserves_a_committed_inputs_exact_ticket() {
+    runtime().block_on(async {
+        for delivery in [Delivery::Steer, Delivery::FollowUp] {
+            let (stream, entered, release, calls) = blocked_first();
+            let session = session_with(
+                stream,
+                Arc::new(NoopSessionHooks),
+                Arc::new(MemoryStore::new()),
+            )
+            .await;
+            let ack_entered = Arc::new(Notify::new());
+            let reject_ack = Arc::new(Notify::new());
+            session.subscribe(Arc::new({
+                let (entered, reject) = (ack_entered.clone(), reject_ack.clone());
+                move |event| {
+                    let (entered, reject) = (entered.clone(), reject.clone());
+                    Box::pin(async move {
+                        if matches!(event, SessionEvent::QueueUpdate { steering, follow_up }
+                            if !steering.is_empty() || !follow_up.is_empty())
+                        {
+                            entered.notify_one();
+                            reject.notified().await;
+                            return Err(AgentError::Callback(
+                                "queue acknowledgement rejected".into(),
+                            ));
+                        }
+                        Ok(())
+                    })
+                }
+            }));
+            // Equal payloads must not let acknowledgement infer the primary's outcome.
+            let (primary, driver) = session.tracked_prompt("same", PromptOptions::default());
+            let running = tokio::spawn(driver);
+            entered.notified().await;
+            let queuing = tokio::spawn({
+                let session = session.clone();
+                async move { session.queue_tracked("same", vec![], delivery).await }
+            });
+            ack_entered.notified().await;
+            let (steering, follow_up) = session.queued_inputs();
+            let queued_id = steering.iter().chain(&follow_up).next().unwrap().id;
+            assert_ne!(queued_id, primary.id);
+            release.notify_one();
+            running.await.unwrap().unwrap();
+            let (primary_entry, _) = inserted(primary.resolution.await.unwrap());
+            assert_eq!(calls.load(Ordering::SeqCst), 2);
+            assert_eq!(
+                session
+                    .messages()
+                    .unwrap()
+                    .iter()
+                    .filter(|m| m.role() == "user")
+                    .count(),
+                2,
+                "both equal inputs have committed before queue acknowledgement fails"
+            );
+            reject_ack.notify_one();
+            let admission = queuing.await.unwrap();
+            assert!(
+                admission.is_ok(),
+                "queue returned an error after its exact input committed"
+            );
+            let ticket = queued(admission.unwrap());
+            assert_eq!(ticket.id, queued_id);
+            ticket.cancel(); // A late queue failure cannot make insertion revocable.
+            let (entry, message) = inserted(ticket.resolution.await.unwrap());
+            assert_ne!(entry, primary_entry);
+            assert!(
+                session
+                    .snapshot()
+                    .entries
+                    .iter()
+                    .any(|record| record.id == entry)
+            );
+            assert_eq!(
+                serde_json::to_value(message).unwrap()["content"][0]["text"],
+                "same"
+            );
+            assert!(session.clear_queue_tracked().await.unwrap().is_empty());
+            assert!(session.queued_inputs().0.is_empty());
+            assert!(session.queued_inputs().1.is_empty());
+            assert!(!session.agent().has_queued_messages());
+            assert_eq!(session.pending_message_count(), 0);
+        }
+    });
+}
+
+#[test]
 fn dropping_last_session_owner_resolves_queued_tickets_as_cancelled() {
     runtime().block_on(async {
         let (stream, _) = scripted(vec![]);

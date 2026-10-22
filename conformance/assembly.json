@@ -5526,6 +5526,11 @@
         },
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_preserves_a_committed_inputs_exact_ticket",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::dropping_last_session_owner_resolves_queued_tickets_as_cancelled",
           "cargo_target": "session_runtime"
         },
@@ -5955,6 +5960,11 @@
         {
           "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
           "anchor": "test:tracked_inputs::rejected_queue_notification_rolls_back_its_real_admission",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_preserves_a_committed_inputs_exact_ticket",
           "cargo_target": "session_runtime"
         },
         {

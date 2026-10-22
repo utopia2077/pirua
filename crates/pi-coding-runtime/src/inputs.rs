@@ -166,25 +166,29 @@ impl CodingSession {
     pub(crate) fn cancel_input(&self, id: InputId) {
         self.finish_input(id, InputResolution::Cancelled);
     }
-    pub(crate) fn reject_input(&self, id: InputId, message: String) {
-        self.finish_input(id, InputResolution::Rejected { message });
+    /// Rejects only a pending admission; a terminal receipt is irrevocable.
+    pub(crate) fn reject_input(&self, id: InputId, message: String) -> bool {
+        self.finish_input(id, InputResolution::Rejected { message })
     }
-    fn finish_input(&self, id: InputId, outcome: InputResolution) {
+    fn finish_input(&self, id: InputId, outcome: InputResolution) -> bool {
         let mut inputs = lock(&self.inner.inputs);
-        if let Some(input) = inputs.pending.get(&id) {
-            let cancelling = matches!(outcome, InputResolution::Cancelled);
-            if cancelling || input.queued.is_some() {
-                input.admission.cancellation.cancel();
-            }
-            if cancelling && input.owns_run {
-                self.agent().abort();
-            }
-            self.agent().remove_queued_input(id);
-            let mut state = lock(&self.inner.state);
-            state.steering.retain(|m| m.id != Some(id));
-            state.follow_up.retain(|m| m.id != Some(id));
+        let Some(input) = inputs.pending.get(&id) else {
+            return false;
+        };
+        let cancelling = matches!(outcome, InputResolution::Cancelled);
+        if cancelling || input.queued.is_some() {
+            input.admission.cancellation.cancel();
         }
+        if cancelling && input.owns_run {
+            self.agent().abort();
+        }
+        self.agent().remove_queued_input(id);
+        let mut state = lock(&self.inner.state);
+        state.steering.retain(|m| m.id != Some(id));
+        state.follow_up.retain(|m| m.id != Some(id));
+        drop(state);
         inputs.resolve(id, outcome);
+        true
     }
     pub(crate) fn resolve_unqueued_inputs(&self, error: Option<&str>) {
         // Queue publication uses Inputs -> Agent ownership too. Keep that
