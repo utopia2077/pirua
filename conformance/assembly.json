@@ -4766,6 +4766,21 @@
         },
         {
           "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:cancelled_system_admissions_emit_no_message_or_history_after_tool_normalization",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:active_system_admissions_keep_identity_and_initial_tool_declarations",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:rejected_system_admissions_keep_their_rejection_callback",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
           "anchor": "test:explicit_continuation_drives_real_queues_from_empty_or_system_only_context",
           "cargo_target": "native_lifecycle"
         },

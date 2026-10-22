@@ -114,7 +114,7 @@ fn declare_tools(
     system.tools_removed = (!changes.tools_removed.is_empty()).then_some(changes.tools_removed);
     let message = AgentMessage::BuiltIn(Message::System(system));
     if let Some(index) = system_index {
-        pending[index] = message.into();
+        pending[index].message = message;
     } else {
         let index = pending
             .iter()
