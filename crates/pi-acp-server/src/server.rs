@@ -1864,7 +1864,48 @@ impl AuthInteraction for Interaction {
                 .unwrap_or("Authentication in progress")
                 .to_owned()
         };
-        self.output.send(json!({"jsonrpc":"2.0","id":id,"method":"elicitation/create","params":{"mode":"form","requestId":self.request,"message":message,"requestedSchema":{"type":"object","properties":{}}}})).map_err(|_|AuthInteractionError::new())?;
+        self.output.send(json!({"jsonrpc":"2.0","id":id,"method":"elicitation/create","params":{"mode":"form","requestId":self.request,"message":message,"requestedSchema":{"type":"object","properties":{}},"_meta":{"pirua.dev/auth":{"event":value}}}})).map_err(|_|AuthInteractionError::new())?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn auth_notifications_preserve_each_non_secret_event_without_waiting() {
+        let (sender, mut received) = mpsc::unbounded_channel();
+        let reverse = Reverse::default();
+        let interaction = Interaction {
+            output: Output {
+                sender,
+                queued: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+                closed: CancellationToken::new(),
+            },
+            reverse: reverse.clone(),
+            request: json!(7),
+            next: std::sync::atomic::AtomicU64::new(0),
+        };
+        for event in [
+            json!({"type":"auth_url","url":"https://example.invalid/authorize","instructions":"Open the link"}),
+            json!({"type":"device_code","userCode":"SYNTHETIC","verificationUri":"https://example.invalid/device","intervalSeconds":5,"expiresInSeconds":60}),
+            json!({"type":"info","message":"Read the instructions","links":[{"label":"Help","url":"https://example.invalid/help"}]}),
+            json!({"type":"progress","message":"Waiting for synthetic authorization"}),
+        ] {
+            interaction
+                .notify(serde_json::from_value(event.clone()).unwrap())
+                .unwrap();
+            let frame = received
+                .try_recv()
+                .expect("notify must emit without a client reply");
+            assert_eq!(frame["method"], "elicitation/create");
+            assert_eq!(frame["params"]["mode"], "form");
+            assert_eq!(frame["params"]["requestId"], 7);
+            assert_eq!(frame["params"]["requestedSchema"]["properties"], json!({}));
+            assert!(!frame["params"]["message"].as_str().unwrap().is_empty());
+            assert_eq!(frame["params"]["_meta"]["pirua.dev/auth"]["event"], event);
+            assert!(reverse.lock().unwrap().is_empty());
+        }
     }
 }
