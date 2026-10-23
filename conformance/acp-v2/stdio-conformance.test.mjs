@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
-import { StdioClient, isState, updates } from "./client-helper.mjs";
+import { StdioClient, deadline, isState, updates } from "./client-helper.mjs";
 
 const binary = process.env.PIRUA_ACP_TEST_BIN ?? resolve("target/debug/pi-acp-server");
 const text = (value) => [{ type: "text", text: value }];
@@ -57,8 +57,67 @@ test("request cancellation before insertion returns cancelled without a user mes
   await client.waitFor((message) => isState(message, sessionId, "running"), from);
   client.notify("$/cancel_request", { requestId: pending.id });
   assert.equal((await outcome).error?.code, -32800);
-  await client.waitFor((message) => isState(message, sessionId, "idle"), from);
+  assert.equal((await client.waitFor((message) => isState(message, sessionId, "idle"), from)).params.update.stopReason, "cancelled");
   assert.equal(updates(client, from).some((update) => update.sessionUpdate === "user_message"), false);
+});
+
+for (const operation of ["session/cancel", "session/close"]) {
+  for (const input of ["fixture:before-insert", "fixture:block"]) {
+    test(`${operation} settles a batched prompt during admission (${input})`, async (t) => {
+      const { client, directory } = await setup(t, { pi: false });
+      const { sessionId } = await client.newSession(directory);
+      const from = client.messages.length;
+      const pending = client.allocate("session/prompt", { sessionId, prompt: text(input) });
+      const stop = client.allocate(operation, { sessionId });
+      const outcome = pending.result.then((value) => ({ value }), (error) => ({ error }));
+      const stopped = Promise.all([outcome, stop.result]);
+      client.raw([pending.message, stop.message]);
+      let result;
+      try {
+        result = await deadline(stopped, 2000, `${operation} must settle pending prompt admission`);
+      } finally {
+        // Release the old failure path so the regression itself never leaves work alive.
+        client.notify("$/cancel_request", { requestId: pending.id });
+        client.notify("session/cancel", { sessionId });
+        await stopped;
+      }
+      const idle = await client.waitFor((message) => isState(message, sessionId, "idle"), from);
+      assert.equal(idle.params.update.stopReason, "cancelled");
+      const users = updates(client, from).filter((update) => update.sessionUpdate === "user_message");
+      if (input === "fixture:before-insert" || result[0].error) {
+        assert.equal(result[0].error?.code, -32800);
+        assert.equal(users.length, 0);
+      } else {
+        assert.equal(typeof result[0].value.messageId, "string");
+        assert.deepEqual(users.map((update) => update.messageId), [result[0].value.messageId]);
+      }
+      const responseAt = client.messages.findIndex((message) => message.id === stop.id && Object.hasOwn(message, "result"));
+      assert.ok(client.messages.indexOf(idle) < responseAt, "idle/cancelled must precede the stop reply");
+    });
+  }
+}
+
+test("request cancellation after insertion preserves the receipt and lets the turn finish", async (t) => {
+  const { client, directory } = await setup(t, { delay: 100 });
+  const { sessionId } = await client.newSession(directory);
+  const from = client.messages.length;
+  const pending = client.sendRequest("session/prompt", { sessionId, prompt: text("retained after request cancellation") });
+  await client.waitFor((message) => message.params?.update?.sessionUpdate === "user_message", from);
+  client.notify("$/cancel_request", { requestId: pending.id });
+  const receipt = await pending.result;
+  const idle = await client.waitFor((message) => isState(message, sessionId, "idle"), from);
+  assert.equal(idle.params.update.stopReason, "end_turn");
+  assert.equal((await snapshot(client, sessionId)).history.entries.some((entry) => entry.id === receipt.messageId), true);
+});
+
+test("EOF cancels a prompt still waiting in admission", async (t) => {
+  const { client, directory } = await setup(t);
+  const { sessionId } = await client.newSession(directory);
+  const pending = client.sendRequest("session/prompt", { sessionId, prompt: text("fixture:before-insert") });
+  const outcome = pending.result.catch((error) => error);
+  await client.waitFor((message) => isState(message, sessionId, "running"));
+  assert.equal((await client.finish()).code, 0);
+  await outcome;
 });
 
 test("queue clear identifies duplicate inputs and cancellation does not restart them", async (t) => {

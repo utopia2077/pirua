@@ -213,12 +213,15 @@ fn request_cancel_before_insertion_and_close_after_insertion() {
             break;
         }
     }
+    let marker = c.events.len();
     c.send(json!({"jsonrpc":"2.0","method":"$/cancel_request","params":{"requestId":request}}));
     let response = c.result(request);
     assert_eq!(response["error"]["code"], -32800);
-    let marker = c.events.len();
     c.call("session/cancel", json!({"sessionId":s}));
-    c.idle(&s, marker);
+    assert_eq!(
+        c.idle(&s, marker)["params"]["update"]["stopReason"],
+        "cancelled"
+    );
     let snapshot = c.snapshot(&s);
     assert_eq!(snapshot["stats"]["userMessages"], 0);
     let r = c.prompt(&s, "fixture:block");

@@ -84,6 +84,7 @@ enum OperationResult {
     Bash(BashResult),
 }
 struct Pending {
+    session_id: String,
     cancel: InputCancellation,
     reply: Reply,
 }
@@ -370,6 +371,9 @@ impl Host {
                     }
                 }
                 Event::Shutdown(done) => {
+                    for pending in self.pending.values() {
+                        pending.cancel.cancel();
+                    }
                     for owner in self.owners.values() {
                         owner.session.abort();
                         owner.session.abort_bash();
@@ -595,6 +599,7 @@ impl Host {
             self.pending.insert(
                 request.clone(),
                 Pending {
+                    session_id: id.to_owned(),
                     cancel: cancellation,
                     reply: reply.expect("prompt responder"),
                 },
@@ -974,6 +979,12 @@ impl Host {
                         }
                         if owner.busy || owner.pending_queue > 0 || owner.pending_inputs > 0 {
                             owner.cancelling = true;
+                            // Runtime abort reaches installed operations. Admission can
+                            // still be waiting in input hooks before that operation exists.
+                            // The ticket handle is a no-op once insertion has committed.
+                            for pending in self.pending.values().filter(|p| p.session_id == id) {
+                                pending.cancel.cancel();
+                            }
                             owner.session.abort();
                             owner.session.abort_bash();
                             for token in owner.queue_cancellations.values() {
@@ -1351,6 +1362,14 @@ impl Host {
             return;
         };
         owner.pending_inputs = owner.pending_inputs.saturating_sub(1);
+        if pending.is_some() && matches!(&resolution, InputResolution::Cancelled) {
+            // Only an actual uninserted prompt cancellation owns this outcome.
+            // An RPC can remain pending briefly after insertion already won;
+            // cancelling its ticket then must not affect the foreground run.
+            owner.cancelling = true;
+            owner.projection.stop_reason = Some("cancelled".into());
+            owner.projection.last_error = None;
+        }
         if matches!(&resolution, InputResolution::Rejected { .. }) {
             owner.needs_rebuild = true;
         }
