@@ -17,6 +17,9 @@ struct Client {
 }
 impl Client {
     fn start() -> Self {
+        Self::start_mode(true)
+    }
+    fn start_mode(fixture: bool) -> Self {
         let root = std::env::temp_dir().join(format!(
             "pirua-acp-test-{}-{}",
             std::process::id(),
@@ -25,7 +28,7 @@ impl Client {
                 .unwrap()
                 .as_nanos()
         ));
-        Self::at(root)
+        Self::at_mode(root, fixture)
     }
     fn at(root: PathBuf) -> Self {
         Self::at_mode(root, true)
@@ -37,6 +40,10 @@ impl Client {
             command.args(["--fixture-provider", "--fixture-delay-ms", "20"]);
         }
         let mut child = command
+            .env_remove("OPENAI_API_KEY")
+            .env_remove("GEMINI_API_KEY")
+            .env_remove("ANTHROPIC_API_KEY")
+            .env_remove("DEEPSEEK_API_KEY")
             .arg("--data-dir")
             .arg(root.join("data"))
             .arg("--config-dir")
@@ -159,6 +166,26 @@ impl Drop for Client {
         let _ = self.child.wait();
         let _ = std::fs::remove_dir_all(&self.root);
     }
+}
+#[test]
+fn cancelling_production_authentication_returns_protocol_cancellation() {
+    let mut c = Client::start_mode(false);
+    c.call("initialize", json!({"protocolVersion":2,"info":{"name":"auth-cancel","version":"1"},"capabilities":{"elicitation":{"form":{}}}}));
+    let login = c.begin("auth/login", json!({"methodId":"deepseek:apiKey"}));
+    loop {
+        let frame = c.read();
+        if frame["method"] == "elicitation/create" {
+            assert_eq!(
+                frame["params"]["requestedSchema"]["required"],
+                json!(["value"])
+            );
+            break;
+        }
+    }
+    c.send(json!({"jsonrpc":"2.0","method":"$/cancel_request","params":{"requestId":login}}));
+    let response = c.result(login);
+    assert_eq!(response["error"]["code"], -32800, "{response}");
+    c.shutdown();
 }
 #[test]
 fn insertion_cancel_queue_clear_and_shutdown_are_real_process_operations() {

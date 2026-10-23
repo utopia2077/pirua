@@ -849,7 +849,7 @@ impl Host {
                         .login(&provider, auth_type, &interaction, &token)
                         .await
                         .map(|_| json!({}))
-                        .map_err(RpcError::failed);
+                        .map_err(auth_error);
                     let _ = reply.send(result);
                 });
                 Ok(None)
@@ -872,7 +872,7 @@ impl Host {
                     let mut result = Ok(json!({}));
                     for p in registry.get_providers() {
                         if let Err(e) = registry.logout(p.id(), &token).await {
-                            result = Err(RpcError::failed(e));
+                            result = Err(auth_error(e));
                             break;
                         }
                     }
@@ -1795,6 +1795,12 @@ struct Interaction {
     reverse: Reverse,
     request: Value,
     next: std::sync::atomic::AtomicU64,
+}
+fn auth_error(error: pi_ai::AuthResolutionError) -> RpcError {
+    match error {
+        pi_ai::AuthResolutionError::Cancelled => RpcError::cancelled(),
+        error => RpcError::failed(error),
+    }
 }
 impl AuthInteraction for Interaction {
     fn prompt<'a>(
