@@ -23,6 +23,7 @@ pub struct Projection {
     pub view: Value,
     pub native_partials: BTreeMap<String, Value>,
     pub entity_order: Vec<(String, String)>,
+    active_compaction: Option<(String, Option<String>)>,
 }
 impl Projection {
     pub fn new(history: SessionSnapshot, loaded: &LoadedResources, settings: Value) -> Self {
@@ -52,11 +53,12 @@ impl Projection {
             view: json!({}),
             native_partials: BTreeMap::new(),
             entity_order: vec![],
+            active_compaction: None,
         }
     }
     pub fn id(&mut self, prefix: &str) -> String {
         self.next_id += 1;
-        format!("{prefix}-{}", self.next_id)
+        format!("{prefix}-{}-{}", self.epoch, self.next_id)
     }
     pub fn standard(&mut self, session_id: &str, mut update: Value, pi: bool) -> Value {
         self.materialize(&mut update);
@@ -118,6 +120,7 @@ impl Projection {
             "agent_message" | "agent_thought" | "user_message" => (kind.as_str(), "messageId"),
             "tool_call_update" => (kind.as_str(), "toolCallId"),
             "terminal_update" => (kind.as_str(), "terminalId"),
+            "compaction_update" => (kind.as_str(), "compactionId"),
             _ => return,
         };
         let Some(id) = update[key].as_str() else {
@@ -195,6 +198,7 @@ impl Projection {
             SessionEvent::CompactionStart { .. } => {
                 self.activity["compacting"] = json!(true);
                 let id = self.id("compact");
+                self.active_compaction = Some((id.clone(), None));
                 vec![
                     json!({"sessionUpdate":"compaction_update","compactionId":id,"status":"in_progress"}),
                 ]
@@ -206,10 +210,22 @@ impl Projection {
                 ..
             } => {
                 self.activity["compacting"] = json!(false);
-                let id = format!("compact-{}", self.next_id);
-                vec![
-                    json!({"sessionUpdate":"compaction_update","compactionId":id,"status":if aborted{"cancelled"}else if error.is_some(){"failed"}else{"completed"},"summary":result.map(|r|vec![json!({"type":"text","text":r.summary})]),"error":error}),
-                ]
+                let (id, entry) = self
+                    .active_compaction
+                    .take()
+                    .unwrap_or_else(|| (self.id("compact"), None));
+                let completed = !aborted && error.is_none() && result.is_some();
+                let mut update = json!({"sessionUpdate":"compaction_update","compactionId":id,"status":if aborted{"cancelled"}else if error.is_some(){"failed"}else if completed{"completed"}else{"cancelled"},"summary":result.map(|r|vec![json!({"type":"text","text":r.summary})]),"error":error});
+                if completed && let Some(entry) = entry {
+                    update["_meta"] = json!({RENDER:{"phase":"end","entryId":entry}});
+                }
+                vec![update]
+            }
+            SessionEvent::SessionCompact { entry, .. } => {
+                if let Some((_, committed)) = &mut self.active_compaction {
+                    *committed = Some(entry.id);
+                }
+                vec![]
             }
             SessionEvent::AutoRetryStart { attempt, .. } => {
                 self.activity["retrying"] = json!(true);
@@ -240,7 +256,11 @@ impl Projection {
     fn agent(&mut self, event: AgentEvent) -> Vec<Value> {
         match event {
             AgentEvent::MessageStart { message } if message.role() == "assistant" => {
-                self.assistant_id = self.id("assistant");
+                // Every assistant attempt commits before the next MessageStart.
+                // Count the complete append log, including inactive tree branches,
+                // so unrelated entries and owner reconstruction cannot reuse IDs.
+                self.assistant_id =
+                    format!("assistant-{}", assistant_entries(&self.history).count() + 1);
                 let id = &self.assistant_id;
                 let message = serde_json::to_value(message).unwrap();
                 self.native_partials
@@ -393,6 +413,7 @@ fn patch_meta(target: &mut Value, patch: &Value) {
         }
     }
 }
+
 pub fn queued(q: &pi_coding_runtime::QueuedInput) -> Value {
     json!({"submissionId":q.id.to_string(),"delivery":q.delivery,"text":q.text,"images":q.images})
 }
@@ -461,6 +482,10 @@ pub fn retained_branch(snapshot: &SessionSnapshot) -> Vec<pi_coding_session::Ses
 pub fn replay(snapshot: &SessionSnapshot) -> Vec<Value> {
     let mut out = Vec::new();
     let mut tools = BTreeMap::new();
+    let assistant_ids = assistant_entries(snapshot)
+        .enumerate()
+        .map(|(index, entry)| (entry.id.as_str(), format!("assistant-{}", index + 1)))
+        .collect::<BTreeMap<_, _>>();
     for entry in retained_branch(snapshot) {
         if let EntryContent::Compaction { summary, .. } = &entry.content {
             out.push(json!({"sessionUpdate":"compaction_update","compactionId":entry.id,"status":"completed","summary":[{"type":"text","text":summary}],"_meta":{RENDER:{"phase":"end","nativeMessageId":entry.id,"entryId":entry.id}}}));
@@ -471,6 +496,7 @@ pub fn replay(snapshot: &SessionSnapshot) -> Vec<Value> {
             continue;
         }
         if let EntryContent::Message { message } = entry.content {
+            let native_id = assistant_ids.get(entry.id.as_str()).unwrap_or(&entry.id);
             if message["role"] == "assistant" {
                 for c in message["content"]
                     .as_array()
@@ -478,7 +504,7 @@ pub fn replay(snapshot: &SessionSnapshot) -> Vec<Value> {
                     .flatten()
                     .filter(|c| c["type"] == "toolCall")
                 {
-                    tools.insert(c["id"].as_str().unwrap_or("").to_owned(), entry.id.clone());
+                    tools.insert(c["id"].as_str().unwrap_or("").to_owned(), native_id.clone());
                 }
             }
             if message["role"] == "bashExecution" {
@@ -488,11 +514,17 @@ pub fn replay(snapshot: &SessionSnapshot) -> Vec<Value> {
                 let parent = tools.get(call).cloned().unwrap_or_default();
                 out.push(json!({"sessionUpdate":"tool_call_update","toolCallId":format!("{parent}:{call}"),"name":message["toolName"],"status":if message["isError"]==true{"failed"}else{"completed"},"rawOutput":message,"content":message["content"].as_array().into_iter().flatten().filter(|c|c["type"]=="text"||c["type"]=="image").map(|c|json!({"type":"content","content":c})).collect::<Vec<_>>(),"_meta":{RENDER:{"phase":"end","nativeMessageId":parent,"parentMessageId":parent,"toolCallId":call,"entryId":entry.id}}}));
             } else {
-                out.extend(message_updates(&entry.id, &message, "end", Some(&entry.id)));
+                out.extend(message_updates(native_id, &message, "end", Some(&entry.id)));
             }
         }
     }
     out
+}
+
+fn assistant_entries(
+    snapshot: &SessionSnapshot,
+) -> impl Iterator<Item = &pi_coding_session::SessionEntry> {
+    snapshot.entries.iter().filter(|entry| matches!(&entry.content, EntryContent::Message { message } if message["role"] == "assistant"))
 }
 
 fn statistics(
@@ -609,4 +641,148 @@ pub fn display_settings(raw: &Value) -> Value {
         }
     }
     select(raw, &pi_coding_runtime::headless_settings_defaults())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pi_coding_runtime::{CompactionReason, CompactionResult};
+    use pi_coding_session::{MemoryStore, SessionManager};
+    use std::sync::Arc;
+
+    fn projection() -> Projection {
+        let manager = SessionManager::create(Arc::new(MemoryStore::new()), "/synthetic").unwrap();
+        Projection::new(
+            manager.snapshot().clone(),
+            &LoadedResources::default(),
+            json!({}),
+        )
+    }
+
+    #[test]
+    fn compaction_completion_preserves_its_start_id_and_exact_committed_entry() {
+        let mut p = projection();
+        let start = p.event(SessionEvent::CompactionStart {
+            reason: CompactionReason::Manual,
+            will_retry: false,
+        });
+        p.id("unrelated");
+        let entry = serde_json::from_value(json!({"id":"this-compaction","parentId":null,"timestamp":1,"type":"compaction","summary":"new summary","firstKeptEntryId":"kept","tokensBefore":100})).unwrap();
+        p.event(SessionEvent::SessionCompact {
+            entry,
+            reason: CompactionReason::Manual,
+            from_hook: true,
+        });
+        let end = p.event(SessionEvent::CompactionEnd {
+            reason: CompactionReason::Manual,
+            result: Some(CompactionResult {
+                summary: "new summary".into(),
+                first_kept_entry_id: Some("kept".into()),
+                tokens_before: 100,
+                details: None,
+                usage: None,
+            }),
+            aborted: false,
+            will_retry: false,
+            error: None,
+        });
+        assert_eq!(start[0]["compactionId"], end[0]["compactionId"]);
+        assert_eq!(end[0]["status"], "completed");
+        assert_eq!(end[0]["_meta"][RENDER]["entryId"], "this-compaction");
+        assert_eq!(
+            end[0]["summary"],
+            json!([{"type":"text","text":"new summary"}])
+        );
+        let start = p.event(SessionEvent::CompactionStart {
+            reason: CompactionReason::Manual,
+            will_retry: false,
+        });
+        let end = p.event(SessionEvent::CompactionEnd {
+            reason: CompactionReason::Manual,
+            result: None,
+            aborted: true,
+            will_retry: false,
+            error: None,
+        });
+        assert_eq!(start[0]["compactionId"], end[0]["compactionId"]);
+        assert_eq!(end[0]["status"], "cancelled");
+        assert!(end[0]["_meta"][RENDER].get("entryId").is_none());
+    }
+
+    #[test]
+    fn compaction_start_remains_in_the_materialized_live_projection() {
+        let mut p = projection();
+        let start = p.event(SessionEvent::CompactionStart {
+            reason: CompactionReason::Manual,
+            will_retry: false,
+        });
+        p.standard("synthetic", start[0].clone(), true);
+        assert_eq!(
+            p.entities.get(&(
+                "compaction_update".into(),
+                start[0]["compactionId"].as_str().unwrap().into()
+            )),
+            Some(&start[0])
+        );
+    }
+
+    #[test]
+    fn retained_branch_replay_and_new_streams_use_the_complete_assistant_log() {
+        let mut manager =
+            SessionManager::create(Arc::new(MemoryStore::new()), "/synthetic").unwrap();
+        let user = manager
+            .append_message(json!({"role":"user","content":"branch point"}))
+            .unwrap();
+        manager
+            .append_message(
+                json!({"role":"assistant","content":[{"type":"text","text":"inactive response"}]}),
+            )
+            .unwrap();
+        manager.branch(Some(&user)).unwrap();
+        let active = manager
+            .append_message(
+                json!({"role":"assistant","content":[{"type":"text","text":"active response"}]}),
+            )
+            .unwrap();
+        manager
+            .set_name("non-assistant entries do not change identity")
+            .unwrap();
+        manager.set_label(&active, Some("retained".into())).unwrap();
+        let mut p = Projection::new(
+            manager.snapshot().clone(),
+            &LoadedResources::default(),
+            json!({}),
+        );
+        let updates = replay(&p.history);
+        let assistant = updates
+            .iter()
+            .find(|update| update["sessionUpdate"] == "agent_message")
+            .unwrap();
+        assert_eq!(assistant["messageId"], "assistant-2");
+        assert_eq!(assistant["_meta"][RENDER]["entryId"], active);
+        let message = pi_agent::AgentMessage::BuiltIn(pi_ai::Message::Assistant(Box::new(
+            pi_agent::failure_message(
+                &crate::fixture::model(),
+                &pi_agent::AgentError::Callback(String::new()),
+                false,
+            ),
+        )));
+        assert_eq!(
+            p.event(SessionEvent::Agent(AgentEvent::MessageStart { message }))[0]["messageId"],
+            "assistant-3"
+        );
+    }
+
+    #[test]
+    fn live_operation_ids_do_not_repeat_when_an_owner_is_reconstructed() {
+        let mut first = projection();
+        let mut second = Projection::new(
+            first.history.clone(),
+            &LoadedResources::default(),
+            json!({}),
+        );
+        for prefix in ["terminal", "command", "compact"] {
+            assert_ne!(first.id(prefix), second.id(prefix));
+        }
+    }
 }

@@ -353,6 +353,26 @@ fn replay_tree_fork_configuration_shell_and_compaction() {
                     && v["params"]["update"]["status"] == "completed"
             )
     );
+    let completed = c.events[marker..]
+        .iter()
+        .find(|v| {
+            v["params"]["update"]["sessionUpdate"] == "compaction_update"
+                && v["params"]["update"]["status"] == "completed"
+        })
+        .unwrap()["params"]["update"]
+        .clone();
+    let snapshot = c.snapshot(&s);
+    let entry_id = &completed["_meta"]["pirua.dev/render"]["entryId"];
+    let compact = snapshot["history"]["entries"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|e| &e["id"] == entry_id)
+        .expect("live completion identifies this committed compaction");
+    assert_eq!(compact["summary"], "Fixture compaction summary");
+    assert_eq!(compact["usage"]["input"], 37);
+    assert_eq!(compact["usage"]["output"], 11);
+    assert_eq!(compact["usage"]["cost"]["total"], 0.0048);
     c.call("_pirua/session/reload", json!({"sessionId":s}));
     c.call("session/close", json!({"sessionId":s}));
     let marker = c.events.len();

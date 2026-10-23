@@ -120,6 +120,59 @@ test("EOF cancels a prompt still waiting in admission", async (t) => {
   await outcome;
 });
 
+for (const pi of [false, true]) {
+  test(`${pi ? "Pi reload" : "ordinary ACP"} assistant and tool identities survive close and replay`, async (t) => {
+    const { client, directory, start } = await setup(t, { pi, delay: 5 });
+    const { sessionId } = await client.newSession(directory);
+    const byEntry = new Map();
+    const standard = new Map();
+    const record = (owner, from) => {
+      for (const update of updates(owner, from)) {
+        if (!["agent_message", "agent_thought", "tool_call_update"].includes(update.sessionUpdate)) continue;
+        const identity = update.messageId ?? update.toolCallId;
+        standard.set(`${update.sessionUpdate}:${identity}`, update);
+        if (update.sessionUpdate !== "agent_message") continue;
+        const entry = update._meta?.["pirua.dev/render"]?.entryId;
+        if (!entry) continue;
+        if (byEntry.has(entry)) assert.equal(identity, byEntry.get(entry), "replay must upsert the live assistant identity");
+        else byEntry.set(entry, identity);
+      }
+      assert.equal(new Set(byEntry.values()).size, byEntry.size,
+        "different persisted assistants must never share a standard ACP messageId");
+      assert.equal([...standard.values()].filter((update) => update.sessionUpdate === "agent_message").length,
+        byEntry.size, "standard whole-message upserts must retain every assistant exactly once");
+    };
+    const turn = async (owner, value) => {
+      const from = owner.messages.length;
+      await prompt(owner, sessionId, value);
+      await owner.waitFor((message) => isState(message, sessionId, "idle"), from);
+      record(owner, from);
+    };
+    await turn(client, "first fixture:tool");
+    await client.request("session/close", { sessionId });
+    await client.request("session/resume", { sessionId, cwd: directory });
+    await turn(client, "second fixture:tool");
+    if (pi) await client.request("_pirua/session/reload", { sessionId });
+    await turn(client, "third fixture:tool");
+    await turn(client, "fixture:retry");
+    let from = client.messages.length;
+    await client.request("session/resume", { sessionId, cwd: directory, replayFrom: { type: "start" } });
+    record(client, from);
+    assert.equal(byEntry.size, 8);
+    assert.equal([...standard.values()].filter((update) => update.sessionUpdate === "tool_call_update").length, 3);
+    await client.request("session/close", { sessionId });
+    assert.equal((await client.finish()).code, 0);
+    const reopened = start();
+    await reopened.initialize(pi);
+    from = reopened.messages.length;
+    await reopened.request("session/resume", { sessionId, cwd: directory, replayFrom: { type: "start" } });
+    record(reopened, from);
+    await turn(reopened, "fourth fixture:tool");
+    assert.equal(byEntry.size, 10);
+    assert.equal([...standard.values()].filter((update) => update.sessionUpdate === "tool_call_update").length, 4);
+  });
+}
+
 test("queue clear identifies duplicate inputs and cancellation does not restart them", async (t) => {
   const { client, directory } = await setup(t);
   const { sessionId } = await client.newSession(directory);

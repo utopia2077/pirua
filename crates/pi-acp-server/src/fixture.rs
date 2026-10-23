@@ -49,7 +49,7 @@ impl SessionHooks for Hooks {
                     first_kept_entry_id: Some(p.first_kept_entry_id),
                     tokens_before: p.tokens_before,
                     details: Some(p.file_ops.details()),
-                    usage: None,
+                    usage: Some(serde_json::from_value(json!({"input":37,"output":11,"cacheRead":0,"cacheWrite":0,"totalTokens":48,"cost":{"input":0.0037,"output":0.0011,"cacheRead":0,"cacheWrite":0,"total":0.0048}})).expect("fixture compaction usage")),
                 }),
             })
         })
