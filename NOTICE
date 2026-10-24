@@ -17,6 +17,19 @@ the root LICENSE.
 Primary source:
 https://github.com/earendil-works/pi/blob/4a080252f06caf63a525d7873c5d94d3c23887e0/LICENSE
 
+The original terminal library is retained in packages/pi-tui. The adapted
+interactive frontend and presentation support are in packages/pi-tui-client.
+Its upstream-source.json records original paths and source hashes; local changes
+replace backend coupling with the native ACP application boundary.
+
+Agent Client Protocol
+---------------------
+The ACP v2 schema and protocol metadata are copied from agentclientprotocol:
+https://github.com/agentclientprotocol/agent-client-protocol
+Pinned revision: 6f29ef9a4913d16900abf7f88437eedba38c5e05
+The exact upstream license is retained at conformance/acp-v2/LICENSE-ACP.
+Source paths and hashes are recorded in conformance/acp-v2/source.json.
+
 models.dev
 ----------
 The captured models.dev feed and derived catalog data include material from
@@ -65,7 +78,7 @@ Primary source: https://github.com/modelcontextprotocol/typescript-sdk
 
 Dependencies
 ------------
-Rust and upstream npm dependencies retain their own licenses and notices.
-Cargo.lock and the pinned upstream package-lock.json identify the exact dependency
-versions used by this snapshot; the consolidated notices do not replace
+Rust and npm dependencies retain their own licenses and notices.
+Cargo.lock and the package-lock.json files identify the exact dependency versions
+used by this snapshot; the consolidated notices do not replace
 those dependencies' license obligations.

@@ -56,6 +56,226 @@ fn answer(request: AgentRequest) -> pi_ai_core::AssistantStream {
     stream
 }
 
+fn admitted_system(input: InputAdmission) -> AdmittedMessage {
+    AdmittedMessage {
+        message: AgentMessage::BuiltIn(pi_ai_core::Message::System(
+            pi_ai_core::create_initial_system_message(Some("admitted system"), None).unwrap(),
+        )),
+        input: Some(input),
+    }
+}
+
+fn declaration_tool() -> AgentTool {
+    AgentTool::new(
+        serde_json::from_value(json!({
+            "name":"declared", "description":"Admission declaration fixture",
+            "parameters":{"type":"object"}
+        }))
+        .unwrap(),
+        Arc::new(|_| Box::pin(async { panic!("fixture tool must not execute") })),
+    )
+}
+
+#[test]
+fn cancelled_system_admissions_emit_no_message_or_history_after_tool_normalization() {
+    runtime().block_on(async {
+        for with_tools in [false, true] {
+            let agent = Agent::new(AgentOptions::new(
+                model(),
+                Arc::new(|_| Box::pin(async { panic!("cancelled input must not reach provider") })),
+            ));
+            if with_tools {
+                agent.set_tools(vec![declaration_tool()]);
+            }
+            let events = Arc::new(Mutex::new(Vec::new()));
+            agent.subscribe_inputs(Arc::new({
+                let events = events.clone();
+                move |event, input, _| {
+                    if matches!(
+                        event,
+                        AgentEvent::MessageStart { .. } | AgentEvent::MessageEnd { .. }
+                    ) {
+                        events.lock().unwrap().push((event, input));
+                    }
+                    Box::pin(async { Ok(()) })
+                }
+            }));
+            let cancellation = CancellationToken::new();
+            cancellation.cancel();
+            let result = agent
+                .prompt_inputs(vec![admitted_system(InputAdmission {
+                    id: InputId::new(),
+                    cancellation,
+                    on_rejected: None,
+                })])
+                .await
+                .unwrap();
+            assert!(
+                events.lock().unwrap().is_empty(),
+                "cancelled system input was emitted"
+            );
+            assert!(result.is_empty());
+            assert!(agent.state().messages.is_empty());
+        }
+    });
+}
+
+#[test]
+fn active_system_admissions_keep_identity_and_initial_tool_declarations() {
+    runtime().block_on(async {
+        for with_tools in [false, true] {
+            let requests = Arc::new(Mutex::new(Vec::new()));
+            let agent = Agent::new(AgentOptions::new(model(), Arc::new({
+                let requests = requests.clone();
+                move |request| {
+                    requests.lock().unwrap().push(request.clone());
+                    Box::pin(async move { Ok(answer(request)) })
+                }
+            })));
+            if with_tools {
+                agent.set_tools(vec![declaration_tool()]);
+            }
+            let events = Arc::new(Mutex::new(Vec::new()));
+            agent.subscribe_inputs(Arc::new({
+                let events = events.clone();
+                move |event, input, _| {
+                    if matches!(&event, AgentEvent::MessageStart { message } | AgentEvent::MessageEnd { message }
+                        if message.role() == "system")
+                    {
+                        events.lock().unwrap().push((event, input));
+                    }
+                    Box::pin(async { Ok(()) })
+                }
+            }));
+            let id = InputId::new();
+            agent.prompt_inputs(vec![admitted_system(InputAdmission {
+                id, cancellation: CancellationToken::new(), on_rejected: None,
+            })]).await.unwrap();
+            let requests = requests.lock().unwrap();
+            assert_eq!(requests.len(), 1, "active system admission must reach provider");
+            let expected_tools = if with_tools { vec!["declared"] } else { vec![] };
+            let declarations = pi_ai_core::get_current_tools(requests[0].context.messages());
+            assert_eq!(declarations.iter().map(|tool| tool.name.as_str()).collect::<Vec<_>>(), expected_tools);
+            let events = events.lock().unwrap();
+            assert_eq!(events.len(), 2);
+            assert!(events.iter().all(|(_, input)| *input == Some(id)));
+            let history = agent.state().messages;
+            let systems = history.iter().filter(|message| message.role() == "system").collect::<Vec<_>>();
+            assert_eq!(systems.len(), 1, "normalize declarations in the admitted system record");
+            assert_eq!(serde_json::to_value(systems[0]).unwrap()["content"], "admitted system");
+            assert_eq!(history.last().unwrap().role(), "assistant");
+        }
+    });
+}
+
+#[test]
+fn rejected_system_admissions_keep_their_rejection_callback() {
+    runtime().block_on(async {
+        let agent = Agent::new(AgentOptions::new(
+            model(),
+            Arc::new(|_| Box::pin(async { panic!("rejected input must not reach provider") })),
+        ));
+        let rejected = Arc::new(Mutex::new(Vec::new()));
+        let id = InputId::new();
+        agent.subscribe_inputs(Arc::new(move |event, _, _| Box::pin(async move {
+            if matches!(event, AgentEvent::MessageStart { message } if message.role() == "system") {
+                return Err(AgentError::Callback("system start rejected".into()));
+            }
+            Ok(())
+        })));
+        agent
+            .prompt_inputs(vec![admitted_system(InputAdmission {
+                id,
+                cancellation: CancellationToken::new(),
+                on_rejected: Some(Arc::new({
+                    let rejected = rejected.clone();
+                    move |error| rejected.lock().unwrap().push(error)
+                })),
+            })])
+            .await
+            .unwrap();
+        assert_eq!(
+            rejected.lock().unwrap().as_slice(),
+            &[AgentError::Callback("system start rejected".into())]
+        );
+        assert!(
+            agent
+                .state()
+                .messages
+                .iter()
+                .all(|message| message.role() != "system")
+        );
+    });
+}
+
+#[test]
+fn explicit_continuation_drives_real_queues_from_empty_or_system_only_context() {
+    runtime().block_on(async {
+        for system_only in [false, true] {
+            for steering in [false, true] {
+                for mode in [QueueMode::OneAtATime, QueueMode::All] {
+                    let requests = Arc::new(Mutex::new(Vec::new()));
+                    let captured = requests.clone();
+                    let mut options = AgentOptions::new(
+                        model(),
+                        Arc::new(move |request| {
+                            captured.lock().unwrap().push(request.clone());
+                            Box::pin(async move { Ok(answer(request)) })
+                        }),
+                    );
+                    if system_only {
+                        options.initial_state.messages.push(AgentMessage::BuiltIn(
+                            pi_ai_core::Message::System(
+                                pi_ai_core::create_initial_system_message(
+                                    Some("system only"),
+                                    None,
+                                )
+                                .unwrap(),
+                            ),
+                        ));
+                    }
+                    options.steering_mode = mode;
+                    options.follow_up_mode = mode;
+                    let agent = Agent::new(options);
+                    assert_eq!(
+                        agent.continue_run().await,
+                        Err(AgentError::InvalidContext(
+                            "No messages to continue from".into()
+                        ))
+                    );
+                    for text in ["first", "second"] {
+                        let message = serde_json::from_value(
+                            json!({"role":"user","content":text,"timestamp":7}),
+                        )
+                        .unwrap();
+                        if steering {
+                            agent.steer(message);
+                        } else {
+                            agent.follow_up(message);
+                        }
+                    }
+                    assert!(!agent.state().is_streaming);
+                    assert!(requests.lock().unwrap().is_empty());
+                    agent.continue_run().await.unwrap();
+                    assert_eq!(
+                        requests.lock().unwrap().len(),
+                        if mode == QueueMode::All { 1 } else { 2 }
+                    );
+                    let users = agent
+                        .state()
+                        .messages
+                        .iter()
+                        .filter(|message| message.role() == "user")
+                        .map(|message| serde_json::to_value(message).unwrap()["content"].clone())
+                        .collect::<Vec<_>>();
+                    assert_eq!(users, vec![json!("first"), json!("second")]);
+                    assert!(!agent.has_queued_messages());
+                }
+            }
+        }
+    });
+}
+
 #[test]
 fn awaited_end_listener_owns_busy_and_idle_until_acknowledged() {
     runtime().block_on(async {

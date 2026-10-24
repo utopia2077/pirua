@@ -147,3 +147,15 @@ impl AgentLoopConfig {
         }
     }
 }
+
+/// Transient admission sidecars used by the stateful Agent. Legacy loop callers
+/// continue using the ordinary message polls and event sink.
+pub type PollInputs = std::sync::Arc<
+    dyn Fn() -> BoxFuture<'static, Result<Vec<crate::AdmittedMessage>, AgentError>> + Send + Sync,
+>;
+#[derive(Clone, Default)]
+pub struct InputLoopOptions {
+    pub steering: Option<PollInputs>,
+    pub follow_up: Option<PollInputs>,
+    pub events: Option<crate::InputEventSink>,
+}

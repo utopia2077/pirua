@@ -31,6 +31,8 @@ manifest freshness and proof registration are checked independently.
 | MCP | Actual stdio peer, loopback HTTP/OAuth, cancellation, correlation and shutdown tests |
 | Local CodeMode | Actual helper processes, capability/output/store limits and controlled delivery |
 | Language-neutral extensions | Actual protocol frames, grants, correlation, ordered hooks and native admission |
+| ACP application host | Pinned v2 schema, real stdio lifecycle/cancel/replay/queue cases, native provider/auth composition |
+| Original TypeScript terminal UI | Retained original tests, source/import audit, stream reducers, real Rust integration and regular/fullscreen PTYs |
 
 The [proof registry](../conformance/assembly.json) defines commands and their
 source/test anchors. `check_assembly.py` checks these definitions; it does not
@@ -78,6 +80,10 @@ is an expectation, not implementation evidence until the native scenario is run
 and compared. Negative tests exercise meaningful boundaries such as stale grants,
 invalid drafts, owner collisions, cancellation and transaction failures.
 
+AI and Coding libraries also compile independently with no default features.
+The application host deliberately selects native provider features, so workspace
+feature unification alone cannot establish that reusable library minimum.
+
 ## Limits
 
 Historical parser/transport observations are intentionally retained where current
@@ -98,3 +104,11 @@ validation outcome; declarations show JSON schemas rather than compiled TypeScri
 Recorded replay and normal SQLite close/reopen do not guarantee exactly-once unsafe
 effects or exclusive cross-process output-path reservation. Source scripted protocol
 cases and their separately labeled native equivalents retain distinct evidence.
+
+The terminal verification entry point is `bash scripts/verify-tui.sh`, also called
+by the full suite. ACP schema validity is separate from lifecycle correctness;
+black-box stdio cases exercise both ordinary ACP clients and the negotiated Pi
+extensions. Original frontend source provenance is recorded independently of the
+native ownership map. Terminal verification uses deterministic native provider
+responses and a real subprocess; it does not establish live OAuth account access
+or all platform-specific clipboard and image helpers.

@@ -76,9 +76,14 @@ pub mod cache_warmer;
 pub mod compaction;
 pub mod context_usage;
 pub mod hooks;
+mod inputs;
 pub mod messages;
 pub mod model_runtime;
 mod session;
+pub use inputs::{
+    InputCancellation, InputId, InputResolution, InputTicket, QueueAdmission, QueuedInput,
+};
+pub use pi_coding_session::{HistoryChange, HistorySubscription};
 mod session_lifecycle;
 pub use builder::CodingSessionBuilder;
 pub use cache_warmer::*;

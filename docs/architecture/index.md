@@ -3,9 +3,13 @@
 Pirua is a set of Rust libraries for embedding the selected Pi AI, Agent and
 headless Coding capabilities. The current [scope](../scope.md) names the v1.4.0
 baseline and exclusions. Crate READMEs describe the implemented native APIs.
+The original TypeScript terminal UI is also available through a native ACP
+application host; it uses the same CodingSession and session store.
 
 ```mermaid
 flowchart TD
+    TUI["Original TypeScript TUI"] --> ACP["ACP v2 application host"]
+    ACP --> Coding
     Coding["CodingSession"] --> Agent["Agent"]
     Coding --> Storage["Coding session store"]
     Storage --> SQLite["SQLite infrastructure"]
@@ -31,6 +35,7 @@ flowchart TD
 | [Coding integration](07-coding-integration.md) | Session orchestration and reusable tools |
 | [Upstream synchronization](08-upstream-sync.md) | Immutable baselines, ownership and evidence |
 | [Conformance boundaries](09-conformance-security.md) | Offline checks and host obligations |
+| [Terminal integration](../design/tui-acp-v2.md) | ACP lifecycle, native input receipts and frontend mirrors |
 
 The [Durable Session](../contracts/durable-session.md) owns committed documents,
 history and storage independently of CodingSession. The [generic scheduler](../contracts/durable-scheduler.md)

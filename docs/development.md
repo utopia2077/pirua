@@ -20,6 +20,11 @@ session adapters. CodeMode requires a matching `pi-codemode-worker` executable;
 the host passes its path explicitly. Credentials, extension grants, transport
 configuration and any operating-system sandbox remain host responsibilities.
 
+`pi-acp-server` supplies one concrete local application host. It explicitly enables
+the four selected native providers and the two supported OAuth integrations;
+library default features remain unchanged. The original TypeScript TUI connects
+over stdio. See [the terminal guide](tui.md) for launch and storage options.
+
 ## Build and test
 
 The checked-in toolchain is Rust 1.98.0 with rustfmt and Clippy. Cache dependencies
@@ -66,6 +71,7 @@ npm ci --prefix upstream/pi-mono --ignore-scripts --no-audit --no-fund
 npm ci --prefix conformance/provider-traces/v1.4.0 --ignore-scripts --no-audit --no-fund
 node conformance/agent-v1.4.0/setup.mjs --install
 node conformance/durable-v1.4.0/setup.mjs --install
+npm ci
 ```
 
 The source readers use immutable Git objects. A full clone includes the older
@@ -92,8 +98,13 @@ bash scripts/verify.sh
 ```
 
 The entry point checks source ownership, manifests, assembly definitions, catalog
-provenance, documentation and workspace topology, then default/all-feature
-compilation, Clippy, tests and Rust documentation with warnings denied. See the
+provenance, documentation and workspace topology, then compiles the AI/Coding
+libraries with no default features. Workspace compilation, Clippy, tests and Rust
+documentation run with default/all-feature profiles and warnings denied. It also
+runs `bash scripts/verify-tui.sh`: pinned ACP inputs, real stdio protocol tests,
+the built original frontend, its retained tests and both PTY modes. The terminal
+client supports Node 22.19.0 or newer; the full source-oracle suite uses the Node
+version stated above. See the
 [verification guide](verification-plan.md) for evidence boundaries. Live account
 access, paid calls and service availability are not tested.
 

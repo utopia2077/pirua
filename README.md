@@ -24,8 +24,8 @@
 Pirua reimplements Pi's AI, agent, and headless coding runtime layers in Rust.
 It follows a pinned upstream baseline, with explicit mappings from upstream
 contracts and observable behavior to Rust implementations and conformance evidence.
-The current workspace provides libraries for embedding these runtime layers in
-an application.
+The workspace provides libraries for embedding these runtime layers, a Rust ACP
+application server, and the original Pi TypeScript terminal UI connected to that server.
 
 ## Upstream
 
@@ -37,7 +37,7 @@ the extension boundary uses a language-neutral protocol.
 
 If you know Pi, these are the main entry points into this workspace:
 
-| Pi area at the pinned baseline | Rust entry points | What lives here |
+| Pi area at the pinned baseline | Workspace entry points | What lives here |
 |---|---|---|
 | `packages/ai` | [`pi-ai`](crates/pi-ai) | Models, streaming, authentication and four provider integrations |
 | `packages/agent` | [`pi-agent`](crates/pi-agent) | Standalone Agent, tools, queues, hooks and an optional proxy stream |
@@ -47,6 +47,7 @@ If you know Pi, these are the main entry points into this workspace:
 | Session/storage in `packages/durable` | [`pi-durable-session`](crates/pi-durable-session) | Committed records, documents, history, forks and SQLite or Memory storage |
 | Conversation runtime and tasks in `packages/durable` | [`pi-durable`](crates/pi-durable) | Persistent conversations, tools, views/events, native bindings and journaled local CodeMode |
 | `packages/telemetry` | [`pi-telemetry`](crates/pi-telemetry) | Telemetry contracts and process-local implementations |
+| `packages/tui` and the interactive Coding frontend | [`pi-tui`](packages/pi-tui), [`pi-tui-client`](packages/pi-tui-client), [`pi-acp-server`](crates/pi-acp-server) | Original TypeScript interface over the native Rust application host |
 
 The [crate map](docs/architecture/02-crate-topology.md) explains ownership and
 dependencies. Crate names retain the upstream `pi-` prefix. Third-party extensions
@@ -73,9 +74,10 @@ features are selected explicitly.
 
 Coding sessions support Memory and SQLite, including save/reopen, branches,
 forks and compaction. MCP and CodeMode can be used independently or attached to a
-Coding session. The workspace delivers headless libraries; the CLI/TUI,
-JavaScript extension loader, JSONL storage and old-data import are outside its
-[scope](docs/scope.md). Durable's [Session and storage foundation](docs/contracts/durable-session.md)
+Coding session. The terminal application reuses Pi's original TypeScript UI and
+executes prompts and tools through Rust over a pinned ACP v2 draft with Pi
+extensions. The JavaScript agent extension loader, JSONL storage and old-data
+import remain outside its [scope](docs/scope.md). Durable's [Session and storage foundation](docs/contracts/durable-session.md)
 and [generic task scheduler](docs/contracts/durable-scheduler.md) are available
 independently. The [conversation runtime](docs/contracts/durable-runtime.md)
 adds generation, ordinary and nested tools, queues, usage and compaction over that
@@ -140,10 +142,26 @@ cargo check --workspace --all-targets --locked --offline
 Full conformance also runs Node/Python peers and pinned upstream oracles. Follow
 [Development and verification](docs/development.md) to prepare those inputs.
 
+To run the original terminal interface, install Node.js 22.19.0 or newer and build
+both the native host and the TypeScript workspaces:
+
+```sh
+cargo build -p pi-acp-server --locked
+npm ci
+npm run build
+node packages/pi-tui-client/dist/main.js --server "$PWD/target/debug/pi-acp-server"
+```
+
+The host uses native credentials and the selected provider catalogs. The
+[terminal guide](docs/tui.md) explains authentication, model selection, session
+storage, a deterministic local demo, and the supported feature boundary.
+
 ## Runtime layout
 
 ```mermaid
 flowchart TD
+    UI["Original Pi TypeScript TUI"] --> ACP["Rust ACP v2 application host"]
+    ACP --> Coding
     Host["Host application"] --> Coding["CodingSession"]
     Coding --> Agent["Standalone Agent"]
     Agent --> AI["AI providers and streams"]
@@ -167,6 +185,7 @@ runtime contracts, extension protocol, and host responsibilities.
 | [Architecture](docs/architecture/index.md) | System boundaries, crate ownership, storage, extensions, and coding integration |
 | [Scope](docs/scope.md) | Included upstream responsibilities, provider selection, and exclusions |
 | [Development](docs/development.md) | Features, prerequisites, builds, tests, and verification commands |
+| [Terminal application](docs/tui.md) | Build, launch, credentials, session controls and capability limits |
 | [Upstream updates](docs/upstream-drift.md) | Compare pinned revisions and review classified changes |
 
 ## Acknowledgements and license

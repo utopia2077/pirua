@@ -21,6 +21,7 @@ All crates inherit the workspace toolchain, package settings and lints.
 | 14 | `pi-mcp` | Standalone MCP client |
 | 15 | `pi-durable-session` | Committed Durable records, documents, history and storage |
 | 16 | `pi-durable` | Persistent tasks/conversations, views/events, native bindings and journaled CodeMode |
+| 17 | `pi-acp-server` | ACP v2 application host for native Coding sessions |
 
 ## Dependency graph
 
@@ -42,6 +43,7 @@ All crates inherit the workspace toolchain, package settings and lints.
 | `pi-mcp` | — | — |
 | `pi-durable-session` | `pi-sqlite` | — |
 | `pi-durable` | `pi-durable-session`, `pi-ai`, `pi-coding-runtime`, `pi-mcp`, `pi-extension-protocol`, `pi-codemode` | — |
+| `pi-acp-server` | `pi-agent`, `pi-ai`, `pi-ai-providers`, `pi-ai-transport`, `pi-coding-runtime`, `pi-coding-session`, `pi-sqlite` | — |
 
 Durable executes its own persistent task machine over the single Session authority.
 It uses AI for model requests and typed messages, calls shared CodingTool operations
@@ -52,9 +54,21 @@ It does not construct Agent or CodingSession. The transitive Coding dependencies
 do not transfer their orchestration into Durable; direct Agent/loop, provider,
 and SQLite edges are outside this boundary.
 
+The TypeScript workspaces `packages/pi-tui` and `packages/pi-tui-client` retain
+the original terminal renderer and interactive frontend. They connect to the
+application host over stdio and are outside the Rust crate graph. See the
+[TUI integration](../design/tui-acp-v2.md) for the protocol and ownership boundary.
+
 ## Literal schema
 
 The checker rejects hidden local packages, noncanonical dependency paths,
 cycles, undeclared edges and unexpected optional-feature activation. Optional
 selectors are listed explicitly in the machine map. There are no authorized
 separate allocator test packages or development-only internal dependency edges.
+
+`workspace_default = true` marks an optional library edge explicitly selected by
+the default workspace application build. The native ACP host enables the selected
+providers, so the `pi-ai` → `pi-ai-providers` edge is present in that build. The
+`pi-ai` library itself still has empty default features. The proxy transport edge
+remains absent until its feature is selected. Both unexpected activation and
+missing declared activation are rejected; all-feature edges remain exact.

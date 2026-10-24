@@ -1,0 +1,22 @@
+{
+  "repository": "https://github.com/agentclientprotocol/agent-client-protocol",
+  "revision": "6f29ef9a4913d16900abf7f88437eedba38c5e05",
+  "protocolVersion": 2,
+  "stability": "draft",
+  "schemaPackageVersion": "2.0.0-alpha.9",
+  "rustSchemaVersion": "1.12.0",
+  "files": {
+    "schema.json": {
+      "upstreamPath": "schema/v2/schema.json",
+      "sha256": "3ace598bf951e1970a0f0c18b4e54af7b480bfe43a6f290f5065b2928974b053"
+    },
+    "meta.json": {
+      "upstreamPath": "schema/v2/meta.json",
+      "sha256": "ad94c01f2736416776fd53d66e3aaf89242ab72d99832664f39d6ab41e049736"
+    },
+    "LICENSE-ACP": {
+      "upstreamPath": "LICENSE",
+      "sha256": "f250d08cee4549b22b3b4aaaf3a743473336fd280316df5d0340717e5127a221"
+    }
+  }
+}

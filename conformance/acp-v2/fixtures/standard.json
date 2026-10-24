@@ -1,0 +1,191 @@
+[
+  {
+    "definition": "InitializeRequest",
+    "value": {
+      "protocolVersion": 2,
+      "capabilities": {
+        "_meta": {
+          "pirua.dev/tui": {
+            "version": 1
+          }
+        }
+      },
+      "info": {
+        "name": "pirua-tui",
+        "version": "0.0.0"
+      }
+    }
+  },
+  {
+    "definition": "InitializeResponse",
+    "value": {
+      "protocolVersion": 2,
+      "capabilities": {
+        "session": {
+          "prompt": {
+            "image": {}
+          }
+        },
+        "_meta": {
+          "pirua.dev/tui": {
+            "version": 1,
+            "features": [
+              "snapshot",
+              "queue",
+              "tree",
+              "shell",
+              "scopedModels",
+              "resources"
+            ]
+          }
+        }
+      },
+      "info": {
+        "name": "pi-acp-server",
+        "version": "0.0.0"
+      }
+    }
+  },
+  {
+    "definition": "NewSessionRequest",
+    "value": {
+      "cwd": "/workspace/project",
+      "mcpServers": []
+    }
+  },
+  {
+    "definition": "PromptRequest",
+    "value": {
+      "sessionId": "s1",
+      "prompt": [
+        {
+          "type": "text",
+          "text": "Hello"
+        }
+      ]
+    }
+  },
+  {
+    "definition": "PromptResponse",
+    "value": {
+      "messageId": "e-user-1"
+    }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "user_message",
+        "messageId": "e-user-1",
+        "content": [
+          {
+            "type": "text",
+            "text": "Hello"
+          }
+        ]
+      },
+      "_meta": {
+        "pirua.dev/projection": {
+          "epoch": "active-1",
+          "sequence": 1
+        }
+      }
+    }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "state_update",
+        "state": "running"
+      },
+      "_meta": {
+        "pirua.dev/projection": {
+          "epoch": "active-1",
+          "sequence": 2
+        }
+      }
+    }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "agent_message_chunk",
+        "messageId": "a1",
+        "content": {
+          "type": "text",
+          "text": "Hello back"
+        },
+        "_meta": {
+          "pirua.dev/render": {
+            "phase": "delta",
+            "nativeMessageId": "a1",
+            "contentIndex": 0,
+            "deltaType": "text_delta"
+          }
+        }
+      },
+      "_meta": {
+        "pirua.dev/projection": {
+          "epoch": "active-1",
+          "sequence": 3
+        }
+      }
+    }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "state_update",
+        "state": "idle",
+        "stopReason": "end_turn"
+      },
+      "_meta": {
+        "pirua.dev/projection": {
+          "epoch": "active-1",
+          "sequence": 4
+        }
+      }
+    }
+  },
+  {
+    "definition": "ResumeSessionRequest",
+    "value": {
+      "sessionId": "s1",
+      "cwd": "/workspace/project",
+      "replayFrom": {
+        "type": "start"
+      }
+    }
+  },
+  {
+    "definition": "SetSessionConfigOptionRequest",
+    "value": {
+      "sessionId": "s1",
+      "configId": "thinking",
+      "type": "id",
+      "value": "medium"
+    }
+  },
+  {
+    "definition": "UpdateSessionNotification",
+    "value": {
+      "sessionId": "s1",
+      "update": {
+        "sessionUpdate": "state_update",
+        "state": "idle",
+        "stopReason": "error",
+        "error": {
+          "code": -32603,
+          "message": "Fixture provider failure"
+        }
+      }
+    }
+  }
+]

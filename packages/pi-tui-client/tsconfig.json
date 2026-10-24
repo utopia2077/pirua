@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "exclude": [
+    "src/modes/interactive/components/config-selector.ts"
+  ],
+  "files": [
+    "src/main.ts",
+    "src/utils/highlight-js.d.ts"
+  ]
+}

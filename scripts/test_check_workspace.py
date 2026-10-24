@@ -116,12 +116,34 @@ class WorkspaceCheckerTests(unittest.TestCase):
                 node['deps'].append({'pkg': self.package(metadata, 'pi-coding-session')['id']})
             self.assert_rejected(self.validate(all_features=metadata), 'all-feature graph mismatch')
         metadata = copy.deepcopy(self.default)
+        # The application host deliberately selects the AI provider facade.
+        # Proxy transport remains an unselected optional edge in this profile.
+        pkg = self.package(metadata, 'pi-agent-loop')
+        node = next(n for n in metadata['resolve']['nodes'] if n['id'] == pkg['id'])
+        node['deps'].append({'pkg': self.package(self.all_features, 'pi-ai-transport')['id']})
+        self.assert_rejected(self.validate(default=metadata), 'default feature graph mismatch')
+
+    def test_application_selected_optional_edge_is_explicit_and_required(self):
+        topology = copy.deepcopy(self.topology)
+        edge = next(e for e in topology['edge']
+                    if (e['consumer'], e['dependency']) == ('pi-ai', 'pi-ai-providers'))
+        del edge['workspace_default']
+        self.assert_rejected(self.validate(topology=topology), 'default feature graph mismatch')
+        metadata = copy.deepcopy(self.default)
         pkg = self.package(metadata, 'pi-ai')
         node = next(n for n in metadata['resolve']['nodes'] if n['id'] == pkg['id'])
-        node['deps'].append({'pkg': self.package(self.all_features, 'pi-ai-providers')['id']})
-        if not any(p['name'] == 'pi-ai-providers' for p in metadata['packages']):
-            metadata['packages'].append(copy.deepcopy(self.package(self.all_features, 'pi-ai-providers')))
+        target = self.package(metadata, 'pi-ai-providers')['id']
+        node['deps'] = [d for d in node['deps'] if d['pkg'] != target]
         self.assert_rejected(self.validate(default=metadata), 'default feature graph mismatch')
+
+    def test_workspace_default_activation_requires_optional_boolean(self):
+        for required, value in ((True, True), (False, 'true')):
+            topology = copy.deepcopy(self.topology)
+            edge = next(e for e in topology['edge']
+                        if e['kind'] == ('required' if required else 'optional'))
+            edge['workspace_default'] = value
+            self.assert_rejected(self.validate(topology=topology),
+                                 'workspace_default must be a boolean on an optional edge')
 
     def test_unauthorized_direct_and_indirect_optional_feature_activation(self):
         for value in ('dep:pi-ai-transport', 'proxy'):

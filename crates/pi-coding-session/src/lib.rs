@@ -2,6 +2,8 @@
 //! This is ordinary saved conversation state, independent of a Durable task runtime.
 
 mod manager;
+mod observation;
+pub use observation::{HistoryChange, HistorySubscription};
 mod projection;
 mod store;
 mod types;

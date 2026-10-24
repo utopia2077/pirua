@@ -4776,6 +4776,26 @@
         },
         {
           "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:cancelled_system_admissions_emit_no_message_or_history_after_tool_normalization",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:active_system_admissions_keep_identity_and_initial_tool_declarations",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:rejected_system_admissions_keep_their_rejection_callback",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
+          "anchor": "test:explicit_continuation_drives_real_queues_from_empty_or_system_only_context",
+          "cargo_target": "native_lifecycle"
+        },
+        {
+          "path": "crates/pi-agent/tests/native_lifecycle.rs",
           "anchor": "test:awaited_end_listener_owns_busy_and_idle_until_acknowledged",
           "cargo_target": "native_lifecycle"
         },
@@ -5460,6 +5480,106 @@
           "cargo_target": "session_runtime"
         },
         {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::insertion_receipt_precedes_provider_completion_and_legacy_end_precedes_commit",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::duplicate_transformed_inputs_keep_exact_images_and_identity_in_both_queue_modes",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::clear_withdraws_only_the_actual_fifo_and_preserves_an_already_drained_input",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::tickets_resolve_handled_rejected_cancelled_unpolled_driver_and_disposal",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancel_before_insertion_and_drop_running_driver_resolve_without_stranding_ownership",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::failed_user_commit_never_inserts_or_leaves_provisional_context_but_assistant_failure_keeps_receipt",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::history_subscription_covers_runtime_mutations_shell_compaction_and_manager_replacement",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::history_snapshot_registration_is_atomic_with_concurrent_commit_and_drop_unregisters",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancelling_primary_during_start_transform_does_not_call_provider",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queued_start_transform_resolves_its_exact_ticket",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_rolls_back_its_real_admission",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_preserves_a_committed_inputs_exact_ticket",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::dropping_last_session_owner_resolves_queued_tickets_as_cancelled",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::dropping_during_legacy_message_end_discards_the_uncommitted_user_context",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancelling_a_preparing_request_does_not_abort_another_active_driver",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::explicit_continuation_drives_fresh_queues_without_implicit_start",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_tracked_message_end_discards_provisional_context_only_for_tracked_inputs",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancelling_queued_message_end_preserves_the_primary_driver_and_queued_sibling",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::default_tools_reach_the_first_native_read_cycle_without_duplicate_declarations",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::initial_tools_and_later_loadout_removal_stay_anchored_across_reopen",
+          "cargo_target": "session_runtime"
+        },
+        {
           "path": "crates/pi-coding-runtime/tests/session_source.rs",
           "anchor": "test:pinned_release_context_compaction_conversion_and_cache_cases",
           "cargo_target": "session_source"
@@ -5795,6 +5915,106 @@
         {
           "path": "crates/pi-coding-runtime/tests/session_runtime.rs",
           "anchor": "test:disposal_cancels_admitted_provider_and_callbacks_observe_closed_admission",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::insertion_receipt_precedes_provider_completion_and_legacy_end_precedes_commit",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::duplicate_transformed_inputs_keep_exact_images_and_identity_in_both_queue_modes",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::clear_withdraws_only_the_actual_fifo_and_preserves_an_already_drained_input",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::tickets_resolve_handled_rejected_cancelled_unpolled_driver_and_disposal",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancel_before_insertion_and_drop_running_driver_resolve_without_stranding_ownership",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::failed_user_commit_never_inserts_or_leaves_provisional_context_but_assistant_failure_keeps_receipt",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::history_subscription_covers_runtime_mutations_shell_compaction_and_manager_replacement",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::history_snapshot_registration_is_atomic_with_concurrent_commit_and_drop_unregisters",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancelling_primary_during_start_transform_does_not_call_provider",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queued_start_transform_resolves_its_exact_ticket",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_rolls_back_its_real_admission",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_queue_notification_preserves_a_committed_inputs_exact_ticket",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::dropping_last_session_owner_resolves_queued_tickets_as_cancelled",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::dropping_during_legacy_message_end_discards_the_uncommitted_user_context",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancelling_a_preparing_request_does_not_abort_another_active_driver",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::explicit_continuation_drives_fresh_queues_without_implicit_start",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::rejected_tracked_message_end_discards_provisional_context_only_for_tracked_inputs",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tracked_inputs.rs",
+          "anchor": "test:tracked_inputs::cancelling_queued_message_end_preserves_the_primary_driver_and_queued_sibling",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::default_tools_reach_the_first_native_read_cycle_without_duplicate_declarations",
+          "cargo_target": "session_runtime"
+        },
+        {
+          "path": "crates/pi-coding-runtime/tests/tool_context.rs",
+          "anchor": "test:tool_context::initial_tools_and_later_loadout_removal_stay_anchored_across_reopen",
           "cargo_target": "session_runtime"
         }
       ],

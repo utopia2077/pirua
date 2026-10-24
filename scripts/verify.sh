@@ -39,6 +39,7 @@ python3 scripts/check_workspace.py
 python3 scripts/check_publication.py --self-check
 python3 scripts/check_publication.py
 cargo fmt --all -- --check
+cargo check -p pi-ai -p pi-coding-runtime --no-default-features --all-targets --locked --offline
 cargo check --workspace --all-targets --locked --offline
 cargo check --workspace --all-targets --all-features --locked --offline
 cargo clippy --workspace --all-targets --locked --offline -- -D warnings
@@ -49,3 +50,4 @@ cargo test --workspace --doc --locked --offline
 cargo test --workspace --doc --all-features --locked --offline
 cargo doc --workspace --no-deps --document-private-items --locked --offline
 cargo doc --workspace --all-features --no-deps --document-private-items --locked --offline
+bash scripts/verify-tui.sh

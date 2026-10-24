@@ -16,3 +16,11 @@ skills-lock.json
 /orchestration/
 /private-development-records/
 /.artifacts/
+
+# Node terminal UI workspace artifacts
+node_modules/
+packages/pi-tui/dist/
+packages/pi-tui-client/dist/
+packages/pi-tui-client/coverage/
+packages/pi-tui-client/test-results/
+packages/pi-tui-client/*.log

@@ -315,6 +315,10 @@ def validate_topology(
         seen_edges.add(identity)
         if kind not in {"required", "optional"}:
             errors.append(f"invalid edge kind for {consumer} -> {dependency}: {kind}")
+        if "workspace_default" in edge and (
+            kind != "optional" or not isinstance(edge["workspace_default"], bool)
+        ):
+            errors.append(f"workspace_default must be a boolean on an optional edge: {identity}")
         if kind == "optional":
             selectors = [bool(edge.get("feature")), bool(edge.get("feature_group"))]
             if sum(selectors) != 1:

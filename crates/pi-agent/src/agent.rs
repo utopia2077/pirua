@@ -50,7 +50,7 @@ pub struct AgentState {
     pub error_message: Option<String>,
 }
 struct Queue {
-    messages: VecDeque<AgentMessage>,
+    messages: VecDeque<AdmittedMessage>,
     mode: QueueMode,
 }
 impl Queue {
@@ -60,9 +60,13 @@ impl Queue {
         } else {
             1
         };
-        self.messages.iter().take(count).cloned().collect()
+        self.messages
+            .iter()
+            .take(count)
+            .map(|m| m.message.clone())
+            .collect()
     }
-    fn drain(&mut self) -> Vec<AgentMessage> {
+    fn drain(&mut self) -> Vec<AdmittedMessage> {
         let count = if self.mode == QueueMode::All {
             self.messages.len()
         } else {
@@ -84,7 +88,7 @@ struct State {
 struct Inner {
     state: Mutex<State>,
     config: Mutex<AgentLoopConfig>,
-    listeners: Mutex<Vec<(u64, AgentEventSink)>>,
+    listeners: Mutex<Vec<(u64, InputEventSink)>>,
     listener_id: std::sync::atomic::AtomicU64,
 }
 
@@ -279,6 +283,10 @@ impl Agent {
     }
 
     pub fn subscribe(&self, listener: AgentEventSink) -> u64 {
+        self.subscribe_inputs(Arc::new(move |event, _, signal| listener(event, signal)))
+    }
+    /// Observe exact transient admission identity without changing AgentEvent serialization.
+    pub fn subscribe_inputs(&self, listener: InputEventSink) -> u64 {
         let id = self
             .inner
             .listener_id
@@ -305,7 +313,7 @@ impl Agent {
             .unwrap_or_else(|error| error.into_inner())
             .steering
             .messages
-            .push_back(message);
+            .push_back(message.into());
     }
     pub fn follow_up(&self, message: AgentMessage) {
         self.inner
@@ -314,7 +322,60 @@ impl Agent {
             .unwrap_or_else(|error| error.into_inner())
             .follow_up
             .messages
+            .push_back(message.into());
+    }
+    pub fn steer_input(&self, message: AdmittedMessage) {
+        self.inner
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .steering
+            .messages
             .push_back(message);
+    }
+    pub fn follow_up_input(&self, message: AdmittedMessage) {
+        self.inner
+            .state
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .follow_up
+            .messages
+            .push_back(message);
+    }
+    /// Returns the actual FIFO contents, including sidecars, independently of queue mode.
+    pub fn queued_inputs(&self) -> (Vec<AdmittedMessage>, Vec<AdmittedMessage>) {
+        let state = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
+        (
+            state.steering.messages.iter().cloned().collect(),
+            state.follow_up.messages.iter().cloned().collect(),
+        )
+    }
+    /// Withdraw only records that have not been drained into an executing loop.
+    pub fn take_queued_inputs(&self) -> (Vec<AdmittedMessage>, Vec<AdmittedMessage>) {
+        let mut state = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
+        (
+            state.steering.messages.drain(..).collect(),
+            state.follow_up.messages.drain(..).collect(),
+        )
+    }
+    pub fn remove_queued_input(&self, id: InputId) -> bool {
+        let mut state = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
+        let State {
+            steering,
+            follow_up,
+            ..
+        } = &mut *state;
+        for queue in [steering, follow_up] {
+            if let Some(index) = queue
+                .messages
+                .iter()
+                .position(|m| m.input.as_ref().is_some_and(|i| i.id == id))
+            {
+                queue.messages.remove(index);
+                return true;
+            }
+        }
+        false
     }
     pub fn set_steering_mode(&self, mode: QueueMode) {
         self.inner
@@ -457,6 +518,13 @@ impl Agent {
         &self,
         messages: Vec<AgentMessage>,
     ) -> Result<Vec<AgentMessage>, AgentError> {
+        self.run(Some(messages.into_iter().map(Into::into).collect()))
+            .await
+    }
+    pub async fn prompt_inputs(
+        &self,
+        messages: Vec<AdmittedMessage>,
+    ) -> Result<Vec<AgentMessage>, AgentError> {
         self.run(Some(messages)).await
     }
     pub async fn prompt_text(
@@ -491,12 +559,12 @@ impl Agent {
 
     async fn run(
         &self,
-        mut prompts: Option<Vec<AgentMessage>>,
+        mut prompts: Option<Vec<AdmittedMessage>>,
     ) -> Result<Vec<AgentMessage>, AgentError> {
         let mut skip_initial = false;
         let cancellation = CancellationToken::new();
         let (sender, receiver) = tokio::sync::watch::channel(false);
-        let (context, mut config) = {
+        let (context, config) = {
             let mut state = self
                 .inner
                 .state
@@ -506,22 +574,18 @@ impl Agent {
                 return Err(AgentError::Busy);
             }
             if prompts.is_none() {
-                if state.state.messages.is_empty()
+                let no_history = state.state.messages.is_empty()
                     || state
                         .state
                         .messages
                         .iter()
-                        .all(|message| message.role() == "system")
-                {
-                    return Err(AgentError::InvalidContext(
-                        "No messages to continue from".into(),
-                    ));
-                }
-                if state
-                    .state
-                    .messages
-                    .last()
-                    .is_some_and(|message| message.role() == "assistant")
+                        .all(|message| message.role() == "system");
+                if no_history
+                    || state
+                        .state
+                        .messages
+                        .last()
+                        .is_some_and(|message| message.role() == "assistant")
                 {
                     let steering = state.steering.drain();
                     if !steering.is_empty() {
@@ -531,7 +595,12 @@ impl Agent {
                         let follow = state.follow_up.drain();
                         if follow.is_empty() {
                             return Err(AgentError::InvalidContext(
-                                "Cannot continue from message role: assistant".into(),
+                                if no_history {
+                                    "No messages to continue from"
+                                } else {
+                                    "Cannot continue from message role: assistant"
+                                }
+                                .into(),
                             ));
                         }
                         prompts = Some(follow);
@@ -567,7 +636,7 @@ impl Agent {
         };
         let skip = Arc::new(std::sync::atomic::AtomicBool::new(skip_initial));
         let agent = self.clone();
-        config.get_steering_messages = Some(Arc::new(move || {
+        let steering: Option<PollInputs> = Some(Arc::new(move || {
             let (agent, skip) = (agent.clone(), skip.clone());
             Box::pin(async move {
                 if skip.swap(false, std::sync::atomic::Ordering::Relaxed) {
@@ -583,7 +652,7 @@ impl Agent {
             })
         }));
         let agent = self.clone();
-        config.get_follow_up_messages = Some(Arc::new(move || {
+        let follow_up: Option<PollInputs> = Some(Arc::new(move || {
             let agent = agent.clone();
             Box::pin(async move {
                 Ok(agent
@@ -600,12 +669,21 @@ impl Agent {
             let agent = agent.clone();
             Box::pin(async move { agent.process_event(event, cancellation).await })
         });
+        let agent = self.clone();
+        let inputs = InputLoopOptions {
+            steering,
+            follow_up,
+            events: Some(Arc::new(move |event, input, cancellation| {
+                let agent = agent.clone();
+                Box::pin(async move { agent.process_input_event(event, input, cancellation).await })
+            })),
+        };
         let message_hooks = config.message_hooks.clone();
         let result = std::panic::AssertUnwindSafe(async {
             if let Some(prompts) = prompts {
-                run_agent_loop(prompts, context, config, sink).await
+                run_agent_loop_with_inputs(prompts, context, config, sink, inputs).await
             } else {
-                run_agent_loop_continue(context, config, sink).await
+                run_agent_loop_continue_with_inputs(context, config, sink, inputs).await
             }
         })
         .catch_unwind()
@@ -656,6 +734,14 @@ impl Agent {
         event: AgentEvent,
         cancellation: CancellationToken,
     ) -> Result<(), AgentError> {
+        self.process_input_event(event, None, cancellation).await
+    }
+    async fn process_input_event(
+        &self,
+        event: AgentEvent,
+        input: Option<InputId>,
+        cancellation: CancellationToken,
+    ) -> Result<(), AgentError> {
         {
             let mut state = self
                 .inner
@@ -696,7 +782,7 @@ impl Agent {
             .unwrap_or_else(|error| error.into_inner())
             .clone();
         for (_, listener) in listeners {
-            listener(event.clone(), cancellation.clone()).await?;
+            listener(event.clone(), input, cancellation.clone()).await?;
         }
         Ok(())
     }

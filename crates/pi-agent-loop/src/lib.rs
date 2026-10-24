@@ -4,7 +4,7 @@ mod tools;
 mod types;
 pub use agent::{
     default_agent_identity, failure_message, provider_thinking, requested_thinking, run_agent_loop,
-    run_agent_loop_continue,
+    run_agent_loop_continue, run_agent_loop_continue_with_inputs, run_agent_loop_with_inputs,
 };
 pub use pi_agent_schema::*;
 pub use tools::{RunToolCallOptions, ToolUpdateSink, run_tool_call};

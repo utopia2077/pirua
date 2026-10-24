@@ -14,3 +14,4 @@ pi-sqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 ring.workspace = true
+tokio = { workspace = true, features = ["sync"] }

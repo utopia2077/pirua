@@ -1400,3 +1400,9 @@ fn disposal_cancels_admitted_provider_and_callbacks_observe_closed_admission() {
         assert!(reentered.load(Ordering::SeqCst));
     });
 }
+
+#[path = "tracked_inputs.rs"]
+mod tracked_inputs;
+
+#[path = "tool_context.rs"]
+mod tool_context;
