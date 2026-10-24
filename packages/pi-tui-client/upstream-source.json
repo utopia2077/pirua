@@ -675,7 +675,7 @@
       "source": "packages/coding-agent/src/modes/interactive/interactive-mode.ts",
       "destination": "packages/pi-tui-client/src/modes/interactive/interactive-mode.ts",
       "sha256": "fab51416b06840d4fc3b0ba4e50c292b5f022f29f6f7b2322274b7c245e1db70",
-      "outputSha256": "615c9dae12c9817d472e24ada6eef2f203dacf8fe3f6b269bca5ba601b168b7b",
+      "outputSha256": "98f23a6eeccceebe99de884886e3988e2aec4a874a0b3d2873f854ea22dd2ccb",
       "kind": "adapted"
     },
     {

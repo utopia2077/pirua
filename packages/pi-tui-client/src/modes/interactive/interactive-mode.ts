@@ -480,6 +480,8 @@ export class InteractiveMode {
 
 	// Track current bash execution component
 	private bashComponent: BashExecutionComponent | undefined = undefined;
+	// Retain a local shell row until a snapshot contains its canonical entry.
+	private bashSnapshotRow: { component: BashExecutionComponent; previousEntryIds: Set<string> } | undefined;
 
 	// Track pending bash components (shown in pending area, moved to chat on submit)
 	private pendingBashComponents: BashExecutionComponent[] = [];
@@ -560,6 +562,7 @@ export class InteractiveMode {
 		this.autoTrustOnReloadCwd = options.autoTrustOnReloadCwd;
 		this.runtimeHost.setBeforeSessionInvalidate(() => {
 			this.resetExtensionUI();
+			this.bashSnapshotRow = undefined;
 		});
 		this.runtimeHost.setRebindSession(async () => {
 			await this.rebindCurrentSession({ renderBeforeBind: true });
@@ -3093,6 +3096,14 @@ export class InteractiveMode {
 				// Status startup clears pending identities, so render canonical rows afterwards.
 				this.renderSessionEntries(event.entries, { updateFooter: true });
 				for (const active of event.activeEvents) await this.handleEvent(active);
+				if (this.bashSnapshotRow) {
+					const { component, previousEntryIds } = this.bashSnapshotRow;
+					const committed = event.entries.some(
+						(entry) => entry.type === "message" && entry.message.role === "bashExecution" && !previousEntryIds.has(entry.id),
+					);
+					if (committed) this.bashSnapshotRow = undefined;
+					else this.chatContainer.addChild(component);
+				}
 				if (event.activity.compacting) await this.handleEvent({ type: "compaction_start", reason: "manual" });
 				if (event.activity.retrying)
 					await this.handleEvent({
@@ -6014,6 +6025,10 @@ export class InteractiveMode {
 		} else {
 			// Show in chat immediately when agent is idle
 			this.chatContainer.addChild(this.bashComponent);
+			this.bashSnapshotRow = {
+				component: this.bashComponent,
+				previousEntryIds: new Set(this.sessionManager.getEntries().map((entry) => entry.id)),
+			};
 		}
 		this.ui.requestRender();
 
