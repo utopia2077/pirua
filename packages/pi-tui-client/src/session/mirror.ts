@@ -94,6 +94,9 @@ export class SessionProjection {
 	private lastSettlement: SessionSettlement | undefined;
 	private toolsStarted = new Set<string>();
 	private toolsEnded = new Set<string>();
+	private activeCompactionId: string | undefined;
+	private compactionRunning = false;
+	private compactionsEnded = new Set<string>();
 	private listeners = new Set<(event: AgentSessionEvent) => void>();
 	onResync: ((reason: string) => void) | undefined;
 	onTerminal: ((terminal: RecordValue) => void) | undefined;
@@ -125,8 +128,15 @@ export class SessionProjection {
 		const settlement = snapshot.state === "idle" ? this.snapshotSettlement(snapshot) : undefined;
 		this.lastSettlement = settlement;
 		const previousEpoch = this.value.epoch;
+		const coveredCompaction = this.snapshotCompactionOutcome(snapshot);
 		this.value = structuredClone(snapshot);
-		if (previousEpoch !== snapshot.epoch) this.predecessors.clear();
+		if (previousEpoch !== snapshot.epoch) {
+			this.predecessors.clear();
+			this.compactionsEnded.clear();
+			this.activeCompactionId = undefined;
+		}
+		this.compactionRunning = snapshot.activity.compacting;
+		if (!this.compactionRunning) this.activeCompactionId = undefined;
 		this.entities.clear();
 		this.assistants.clear();
 		this.ended.clear();
@@ -141,6 +151,11 @@ export class SessionProjection {
 			state: snapshot.state,
 			activity: structuredClone(snapshot.activity),
 		});
+		if (coveredCompaction) {
+			this.compactionRunning = true;
+			this.activeCompactionId = coveredCompaction.compactionId;
+			this.finishCompaction(coveredCompaction);
+		}
 		if (previousState !== "idle" && settlement) this.emit({ type: "agent_settled", ...settlement });
 		this.hydrating = false;
 		const buffered = this.buffered;
@@ -191,6 +206,33 @@ export class SessionProjection {
 			if (message.role === "user") return;
 		}
 		return retained;
+	}
+
+	private snapshotCompactionOutcome(snapshot: PiSnapshot): RecordValue | undefined {
+		if (this.value.epoch !== snapshot.epoch || snapshot.activity.compacting) return;
+		let activeId = this.activeCompactionId;
+		let running = this.compactionRunning;
+		let outcome: RecordValue | undefined;
+		// Covered standard updates can contain an entire operation, including its start.
+		for (const { method, params } of this.buffered) {
+			if (method !== "session/update" || params.sessionId !== snapshot.sessionId ||
+				params._meta?.[PROJECTION]?.epoch !== snapshot.epoch || !Number.isSafeInteger(params._meta[PROJECTION].sequence) ||
+				params._meta[PROJECTION].sequence > snapshot.sequence ||
+				params.update?.sessionUpdate !== "compaction_update") continue;
+			const update = params.update;
+			if (update.status === "in_progress") {
+				activeId = update.compactionId;
+				running = true;
+				outcome = undefined;
+			} else if (running && (!activeId || activeId === update.compactionId)) {
+				outcome = update;
+				running = false;
+			}
+		}
+		if (outcome) return outcome;
+		if (this.compactionRunning && this.activeCompactionId)
+			return snapshot.liveEntities.find((entity) => entity.sessionUpdate === "compaction_update" &&
+				entity.compactionId === this.activeCompactionId && entity.status !== "in_progress");
 	}
 
 	replayActive(): AgentSessionEvent[] {
@@ -277,12 +319,7 @@ export class SessionProjection {
 			});
 		if (params.changes?.thinkingLevel) this.emit({ type: "thinking_level_changed", level: next.thinkingLevel });
 		if (params.changes?.activity) {
-			if (!before.activity.compacting && next.activity.compacting)
-				this.emit({ type: "compaction_start", reason: "manual" });
-			if (before.activity.compacting && !next.activity.compacting) {
-				const entry = [...next.history.entries].reverse().find((e) => e.type === "compaction");
-				this.emit({ type: "compaction_end", reason: "manual", result: entry as any, aborted: false, willRetry: false });
-			}
+			if (!before.activity.compacting && next.activity.compacting) this.compactionRunning = true;
 			if (!before.activity.retrying && next.activity.retrying)
 				this.emit({
 					type: "auto_retry_start",
@@ -295,6 +332,38 @@ export class SessionProjection {
 				this.emit({ type: "auto_retry_end", success: next.state !== "idle", attempt: next.activity.retryAttempt });
 		}
 		return true;
+	}
+	private finishCompaction(entity: RecordValue): void {
+		const id = entity.compactionId;
+		if (
+			!this.compactionRunning ||
+			this.compactionsEnded.has(id) ||
+			(this.activeCompactionId && this.activeCompactionId !== id) ||
+			!["completed", "cancelled", "failed"].includes(entity.status)
+		)
+			return;
+		this.compactionsEnded.add(id);
+		this.compactionRunning = false;
+		this.activeCompactionId = undefined;
+		const entryId = entity._meta?.[RENDER]?.entryId ?? id;
+		const result =
+			entity.status === "completed"
+				? this.value.history.entries.find((entry) => entry.type === "compaction" && entry.id === entryId)
+				: undefined;
+		const errorMessage =
+			entity.status === "failed"
+				? ((typeof entity.error === "string" ? entity.error : entity.error?.message) ?? "Compaction failed")
+				: entity.status === "completed" && !result
+					? "Compaction completed without a matching committed result"
+					: undefined;
+		this.emit({
+			type: "compaction_end",
+			reason: "manual",
+			result: result as any,
+			aborted: entity.status === "cancelled",
+			errorMessage,
+			willRetry: false,
+		});
 	}
 	private update(update: RecordValue, emit: boolean): void {
 		if (!update || typeof update.sessionUpdate !== "string") throw new Error("Invalid ACP session update");
@@ -335,7 +404,7 @@ export class SessionProjection {
 		}
 		const chunk = kind.endsWith("_chunk");
 		const wholeKind = kind === "terminal_output_chunk" ? "terminal_update" : chunk ? kind.slice(0, -6) : kind;
-		const identity = update.messageId ?? update.toolCallId ?? update.terminalId;
+		const identity = update.messageId ?? update.toolCallId ?? update.terminalId ?? update.compactionId;
 		if (typeof identity !== "string") return;
 		const key = wholeKind + ":" + identity;
 		const previous = this.entities.get(key) ?? { sessionUpdate: wholeKind };
@@ -355,6 +424,15 @@ export class SessionProjection {
 		const storedMeta = entity._meta?.[RENDER] ?? {};
 		const chunkMeta = update._meta?.[RENDER] ?? {};
 		const meta = chunk ? { ...storedMeta, ...chunkMeta, message: chunkMeta.message } : storedMeta;
+		if (wholeKind === "compaction_update") {
+			if (entity.status === "in_progress") {
+				const started = this.activeCompactionId !== identity;
+				this.activeCompactionId = identity;
+				this.compactionRunning = true;
+				if (emit && started) this.emit({ type: "compaction_start", reason: "manual" });
+			} else if (emit) this.finishCompaction(entity);
+			return;
+		}
 		if (wholeKind === "user_message") {
 			if (emit && !previous.messageId)
 				this.emit({

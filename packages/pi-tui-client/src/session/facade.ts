@@ -276,11 +276,18 @@ export class TuiSession {
 		});
 	}
 	async compact(instructions?: string): Promise<CompactionResult | undefined> {
-		await this.prompt("/compact" + (instructions ? " " + instructions : ""));
-		await this.waitForIdle();
-		await this.refresh();
-		const e = [...this.projection.value.history.entries].reverse().find((e) => e.type === "compaction");
-		return e as CompactionResult | undefined;
+		let result: CompactionResult | undefined;
+		const unsubscribe = this.projection.subscribe((event) => {
+			if (event.type === "compaction_end") result = event.result;
+		});
+		try {
+			await this.prompt("/compact" + (instructions ? " " + instructions : ""));
+			await this.waitForIdle();
+			await this.refresh();
+			return result;
+		} finally {
+			unsubscribe();
+		}
 	}
 	async navigateTree(targetId: string, input: RecordValue = {}): Promise<SessionChange> {
 		this.host.require("tree");
